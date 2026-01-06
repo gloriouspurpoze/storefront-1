@@ -1,0 +1,266 @@
+import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit'
+import { AuthService } from '../../services/api'
+import type { User } from '../../types'
+
+interface AuthState {
+  user: User | null
+  isAuthenticated: boolean
+  isLoading: boolean
+  token: string | null
+  refreshToken: string | null
+  tokenExpiry: number | null
+  error: string | null
+  lastLogin: string | null
+}
+
+const initialState: AuthState = {
+  user: null,
+  isAuthenticated: false,
+  isLoading: false,
+  token: null,
+  refreshToken: null,
+  tokenExpiry: null,
+  error: null,
+  lastLogin: null,
+}
+
+// Async thunks for API calls
+export const loginUser = createAsyncThunk(
+  'auth/loginUser',
+  async (credentials: { email: string; password: string; rememberMe?: boolean }) => {
+    const response = await AuthService.login(credentials)
+    return response.data
+  }
+)
+
+export const registerUser = createAsyncThunk(
+  'auth/registerUser',
+  async (userData: any) => {
+    const response = await AuthService.register(userData)
+    return response.data
+  }
+)
+
+export const logoutUser = createAsyncThunk(
+  'auth/logoutUser',
+  async () => {
+    await AuthService.logout()
+  }
+)
+
+// DISABLED: Auto refresh token functionality (commented out for now)
+/*
+export const refreshAuthToken = createAsyncThunk(
+  'auth/refreshToken',
+  async (refreshToken: string) => {
+    const response = await AuthService.refreshToken(refreshToken)
+    console.log('Refresh Token Response:', response)
+    return response.data
+  }
+)
+*/
+
+export const getUserProfile = createAsyncThunk(
+  'auth/getProfile',
+  async () => {
+    const response = await AuthService.getProfile()
+    return response.data
+  }
+)
+
+export const updateUserProfile = createAsyncThunk(
+  'auth/updateProfile',
+  async (userData: any) => {
+    const response = await AuthService.updateProfile(userData)
+    return response.data
+  }
+)
+
+const authSlice = createSlice({
+  name: 'auth',
+  initialState,
+  reducers: {
+    setCredentials: (state, action: PayloadAction<{ user: User; token: string; refreshToken?: string }>) => {
+      state.user = action.payload.user
+      state.token = action.payload.token
+      state.refreshToken = action.payload.refreshToken || null
+      state.isAuthenticated = true
+      state.error = null
+      state.lastLogin = new Date().toISOString()
+      
+      // Set token expiry (30 days for access token)
+      if (action.payload.token) {
+        state.tokenExpiry = Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 days
+      }
+    },
+    logout: (state) => {
+      state.user = null
+      state.token = null
+      state.refreshToken = null
+      state.isAuthenticated = false
+      state.tokenExpiry = null
+      state.error = null
+      state.lastLogin = null
+    },
+    clearError: (state) => {
+      state.error = null
+    },
+    updateUser: (state, action: PayloadAction<any>) => {
+      if (state.user) {
+        state.user = { ...state.user, ...action.payload }
+      }
+    },
+    setTokens: (state, action: PayloadAction<{ token: string; refreshToken: string }>) => {
+      state.token = action.payload.token
+      state.refreshToken = action.payload.refreshToken
+      state.tokenExpiry = Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 days
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      // Login
+      .addCase(loginUser.pending, (state) => {
+        state.isLoading = true
+        state.error = null
+      })
+      .addCase(loginUser.fulfilled, (state, action) => {
+        state.isLoading = false
+        
+        // Transform backend response (snake_case) to frontend format (camelCase)
+        const backendUser = action.payload.user as any
+        state.user = {
+          id: backendUser.id,
+          email: backendUser.email,
+          firstName: backendUser.first_name || backendUser.firstName,
+          lastName: backendUser.last_name || backendUser.lastName,
+          phone: backendUser.phone,
+          userType: backendUser.user_type || backendUser.userType, // Transform snake_case to camelCase
+          isVerified: backendUser.is_verified || backendUser.isVerified,
+          profilePicture: backendUser.profile_picture || backendUser.profilePicture,
+          createdAt: backendUser.created_at || backendUser.createdAt || new Date().toISOString(),
+          updatedAt: backendUser.updated_at || backendUser.updatedAt,
+        } as User
+        
+        // Handle tokens from nested tokens object
+        state.token = action.payload.tokens?.accessToken || action.payload.token
+        state.refreshToken = action.payload.tokens?.refreshToken || action.payload.refreshToken
+        state.isAuthenticated = true
+        state.error = null
+        state.lastLogin = new Date().toISOString()
+        state.tokenExpiry = Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 days
+        
+        if (state.user) {
+          console.log('✅ Auth State Updated:', {
+            userType: state.user.userType,
+            email: state.user.email,
+            isAuthenticated: state.isAuthenticated
+          })
+        }
+      })
+      .addCase(loginUser.rejected, (state, action) => {
+        state.isLoading = false
+        state.error = action.error.message || 'Login failed'
+      })
+      
+      // Register
+      .addCase(registerUser.pending, (state) => {
+        state.isLoading = true
+        state.error = null
+      })
+      .addCase(registerUser.fulfilled, (state, action) => {
+        state.isLoading = false
+        
+        // Transform backend response (snake_case) to frontend format (camelCase)
+        const backendUser = action.payload.user as any
+        state.user = {
+          id: backendUser.id,
+          email: backendUser.email,
+          firstName: backendUser.first_name || backendUser.firstName,
+          lastName: backendUser.last_name || backendUser.lastName,
+          phone: backendUser.phone,
+          userType: backendUser.user_type || backendUser.userType,
+          isVerified: backendUser.is_verified || backendUser.isVerified,
+          profilePicture: backendUser.profile_picture || backendUser.profilePicture,
+          createdAt: backendUser.created_at || backendUser.createdAt || new Date().toISOString(),
+          updatedAt: backendUser.updated_at || backendUser.updatedAt,
+        } as User
+        
+        // Handle tokens from nested tokens object
+        state.token = action.payload.tokens?.accessToken || action.payload.token
+        state.refreshToken = action.payload.tokens?.refreshToken || action.payload.refreshToken
+        state.isAuthenticated = true
+        state.error = null
+        state.lastLogin = new Date().toISOString()
+        state.tokenExpiry = Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 days
+      })
+      .addCase(registerUser.rejected, (state, action) => {
+        state.isLoading = false
+        state.error = action.error.message || 'Registration failed'
+      })
+      
+      // Logout
+      .addCase(logoutUser.fulfilled, (state) => {
+        state.user = null
+        state.token = null
+        state.refreshToken = null
+        state.isAuthenticated = false
+        state.tokenExpiry = null
+        state.error = null
+        state.lastLogin = null
+      })
+      
+      // DISABLED: Auto refresh token functionality (commented out for now)
+      /*
+      // Refresh token
+      .addCase(refreshAuthToken.fulfilled, (state, action) => {
+        state.token = action.payload.tokens?.accessToken || action.payload.token
+        state.tokenExpiry = Date.now() + (60 * 60 * 1000) // 1 hour
+      })
+      */
+      
+      // Get profile
+      .addCase(getUserProfile.fulfilled, (state, action) => {
+        // Transform backend response
+        const backendUser = action.payload as any
+        state.user = {
+          id: backendUser.id,
+          email: backendUser.email,
+          firstName: backendUser.first_name || backendUser.firstName,
+          lastName: backendUser.last_name || backendUser.lastName,
+          phone: backendUser.phone,
+          userType: backendUser.user_type || backendUser.userType,
+          isVerified: backendUser.is_verified || backendUser.isVerified,
+          profilePicture: backendUser.profile_picture || backendUser.profilePicture,
+          createdAt: backendUser.created_at || backendUser.createdAt || new Date().toISOString(),
+          updatedAt: backendUser.updated_at || backendUser.updatedAt,
+        } as User
+      })
+      
+      // Update profile
+      .addCase(updateUserProfile.fulfilled, (state, action) => {
+        // Transform backend response
+        const backendUser = action.payload as any
+        state.user = {
+          id: backendUser.id,
+          email: backendUser.email,
+          firstName: backendUser.first_name || backendUser.firstName,
+          lastName: backendUser.last_name || backendUser.lastName,
+          phone: backendUser.phone,
+          userType: backendUser.user_type || backendUser.userType,
+          isVerified: backendUser.is_verified || backendUser.isVerified,
+          profilePicture: backendUser.profile_picture || backendUser.profilePicture,
+          createdAt: backendUser.created_at || backendUser.createdAt || new Date().toISOString(),
+          updatedAt: backendUser.updated_at || backendUser.updatedAt,
+        } as User
+      })
+  },
+})
+
+export const { 
+  setCredentials, 
+  logout, 
+  clearError, 
+  updateUser, 
+  setTokens 
+} = authSlice.actions
+export default authSlice.reducer

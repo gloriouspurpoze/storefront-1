@@ -1,0 +1,592 @@
+{
+  "categories": [
+    {
+      "id": 1,
+      "name": "Home Improvement",
+      "description": "Tools and materials for home improvement projects",
+      "parent_id": null,
+      "image": "https://images.unsplash.com/photo-1581578731548-c6a0c3f2f4fb?w=500",
+      "is_active": true,
+      "sort_order": 1,
+      "subcategories": [
+        {
+          "id": 2,
+          "name": "Plumbing",
+          "description": "Plumbing tools, fixtures, and accessories",
+          "parent_id": 1,
+          "image": "https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?w=500",
+          "is_active": true,
+          "sort_order": 1
+        },
+        {
+          "id": 3,
+          "name": "Electrical",
+          "description": "Electrical tools, components, and safety equipment",
+          "parent_id": 1,
+          "image": "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=500",
+          "is_active": true,
+          "sort_order": 2
+        },
+        {
+          "id": 4,
+          "name": "HVAC",
+          "description": "Heating, ventilation, and air conditioning equipment",
+          "parent_id": 1,
+          "image": "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=500",
+          "is_active": true,
+          "sort_order": 3
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Cleaning",
+      "description": "Cleaning supplies and equipment",
+      "parent_id": null,
+      "image": "https://images.unsplash.com/photo-1581578731548-c6a0c3f2f4fb?w=500",
+      "is_active": true,
+      "sort_order": 2
+    },
+    {
+      "id": 6,
+      "name": "Garden & Outdoor",
+      "description": "Garden tools, outdoor equipment, and landscaping supplies",
+      "parent_id": null,
+      "image": "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=500",
+      "is_active": true,
+      "sort_order": 3
+    },
+    {
+      "id": 7,
+      "name": "Security",
+      "description": "Home security systems and safety equipment",
+      "parent_id": null,
+      "image": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500",
+      "is_active": true,
+      "sort_order": 4
+    },
+    {
+      "id": 8,
+      "name": "Furniture",
+      "description": "Home and office furniture",
+      "parent_id": null,
+      "image": "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=500",
+      "is_active": true,
+      "sort_order": 5
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "name": "Professional Pipe Wrench Set",
+      "description": "Heavy-duty pipe wrench set with 6 different sizes for all plumbing needs. Made from high-grade steel with comfortable grips.",
+      "price": 89.99,
+      "original_price": 129.99,
+      "sku": "PLUMB-WRENCH-001",
+      "stock_quantity": 50,
+      "images": [
+        "https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?w=800",
+        "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=800"
+      ],
+      "specifications": {
+        "material": "High-grade steel",
+        "sizes": ["8 inch", "10 inch", "12 inch", "14 inch", "16 inch", "18 inch"],
+        "weight": "2.5 lbs",
+        "warranty": "2 years"
+      },
+      "is_active": true,
+      "is_featured": true,
+      "weight": 2.5,
+      "dimensions": { "length": 18, "width": 4, "height": 2 },
+      "tags": ["plumbing", "tools", "wrench", "professional"],
+      "category_id": 2,
+      "provider_id": 1,
+      "rating": 4.8,
+      "review_count": 24
+    },
+    {
+      "id": 2,
+      "name": "Smart Touchless Faucet",
+      "description": "Modern touchless kitchen faucet with motion sensor technology. Saves water and provides convenience with hands-free operation.",
+      "price": 299.99,
+      "original_price": 399.99,
+      "sku": "PLUMB-FAUCET-002",
+      "stock_quantity": 25,
+      "images": [
+        "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=800",
+        "https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?w=800"
+      ],
+      "specifications": {
+        "finish": "Chrome",
+        "installation": "Single hole",
+        "flow_rate": "1.8 GPM",
+        "power": "Battery operated",
+        "warranty": "5 years"
+      },
+      "is_active": true,
+      "is_featured": true,
+      "weight": 3.2,
+      "dimensions": { "length": 12, "width": 6, "height": 8 },
+      "tags": ["faucet", "smart", "touchless", "kitchen"],
+      "category_id": 2,
+      "provider_id": 1,
+      "rating": 4.9,
+      "review_count": 18
+    },
+    {
+      "id": 3,
+      "name": "LED Recessed Light Kit",
+      "description": "Energy-efficient LED recessed light kit with dimmable functionality. Easy installation with included mounting hardware.",
+      "price": 79.99,
+      "original_price": 99.99,
+      "sku": "ELEC-LED-001",
+      "stock_quantity": 100,
+      "images": [
+        "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800"
+      ],
+      "specifications": {
+        "wattage": "12W",
+        "lumens": "1100",
+        "color_temp": "3000K-5000K",
+        "dimmable": "Yes",
+        "warranty": "5 years"
+      },
+      "is_active": true,
+      "is_featured": true,
+      "weight": 1.2,
+      "dimensions": { "length": 6, "width": 6, "height": 3 },
+      "tags": ["led", "recessed", "dimmable", "energy-efficient"],
+      "category_id": 3,
+      "provider_id": 2,
+      "rating": 4.7,
+      "review_count": 32
+    },
+    {
+      "id": 4,
+      "name": "Smart Thermostat",
+      "description": "WiFi-enabled smart thermostat with learning capabilities and energy savings features. Compatible with most HVAC systems.",
+      "price": 199.99,
+      "original_price": 249.99,
+      "sku": "HVAC-THERM-001",
+      "stock_quantity": 40,
+      "images": [
+        "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=800"
+      ],
+      "specifications": {
+        "display": "Color touchscreen",
+        "wifi": "Yes",
+        "learning": "Yes",
+        "compatibility": "Most HVAC systems",
+        "warranty": "3 years"
+      },
+      "is_active": true,
+      "is_featured": true,
+      "weight": 0.8,
+      "dimensions": { "length": 4, "width": 4, "height": 1 },
+      "tags": ["thermostat", "smart", "wifi", "energy-saving"],
+      "category_id": 4,
+      "provider_id": 3,
+      "rating": 4.9,
+      "review_count": 45
+    },
+    {
+      "id": 5,
+      "name": "Robot Vacuum Cleaner",
+      "description": "Smart robot vacuum with WiFi connectivity and app control. Self-emptying base and advanced mapping technology.",
+      "price": 599.99,
+      "original_price": 799.99,
+      "sku": "CLEAN-ROBOT-001",
+      "stock_quantity": 15,
+      "images": [
+        "https://images.unsplash.com/photo-1581578731548-c6a0c3f2f4fb?w=800"
+      ],
+      "specifications": {
+        "suction_power": "2000Pa",
+        "battery": "90 minutes runtime",
+        "wifi": "Yes",
+        "self_empty": "Yes",
+        "warranty": "2 years"
+      },
+      "is_active": true,
+      "is_featured": true,
+      "weight": 8.5,
+      "dimensions": { "length": 13, "width": 13, "height": 4 },
+      "tags": ["robot-vacuum", "smart", "wifi", "self-empty"],
+      "category_id": 5,
+      "provider_id": 4,
+      "rating": 4.6,
+      "review_count": 28
+    }
+  ],
+  "serviceTypes": [
+    {
+      "id": 1,
+      "name": "Plumbing Services",
+      "description": "Professional plumbing installation, repair, and maintenance",
+      "category": "plumbing",
+      "icon": "🔧",
+      "is_active": true,
+      "average_price": 200,
+      "service_count": 45
+    },
+    {
+      "id": 2,
+      "name": "Electrical Services",
+      "description": "Electrical installation, repair, and safety inspections",
+      "category": "electrical",
+      "icon": "⚡",
+      "is_active": true,
+      "average_price": 300,
+      "service_count": 38
+    },
+    {
+      "id": 3,
+      "name": "HVAC Services",
+      "description": "Heating, ventilation, and air conditioning services",
+      "category": "hvac",
+      "icon": "🌡️",
+      "is_active": true,
+      "average_price": 400,
+      "service_count": 32
+    },
+    {
+      "id": 4,
+      "name": "Cleaning Services",
+      "description": "Residential and commercial cleaning services",
+      "category": "cleaning",
+      "icon": "🧹",
+      "is_active": true,
+      "average_price": 150,
+      "service_count": 67
+    },
+    {
+      "id": 5,
+      "name": "Garden & Landscaping",
+      "description": "Garden maintenance, landscaping, and outdoor services",
+      "category": "garden",
+      "icon": "🌱",
+      "is_active": true,
+      "average_price": 180,
+      "service_count": 29
+    },
+    {
+      "id": 6,
+      "name": "Home Security",
+      "description": "Security system installation and monitoring services",
+      "category": "security",
+      "icon": "🔒",
+      "is_active": true,
+      "average_price": 800,
+      "service_count": 15
+    }
+  ],
+  "serviceProviders": [
+    {
+      "id": 1,
+      "business_name": "Elite Plumbing Solutions",
+      "business_license": "PLB-2024-001",
+      "services_offered": ["plumbing", "water-heater-installation", "drain-cleaning", "pipe-repair"],
+      "service_areas": ["New York", "Brooklyn", "Queens", "Manhattan"],
+      "verification_status": "verified",
+      "rating": 4.8,
+      "total_reviews": 156,
+      "years_experience": 12,
+      "bio": "Professional plumbing services with 12+ years of experience. Specializing in emergency repairs, installations, and maintenance.",
+      "user": {
+        "id": 1,
+        "email": "elite.plumbing@fixer.com",
+        "phone": "+1-555-1001",
+        "first_name": "Mike",
+        "last_name": "Johnson",
+        "profile_picture": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400",
+        "is_verified": true,
+        "user_type": "provider"
+      }
+    },
+    {
+      "id": 2,
+      "business_name": "Bright Electric Co.",
+      "business_license": "ELC-2024-002",
+      "services_offered": ["electrical", "wiring", "outlet-installation", "panel-upgrade"],
+      "service_areas": ["Los Angeles", "Beverly Hills", "Santa Monica", "Pasadena"],
+      "verification_status": "verified",
+      "rating": 4.9,
+      "total_reviews": 203,
+      "years_experience": 15,
+      "bio": "Licensed electrical contractors providing safe and reliable electrical services for residential and commercial properties.",
+      "user": {
+        "id": 2,
+        "email": "bright.electric@fixer.com",
+        "phone": "+1-555-1002",
+        "first_name": "David",
+        "last_name": "Chen",
+        "profile_picture": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400",
+        "is_verified": true,
+        "user_type": "provider"
+      }
+    },
+    {
+      "id": 3,
+      "business_name": "Cool Comfort HVAC",
+      "business_license": "HVAC-2024-003",
+      "services_offered": ["hvac", "air-conditioning", "heating", "duct-cleaning"],
+      "service_areas": ["Chicago", "Evanston", "Oak Park", "Skokie"],
+      "verification_status": "verified",
+      "rating": 4.7,
+      "total_reviews": 89,
+      "years_experience": 8,
+      "bio": "Full-service HVAC company specializing in installation, repair, and maintenance of heating and cooling systems.",
+      "user": {
+        "id": 3,
+        "email": "cool.comfort@fixer.com",
+        "phone": "+1-555-1003",
+        "first_name": "Robert",
+        "last_name": "Martinez",
+        "profile_picture": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400",
+        "is_verified": true,
+        "user_type": "provider"
+      }
+    }
+  ],
+  "serviceRequests": [
+    {
+      "id": 1,
+      "customer_id": 1,
+      "service_type": "plumbing",
+      "title": "Kitchen Sink Leak Repair",
+      "description": "Kitchen sink has been leaking under the cabinet for the past few days. Water is pooling and causing damage to the wood. Need urgent repair.",
+      "location": {
+        "address": "123 Main Street, Apt 4B",
+        "city": "New York",
+        "state": "NY",
+        "zip_code": "10001",
+        "coordinates": { "lat": 40.7589, "lng": -73.9851 }
+      },
+      "urgency": "high",
+      "status": "open",
+      "budget_min": 150,
+      "budget_max": 300,
+      "preferred_date": "2024-01-15T10:00:00Z",
+      "images": ["https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?w=800"],
+      "created_at": "2024-01-10T08:30:00Z",
+      "quotes_count": 3
+    },
+    {
+      "id": 2,
+      "customer_id": 2,
+      "service_type": "electrical",
+      "title": "Install New Light Fixtures",
+      "description": "Need to install 3 new pendant lights in the kitchen and replace 2 ceiling fans in the bedrooms. All wiring is already in place.",
+      "location": {
+        "address": "456 Oak Avenue",
+        "city": "Los Angeles",
+        "state": "CA",
+        "zip_code": "90210",
+        "coordinates": { "lat": 34.0522, "lng": -118.2437 }
+      },
+      "urgency": "medium",
+      "status": "quoted",
+      "budget_min": 200,
+      "budget_max": 500,
+      "preferred_date": "2024-01-18T14:00:00Z",
+      "images": ["https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800"],
+      "created_at": "2024-01-12T09:15:00Z",
+      "quotes_count": 2
+    },
+    {
+      "id": 3,
+      "customer_id": 3,
+      "service_type": "hvac",
+      "title": "AC Unit Not Cooling",
+      "description": "Central air conditioning unit is running but not producing cold air. Filter was recently changed. Need diagnosis and repair.",
+      "location": {
+        "address": "789 Pine Street",
+        "city": "Chicago",
+        "state": "IL",
+        "zip_code": "60601",
+        "coordinates": { "lat": 41.8781, "lng": -87.6298 }
+      },
+      "urgency": "high",
+      "status": "booked",
+      "budget_min": 300,
+      "budget_max": 800,
+      "preferred_date": "2024-01-14T11:00:00Z",
+      "images": ["https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=800"],
+      "created_at": "2024-01-11T16:45:00Z",
+      "quotes_count": 4
+    }
+  ],
+  "quotes": [
+    {
+      "id": 1,
+      "service_request_id": 1,
+      "provider_id": 1,
+      "amount": 250.00,
+      "notes": "Kitchen sink leak repair includes replacing the shut-off valve and fixing the connection. Estimated time: 2-3 hours.",
+      "status": "pending",
+      "valid_until": "2024-01-22T23:59:59Z",
+      "created_at": "2024-01-10T10:30:00Z"
+    },
+    {
+      "id": 2,
+      "service_request_id": 1,
+      "provider_id": 2,
+      "amount": 180.00,
+      "notes": "Quick fix for the kitchen sink leak. Will replace the washer and tighten connections. 1-2 hour job.",
+      "status": "pending",
+      "valid_until": "2024-01-20T23:59:59Z",
+      "created_at": "2024-01-10T11:15:00Z"
+    },
+    {
+      "id": 3,
+      "service_request_id": 2,
+      "provider_id": 2,
+      "amount": 350.00,
+      "notes": "Complete electrical work for 3 pendant lights and 2 ceiling fans. Includes installation and testing. Professional grade materials.",
+      "status": "accepted",
+      "valid_until": "2024-01-25T23:59:59Z",
+      "created_at": "2024-01-12T10:00:00Z"
+    }
+  ],
+  "bookings": [
+    {
+      "id": 1,
+      "service_request_id": 1,
+      "quote_id": 1,
+      "provider_id": 1,
+      "customer_id": 1,
+      "scheduled_time": "2024-01-15T10:00:00Z",
+      "status": "scheduled",
+      "total_amount": 250.00,
+      "notes": "Please call 30 minutes before arrival. Gate code: 1234",
+      "created_at": "2024-01-10T12:00:00Z"
+    },
+    {
+      "id": 2,
+      "service_request_id": 2,
+      "quote_id": 3,
+      "provider_id": 2,
+      "customer_id": 2,
+      "scheduled_time": "2024-01-18T14:00:00Z",
+      "status": "scheduled",
+      "total_amount": 350.00,
+      "notes": "Customer prefers morning appointment. Will need access to electrical panel.",
+      "created_at": "2024-01-12T11:30:00Z"
+    }
+  ],
+  "reviews": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "product_id": 1,
+      "rating": 5,
+      "title": "Excellent Quality",
+      "comment": "Great product, exactly as described! The wrenches are sturdy and well-made.",
+      "is_verified": true,
+      "helpful_count": 8,
+      "created_at": "2024-01-05T14:30:00Z"
+    },
+    {
+      "id": 2,
+      "user_id": 2,
+      "product_id": 2,
+      "rating": 4,
+      "title": "Smart and Convenient",
+      "comment": "The touchless faucet works great. Installation was straightforward and it saves water.",
+      "is_verified": true,
+      "helpful_count": 12,
+      "created_at": "2024-01-08T09:15:00Z"
+    }
+  ],
+  "users": [
+    {
+      "id": 1,
+      "email": "admin@fixer.com",
+      "phone": "+1-555-0001",
+      "first_name": "Admin",
+      "last_name": "User",
+      "profile_picture": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400",
+      "is_verified": true,
+      "user_type": "admin",
+      "created_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": 2,
+      "email": "customer@fixer.com",
+      "phone": "+1-555-0002",
+      "first_name": "John",
+      "last_name": "Doe",
+      "profile_picture": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400",
+      "is_verified": true,
+      "user_type": "customer",
+      "created_at": "2024-01-02T00:00:00Z"
+    },
+    {
+      "id": 3,
+      "email": "customer2@fixer.com",
+      "phone": "+1-555-0003",
+      "first_name": "Jane",
+      "last_name": "Smith",
+      "profile_picture": "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=400",
+      "is_verified": true,
+      "user_type": "customer",
+      "created_at": "2024-01-03T00:00:00Z"
+    }
+  ],
+  "analytics": {
+    "totalProducts": 25,
+    "totalCategories": 8,
+    "totalServiceProviders": 15,
+    "totalServiceRequests": 12,
+    "totalQuotes": 22,
+    "totalBookings": 12,
+    "totalUsers": 32,
+    "totalRevenue": 15420.50,
+    "averageOrderValue": 285.75,
+    "topSellingCategories": [
+      { "name": "Plumbing", "count": 8, "revenue": 3200.00 },
+      { "name": "Electrical", "count": 6, "revenue": 2800.00 },
+      { "name": "Cleaning", "count": 5, "revenue": 1200.00 }
+    ],
+    "recentActivity": [
+      {
+        "type": "new_booking",
+        "message": "New booking scheduled for plumbing service",
+        "timestamp": "2024-01-14T10:30:00Z"
+      },
+      {
+        "type": "quote_accepted",
+        "message": "Quote accepted for electrical work",
+        "timestamp": "2024-01-14T09:15:00Z"
+      },
+      {
+        "type": "new_service_request",
+        "message": "New service request for HVAC repair",
+        "timestamp": "2024-01-14T08:45:00Z"
+      }
+    ],
+    "monthlyRevenue": [
+      { "month": "Jan", "revenue": 15420.50 },
+      { "month": "Feb", "revenue": 18230.75 },
+      { "month": "Mar", "revenue": 16890.25 },
+      { "month": "Apr", "revenue": 19540.00 },
+      { "month": "May", "revenue": 22100.50 },
+      { "month": "Jun", "revenue": 20875.25 }
+    ],
+    "serviceRequestStats": {
+      "open": 3,
+      "quoted": 4,
+      "booked": 2,
+      "in_progress": 1,
+      "completed": 8,
+      "cancelled": 1
+    },
+    "providerStats": {
+      "verified": 12,
+      "pending": 2,
+      "rejected": 1,
+      "averageRating": 4.7,
+      "totalReviews": 456
+    }
+  }
+}

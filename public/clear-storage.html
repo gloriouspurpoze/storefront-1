@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Storage - Fixer Admin</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .container {
+            background: white;
+            padding: 3rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            text-align: center;
+            max-width: 500px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+        p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .success {
+            color: #10b981;
+            font-weight: bold;
+            margin-top: 1rem;
+            display: none;
+        }
+        .code {
+            background: #f3f4f6;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 1rem 0;
+            color: #1f2937;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Clear Browser Storage</h1>
+        <p>This will clear all localStorage data including old snake_case user data. You'll need to login again after this.</p>
+        
+        <div class="code">localStorage.clear()</div>
+        
+        <button onclick="clearStorage()">Clear Storage Now</button>
+        
+        <div class="success" id="success">
+            ✅ Storage cleared successfully!<br>
+            Redirecting to login...
+        </div>
+    </div>
+
+    <script>
+        function clearStorage() {
+            try {
+                localStorage.clear();
+                sessionStorage.clear();
+                document.getElementById('success').style.display = 'block';
+                
+                setTimeout(() => {
+                    window.location.href = '/auth';
+                }, 2000);
+            } catch (error) {
+                alert('Error clearing storage: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>
