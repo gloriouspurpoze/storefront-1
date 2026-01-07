@@ -66,7 +66,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "TSC_COMPILE_ON_ERROR=true DISABLE_ESLINT_PLUGIN=true NODE_OPTIONS=--max-old-space-size=8192 GENERATE_SOURCEMAP=false react-scripts build",
+    "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "storybook": "storybook dev -p 6006",
