@@ -118,13 +118,28 @@ const professionalNavigationGroups = [
     items: [
       { name: 'My Bookings', href: '/professional/bookings', icon: CalendarIcon },
       { name: 'My Earnings', href: '/professional/earnings', icon: DollarSignIcon },
+      { name: 'My Services', href: '/professional/services', icon: WrenchIcon },
       { name: 'My Profile', href: '/professional/profile', icon: PersonIcon },
     ]
   },
   {
-    title: 'Support',
+    title: 'Professional',
     items: [
+      { name: 'Reviews & Ratings', href: '/professional/reviews', icon: StarIcon },
+      { name: 'Documents', href: '/professional/documents', icon: DescriptionIcon },
+    ]
+  },
+  {
+    title: 'Communication',
+    items: [
+      { name: 'Chat', href: '/chat', icon: ChatIcon },
       { name: 'Messages', href: '/messages', icon: MessageIcon },
+    ]
+  },
+  {
+    title: 'Settings',
+    items: [
+      { name: 'Settings', href: '/professional/settings', icon: SettingsIcon },
       { name: 'Help & Support', href: '/support', icon: SupportIcon },
     ]
   }

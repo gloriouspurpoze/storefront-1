@@ -60,7 +60,25 @@ import {
   Receipt,
   Info,
   Refresh,
-} from '@mui/icons-material';
+  Download as DownloadIcon,
+  FileDownload,
+  CalendarToday,
+} from '@mui/icons-material'
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts';
 import { apiClient } from '../../services/apiClient';
 import { useAppDispatch } from '../../store/hooks';
 import { addToast } from '../../store/slices/uiSlice';
@@ -318,6 +336,72 @@ export function ProfessionalEarningsWallet() {
     return <Chip label={c.label} color={c.color} size="small" />;
   };
 
+  // Generate monthly earnings data for charts
+  const generateMonthlyEarningsData = (earningsList: Earning[]) => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const currentMonth = new Date().getMonth();
+    const last6Months = months.slice(Math.max(0, currentMonth - 5), currentMonth + 1);
+    
+    return last6Months.map(month => {
+      const monthIndex = months.indexOf(month);
+      const monthEarnings = earningsList.filter(e => {
+        if (!e.completedDate) return false;
+        const date = new Date(e.completedDate);
+        return date.getMonth() === monthIndex && date.getFullYear() === new Date().getFullYear();
+      });
+      
+      return {
+        month,
+        earnings: monthEarnings.reduce((sum, e) => sum + e.professionalEarnings, 0),
+        bookings: monthEarnings.length,
+      };
+    });
+  };
+
+  // Generate payment status distribution data
+  const generatePaymentStatusData = (earningsList: Earning[]) => {
+    const statusCounts: { [key: string]: number } = {};
+    earningsList.forEach(e => {
+      statusCounts[e.paymentStatus] = (statusCounts[e.paymentStatus] || 0) + 1;
+    });
+
+    const colors: { [key: string]: string } = {
+      pending: '#f59e0b',
+      customer_paid: '#06b6d4',
+      verified: '#10b981',
+      settled_to_professional: '#6b7280',
+    };
+
+    return Object.entries(statusCounts).map(([status, count]) => ({
+      name: status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      value: count,
+      color: colors[status] || '#6b7280',
+    }));
+  };
+
+  // Generate service-wise earnings data
+  const generateServiceWiseData = (earningsList: Earning[]) => {
+    const serviceMap: { [key: string]: { earnings: number; bookings: number } } = {};
+    
+    earningsList.forEach(e => {
+      const serviceName = e.serviceName || 'Unknown Service';
+      if (!serviceMap[serviceName]) {
+        serviceMap[serviceName] = { earnings: 0, bookings: 0 };
+      }
+      serviceMap[serviceName].earnings += e.professionalEarnings;
+      serviceMap[serviceName].bookings += 1;
+    });
+
+    return Object.entries(serviceMap)
+      .map(([service, data]) => ({
+        service: service.length > 20 ? service.substring(0, 20) + '...' : service,
+        earnings: data.earnings,
+        bookings: data.bookings,
+      }))
+      .sort((a, b) => b.earnings - a.earnings)
+      .slice(0, 10); // Top 10 services
+  };
+
   return (
     <Box sx={{ p: 3, position: 'relative' }}>
       {/* Show loading overlay */}
@@ -472,6 +556,102 @@ export function ProfessionalEarningsWallet() {
             </Button>
           </Box>
         </Alert>
+      )}
+
+      {/* Analytics Charts */}
+      {summary && earnings.length > 0 && (
+        <Grid container spacing={3} sx={{ mb: 3 }}>
+          {/* Monthly Earnings Trend */}
+          <Grid item xs={12} md={8}>
+            <Card sx={{ borderRadius: 2 }}>
+              <CardContent>
+                <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                  <Typography variant="h6" fontWeight={600}>
+                    Earnings Trend (Last 6 Months)
+                  </Typography>
+                  <Button size="small" startIcon={<DownloadIcon />} variant="outlined">
+                    Export
+                  </Button>
+                </Box>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={generateMonthlyEarningsData(earnings)}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <RechartsTooltip formatter={(value: any) => `₹${value.toLocaleString()}`} />
+                    <Legend />
+                    <Line 
+                      type="monotone" 
+                      dataKey="earnings" 
+                      stroke="#2563eb" 
+                      strokeWidth={2}
+                      name="Earnings"
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="bookings" 
+                      stroke="#10b981" 
+                      strokeWidth={2}
+                      name="Bookings"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Payment Status Distribution */}
+          <Grid item xs={12} md={4}>
+            <Card sx={{ borderRadius: 2 }}>
+              <CardContent>
+                <Typography variant="h6" fontWeight={600} mb={2}>
+                  Payment Status
+                </Typography>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={generatePaymentStatusData(earnings)}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {generatePaymentStatusData(earnings).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Service-wise Earnings */}
+          <Grid item xs={12}>
+            <Card sx={{ borderRadius: 2 }}>
+              <CardContent>
+                <Typography variant="h6" fontWeight={600} mb={2}>
+                  Earnings by Service
+                </Typography>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={generateServiceWiseData(earnings)}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="service" />
+                    <YAxis />
+                    <RechartsTooltip formatter={(value: any) => `₹${value.toLocaleString()}`} />
+                    <Legend />
+                    <Bar dataKey="earnings" fill="#2563eb" name="Earnings" />
+                    <Bar dataKey="bookings" fill="#10b981" name="Bookings" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
       )}
 
       {summary && summary.availableForWithdrawal > 0 && summary.availableForWithdrawal < 500 && (

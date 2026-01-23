@@ -50,6 +50,12 @@ import { Professionals } from './pages/professionals/professionals'
 import { CreateProfessional } from './pages/professionals/create-professional'
 import { ProfessionalDashboard } from './pages/professionals/professional-dashboard'
 import { ProfessionalBookings } from './pages/bookings/professional-bookings'
+import { ProfessionalProfile } from './pages/professionals/professional-profile'
+import { ProfessionalEarningsWallet } from './pages/professionals/professional-earnings-wallet'
+import { ProfessionalReviews } from './pages/professionals/professional-reviews'
+import { ProfessionalDocuments } from './pages/professionals/professional-documents'
+import { ProfessionalServices } from './pages/professionals/professional-services'
+import { ProfessionalSettings } from './pages/professionals/professional-settings'
 
 // Bookings
 import { Bookings } from './pages/bookings/bookings'
@@ -356,6 +362,54 @@ function App() {
                         element={
                           <ProtectedRoute>
                             <ProfessionalBookings />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route 
+                        path="/professional/earnings" 
+                        element={
+                          <ProtectedRoute>
+                            <ProfessionalEarningsWallet />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route 
+                        path="/professional/profile" 
+                        element={
+                          <ProtectedRoute>
+                            <ProfessionalProfile />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route 
+                        path="/professional/reviews" 
+                        element={
+                          <ProtectedRoute>
+                            <ProfessionalReviews />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route 
+                        path="/professional/documents" 
+                        element={
+                          <ProtectedRoute>
+                            <ProfessionalDocuments />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route 
+                        path="/professional/services" 
+                        element={
+                          <ProtectedRoute>
+                            <ProfessionalServices />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route 
+                        path="/professional/settings" 
+                        element={
+                          <ProtectedRoute>
+                            <ProfessionalSettings />
                           </ProtectedRoute>
                         }
                       />
