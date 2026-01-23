@@ -44,6 +44,9 @@ import {
   Alert,
   CircularProgress,
   Snackbar,
+  Stack,
+  alpha,
+  Badge,
 } from '@mui/material'
 import {
   Phone,
@@ -59,6 +62,11 @@ import {
   Person,
   Visibility,
   Payment,
+  Schedule,
+  TrendingUp,
+  AccessTime,
+  Receipt,
+  Star,
 } from '@mui/icons-material'
 import { BookingsService } from '../../services/api/bookings.service'
 import { PaymentsService } from '../../services/api/payments.service'
@@ -380,35 +388,133 @@ export function ProfessionalBookings() {
     }
   }
 
-  const renderBookingCard = (booking: Booking) => (
-    <Card key={booking._id} sx={{ mb: 2 }}>
-      <CardContent>
-        <Box display="flex" justifyContent="space-between" alignItems="start" mb={2}>
-          <Box>
-            <Typography variant="h6" fontWeight="bold">
-              {booking.serviceName}
-            </Typography>
-            <Chip
-              label={booking.status}
-              size="small"
-              color={getStatusColor(booking.status) as any}
-              sx={{ mt: 0.5 }}
-            />
+  const renderBookingCard = (booking: Booking) => {
+    const statusConfig = {
+      pending: { color: '#FF9800', bg: alpha('#FF9800', 0.1), label: 'Pending' },
+      confirmed: { color: '#2196F3', bg: alpha('#2196F3', 0.1), label: 'Confirmed' },
+      in_progress: { color: '#9C27B0', bg: alpha('#9C27B0', 0.1), label: 'In Progress' },
+      completed: { color: '#4CAF50', bg: alpha('#4CAF50', 0.1), label: 'Completed' },
+      cancelled: { color: '#F44336', bg: alpha('#F44336', 0.1), label: 'Cancelled' },
+    }
+    const status = statusConfig[booking.status] || statusConfig.pending
+
+    return (
+    <Card 
+      key={booking._id} 
+      sx={{ 
+        mb: 3,
+        borderRadius: 3,
+        boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+        border: '1px solid rgba(0,0,0,0.05)',
+        transition: 'all 0.3s ease',
+        overflow: 'hidden',
+        '&:hover': {
+          boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+          transform: 'translateY(-4px)',
+        }
+      }}
+    >
+      <Box
+        sx={{
+          height: 4,
+          background: `linear-gradient(90deg, ${status.color} 0%, ${status.color}dd 100%)`,
+        }}
+      />
+      <CardContent sx={{ p: 3.5 }}>
+        <Box display="flex" justifyContent="space-between" alignItems="start" mb={3}>
+          <Box flex={1}>
+            <Box display="flex" alignItems="center" gap={2} mb={1.5}>
+              <Box
+                sx={{
+                  p: 1.5,
+                  borderRadius: 2,
+                  bgcolor: status.bg,
+                  color: status.color,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Schedule sx={{ fontSize: 24 }} />
+              </Box>
+              <Box flex={1}>
+                <Typography variant="h5" fontWeight="700" color="text.primary" mb={0.5}>
+                  {booking.serviceName}
+                </Typography>
+                <Chip
+                  label={status.label}
+                  size="small"
+                  sx={{
+                    bgcolor: status.bg,
+                    color: status.color,
+                    fontWeight: 700,
+                    height: 28,
+                    px: 1,
+                  }}
+                />
+              </Box>
+            </Box>
           </Box>
-          <Typography variant="h6" fontWeight="bold" color="success.main">
-            ₹{booking.totalAmount}
-          </Typography>
+          <Box
+            sx={{
+              p: 2,
+              borderRadius: 2.5,
+              bgcolor: alpha('#4CAF50', 0.1),
+              border: '2px solid',
+              borderColor: '#4CAF50',
+              textAlign: 'center',
+              minWidth: 100,
+            }}
+          >
+            <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              Amount
+            </Typography>
+            <Typography variant="h5" fontWeight="800" color="success.main">
+              ₹{booking.totalAmount}
+            </Typography>
+          </Box>
         </Box>
 
-        <Grid container spacing={2}>
+        <Grid container spacing={2.5}>
           <Grid item xs={12} sm={6}>
-            <Box display="flex" alignItems="center" gap={1} mb={1}>
-              <Person fontSize="small" color="action" />
+            <Box 
+              display="flex" 
+              alignItems="center" 
+              gap={2} 
+              p={2}
+              bgcolor={alpha('#2196F3', 0.05)}
+              borderRadius={2.5}
+              sx={{
+                border: '1px solid',
+                borderColor: alpha('#2196F3', 0.15),
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  bgcolor: alpha('#2196F3', 0.08),
+                  transform: 'translateX(4px)',
+                }
+              }}
+            >
+              <Box
+                sx={{
+                  p: 1.5,
+                  borderRadius: 2,
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Person sx={{ fontSize: 22 }} />
+              </Box>
               <Box>
-                <Typography variant="body2" fontWeight="bold">
+                <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  Customer
+                </Typography>
+                <Typography variant="body1" fontWeight="700" color="text.primary" sx={{ mt: 0.5 }}>
                   {booking.customer.name}
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                   {booking.customer.phone}
                 </Typography>
               </Box>
@@ -416,13 +522,45 @@ export function ProfessionalBookings() {
           </Grid>
 
           <Grid item xs={12} sm={6}>
-            <Box display="flex" alignItems="center" gap={1} mb={1}>
-              <CalendarToday fontSize="small" color="action" />
+            <Box 
+              display="flex" 
+              alignItems="center" 
+              gap={2} 
+              p={2}
+              bgcolor={alpha('#FF9800', 0.05)}
+              borderRadius={2.5}
+              sx={{
+                border: '1px solid',
+                borderColor: alpha('#FF9800', 0.15),
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  bgcolor: alpha('#FF9800', 0.08),
+                  transform: 'translateX(4px)',
+                }
+              }}
+            >
+              <Box
+                sx={{
+                  p: 1.5,
+                  borderRadius: 2,
+                  bgcolor: '#FF9800',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <CalendarToday sx={{ fontSize: 22 }} />
+              </Box>
               <Box>
-                <Typography variant="body2">
+                <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  Scheduled
+                </Typography>
+                <Typography variant="body1" fontWeight="700" color="text.primary" sx={{ mt: 0.5 }}>
                   {booking.scheduledDate}
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                  <AccessTime sx={{ fontSize: 14, verticalAlign: 'middle', mr: 0.5 }} />
                   {booking.scheduledTime}
                 </Typography>
               </Box>
@@ -430,16 +568,48 @@ export function ProfessionalBookings() {
           </Grid>
 
           <Grid item xs={12}>
-            <Box display="flex" alignItems="start" gap={1}>
-              <LocationOn fontSize="small" color="action" sx={{ mt: 0.5 }} />
-              <Typography variant="body2">
-                {booking.customer.address.street}, {booking.customer.address.area}, {booking.customer.address.city} - {booking.customer.address.pincode}
-              </Typography>
+            <Box 
+              display="flex" 
+              alignItems="start" 
+              gap={2}
+              p={2}
+              bgcolor={alpha('#F44336', 0.05)}
+              borderRadius={2.5}
+              sx={{
+                border: '1px solid',
+                borderColor: alpha('#F44336', 0.15),
+              }}
+            >
+              <Box
+                sx={{
+                  p: 1.5,
+                  borderRadius: 2,
+                  bgcolor: 'error.main',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <LocationOn sx={{ fontSize: 22 }} />
+              </Box>
+              <Box flex={1}>
+                <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, mb: 0.5, display: 'block' }}>
+                  Service Location
+                </Typography>
+                <Typography variant="body1" fontWeight="600" color="text.primary">
+                  {booking.customer.address.street}, {booking.customer.address.area}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                  {booking.customer.address.city}, {booking.customer.address.state} - {booking.customer.address.pincode}
+                </Typography>
+              </Box>
             </Box>
           </Grid>
         </Grid>
 
-        {/* Payment Review Section - Show when booking is completed and payment is received */}
+        {/* Premium Payment Review Section */}
         {(() => {
           const statusLower = booking.status?.toLowerCase() || ''
           const isCompleted = statusLower === 'completed'
@@ -454,98 +624,180 @@ export function ProfessionalBookings() {
           if (isCompleted && isPaymentReceived) {
             return (
               <>
-                <Divider sx={{ my: 2 }} />
-                <Box 
+                <Divider sx={{ my: 3 }} />
+                <Card 
                   sx={{ 
-                    p: 2, 
-                    bgcolor: 'success.50', 
-                    borderRadius: 2, 
-                    border: '1px solid',
-                    borderColor: 'success.200'
+                    bgcolor: alpha('#4CAF50', 0.08),
+                    border: '2px solid',
+                    borderColor: '#4CAF50',
+                    borderRadius: 3,
+                    boxShadow: '0 4px 12px rgba(76, 175, 80, 0.2)',
                   }}
                 >
-                  <Box display="flex" alignItems="center" gap={1} mb={1.5}>
-                    <CheckCircle color="success" fontSize="small" />
-                    <Typography variant="subtitle2" fontWeight="600" color="success.dark">
-                      Payment Received
-                    </Typography>
-                  </Box>
-                  <Grid container spacing={2}>
-                    <Grid item xs={6}>
-                      <Typography variant="caption" color="text.secondary" display="block">
-                        Amount
+                  <CardContent sx={{ p: 3 }}>
+                    <Box display="flex" alignItems="center" gap={2} mb={2.5}>
+                      <Box
+                        sx={{
+                          p: 1.5,
+                          borderRadius: 2,
+                          bgcolor: '#4CAF50',
+                          color: 'white',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Receipt sx={{ fontSize: 24 }} />
+                      </Box>
+                      <Typography variant="h6" fontWeight="700" color="success.dark">
+                        Payment Received
                       </Typography>
-                      <Typography variant="body2" fontWeight="600" color="success.main">
-                        ₹{booking.totalAmount}
-                      </Typography>
+                    </Box>
+                    <Grid container spacing={2.5}>
+                      <Grid item xs={6}>
+                        <Box
+                          p={2}
+                          bgcolor={alpha('#4CAF50', 0.1)}
+                          borderRadius={2}
+                        >
+                          <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', mb: 0.5 }}>
+                            Amount
+                          </Typography>
+                          <Typography variant="h6" fontWeight="800" color="success.main">
+                            ₹{booking.totalAmount}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Box
+                          p={2}
+                          bgcolor={alpha('#4CAF50', 0.1)}
+                          borderRadius={2}
+                        >
+                          <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', mb: 0.5 }}>
+                            Method
+                          </Typography>
+                          <Typography variant="body1" fontWeight="700" sx={{ textTransform: 'capitalize' }}>
+                            {booking.paymentMethod || 'Cash'}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Box
+                          p={2}
+                          bgcolor={alpha('#4CAF50', 0.1)}
+                          borderRadius={2}
+                        >
+                          <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', mb: 0.5 }}>
+                            Status
+                          </Typography>
+                          <Chip
+                            label="Received"
+                            size="small"
+                            color="success"
+                            icon={<CheckCircle />}
+                            sx={{
+                              fontWeight: 700,
+                              height: 28,
+                            }}
+                          />
+                        </Box>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Box
+                          p={2}
+                          bgcolor={alpha('#4CAF50', 0.1)}
+                          borderRadius={2}
+                        >
+                          <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', mb: 0.5 }}>
+                            Date
+                          </Typography>
+                          <Typography variant="body1" fontWeight="700">
+                            {booking.completedDate 
+                              ? new Date(booking.completedDate).toLocaleDateString('en-IN', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric'
+                                })
+                              : new Date().toLocaleDateString('en-IN', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric'
+                                })}
+                          </Typography>
+                        </Box>
+                      </Grid>
                     </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="caption" color="text.secondary" display="block">
-                        Method
-                      </Typography>
-                      <Typography variant="body2" fontWeight="500" sx={{ textTransform: 'capitalize' }}>
-                        {booking.paymentMethod || 'Cash'}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="caption" color="text.secondary" display="block">
-                        Status
-                      </Typography>
-                      <Chip
-                        label="Received"
-                        size="small"
-                        color="success"
-                        icon={<CheckCircle />}
-                      />
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="caption" color="text.secondary" display="block">
-                        Date
-                      </Typography>
-                      <Typography variant="body2" fontWeight="500">
-                        {booking.completedDate 
-                          ? new Date(booking.completedDate).toLocaleDateString('en-IN', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric'
-                            })
-                          : new Date().toLocaleDateString('en-IN', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric'
-                            })}
-                      </Typography>
-                    </Grid>
-                  </Grid>
-                </Box>
+                  </CardContent>
+                </Card>
               </>
             )
           }
           return null
         })()}
 
-        <Divider sx={{ my: 2 }} />
+        <Divider sx={{ my: 3 }} />
 
-        <Box display="flex" gap={1} flexWrap="wrap">
+        <Box display="flex" gap={1.5} flexWrap="wrap">
           <Button
-            size="small"
             variant="outlined"
             startIcon={<Visibility />}
             onClick={() => navigate(`/bookings/${booking._id}`)}
+            sx={{
+              borderRadius: 2,
+              px: 2.5,
+              py: 1,
+              fontWeight: 600,
+              textTransform: 'none',
+              borderWidth: 2,
+              '&:hover': {
+                borderWidth: 2,
+                transform: 'translateY(-2px)',
+              },
+              transition: 'all 0.2s ease',
+            }}
           >
             View Details
           </Button>
           <Button
-            size="small"
+            variant="contained"
+            color="success"
             startIcon={<Phone />}
             onClick={() => handleCallCustomer(booking.customer.phone)}
+            sx={{
+              borderRadius: 2,
+              px: 2.5,
+              py: 1,
+              fontWeight: 600,
+              textTransform: 'none',
+              boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)',
+              '&:hover': {
+                boxShadow: '0 6px 16px rgba(76, 175, 80, 0.4)',
+                transform: 'translateY(-2px)',
+              },
+              transition: 'all 0.2s ease',
+            }}
           >
-            Call
+            Call Customer
           </Button>
           <Button
-            size="small"
+            variant="contained"
+            color="error"
             startIcon={<Navigation />}
             onClick={() => handleNavigate(booking.customer.address)}
+            sx={{
+              borderRadius: 2,
+              px: 2.5,
+              py: 1,
+              fontWeight: 600,
+              textTransform: 'none',
+              boxShadow: '0 4px 12px rgba(244, 67, 54, 0.3)',
+              '&:hover': {
+                boxShadow: '0 6px 16px rgba(244, 67, 54, 0.4)',
+                transform: 'translateY(-2px)',
+              },
+              transition: 'all 0.2s ease',
+            }}
           >
             Navigate
           </Button>
@@ -553,20 +805,44 @@ export function ProfessionalBookings() {
           {booking.status === 'pending' && (
             <>
               <Button
-                size="small"
                 variant="contained"
                 color="success"
                 startIcon={<CheckCircle />}
                 onClick={() => handleAction(booking, 'accept')}
+                sx={{
+                  borderRadius: 2,
+                  px: 2.5,
+                  py: 1,
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)',
+                  '&:hover': {
+                    boxShadow: '0 6px 16px rgba(76, 175, 80, 0.4)',
+                    transform: 'translateY(-2px)',
+                  },
+                  transition: 'all 0.2s ease',
+                }}
               >
                 Accept
               </Button>
               <Button
-                size="small"
                 variant="outlined"
                 color="error"
                 startIcon={<Cancel />}
                 onClick={() => handleAction(booking, 'reject')}
+                sx={{
+                  borderRadius: 2,
+                  px: 2.5,
+                  py: 1,
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  borderWidth: 2,
+                  '&:hover': {
+                    borderWidth: 2,
+                    transform: 'translateY(-2px)',
+                  },
+                  transition: 'all 0.2s ease',
+                }}
               >
                 Reject
               </Button>
@@ -575,10 +851,23 @@ export function ProfessionalBookings() {
 
           {booking.status === 'confirmed' && (
             <Button
-              size="small"
               variant="contained"
+              color="primary"
               startIcon={<PlayArrow />}
               onClick={() => handleAction(booking, 'start')}
+              sx={{
+                borderRadius: 2,
+                px: 2.5,
+                py: 1,
+                fontWeight: 600,
+                textTransform: 'none',
+                boxShadow: '0 4px 12px rgba(33, 150, 243, 0.3)',
+                '&:hover': {
+                  boxShadow: '0 6px 16px rgba(33, 150, 243, 0.4)',
+                  transform: 'translateY(-2px)',
+                },
+                transition: 'all 0.2s ease',
+              }}
             >
               Start Work
             </Button>
@@ -586,11 +875,23 @@ export function ProfessionalBookings() {
 
           {booking.status === 'in_progress' && (
             <Button
-              size="small"
               variant="contained"
               color="success"
               startIcon={<CheckCircle />}
               onClick={() => handleAction(booking, 'complete')}
+              sx={{
+                borderRadius: 2,
+                px: 2.5,
+                py: 1,
+                fontWeight: 600,
+                textTransform: 'none',
+                boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)',
+                '&:hover': {
+                  boxShadow: '0 6px 16px rgba(76, 175, 80, 0.4)',
+                  transform: 'translateY(-2px)',
+                },
+                transition: 'all 0.2s ease',
+              }}
             >
               Mark Complete
             </Button>
@@ -645,7 +946,6 @@ export function ProfessionalBookings() {
             
             return shouldShowButton ? (
               <Button
-                size="small"
                 variant="contained"
                 color="primary"
                 startIcon={<Payment />}
@@ -655,6 +955,19 @@ export function ProfessionalBookings() {
                   setPaymentReceivedDialog(true)
                 }}
                 disabled={isPaymentReceived}
+                sx={{
+                  borderRadius: 2,
+                  px: 2.5,
+                  py: 1,
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  boxShadow: '0 4px 12px rgba(33, 150, 243, 0.3)',
+                  '&:hover': {
+                    boxShadow: '0 6px 16px rgba(33, 150, 243, 0.4)',
+                    transform: 'translateY(-2px)',
+                  },
+                  transition: 'all 0.2s ease',
+                }}
               >
                 {isPaymentReceived ? 'Payment Received' : 'Mark Payment Received'}
               </Button>
@@ -663,14 +976,19 @@ export function ProfessionalBookings() {
                 icon={<CheckCircle />}
                 label="Payment Received"
                 color="success"
-                size="small"
+                sx={{
+                  fontWeight: 700,
+                  height: 36,
+                  px: 1.5,
+                }}
               />
             ) : null
           })()}
         </Box>
       </CardContent>
     </Card>
-  )
+    )
+  }
 
   const filterByTab = (booking: Booking) => {
     switch (activeTab) {
@@ -685,51 +1003,363 @@ export function ProfessionalBookings() {
 
   const filteredBookings = bookings.filter(filterByTab)
 
+  // Calculate stats
+  const stats = {
+    total: bookings.length,
+    pending: bookings.filter(b => b.status === 'pending').length,
+    confirmed: bookings.filter(b => b.status === 'confirmed').length,
+    inProgress: bookings.filter(b => b.status === 'in_progress').length,
+    completed: bookings.filter(b => b.status === 'completed').length,
+    totalEarnings: bookings
+      .filter(b => b.status === 'completed')
+      .reduce((sum, b) => sum + (b.totalAmount || 0), 0),
+  }
+
   return (
-    <Box>
-      {/* Header */}
-      <Box mb={3}>
-        <Typography variant="h4" fontWeight="bold" gutterBottom>
-          My Bookings
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Manage your assigned bookings
-        </Typography>
+    <Box sx={{ 
+      bgcolor: '#f5f7fa',
+      minHeight: '100vh',
+      p: { xs: 2, md: 4 },
+    }}>
+      {/* Premium Header Section */}
+      <Box
+        sx={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderRadius: 4,
+          mb: 4,
+          p: { xs: 3, md: 4 },
+          position: 'relative',
+          overflow: 'hidden',
+          boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: '40%',
+            height: '100%',
+            background: 'rgba(255,255,255,0.1)',
+            borderRadius: '50%',
+            transform: 'translate(30%, -30%)',
+          }
+        }}
+      >
+        <Box sx={{ position: 'relative', zIndex: 1 }}>
+          <Typography 
+            variant="h3" 
+            fontWeight="800" 
+            sx={{ 
+              color: 'white',
+              mb: 1,
+              textShadow: '0 2px 8px rgba(0,0,0,0.2)',
+              fontSize: { xs: '1.75rem', md: '2.5rem' }
+            }}
+          >
+            My Bookings
+          </Typography>
+          <Typography 
+            variant="body1" 
+            sx={{ 
+              color: 'rgba(255,255,255,0.95)',
+              fontWeight: 500,
+              fontSize: { xs: '0.9rem', md: '1rem' }
+            }}
+          >
+            Manage your assigned bookings
+          </Typography>
+        </Box>
       </Box>
 
-      {/* Tabs */}
-      <Paper sx={{ mb: 3 }}>
-        <Tabs value={activeTab} onChange={(e, v) => setActiveTab(v)}>
-          <Tab label="All" />
-          <Tab label="Pending" />
-          <Tab label="Confirmed" />
-          <Tab label="In Progress" />
-          <Tab label="Completed" />
+      {/* Stats Cards */}
+      <Grid container spacing={2.5} sx={{ mb: 4 }}>
+        <Grid item xs={6} sm={4} md={2.4}>
+          <Card 
+            sx={{ 
+              borderRadius: 3,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+              border: '1px solid rgba(0,0,0,0.05)',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                transform: 'translateY(-4px)',
+              }
+            }}
+          >
+            <CardContent sx={{ p: 2.5, textAlign: 'center' }}>
+              <Typography variant="h4" fontWeight="800" color="primary.main">
+                {stats.total}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Total Bookings
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={6} sm={4} md={2.4}>
+          <Card 
+            sx={{ 
+              borderRadius: 3,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+              border: '1px solid rgba(0,0,0,0.05)',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                transform: 'translateY(-4px)',
+              }
+            }}
+          >
+            <CardContent sx={{ p: 2.5, textAlign: 'center' }}>
+              <Typography variant="h4" fontWeight="800" color="#FF9800">
+                {stats.pending}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Pending
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={6} sm={4} md={2.4}>
+          <Card 
+            sx={{ 
+              borderRadius: 3,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+              border: '1px solid rgba(0,0,0,0.05)',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                transform: 'translateY(-4px)',
+              }
+            }}
+          >
+            <CardContent sx={{ p: 2.5, textAlign: 'center' }}>
+              <Typography variant="h4" fontWeight="800" color="#2196F3">
+                {stats.inProgress}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                In Progress
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={6} sm={4} md={2.4}>
+          <Card 
+            sx={{ 
+              borderRadius: 3,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+              border: '1px solid rgba(0,0,0,0.05)',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                transform: 'translateY(-4px)',
+              }
+            }}
+          >
+            <CardContent sx={{ p: 2.5, textAlign: 'center' }}>
+              <Typography variant="h4" fontWeight="800" color="#4CAF50">
+                {stats.completed}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Completed
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={4} md={2.4}>
+          <Card 
+            sx={{ 
+              borderRadius: 3,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+              border: '1px solid rgba(0,0,0,0.05)',
+              background: 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                boxShadow: '0 8px 30px rgba(76, 175, 80, 0.4)',
+                transform: 'translateY(-4px)',
+              }
+            }}
+          >
+            <CardContent sx={{ p: 2.5, textAlign: 'center' }}>
+              <Typography variant="h4" fontWeight="800" sx={{ color: 'white' }}>
+                ₹{stats.totalEarnings.toLocaleString()}
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.9)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Total Earnings
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Premium Tabs */}
+      <Card 
+        sx={{ 
+          mb: 3,
+          borderRadius: 3,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+          border: '1px solid rgba(0,0,0,0.05)',
+        }}
+      >
+        <Tabs 
+          value={activeTab} 
+          onChange={(e, v) => setActiveTab(v)}
+          sx={{
+            '& .MuiTab-root': {
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: '0.95rem',
+              minHeight: 64,
+              '&.Mui-selected': {
+                color: 'primary.main',
+              }
+            },
+            '& .MuiTabs-indicator': {
+              height: 3,
+              borderRadius: '3px 3px 0 0',
+            }
+          }}
+        >
+          <Tab 
+            label={
+              <Badge badgeContent={stats.total} color="primary" max={99}>
+                <Box sx={{ px: 1 }}>All</Box>
+              </Badge>
+            } 
+          />
+          <Tab 
+            label={
+              <Badge badgeContent={stats.pending} color="warning" max={99}>
+                <Box sx={{ px: 1 }}>Pending</Box>
+              </Badge>
+            } 
+          />
+          <Tab 
+            label={
+              <Badge badgeContent={stats.confirmed} color="info" max={99}>
+                <Box sx={{ px: 1 }}>Confirmed</Box>
+              </Badge>
+            } 
+          />
+          <Tab 
+            label={
+              <Badge badgeContent={stats.inProgress} color="primary" max={99}>
+                <Box sx={{ px: 1 }}>In Progress</Box>
+              </Badge>
+            } 
+          />
+          <Tab 
+            label={
+              <Badge badgeContent={stats.completed} color="success" max={99}>
+                <Box sx={{ px: 1 }}>Completed</Box>
+              </Badge>
+            } 
+          />
         </Tabs>
-      </Paper>
+      </Card>
 
       {/* Bookings List */}
       {loading ? (
-        <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" p={4}>
-          <CircularProgress size={60} />
-          <Typography variant="h6" mt={2} color="text.secondary">
-            Loading bookings...
-          </Typography>
-        </Box>
+        <Card 
+          sx={{ 
+            borderRadius: 3,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+            border: '1px solid rgba(0,0,0,0.05)',
+          }}
+        >
+          <CardContent>
+            <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" p={6}>
+              <CircularProgress size={60} thickness={4} />
+              <Typography variant="h6" mt={3} color="text.secondary" fontWeight="600">
+                Loading bookings...
+              </Typography>
+            </Box>
+          </CardContent>
+        </Card>
       ) : error ? (
-        <Alert severity="error" action={
-          <Button color="inherit" size="small" onClick={loadBookings}>
-            Retry
-          </Button>
-        }>
-          {error}
-        </Alert>
+        <Card 
+          sx={{ 
+            borderRadius: 3,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+            border: '1px solid rgba(0,0,0,0.05)',
+          }}
+        >
+          <CardContent>
+            <Alert 
+              severity="error" 
+              action={
+                <Button 
+                  variant="contained"
+                  color="error"
+                  onClick={loadBookings}
+                  sx={{
+                    borderRadius: 2,
+                    fontWeight: 600,
+                    textTransform: 'none',
+                  }}
+                >
+                  Retry
+                </Button>
+              }
+              sx={{
+                borderRadius: 2,
+              }}
+            >
+              {error}
+            </Alert>
+          </CardContent>
+        </Card>
       ) : bookings.length === 0 ? (
-        <Alert severity="info">
-          No bookings assigned to you yet. Bookings will appear here once an admin assigns them to you.
-        </Alert>
+        <Card 
+          sx={{ 
+            borderRadius: 3,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+            border: '1px solid rgba(0,0,0,0.05)',
+          }}
+        >
+          <CardContent>
+            <Box textAlign="center" p={6}>
+              <Box
+                sx={{
+                  width: 120,
+                  height: 120,
+                  borderRadius: '50%',
+                  bgcolor: alpha('#2196F3', 0.1),
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  mx: 'auto',
+                  mb: 3,
+                }}
+              >
+                <Schedule sx={{ fontSize: 60, color: 'primary.main' }} />
+              </Box>
+              <Typography variant="h5" fontWeight="700" color="text.primary" mb={1}>
+                No Bookings Yet
+              </Typography>
+              <Typography variant="body1" color="text.secondary" mb={3}>
+                No bookings assigned to you yet. Bookings will appear here once an admin assigns them to you.
+              </Typography>
+            </Box>
+          </CardContent>
+        </Card>
       ) : filteredBookings.length === 0 ? (
-        <Alert severity="info">No bookings found in this category</Alert>
+        <Card 
+          sx={{ 
+            borderRadius: 3,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+            border: '1px solid rgba(0,0,0,0.05)',
+          }}
+        >
+          <CardContent>
+            <Alert 
+              severity="info"
+              sx={{
+                borderRadius: 2,
+              }}
+            >
+              No bookings found in this category
+            </Alert>
+          </CardContent>
+        </Card>
       ) : (
         <Box>
           {filteredBookings.map(renderBookingCard)}

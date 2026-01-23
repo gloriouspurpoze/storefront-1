@@ -57,6 +57,11 @@ import {
   TrendingUp,
   Info,
   Payment,
+  Person,
+  Business,
+  Receipt,
+  History,
+  MoreVert,
 } from '@mui/icons-material'
 import { AssignProfessionalDialog } from '../../components/bookings/AssignProfessionalDialog'
 import { BookingsService } from '../../services/api/bookings.service'
@@ -598,36 +603,76 @@ export function BookingDetails() {
   const config = statusConfig[booking.status]
 console.log("detailssss",booking)
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }}>
-      {/* Modern Header with Gradient */}
-      <Card 
-        sx={{ 
+    <Box sx={{ 
+      p: { xs: 2, md: 4 },
+      bgcolor: '#f5f7fa',
+      minHeight: '100vh',
+    }}>
+      {/* Premium Header Section */}
+      <Box
+        sx={{
+          background: `linear-gradient(135deg, ${config.color} 0%, ${config.color}dd 50%, ${config.color}cc 100%)`,
+          borderRadius: 4,
           mb: 3,
-          background: config.gradient,
-          color: 'white',
-          borderRadius: 3,
+          position: 'relative',
+          overflow: 'hidden',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: '40%',
+            height: '100%',
+            background: 'rgba(255,255,255,0.1)',
+            borderRadius: '50%',
+            transform: 'translate(30%, -30%)',
+          }
         }}
       >
-        <CardContent>
+        <Box sx={{ position: 'relative', zIndex: 1, p: { xs: 2.5, md: 4 } }}>
           <Box display="flex" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2}>
-            <Box display="flex" alignItems="center" gap={2}>
+            <Box display="flex" alignItems="center" gap={3}>
               <Tooltip title="Back to Bookings">
                 <IconButton 
                   onClick={() => navigate('/bookings')}
                   sx={{ 
-                    bgcolor: 'rgba(255,255,255,0.2)', 
+                    bgcolor: 'rgba(255,255,255,0.25)', 
                     color: 'white',
-                    '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
+                    width: 48,
+                    height: 48,
+                    backdropFilter: 'blur(10px)',
+                    '&:hover': { 
+                      bgcolor: 'rgba(255,255,255,0.35)',
+                      transform: 'scale(1.05)',
+                    },
+                    transition: 'all 0.2s ease',
                   }}
                 >
                   <ArrowBack />
                 </IconButton>
               </Tooltip>
               <Box>
-                <Typography variant="h5" fontWeight="700">
+                <Typography 
+                  variant="h4" 
+                  fontWeight="800"
+                  sx={{ 
+                    color: 'white',
+                    mb: 0.5,
+                    textShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                    fontSize: { xs: '1.75rem', md: '2rem' }
+                  }}
+                >
                   {booking.bookingId}
                 </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                <Typography 
+                  variant="body1" 
+                  sx={{ 
+                    color: 'rgba(255,255,255,0.95)',
+                    fontWeight: 500,
+                    fontSize: { xs: '0.9rem', md: '1rem' }
+                  }}
+                >
                   {booking.service.name}
                 </Typography>
               </Box>
@@ -635,22 +680,33 @@ console.log("detailssss",booking)
             <Chip
               label={config.label}
               sx={{
-                bgcolor: 'rgba(255,255,255,0.3)',
+                bgcolor: 'rgba(255,255,255,0.25)',
                 color: 'white',
                 fontWeight: 700,
-                fontSize: 16,
-                px: 2,
-                py: 0.5,
+                fontSize: { xs: 13, md: 15 },
+                px: 2.5,
+                py: 1,
                 height: 'auto',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255,255,255,0.3)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
               }}
             />
           </Box>
-        </CardContent>
-      </Card>
+        </Box>
+      </Box>
 
-      {/* Action Buttons - Different for Admin vs Professional */}
-      <Paper sx={{ p: 2, mb: 3, borderRadius: 2 }}>
-        <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+      {/* Premium Action Buttons Section */}
+      <Card 
+        sx={{ 
+          mb: 3, 
+          borderRadius: 3,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+          border: '1px solid rgba(0,0,0,0.05)',
+        }}
+      >
+        <CardContent sx={{ p: 3 }}>
+          <Stack direction="row" spacing={2} flexWrap="wrap" gap={1.5}>
           {isAdmin ? (
             // Admin buttons
             <>
@@ -658,16 +714,40 @@ console.log("detailssss",booking)
                 variant="contained"
                 startIcon={<Edit />}
                 onClick={() => navigate(`/bookings/${id}/edit`)}
-                sx={{ borderRadius: 2 }}
+                sx={{ 
+                  borderRadius: 2,
+                  px: 3,
+                  py: 1.2,
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  '&:hover': {
+                    boxShadow: '0 6px 16px rgba(0,0,0,0.2)',
+                    transform: 'translateY(-2px)',
+                  },
+                  transition: 'all 0.2s ease',
+                }}
               >
-                Edit
+                Edit Booking
               </Button>
               <Button
                 variant="contained"
                 color="primary"
                 startIcon={<AssignmentInd />}
                 onClick={() => setAssignProfessionalOpen(true)}
-                sx={{ borderRadius: 2 }}
+                sx={{ 
+                  borderRadius: 2,
+                  px: 3,
+                  py: 1.2,
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  boxShadow: '0 4px 12px rgba(33, 150, 243, 0.3)',
+                  '&:hover': {
+                    boxShadow: '0 6px 16px rgba(33, 150, 243, 0.4)',
+                    transform: 'translateY(-2px)',
+                  },
+                  transition: 'all 0.2s ease',
+                }}
               >
                 {booking.professional ? 'Reassign' : 'Assign'} Professional
               </Button>
@@ -677,16 +757,40 @@ console.log("detailssss",booking)
                 startIcon={<Cancel />}
                 onClick={() => setCancelDialogOpen(true)}
                 disabled={booking.status === 'cancelled' || booking.status === 'completed'}
-                sx={{ borderRadius: 2 }}
+                sx={{ 
+                  borderRadius: 2,
+                  px: 3,
+                  py: 1.2,
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  borderWidth: 2,
+                  '&:hover': {
+                    borderWidth: 2,
+                    transform: 'translateY(-2px)',
+                  },
+                  transition: 'all 0.2s ease',
+                }}
               >
-                Cancel
+                Cancel Booking
               </Button>
               <Button
                 variant="outlined"
                 color="error"
                 startIcon={<Delete />}
                 onClick={() => setDeleteDialogOpen(true)}
-                sx={{ borderRadius: 2 }}
+                sx={{ 
+                  borderRadius: 2,
+                  px: 3,
+                  py: 1.2,
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  borderWidth: 2,
+                  '&:hover': {
+                    borderWidth: 2,
+                    transform: 'translateY(-2px)',
+                  },
+                  transition: 'all 0.2s ease',
+                }}
               >
                 Delete
               </Button>
@@ -705,7 +809,19 @@ console.log("detailssss",booking)
                         setAction('accept')
                         setActionDialog(true)
                       }}
-                      sx={{ borderRadius: 2 }}
+                      sx={{ 
+                        borderRadius: 2,
+                        px: 3,
+                        py: 1.2,
+                        fontWeight: 600,
+                        textTransform: 'none',
+                        boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)',
+                        '&:hover': {
+                          boxShadow: '0 6px 16px rgba(76, 175, 80, 0.4)',
+                          transform: 'translateY(-2px)',
+                        },
+                        transition: 'all 0.2s ease',
+                      }}
                     >
                       Accept Booking
                     </Button>
@@ -714,7 +830,19 @@ console.log("detailssss",booking)
                       color="error"
                       startIcon={<Cancel />}
                       onClick={() => setCancelDialogOpen(true)}
-                      sx={{ borderRadius: 2 }}
+                      sx={{ 
+                        borderRadius: 2,
+                        px: 3,
+                        py: 1.2,
+                        fontWeight: 600,
+                        textTransform: 'none',
+                        borderWidth: 2,
+                        '&:hover': {
+                          borderWidth: 2,
+                          transform: 'translateY(-2px)',
+                        },
+                        transition: 'all 0.2s ease',
+                      }}
                     >
                       Reject
                     </Button>
@@ -729,7 +857,19 @@ console.log("detailssss",booking)
                       setAction('start')
                       setActionDialog(true)
                     }}
-                    sx={{ borderRadius: 2 }}
+                    sx={{ 
+                      borderRadius: 2,
+                      px: 3,
+                      py: 1.2,
+                      fontWeight: 600,
+                      textTransform: 'none',
+                      boxShadow: '0 4px 12px rgba(33, 150, 243, 0.3)',
+                      '&:hover': {
+                        boxShadow: '0 6px 16px rgba(33, 150, 243, 0.4)',
+                        transform: 'translateY(-2px)',
+                      },
+                      transition: 'all 0.2s ease',
+                    }}
                   >
                     Start Work
                   </Button>
@@ -743,7 +883,19 @@ console.log("detailssss",booking)
                       setAction('complete')
                       setActionDialog(true)
                     }}
-                    sx={{ borderRadius: 2 }}
+                    sx={{ 
+                      borderRadius: 2,
+                      px: 3,
+                      py: 1.2,
+                      fontWeight: 600,
+                      textTransform: 'none',
+                      boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)',
+                      '&:hover': {
+                        boxShadow: '0 6px 16px rgba(76, 175, 80, 0.4)',
+                        transform: 'translateY(-2px)',
+                      },
+                      transition: 'all 0.2s ease',
+                    }}
                   >
                     Mark Complete
                   </Button>
@@ -850,55 +1002,144 @@ console.log("detailssss",booking)
             )
           ) : null}
         </Stack>
-      </Paper>
+        </CardContent>
+      </Card>
 
       <Grid container spacing={3}>
         {/* Left Column */}
         <Grid item xs={12} md={8}>
-          {/* Customer Card */}
-          <Card sx={{ mb: 3, borderRadius: 3 }}>
-            <CardContent sx={{ p: 3 }}>
+          {/* Premium Customer Card */}
+          <Card 
+            sx={{ 
+              mb: 3, 
+              borderRadius: 3,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+              border: '1px solid rgba(0,0,0,0.05)',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                transform: 'translateY(-2px)',
+              }
+            }}
+          >
+            <CardContent sx={{ p: 3.5 }}>
               <Box display="flex" alignItems="center" gap={2} mb={3}>
                 <Avatar
                   sx={{
-                    width: 60,
-                    height: 60,
-                    bgcolor: 'primary.main',
-                    fontSize: 24,
+                    width: 72,
+                    height: 72,
+                    bgcolor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    fontSize: 28,
                     fontWeight: 700,
+                    boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
                   }}
                 >
                   {booking.customer.firstName[0]}{booking.customer.lastName[0]}
                 </Avatar>
                 <Box flex={1}>
-                  <Typography variant="h6" fontWeight="600">
-                    {booking.customer.firstName} {booking.customer.lastName}
-                  </Typography>
-                  <Box display="flex" alignItems="center" gap={1} mt={0.5}>
-                    <Verified sx={{ fontSize: 16, color: 'success.main' }} />
-                    <Typography variant="caption" color="text.secondary">
-                      {booking.customer.totalBookings} previous bookings
+                  <Box display="flex" alignItems="center" gap={1.5} mb={0.5}>
+                    <Typography variant="h5" fontWeight="700" color="text.primary">
+                      {booking.customer.firstName} {booking.customer.lastName}
                     </Typography>
+                    <Verified sx={{ fontSize: 20, color: 'success.main' }} />
                   </Box>
+                  <Chip
+                    icon={<Person />}
+                    label={`${booking.customer.totalBookings} Previous Bookings`}
+                    size="small"
+                    sx={{
+                      bgcolor: alpha('#4CAF50', 0.1),
+                      color: 'success.dark',
+                      fontWeight: 600,
+                      height: 24,
+                    }}
+                  />
                 </Box>
               </Box>
 
-              <Grid container spacing={2}>
+              <Divider sx={{ mb: 3 }} />
+
+              <Grid container spacing={2.5}>
                 <Grid item xs={12} sm={6}>
-                  <Box display="flex" alignItems="center" gap={1.5} p={1.5} bgcolor={alpha('#2196F3', 0.08)} borderRadius={2}>
-                    <Phone sx={{ color: 'primary.main' }} />
+                  <Box 
+                    display="flex" 
+                    alignItems="center" 
+                    gap={2} 
+                    p={2} 
+                    bgcolor={alpha('#2196F3', 0.08)} 
+                    borderRadius={2.5}
+                    sx={{
+                      border: '1px solid',
+                      borderColor: alpha('#2196F3', 0.2),
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        bgcolor: alpha('#2196F3', 0.12),
+                        transform: 'translateX(4px)',
+                      }
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        p: 1.5,
+                        borderRadius: 2,
+                        bgcolor: 'primary.main',
+                        color: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Phone sx={{ fontSize: 22 }} />
+                    </Box>
                     <Box>
-                      <Typography variant="caption" color="text.secondary">Phone</Typography>
-                      <Typography variant="body2" fontWeight="500">{booking.customer.phone}</Typography>
+                      <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        Phone
+                      </Typography>
+                      <Typography variant="body1" fontWeight="600" sx={{ mt: 0.5 }}>
+                        {booking.customer.phone}
+                      </Typography>
                     </Box>
                   </Box>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <Box display="flex" alignItems="center" gap={1.5} p={1.5} bgcolor={alpha('#2196F3', 0.08)} borderRadius={2}>
-                    <Email sx={{ color: 'primary.main' }} />
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">Email</Typography>
-                      <Typography variant="body2" fontWeight="500" noWrap>{booking.customer.email}</Typography>
+                  <Box 
+                    display="flex" 
+                    alignItems="center" 
+                    gap={2} 
+                    p={2} 
+                    bgcolor={alpha('#2196F3', 0.08)} 
+                    borderRadius={2.5}
+                    sx={{
+                      border: '1px solid',
+                      borderColor: alpha('#2196F3', 0.2),
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        bgcolor: alpha('#2196F3', 0.12),
+                        transform: 'translateX(4px)',
+                      }
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        p: 1.5,
+                        borderRadius: 2,
+                        bgcolor: 'primary.main',
+                        color: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Email sx={{ fontSize: 22 }} />
+                    </Box>
+                    <Box flex={1} minWidth={0}>
+                      <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        Email
+                      </Typography>
+                      <Typography variant="body1" fontWeight="600" noWrap sx={{ mt: 0.5 }}>
+                        {booking.customer.email}
+                      </Typography>
                     </Box>
                   </Box>
                 </Grid>
@@ -906,111 +1147,413 @@ console.log("detailssss",booking)
             </CardContent>
           </Card>
 
-          {/* Service Details Card */}
-          <Card sx={{ mb: 3, borderRadius: 3 }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" fontWeight="600" gutterBottom>
-                Service Details
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-              
-              <Typography variant="h6" color="primary.main" gutterBottom>
-                {booking.service.name}
-              </Typography>
-              <Chip label={booking.service.category} size="small" sx={{ mb: 2 }} />
-
-              <Grid container spacing={2} mt={1}>
-                <Grid item xs={12} sm={4}>
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <CalendarToday sx={{ color: 'text.secondary', fontSize: 20 }} />
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">Date</Typography>
-                      <Typography variant="body2" fontWeight="500">{booking.scheduledDate}</Typography>
-                    </Box>
-                  </Box>
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <AccessTime sx={{ color: 'text.secondary', fontSize: 20 }} />
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">Time</Typography>
-                      <Typography variant="body2" fontWeight="500">{booking.scheduledTime}</Typography>
-                    </Box>
-                  </Box>
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <Schedule sx={{ color: 'text.secondary', fontSize: 20 }} />
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">Duration</Typography>
-                      <Typography variant="body2" fontWeight="500">{booking.service.duration} min</Typography>
-                    </Box>
-                  </Box>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-
-          {/* Address Card */}
-          <Card sx={{ mb: 3, borderRadius: 3 }}>
-            <CardContent sx={{ p: 3 }}>
-              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                <Typography variant="h6" fontWeight="600">
-                  Service Location
+          {/* Premium Service Details Card */}
+          <Card 
+            sx={{ 
+              mb: 3, 
+              borderRadius: 3,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+              border: '1px solid rgba(0,0,0,0.05)',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                transform: 'translateY(-2px)',
+              }
+            }}
+          >
+            <CardContent sx={{ p: 3.5 }}>
+              <Box display="flex" alignItems="center" gap={1.5} mb={3}>
+                <Box
+                  sx={{
+                    p: 1.5,
+                    borderRadius: 2,
+                    bgcolor: 'primary.main',
+                    color: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Schedule sx={{ fontSize: 24 }} />
+                </Box>
+                <Typography variant="h6" fontWeight="700" color="text.primary">
+                  Service Details
                 </Typography>
+              </Box>
+              <Divider sx={{ mb: 3 }} />
+              
+              <Box mb={3}>
+                <Typography variant="h5" color="primary.main" fontWeight="700" gutterBottom>
+                  {booking.service.name}
+                </Typography>
+                <Chip 
+                  label={booking.service.category} 
+                  size="medium" 
+                  sx={{ 
+                    bgcolor: alpha('#2196F3', 0.1),
+                    color: 'primary.dark',
+                    fontWeight: 600,
+                    height: 28,
+                    px: 1,
+                  }} 
+                />
+              </Box>
+
+              <Grid container spacing={2.5}>
+                <Grid item xs={12} sm={4}>
+                  <Box 
+                    p={2.5}
+                    bgcolor={alpha('#FF9800', 0.08)}
+                    borderRadius={2.5}
+                    sx={{
+                      border: '1px solid',
+                      borderColor: alpha('#FF9800', 0.2),
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        bgcolor: alpha('#FF9800', 0.12),
+                        transform: 'scale(1.02)',
+                      }
+                    }}
+                  >
+                    <Box display="flex" alignItems="center" gap={1.5} mb={1}>
+                      <CalendarToday sx={{ color: '#FF9800', fontSize: 24 }} />
+                      <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        Date
+                      </Typography>
+                    </Box>
+                    <Typography variant="body1" fontWeight="700" color="text.primary">
+                      {booking.scheduledDate}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Box 
+                    p={2.5}
+                    bgcolor={alpha('#9C27B0', 0.08)}
+                    borderRadius={2.5}
+                    sx={{
+                      border: '1px solid',
+                      borderColor: alpha('#9C27B0', 0.2),
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        bgcolor: alpha('#9C27B0', 0.12),
+                        transform: 'scale(1.02)',
+                      }
+                    }}
+                  >
+                    <Box display="flex" alignItems="center" gap={1.5} mb={1}>
+                      <AccessTime sx={{ color: '#9C27B0', fontSize: 24 }} />
+                      <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        Time
+                      </Typography>
+                    </Box>
+                    <Typography variant="body1" fontWeight="700" color="text.primary">
+                      {booking.scheduledTime}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Box 
+                    p={2.5}
+                    bgcolor={alpha('#4CAF50', 0.08)}
+                    borderRadius={2.5}
+                    sx={{
+                      border: '1px solid',
+                      borderColor: alpha('#4CAF50', 0.2),
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        bgcolor: alpha('#4CAF50', 0.12),
+                        transform: 'scale(1.02)',
+                      }
+                    }}
+                  >
+                    <Box display="flex" alignItems="center" gap={1.5} mb={1}>
+                      <Schedule sx={{ color: '#4CAF50', fontSize: 24 }} />
+                      <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        Duration
+                      </Typography>
+                    </Box>
+                    <Typography variant="body1" fontWeight="700" color="text.primary">
+                      {booking.service.duration} min
+                    </Typography>
+                  </Box>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+
+          {/* Premium Address Card */}
+          <Card 
+            sx={{ 
+              mb: 3, 
+              borderRadius: 3,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+              border: '1px solid rgba(0,0,0,0.05)',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                transform: 'translateY(-2px)',
+              }
+            }}
+          >
+            <CardContent sx={{ p: 3.5 }}>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+                <Box display="flex" alignItems="center" gap={1.5}>
+                  <Box
+                    sx={{
+                      p: 1.5,
+                      borderRadius: 2,
+                      bgcolor: 'error.main',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <LocationOn sx={{ fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" fontWeight="700" color="text.primary">
+                    Service Location
+                  </Typography>
+                </Box>
                 <Button
-                  size="small"
                   startIcon={<Navigation />}
                   onClick={handleNavigate}
                   variant="contained"
-                  sx={{ borderRadius: 2 }}
+                  sx={{ 
+                    borderRadius: 2,
+                    px: 2.5,
+                    py: 1,
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    boxShadow: '0 4px 12px rgba(244, 67, 54, 0.3)',
+                    '&:hover': {
+                      boxShadow: '0 6px 16px rgba(244, 67, 54, 0.4)',
+                      transform: 'translateY(-2px)',
+                    },
+                    transition: 'all 0.2s ease',
+                  }}
                 >
                   Navigate
                 </Button>
               </Box>
-              <Divider sx={{ mb: 2 }} />
+              <Divider sx={{ mb: 3 }} />
               
-              <Box display="flex" gap={2}>
-                <LocationOn sx={{ color: 'primary.main', fontSize: 32 }} />
-                <Box>
-                  <Typography variant="body1" fontWeight="500">{booking.address.street}</Typography>
-                  <Typography variant="body2" color="text.secondary">{booking.address.area}, {booking.address.city}</Typography>
-                  <Typography variant="body2" color="text.secondary">{booking.address.state} - {booking.address.pincode}</Typography>
+              <Box 
+                display="flex" 
+                gap={3}
+                p={2.5}
+                bgcolor={alpha('#F44336', 0.05)}
+                borderRadius={2.5}
+                sx={{
+                  border: '1px solid',
+                  borderColor: alpha('#F44336', 0.15),
+                }}
+              >
+                <LocationOn sx={{ color: 'error.main', fontSize: 40, flexShrink: 0 }} />
+                <Box flex={1}>
+                  <Typography variant="body1" fontWeight="700" color="text.primary" mb={1}>
+                    {booking.address.street}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" mb={0.5}>
+                    {booking.address.area}, {booking.address.city}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" mb={1}>
+                    {booking.address.state} - {booking.address.pincode}
+                  </Typography>
                   {booking.address.landmark && (
-                    <Typography variant="caption" color="text.secondary" display="block" mt={0.5}>
-                      📍 Landmark: {booking.address.landmark}
-                    </Typography>
+                    <Box 
+                      mt={1.5}
+                      p={1.5}
+                      bgcolor={alpha('#FF9800', 0.1)}
+                      borderRadius={1.5}
+                      display="inline-flex"
+                      alignItems="center"
+                      gap={1}
+                    >
+                      <LocationOn sx={{ fontSize: 16, color: '#FF9800' }} />
+                      <Typography variant="caption" color="text.secondary" fontWeight="600">
+                        Landmark: {booking.address.landmark}
+                      </Typography>
+                    </Box>
                   )}
                 </Box>
               </Box>
             </CardContent>
           </Card>
 
-          {/* Notes Card */}
+          {/* Premium Notes Card */}
           {(booking.notes || booking.customerNotes) && (
-            <Card sx={{ borderRadius: 3 }}>
-              <CardContent sx={{ p: 3 }}>
-                <Typography variant="h6" fontWeight="600" gutterBottom>
-                  Notes & Instructions
-                </Typography>
-                <Divider sx={{ mb: 2 }} />
+            <Card 
+              sx={{ 
+                borderRadius: 3,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                border: '1px solid rgba(0,0,0,0.05)',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                  transform: 'translateY(-2px)',
+                }
+              }}
+            >
+              <CardContent sx={{ p: 3.5 }}>
+                <Box display="flex" alignItems="center" gap={1.5} mb={3}>
+                  <Box
+                    sx={{
+                      p: 1.5,
+                      borderRadius: 2,
+                      bgcolor: '#FF9800',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Info sx={{ fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" fontWeight="700" color="text.primary">
+                    Notes & Instructions
+                  </Typography>
+                </Box>
+                <Divider sx={{ mb: 3 }} />
                 
                 {booking.notes && (
-                  <Box mb={2} p={2} bgcolor={alpha('#2196F3', 0.08)} borderRadius={2}>
-                    <Typography variant="caption" color="text.secondary" fontWeight="600">
-                      Service Notes
+                  <Box 
+                    mb={2.5} 
+                    p={2.5} 
+                    bgcolor={alpha('#2196F3', 0.08)} 
+                    borderRadius={2.5}
+                    sx={{
+                      border: '1px solid',
+                      borderColor: alpha('#2196F3', 0.2),
+                      borderLeft: '4px solid',
+                      borderLeftColor: 'primary.main',
+                    }}
+                  >
+                    <Box display="flex" alignItems="center" gap={1} mb={1}>
+                      <Info sx={{ fontSize: 18, color: 'primary.main' }} />
+                      <Typography variant="subtitle2" color="primary.main" fontWeight="700" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        Service Notes
+                      </Typography>
+                    </Box>
+                    <Typography variant="body1" color="text.primary" sx={{ lineHeight: 1.7 }}>
+                      {booking.notes}
                     </Typography>
-                    <Typography variant="body2" mt={0.5}>{booking.notes}</Typography>
                   </Box>
                 )}
                 {booking.customerNotes && (
-                  <Box p={2} bgcolor={alpha('#FF9800', 0.08)} borderRadius={2}>
-                    <Typography variant="caption" color="text.secondary" fontWeight="600">
-                      Customer Instructions
+                  <Box 
+                    p={2.5} 
+                    bgcolor={alpha('#FF9800', 0.08)} 
+                    borderRadius={2.5}
+                    sx={{
+                      border: '1px solid',
+                      borderColor: alpha('#FF9800', 0.2),
+                      borderLeft: '4px solid',
+                      borderLeftColor: '#FF9800',
+                    }}
+                  >
+                    <Box display="flex" alignItems="center" gap={1} mb={1}>
+                      <Person sx={{ fontSize: 18, color: '#FF9800' }} />
+                      <Typography variant="subtitle2" color="#FF9800" fontWeight="700" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        Customer Instructions
+                      </Typography>
+                    </Box>
+                    <Typography variant="body1" color="text.primary" sx={{ lineHeight: 1.7 }}>
+                      {booking.customerNotes}
                     </Typography>
-                    <Typography variant="body2" mt={0.5}>{booking.customerNotes}</Typography>
                   </Box>
                 )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Activity Timeline */}
+          {booking.activity && booking.activity.length > 0 && (
+            <Card 
+              sx={{ 
+                mt: 3,
+                borderRadius: 3,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                border: '1px solid rgba(0,0,0,0.05)',
+              }}
+            >
+              <CardContent sx={{ p: 3.5 }}>
+                <Box display="flex" alignItems="center" gap={1.5} mb={3}>
+                  <Box
+                    sx={{
+                      p: 1.5,
+                      borderRadius: 2,
+                      bgcolor: '#9C27B0',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <History sx={{ fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" fontWeight="700" color="text.primary">
+                    Activity Timeline
+                  </Typography>
+                </Box>
+                <Divider sx={{ mb: 3 }} />
+                
+                <Stack spacing={2}>
+                  {booking.activity.map((activity, index) => (
+                    <Box
+                      key={index}
+                      sx={{
+                        position: 'relative',
+                        pl: 4,
+                        pb: index < booking.activity.length - 1 ? 2 : 0,
+                        '&::before': {
+                          content: '""',
+                          position: 'absolute',
+                          left: 7,
+                          top: 8,
+                          bottom: index < booking.activity.length - 1 ? -16 : 0,
+                          width: 2,
+                          bgcolor: alpha('#9C27B0', 0.2),
+                        },
+                        '&::after': {
+                          content: '""',
+                          position: 'absolute',
+                          left: 4,
+                          top: 4,
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          bgcolor: '#9C27B0',
+                          border: '2px solid white',
+                          boxShadow: '0 0 0 2px rgba(156, 39, 176, 0.2)',
+                        }
+                      }}
+                    >
+                      <Box
+                        p={2}
+                        bgcolor={alpha('#9C27B0', 0.05)}
+                        borderRadius={2}
+                        sx={{
+                          border: '1px solid',
+                          borderColor: alpha('#9C27B0', 0.15),
+                        }}
+                      >
+                        <Typography variant="subtitle2" fontWeight="700" color="text.primary" mb={0.5}>
+                          {activity.action}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {activity.user} • {new Date(activity.timestamp).toLocaleString()}
+                        </Typography>
+                        {activity.details && (
+                          <Typography variant="body2" color="text.secondary" mt={1} sx={{ fontStyle: 'italic' }}>
+                            {activity.details}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
+                  ))}
+                </Stack>
               </CardContent>
             </Card>
           )}
@@ -1018,104 +1561,274 @@ console.log("detailssss",booking)
 
         {/* Right Column */}
         <Grid item xs={12} md={4}>
-          {/* Professional Assignment Card */}
-          <Card sx={{ mb: 3, borderRadius: 3 }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" fontWeight="600" gutterBottom>
-                Assigned Professional
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
+          {/* Premium Professional Assignment Card */}
+          <Card 
+            sx={{ 
+              mb: 3, 
+              borderRadius: 3,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+              border: '1px solid rgba(0,0,0,0.05)',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                transform: 'translateY(-2px)',
+              }
+            }}
+          >
+            <CardContent sx={{ p: 3.5 }}>
+              <Box display="flex" alignItems="center" gap={1.5} mb={3}>
+                <Box
+                  sx={{
+                    p: 1.5,
+                    borderRadius: 2,
+                    bgcolor: 'primary.main',
+                    color: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <AssignmentInd sx={{ fontSize: 24 }} />
+                </Box>
+                <Typography variant="h6" fontWeight="700" color="text.primary">
+                  Assigned Professional
+                </Typography>
+              </Box>
+              <Divider sx={{ mb: 3 }} />
               
               {booking.professional ? (
                 <Box>
-                  <Box display="flex" alignItems="center" gap={2} mb={2}>
+                  <Box display="flex" alignItems="center" gap={2.5} mb={3}>
                     <Avatar 
                       sx={{ 
-                        width: 56, 
-                        height: 56,
-                        bgcolor: 'primary.light',
-                        fontSize: 20,
+                        width: 72, 
+                        height: 72,
+                        bgcolor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        fontSize: 28,
                         fontWeight: 700,
+                        boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
                       }}
                     >
                       {booking.professional.firstName[0]}{booking.professional.lastName[0]}
                     </Avatar>
                     <Box flex={1}>
-                      <Typography variant="subtitle1" fontWeight="600">
+                      <Typography variant="h6" fontWeight="700" color="text.primary" mb={0.5}>
                         {booking.professional.firstName} {booking.professional.lastName}
                       </Typography>
-                      <Box display="flex" alignItems="center" gap={0.5} mt={0.5}>
-                        <Star sx={{ fontSize: 16, color: '#FFA726' }} />
-                        <Typography variant="body2" fontWeight="500">
+                      <Box display="flex" alignItems="center" gap={1} mb={1}>
+                        <Star sx={{ fontSize: 20, color: '#FFA726' }} />
+                        <Typography variant="body1" fontWeight="700" color="text.primary">
                           {booking.professional.rating.toFixed(1)}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" ml={0.5}>
+                          Rating
                         </Typography>
                       </Box>
                     </Box>
                   </Box>
 
-                  <Box display="flex" alignItems="center" gap={1} mb={1.5} p={1} bgcolor={alpha('#2196F3', 0.08)} borderRadius={1}>
-                    <Phone sx={{ fontSize: 20, color: 'primary.main' }} />
-                    <Typography variant="body2">{booking.professional.phone}</Typography>
+                  <Box 
+                    display="flex" 
+                    alignItems="center" 
+                    gap={2} 
+                    mb={2.5} 
+                    p={2} 
+                    bgcolor={alpha('#2196F3', 0.08)} 
+                    borderRadius={2.5}
+                    sx={{
+                      border: '1px solid',
+                      borderColor: alpha('#2196F3', 0.2),
+                    }}
+                  >
+                    <Phone sx={{ fontSize: 22, color: 'primary.main' }} />
+                    <Typography variant="body1" fontWeight="600">
+                      {booking.professional.phone}
+                    </Typography>
                   </Box>
 
-                  <Box display="flex" flexWrap="wrap" gap={0.5}>
+                  <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, mb: 1, display: 'block' }}>
+                    Specializations
+                  </Typography>
+                  <Box display="flex" flexWrap="wrap" gap={1}>
                     {booking.professional.categories.map(cat => (
-                      <Chip key={cat} label={cat} size="small" />
+                      <Chip 
+                        key={cat} 
+                        label={cat} 
+                        size="small"
+                        sx={{
+                          bgcolor: alpha('#2196F3', 0.1),
+                          color: 'primary.dark',
+                          fontWeight: 600,
+                          height: 28,
+                        }}
+                      />
                     ))}
                   </Box>
                 </Box>
               ) : (
-                <Alert severity="info">
+                <Alert 
+                  severity="info"
+                  sx={{
+                    borderRadius: 2,
+                    bgcolor: alpha('#2196F3', 0.05),
+                  }}
+                >
                   No professional assigned yet
                 </Alert>
               )}
             </CardContent>
           </Card>
 
-          {/* Payment Card */}
-          <Card sx={{ borderRadius: 3 }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" fontWeight="600" gutterBottom>
-                Payment Details
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-              
-              <Stack spacing={1.5}>
-                <Box display="flex" justifyContent="space-between">
-                  <Typography variant="body2" color="text.secondary">Base Amount</Typography>
-                  <Typography variant="body2" fontWeight="500">₹{booking.baseAmount}</Typography>
+          {/* Premium Payment Card */}
+          <Card 
+            sx={{ 
+              borderRadius: 3,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+              border: '1px solid rgba(0,0,0,0.05)',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                transform: 'translateY(-2px)',
+              }
+            }}
+          >
+            <CardContent sx={{ p: 3.5 }}>
+              <Box display="flex" alignItems="center" gap={1.5} mb={3}>
+                <Box
+                  sx={{
+                    p: 1.5,
+                    borderRadius: 2,
+                    bgcolor: '#4CAF50',
+                    color: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Receipt sx={{ fontSize: 24 }} />
                 </Box>
-                <Box display="flex" justifyContent="space-between">
-                  <Typography variant="body2" color="text.secondary">Tax & Fees</Typography>
-                  <Typography variant="body2" fontWeight="500">₹{booking.taxAmount}</Typography>
+                <Typography variant="h6" fontWeight="700" color="text.primary">
+                  Payment Details
+                </Typography>
+              </Box>
+              <Divider sx={{ mb: 3 }} />
+              
+              <Stack spacing={2.5}>
+                <Box 
+                  display="flex" 
+                  justifyContent="space-between" 
+                  alignItems="center"
+                  p={1.5}
+                  bgcolor={alpha('#2196F3', 0.05)}
+                  borderRadius={1.5}
+                >
+                  <Typography variant="body2" color="text.secondary" fontWeight="600">
+                    Base Amount
+                  </Typography>
+                  <Typography variant="body1" fontWeight="700" color="text.primary">
+                    ₹{booking.baseAmount}
+                  </Typography>
+                </Box>
+                <Box 
+                  display="flex" 
+                  justifyContent="space-between" 
+                  alignItems="center"
+                  p={1.5}
+                  bgcolor={alpha('#2196F3', 0.05)}
+                  borderRadius={1.5}
+                >
+                  <Typography variant="body2" color="text.secondary" fontWeight="600">
+                    Tax & Fees
+                  </Typography>
+                  <Typography variant="body1" fontWeight="700" color="text.primary">
+                    ₹{booking.taxAmount}
+                  </Typography>
                 </Box>
                 {booking.discountAmount > 0 && (
-                  <Box display="flex" justifyContent="space-between">
-                    <Typography variant="body2" color="success.main">Discount</Typography>
-                    <Typography variant="body2" color="success.main" fontWeight="500">-₹{booking.discountAmount}</Typography>
+                  <Box 
+                    display="flex" 
+                    justifyContent="space-between" 
+                    alignItems="center"
+                    p={1.5}
+                    bgcolor={alpha('#4CAF50', 0.1)}
+                    borderRadius={1.5}
+                    sx={{
+                      border: '1px solid',
+                      borderColor: alpha('#4CAF50', 0.2),
+                    }}
+                  >
+                    <Typography variant="body2" color="success.main" fontWeight="700">
+                      Discount
+                    </Typography>
+                    <Typography variant="body1" color="success.main" fontWeight="700">
+                      -₹{booking.discountAmount}
+                    </Typography>
                   </Box>
                 )}
-                <Divider />
-                <Box display="flex" justifyContent="space-between" alignItems="center">
-                  <Typography variant="h6" fontWeight="700">Total</Typography>
-                  <Typography variant="h5" fontWeight="700" color="primary.main">
+                <Divider sx={{ my: 1 }} />
+                <Box 
+                  display="flex" 
+                  justifyContent="space-between" 
+                  alignItems="center"
+                  p={2.5}
+                  bgcolor={alpha('#4CAF50', 0.1)}
+                  borderRadius={2.5}
+                  sx={{
+                    border: '2px solid',
+                    borderColor: '#4CAF50',
+                  }}
+                >
+                  <Typography variant="h6" fontWeight="800" color="text.primary">
+                    Total Amount
+                  </Typography>
+                  <Typography variant="h4" fontWeight="800" color="success.main">
                     ₹{booking.totalAmount}
                   </Typography>
                 </Box>
-                <Box display="flex" justifyContent="space-between" alignItems="center" pt={1}>
-                  <Typography variant="caption" color="text.secondary">Payment Status</Typography>
+                <Box 
+                  display="flex" 
+                  justifyContent="space-between" 
+                  alignItems="center"
+                  p={2}
+                  bgcolor={alpha('#FF9800', 0.05)}
+                  borderRadius={2}
+                >
+                  <Typography variant="body2" color="text.secondary" fontWeight="600">
+                    Payment Status
+                  </Typography>
                   <Chip
                     label={booking.paymentStatus}
-                    size="small"
-                    color={booking.paymentStatus === 'paid' ? 'success' : 'warning'}
+                    size="medium"
+                    color={booking.paymentStatus === 'paid' || booking.paymentStatus === 'completed' ? 'success' : 'warning'}
+                    sx={{
+                      fontWeight: 700,
+                      textTransform: 'capitalize',
+                    }}
                   />
                 </Box>
                 {booking.paymentMethod && (
-                  <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <Typography variant="caption" color="text.secondary">Method</Typography>
-                    <Typography variant="caption" sx={{ textTransform: 'uppercase' }}>
-                      {booking.paymentMethod}
+                  <Box 
+                    display="flex" 
+                    justifyContent="space-between" 
+                    alignItems="center"
+                    p={2}
+                    bgcolor={alpha('#9C27B0', 0.05)}
+                    borderRadius={2}
+                  >
+                    <Typography variant="body2" color="text.secondary" fontWeight="600">
+                      Payment Method
                     </Typography>
+                    <Chip
+                      label={booking.paymentMethod}
+                      size="small"
+                      sx={{
+                        bgcolor: alpha('#9C27B0', 0.1),
+                        color: '#9C27B0',
+                        fontWeight: 600,
+                        textTransform: 'capitalize',
+                      }}
+                    />
                   </Box>
                 )}
               </Stack>

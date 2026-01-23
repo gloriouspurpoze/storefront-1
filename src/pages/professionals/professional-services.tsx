@@ -56,9 +56,11 @@ import { useAppDispatch } from '../../store/hooks'
 import { apiClient } from '../../services/apiClient'
 import { addToast } from '../../store/slices/uiSlice'
 import { ProfessionalsService } from '../../services/api/professionals.service'
+import { platformServicesService, PlatformService } from '../../services/api/platformServices.service'
 
 interface Service {
   _id: string
+  id?: string
   name: string
   description?: string
   icon?: string
@@ -67,7 +69,8 @@ interface Service {
 }
 
 interface AvailableService {
-  _id: string
+  _id?: string
+  id: string
   name: string
   description?: string
   category?: string
@@ -107,13 +110,32 @@ export function ProfessionalServices() {
 
   const loadAvailableServices = async () => {
     try {
-      const response = await apiClient.get('/platform-services') as any
-      if (response?.success || response?.data?.success) {
-        const services = response.data?.services || response.data?.data || response.services || []
-        setAvailableServices(Array.isArray(services) ? services : [])
+      const response = await platformServicesService.getServices({ 
+        is_active: true,
+        status: 'published',
+        limit: 1000 // Get all active services
+      })
+      
+      if (response && response.services) {
+        // Map PlatformService to AvailableService format
+        const mappedServices: AvailableService[] = response.services.map((service: PlatformService) => ({
+          id: service.id,
+          _id: service.id, // Support both formats
+          name: service.name,
+          description: service.description || service.short_description,
+          category: service.category,
+        }))
+        setAvailableServices(mappedServices)
+      } else {
+        setAvailableServices([])
       }
     } catch (error: any) {
       console.error('Error loading available services:', error)
+      dispatch(addToast({ 
+        message: error.message || 'Failed to load available services', 
+        severity: 'error' 
+      }))
+      setAvailableServices([])
     }
   }
 
@@ -309,18 +331,32 @@ export function ProfessionalServices() {
               onChange={(e) => setSelectedService(e.target.value)}
             >
               {availableServices
-                .filter(s => !myServices.some(ms => ms._id === s._id))
-                .map((service) => (
-                  <MenuItem key={service._id} value={service._id}>
-                    {service.name}
-                    {service.category && (
-                      <Chip label={service.category} size="small" sx={{ ml: 1 }} />
-                    )}
-                  </MenuItem>
-                ))}
+                .filter(s => {
+                  const serviceId = s._id || s.id
+                  return !myServices.some(ms => (ms._id === serviceId || ms.id === serviceId))
+                })
+                .map((service) => {
+                  const serviceId = service._id || service.id
+                  return (
+                    <MenuItem key={serviceId} value={serviceId}>
+                      {service.name}
+                      {service.category && (
+                        <Chip label={service.category} size="small" sx={{ ml: 1 }} />
+                      )}
+                    </MenuItem>
+                  )
+                })}
             </Select>
           </FormControl>
-          {availableServices.filter(s => !myServices.some(ms => ms._id === s._id)).length === 0 && (
+          {availableServices.length === 0 && (
+            <Alert severity="warning" sx={{ mt: 2 }}>
+              No services available. Please contact admin to add platform services.
+            </Alert>
+          )}
+          {availableServices.length > 0 && availableServices.filter(s => {
+            const serviceId = s._id || s.id
+            return !myServices.some(ms => (ms._id === serviceId || ms.id === serviceId))
+          }).length === 0 && (
             <Alert severity="info" sx={{ mt: 2 }}>
               All available services have been added
             </Alert>
