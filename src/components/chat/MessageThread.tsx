@@ -85,7 +85,7 @@ const MessageThread: React.FC<MessageThreadProps> = ({
 
     if (otherParticipants.length > 0) {
       return otherParticipants
-        .map((p) => `${p.userId.firstName} ${p.userId.lastName}`)
+        .map((p) => `${p.userId.firstName || ''} ${p.userId.lastName || ''}`.trim() || 'User')
         .join(', ');
     }
 
@@ -93,6 +93,7 @@ const MessageThread: React.FC<MessageThreadProps> = ({
   };
 
   const getParticipantRole = (role: string): string => {
+    if (!role) return '';
     return role.charAt(0).toUpperCase() + role.slice(1);
   };
 
@@ -122,7 +123,7 @@ const MessageThread: React.FC<MessageThreadProps> = ({
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
           <Avatar sx={{ bgcolor: 'primary.main' }}>
-            {getConversationTitle().charAt(0)}
+            {(getConversationTitle() || 'C').charAt(0)}
           </Avatar>
           <Box sx={{ flex: 1 }}>
             <Typography variant="h6">{getConversationTitle()}</Typography>

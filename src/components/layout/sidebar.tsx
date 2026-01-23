@@ -149,8 +149,8 @@ const navigationGroups = [
     items: [
       { name: 'Categories', href: '/categories', icon: CategoryIcon, permissions: ['view_categories', 'manage_categories'], badge: null },
       { name: 'Platform Services', href: '/platform-services', icon: HomeIcon, permissions: ['view_services', 'manage_services'], badge: null },
-      { name: 'Products', href: '/products', icon: PackageIcon, permissions: ['view_products', 'manage_products'], badge: null },
-      { name: 'Providers', href: '/providers', icon: ShieldIcon, permissions: ['view_providers', 'manage_providers'], badge: null },
+      // { name: 'Products', href: '/products', icon: PackageIcon, permissions: ['view_products', 'manage_products'], badge: null },
+      // { name: 'Providers', href: '/providers', icon: ShieldIcon, permissions: ['view_providers', 'manage_providers'], badge: null },
       { name: 'Professionals', href: '/professionals', icon: PersonIcon, permissions: ['view_providers', 'manage_providers'], badge: null },
     ]
   },
@@ -158,10 +158,10 @@ const navigationGroups = [
     title: 'Operations',
     icon: ShoppingCartIcon,
     items: [
-      { name: 'Orders', href: '/orders', icon: ShoppingCartIcon, permissions: ['view_orders', 'manage_orders'], badge: null },
+      // { name: 'Orders', href: '/orders', icon: ShoppingCartIcon, permissions: ['view_orders', 'manage_orders'], badge: null },
       { name: 'Bookings', href: '/bookings', icon: CalendarIcon, permissions: ['view_bookings', 'manage_bookings'], badge: null },
-      { name: 'Service Requests', href: '/requests', icon: FileTextIcon, permissions: ['view_bookings', 'manage_bookings'], badge: null },
-      { name: 'Quotes', href: '/quotes', icon: DollarSignIcon, permissions: ['view_bookings', 'manage_bookings'], badge: null },
+      // { name: 'Service Requests', href: '/requests', icon: FileTextIcon, permissions: ['view_bookings', 'manage_bookings'], badge: null },
+      // { name: 'Quotes', href: '/quotes', icon: DollarSignIcon, permissions: ['view_bookings', 'manage_bookings'], badge: null },
       { name: 'Payments', href: '/payments', icon: CreditCardIcon, permissions: ['view_payments', 'manage_payments'], badge: null },
       { name: 'Invoices', href: '/invoices', icon: ReceiptIcon, permissions: ['view_payments', 'manage_payments'], badge: null },
       { name: 'Chat', href: '/chat', icon: ChatIcon, permissions: ['view_messages'], badge: 'new' },
@@ -209,7 +209,7 @@ const navigationGroups = [
     icon: UsersIcon,
     items: [
       { name: 'Users', href: '/users', icon: UsersIcon, permissions: ['view_users', 'manage_users'], badge: null },
-      { name: 'Messages', href: '/messages', icon: MessageIcon, permissions: ['view_messages'], badge: null },
+      // { name: 'Messages', href: '/messages', icon: MessageIcon, permissions: ['view_messages'], badge: null },
       { name: 'Notifications', href: '/notifications', icon: NotificationsIcon, permissions: ['view_notifications', 'manage_notifications'], badge: null },
     ]
   },

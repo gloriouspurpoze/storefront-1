@@ -223,7 +223,7 @@ export const ProviderListForChat: React.FC<ProviderListForChatProps> = ({
                 >
                   <ListItemAvatar>
                     <Avatar src={provider.avatar} sx={{ bgcolor: 'primary.main', width: 48, height: 48 }}>
-                      {provider.businessName.charAt(0)}
+                      {provider.businessName?.charAt(0) || 'P'}
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText

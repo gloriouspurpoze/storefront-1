@@ -110,7 +110,7 @@ export const UserListForChat: React.FC<UserListForChatProps> = ({
           { userId: user.id, role: 'customer' }
         ],
         metadata: {
-          subject: `Admin Chat with ${user.firstName} ${user.lastName}`,
+          subject: `Admin Chat with ${user.firstName || ''} ${user.lastName || ''}`,
         },
       });
 
@@ -193,14 +193,14 @@ export const UserListForChat: React.FC<UserListForChatProps> = ({
                 >
                   <ListItemAvatar>
                     <Avatar src={user.profilePicture} sx={{ bgcolor: 'secondary.main', width: 48, height: 48 }}>
-                      {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+                      {(user.firstName?.charAt(0) || '')}{(user.lastName?.charAt(0) || '') || 'U'}
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText
                     primary={
                       <Box display="flex" alignItems="center" gap={1}>
                         <Typography variant="subtitle1" fontWeight={500}>
-                          {user.firstName} {user.lastName}
+                          {user.firstName || ''} {user.lastName || ''}
                         </Typography>
                         {user.isVerified && (
                           <CheckCircleIcon color="success" sx={{ fontSize: 16 }} />
