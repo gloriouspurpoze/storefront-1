@@ -35,6 +35,14 @@ import {
   Paper,
   Avatar,
   TablePagination,
+  Tabs,
+  Tab,
+  Stepper,
+  Step,
+  StepLabel,
+  Collapse,
+  Fade,
+  Zoom,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -52,6 +60,11 @@ import {
   Group as GroupIcon,
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
+  Info as InfoIcon,
+  Campaign as CampaignIcon,
+  Settings as SettingsIcon,
+  Visibility as PreviewIcon,
+  Save as SaveIcon,
 } from '@mui/icons-material';
 import { PageHeader } from '../../components/common/PageHeader';
 import { SlidersService } from '../../services/api/sliders.service';
@@ -91,6 +104,9 @@ export default function SlidersManagement() {
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [selectedSlider, setSelectedSlider] = useState<Slider | null>(null);
   const [formLoading, setFormLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [showPreview, setShowPreview] = useState(false);
 
   // Form data
   const [formData, setFormData] = useState({
@@ -202,6 +218,9 @@ export default function SlidersManagement() {
     setFormMode('create');
     setSelectedSlider(null);
     resetForm();
+    setActiveTab(0);
+    setFormErrors({});
+    setShowPreview(false);
     setViewMode('form');
   };
 
@@ -234,6 +253,9 @@ export default function SlidersManagement() {
     } else {
       setUploadedImages([]);
     }
+    setActiveTab(0);
+    setFormErrors({});
+    setShowPreview(false);
     setViewMode('form');
     handleMenuClose();
   };
@@ -291,12 +313,13 @@ export default function SlidersManagement() {
     }
   };
 
-  const handleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+
     if (!formData.title.trim()) {
-      showSnackbar('Title is required', 'error');
-      return;
+      errors.title = 'Title is required';
+    } else if (formData.title.length > 100) {
+      errors.title = 'Title must be 100 characters or less';
     }
 
     // Use uploaded image URL if available, otherwise use manual URL
@@ -305,9 +328,38 @@ export default function SlidersManagement() {
       : formData.image_url;
 
     if (!imageUrl.trim()) {
-      showSnackbar('Image is required. Please upload an image or provide an image URL', 'error');
+      errors.image_url = 'Image is required. Please upload an image or provide an image URL';
+    }
+
+    if (formData.button_text && !formData.button_url) {
+      errors.button_url = 'Button URL is required when button text is provided';
+    }
+
+    if (formData.start_date && formData.end_date) {
+      const startDate = new Date(formData.start_date);
+      const endDate = new Date(formData.end_date);
+      if (endDate <= startDate) {
+        errors.end_date = 'End date must be after start date';
+      }
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      showSnackbar('Please fix the errors in the form', 'error');
+      setActiveTab(0); // Go to first tab if there are errors
       return;
     }
+
+    // Use uploaded image URL if available, otherwise use manual URL
+    const imageUrl = uploadedImages.length > 0 
+      ? uploadedImages[0].url 
+      : formData.image_url;
 
     try {
       setFormLoading(true);
@@ -371,6 +423,9 @@ export default function SlidersManagement() {
     });
     setUploadedImages([]);
     setSelectedSlider(null);
+    setActiveTab(0);
+    setFormErrors({});
+    setShowPreview(false);
   };
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>, slider: Slider) => {
@@ -418,470 +473,681 @@ export default function SlidersManagement() {
 
   // Form View
   if (viewMode === 'form') {
+    const tabs = [
+      { label: 'Basic Info', icon: <InfoIcon />, value: 0 },
+      { label: 'Image & Media', icon: <ImageIcon />, value: 1 },
+      { label: 'Call to Action', icon: <CampaignIcon />, value: 2 },
+      { label: 'Settings', icon: <SettingsIcon />, value: 3 },
+      { label: 'Preview', icon: <PreviewIcon />, value: 4 },
+    ];
+
+    const imageUrl = uploadedImages.length > 0 
+      ? uploadedImages[0].url 
+      : formData.image_url;
+
     return (
       <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
         <PageHeader
           title={formMode === 'edit' ? 'Edit Slider' : 'Create New Slider'}
-          subtitle={formMode === 'edit' ? 'Update slider details' : 'Add a new banner/slider'}
+          subtitle={formMode === 'edit' ? 'Update slider details and settings' : 'Add a new banner/slider to your website'}
           action={
-            <Button
-              variant="outlined"
-              startIcon={<ArrowBackIcon />}
-              onClick={() => {
-                setViewMode('list');
-                resetForm();
-              }}
-              sx={{ borderRadius: 2 }}
-            >
-              Back to List
-            </Button>
+            <Stack direction="row" spacing={2}>
+              <Button
+                variant="outlined"
+                startIcon={<PreviewIcon />}
+                onClick={() => setShowPreview(!showPreview)}
+                sx={{ borderRadius: 2 }}
+              >
+                {showPreview ? 'Hide Preview' : 'Show Preview'}
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<ArrowBackIcon />}
+                onClick={() => {
+                  setViewMode('list');
+                  resetForm();
+                }}
+                sx={{ borderRadius: 2 }}
+              >
+                Back to List
+              </Button>
+            </Stack>
           }
         />
 
-        <Card 
-          sx={{ 
-            mt: 3, 
-            borderRadius: 3,
-            boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.08)}`,
-            overflow: 'hidden',
-          }}
-        >
-          <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
-            <form onSubmit={handleFormSubmit}>
-              <Grid container spacing={4}>
-                {/* Basic Information Section */}
-                <Grid item xs={12}>
-                  <Box
-                    sx={{
-                      mb: 2,
-                      pb: 2,
-                      borderBottom: `2px solid ${alpha(theme.palette.primary.main, 0.1)}`,
-                    }}
+        {/* Progress Indicator */}
+        <Card sx={{ mt: 3, mb: 3, borderRadius: 3, overflow: 'hidden' }}>
+          <CardContent sx={{ py: 2 }}>
+            <Stepper activeStep={activeTab} alternativeLabel>
+              {tabs.map((tab, index) => (
+                <Step key={tab.value} completed={activeTab > index}>
+                  <StepLabel 
+                    icon={tab.icon}
+                    onClick={() => setActiveTab(index)}
+                    sx={{ cursor: 'pointer' }}
                   >
-                    <Typography
-                      variant="h5"
-                      sx={{
-                        fontWeight: 700,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        color: 'primary.main',
-                      }}
-                    >
-                      Basic Information
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                      Enter the essential details for your slider
-                    </Typography>
-                  </Box>
-                </Grid>
+                    {tab.label}
+                  </StepLabel>
+                </Step>
+              ))}
+            </Stepper>
+          </CardContent>
+        </Card>
 
-                <Grid item xs={12} sm={8}>
-                  <FormField
-                    label="Title"
-                    value={formData.title}
-                    onChange={(value) => setFormData({ ...formData, title: value })}
-                    required
-                    placeholder="Summer Sale 2024"
-                    helperText="The main heading displayed on the slider"
-                    maxLength={100}
-                    showCharCount
-                  />
-                </Grid>
+        {/* Form Errors Alert */}
+        {Object.keys(formErrors).length > 0 && (
+          <Alert 
+            severity="error" 
+            sx={{ mb: 3, borderRadius: 2 }}
+            onClose={() => setFormErrors({})}
+          >
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+              Please fix the following errors:
+            </Typography>
+            <Box component="ul" sx={{ m: 0, pl: 2 }}>
+              {Object.values(formErrors).map((error, idx) => (
+                <li key={idx}>
+                  <Typography variant="body2">{error}</Typography>
+                </li>
+              ))}
+            </Box>
+          </Alert>
+        )}
 
-                <Grid item xs={12} sm={4}>
-                  <FormField
-                    label="Position"
-                    value={formData.position}
-                    onChange={(value) => setFormData({ ...formData, position: Number(value) })}
-                    type="number"
-                    helperText="Lower numbers appear first"
-                    placeholder="1"
-                  />
-                </Grid>
+        <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', lg: 'row' } }}>
+          {/* Main Form */}
+          <Box sx={{ flex: { xs: 1, lg: showPreview ? 2 : 1 } }}>
+            <Card 
+              sx={{ 
+                borderRadius: 3,
+                boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.08)}`,
+                overflow: 'hidden',
+              }}
+            >
+              {/* Tab Navigation */}
+              <Box sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper' }}>
+                <Tabs 
+                  value={activeTab} 
+                  onChange={(e, newValue) => setActiveTab(newValue)}
+                  variant="scrollable"
+                  scrollButtons="auto"
+                  sx={{
+                    '& .MuiTab-root': {
+                      minHeight: 72,
+                      textTransform: 'none',
+                      fontWeight: 600,
+                      fontSize: '0.95rem',
+                    },
+                    '& .Mui-selected': {
+                      color: 'primary.main',
+                    },
+                  }}
+                >
+                  {tabs.map((tab) => (
+                    <Tab 
+                      key={tab.value}
+                      icon={tab.icon}
+                      iconPosition="start"
+                      label={tab.label}
+                      sx={{ gap: 1 }}
+                    />
+                  ))}
+                </Tabs>
+              </Box>
 
-                <Grid item xs={12}>
-                  <FormField
-                    label="Subtitle"
-                    value={formData.subtitle}
-                    onChange={(value) => setFormData({ ...formData, subtitle: value })}
-                    placeholder="Get up to 50% off on all services"
-                    helperText="A short tagline or secondary message"
-                    maxLength={150}
-                    showCharCount
-                  />
-                </Grid>
-
-                <Grid item xs={12}>
-                  <FormField
-                    label="Description"
-                    value={formData.description}
-                    onChange={(value) => setFormData({ ...formData, description: value })}
-                    placeholder="Detailed description of the slider (optional)"
-                    multiline
-                    rows={4}
-                    helperText="Additional details about the slider (optional)"
-                    maxLength={500}
-                    showCharCount
-                  />
-                </Grid>
-
-                <Grid item xs={12}>
-                  <Box
-                    sx={{
-                      p: 3,
-                      borderRadius: 2,
-                      bgcolor: alpha(theme.palette.primary.main, 0.02),
-                      border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
-                    }}
-                  >
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        fontWeight: 600,
-                        mb: 2,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                      }}
-                    >
-                      <ImageIcon color="primary" />
-                      Image & Media
-                    </Typography>
-                    
-                    <Box sx={{ mb: 3 }}>
-                      <ImageUploadField
-                        label="Slider Image"
-                        value={uploadedImages}
-                        onChange={(images) => {
-                          setUploadedImages(images);
-                          if (images.length > 0) {
-                            setFormData({
-                              ...formData,
-                              image_url: images[0].url,
-                              image_alt: images[0].alt,
-                            });
-                          } else {
-                            setFormData({
-                              ...formData,
-                              image_url: '',
-                            });
-                          }
-                        }}
-                        required
-                        maxFiles={1}
-                        maxSize={5}
-                        folder="sliders"
-                        helperText="Upload a high-quality image for your slider (Recommended: 1920x600px)"
-                        tooltip="Drag and drop or click to upload. Maximum 5MB. Supported formats: JPG, PNG, GIF, WebP"
-                      />
-                    </Box>
-
-                    <Box sx={{ mt: 3, pt: 3, borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
-                      <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                        Or enter image URL manually
-                      </Typography>
-                      <FormField
-                        label="Image URL"
-                        value={formData.image_url}
-                        onChange={(value) => setFormData({ ...formData, image_url: value })}
-                        placeholder="https://example.com/image.jpg"
-                        helperText="Enter the full URL of the slider image if you prefer to use an external image"
-                        type="url"
-                      />
-                    </Box>
-
-                    {uploadedImages.length > 0 && (
-                      <Box sx={{ mt: 3 }}>
-                        <FormField
-                          label="Image Alt Text"
-                          value={formData.image_alt}
-                          onChange={(value) => setFormData({ ...formData, image_alt: value })}
-                          placeholder="Enter descriptive alt text for accessibility"
-                          helperText="Alt text helps with SEO and accessibility for screen readers"
-                        />
-                      </Box>
-                    )}
-
-                    {/* Preview Section */}
-                    {(uploadedImages.length > 0 || formData.image_url) && (
-                      <Box sx={{ mt: 3 }}>
-                        <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                          Preview
-                        </Typography>
-                        <Card
+              <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
+                <form onSubmit={handleFormSubmit} id="slider-form">
+                  {/* Tab 0: Basic Information */}
+                  {activeTab === 0 && (
+                    <Fade in={activeTab === 0}>
+                      <Box>
+                        <Typography
+                          variant="h5"
                           sx={{
-                            borderRadius: 2,
-                            overflow: 'hidden',
-                            border: `2px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-                            boxShadow: `0 4px 20px ${alpha(theme.palette.primary.main, 0.1)}`,
+                            fontWeight: 700,
+                            mb: 3,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            color: 'primary.main',
                           }}
                         >
-                          <Box
-                            sx={{
-                              width: '100%',
-                              height: { xs: 200, sm: 300, md: 400 },
-                              position: 'relative',
-                              bgcolor: alpha(theme.palette.grey[500], 0.05),
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              overflow: 'hidden',
-                            }}
-                          >
-                            <img
-                              src={uploadedImages.length > 0 ? uploadedImages[0].url : formData.image_url}
-                              alt={formData.image_alt || formData.title || 'Slider preview'}
-                              style={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'cover',
+                          <InfoIcon />
+                          Basic Information
+                        </Typography>
+                        <Grid container spacing={3}>
+                          <Grid item xs={12} sm={8}>
+                            <FormField
+                              label="Title"
+                              value={formData.title}
+                              onChange={(value) => {
+                                setFormData({ ...formData, title: value });
+                                if (formErrors.title) {
+                                  setFormErrors({ ...formErrors, title: '' });
+                                }
                               }}
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
-                              }}
+                              required
+                              error={!!formErrors.title}
+                              helperText={formErrors.title || "The main heading displayed on the slider"}
+                              placeholder="Summer Sale 2024"
+                              maxLength={100}
+                              showCharCount
                             />
-                            {formData.title && (
-                              <Box
+                          </Grid>
+
+                          <Grid item xs={12} sm={4}>
+                            <FormField
+                              label="Position"
+                              value={formData.position}
+                              onChange={(value) => setFormData({ ...formData, position: Number(value) })}
+                              type="number"
+                              helperText="Lower numbers appear first"
+                              placeholder="1"
+                              inputProps={{ min: 1 }}
+                            />
+                          </Grid>
+
+                          <Grid item xs={12}>
+                            <FormField
+                              label="Subtitle"
+                              value={formData.subtitle}
+                              onChange={(value) => setFormData({ ...formData, subtitle: value })}
+                              placeholder="Get up to 50% off on all services"
+                              helperText="A short tagline or secondary message (optional)"
+                              maxLength={150}
+                              showCharCount
+                            />
+                          </Grid>
+
+                          <Grid item xs={12}>
+                            <FormField
+                              label="Description"
+                              value={formData.description}
+                              onChange={(value) => setFormData({ ...formData, description: value })}
+                              placeholder="Detailed description of the slider (optional)"
+                              multiline
+                              rows={4}
+                              helperText="Additional details about the slider (optional)"
+                              maxLength={500}
+                              showCharCount
+                            />
+                          </Grid>
+                        </Grid>
+                      </Box>
+                    </Fade>
+                  )}
+
+                  {/* Tab 1: Image & Media */}
+                  {activeTab === 1 && (
+                    <Fade in={activeTab === 1}>
+                      <Box>
+                        <Typography
+                          variant="h5"
+                          sx={{
+                            fontWeight: 700,
+                            mb: 3,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            color: 'primary.main',
+                          }}
+                        >
+                          <ImageIcon />
+                          Image & Media
+                        </Typography>
+                        <Grid container spacing={3}>
+                          <Grid item xs={12}>
+                            <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
+                              <Typography variant="body2">
+                                <strong>Recommended size:</strong> 1920x600px for best results. Maximum file size: 5MB.
+                              </Typography>
+                            </Alert>
+                          </Grid>
+
+                          <Grid item xs={12}>
+                            <ImageUploadField
+                              label="Slider Image"
+                              value={uploadedImages}
+                              onChange={(images) => {
+                                setUploadedImages(images);
+                                if (images.length > 0) {
+                                  setFormData({
+                                    ...formData,
+                                    image_url: images[0].url,
+                                    image_alt: images[0].alt,
+                                  });
+                                  if (formErrors.image_url) {
+                                    setFormErrors({ ...formErrors, image_url: '' });
+                                  }
+                                } else {
+                                  setFormData({
+                                    ...formData,
+                                    image_url: '',
+                                  });
+                                }
+                              }}
+                              required
+                              maxFiles={1}
+                              maxSize={5}
+                              folder="sliders"
+                              helperText="Upload a high-quality image for your slider"
+                              tooltip="Drag and drop or click to upload. Maximum 5MB. Supported formats: JPG, PNG, GIF, WebP"
+                            />
+                            {formErrors.image_url && (
+                              <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+                                {formErrors.image_url}
+                              </Typography>
+                            )}
+                          </Grid>
+
+                          <Grid item xs={12}>
+                            <Divider sx={{ my: 2 }}>
+                              <Typography variant="body2" color="text.secondary">
+                                OR
+                              </Typography>
+                            </Divider>
+                          </Grid>
+
+                          <Grid item xs={12}>
+                            <FormField
+                              label="Image URL"
+                              value={formData.image_url}
+                              onChange={(value) => {
+                                setFormData({ ...formData, image_url: value });
+                                if (formErrors.image_url) {
+                                  setFormErrors({ ...formErrors, image_url: '' });
+                                }
+                              }}
+                              placeholder="https://example.com/image.jpg"
+                              helperText="Enter the full URL of the slider image if you prefer to use an external image"
+                              type="url"
+                              error={!!formErrors.image_url}
+                            />
+                          </Grid>
+
+                          <Grid item xs={12}>
+                            <FormField
+                              label="Image Alt Text"
+                              value={formData.image_alt}
+                              onChange={(value) => setFormData({ ...formData, image_alt: value })}
+                              placeholder="Enter descriptive alt text for accessibility"
+                              helperText="Alt text helps with SEO and accessibility for screen readers"
+                            />
+                          </Grid>
+
+                          {/* Image Preview */}
+                          {imageUrl && (
+                            <Grid item xs={12}>
+                              <Card
                                 sx={{
-                                  position: 'absolute',
-                                  bottom: 0,
-                                  left: 0,
-                                  right: 0,
-                                  background: `linear-gradient(to top, ${alpha('#000', 0.8)}, transparent)`,
-                                  p: 3,
-                                  color: 'white',
+                                  borderRadius: 2,
+                                  overflow: 'hidden',
+                                  border: `2px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                                  boxShadow: `0 4px 20px ${alpha(theme.palette.primary.main, 0.1)}`,
                                 }}
                               >
-                                <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
-                                  {formData.title}
-                                </Typography>
-                                {formData.subtitle && (
-                                  <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                                    {formData.subtitle}
-                                  </Typography>
-                                )}
-                                {formData.button_text && (
-                                  <Button
-                                    variant="contained"
-                                    sx={{ mt: 2 }}
-                                    disabled
-                                  >
-                                    {formData.button_text}
-                                  </Button>
-                                )}
-                              </Box>
-                            )}
-                          </Box>
-                        </Card>
+                                <Box
+                                  sx={{
+                                    width: '100%',
+                                    height: { xs: 200, sm: 300 },
+                                    position: 'relative',
+                                    bgcolor: alpha(theme.palette.grey[500], 0.05),
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    overflow: 'hidden',
+                                  }}
+                                >
+                                  <img
+                                    src={imageUrl}
+                                    alt={formData.image_alt || formData.title || 'Slider preview'}
+                                    style={{
+                                      width: '100%',
+                                      height: '100%',
+                                      objectFit: 'cover',
+                                    }}
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                    }}
+                                  />
+                                </Box>
+                              </Card>
+                            </Grid>
+                          )}
+                        </Grid>
                       </Box>
-                    )}
-                  </Box>
-                </Grid>
+                    </Fade>
+                  )}
 
-                {/* Call to Action Section */}
-                <Grid item xs={12}>
-                  <Box
-                    sx={{
-                      mt: 2,
-                      mb: 2,
-                      pt: 3,
-                      pb: 2,
-                      borderTop: `2px solid ${alpha(theme.palette.divider, 0.1)}`,
-                      borderBottom: `2px solid ${alpha(theme.palette.primary.main, 0.1)}`,
-                    }}
-                  >
-                    <Typography
-                      variant="h5"
-                      sx={{
-                        fontWeight: 700,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        color: 'primary.main',
-                        mb: 0.5,
-                      }}
-                    >
-                      Call to Action
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Add a button to drive user engagement
-                    </Typography>
-                  </Box>
-                </Grid>
+                  {/* Tab 2: Call to Action */}
+                  {activeTab === 2 && (
+                    <Fade in={activeTab === 2}>
+                      <Box>
+                        <Typography
+                          variant="h5"
+                          sx={{
+                            fontWeight: 700,
+                            mb: 3,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            color: 'primary.main',
+                          }}
+                        >
+                          <CampaignIcon />
+                          Call to Action
+                        </Typography>
+                        <Grid container spacing={3}>
+                          <Grid item xs={12}>
+                            <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
+                              <Typography variant="body2">
+                                Add a button to drive user engagement. Both button text and URL are optional, but if you provide text, URL is required.
+                              </Typography>
+                            </Alert>
+                          </Grid>
 
-                <Grid item xs={12} sm={6}>
-                  <FormField
-                    label="Button Text"
-                    value={formData.button_text}
-                    onChange={(value) => setFormData({ ...formData, button_text: value })}
-                    placeholder="Shop Now"
-                    helperText="Text displayed on the action button"
-                    maxLength={30}
-                    showCharCount
-                  />
-                </Grid>
+                          <Grid item xs={12} sm={6}>
+                            <FormField
+                              label="Button Text"
+                              value={formData.button_text}
+                              onChange={(value) => {
+                                setFormData({ ...formData, button_text: value });
+                                if (formErrors.button_url) {
+                                  setFormErrors({ ...formErrors, button_url: '' });
+                                }
+                              }}
+                              placeholder="Shop Now"
+                              helperText="Text displayed on the action button (optional)"
+                              maxLength={30}
+                              showCharCount
+                            />
+                          </Grid>
 
-                <Grid item xs={12} sm={6}>
-                  <FormField
-                    label="Button URL"
-                    value={formData.button_url}
-                    onChange={(value) => setFormData({ ...formData, button_url: value })}
-                    placeholder="/services or https://example.com"
-                    helperText={formData.button_text ? 'Required when button text is provided' : 'URL where the button should link to'}
-                    type="url"
-                  />
-                </Grid>
+                          <Grid item xs={12} sm={6}>
+                            <FormField
+                              label="Button URL"
+                              value={formData.button_url}
+                              onChange={(value) => {
+                                setFormData({ ...formData, button_url: value });
+                                if (formErrors.button_url) {
+                                  setFormErrors({ ...formErrors, button_url: '' });
+                                }
+                              }}
+                              placeholder="/services or https://example.com"
+                              helperText={formData.button_text ? 'Required when button text is provided' : 'URL where the button should link to (optional)'}
+                              type="url"
+                              error={!!formErrors.button_url}
+                            />
+                          </Grid>
+                        </Grid>
+                      </Box>
+                    </Fade>
+                  )}
 
-                {/* Settings Section */}
-                <Grid item xs={12}>
-                  <Box
-                    sx={{
-                      mt: 2,
-                      mb: 2,
-                      pt: 3,
-                      pb: 2,
-                      borderTop: `2px solid ${alpha(theme.palette.divider, 0.1)}`,
-                      borderBottom: `2px solid ${alpha(theme.palette.primary.main, 0.1)}`,
-                    }}
-                  >
-                    <Typography
-                      variant="h5"
-                      sx={{
-                        fontWeight: 700,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        color: 'primary.main',
-                        mb: 0.5,
-                      }}
-                    >
-                      Settings
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Configure visibility and targeting options
-                    </Typography>
-                  </Box>
-                </Grid>
+                  {/* Tab 3: Settings */}
+                  {activeTab === 3 && (
+                    <Fade in={activeTab === 3}>
+                      <Box>
+                        <Typography
+                          variant="h5"
+                          sx={{
+                            fontWeight: 700,
+                            mb: 3,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            color: 'primary.main',
+                          }}
+                        >
+                          <SettingsIcon />
+                          Settings & Schedule
+                        </Typography>
+                        <Grid container spacing={3}>
+                          <Grid item xs={12} sm={6}>
+                            <FormControl fullWidth>
+                              <InputLabel>Target Audience</InputLabel>
+                              <Select
+                                value={formData.target_audience}
+                                label="Target Audience"
+                                onChange={(e) => setFormData({ ...formData, target_audience: e.target.value as any })}
+                                sx={{ borderRadius: 2 }}
+                              >
+                                <SelectMenuItem value="all">All Users</SelectMenuItem>
+                                <SelectMenuItem value="customers">Customers Only</SelectMenuItem>
+                                <SelectMenuItem value="providers">Providers Only</SelectMenuItem>
+                              </Select>
+                              <FormHelperText>Select who should see this slider</FormHelperText>
+                            </FormControl>
+                          </Grid>
 
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Target Audience</InputLabel>
-                    <Select
-                      value={formData.target_audience}
-                      label="Target Audience"
-                      onChange={(e) => setFormData({ ...formData, target_audience: e.target.value as any })}
-                      sx={{ borderRadius: 2 }}
-                    >
-                      <SelectMenuItem value="all">All Users</SelectMenuItem>
-                      <SelectMenuItem value="customers">Customers Only</SelectMenuItem>
-                      <SelectMenuItem value="providers">Providers Only</SelectMenuItem>
-                    </Select>
-                    <FormHelperText>Select who should see this slider</FormHelperText>
-                  </FormControl>
-                </Grid>
+                          <Grid item xs={12} sm={6}>
+                            <Card
+                              sx={{
+                                p: 2.5,
+                                borderRadius: 2,
+                                bgcolor: formData.is_active 
+                                  ? alpha(theme.palette.success.main, 0.1)
+                                  : alpha(theme.palette.grey[500], 0.1),
+                                border: `2px solid ${
+                                  formData.is_active
+                                    ? alpha(theme.palette.success.main, 0.3)
+                                    : alpha(theme.palette.grey[500], 0.3)
+                                }`,
+                              }}
+                            >
+                              <FormControlLabel
+                                control={
+                                  <Switch
+                                    checked={formData.is_active}
+                                    onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                                    color="success"
+                                    size="medium"
+                                  />
+                                }
+                                label={
+                                  <Box>
+                                    <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                                      Active Status
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                      {formData.is_active ? 'Slider is visible to users' : 'Slider is hidden'}
+                                    </Typography>
+                                  </Box>
+                                }
+                              />
+                            </Card>
+                          </Grid>
 
-                <Grid item xs={12} sm={6}>
-                  <Card
-                    sx={{
-                      p: 2,
-                      borderRadius: 2,
-                      bgcolor: formData.is_active 
-                        ? alpha(theme.palette.success.main, 0.1)
-                        : alpha(theme.palette.grey[500], 0.1),
-                      border: `1px solid ${
-                        formData.is_active
-                          ? alpha(theme.palette.success.main, 0.3)
-                          : alpha(theme.palette.grey[500], 0.3)
-                      }`,
-                    }}
-                  >
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={formData.is_active}
-                          onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                          color="success"
-                        />
-                      }
-                      label={
-                        <Box>
-                          <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                            Active Status
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {formData.is_active ? 'Slider is visible' : 'Slider is hidden'}
-                          </Typography>
-                        </Box>
-                      }
-                    />
-                  </Card>
-                </Grid>
+                          <Grid item xs={12}>
+                            <Divider sx={{ my: 2 }} />
+                            <Typography
+                              variant="h6"
+                              sx={{
+                                fontWeight: 600,
+                                mb: 2,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1,
+                              }}
+                            >
+                              <ScheduleIcon />
+                              Schedule (Optional)
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                              Set when the slider should be displayed. Leave empty for no scheduling.
+                            </Typography>
+                          </Grid>
 
-                {/* Schedule Section */}
-                <Grid item xs={12}>
-                  <Box
-                    sx={{
-                      mt: 2,
-                      mb: 2,
-                      pt: 3,
-                      pb: 2,
-                      borderTop: `2px solid ${alpha(theme.palette.divider, 0.1)}`,
-                      borderBottom: `2px solid ${alpha(theme.palette.primary.main, 0.1)}`,
-                    }}
-                  >
-                    <Typography
-                      variant="h5"
-                      sx={{
-                        fontWeight: 700,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        color: 'primary.main',
-                        mb: 0.5,
-                      }}
-                    >
-                      <ScheduleIcon />
-                      Schedule (Optional)
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Set when the slider should be displayed
-                    </Typography>
-                  </Box>
-                </Grid>
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              fullWidth
+                              label="Start Date"
+                              type="date"
+                              value={formData.start_date}
+                              onChange={(e) => {
+                                setFormData({ ...formData, start_date: e.target.value });
+                                if (formErrors.end_date) {
+                                  setFormErrors({ ...formErrors, end_date: '' });
+                                }
+                              }}
+                              InputLabelProps={{
+                                shrink: true,
+                              }}
+                              helperText="When should the slider start appearing?"
+                              sx={{ borderRadius: 2 }}
+                            />
+                          </Grid>
 
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Start Date"
-                    type="date"
-                    value={formData.start_date}
-                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                    InputLabelProps={{
-                      shrink: true,
-                    }}
-                    helperText="When should the slider start appearing?"
-                    sx={{ borderRadius: 2 }}
-                  />
-                </Grid>
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              fullWidth
+                              label="End Date"
+                              type="date"
+                              value={formData.end_date}
+                              onChange={(e) => {
+                                setFormData({ ...formData, end_date: e.target.value });
+                                if (formErrors.end_date) {
+                                  setFormErrors({ ...formErrors, end_date: '' });
+                                }
+                              }}
+                              InputLabelProps={{
+                                shrink: true,
+                              }}
+                              helperText="When should the slider stop appearing?"
+                              error={!!formErrors.end_date}
+                              sx={{ borderRadius: 2 }}
+                            />
+                            {formErrors.end_date && (
+                              <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+                                {formErrors.end_date}
+                              </Typography>
+                            )}
+                          </Grid>
+                        </Grid>
+                      </Box>
+                    </Fade>
+                  )}
 
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="End Date"
-                    type="date"
-                    value={formData.end_date}
-                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                    InputLabelProps={{
-                      shrink: true,
-                    }}
-                    helperText="When should the slider stop appearing?"
-                    sx={{ borderRadius: 2 }}
-                  />
-                </Grid>
+                  {/* Tab 4: Preview */}
+                  {activeTab === 4 && (
+                    <Fade in={activeTab === 4}>
+                      <Box>
+                        <Typography
+                          variant="h5"
+                          sx={{
+                            fontWeight: 700,
+                            mb: 3,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            color: 'primary.main',
+                          }}
+                        >
+                          <PreviewIcon />
+                          Live Preview
+                        </Typography>
+                        {imageUrl ? (
+                          <Card
+                            sx={{
+                              borderRadius: 3,
+                              overflow: 'hidden',
+                              border: `2px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                              boxShadow: `0 8px 32px ${alpha(theme.palette.primary.main, 0.15)}`,
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                width: '100%',
+                                height: { xs: 300, sm: 400, md: 500 },
+                                position: 'relative',
+                                bgcolor: alpha(theme.palette.grey[500], 0.05),
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                overflow: 'hidden',
+                              }}
+                            >
+                              <img
+                                src={imageUrl}
+                                alt={formData.image_alt || formData.title || 'Slider preview'}
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover',
+                                }}
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                }}
+                              />
+                              {(formData.title || formData.subtitle || formData.button_text) && (
+                                <Box
+                                  sx={{
+                                    position: 'absolute',
+                                    bottom: 0,
+                                    left: 0,
+                                    right: 0,
+                                    background: `linear-gradient(to top, ${alpha('#000', 0.85)}, transparent)`,
+                                    p: { xs: 2, sm: 3, md: 4 },
+                                    color: 'white',
+                                  }}
+                                >
+                                  {formData.title && (
+                                    <Typography 
+                                      variant="h4" 
+                                      sx={{ 
+                                        fontWeight: 700, 
+                                        mb: 1,
+                                        fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' }
+                                      }}
+                                    >
+                                      {formData.title}
+                                    </Typography>
+                                  )}
+                                  {formData.subtitle && (
+                                    <Typography 
+                                      variant="h6" 
+                                      sx={{ 
+                                        opacity: 0.95,
+                                        mb: 2,
+                                        fontSize: { xs: '1rem', sm: '1.25rem' }
+                                      }}
+                                    >
+                                      {formData.subtitle}
+                                    </Typography>
+                                  )}
+                                  {formData.button_text && (
+                                    <Button
+                                      variant="contained"
+                                      size="large"
+                                      sx={{ 
+                                        mt: 1,
+                                        px: 4,
+                                        py: 1.5,
+                                        fontSize: '1rem',
+                                        fontWeight: 600,
+                                        textTransform: 'none',
+                                      }}
+                                      disabled
+                                    >
+                                      {formData.button_text}
+                                    </Button>
+                                  )}
+                                </Box>
+                              )}
+                            </Box>
+                          </Card>
+                        ) : (
+                          <Alert severity="warning" sx={{ borderRadius: 2 }}>
+                            <Typography variant="body2">
+                              Please upload an image or provide an image URL to see the preview.
+                            </Typography>
+                          </Alert>
+                        )}
+                      </Box>
+                    </Fade>
+                  )}
 
-                {/* Form Actions */}
-                <Grid item xs={12}>
+                  {/* Form Actions */}
                   <Box
                     sx={{
                       mt: 4,
@@ -909,28 +1175,137 @@ export default function SlidersManagement() {
                     >
                       Cancel
                     </Button>
-                    <Button
-                      type="submit"
-                      variant="contained"
-                      disabled={formLoading}
-                      startIcon={formLoading ? <CircularProgress size={20} color="inherit" /> : null}
-                      sx={{ 
-                        borderRadius: 2,
-                        minWidth: { xs: '100%', sm: 180 },
-                        order: { xs: 1, sm: 2 },
-                        py: 1.5,
-                        fontSize: '1rem',
-                        fontWeight: 600,
-                      }}
-                    >
-                      {formLoading ? 'Processing...' : formMode === 'edit' ? 'Update Slider' : 'Create Slider'}
-                    </Button>
+                    <Stack direction="row" spacing={2} sx={{ order: { xs: 1, sm: 2 } }}>
+                      {activeTab > 0 && (
+                        <Button
+                          variant="outlined"
+                          onClick={() => setActiveTab(activeTab - 1)}
+                          disabled={formLoading}
+                          sx={{ borderRadius: 2 }}
+                        >
+                          Previous
+                        </Button>
+                      )}
+                      {activeTab < tabs.length - 1 ? (
+                        <Button
+                          variant="outlined"
+                          onClick={() => setActiveTab(activeTab + 1)}
+                          disabled={formLoading}
+                          sx={{ borderRadius: 2 }}
+                        >
+                          Next
+                        </Button>
+                      ) : null}
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        disabled={formLoading}
+                        startIcon={formLoading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+                        sx={{ 
+                          borderRadius: 2,
+                          minWidth: { xs: '100%', sm: 180 },
+                          py: 1.5,
+                          fontSize: '1rem',
+                          fontWeight: 600,
+                        }}
+                      >
+                        {formLoading ? 'Processing...' : formMode === 'edit' ? 'Update Slider' : 'Create Slider'}
+                      </Button>
+                    </Stack>
                   </Box>
-                </Grid>
-              </Grid>
-            </form>
-          </CardContent>
-        </Card>
+                </form>
+              </CardContent>
+            </Card>
+          </Box>
+
+          {/* Side Preview Panel */}
+          {showPreview && imageUrl && (
+            <Zoom in={showPreview}>
+              <Box sx={{ flex: { xs: 1, lg: 1 }, position: { lg: 'sticky' }, top: 24, height: 'fit-content' }}>
+                <Card
+                  sx={{
+                    borderRadius: 3,
+                    overflow: 'hidden',
+                    border: `2px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                    boxShadow: `0 8px 32px ${alpha(theme.palette.primary.main, 0.15)}`,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      bgcolor: alpha(theme.palette.primary.main, 0.08),
+                      p: 2,
+                      borderBottom: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                    }}
+                  >
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <PreviewIcon fontSize="small" />
+                      Live Preview
+                    </Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      width: '100%',
+                      height: { xs: 250, sm: 350, lg: 400 },
+                      position: 'relative',
+                      bgcolor: alpha(theme.palette.grey[500], 0.05),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <img
+                      src={imageUrl}
+                      alt={formData.image_alt || formData.title || 'Slider preview'}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                      }}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                    {(formData.title || formData.subtitle || formData.button_text) && (
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          background: `linear-gradient(to top, ${alpha('#000', 0.85)}, transparent)`,
+                          p: 3,
+                          color: 'white',
+                        }}
+                      >
+                        {formData.title && (
+                          <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
+                            {formData.title}
+                          </Typography>
+                        )}
+                        {formData.subtitle && (
+                          <Typography variant="body1" sx={{ opacity: 0.95, mb: 1 }}>
+                            {formData.subtitle}
+                          </Typography>
+                        )}
+                        {formData.button_text && (
+                          <Button
+                            variant="contained"
+                            size="medium"
+                            sx={{ mt: 1 }}
+                            disabled
+                          >
+                            {formData.button_text}
+                          </Button>
+                        )}
+                      </Box>
+                    )}
+                  </Box>
+                </Card>
+              </Box>
+            </Zoom>
+          )}
+        </Box>
       </Box>
     );
   }
