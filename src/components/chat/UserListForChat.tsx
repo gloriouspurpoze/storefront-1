@@ -70,10 +70,10 @@ export const UserListForChat: React.FC<UserListForChatProps> = ({
 
   const filteredUsers = users.filter((user) => {
     const searchLower = searchTerm.toLowerCase();
-    const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
+    const fullName = `${user.firstName || ''} ${user.lastName || ''}`.toLowerCase();
     return (
       fullName.includes(searchLower) ||
-      user.email.toLowerCase().includes(searchLower) ||
+      (user.email?.toLowerCase() || '').includes(searchLower) ||
       (user.phone && user.phone.includes(searchTerm))
     );
   });

@@ -101,8 +101,13 @@ export function Settings() {
   const loadSettings = async () => {
     try {
       setIsLoading(true)
-      const data = await settingsService.getSettings()
-      setSettings(data)
+      const response = await settingsService.getSettings()
+      if (response.success && response.data) {
+        setSettings(response.data)
+      } else {
+        // If API fails or returns no data, keep default settings
+        console.warn('Settings API returned no data, using defaults')
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -183,11 +188,11 @@ export function Settings() {
                     <Label htmlFor="businessName">Business Name</Label>
                     <Input
                       id="businessName"
-                      value={settings.general.businessName}
+                      value={settings.general?.businessName || ''}
                       onChange={(e) =>
                         setSettings({
                           ...settings,
-                          general: { ...settings.general, businessName: e.target.value },
+                          general: { ...(settings.general || {}), businessName: e.target.value },
                         })
                       }
                     />
@@ -198,11 +203,11 @@ export function Settings() {
                     <Input
                       id="businessEmail"
                       type="email"
-                      value={settings.general.businessEmail}
+                      value={settings.general?.businessEmail || ''}
                       onChange={(e) =>
                         setSettings({
                           ...settings,
-                          general: { ...settings.general, businessEmail: e.target.value },
+                          general: { ...(settings.general || {}), businessEmail: e.target.value },
                         })
                       }
                     />
@@ -212,11 +217,11 @@ export function Settings() {
                     <Label htmlFor="businessPhone">Business Phone</Label>
                     <Input
                       id="businessPhone"
-                      value={settings.general.businessPhone}
+                      value={settings.general?.businessPhone || ''}
                       onChange={(e) =>
                         setSettings({
                           ...settings,
-                          general: { ...settings.general, businessPhone: e.target.value },
+                          general: { ...(settings.general || {}), businessPhone: e.target.value },
                         })
                       }
                     />
@@ -226,11 +231,11 @@ export function Settings() {
                     <Label htmlFor="businessAddress">Business Address</Label>
                     <Input
                       id="businessAddress"
-                      value={settings.general.businessAddress}
+                      value={settings.general?.businessAddress || ''}
                       onChange={(e) =>
                         setSettings({
                           ...settings,
-                          general: { ...settings.general, businessAddress: e.target.value },
+                          general: { ...(settings.general || {}), businessAddress: e.target.value },
                         })
                       }
                     />
@@ -254,11 +259,11 @@ export function Settings() {
                       </p>
                     </div>
                     <Switch
-                      checked={settings.security.twoFactorAuth}
+                      checked={settings.security?.twoFactorAuth || false}
                       onCheckedChange={(checked) =>
                         setSettings({
                           ...settings,
-                          security: { ...settings.security, twoFactorAuth: checked },
+                          security: { ...(settings.security || {}), twoFactorAuth: checked },
                         })
                       }
                     />
@@ -269,11 +274,11 @@ export function Settings() {
                     <Input
                       id="sessionTimeout"
                       type="number"
-                      value={settings.security.sessionTimeout}
+                      value={settings.security?.sessionTimeout || 30}
                       onChange={(e) =>
                         setSettings({
                           ...settings,
-                          security: { ...settings.security, sessionTimeout: parseInt(e.target.value) },
+                          security: { ...(settings.security || {}), sessionTimeout: parseInt(e.target.value) },
                         })
                       }
                     />
@@ -284,11 +289,11 @@ export function Settings() {
                     <Input
                       id="passwordExpiry"
                       type="number"
-                      value={settings.security.passwordExpiry}
+                      value={settings.security?.passwordExpiry || 90}
                       onChange={(e) =>
                         setSettings({
                           ...settings,
-                          security: { ...settings.security, passwordExpiry: parseInt(e.target.value) },
+                          security: { ...(settings.security || {}), passwordExpiry: parseInt(e.target.value) },
                         })
                       }
                     />
@@ -318,11 +323,11 @@ export function Settings() {
                         <p className="text-sm text-muted-foreground">{item.description}</p>
                       </div>
                       <Switch
-                        checked={settings.notifications[item.key as keyof typeof settings.notifications] as boolean}
+                        checked={(settings.notifications?.[item.key as keyof typeof settings.notifications] as boolean) || false}
                         onCheckedChange={(checked) =>
                           setSettings({
                             ...settings,
-                            notifications: { ...settings.notifications, [item.key]: checked },
+                            notifications: { ...(settings.notifications || {}), [item.key]: checked },
                           })
                         }
                       />
@@ -351,11 +356,11 @@ export function Settings() {
                       </p>
                     </div>
                     <Switch
-                      checked={settings.appearance.theme === 'dark'}
+                      checked={settings.appearance?.theme === 'dark'}
                       onCheckedChange={(checked) =>
                         setSettings({
                           ...settings,
-                          appearance: { ...settings.appearance, theme: checked ? 'dark' : 'light' },
+                          appearance: { ...(settings.appearance || {}), theme: checked ? 'dark' : 'light' },
                         })
                       }
                     />
@@ -369,11 +374,11 @@ export function Settings() {
                       </p>
                     </div>
                     <Switch
-                      checked={settings.appearance.compactMode}
+                      checked={settings.appearance?.compactMode || false}
                       onCheckedChange={(checked) =>
                         setSettings({
                           ...settings,
-                          appearance: { ...settings.appearance, compactMode: checked },
+                          appearance: { ...(settings.appearance || {}), compactMode: checked },
                         })
                       }
                     />
@@ -387,11 +392,11 @@ export function Settings() {
                       </p>
                     </div>
                     <Switch
-                      checked={settings.appearance.sidebarCollapsed}
+                      checked={settings.appearance?.sidebarCollapsed || false}
                       onCheckedChange={(checked) =>
                         setSettings({
                           ...settings,
-                          appearance: { ...settings.appearance, sidebarCollapsed: checked },
+                          appearance: { ...(settings.appearance || {}), sidebarCollapsed: checked },
                         })
                       }
                     />
@@ -415,11 +420,11 @@ export function Settings() {
                       </p>
                     </div>
                     <Switch
-                      checked={settings.clientControls.signupEnabled}
+                      checked={settings.clientControls?.signupEnabled || false}
                       onCheckedChange={(checked) =>
                         setSettings({
                           ...settings,
-                          clientControls: { ...settings.clientControls, signupEnabled: checked },
+                          clientControls: { ...(settings.clientControls || {}), signupEnabled: checked },
                         })
                       }
                     />
@@ -433,11 +438,11 @@ export function Settings() {
                       </p>
                     </div>
                     <Switch
-                      checked={settings.clientControls.bookingEnabled}
+                      checked={settings.clientControls?.bookingEnabled || false}
                       onCheckedChange={(checked) =>
                         setSettings({
                           ...settings,
-                          clientControls: { ...settings.clientControls, bookingEnabled: checked },
+                          clientControls: { ...(settings.clientControls || {}), bookingEnabled: checked },
                         })
                       }
                     />
@@ -451,11 +456,11 @@ export function Settings() {
                       </p>
                     </div>
                     <Switch
-                      checked={settings.clientControls.maintenanceMode}
+                      checked={settings.clientControls?.maintenanceMode || false}
                       onCheckedChange={(checked) =>
                         setSettings({
                           ...settings,
-                          clientControls: { ...settings.clientControls, maintenanceMode: checked },
+                          clientControls: { ...(settings.clientControls || {}), maintenanceMode: checked },
                         })
                       }
                     />

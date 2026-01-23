@@ -86,10 +86,21 @@ export default function TestimonialManagement() {
       if (filter === 'featured') params.isFeatured = true;
 
       const data = await CMSService.getTestimonials(params);
-      setTestimonials(data.testimonials || []);
+      // Handle different response structures
+      if (Array.isArray(data)) {
+        setTestimonials(data);
+      } else if (data?.testimonials && Array.isArray(data.testimonials)) {
+        setTestimonials(data.testimonials);
+      } else if (data?.data && Array.isArray(data.data)) {
+        setTestimonials(data.data);
+      } else {
+        setTestimonials([]);
+      }
     } catch (error: any) {
       console.error('Error fetching testimonials:', error);
-      alert('Error: ' + (error.response?.data?.error || 'Failed to load testimonials'));
+      const errorMessage = error?.response?.data?.error || error?.response?.data?.message || error?.message || 'Failed to load testimonials';
+      alert('Error: ' + errorMessage);
+      setTestimonials([]);
     } finally {
       setLoading(false);
     }

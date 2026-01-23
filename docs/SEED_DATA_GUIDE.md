@@ -41,6 +41,9 @@ node src/scripts/seed-homepage-menus.js
 2. **Footer Menu** - Footer links
 3. **Mobile Menu** - Mobile navigation
 
+### Testimonials
+See `TESTIMONIALS_SEED_DATA.md` for adding sample testimonials.
+
 ---
 
 ## ✅ After Running

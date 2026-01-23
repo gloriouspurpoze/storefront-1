@@ -24,7 +24,7 @@ export class SlidersService {
       }
     })
 
-    const endpoint = `/cms/admin/sliders${params.toString() ? `?${params.toString()}` : ''}`
+    const endpoint = `/sliders${params.toString() ? `?${params.toString()}` : ''}`
     
     const response = await apiClient.get(endpoint) as any
 
@@ -46,7 +46,7 @@ export class SlidersService {
    * Get single slider by ID
    */
   static async getSlider(id: string) {
-    const response = await apiClient.get(`/cms/admin/sliders/${id}`) as any
+    const response = await apiClient.get(`/sliders/${id}`) as any
 
     // Transform the response to match our expected structure
     if (response.data?.slider) {
@@ -63,7 +63,7 @@ export class SlidersService {
    * Create new slider
    */
   static async createSlider(slider: CreateSliderRequest) {
-    const response = await apiClient.post('/cms/admin/sliders', slider) as any
+    const response = await apiClient.post('/sliders', slider) as any
 
     // Transform the response to match our expected structure
     if (response.data?.slider) {
@@ -80,7 +80,7 @@ export class SlidersService {
    * Update existing slider
    */
   static async updateSlider(id: string, slider: UpdateSliderRequest) {
-    const response = await apiClient.put(`/cms/admin/sliders/${id}`, slider) as any
+    const response = await apiClient.put(`/sliders/${id}`, slider) as any
 
     // Transform the response to match our expected structure
     if (response.data?.slider) {
@@ -97,28 +97,28 @@ export class SlidersService {
    * Delete slider
    */
   static async deleteSlider(id: string) {
-    return apiClient.delete(`/cms/admin/sliders/${id}`)
+    return apiClient.delete(`/sliders/${id}`)
   }
 
   /**
    * Update slider position
    */
   static async updateSliderPosition(id: string, position: number) {
-    return apiClient.patch(`/cms/admin/sliders/${id}/position`, { position })
+    return apiClient.patch(`/sliders/${id}/position`, { position })
   }
 
   /**
    * Toggle slider active status
    */
   static async toggleSliderStatus(id: string, is_active: boolean) {
-    return apiClient.patch(`/cms/admin/sliders/${id}/status`, { is_active })
+    return apiClient.patch(`/sliders/${id}/status`, { is_active })
   }
 
   /**
    * Get active sliders for client side
    */
   static async getActiveSliders() {
-    const response = await apiClient.get('/cms/admin/sliders/active') as any
+    const response = await apiClient.get('/sliders/active') as any
 
     // Transform the response to match our expected structure
     if (response.data?.sliders) {
@@ -135,7 +135,7 @@ export class SlidersService {
    * Get slider statistics
    */
   static async getSliderStats() {
-    const response = await apiClient.get('/cms/admin/sliders/stats') as any
+    const response = await apiClient.get('/sliders/stats') as any
 
     // Transform the response to match our expected structure
     if (response.data?.stats) {

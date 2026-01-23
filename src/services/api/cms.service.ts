@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+// API_BASE should include /api (e.g., http://localhost:8005/api)
+// Endpoints should NOT include /api prefix (e.g., /cms/admin/testimonials)
+const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 /**
  * CMS API Service
@@ -20,7 +22,7 @@ export class CMSService {
   // ==================== HOMEPAGE ====================
 
   static async getHomepageSections(params?: { status?: string; type?: string }) {
-    const response = await axios.get(`${API_BASE}/api/cms/admin/homepage`, {
+    const response = await axios.get(`${API_BASE}/cms/admin/homepage`, {
       ...this.getAuthHeaders(),
       params,
     });
@@ -29,7 +31,7 @@ export class CMSService {
 
   static async createHomepageSection(data: any) {
     const response = await axios.post(
-      `${API_BASE}/api/cms/admin/homepage`,
+      `${API_BASE}/cms/admin/homepage`,
       data,
       this.getAuthHeaders()
     );
@@ -38,7 +40,7 @@ export class CMSService {
 
   static async updateHomepageSection(id: string, data: any) {
     const response = await axios.put(
-      `${API_BASE}/api/cms/admin/homepage/${id}`,
+      `${API_BASE}/cms/admin/homepage/${id}`,
       data,
       this.getAuthHeaders()
     );
@@ -47,7 +49,7 @@ export class CMSService {
 
   static async deleteHomepageSection(id: string) {
     const response = await axios.delete(
-      `${API_BASE}/api/cms/admin/homepage/${id}`,
+      `${API_BASE}/cms/admin/homepage/${id}`,
       this.getAuthHeaders()
     );
     return response.data;
@@ -56,7 +58,7 @@ export class CMSService {
   // ==================== BANNERS ====================
 
   static async getBanners(params?: { status?: string; location?: string }) {
-    const response = await axios.get(`${API_BASE}/api/cms/admin/banners`, {
+    const response = await axios.get(`${API_BASE}/cms/admin/banners`, {
       ...this.getAuthHeaders(),
       params,
     });
@@ -65,7 +67,7 @@ export class CMSService {
 
   static async createBanner(data: any) {
     const response = await axios.post(
-      `${API_BASE}/api/cms/admin/banners`,
+      `${API_BASE}/cms/admin/banners`,
       data,
       this.getAuthHeaders()
     );
@@ -74,7 +76,7 @@ export class CMSService {
 
   static async updateBanner(id: string, data: any) {
     const response = await axios.put(
-      `${API_BASE}/api/cms/admin/banners/${id}`,
+      `${API_BASE}/cms/admin/banners/${id}`,
       data,
       this.getAuthHeaders()
     );
@@ -83,7 +85,7 @@ export class CMSService {
 
   static async deleteBanner(id: string) {
     const response = await axios.delete(
-      `${API_BASE}/api/cms/admin/banners/${id}`,
+      `${API_BASE}/cms/admin/banners/${id}`,
       this.getAuthHeaders()
     );
     return response.data;
@@ -91,7 +93,7 @@ export class CMSService {
 
   static async trackBanner(id: string, eventType: 'view' | 'click') {
     const response = await axios.post(
-      `${API_BASE}/api/cms/admin/banners/${id}/track`,
+      `${API_BASE}/cms/admin/banners/${id}/track`,
       { eventType },
       this.getAuthHeaders()
     );
@@ -101,7 +103,7 @@ export class CMSService {
   // ==================== PROMOTIONS ====================
 
   static async getPromotions(params?: { status?: string; type?: string }) {
-    const response = await axios.get(`${API_BASE}/api/cms/admin/promotions`, {
+    const response = await axios.get(`${API_BASE}/cms/admin/promotions`, {
       ...this.getAuthHeaders(),
       params,
     });
@@ -110,7 +112,7 @@ export class CMSService {
 
   static async createPromotion(data: any) {
     const response = await axios.post(
-      `${API_BASE}/api/cms/admin/promotions`,
+      `${API_BASE}/cms/admin/promotions`,
       data,
       this.getAuthHeaders()
     );
@@ -119,7 +121,7 @@ export class CMSService {
 
   static async updatePromotion(id: string, data: any) {
     const response = await axios.put(
-      `${API_BASE}/api/cms/admin/promotions/${id}`,
+      `${API_BASE}/cms/admin/promotions/${id}`,
       data,
       this.getAuthHeaders()
     );
@@ -128,7 +130,7 @@ export class CMSService {
 
   static async deletePromotion(id: string) {
     const response = await axios.delete(
-      `${API_BASE}/api/cms/admin/promotions/${id}`,
+      `${API_BASE}/cms/admin/promotions/${id}`,
       this.getAuthHeaders()
     );
     return response.data;
@@ -142,7 +144,7 @@ export class CMSService {
     isApproved?: boolean;
     isFeatured?: boolean;
   }) {
-    const response = await axios.get(`${API_BASE}/api/cms/admin/testimonials`, {
+    const response = await axios.get(`${API_BASE}/cms/admin/testimonials`, {
       ...this.getAuthHeaders(),
       params,
     });
@@ -151,7 +153,7 @@ export class CMSService {
 
   static async createTestimonial(data: any) {
     const response = await axios.post(
-      `${API_BASE}/api/cms/admin/testimonials`,
+      `${API_BASE}/cms/admin/testimonials`,
       data,
       this.getAuthHeaders()
     );
@@ -160,7 +162,7 @@ export class CMSService {
 
   static async updateTestimonial(id: string, data: any) {
     const response = await axios.put(
-      `${API_BASE}/api/cms/admin/testimonials/${id}`,
+      `${API_BASE}/cms/admin/testimonials/${id}`,
       data,
       this.getAuthHeaders()
     );
@@ -169,7 +171,7 @@ export class CMSService {
 
   static async deleteTestimonial(id: string) {
     const response = await axios.delete(
-      `${API_BASE}/api/cms/admin/testimonials/${id}`,
+      `${API_BASE}/cms/admin/testimonials/${id}`,
       this.getAuthHeaders()
     );
     return response.data;
@@ -184,7 +186,7 @@ export class CMSService {
     isActive?: boolean;
     search?: string;
   }) {
-    const response = await axios.get(`${API_BASE}/api/cms/admin/faqs`, {
+    const response = await axios.get(`${API_BASE}/cms/admin/faqs`, {
       ...this.getAuthHeaders(),
       params,
     });
@@ -193,7 +195,7 @@ export class CMSService {
 
   static async getFAQCategories() {
     const response = await axios.get(
-      `${API_BASE}/api/cms/admin/faqs/categories`,
+      `${API_BASE}/cms/admin/faqs/categories`,
       this.getAuthHeaders()
     );
     return response.data.data;
@@ -201,7 +203,7 @@ export class CMSService {
 
   static async createFAQ(data: any) {
     const response = await axios.post(
-      `${API_BASE}/api/cms/admin/faqs`,
+      `${API_BASE}/cms/admin/faqs`,
       data,
       this.getAuthHeaders()
     );
@@ -210,7 +212,7 @@ export class CMSService {
 
   static async updateFAQ(id: string, data: any) {
     const response = await axios.put(
-      `${API_BASE}/api/cms/admin/faqs/${id}`,
+      `${API_BASE}/cms/admin/faqs/${id}`,
       data,
       this.getAuthHeaders()
     );
@@ -219,7 +221,7 @@ export class CMSService {
 
   static async deleteFAQ(id: string) {
     const response = await axios.delete(
-      `${API_BASE}/api/cms/admin/faqs/${id}`,
+      `${API_BASE}/cms/admin/faqs/${id}`,
       this.getAuthHeaders()
     );
     return response.data;
@@ -228,7 +230,7 @@ export class CMSService {
   // ==================== SEO ====================
 
   static async getSEOMetas(params?: { page?: string; isActive?: boolean }) {
-    const response = await axios.get(`${API_BASE}/api/cms/admin/seo`, {
+    const response = await axios.get(`${API_BASE}/cms/admin/seo`, {
       ...this.getAuthHeaders(),
       params,
     });
@@ -237,7 +239,7 @@ export class CMSService {
 
   static async createSEOMeta(data: any) {
     const response = await axios.post(
-      `${API_BASE}/api/cms/admin/seo`,
+      `${API_BASE}/cms/admin/seo`,
       data,
       this.getAuthHeaders()
     );
@@ -246,7 +248,7 @@ export class CMSService {
 
   static async updateSEOMeta(id: string, data: any) {
     const response = await axios.put(
-      `${API_BASE}/api/cms/admin/seo/${id}`,
+      `${API_BASE}/cms/admin/seo/${id}`,
       data,
       this.getAuthHeaders()
     );
@@ -255,7 +257,7 @@ export class CMSService {
 
   static async deleteSEOMeta(id: string) {
     const response = await axios.delete(
-      `${API_BASE}/api/cms/admin/seo/${id}`,
+      `${API_BASE}/cms/admin/seo/${id}`,
       this.getAuthHeaders()
     );
     return response.data;
@@ -272,7 +274,7 @@ export class CMSService {
     search?: string;
     isFeatured?: boolean;
   }) {
-    const response = await axios.get(`${API_BASE}/api/cms/admin/blog/posts`, {
+    const response = await axios.get(`${API_BASE}/cms/admin/blog/posts`, {
       ...this.getAuthHeaders(),
       params,
     });
@@ -281,7 +283,7 @@ export class CMSService {
 
   static async getBlogPostById(id: string) {
     const response = await axios.get(
-      `${API_BASE}/api/cms/admin/blog/posts/${id}`,
+      `${API_BASE}/cms/admin/blog/posts/${id}`,
       this.getAuthHeaders()
     );
     return response.data.data;
@@ -289,7 +291,7 @@ export class CMSService {
 
   static async createBlogPost(data: any) {
     const response = await axios.post(
-      `${API_BASE}/api/cms/admin/blog/posts`,
+      `${API_BASE}/cms/admin/blog/posts`,
       data,
       this.getAuthHeaders()
     );
@@ -298,7 +300,7 @@ export class CMSService {
 
   static async updateBlogPost(id: string, data: any) {
     const response = await axios.put(
-      `${API_BASE}/api/cms/admin/blog/posts/${id}`,
+      `${API_BASE}/cms/admin/blog/posts/${id}`,
       data,
       this.getAuthHeaders()
     );
@@ -307,7 +309,7 @@ export class CMSService {
 
   static async deleteBlogPost(id: string) {
     const response = await axios.delete(
-      `${API_BASE}/api/cms/admin/blog/posts/${id}`,
+      `${API_BASE}/cms/admin/blog/posts/${id}`,
       this.getAuthHeaders()
     );
     return response.data;
@@ -316,7 +318,7 @@ export class CMSService {
   // ==================== BLOG CATEGORIES ====================
 
   static async getBlogCategories(params?: { isActive?: boolean }) {
-    const response = await axios.get(`${API_BASE}/api/cms/admin/blog/categories`, {
+    const response = await axios.get(`${API_BASE}/cms/admin/blog/categories`, {
       ...this.getAuthHeaders(),
       params,
     });
@@ -325,7 +327,7 @@ export class CMSService {
 
   static async createBlogCategory(data: any) {
     const response = await axios.post(
-      `${API_BASE}/api/cms/admin/blog/categories`,
+      `${API_BASE}/cms/admin/blog/categories`,
       data,
       this.getAuthHeaders()
     );
@@ -334,7 +336,7 @@ export class CMSService {
 
   static async updateBlogCategory(id: string, data: any) {
     const response = await axios.put(
-      `${API_BASE}/api/cms/admin/blog/categories/${id}`,
+      `${API_BASE}/cms/admin/blog/categories/${id}`,
       data,
       this.getAuthHeaders()
     );
@@ -343,7 +345,7 @@ export class CMSService {
 
   static async deleteBlogCategory(id: string) {
     const response = await axios.delete(
-      `${API_BASE}/api/cms/admin/blog/categories/${id}`,
+      `${API_BASE}/cms/admin/blog/categories/${id}`,
       this.getAuthHeaders()
     );
     return response.data;
@@ -357,7 +359,7 @@ export class CMSService {
     type?: string;
     search?: string;
   }) {
-    const response = await axios.get(`${API_BASE}/api/cms/admin/media`, {
+    const response = await axios.get(`${API_BASE}/cms/admin/media`, {
       ...this.getAuthHeaders(),
       params,
     });
@@ -367,7 +369,7 @@ export class CMSService {
   static async uploadMedia(formData: FormData) {
     const token = localStorage.getItem('token');
     const response = await axios.post(
-      `${API_BASE}/api/cms/admin/media/upload`,
+      `${API_BASE}/cms/admin/media/upload`,
       formData,
       {
         headers: {
@@ -381,7 +383,7 @@ export class CMSService {
 
   static async updateMedia(id: string, data: any) {
     const response = await axios.put(
-      `${API_BASE}/api/cms/admin/media/${id}`,
+      `${API_BASE}/cms/admin/media/${id}`,
       data,
       this.getAuthHeaders()
     );
@@ -390,7 +392,7 @@ export class CMSService {
 
   static async deleteMedia(id: string) {
     const response = await axios.delete(
-      `${API_BASE}/api/cms/admin/media/${id}`,
+      `${API_BASE}/cms/admin/media/${id}`,
       this.getAuthHeaders()
     );
     return response.data;
@@ -404,7 +406,7 @@ export class CMSService {
     status?: string;
     template?: string;
   }) {
-    const response = await axios.get(`${API_BASE}/api/cms/admin/pages`, {
+    const response = await axios.get(`${API_BASE}/cms/admin/pages`, {
       ...this.getAuthHeaders(),
       params,
     });
@@ -413,7 +415,7 @@ export class CMSService {
 
   static async getPageById(id: string) {
     const response = await axios.get(
-      `${API_BASE}/api/cms/admin/pages/${id}`,
+      `${API_BASE}/cms/admin/pages/${id}`,
       this.getAuthHeaders()
     );
     return response.data.data;
@@ -421,7 +423,7 @@ export class CMSService {
 
   static async createPage(data: any) {
     const response = await axios.post(
-      `${API_BASE}/api/cms/admin/pages`,
+      `${API_BASE}/cms/admin/pages`,
       data,
       this.getAuthHeaders()
     );
@@ -430,7 +432,7 @@ export class CMSService {
 
   static async updatePage(id: string, data: any) {
     const response = await axios.put(
-      `${API_BASE}/api/cms/admin/pages/${id}`,
+      `${API_BASE}/cms/admin/pages/${id}`,
       data,
       this.getAuthHeaders()
     );
@@ -439,7 +441,7 @@ export class CMSService {
 
   static async deletePage(id: string) {
     const response = await axios.delete(
-      `${API_BASE}/api/cms/admin/pages/${id}`,
+      `${API_BASE}/cms/admin/pages/${id}`,
       this.getAuthHeaders()
     );
     return response.data;
@@ -448,7 +450,7 @@ export class CMSService {
   // ==================== MENUS ====================
 
   static async getMenus(params?: { location?: string; isActive?: boolean }) {
-    const response = await axios.get(`${API_BASE}/api/cms/admin/menus`, {
+    const response = await axios.get(`${API_BASE}/cms/admin/menus`, {
       ...this.getAuthHeaders(),
       params,
     });
@@ -457,7 +459,7 @@ export class CMSService {
 
   static async getMenuById(id: string) {
     const response = await axios.get(
-      `${API_BASE}/api/cms/admin/menus/${id}`,
+      `${API_BASE}/cms/admin/menus/${id}`,
       this.getAuthHeaders()
     );
     return response.data.data;
@@ -465,7 +467,7 @@ export class CMSService {
 
   static async createMenu(data: any) {
     const response = await axios.post(
-      `${API_BASE}/api/cms/admin/menus`,
+      `${API_BASE}/cms/admin/menus`,
       data,
       this.getAuthHeaders()
     );
@@ -474,7 +476,7 @@ export class CMSService {
 
   static async updateMenu(id: string, data: any) {
     const response = await axios.put(
-      `${API_BASE}/api/cms/admin/menus/${id}`,
+      `${API_BASE}/cms/admin/menus/${id}`,
       data,
       this.getAuthHeaders()
     );
@@ -483,7 +485,7 @@ export class CMSService {
 
   static async deleteMenu(id: string) {
     const response = await axios.delete(
-      `${API_BASE}/api/cms/admin/menus/${id}`,
+      `${API_BASE}/cms/admin/menus/${id}`,
       this.getAuthHeaders()
     );
     return response.data;
@@ -493,7 +495,7 @@ export class CMSService {
 
   static async getCMSAnalytics() {
     const response = await axios.get(
-      `${API_BASE}/api/cms/admin/analytics`,
+      `${API_BASE}/cms/admin/analytics`,
       this.getAuthHeaders()
     );
     return response.data.data;

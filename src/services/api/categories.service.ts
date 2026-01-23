@@ -32,6 +32,9 @@ export class CategoriesService {
       search: query.search,
       category_type: query.category_type,
       level: query.level,
+      // Disable population to avoid backend schema errors
+      populate: 'false',
+      noPopulate: 'true',
       ...query
     }
     

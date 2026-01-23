@@ -115,9 +115,9 @@ export function Users() {
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = 
-      user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.firstName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (user.lastName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (user.phone && user.phone.includes(searchTerm))
     
     const matchesType = selectedType === 'all' || user.userType === selectedType

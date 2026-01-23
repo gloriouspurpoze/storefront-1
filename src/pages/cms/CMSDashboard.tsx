@@ -67,7 +67,11 @@ export default function CMSDashboard() {
       setStats({
         totalPages: pages.status === 'fulfilled' ? pages.value.pagination?.total || 0 : 0,
         totalBlogs: blogs.status === 'fulfilled' ? blogs.value.pagination?.total || 0 : 0,
-        totalTestimonials: testimonials.status === 'fulfilled' ? testimonials.value.pagination?.total || 0 : 0,
+        totalTestimonials: testimonials.status === 'fulfilled' 
+          ? (testimonials.value.pagination?.total || 
+             (Array.isArray(testimonials.value) ? testimonials.value.length : 
+              (testimonials.value.testimonials?.length || testimonials.value.data?.length || 0)))
+          : 0,
         totalFAQs: faqs.status === 'fulfilled' ? faqs.value.pagination?.total || 0 : 0,
       });
     } catch (error) {
