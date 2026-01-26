@@ -39,7 +39,7 @@ export const selectIsOnline = (state: RootState) => state.ui?.isOnline ?? true
 export const selectModalByType = (modalType: string) => 
   createSelector(
     [selectModals],
-    (modals) => modals.find(modal => modal.type === modalType)
+    (modals) => modals.find((modal: any) => modal.type === modalType)
   )
 
 export const selectIsModalOpen = (modalType: string) =>
@@ -61,13 +61,13 @@ export const selectServiceRequestsPagination = (state: RootState) => state.data?
 export const selectServiceRequestById = (id: string) =>
   createSelector(
     [selectServiceRequestsItems],
-    (items) => items.find(item => item.id === id)
+    (items) => items.find((item: any) => item.id === id)
   )
 
 export const selectServiceRequestsByStatus = (status: string) =>
   createSelector(
     [selectServiceRequestsItems],
-    (items) => items.filter(item => item.status === status)
+    (items) => items.filter((item: any) => item.status === status)
   )
 
 // Providers selectors
@@ -80,18 +80,18 @@ export const selectProvidersPagination = (state: RootState) => state.data?.provi
 export const selectProviderById = (id: string) =>
   createSelector(
     [selectProvidersItems],
-    (items) => items.find(item => item.id === id)
+    (items) => items.find((item: any) => item.id === id)
   )
 
 export const selectVerifiedProviders = createSelector(
   [selectProvidersItems],
-  (items) => items.filter(item => item.verificationStatus === 'verified')
+  (items) => items.filter((item: any) => item.verificationStatus === 'verified')
 )
 
 export const selectProvidersByServiceType = (serviceType: string) =>
   createSelector(
     [selectProvidersItems],
-    (items) => items.filter(item => item.servicesOffered.includes(serviceType))
+    (items) => items.filter((item: any) => item.servicesOffered.includes(serviceType))
   )
 
 // Quotes selectors
@@ -104,17 +104,17 @@ export const selectQuotesPagination = (state: RootState) => state.data?.quotes?.
 export const selectQuoteById = (id: string) =>
   createSelector(
     [selectQuotesItems],
-    (items) => items.find(item => item.id === id)
+    (items) => items.find((item: any) => item.id === id)
   )
 
 export const selectPendingQuotes = createSelector(
   [selectQuotesItems],
-  (items) => items.filter(item => item.status === 'pending')
+  (items) => items.filter((item: any) => item.status === 'pending')
 )
 
 export const selectAcceptedQuotes = createSelector(
   [selectQuotesItems],
-  (items) => items.filter(item => item.status === 'accepted')
+  (items) => items.filter((item: any) => item.status === 'accepted')
 )
 
 // Bookings selectors
@@ -127,20 +127,20 @@ export const selectBookingsPagination = (state: RootState) => state.data?.bookin
 export const selectBookingById = (id: string) =>
   createSelector(
     [selectBookingsItems],
-    (items) => items.find(item => item.id === id)
+    (items) => items.find((item: any) => item.id === id)
   )
 
 export const selectBookingsByStatus = (status: string) =>
   createSelector(
     [selectBookingsItems],
-    (items) => items.filter(item => item.status === status)
+    (items) => items.filter((item: any) => item.status === status)
   )
 
 export const selectTodaysBookings = createSelector(
   [selectBookingsItems],
   (items) => {
     const today = new Date().toISOString().split('T')[0]
-    return items.filter(item => item.scheduledDate === today)
+    return items.filter((item: any) => item.scheduledDate === today)
   }
 )
 
@@ -154,18 +154,18 @@ export const selectProductsPagination = (state: RootState) => state.data?.produc
 export const selectProductById = (id: string) =>
   createSelector(
     [selectProductsItems],
-    (items) => items.find(item => item.id === id)
+    (items) => items.find((item: any) => item.id === id)
   )
 
 export const selectFeaturedProducts = createSelector(
   [selectProductsItems],
-  (items) => items.filter(item => item.isFeatured)
+  (items) => items.filter((item: any) => item.isFeatured)
 )
 
 export const selectProductsByCategory = (categoryId: string) =>
   createSelector(
     [selectProductsItems],
-    (items) => items.filter(item => item.category?.id === categoryId)
+    (items) => items.filter((item: any) => item.category?.id === categoryId)
   )
 
 // Categories selectors
@@ -177,34 +177,34 @@ export const selectCategoriesError = (state: RootState) => state.data?.categorie
 export const selectCategoryById = (id: string) =>
   createSelector(
     [selectCategoriesItems],
-    (items) => items.find(item => item.id === id)
+    (items) => items.find((item: any) => item.id === id)
   )
 
 export const selectActiveCategories = createSelector(
   [selectCategoriesItems],
-  (items) => items.filter(item => item.status === 'active')
+  (items) => items.filter((item: any) => item.status === 'active')
 )
 
 export const selectParentCategories = createSelector(
   [selectCategoriesItems],
-  (items) => items.filter(item => !item.parentId)
+  (items) => items.filter((item: any) => !item.parentId)
 )
 
 export const selectChildCategories = (parentId: string) =>
   createSelector(
     [selectCategoriesItems],
-    (items) => items.filter(item => item.parentId === parentId)
+    (items) => items.filter((item: any) => item.parentId === parentId)
   )
 
 // Combined selectors
 export const selectAllDataLoading = createSelector(
   [selectServiceRequestsLoading, selectProvidersLoading, selectQuotesLoading, selectBookingsLoading, selectProductsLoading, selectCategoriesLoading],
-  (...loadingStates) => loadingStates.some(loading => loading)
+  (...loadingStates) => loadingStates.some((loading: any) => loading)
 )
 
 export const selectAllDataErrors = createSelector(
   [selectServiceRequestsError, selectProvidersError, selectQuotesError, selectBookingsError, selectProductsError, selectCategoriesError],
-  (...errors) => errors.filter(error => error !== null)
+  (...errors) => errors.filter((error: any) => error !== null)
 )
 
 // Statistics selectors
@@ -212,11 +212,11 @@ export const selectServiceRequestStats = createSelector(
   [selectServiceRequestsItems],
   (items) => ({
     total: items.length,
-    byStatus: items.reduce((acc, item) => {
+    byStatus: items.reduce((acc: Record<string, number>, item: any) => {
       acc[item.status] = (acc[item.status] || 0) + 1
       return acc
     }, {} as Record<string, number>),
-    byServiceType: items.reduce((acc, item) => {
+    byServiceType: items.reduce((acc: Record<string, number>, item: any) => {
       acc[item.serviceType] = (acc[item.serviceType] || 0) + 1
       return acc
     }, {} as Record<string, number>),
@@ -227,9 +227,10 @@ export const selectProviderStats = createSelector(
   [selectProvidersItems],
   (items) => ({
     total: items.length,
-    verified: items.filter(item => item.verificationStatus === 'verified').length,
-    pending: items.filter(item => item.verificationStatus === 'pending').length,
-    averageRating: items.reduce((sum, item) => sum + item.rating, 0) / items.length || 0,
+    verified: items.filter((item: any) => item.verificationStatus === 'verified').length,
+    pending: items.filter((item: any) => item.verificationStatus === 'pending').length,
+    averageRating:
+      items.reduce((sum: number, item: any) => sum + item.rating, 0) / items.length || 0,
   })
 )
 
@@ -237,11 +238,11 @@ export const selectBookingStats = createSelector(
   [selectBookingsItems],
   (items) => ({
     total: items.length,
-    byStatus: items.reduce((acc, item) => {
+    byStatus: items.reduce((acc: Record<string, number>, item: any) => {
       acc[item.status] = (acc[item.status] || 0) + 1
       return acc
     }, {} as Record<string, number>),
-    totalRevenue: items.reduce((sum, item) => sum + item.totalAmount, 0),
+    totalRevenue: items.reduce((sum: number, item: any) => sum + item.totalAmount, 0),
   })
 )
 
@@ -254,7 +255,7 @@ export const selectFilteredServiceRequests = createSelector(
     // Apply search
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
-      filtered = filtered.filter(item =>
+      filtered = filtered.filter((item: any) =>
         item.title.toLowerCase().includes(query) ||
         item.description.toLowerCase().includes(query) ||
         item.serviceType.toLowerCase().includes(query)
@@ -262,8 +263,8 @@ export const selectFilteredServiceRequests = createSelector(
     }
 
     // Apply filters
-    filters.forEach(filter => {
-      filtered = filtered.filter(item => {
+    filters.forEach((filter: any) => {
+      filtered = filtered.filter((item: any) => {
         const value = (item as any)[filter.key]
         switch (filter.operator) {
           case 'eq':
@@ -292,16 +293,16 @@ export const selectFilteredProviders = createSelector(
     // Apply search
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
-      filtered = filtered.filter(item =>
+      filtered = filtered.filter((item: any) =>
         item.businessName.toLowerCase().includes(query) ||
         item.bio?.toLowerCase().includes(query) ||
-        item.servicesOffered.some(service => service.toLowerCase().includes(query))
+        item.servicesOffered.some((service: any) => service.toLowerCase().includes(query))
       )
     }
 
     // Apply filters
-    filters.forEach(filter => {
-      filtered = filtered.filter(item => {
+    filters.forEach((filter: any) => {
+      filtered = filtered.filter((item: any) => {
         const value = (item as any)[filter.key]
         switch (filter.operator) {
           case 'eq':

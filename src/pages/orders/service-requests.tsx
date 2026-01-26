@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import {
   Box,
-  Grid,
   Card,
   CardContent,
   Typography,
@@ -24,6 +23,7 @@ import {
   Stack,
   Paper,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   Search as SearchIcon,
   FilterList as FilterIcon,
@@ -62,7 +62,7 @@ export function ServiceRequests() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('all')
   const [selectedUrgency, setSelectedUrgency] = useState('all')
-  const [serviceRequests] = useState<ServiceRequest[]>(staticData.serviceRequests)
+  const [serviceRequests] = useState<ServiceRequest[]>(staticData.serviceRequests as any)
 
   const theme = useTheme()
 
@@ -181,7 +181,8 @@ export function ServiceRequests() {
               <DollarIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
               <Box>
                 <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                  {formatCurrency(request.budget_min)} - {formatCurrency(request.budget_max)}
+                  {formatCurrency((request as any).budget_min ?? request.budgetMin ?? 0)} -{' '}
+                  {formatCurrency((request as any).budget_max ?? request.budgetMax ?? 0)}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
                   Budget range
@@ -195,7 +196,7 @@ export function ServiceRequests() {
               <CalendarIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
               <Box>
                 <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                  {formatDate(request.preferred_date)}
+                  {formatDate((request as any).preferred_date ?? request.preferredDate)}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
                   Preferred date
@@ -209,7 +210,7 @@ export function ServiceRequests() {
               <TimeIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
               <Box>
                 <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                  {formatDate(request.created_at)}
+                  {formatDate((request as any).created_at ?? request.createdAt)}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
                   Created
@@ -238,12 +239,12 @@ export function ServiceRequests() {
           
           <Stack direction="row" spacing={1}>
             <Chip
-              label={`${request.quotes_count} quotes`}
+              label={`${(request as any).quotes_count ?? request.quotesCount ?? 0} quotes`}
               size="small"
               variant="outlined"
             />
             <Chip
-              label={request.service_type}
+              label={(request as any).service_type ?? request.serviceType}
               size="small"
               variant="outlined"
             />

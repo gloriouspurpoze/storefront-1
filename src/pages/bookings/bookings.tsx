@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import {
   Box,
-  Grid,
   Card,
   CardContent,
   Typography,
@@ -18,17 +17,17 @@ import {
   Stack,
   IconButton,
   Menu,
-  Paper,
   CircularProgress,
   Alert,
   Snackbar,
   Tooltip,
-  Badge,
   alpha,
+  Tabs,
+  Tab,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   Search as SearchIcon,
-  FilterList as FilterIcon,
   Visibility as VisibilityIcon,
   CalendarToday as CalendarIcon,
   LocationOn as LocationIcon,
@@ -42,16 +41,18 @@ import {
   Refresh as RefreshIcon,
   AssignmentInd as AssignmentIndIcon,
   Update as UpdateIcon,
-  TrendingUp as TrendingUpIcon,
-  Edit as EditIcon,
   Delete as DeleteIcon,
-  Star as StarIcon,
 } from '@mui/icons-material'
+import {
+  DataGrid,
+  GridColDef,
+  GridRenderCellParams,
+  GridToolbarContainer,
+} from '@mui/x-data-grid'
 import { Booking, BookingsQuery } from '../../types'
 import { formatCurrency, formatDate, getInitials } from '../../lib/utils'
 import { BookingsService, ProvidersService } from '../../services/api'
 import { AssignProviderModal } from '../../components/bookings/AssignProviderModal'
-import { AssignProfessionalDialog } from '../../components/bookings/AssignProfessionalDialog'
 import { UpdateBookingStatusModal } from '../../components/bookings/UpdateBookingStatusModal'
 import { useNavigate } from 'react-router-dom'
 
@@ -91,7 +92,31 @@ const statusConfig = {
     label: 'Cancelled',
     gradient: 'linear-gradient(135deg, #F44336 0%, #D32F2F 100%)'
   },
+  scheduled: {
+    color: '#00ACC1',
+    bg: '#E0F7FA',
+    icon: CalendarIcon,
+    label: 'Scheduled',
+    gradient: 'linear-gradient(135deg, #00ACC1 0%, #00838F 100%)',
+  },
+  accepted: {
+    color: '#1565C0',
+    bg: '#E3F2FD',
+    icon: CheckCircleIcon,
+    label: 'Accepted',
+    gradient: 'linear-gradient(135deg, #1565C0 0%, #0D47A1 100%)',
+  },
 } as const
+
+const statusTabs: Array<{ label: string; value: string }> = [
+  { label: 'All', value: 'all' },
+  { label: 'Pending', value: 'pending' },
+  { label: 'Confirmed', value: 'confirmed' },
+  { label: 'Scheduled', value: 'scheduled' },
+  { label: 'In Progress', value: 'in_progress' },
+  { label: 'Completed', value: 'completed' },
+  { label: 'Cancelled', value: 'cancelled' },
+]
 
 export function Bookings() {
   const navigate = useNavigate()
@@ -104,17 +129,13 @@ export function Bookings() {
   const [selectedStatus, setSelectedStatus] = useState('all')
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
-  const [page, setPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
+  const [page, setPage] = useState(1) // 1-based (API)
+  const [pageSize, setPageSize] = useState(20)
+  const [totalRows, setTotalRows] = useState(0)
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' })
   
   // Modal states
   const [assignProviderModal, setAssignProviderModal] = useState<{
-    open: boolean
-    bookingId: string | null
-  }>({ open: false, bookingId: null })
-
-  const [assignProfessionalModal, setAssignProfessionalModal] = useState<{
     open: boolean
     bookingId: string | null
   }>({ open: false, bookingId: null })
@@ -128,6 +149,13 @@ export function Bookings() {
   const [availableProviders, setAvailableProviders] = useState<any[]>([])
   const [loadingProviders, setLoadingProviders] = useState(false)
 
+  const [statsLoading, setStatsLoading] = useState(false)
+  const [bookingStats, setBookingStats] = useState<{
+    total: number
+    byStatus: Record<string, number>
+    totalRevenue: number
+  } | null>(null)
+
   // Fetch bookings from API
   const fetchBookings = async () => {
     try {
@@ -136,7 +164,7 @@ export function Bookings() {
 
       const query: BookingsQuery = {
         page,
-        limit: 20,
+        limit: pageSize,
       }
 
       if (selectedStatus !== 'all') {
@@ -148,7 +176,7 @@ export function Bookings() {
       if (response.success && response.data) {
         setBookings(response.data.bookings || [])
         if (response.data.pagination) {
-          setTotalPages(response.data.pagination.totalPages || 1)
+          setTotalRows(response.data.pagination.total || 0)
         }
       } else {
         throw new Error(response.message || 'Failed to fetch bookings')
@@ -157,6 +185,7 @@ export function Bookings() {
       console.error('Error fetching bookings:', err)
       setError(err.message || 'Failed to load bookings')
       setBookings([])
+      setTotalRows(0)
     } finally {
       setLoading(false)
     }
@@ -164,29 +193,79 @@ export function Bookings() {
 
   useEffect(() => {
     fetchBookings()
-  }, [page, selectedStatus])
+  }, [page, pageSize, selectedStatus])
+
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        setStatsLoading(true)
+        const response = await BookingsService.getBookingStats()
+        if (response.success && response.data) {
+          setBookingStats({
+            total: response.data.total || 0,
+            byStatus: response.data.byStatus || {},
+            totalRevenue: response.data.totalRevenue || 0,
+          })
+        }
+      } catch {
+        // Non-blocking; keep stats section functional using fallback values.
+      } finally {
+        setStatsLoading(false)
+      }
+    }
+
+    loadStats()
+  }, [])
 
   // Filter bookings locally by search term
-  const filteredBookings = bookings.filter(booking => {
-    if (!searchTerm) return true
-    const searchLower = searchTerm.toLowerCase()
-    return (
-      booking.notes?.toLowerCase().includes(searchLower) ||
-      booking.serviceRequest?.title?.toLowerCase().includes(searchLower) ||
-      booking.id.toString().includes(searchLower)
-    )
-  })
+  const filteredBookings = useMemo(
+    () =>
+      bookings.filter((booking) => {
+        if (!searchTerm) return true
+        const searchLower = searchTerm.toLowerCase()
+        return (
+          booking.notes?.toLowerCase().includes(searchLower) ||
+          booking.serviceRequest?.title?.toLowerCase().includes(searchLower) ||
+          booking.id.toString().includes(searchLower) ||
+          booking.bookingNumber?.toLowerCase().includes(searchLower) ||
+          booking.customerName?.toLowerCase().includes(searchLower) ||
+          booking.customerPhone?.toLowerCase().includes(searchLower) ||
+          booking.serviceName?.toLowerCase().includes(searchLower)
+        )
+      }),
+    [bookings, searchTerm]
+  )
 
-  // Calculate stats
-  const bookingStats = {
-    total: bookings.length,
-    pending: bookings.filter(b => b.status === 'pending').length,
-    confirmed: bookings.filter(b => b.status === 'confirmed').length,
-    in_progress: bookings.filter(b => b.status === 'in_progress').length,
-    completed: bookings.filter(b => b.status === 'completed').length,
-    cancelled: bookings.filter(b => b.status === 'cancelled').length,
-    revenue: bookings.filter(b => b.status === 'completed').reduce((sum, b) => sum + b.totalAmount, 0),
-  }
+  const resolvedStats = useMemo(() => {
+    // Prefer server stats (accurate across pages), fallback to current list.
+    if (bookingStats) {
+      return {
+        total: bookingStats.total,
+        pending: bookingStats.byStatus?.pending || 0,
+        confirmed: bookingStats.byStatus?.confirmed || 0,
+        scheduled: bookingStats.byStatus?.scheduled || 0,
+        accepted: bookingStats.byStatus?.accepted || 0,
+        in_progress: bookingStats.byStatus?.in_progress || 0,
+        completed: bookingStats.byStatus?.completed || 0,
+        cancelled: bookingStats.byStatus?.cancelled || 0,
+        revenue: bookingStats.totalRevenue || 0,
+      }
+    }
+
+    return {
+      total: bookings.length,
+      pending: bookings.filter((b) => b.status === 'pending').length,
+      confirmed: bookings.filter((b) => b.status === 'confirmed').length,
+      scheduled: bookings.filter((b) => b.status === 'scheduled').length,
+      accepted: bookings.filter((b) => b.status === 'accepted').length,
+      in_progress: bookings.filter((b) => b.status === 'in_progress').length,
+      completed: bookings.filter((b) => b.status === 'completed').length,
+      cancelled: bookings.filter((b) => b.status === 'cancelled').length,
+      revenue: bookings
+        .filter((b) => b.status === 'completed')
+        .reduce((sum, b) => sum + (b.totalAmount || 0), 0),
+    }
+  }, [bookingStats, bookings])
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, booking: Booking) => {
     setAnchorEl(event.currentTarget)
@@ -203,11 +282,6 @@ export function Bookings() {
   }
 
   const handleViewBooking = (booking: Booking) => {
-    navigate(`/bookings/${booking.id}`)
-    handleMenuClose()
-  }
-
-  const handleEditBooking = (booking: Booking) => {
     navigate(`/bookings/${booking.id}`)
     handleMenuClose()
   }
@@ -345,7 +419,7 @@ export function Bookings() {
   }
 
   // Modern Stats Card Component
-  const StatsCard = ({ title, value, icon: Icon, color, gradient }: any) => (
+  const StatsCard = ({ title, value, icon: Icon, color, gradient, onClick }: any) => (
     <Card 
       sx={{ 
         position: 'relative',
@@ -355,7 +429,9 @@ export function Bookings() {
           boxShadow: 6,
         },
         transition: 'all 0.3s ease',
+        cursor: onClick ? 'pointer' : 'default',
       }}
+      onClick={onClick}
     >
       <Box
         sx={{
@@ -394,166 +470,213 @@ export function Bookings() {
       </CardContent>
     </Card>
   )
-console.log(bookings)
-  // Modern Booking Card Component
-  const BookingCard = ({ booking }: { booking: Booking }) => {
-    const config = statusConfig[booking.status] || statusConfig.pending
-    const StatusIcon = config.icon
-
-    return (
-      <Card 
-        sx={{ 
-          '&:hover': {
-            boxShadow: 6,
-            transform: 'translateY(-2px)',
-          },
-          transition: 'all 0.3s ease',
-          borderLeft: `4px solid ${config.color}`,
-        }}
-      >
-        <CardContent>
-          {/* Header */}
-          <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-            <Box flex={1}>
-              <Box display="flex" alignItems="center" gap={1} mb={1}>
-                <Typography variant="h6" fontWeight="600">
-                  #{booking.id}
-                </Typography>
-                <Chip
-                  icon={<StatusIcon sx={{ fontSize: 18 }} />}
-                  label={config.label}
-                  size="small"
-                  sx={{
-                    bgcolor: config.bg,
-                    color: config.color,
-                    fontWeight: 600,
-                    '& .MuiChip-icon': {
-                      color: config.color,
-                    },
-                  }}
-                />
-              </Box>
-              {booking.serviceRequest && (
-                <Typography variant="body1" fontWeight="500" color="text.primary">
-                  {booking.serviceRequest.title}
-                </Typography>
-              )}
+  const columns = useMemo<GridColDef<Booking>[]>(() => {
+    const cols: GridColDef<Booking>[] = [
+      {
+        field: 'bookingNumber',
+        headerName: 'Booking',
+        minWidth: 160,
+        flex: 1,
+        valueGetter: (_value, row) => row.bookingNumber || `#${row.id}`,
+        renderCell: (params: GridRenderCellParams<Booking>) => {
+          const row = params.row
+          return (
+            <Box>
+              <Typography variant="body2" fontWeight={800}>
+                {row.bookingNumber || `#${row.id}`}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {formatDate(row.createdAt)}
+              </Typography>
             </Box>
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Tooltip title="View Details">
-                <IconButton
-                  size="small"
-                  onClick={() => navigate(`/bookings/${booking.id}`)}
-                  sx={{
-                    bgcolor: 'primary.main',
-                    color: 'white',
-                    '&:hover': {
-                      bgcolor: 'primary.dark',
-                    },
-                  }}
-                >
-                  <VisibilityIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="More Actions">
-                <IconButton
-                  size="small"
-                  onClick={(e) => handleMenuOpen(e, booking)}
-                >
-                  <MoreVertIcon />
-                </IconButton>
-              </Tooltip>
-            </Stack>
+          )
+        },
+      },
+      {
+        field: 'customerName',
+        headerName: 'Customer',
+        minWidth: 220,
+        flex: 1.2,
+        sortable: false,
+        renderCell: (params: GridRenderCellParams<Booking>) => {
+          const row = params.row
+          const name =
+            row.customerName ||
+            (row.customer ? `${row.customer.firstName || ''} ${row.customer.lastName || ''}`.trim() : '') ||
+            'N/A'
+          const phone = row.customerPhone || row.customer?.phone || ''
+          return (
+            <Box display="flex" alignItems="center" gap={1.25} minWidth={0}>
+              <Avatar sx={{ width: 34, height: 34, bgcolor: alpha('#667eea', 0.15), color: '#3f51b5' }}>
+                {getInitials(name)}
+              </Avatar>
+              <Box minWidth={0}>
+                <Typography variant="body2" fontWeight={700} noWrap>
+                  {name}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" noWrap>
+                  {phone}
+                </Typography>
+              </Box>
+            </Box>
+          )
+        },
+      },
+      {
+        field: 'service',
+        headerName: 'Service',
+        minWidth: 260,
+        flex: 1.6,
+        sortable: false,
+        valueGetter: (_value, row) =>
+          row.serviceRequest?.title || row.serviceName || row.services?.[0]?.serviceName || 'N/A',
+        renderCell: (params: GridRenderCellParams<Booking>) => {
+          const row = params.row
+          const title = row.serviceRequest?.title || row.serviceName || row.services?.[0]?.serviceName || 'N/A'
+          const city = row.serviceRequest?.location?.city || row.city || row.address?.city || ''
+          const state = row.serviceRequest?.location?.state || ''
+          return (
+            <Box minWidth={0}>
+              <Typography variant="body2" fontWeight={700} noWrap>
+                {title}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" noWrap>
+                {city}
+                {city && state ? ', ' : ''}
+                {state}
+              </Typography>
+            </Box>
+          )
+        },
+      },
+      {
+        field: 'scheduledDate',
+        headerName: 'Schedule',
+        minWidth: 200,
+        flex: 1.1,
+        valueGetter: (_value, row) => `${formatDate(row.scheduledDate)} ${row.scheduledTime || ''}`.trim(),
+        renderCell: (params: GridRenderCellParams<Booking>) => {
+          const row = params.row
+          return (
+            <Box display="flex" alignItems="center" gap={1}>
+              <CalendarIcon fontSize="small" color="action" />
+              <Box>
+                <Typography variant="body2" fontWeight={700}>
+                  {formatDate(row.scheduledDate)}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {row.scheduledTime || 'TBD'}
+                </Typography>
+              </Box>
+            </Box>
+          )
+        },
+      },
+      {
+        field: 'totalAmount',
+        headerName: 'Amount',
+        minWidth: 140,
+        flex: 0.8,
+        align: 'right',
+        headerAlign: 'right',
+        valueFormatter: (v: any) => formatCurrency(v.value || 0),
+        renderCell: (params: GridRenderCellParams<Booking>) => (
+          <Box textAlign="right" width="100%">
+            <Typography variant="body2" fontWeight={900} color="success.main">
+              {formatCurrency(params.row.totalAmount || 0)}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {params.row.paymentStatus || '—'}
+            </Typography>
           </Box>
+        ),
+      },
+      {
+        field: 'status',
+        headerName: 'Status',
+        minWidth: 160,
+        flex: 0.9,
+        renderCell: (params: GridRenderCellParams<Booking>) => {
+          const row = params.row
+          const cfg = (statusConfig as any)[row.status] || statusConfig.pending
+          const StatusIcon = cfg.icon
+          return (
+            <Chip
+              icon={<StatusIcon sx={{ fontSize: 18 }} />}
+              label={cfg.label}
+              size="small"
+              sx={{
+                bgcolor: cfg.bg,
+                color: cfg.color,
+                fontWeight: 800,
+                '& .MuiChip-icon': { color: cfg.color },
+              }}
+            />
+          )
+        },
+      },
+      {
+        field: 'actions',
+        headerName: '',
+        width: 92,
+        sortable: false,
+        filterable: false,
+        align: 'right',
+        headerAlign: 'right',
+        renderCell: (params: GridRenderCellParams<Booking>) => (
+          <Stack direction="row" spacing={0.5} justifyContent="flex-end" width="100%">
+            <Tooltip title="View">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  navigate(`/bookings/${params.row.id}`)
+                }}
+              >
+                <VisibilityIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="More">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleMenuOpen(e, params.row)
+                }}
+              >
+                <MoreVertIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        ),
+      },
+    ]
+    return cols
+  }, [navigate])
 
-          <Divider sx={{ my: 2 }} />
+  const currentTabIndex = useMemo(() => {
+    const idx = statusTabs.findIndex((t) => t.value === selectedStatus)
+    return idx >= 0 ? idx : 0
+  }, [selectedStatus])
 
-          {/* Info Grid */}
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={3}>
-              <Box display="flex" alignItems="center" gap={1}>
-                <Avatar sx={{ bgcolor: 'primary.light', width: 32, height: 32 }}>
-                  <CalendarIcon sx={{ fontSize: 18 }} />
-                </Avatar>
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Scheduled
-                  </Typography>
-                  <Typography variant="body2" fontWeight="500">
-                    {formatDate(booking.scheduledDate)}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {booking.scheduledTime || 'TBD'}
-                  </Typography>
-                </Box>
-              </Box>
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={3}>
-              <Box display="flex" alignItems="center" gap={1}>
-                <Avatar sx={{ bgcolor: 'success.light', width: 32, height: 32 }}>
-                  <DollarIcon sx={{ fontSize: 18 }} />
-                </Avatar>
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Amount
-                  </Typography>
-                  <Typography variant="body2" fontWeight="600" color="success.main">
-                    {formatCurrency(booking.totalAmount)}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {booking.paymentStatus}
-                  </Typography>
-                </Box>
-              </Box>
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={3}>
-              <Box display="flex" alignItems="center" gap={1}>
-                <Avatar sx={{ bgcolor: 'info.light', width: 32, height: 32 }}>
-                  <PersonIcon sx={{ fontSize: 18 }} />
-                </Avatar>
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Customer
-                  </Typography>
-                  <Typography variant="body2" fontWeight="500">
-                    {booking.customer 
-                      ? `${booking.customer.firstName || ''} ${booking.customer.lastName || ''}`.trim() || 'N/A'
-                      : booking.customerId || 'N/A'}
-                  </Typography>
-                  {booking.customer?.phone && (
-                    <Typography variant="caption" color="text.secondary">
-                      {booking.customer.phone}
-                    </Typography>
-                  )}
-                </Box>
-              </Box>
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={3}>
-              <Box display="flex" alignItems="center" gap={1}>
-                <Avatar sx={{ bgcolor: 'warning.light', width: 32, height: 32 }}>
-                  <LocationIcon sx={{ fontSize: 18 }} />
-                </Avatar>
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Location
-                  </Typography>
-                  <Typography variant="body2" fontWeight="500" noWrap>
-                    {booking.serviceRequest?.location?.city || 'N/A'}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {booking.serviceRequest?.location?.state || ''}
-                  </Typography>
-                </Box>
-              </Box>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
-    )
-  }
+  const Toolbar = () => (
+    <GridToolbarContainer sx={{ px: 2, py: 1.5, gap: 1.5, alignItems: 'center' }}>
+      <Box flex={1}>
+        <Typography variant="body2" color="text.secondary" fontWeight={600}>
+          {totalRows ? `${totalRows.toLocaleString()} bookings` : 'Bookings'}
+        </Typography>
+      </Box>
+      <Button
+        variant="outlined"
+        startIcon={<RefreshIcon />}
+        onClick={handleRefresh}
+        disabled={loading}
+        sx={{ borderRadius: 2 }}
+      >
+        Refresh
+      </Button>
+    </GridToolbarContainer>
+  )
 
   return (
     <Box sx={{ flexGrow: 1, p: { xs: 2, md: 3 } }}>
@@ -572,37 +695,41 @@ console.log(bookings)
         <Grid item xs={12} sm={6} md={3}>
           <StatsCard
             title="Total Bookings"
-            value={bookingStats.total}
+            value={resolvedStats.total}
             icon={AssignmentIndIcon}
             color="#2196F3"
             gradient="linear-gradient(135deg, #2196F3 0%, #1976D2 100%)"
+            onClick={() => handleStatusChange('all')}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatsCard
             title="Pending"
-            value={bookingStats.pending}
+            value={resolvedStats.pending}
             icon={ScheduleIcon}
             color="#FF9800"
             gradient="linear-gradient(135deg, #FF9800 0%, #F57C00 100%)"
+            onClick={() => handleStatusChange('pending')}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatsCard
             title="In Progress"
-            value={bookingStats.in_progress}
+            value={resolvedStats.in_progress}
             icon={TimeIcon}
             color="#9C27B0"
             gradient="linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%)"
+            onClick={() => handleStatusChange('in_progress')}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatsCard
             title="Completed"
-            value={bookingStats.completed}
+            value={resolvedStats.completed}
             icon={CheckCircleIcon}
             color="#4CAF50"
             gradient="linear-gradient(135deg, #4CAF50 0%, #388E3C 100%)"
+            onClick={() => handleStatusChange('completed')}
           />
         </Grid>
       </Grid>
@@ -614,7 +741,7 @@ console.log(bookings)
             <Grid item xs={12} md={5}>
               <TextField
                 fullWidth
-                placeholder="Search by booking ID, service, notes..."
+                placeholder="Search booking #, customer, service, notes..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 InputProps={{
@@ -631,65 +758,34 @@ console.log(bookings)
                 }}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth>
-                <InputLabel>Status Filter</InputLabel>
-                <Select
-                  value={selectedStatus}
-                  label="Status Filter"
-                  onChange={(e) => handleStatusChange(e.target.value)}
-                  disabled={loading}
-                  sx={{ borderRadius: 2 }}
-                >
-                  <MenuItem value="all">All Status</MenuItem>
-                  <MenuItem value="pending">Pending</MenuItem>
-                  <MenuItem value="confirmed">Confirmed</MenuItem>
-                  <MenuItem value="in_progress">In Progress</MenuItem>
-                  <MenuItem value="completed">Completed</MenuItem>
-                  <MenuItem value="cancelled">Cancelled</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={4}>
-              <Stack direction="row" spacing={1}>
-                <Button
-                  variant="outlined"
-                  startIcon={<RefreshIcon />}
-                  onClick={handleRefresh}
-                  disabled={loading}
-                  fullWidth
-                  sx={{ borderRadius: 2 }}
-                >
-                  Refresh
-                </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<FilterIcon />}
-                  fullWidth
-                  sx={{ borderRadius: 2 }}
-                >
-                  More Filters
-                </Button>
-              </Stack>
+            <Grid item xs={12} md={7}>
+              <Tabs
+                value={currentTabIndex}
+                onChange={(_, idx) => handleStatusChange(statusTabs[idx]?.value || 'all')}
+                variant="scrollable"
+                scrollButtons="auto"
+                sx={{
+                  minHeight: 40,
+                  '& .MuiTab-root': {
+                    minHeight: 40,
+                    textTransform: 'none',
+                    fontWeight: 700,
+                  },
+                }}
+              >
+                {statusTabs.map((t) => (
+                  <Tab key={t.value} label={t.label} />
+                ))}
+              </Tabs>
+              {statsLoading && (
+                <Typography variant="caption" color="text.secondary">
+                  Updating stats…
+                </Typography>
+              )}
             </Grid>
           </Grid>
         </CardContent>
       </Card>
-
-      {/* Loading State */}
-      {loading && (
-        <Card>
-          <CardContent sx={{ textAlign: 'center', py: 8 }}>
-            <CircularProgress size={48} sx={{ mb: 2 }} />
-            <Typography variant="h6" gutterBottom>
-              Loading bookings...
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Please wait while we fetch your bookings
-            </Typography>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Error State */}
       {error && !loading && (
@@ -698,32 +794,60 @@ console.log(bookings)
         </Alert>
       )}
 
-      {/* Bookings List */}
-      {!loading && !error && (
-        <>
-          {filteredBookings.length > 0 ? (
-            <Stack spacing={2}>
-              {filteredBookings.map((booking) => (
-                <BookingCard key={booking.id} booking={booking} />
-              ))}
-            </Stack>
-          ) : (
-            <Card>
-              <CardContent sx={{ textAlign: 'center', py: 8 }}>
-                <CalendarIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                <Typography variant="h6" gutterBottom>
-                  No bookings found
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {searchTerm || selectedStatus !== 'all'
-                    ? 'Try adjusting your search or filter criteria.'
-                    : 'Bookings will appear here when customers schedule services.'}
-                </Typography>
-              </CardContent>
-            </Card>
-          )}
-        </>
-      )}
+      {/* Bookings Table */}
+      <Card sx={{ borderRadius: 3 }}>
+        <CardContent sx={{ p: 0 }}>
+          <Box sx={{ height: 640, width: '100%' }}>
+            <DataGrid
+              rows={filteredBookings}
+              columns={columns}
+              getRowId={(row) => row.id || row._id || `${row.serviceRequestId}-${row.scheduledDate}`}
+              loading={loading}
+              disableRowSelectionOnClick
+              onRowClick={(params) => navigate(`/bookings/${(params.row as Booking).id}`)}
+              slots={{ toolbar: Toolbar }}
+              paginationMode="server"
+              rowCount={totalRows}
+              paginationModel={{ page: page - 1, pageSize }}
+              onPaginationModelChange={(model) => {
+                const nextPage = model.page + 1
+                if (nextPage !== page) setPage(nextPage)
+                if (model.pageSize !== pageSize) {
+                  setPageSize(model.pageSize)
+                  setPage(1)
+                }
+              }}
+              pageSizeOptions={[10, 20, 50, 100]}
+              sx={{
+                border: 'none',
+                '& .MuiDataGrid-columnHeaders': {
+                  bgcolor: alpha('#667eea', 0.06),
+                  borderBottom: '1px solid',
+                  borderBottomColor: alpha('#000', 0.06),
+                },
+                '& .MuiDataGrid-row:hover': {
+                  bgcolor: alpha('#2196F3', 0.04),
+                },
+              }}
+              localeText={{
+                noRowsLabel:
+                  searchTerm || selectedStatus !== 'all'
+                    ? 'No bookings match your current filters.'
+                    : 'No bookings yet.',
+              }}
+            />
+          </Box>
+        </CardContent>
+        {!loading && !error && filteredBookings.length === 0 && (
+          <Box sx={{ px: 3, pb: 3 }}>
+            <Alert severity="info">
+              {searchTerm || selectedStatus !== 'all'
+                ? 'Try adjusting your search or status filter.'
+                : 'Bookings will appear here when customers schedule services.'}
+            </Alert>
+          </Box>
+        )}
+      </Card>
 
       {/* Actions Menu */}
       <Menu
@@ -769,18 +893,6 @@ console.log(bookings)
         >
           <UpdateIcon sx={{ mr: 1, fontSize: 20 }} />
           Update Status
-        </MenuItem>
-        <Divider />
-        <MenuItem 
-          onClick={() => {
-            if (selectedBooking) {
-              handleEditBooking(selectedBooking)
-            }
-          }}
-          disabled={selectedBooking?.status === 'completed' || selectedBooking?.status === 'cancelled'}
-        >
-          <EditIcon sx={{ mr: 1, fontSize: 20 }} />
-          Edit Booking
         </MenuItem>
         <MenuItem 
           onClick={() => {

@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import {
   Box,
-  Grid,
   Card,
   CardContent,
   Typography,
@@ -16,6 +15,7 @@ import {
   Paper,
   Chip,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   AttachMoney as DollarIcon,
   People as PeopleIcon,

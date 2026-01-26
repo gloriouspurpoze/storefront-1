@@ -48,7 +48,7 @@ export function ProviderTable({ providers, loading, onMenuClick }: ProviderTable
     }
   }
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string): React.ReactElement | undefined => {
     switch (status) {
       case 'verified':
         return <VerifiedIcon fontSize="small" />
@@ -57,7 +57,7 @@ export function ProviderTable({ providers, loading, onMenuClick }: ProviderTable
       case 'rejected':
         return <RejectedIcon fontSize="small" />
       default:
-        return null
+        return undefined
     }
   }
 

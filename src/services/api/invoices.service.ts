@@ -95,6 +95,59 @@ export interface MonthlyReportResponse {
 
 export class InvoicesService {
   /**
+   * Get invoices (Admin-friendly)
+   * Tries multiple endpoint patterns to support different backends.
+   */
+  static async getInvoices(query: {
+    page?: number
+    limit?: number
+    status?: string
+    customerId?: string
+  } = {}) {
+    const params = new URLSearchParams()
+    Object.entries(query).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        params.append(key, value.toString())
+      }
+    })
+
+    const qs = params.toString() ? `?${params.toString()}` : ''
+    const endpoints = [
+      `/invoices/admin/all${qs}`,
+      `/invoices${qs}`,
+      `/invoices/admin${qs}`,
+      `/invoices/all${qs}`,
+      `/invoices/list${qs}`,
+      // Fallback: some backends only expose "my" invoices
+      `/invoices/my-invoices${qs}`,
+    ]
+
+    let lastError: any = null
+
+    for (let i = 0; i < endpoints.length; i++) {
+      const endpoint = endpoints[i]
+      const isLast = i === endpoints.length - 1
+      try {
+        const res = await api.get<InvoicesResponse>(endpoint, {
+          loadingMessage: i === 0 ? 'Loading invoices...' : undefined,
+          showSuccessToast: false,
+          showErrorToast: false,
+          showLoading: i === 0,
+        })
+
+        if (res?.success) return res
+      } catch (err: any) {
+        lastError = err
+        const status = err?.status || err?.response?.status
+        const is404 = status === 404
+        if (!is404 || isLast) break
+      }
+    }
+
+    throw lastError || new Error('Failed to load invoices')
+  }
+
+  /**
    * Get customer invoices
    */
   static async getCustomerInvoices(query: {

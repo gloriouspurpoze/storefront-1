@@ -1805,7 +1805,7 @@ export function CreateService() {
                     Add New Process Step
                   </Typography>
                   <Grid container spacing={2}>
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <TextField
                         fullWidth
                         size="small"
@@ -1817,7 +1817,7 @@ export function CreateService() {
                         sx={{ bgcolor: 'white' }}
                       />
                     </Grid>
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <TextField
                         fullWidth
                         size="small"
@@ -1831,7 +1831,7 @@ export function CreateService() {
                         sx={{ bgcolor: 'white' }}
                       />
                     </Grid>
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <Button
                         variant="contained"
                         onClick={addProcessStep}
@@ -1864,7 +1864,7 @@ export function CreateService() {
               
               <Grid container spacing={3}>
                 {/* What's Included */}
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Card sx={{ 
                     height: '100%', 
                     border: '2px solid', 
@@ -1956,7 +1956,7 @@ export function CreateService() {
                 </Grid>
 
                 {/* What's Excluded */}
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Card sx={{ 
                     height: '100%', 
                     border: '2px solid', 
@@ -2065,7 +2065,7 @@ export function CreateService() {
               
               <Grid container spacing={3}>
                 {/* Please Note */}
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Card sx={{ 
                     height: '100%', 
                     border: '2px solid', 
@@ -2166,7 +2166,7 @@ export function CreateService() {
                 </Grid>
 
                 {/* Our Promises */}
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Card sx={{ 
                     height: '100%', 
                     border: '2px solid', 
@@ -2378,7 +2378,7 @@ export function CreateService() {
                     Add New FAQ
                   </Typography>
                   <Grid container spacing={2}>
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <TextField
                         fullWidth
                         size="small"
@@ -2390,7 +2390,7 @@ export function CreateService() {
                         sx={{ bgcolor: 'white' }}
                       />
                     </Grid>
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <TextField
                         fullWidth
                         size="small"
@@ -2404,7 +2404,7 @@ export function CreateService() {
                         sx={{ bgcolor: 'white' }}
                       />
                     </Grid>
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <Button
                         variant="contained"
                         onClick={addFaq}

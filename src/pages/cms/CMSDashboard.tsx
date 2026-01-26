@@ -4,13 +4,13 @@ import {
   Box,
   Card,
   CardContent,
-  Grid,
   Typography,
   CircularProgress,
   useTheme,
   alpha,
   Chip,
 } from '@mui/material';
+import Grid from '@mui/material/GridLegacy'
 import {
   Home as HomeIcon,
   Image as ImageIcon,

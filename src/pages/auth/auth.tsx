@@ -33,17 +33,18 @@ export function Auth() {
       if (loginUser.fulfilled.match(result)) {
         // Store transformed user data in localStorage if remember me is checked
         if (credentials.rememberMe) {
+          const rawUser = result.payload.user as any
           // Store the TRANSFORMED user data (camelCase), not raw backend response
           const transformedUser = {
-            id: result.payload.user.id,
-            email: result.payload.user.email,
-            firstName: result.payload.user.first_name || result.payload.user.firstName,
-            lastName: result.payload.user.last_name || result.payload.user.lastName,
-            phone: result.payload.user.phone,
-            userType: result.payload.user.user_type || result.payload.user.userType,
-            isVerified: result.payload.user.is_verified || result.payload.user.isVerified,
-            profilePicture: result.payload.user.profile_picture || result.payload.user.profilePicture,
-            createdAt: result.payload.user.created_at || result.payload.user.createdAt || new Date().toISOString(),
+            id: rawUser.id,
+            email: rawUser.email,
+            firstName: rawUser.first_name || rawUser.firstName,
+            lastName: rawUser.last_name || rawUser.lastName,
+            phone: rawUser.phone,
+            userType: rawUser.user_type || rawUser.userType,
+            isVerified: rawUser.is_verified || rawUser.isVerified,
+            profilePicture: rawUser.profile_picture || rawUser.profilePicture,
+            createdAt: rawUser.created_at || rawUser.createdAt || new Date().toISOString(),
           }
           
           localStorage.setItem('user', JSON.stringify(transformedUser))

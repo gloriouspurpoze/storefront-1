@@ -5,7 +5,6 @@ import {
   Card,
   CardContent,
   Chip,
-  Grid,
   IconButton,
   Stack,
   TextField,
@@ -22,6 +21,7 @@ import {
   Tabs,
   Tab,
 } from '@mui/material';
+import Grid from '@mui/material/GridLegacy'
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -55,6 +55,18 @@ interface Referral {
   updated_at: string;
 }
 
+type ReferralFormData = Pick<
+  Referral,
+  | 'referral_code'
+  | 'reward_type'
+  | 'referrer_reward'
+  | 'referee_reward'
+  | 'referrer_reward_currency'
+  | 'referee_reward_currency'
+  | 'completion_requirement'
+  | 'minimum_spend'
+> & { expires_at: string }
+
 export default function Referrals() {
   const theme = useTheme();
   const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
@@ -63,9 +75,9 @@ export default function Referrals() {
   const [tabValue, setTabValue] = useState(0);
   const [editingReferral, setEditingReferral] = useState<Referral | null>(null);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ReferralFormData>({
     referral_code: '',
-    reward_type: 'discount' as const,
+    reward_type: 'discount',
     referrer_reward: 0,
     referee_reward: 0,
     referrer_reward_currency: 'INR',

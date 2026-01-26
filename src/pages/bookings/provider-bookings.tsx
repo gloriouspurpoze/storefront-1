@@ -27,10 +27,10 @@ import {
   DialogActions,
   Stack,
   Divider,
-  Grid,
   CircularProgress,
   Alert,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   Search as SearchIcon,
   FilterList as FilterIcon,
@@ -91,9 +91,13 @@ export function ProviderBookings() {
       }
       
       const response = await BookingsService.getProviderBookings(query)
-      setBookings(response.bookings || [])
-      if (response.pagination) {
-        setPagination(response.pagination)
+      if (response.success && response.data) {
+        setBookings(response.data.bookings || [])
+        if (response.data.pagination) {
+          setPagination(response.data.pagination)
+        }
+      } else {
+        setBookings([])
       }
       
     } catch (err: any) {
@@ -108,7 +112,7 @@ export function ProviderBookings() {
     { label: 'All Bookings', value: 'all' },
     { label: 'Pending', value: 'pending' },
     { label: 'Accepted', value: 'accepted' },
-    { label: 'In Progress', value: 'in-progress' },
+    { label: 'In Progress', value: 'in_progress' },
     { label: 'Completed', value: 'completed' },
   ]
 
@@ -118,7 +122,7 @@ export function ProviderBookings() {
         return 'warning'
       case 'accepted':
         return 'info'
-      case 'in-progress':
+      case 'in_progress':
         return 'primary'
       case 'completed':
         return 'success'
@@ -303,39 +307,47 @@ export function ProviderBookings() {
                     <TableRow key={booking.id} hover>
                       <TableCell>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {booking.booking_number || `BK-${booking.id.slice(0, 8)}`}
+                          {(booking as any).booking_number || booking.bookingNumber || `BK-${booking.id.slice(0, 8)}`}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Avatar sx={{ width: 32, height: 32 }}>
-                            {booking.customer_name?.charAt(0) || 'C'}
+                            {(booking as any).customer_name?.charAt(0) || booking.customerName?.charAt(0) || 'C'}
                           </Avatar>
                           <Box>
                             <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                              {booking.customer_name || 'N/A'}
+                              {(booking as any).customer_name || booking.customerName || 'N/A'}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
-                              {booking.customer_phone || booking.customer?.phone || ''}
+                              {(booking as any).customer_phone || booking.customerPhone || booking.customer?.phone || ''}
                             </Typography>
                           </Box>
                         </Box>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2">{booking.service_name || booking.service_request?.service_name || 'N/A'}</Typography>
+                        <Typography variant="body2">
+                          {(booking as any).service_name ||
+                            booking.serviceName ||
+                            (booking as any).service_request?.service_name ||
+                            booking.serviceRequest?.title ||
+                            'N/A'}
+                        </Typography>
                         <Typography variant="caption" color="text.secondary">
                           {booking.category || ''}
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2">{booking.scheduled_date || 'N/A'}</Typography>
+                        <Typography variant="body2">
+                          {(booking as any).scheduled_date || booking.scheduledDate || 'N/A'}
+                        </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {booking.scheduled_time || ''}
+                          {(booking as any).scheduled_time || booking.scheduledTime || ''}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {booking.service_address || booking.address || 'N/A'}
+                          {(booking as any).service_address || (booking as any).address || 'N/A'}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
                           {booking.city || ''}
@@ -343,7 +355,11 @@ export function ProviderBookings() {
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          ${booking.total_amount || booking.estimated_cost || 0}
+                          ${(booking as any).total_amount ??
+                            booking.totalAmount ??
+                            (booking as any).estimated_cost ??
+                            booking.estimatedCost ??
+                            0}
                         </Typography>
                       </TableCell>
                       <TableCell>
@@ -387,7 +403,7 @@ export function ProviderBookings() {
         {actionBooking?.status === 'accepted' && (
           <MenuItem onClick={handleStartJob}>Start Job</MenuItem>
         )}
-        {actionBooking?.status === 'in-progress' && (
+        {actionBooking?.status === 'in_progress' && (
           <MenuItem onClick={handleCompleteJob}>Complete Job</MenuItem>
         )}
         <Divider />
@@ -414,7 +430,7 @@ export function ProviderBookings() {
               <Grid item xs={12}>
                 <Paper sx={{ p: 2, bgcolor: 'primary.main', color: 'white' }}>
                   <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
-                    {selectedBooking.booking_number || `BK-${selectedBooking.id.slice(0, 8)}`}
+                    {(selectedBooking as any).booking_number || selectedBooking.bookingNumber || `BK-${selectedBooking.id.slice(0, 8)}`}
                   </Typography>
                   <Chip
                     label={selectedBooking.status}
@@ -436,16 +452,23 @@ export function ProviderBookings() {
                 <Stack spacing={1.5}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <PersonIcon fontSize="small" color="action" />
-                    <Typography variant="body2">{selectedBooking.customer_name || 'N/A'}</Typography>
+                    <Typography variant="body2">
+                      {(selectedBooking as any).customer_name || selectedBooking.customerName || 'N/A'}
+                    </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <PhoneIcon fontSize="small" color="action" />
-                    <Typography variant="body2">{selectedBooking.customer_phone || selectedBooking.customer?.phone || 'N/A'}</Typography>
+                    <Typography variant="body2">
+                      {(selectedBooking as any).customer_phone ||
+                        selectedBooking.customerPhone ||
+                        selectedBooking.customer?.phone ||
+                        'N/A'}
+                    </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <LocationIcon fontSize="small" color="action" />
                     <Typography variant="body2">
-                      {selectedBooking.service_address || selectedBooking.address || 'N/A'}
+                      {(selectedBooking as any).service_address || (selectedBooking as any).address || 'N/A'}
                     </Typography>
                   </Box>
                 </Stack>
@@ -458,7 +481,11 @@ export function ProviderBookings() {
                 <Stack spacing={1.5}>
                   <Box>
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {selectedBooking.service_name || selectedBooking.service_request?.service_name || 'N/A'}
+                      {(selectedBooking as any).service_name ||
+                        selectedBooking.serviceName ||
+                        (selectedBooking as any).service_request?.service_name ||
+                        selectedBooking.serviceRequest?.title ||
+                        'N/A'}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       {selectedBooking.category || ''}
@@ -467,13 +494,18 @@ export function ProviderBookings() {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <CalendarIcon fontSize="small" color="action" />
                     <Typography variant="body2">
-                      {selectedBooking.scheduled_date} at {selectedBooking.scheduled_time}
+                      {(selectedBooking as any).scheduled_date || selectedBooking.scheduledDate} at{' '}
+                      {(selectedBooking as any).scheduled_time || selectedBooking.scheduledTime}
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <MoneyIcon fontSize="small" color="action" />
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      ${selectedBooking.total_amount || selectedBooking.estimated_cost || 0}
+                      ${(selectedBooking as any).total_amount ??
+                        selectedBooking.totalAmount ??
+                        (selectedBooking as any).estimated_cost ??
+                        selectedBooking.estimatedCost ??
+                        0}
                     </Typography>
                   </Box>
                 </Stack>

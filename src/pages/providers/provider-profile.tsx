@@ -7,13 +7,13 @@ import {
   Button,
   Avatar,
   TextField,
-  Grid,
   Stack,
   Chip,
   Divider,
   Alert,
   CircularProgress,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   Edit as EditIcon,
   Save as SaveIcon,
@@ -62,7 +62,15 @@ export function ProviderProfile() {
       }
       
       // Get provider profile by user ID
-      const profile = await ProvidersService.getServiceProviderByUserId(user.id)
+      const profileRes = await ProvidersService.getProviderByUserId(user.id)
+      if (!profileRes.success || !profileRes.data) {
+        const err =
+          typeof profileRes.error === 'string'
+            ? profileRes.error
+            : (profileRes.error as any)?.message
+        throw new Error(err || 'Failed to load provider profile')
+      }
+      const profile = profileRes.data as any
       setProviderId(profile.id)
       
       setFormData({
@@ -70,15 +78,15 @@ export function ProviderProfile() {
         lastName: profile.user?.lastName || user.lastName || '',
         email: profile.user?.email || user.email || '',
         phone: profile.user?.phone || user.phone || '',
-        businessName: profile.business_name || '',
-        businessAddress: profile.business_address || '',
-        yearsExperience: profile.years_experience?.toString() || '',
+        businessName: profile.business_name || profile.businessName || '',
+        businessAddress: profile.business_address || profile.businessAddress || '',
+        yearsExperience: (profile.years_experience ?? profile.yearsExperience ?? '').toString(),
         bio: profile.bio || '',
-        services: profile.services_offered || [],
-        serviceAreas: profile.service_areas || [],
-        hourlyRate: profile.hourly_rate || '',
-        emergencyService: profile.emergency_service !== false,
-        certifications: profile.certification_documents || [],
+        services: profile.services_offered || profile.servicesOffered || [],
+        serviceAreas: profile.service_areas || profile.serviceAreas || [],
+        hourlyRate: profile.hourly_rate || profile.hourlyRate || '',
+        emergencyService: profile.emergency_service ?? profile.emergencyService ?? true,
+        certifications: profile.certification_documents || profile.certificationDocuments || [],
       })
       
     } catch (err: any) {
@@ -106,7 +114,7 @@ export function ProviderProfile() {
       setLoading(true)
       setError(null)
       
-      await ProvidersService.updateServiceProvider(providerId, {
+      await ProvidersService.updateProvider(providerId, {
         business_name: formData.businessName,
         business_address: formData.businessAddress,
         years_experience: parseInt(formData.yearsExperience) || 0,

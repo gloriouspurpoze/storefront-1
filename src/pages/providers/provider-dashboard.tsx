@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import {
   Box,
-  Grid,
   Card,
   CardContent,
   Typography,
@@ -22,6 +21,7 @@ import {
   TableRow,
   CircularProgress,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   CheckCircle as CheckIcon,
   Cancel as CancelIcon,
@@ -74,15 +74,31 @@ export function ProviderDashboard() {
       setError(null)
       
       // Fetch provider stats
-      const statsData = await BookingsService.getProviderBookingStats()
-      setStats(statsData)
+      const statsRes = await BookingsService.getProviderBookingStats()
+      if (statsRes.success && statsRes.data) {
+        const s: any = statsRes.data
+        setStats({
+          totalBookings: s.totalBookings || 0,
+          completedBookings: s.completedBookings || 0,
+          pendingBookings: s.pendingBookings || 0,
+          cancelledBookings: s.cancelledBookings || 0,
+          totalEarnings: s.totalEarnings || 0,
+          averageRating: s.averageRating || 0,
+          totalReviews: s.totalReviews || 0,
+          responseRate: s.responseRate || 0,
+        })
+      }
       
       // Fetch recent bookings (limit 3 for dashboard)
-      const bookingsData = await BookingsService.getProviderBookings({ 
+      const bookingsRes = await BookingsService.getProviderBookings({ 
         limit: 3,
         page: 1 
       })
-      setRecentBookings(bookingsData.bookings || [])
+      if (bookingsRes.success && bookingsRes.data) {
+        setRecentBookings(bookingsRes.data.bookings || [])
+      } else {
+        setRecentBookings([])
+      }
       
     } catch (err: any) {
       console.error('Error fetching dashboard data:', err)
@@ -326,23 +342,23 @@ export function ProviderDashboard() {
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Avatar sx={{ width: 32, height: 32 }}>
-                              {booking.customer_name?.charAt(0) || 'C'}
+                              {booking.customerName?.charAt(0) || 'C'}
                             </Avatar>
                             <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                              {booking.customer_name || 'N/A'}
+                              {booking.customerName || 'N/A'}
                             </Typography>
                           </Box>
                         </TableCell>
-                        <TableCell>{booking.service_name || booking.service_request?.service_name || 'N/A'}</TableCell>
+                        <TableCell>{booking.serviceName || booking.serviceRequest?.title || 'N/A'}</TableCell>
                         <TableCell>
-                          <Typography variant="body2">{booking.scheduled_date || 'N/A'}</Typography>
+                          <Typography variant="body2">{booking.scheduledDate || 'N/A'}</Typography>
                           <Typography variant="caption" color="text.secondary">
-                            {booking.scheduled_time || ''}
+                            {booking.scheduledTime || ''}
                           </Typography>
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            ${booking.total_amount || booking.estimated_cost || 0}
+                            ${booking.totalAmount ?? booking.estimatedCost ?? 0}
                           </Typography>
                         </TableCell>
                         <TableCell>

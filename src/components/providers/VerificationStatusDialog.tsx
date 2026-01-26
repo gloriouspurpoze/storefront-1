@@ -25,15 +25,12 @@ import {
   VerifiedUser as VerifyIcon,
 } from '@mui/icons-material'
 import { ProvidersService, UpdateVerificationStatusData } from '../../services/api/providers.service'
+import type { ServiceProvider } from '../../types'
 
 interface VerificationStatusDialogProps {
   open: boolean
   onClose: () => void
-  provider: {
-    id: string
-    business_name: string
-    verification_status: 'pending' | 'verified' | 'rejected'
-  } | null
+  provider: ServiceProvider | null
   onSuccess?: () => void
 }
 
@@ -156,7 +153,7 @@ export function VerificationStatusDialog({
             Provider
           </Typography>
           <Typography variant="h6" fontWeight="600">
-            {provider.business_name}
+            {(provider as any).business_name || (provider as any).businessName || 'Unnamed Business'}
           </Typography>
           <Chip
             label={provider.verification_status}

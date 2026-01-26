@@ -5,7 +5,6 @@ import {
   Card,
   CardContent,
   Chip,
-  Grid,
   IconButton,
   Stack,
   TextField,
@@ -26,6 +25,7 @@ import {
   InputAdornment,
   LinearProgress,
 } from '@mui/material';
+import Grid from '@mui/material/GridLegacy'
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -62,6 +62,24 @@ interface Coupon {
   updated_at: string;
 }
 
+type CouponFormData = Pick<
+  Coupon,
+  | 'code'
+  | 'name'
+  | 'description'
+  | 'type'
+  | 'value'
+  | 'minimum_amount'
+  | 'user_limit'
+  | 'is_active'
+  | 'starts_at'
+  | 'applicable_to'
+> & {
+  maximum_discount: number
+  usage_limit: number
+  expires_at: string
+}
+
 export default function Coupons() {
   const theme = useTheme();
   const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
@@ -71,11 +89,11 @@ export default function Coupons() {
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
   const [copiedCode, setCopiedCode] = useState('');
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<CouponFormData>({
     code: '',
     name: '',
     description: '',
-    type: 'percentage' as const,
+    type: 'percentage',
     value: 0,
     minimum_amount: 0,
     maximum_discount: 0,
@@ -84,7 +102,7 @@ export default function Coupons() {
     is_active: true,
     starts_at: '',
     expires_at: '',
-    applicable_to: 'all' as const,
+    applicable_to: 'all',
   });
 
   useEffect(() => {

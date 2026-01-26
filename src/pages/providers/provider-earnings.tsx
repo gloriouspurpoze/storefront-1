@@ -6,7 +6,6 @@ import {
   Typography,
   Button,
   Chip,
-  Grid,
   Table,
   TableBody,
   TableCell,
@@ -22,6 +21,7 @@ import {
   Tooltip,
   CircularProgress,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   AttachMoney as MoneyIcon,
   TrendingUp as TrendingUpIcon,
@@ -65,15 +65,21 @@ export function ProviderEarnings() {
       setError(null)
       
       // Get earnings summary
-      const statsData = await PaymentsService.getProviderPaymentStats()
-      setEarnings(statsData)
+      const statsRes = await PaymentsService.getProviderPaymentStats()
+      if (statsRes?.success && statsRes.data) {
+        setEarnings(statsRes.data)
+      }
       
       // Get transactions (limit 10 for page)
-      const transactionsData = await PaymentsService.getProviderTransactions({ 
+      const transactionsRes = await PaymentsService.getProviderTransactions({ 
         page: 1, 
         limit: 10 
       })
-      setTransactions(transactionsData.payments || [])
+      if (transactionsRes?.success && transactionsRes.data) {
+        setTransactions(transactionsRes.data.payments || [])
+      } else {
+        setTransactions([])
+      }
       
     } catch (err: any) {
       console.error('Error fetching earnings data:', err)
@@ -324,11 +330,20 @@ export function ProviderEarnings() {
                       <TableRow key={transaction.id} hover>
                         <TableCell>
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {transaction.booking_id || `BK-${transaction.id.slice(0, 8)}`}
+                            {(transaction as any).booking_id ||
+                              transaction.bookingId ||
+                              `BK-${transaction.id.slice(0, 8)}`}
                           </Typography>
                         </TableCell>
-                        <TableCell>{transaction.customer_name || transaction.customer?.name || 'N/A'}</TableCell>
-                        <TableCell>{transaction.service_name || 'N/A'}</TableCell>
+                        <TableCell>
+                          {(transaction as any).customer_name ||
+                            transaction.customerName ||
+                            (transaction as any).customer?.name ||
+                            'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          {(transaction as any).service_name || transaction.serviceName || 'N/A'}
+                        </TableCell>
                         <TableCell>
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>
                             ${transaction.amount || 0}
@@ -336,12 +351,16 @@ export function ProviderEarnings() {
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" color="text.secondary">
-                            -${transaction.platform_fee || transaction.fee || 0}
+                            -${(transaction as any).platform_fee || transaction.platformFee || transaction.fee || 0}
                           </Typography>
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>
-                            ${transaction.provider_amount || transaction.net_amount || 0}
+                            ${((transaction as any).provider_amount ||
+                              transaction.providerAmount ||
+                              (transaction as any).net_amount ||
+                              transaction.netAmount ||
+                              0)}
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -354,10 +373,12 @@ export function ProviderEarnings() {
                           />
                         </TableCell>
                         <TableCell>
-                          <Typography variant="body2">{transaction.created_at || transaction.createdAt || 'N/A'}</Typography>
-                          {transaction.payout_date && (
+                          <Typography variant="body2">
+                            {(transaction as any).created_at || transaction.createdAt || 'N/A'}
+                          </Typography>
+                          {((transaction as any).payout_date || transaction.payoutDate) && (
                             <Typography variant="caption" color="text.secondary">
-                              Paid: {transaction.payout_date}
+                              Paid: {(transaction as any).payout_date || transaction.payoutDate}
                             </Typography>
                           )}
                         </TableCell>

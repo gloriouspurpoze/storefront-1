@@ -89,7 +89,7 @@ class SettingsService {
   async getSettings(userId?: string): Promise<SettingsResponse> {
     try {
       const params = userId ? { userId } : {}
-      const response = await apiClient.get(this.baseUrl, { params })
+      const response = (await apiClient.get(this.baseUrl, { params })) as any
       return response.data
     } catch (error: any) {
       console.error('Error getting settings:', error)
@@ -103,7 +103,7 @@ class SettingsService {
   // Get global settings
   async getGlobalSettings(): Promise<SettingsResponse> {
     try {
-      const response = await apiClient.get(`${this.baseUrl}/global`)
+      const response = (await apiClient.get(`${this.baseUrl}/global`)) as any
       return response.data
     } catch (error: any) {
       console.error('Error getting global settings:', error)
@@ -121,7 +121,7 @@ class SettingsService {
   ): Promise<SettingsResponse> {
     try {
       const params = userId ? { userId } : {}
-      const response = await apiClient.put(this.baseUrl, settingsUpdate, { params })
+      const response = (await apiClient.put(this.baseUrl, settingsUpdate, { params })) as any
       return response.data
     } catch (error: any) {
       console.error('Error updating settings:', error)
@@ -136,7 +136,7 @@ class SettingsService {
   async resetToDefaults(userId?: string): Promise<SettingsResponse> {
     try {
       const params = userId ? { userId } : {}
-      const response = await apiClient.post(`${this.baseUrl}/reset`, {}, { params })
+      const response = (await apiClient.post(`${this.baseUrl}/reset`, {}, { params })) as any
       return response.data
     } catch (error: any) {
       console.error('Error resetting settings:', error)
@@ -150,7 +150,7 @@ class SettingsService {
   // Get all settings (admin only)
   async getAllSettings(): Promise<SettingsListResponse> {
     try {
-      const response = await apiClient.get(`${this.baseUrl}/all`)
+      const response = (await apiClient.get(`${this.baseUrl}/all`)) as any
       return response.data
     } catch (error: any) {
       console.error('Error getting all settings:', error)
@@ -165,7 +165,7 @@ class SettingsService {
   async deleteSettings(userId?: string): Promise<SettingsResponse> {
     try {
       const params = userId ? { userId } : {}
-      const response = await apiClient.delete(this.baseUrl, { params })
+      const response = (await apiClient.delete(this.baseUrl, { params })) as any
       return response.data
     } catch (error: any) {
       console.error('Error deleting settings:', error)

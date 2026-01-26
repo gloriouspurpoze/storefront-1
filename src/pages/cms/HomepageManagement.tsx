@@ -12,7 +12,6 @@ import {
   DialogTitle,
   FormControl,
   FormControlLabel,
-  Grid,
   IconButton,
   InputLabel,
   MenuItem as MuiMenuItem,
@@ -34,6 +33,7 @@ import {
   AccordionSummary,
   AccordionDetails,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
@@ -142,7 +142,15 @@ export default function HomepageManagement() {
       })
 
       if (section.content?.backgroundImage) {
-        setBackgroundImages([{ url: section.content.backgroundImage }])
+        setBackgroundImages([
+          {
+            id: 'background',
+            url: section.content.backgroundImage,
+            alt: 'Background image',
+            isPrimary: true,
+            order: 0,
+          },
+        ])
       }
     } catch (error) {
       console.error('Error loading section:', error)
@@ -792,8 +800,10 @@ export default function HomepageManagement() {
       {/* Delete Confirmation */}
       <ConfirmDialog
         open={deleteConfirm.open}
-        onClose={() => setDeleteConfirm({ open: false })}
-        onConfirm={handleDelete}
+        onCancel={() => setDeleteConfirm({ open: false })}
+        onConfirm={() => {
+          void handleDelete()
+        }}
         title="Delete Homepage Section?"
         message={`Are you sure you want to delete "${deleteConfirm.name}"? This action cannot be undone.`}
       />

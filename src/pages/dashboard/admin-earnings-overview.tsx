@@ -17,7 +17,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Grid,
   Card,
   CardContent,
   Typography,
@@ -42,6 +41,7 @@ import {
   IconButton,
   Tooltip,
 } from '@mui/material';
+import Grid from '@mui/material/GridLegacy'
 import {
   TrendingUp,
   AttachMoney,
@@ -123,30 +123,30 @@ export function AdminEarningsOverview() {
     setLoading(true);
     try {
       // Load platform summary
-      const summaryRes = await apiClient.get('/api/earnings/admin/platform-summary');
+      const summaryRes = (await apiClient.get('/api/earnings/admin/platform-summary')) as any;
       if (summaryRes.data.success) {
         setSummary(summaryRes.data.data);
       }
 
       // Load payouts
       if (activeTab === 0) {
-        const payoutsRes = await apiClient.get('/api/earnings/admin/payouts', {
+        const payoutsRes = (await apiClient.get('/api/earnings/admin/payouts', {
           params: { status: 'requested' }
-        });
+        })) as any;
         if (payoutsRes.data.success) {
           setPayouts(payoutsRes.data.data.payouts);
         }
       } else if (activeTab === 1) {
-        const payoutsRes = await apiClient.get('/api/earnings/admin/payouts', {
+        const payoutsRes = (await apiClient.get('/api/earnings/admin/payouts', {
           params: { status: 'approved' }
-        });
+        })) as any;
         if (payoutsRes.data.success) {
           setPayouts(payoutsRes.data.data.payouts);
         }
       } else if (activeTab === 2) {
-        const payoutsRes = await apiClient.get('/api/earnings/admin/payouts', {
+        const payoutsRes = (await apiClient.get('/api/earnings/admin/payouts', {
           params: { status: 'completed' }
-        });
+        })) as any;
         if (payoutsRes.data.success) {
           setPayouts(payoutsRes.data.data.payouts);
         }
@@ -160,7 +160,7 @@ export function AdminEarningsOverview() {
 
   const handleApprovePayout = async (payoutId: string) => {
     try {
-      const res = await apiClient.post(`/api/earnings/admin/payouts/${payoutId}/approve`);
+      const res = (await apiClient.post(`/api/earnings/admin/payouts/${payoutId}/approve`)) as any;
       if (res.data.success) {
         dispatch(addToast({ message: 'Payout approved successfully', severity: 'success' }));
         loadData();
@@ -177,10 +177,10 @@ export function AdminEarningsOverview() {
     }
 
     try {
-      const res = await apiClient.post(
+      const res = (await apiClient.post(
         `/api/earnings/admin/payouts/${selectedPayout._id}/complete`,
         { transactionReference: transactionRef }
-      );
+      )) as any;
       if (res.data.success) {
         dispatch(addToast({ message: 'Payout marked as completed', severity: 'success' }));
         setCompleteDialogOpen(false);

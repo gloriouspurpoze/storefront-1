@@ -29,7 +29,6 @@ import {
   Tab,
   Card,
   CardContent,
-  Grid,
   Avatar,
   Divider,
   Dialog,
@@ -48,6 +47,7 @@ import {
   alpha,
   Badge,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   Phone,
   Navigation,
@@ -273,10 +273,10 @@ export function ProfessionalBookings() {
           
         case 'complete':
           // Step 1: Check payment method and status
-          const paymentCompleted = selectedBooking.paymentStatus === 'paid' || 
-                                   selectedBooking.paymentStatus === 'completed' ||
-                                   selectedBooking.paymentStatus === 'customer_paid' ||
-                                   selectedBooking.paymentStatus === 'verified'
+          const paymentCompleted = (selectedBooking as any).paymentStatus === 'paid' || 
+                                   (selectedBooking as any).paymentStatus === 'completed' ||
+                                   (selectedBooking as any).paymentStatus === 'customer_paid' ||
+                                   (selectedBooking as any).paymentStatus === 'verified'
           
           const isCashPayment = (() => {
             const method = selectedBooking.paymentMethod?.toLowerCase() || ''
@@ -1072,7 +1072,7 @@ export function ProfessionalBookings() {
 
       {/* Stats Cards */}
       <Grid container spacing={2.5} sx={{ mb: 4 }}>
-        <Grid item xs={6} sm={4} md={2.4}>
+        <Grid item xs={6} sm={4} md={3}>
           <Card 
             sx={{ 
               borderRadius: 3,
@@ -1095,7 +1095,7 @@ export function ProfessionalBookings() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={6} sm={4} md={2.4}>
+        <Grid item xs={6} sm={4} md={3}>
           <Card 
             sx={{ 
               borderRadius: 3,
@@ -1118,7 +1118,7 @@ export function ProfessionalBookings() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={6} sm={4} md={2.4}>
+        <Grid item xs={6} sm={4} md={3}>
           <Card 
             sx={{ 
               borderRadius: 3,
@@ -1141,7 +1141,7 @@ export function ProfessionalBookings() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={6} sm={4} md={2.4}>
+        <Grid item xs={6} sm={4} md={3}>
           <Card 
             sx={{ 
               borderRadius: 3,
@@ -1164,7 +1164,7 @@ export function ProfessionalBookings() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={4} md={2.4}>
+        <Grid item xs={12} sm={4} md={3}>
           <Card 
             sx={{ 
               borderRadius: 3,
@@ -1390,7 +1390,7 @@ export function ProfessionalBookings() {
               {action === 'complete' && (
                 <Alert severity="info" sx={{ mt: 2, mb: 2 }}>
                   <Typography variant="body2">
-                    <strong>Payment Status:</strong> {(selectedBooking.paymentStatus === 'paid' || selectedBooking.paymentStatus === 'completed' || selectedBooking.paymentStatus === 'customer_paid' || selectedBooking.paymentStatus === 'verified')
+                    <strong>Payment Status:</strong> {(((selectedBooking as any).paymentStatus === 'paid' || (selectedBooking as any).paymentStatus === 'completed' || (selectedBooking as any).paymentStatus === 'customer_paid' || (selectedBooking as any).paymentStatus === 'verified'))
                       ? '✅ Payment Completed' 
                       : (() => {
                           const method = selectedBooking.paymentMethod?.toLowerCase() || ''
@@ -1427,7 +1427,7 @@ export function ProfessionalBookings() {
             variant="contained"
             onClick={handleConfirmAction}
             color={action === 'reject' ? 'error' : action === 'complete' ? 'success' : 'primary'}
-            disabled={action === 'complete' && selectedBooking && !(() => {
+            disabled={Boolean(action === 'complete' && selectedBooking && !(() => {
               const method = selectedBooking.paymentMethod?.toLowerCase() || ''
               const isCashOrPayLater = method === 'cash' || 
                                       method === 'pay_after_service' ||
@@ -1436,10 +1436,10 @@ export function ProfessionalBookings() {
                                       method.includes('pay after') ||
                                       method === 'cash_on_delivery' ||
                                       method.includes('cash')
-              return selectedBooking.paymentStatus === 'paid' || 
-                     selectedBooking.paymentStatus === 'completed' || 
+              return (selectedBooking as any).paymentStatus === 'paid' || 
+                     (selectedBooking as any).paymentStatus === 'completed' || 
                      isCashOrPayLater
-            })()}
+            })())}
           >
             Confirm
           </Button>

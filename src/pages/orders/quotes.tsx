@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import {
   Box,
-  Grid,
   Card,
   CardContent,
   Typography,
@@ -26,6 +25,7 @@ import {
   Menu,
   Paper,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   Search as SearchIcon,
   FilterList as FilterIcon,
@@ -188,7 +188,7 @@ export function Quotes() {
                 <AssignmentIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    Request #{quote.service_request_id}
+                    Request #{(quote as any).service_request_id ?? quote.serviceRequestId}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     Service request
@@ -202,7 +202,7 @@ export function Quotes() {
                 <PersonIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    Provider #{quote.provider_id}
+                    Provider #{(quote as any).provider_id ?? quote.providerId}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     Service provider
@@ -216,7 +216,7 @@ export function Quotes() {
                 <TimeIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {formatDate(quote.valid_until)}
+                    {formatDate((quote as any).valid_until ?? quote.validUntil)}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     Valid until
@@ -245,7 +245,7 @@ export function Quotes() {
             
             <Stack direction="row" spacing={1}>
               <Chip
-                label={formatDate(quote.created_at)}
+                label={formatDate((quote as any).created_at ?? quote.createdAt)}
                 size="small"
                 variant="outlined"
               />
@@ -347,7 +347,7 @@ export function Quotes() {
       {filteredQuotes.length > 0 ? (
         <Stack spacing={2}>
           {filteredQuotes.map((quote) => (
-            <QuoteCard key={quote.id} quote={quote} />
+            <QuoteCard key={quote.id} quote={quote as any} />
           ))}
         </Stack>
       ) : (

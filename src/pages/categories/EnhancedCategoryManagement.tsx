@@ -8,7 +8,6 @@ import {
   Button,
   Card,
   CardContent,
-  Grid,
   Chip,
   IconButton,
   Tooltip,
@@ -22,6 +21,7 @@ import {
   DialogContent,
   DialogActions,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   Home as HomeIcon,
   Add as AddIcon,

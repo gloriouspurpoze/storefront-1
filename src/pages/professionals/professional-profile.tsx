@@ -26,7 +26,6 @@ import {
   Button,
   Avatar,
   TextField,
-  Grid,
   Stack,
   Chip,
   Divider,
@@ -45,6 +44,7 @@ import {
   Switch,
   FormControlLabel,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   Edit as EditIcon,
   Save as SaveIcon,
@@ -148,8 +148,10 @@ export function ProfessionalProfile() {
       
       // Try to get professional by user ID
       // Note: This might need to be adjusted based on your API structure
-      const response = await ProfessionalsService.getProfessionals({ 
-        userId: user.id 
+      const response = await ProfessionalsService.getProfessionals({
+        // `ProfessionalsQuery` doesn't support userId; use search as a best-effort filter
+        search: user.email || user.id,
+        limit: 1,
       })
       
       if (response.success && response.data) {
@@ -172,12 +174,12 @@ export function ProfessionalProfile() {
             bio: prof.bio || '',
             experience: prof.experience || 0,
             expertiseLevel: prof.expertiseLevel || 'intermediate',
-            address: prof.address || {
-              street: '',
-              area: '',
-              city: '',
-              state: '',
-              pincode: '',
+            address: {
+              street: prof.address?.street ?? '',
+              area: prof.address?.area ?? '',
+              city: prof.address?.city ?? '',
+              state: prof.address?.state ?? '',
+              pincode: prof.address?.pincode ?? '',
             },
             workingDays: prof.workingDays || [],
             workingHours: prof.workingHours || { start: '09:00', end: '18:00' },

@@ -270,7 +270,7 @@ export function SystemStatus() {
 
       <Grid container spacing={3}>
         {/* System Components */}
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ mb: 3 }}>
@@ -337,7 +337,7 @@ export function SystemStatus() {
         </Grid>
 
         {/* System Metrics */}
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ mb: 3 }}>
@@ -374,7 +374,7 @@ export function SystemStatus() {
         </Grid>
 
         {/* Recent Incidents */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ mb: 3 }}>

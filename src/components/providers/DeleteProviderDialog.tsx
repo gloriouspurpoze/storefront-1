@@ -19,16 +19,12 @@ import {
   Delete as DeleteIcon,
 } from '@mui/icons-material'
 import { ProvidersService } from '../../services/api/providers.service'
+import type { ServiceProvider } from '../../types'
 
 interface DeleteProviderDialogProps {
   open: boolean
   onClose: () => void
-  provider: {
-    id: string
-    business_name: string
-    verification_status: string
-    services_offered?: string[]
-  } | null
+  provider: ServiceProvider | null
   onSuccess?: () => void
 }
 
@@ -131,7 +127,7 @@ export function DeleteProviderDialog({
             Provider to delete
           </Typography>
           <Typography variant="h6" fontWeight="600" gutterBottom>
-            {provider.business_name}
+            {(provider as any).business_name || (provider as any).businessName || 'Unnamed Business'}
           </Typography>
           <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
             <Chip
@@ -146,9 +142,10 @@ export function DeleteProviderDialog({
               }
               sx={{ textTransform: 'capitalize' }}
             />
-            {provider.services_offered && provider.services_offered.length > 0 && (
+            {((provider as any).services_offered || (provider as any).servicesOffered) &&
+              ((provider as any).services_offered?.length || (provider as any).servicesOffered?.length) > 0 && (
               <Chip
-                label={`${provider.services_offered.length} services`}
+                label={`${((provider as any).services_offered?.length || (provider as any).servicesOffered?.length) ?? 0} services`}
                 size="small"
                 variant="outlined"
               />

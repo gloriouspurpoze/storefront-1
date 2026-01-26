@@ -10,7 +10,6 @@ import {
   DialogContent,
   DialogTitle,
   FormControlLabel,
-  Grid,
   IconButton,
   Paper,
   Stack,
@@ -24,6 +23,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import Grid from '@mui/material/GridLegacy'
 import {
   Add as AddIcon,
   Edit as EditIcon,

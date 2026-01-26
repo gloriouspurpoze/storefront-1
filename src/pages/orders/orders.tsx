@@ -9,7 +9,6 @@
 import React, { useState, useEffect } from 'react'
 import {
   Box,
-  Grid,
   Card,
   CardContent,
   Typography,
@@ -30,6 +29,7 @@ import {
   Alert,
   Snackbar,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   Search as SearchIcon,
   FilterList as FilterIcon,
@@ -102,7 +102,11 @@ export function Orders() {
           setTotalPages(response.data.pagination.totalPages || 1)
         }
       } else {
-        throw new Error(response.error || 'Failed to fetch orders')
+        const err =
+          typeof response.error === 'string'
+            ? response.error
+            : (response.error as any)?.message
+        throw new Error(err || 'Failed to fetch orders')
       }
     } catch (err: any) {
       console.error('Error fetching orders:', err)

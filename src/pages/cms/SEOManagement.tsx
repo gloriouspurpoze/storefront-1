@@ -11,7 +11,6 @@ import {
   DialogTitle,
   FormControl,
   FormControlLabel,
-  Grid,
   IconButton,
   InputLabel,
   MenuItem,
@@ -21,6 +20,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import Grid from '@mui/material/GridLegacy'
 import {
   Add as AddIcon,
   Edit as EditIcon,

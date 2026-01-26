@@ -13,7 +13,7 @@ export function ToastProvider() {
 
   return (
     <>
-      {toasts.map((toast, index) => (
+      {toasts.map((toast: any, index: number) => (
         <Snackbar
           key={toast.id}
           open={true}

@@ -23,7 +23,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Grid,
   Avatar,
   Stack,
   Divider,
@@ -31,6 +30,7 @@ import {
   Alert,
   CircularProgress,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   Search as SearchIcon,
   FilterList as FilterIcon,
@@ -80,8 +80,13 @@ export function Payments() {
   })
 
   useEffect(() => {
-    fetchPaymentsData()
+    // Reset to first page when filter context changes
+    setPagination((prev) => ({ ...prev, page: 1 }))
   }, [currentTab, searchQuery])
+
+  useEffect(() => {
+    fetchPaymentsData()
+  }, [currentTab, searchQuery, pagination.page, pagination.limit])
 
   const fetchPaymentsData = async () => {
     try {
@@ -89,13 +94,15 @@ export function Payments() {
       setError(null)
       
       // Fetch payment stats
-      const statsData = await PaymentsService.getPaymentStats()
-      setStats({
-        totalRevenue: statsData.totalRevenue || 0,
-        pendingPayments: statsData.byStatus?.pending || 0,
-        completedPayments: statsData.byStatus?.completed || 0,
-        refundedAmount: statsData.totalRefunds || 0,
-      })
+      const statsResponse = await PaymentsService.getPaymentStats()
+      if (statsResponse.success && statsResponse.data) {
+        setStats({
+          totalRevenue: statsResponse.data.totalRevenue || 0,
+          pendingPayments: statsResponse.data.byStatus?.pending || 0,
+          completedPayments: statsResponse.data.byStatus?.completed || 0,
+          refundedAmount: statsResponse.data.totalRefunds || 0,
+        })
+      }
       
       // Fetch payments list
       const status = tabs[currentTab].value
@@ -106,10 +113,14 @@ export function Payments() {
       if (status !== 'all') query.status = status
       if (searchQuery) query.search = searchQuery
       
-      const paymentsData = await PaymentsService.getPayments(query)
-      setPayments(paymentsData.payments || [])
-      if (paymentsData.pagination) {
-        setPagination(paymentsData.pagination)
+      const paymentsResponse = await PaymentsService.getPayments(query)
+      if (paymentsResponse.success && paymentsResponse.data) {
+        setPayments(paymentsResponse.data.payments || [])
+        if (paymentsResponse.data.pagination) {
+          setPagination((prev) => ({ ...prev, ...paymentsResponse.data.pagination }))
+        }
+      } else {
+        setPayments([])
       }
       
     } catch (err: any) {
@@ -132,6 +143,7 @@ export function Payments() {
     switch (status) {
       case 'pending':
         return 'warning'
+      case 'paid':
       case 'completed':
         return 'success'
       case 'failed':
@@ -147,6 +159,7 @@ export function Payments() {
     switch (status) {
       case 'pending':
         return <PendingIcon fontSize="small" />
+      case 'paid':
       case 'completed':
         return <CheckIcon fontSize="small" />
       case 'failed':
@@ -445,53 +458,83 @@ export function Payments() {
                     <TableRow key={payment.id} hover>
                       <TableCell>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {payment.transaction_id || `TXN-${payment.id.slice(0, 8)}`}
+                          {(payment as any).transaction_id || payment.transactionId || `TXN-${payment.id.slice(0, 8)}`}
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2">{payment.booking_id || 'N/A'}</Typography>
+                        <Typography variant="body2">
+                          {(payment as any).booking_id || payment.bookingId || 'N/A'}
+                        </Typography>
                       </TableCell>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Avatar sx={{ width: 32, height: 32 }}>
-                            {payment.customer_name?.charAt(0) || payment.customer?.name?.charAt(0) || 'C'}
+                            {(payment as any).customer_name?.charAt(0) ||
+                              payment.customerName?.charAt(0) ||
+                              (payment as any).customer?.name?.charAt(0) ||
+                              'C'}
                           </Avatar>
                           <Box>
                             <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                              {payment.customer_name || payment.customer?.name || 'N/A'}
+                              {(payment as any).customer_name ||
+                                payment.customerName ||
+                                (payment as any).customer?.name ||
+                                'N/A'}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
-                              {payment.customer_email || payment.customer?.email || ''}
+                              {(payment as any).customer_email ||
+                                payment.customerEmail ||
+                                (payment as any).customer?.email ||
+                                ''}
                             </Typography>
                           </Box>
                         </Box>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2">{payment.provider_name || payment.provider?.name || 'N/A'}</Typography>
+                        <Typography variant="body2">
+                          {(payment as any).provider_name ||
+                            payment.providerName ||
+                            (payment as any).provider?.name ||
+                            'N/A'}
+                        </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {payment.provider_email || payment.provider?.email || ''}
+                          {(payment as any).provider_email ||
+                            payment.providerEmail ||
+                            (payment as any).provider?.email ||
+                            ''}
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2">{payment.service_name || payment.service || 'N/A'}</Typography>
+                        <Typography variant="body2">
+                          {(payment as any).service_name ||
+                            payment.serviceName ||
+                            (payment as any).service ||
+                            'N/A'}
+                        </Typography>
                         <Typography variant="caption" color="text.secondary">
                           {payment.category || ''}
                         </Typography>
                       </TableCell>
                       <TableCell>
+                        {(() => {
+                          const method =
+                            (payment as any).payment_method || payment.paymentMethod || 'card'
+                          return (
                         <Chip
-                          icon={getPaymentMethodIcon(payment.payment_method || payment.paymentMethod || 'card')}
-                          label={(payment.payment_method || payment.paymentMethod || 'card').toUpperCase()}
+                          icon={getPaymentMethodIcon(method)}
+                          label={String(method).toUpperCase()}
                           size="small"
                           variant="outlined"
                         />
+                          )
+                        })()}
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
                           ${payment.amount || 0}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          Fee: ${payment.platform_fee || payment.fee || 0}
+                          Fee: ${(payment as any).platform_fee || payment.platformFee || payment.fee || 0}
                         </Typography>
                       </TableCell>
                       <TableCell>
@@ -504,7 +547,9 @@ export function Payments() {
                         />
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2">{payment.created_at || payment.createdAt || 'N/A'}</Typography>
+                        <Typography variant="body2">
+                          {(payment as any).created_at || payment.createdAt || 'N/A'}
+                        </Typography>
                       </TableCell>
                       <TableCell align="right">
                         <IconButton
@@ -595,10 +640,14 @@ export function Payments() {
                 <Stack spacing={1.5}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <PersonIcon fontSize="small" color="action" />
-                    <Typography variant="body2">{selectedPayment.customer.name}</Typography>
+                    <Typography variant="body2">
+                      {selectedPayment.customerName || (selectedPayment as any).customer?.name || 'N/A'}
+                    </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="body2">{selectedPayment.customer.email}</Typography>
+                    <Typography variant="body2">
+                      {selectedPayment.customerEmail || (selectedPayment as any).customer?.email || ''}
+                    </Typography>
                   </Box>
                 </Stack>
               </Grid>
@@ -610,10 +659,14 @@ export function Payments() {
                 <Stack spacing={1.5}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <PersonIcon fontSize="small" color="action" />
-                    <Typography variant="body2">{selectedPayment.provider.name}</Typography>
+                    <Typography variant="body2">
+                      {selectedPayment.providerName || (selectedPayment as any).provider?.name || 'N/A'}
+                    </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="body2">{selectedPayment.provider.email}</Typography>
+                    <Typography variant="body2">
+                      {selectedPayment.providerEmail || (selectedPayment as any).provider?.email || ''}
+                    </Typography>
                   </Box>
                 </Stack>
               </Grid>
@@ -657,10 +710,10 @@ export function Payments() {
                 </Typography>
                 <Stack spacing={1}>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {selectedPayment.service}
+                    {selectedPayment.serviceName || (selectedPayment as any).service_name || (selectedPayment as any).service || 'N/A'}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    {selectedPayment.category}
+                    {selectedPayment.category || (selectedPayment as any).category_name || ''}
                   </Typography>
                 </Stack>
               </Grid>

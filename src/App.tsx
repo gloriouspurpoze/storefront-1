@@ -69,6 +69,7 @@ import { ServiceRequests } from './pages/orders/service-requests'
 // Payments
 import { Payments } from './pages/payments/payments'
 import { Invoices } from './pages/payments/invoices'
+import { AdminEarningsOverview } from './pages/dashboard/admin-earnings-overview'
 
 // Communication
 import { Messages } from './pages/communication/messages'
@@ -290,6 +291,16 @@ function App() {
                         element={
                           <RoleBasedRoute permissions={['view_payments']}>
                             <Invoices />
+                          </RoleBasedRoute>
+                        } 
+                      />
+
+                      {/* Earnings & Payouts */}
+                      <Route 
+                        path="/payouts" 
+                        element={
+                          <RoleBasedRoute permissions={['view_payments']}>
+                            <AdminEarningsOverview />
                           </RoleBasedRoute>
                         } 
                       />

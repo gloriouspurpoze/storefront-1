@@ -11,7 +11,6 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
-  Grid,
   IconButton,
   InputLabel,
   MenuItem,
@@ -30,6 +29,7 @@ import {
   Typography,
   Alert,
 } from '@mui/material';
+import Grid from '@mui/material/GridLegacy'
 import {
   Upload as UploadIcon,
   Search as SearchIcon,

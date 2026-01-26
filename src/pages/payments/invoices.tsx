@@ -34,7 +34,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Grid,
   Avatar,
   Stack,
   Divider,
@@ -44,6 +43,7 @@ import {
   Tooltip,
   alpha,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   Search as SearchIcon,
   FilterList as FilterIcon,
@@ -106,7 +106,7 @@ export function Invoices() {
     setError(null)
     try {
       console.log('📋 Loading invoices...')
-      const response = await InvoicesService.getCustomerInvoices({
+      const response = await InvoicesService.getInvoices({
         page: 1,
         limit: 1000,
       })
@@ -117,7 +117,11 @@ export function Invoices() {
         calculateStats(invoicesData)
         console.log(`✅ Loaded ${invoicesData.length} invoices`)
       } else {
-        throw new Error(response.error || 'Failed to load invoices')
+        const err =
+          typeof response.error === 'string'
+            ? response.error
+            : (response.error as any)?.message
+        throw new Error(err || 'Failed to load invoices')
       }
     } catch (err: any) {
       console.error('❌ Failed to load invoices:', err)
@@ -619,7 +623,7 @@ export function Invoices() {
                         <TableCell>{item.description}</TableCell>
                         <TableCell align="center">{item.quantity}</TableCell>
                         <TableCell align="right">{formatCurrency(item.unitPrice)}</TableCell>
-                        <TableCell align="right" fontWeight="600">
+                        <TableCell align="right" sx={{ fontWeight: 600 }}>
                           {formatCurrency(item.amount)}
                         </TableCell>
                       </TableRow>

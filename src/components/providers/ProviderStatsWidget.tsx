@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react'
 import {
-  Grid,
   Card,
   CardContent,
   Typography,
@@ -9,6 +8,7 @@ import {
   Alert,
   Skeleton,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   People as PeopleIcon,
   CheckCircle as VerifiedIcon,

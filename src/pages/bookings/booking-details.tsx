@@ -321,7 +321,7 @@ export function BookingDetails() {
               console.log('🔍 Fetching professional details for ID:', professionalData)
               const professionalResponse = await ProfessionalsService.getProfessional(professionalData)
               if (professionalResponse.success && professionalResponse.data) {
-                const profData = professionalResponse.data
+                const profData = professionalResponse.data as any
                 const professionalDetails = {
                   _id: profData._id || profData.id || professionalData,
                   firstName: profData.firstName || profData.user?.firstName || 'N/A',

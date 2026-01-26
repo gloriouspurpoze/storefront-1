@@ -13,7 +13,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Grid,
   Stack,
   IconButton,
   Menu,
@@ -28,6 +27,7 @@ import {
   TableRow,
   TablePagination,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   Add as AddIcon,
   Search as SearchIcon,

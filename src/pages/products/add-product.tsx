@@ -75,9 +75,9 @@ interface ProductFormData {
   allowBackorder: boolean
   
   // Categorization
-  categoryId: number
-  subcategoryId: number
-  providerId: number
+  categoryId: string
+  subcategoryId: string
+  providerId: string
   tags: string[]
   collections: string[]
   
@@ -183,9 +183,9 @@ const initialFormData: ProductFormData = {
   allowBackorder: false,
   
   // Categorization
-  categoryId: 1,
-  subcategoryId: 0,
-  providerId: 1,
+  categoryId: '',
+  subcategoryId: '',
+  providerId: '',
   tags: [],
   collections: [],
   
@@ -333,9 +333,9 @@ export function AddProduct() {
           lowStockThreshold: product.low_stock_threshold || 5,
           trackInventory: true,
           allowBackorder: false,
-          categoryId: product.category_id || 0,  // Keep as is (ObjectId string or number)
-          subcategoryId: 0,
-          providerId: 1,
+          categoryId: String(product.category_id ?? ''),
+          subcategoryId: String((product as any).subcategory_id ?? ''),
+          providerId: String(product.provider_id ?? ''),
           tags: product.tags || [],
           collections: [],
           weight: parseFloat(product.weight?.toString() || '0'),
@@ -806,7 +806,6 @@ export function AddProduct() {
                           disabled={isViewMode}
                           placeholder="e.g., Professional Wireless Headphones"
                           required
-                          disabled={isViewMode}
                         />
                         
                         <FormField

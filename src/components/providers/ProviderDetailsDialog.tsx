@@ -28,27 +28,7 @@ import {
   Work as WorkIcon,
   CalendarToday as CalendarIcon,
 } from '@mui/icons-material'
-
-interface ServiceProvider {
-  id: string
-  business_name: string
-  business_license: string
-  services_offered: string[]
-  service_areas: string[]
-  verification_status: 'pending' | 'verified' | 'rejected'
-  rating: number
-  total_reviews: number
-  years_experience: number
-  bio: string
-  created_at: string
-  updated_at: string
-  user?: {
-    firstName: string
-    lastName: string
-    email: string
-    phone: string
-  }
-}
+import type { ServiceProvider } from '../../types'
 
 interface ProviderDetailsDialogProps {
   open: boolean
@@ -124,7 +104,7 @@ export function ProviderDetailsDialog({ open, onClose, provider }: ProviderDetai
       <DialogContent sx={{ pt: 3 }}>
         <Grid container spacing={3}>
           {/* Status and Rating */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
               <Chip
                 icon={getStatusIcon(provider.verification_status)}
@@ -142,14 +122,14 @@ export function ProviderDetailsDialog({ open, onClose, provider }: ProviderDetai
           </Grid>
 
           {/* Contact Information */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Typography variant="h6" color="primary" gutterBottom>
               Contact Information
             </Typography>
             <Divider sx={{ mb: 2 }} />
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Paper sx={{ p: 2, borderRadius: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <EmailIcon color="action" />
@@ -163,7 +143,7 @@ export function ProviderDetailsDialog({ open, onClose, provider }: ProviderDetai
             </Paper>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Paper sx={{ p: 2, borderRadius: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <PhoneIcon color="action" />
@@ -178,14 +158,14 @@ export function ProviderDetailsDialog({ open, onClose, provider }: ProviderDetai
           </Grid>
 
           {/* Business Information */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Typography variant="h6" color="primary" gutterBottom sx={{ mt: 2 }}>
               Business Information
             </Typography>
             <Divider sx={{ mb: 2 }} />
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Paper sx={{ p: 2, borderRadius: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <WorkIcon color="action" />
@@ -194,12 +174,12 @@ export function ProviderDetailsDialog({ open, onClose, provider }: ProviderDetai
                 </Typography>
               </Box>
               <Typography variant="body2" color="text.secondary">
-                {provider.business_license || 'Not provided'}
+                {(provider as any).business_license || (provider as any).businessLicense || 'Not provided'}
               </Typography>
             </Paper>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Paper sx={{ p: 2, borderRadius: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <CalendarIcon color="action" />
@@ -208,22 +188,30 @@ export function ProviderDetailsDialog({ open, onClose, provider }: ProviderDetai
                 </Typography>
               </Box>
               <Typography variant="body2" color="text.secondary">
-                {provider.years_experience || 0} years
+                {(provider as any).years_experience || (provider as any).yearsExperience || 0} years
               </Typography>
             </Paper>
           </Grid>
 
           {/* Services Offered */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Typography variant="h6" color="primary" gutterBottom sx={{ mt: 2 }}>
               Services Offered
             </Typography>
             <Divider sx={{ mb: 2 }} />
           </Grid>
 
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {provider.services_offered?.map((service, index) => (
+              {(provider as any).services_offered?.map((service: any, index: number) => (
+                <Chip
+                  key={index}
+                  label={service}
+                  color="primary"
+                  variant="outlined"
+                  sx={{ borderRadius: 2 }}
+                />
+              )) || (provider as any).servicesOffered?.map?.((service: any, index: number) => (
                 <Chip
                   key={index}
                   label={service}
@@ -240,16 +228,24 @@ export function ProviderDetailsDialog({ open, onClose, provider }: ProviderDetai
           </Grid>
 
           {/* Service Areas */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Typography variant="h6" color="primary" gutterBottom sx={{ mt: 2 }}>
               Service Areas
             </Typography>
             <Divider sx={{ mb: 2 }} />
           </Grid>
 
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {provider.service_areas?.map((area, index) => (
+              {(provider as any).service_areas?.map((area: any, index: number) => (
+                <Chip
+                  key={index}
+                  label={area}
+                  color="secondary"
+                  variant="outlined"
+                  sx={{ borderRadius: 2 }}
+                />
+              )) || (provider as any).serviceAreas?.map?.((area: any, index: number) => (
                 <Chip
                   key={index}
                   label={area}
@@ -266,18 +262,18 @@ export function ProviderDetailsDialog({ open, onClose, provider }: ProviderDetai
           </Grid>
 
           {/* Bio */}
-          {provider.bio && (
+          {(provider as any).bio && (
             <>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography variant="h6" color="primary" gutterBottom sx={{ mt: 2 }}>
                   About
                 </Typography>
                 <Divider sx={{ mb: 2 }} />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Paper sx={{ p: 2, borderRadius: 2 }}>
                   <Typography variant="body2" color="text.secondary">
-                    {provider.bio}
+                    {(provider as any).bio}
                   </Typography>
                 </Paper>
               </Grid>
@@ -285,31 +281,31 @@ export function ProviderDetailsDialog({ open, onClose, provider }: ProviderDetai
           )}
 
           {/* Timestamps */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Typography variant="h6" color="primary" gutterBottom sx={{ mt: 2 }}>
               Account Information
             </Typography>
             <Divider sx={{ mb: 2 }} />
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Paper sx={{ p: 2, borderRadius: 2 }}>
               <Typography variant="body2" fontWeight="500" gutterBottom>
                 Created
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {new Date(provider.created_at).toLocaleDateString()}
+                {new Date((provider as any).created_at || (provider as any).createdAt || Date.now()).toLocaleDateString()}
               </Typography>
             </Paper>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Paper sx={{ p: 2, borderRadius: 2 }}>
               <Typography variant="body2" fontWeight="500" gutterBottom>
                 Last Updated
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {new Date(provider.updated_at).toLocaleDateString()}
+                {new Date((provider as any).updated_at || (provider as any).updatedAt || Date.now()).toLocaleDateString()}
               </Typography>
             </Paper>
           </Grid>

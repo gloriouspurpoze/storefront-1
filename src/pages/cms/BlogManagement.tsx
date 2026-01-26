@@ -12,7 +12,6 @@ import {
   DialogTitle,
   FormControl,
   FormControlLabel,
-  Grid,
   IconButton,
   InputLabel,
   MenuItem,
@@ -28,6 +27,7 @@ import {
   CircularProgress,
   Tooltip,
 } from '@mui/material';
+import Grid from '@mui/material/GridLegacy'
 import {
   Add as AddIcon,
   Edit as EditIcon,

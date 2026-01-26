@@ -11,7 +11,6 @@ import {
   DialogTitle,
   FormControl,
   FormControlLabel,
-  Grid,
   IconButton,
   InputLabel,
   MenuItem as MuiMenuItem,
@@ -34,6 +33,7 @@ import {
   Tab,
   CircularProgress,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -59,6 +59,7 @@ import type {
   CreateMenuRequest,
   UpdateMenuRequest,
   CreateMenuItemRequest,
+  UpdateMenuItemRequest,
 } from '../../types'
 
 interface TabPanelProps {
@@ -822,7 +823,13 @@ export default function MenuManagement() {
           setShowMenuItemForm(false)
           setEditingMenuItem(null)
         }}
-        onSubmit={editingMenuItem ? handleUpdateMenuItem : handleAddMenuItem}
+        onSubmit={async (data: CreateMenuItemRequest | UpdateMenuItemRequest) => {
+          if (editingMenuItem) {
+            await handleUpdateMenuItem(data as any)
+          } else {
+            await handleAddMenuItem(data as any)
+          }
+        }}
         menuItem={editingMenuItem}
         parentItems={selectedMenu?.items || []}
         maxDepth={selectedMenu?.settings?.maxDepth || 3}
@@ -831,10 +838,10 @@ export default function MenuManagement() {
       {/* Delete Confirmation */}
       <ConfirmDialog
         open={deleteConfirm.open}
-        onClose={() => setDeleteConfirm({ open: false, type: 'menu' })}
-        onConfirm={
-          deleteConfirm.type === 'menu' ? handleDeleteMenu : handleDeleteMenuItem
-        }
+        onCancel={() => setDeleteConfirm({ open: false, type: 'menu' })}
+        onConfirm={() => {
+          void (deleteConfirm.type === 'menu' ? handleDeleteMenu() : handleDeleteMenuItem())
+        }}
         title={`Delete ${deleteConfirm.type === 'menu' ? 'Menu' : 'Menu Item'}?`}
         message={
           deleteConfirm.type === 'menu'

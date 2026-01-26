@@ -221,7 +221,7 @@ export function Reports() {
 
       <Grid container spacing={3}>
         {/* Report Generation */}
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ mb: 3 }}>
@@ -229,7 +229,7 @@ export function Reports() {
               </Typography>
               
               <Grid container spacing={3}>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <FormControl fullWidth>
                     <InputLabel>Report Type</InputLabel>
                     <Select
@@ -254,7 +254,7 @@ export function Reports() {
                   </FormControl>
                 </Grid>
                 
-                <Grid item xs={12} sm={3}>
+                <Grid size={{ xs: 12, sm: 3 }}>
                   <FormControl fullWidth>
                     <InputLabel>Date Range</InputLabel>
                     <Select
@@ -272,7 +272,7 @@ export function Reports() {
                   </FormControl>
                 </Grid>
                 
-                <Grid item xs={12} sm={3}>
+                <Grid size={{ xs: 12, sm: 3 }}>
                   <FormControl fullWidth>
                     <InputLabel>Format</InputLabel>
                     <Select
@@ -309,7 +309,7 @@ export function Reports() {
         </Grid>
 
         {/* Quick Stats */}
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ mb: 3 }}>
@@ -338,7 +338,7 @@ export function Reports() {
         </Grid>
 
         {/* Report Types Grid */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ mb: 3 }}>
@@ -346,7 +346,7 @@ export function Reports() {
               </Typography>
               <Grid container spacing={2}>
                 {reportTypes.map((report) => (
-                  <Grid item xs={12} sm={6} md={4} key={report.id}>
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }} key={report.id}>
                     <Paper
                       sx={{
                         p: 2,
@@ -402,7 +402,7 @@ export function Reports() {
         </Grid>
 
         {/* Recent Reports */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>

@@ -4,7 +4,6 @@ import {
   Typography,
   Card,
   CardContent,
-  Grid,
   Button,
   TextField,
   Accordion,
@@ -20,6 +19,7 @@ import {
   useTheme,
   alpha,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   ExpandMore as ExpandMoreIcon,
   Help as HelpIcon,

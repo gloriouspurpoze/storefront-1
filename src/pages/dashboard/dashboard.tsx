@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import {
   Box,
-  Grid,
   Typography,
   useMediaQuery,
   Chip,
@@ -21,6 +20,7 @@ import {
   CircularProgress,
   Alert
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   TrendingUp as TrendingUpIcon,
   TrendingDown as TrendingDownIcon,

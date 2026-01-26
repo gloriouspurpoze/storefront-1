@@ -24,7 +24,6 @@ import {
   Typography,
   TextField,
   Button,
-  Grid,
   Stepper,
   Step,
   StepLabel,
@@ -43,6 +42,7 @@ import {
   IconButton,
   InputAdornment,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   ArrowBack,
   Save,
@@ -190,6 +190,9 @@ export function CreateProfessional() {
       // Prepare data for API
       const professionalData = {
         ...formData,
+        // Backend requires services list; we map it from selected categories for now
+        services: formData.categories,
+        primaryService: formData.categories[0],
         serviceAreas: [
           {
             city: formData.address.city,

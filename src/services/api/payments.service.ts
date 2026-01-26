@@ -403,6 +403,24 @@ export class PaymentsService {
     notifyCustomer?: boolean
     notifyAdmin?: boolean
   }) {
+    // Preferred endpoint (backend: bookings module)
+    try {
+      const res = await api.post<any>(`/bookings/${bookingId}/payment/mark-received`, {
+        amount: options?.amount,
+        paymentMethod: options?.paymentMethod || 'cash',
+        notes: options?.notes,
+        notifyCustomer: options?.notifyCustomer !== false,
+        notifyAdmin: options?.notifyAdmin !== false,
+      }, {
+        loadingMessage: 'Marking payment as received...',
+        successMessage: 'Payment marked as received! Waiting for admin verification.',
+        errorMessage: 'Failed to mark payment as received.',
+      })
+      return res
+    } catch {
+      // Fall back to legacy attempts below
+    }
+
     // Try different endpoint patterns - including booking-based endpoints
     // that might handle payment status updates
     const endpointConfigs = [

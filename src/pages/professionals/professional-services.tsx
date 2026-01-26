@@ -21,7 +21,6 @@ import {
   CardContent,
   Typography,
   Button,
-  Grid,
   Stack,
   Chip,
   Alert,
@@ -46,6 +45,7 @@ import {
   Switch,
   FormControlLabel,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   Add as AddIcon,
   Delete as DeleteIcon,

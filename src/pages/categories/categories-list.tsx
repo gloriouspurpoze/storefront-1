@@ -80,8 +80,8 @@ export function CategoriesList() {
         // Calculate stats
         setStats({
           total: cats.length,
-          active: cats.filter(c => c.is_active || c.status === 'active').length,
-          inactive: cats.filter(c => !c.is_active && c.status !== 'active').length,
+          active: cats.filter(c => (c as any).is_active || c.isActive || c.status === 'active').length,
+          inactive: cats.filter(c => !(c as any).is_active && !c.isActive && c.status !== 'active').length,
         })
       }
     } catch (err) {
@@ -92,12 +92,18 @@ export function CategoriesList() {
     }
   }
 
+  const getCategoryId = (category: Category): string => {
+    return category.id || (category as any)._id || ''
+  }
+
   const handleEdit = (category: Category) => {
-    navigate(`/categories/edit/${category.id}`)
+    const id = getCategoryId(category)
+    navigate(`/categories/edit/${id}`)
   }
 
   const handleView = (category: Category) => {
-    navigate(`/categories/view/${category.id}`)
+    const id = getCategoryId(category)
+    navigate(`/categories/view/${id}`)
   }
 
   const handleDelete = async (category: Category) => {
@@ -106,7 +112,8 @@ export function CategoriesList() {
     }
 
     try {
-      const response = await CategoriesService.deleteCategory(category.id)
+      const id = getCategoryId(category)
+      const response = await CategoriesService.deleteCategory(id)
       
       if (response.success) {
         dispatch(addToast({
@@ -141,7 +148,9 @@ export function CategoriesList() {
   }
 
   const getCategoryStatus = (category: Category) => {
-    return category.is_active !== undefined ? category.is_active : category.status === 'active'
+    return (category as any).is_active !== undefined
+      ? (category as any).is_active
+      : (category.isActive ?? category.status === 'active')
   }
 
   return (

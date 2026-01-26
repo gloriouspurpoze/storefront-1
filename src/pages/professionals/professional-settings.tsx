@@ -21,7 +21,6 @@ import {
   CardContent,
   Typography,
   Button,
-  Grid,
   Stack,
   Divider,
   Alert,
@@ -33,6 +32,7 @@ import {
   Tab,
   Paper,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   Save as SaveIcon,
   Notifications as NotificationsIcon,

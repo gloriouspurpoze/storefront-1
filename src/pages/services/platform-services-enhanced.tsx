@@ -349,7 +349,7 @@ export function PlatformServicesEnhanced() {
         
         {/* Compact Stats */}
         <Grid container spacing={2} sx={{ mb: 2 }}>
-          <Grid item xs={6} sm={3}>
+          <Grid size={{ xs: 6, sm: 3 }}>
             <Card sx={{ 
               height: '100%',
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -370,7 +370,7 @@ export function PlatformServicesEnhanced() {
             </Card>
           </Grid>
           
-          <Grid item xs={6} sm={3}>
+          <Grid size={{ xs: 6, sm: 3 }}>
             <Card sx={{ 
               height: '100%',
               background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
@@ -391,7 +391,7 @@ export function PlatformServicesEnhanced() {
             </Card>
           </Grid>
           
-          <Grid item xs={6} sm={3}>
+          <Grid size={{ xs: 6, sm: 3 }}>
             <Card sx={{ 
               height: '100%',
               background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
@@ -412,7 +412,7 @@ export function PlatformServicesEnhanced() {
             </Card>
           </Grid>
 
-          <Grid item xs={6} sm={3}>
+          <Grid size={{ xs: 6, sm: 3 }}>
             <Card sx={{ 
               height: '100%',
               background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
@@ -461,7 +461,7 @@ export function PlatformServicesEnhanced() {
           
           {showFilters && (
             <Grid container spacing={2}>
-              <Grid item xs={12} md={4}>
+              <Grid size={{ xs: 12, md: 4 }}>
                 <TextField
                   fullWidth
                   size="small"
@@ -478,7 +478,7 @@ export function PlatformServicesEnhanced() {
                 />
               </Grid>
               
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Category</InputLabel>
                   <Select
@@ -496,7 +496,7 @@ export function PlatformServicesEnhanced() {
                 </FormControl>
               </Grid>
               
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Status</InputLabel>
                   <Select
@@ -511,7 +511,7 @@ export function PlatformServicesEnhanced() {
                 </FormControl>
               </Grid>
               
-              <Grid item xs={12} md={2}>
+              <Grid size={{ xs: 12, md: 2 }}>
                 <Button
                   fullWidth
                   size="small"
@@ -690,7 +690,7 @@ export function PlatformServicesEnhanced() {
       ) : (
         <Grid container spacing={2}>
           {services.map((service) => (
-            <Grid item xs={12} sm={6} md={4} key={service.id}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={service.id}>
               <Card 
                 sx={{ 
                   height: '100%',
@@ -914,7 +914,7 @@ export function PlatformServicesEnhanced() {
                 {/* Overview Tab */}
                 {previewTab === 0 && (
                   <Grid container spacing={2}>
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'primary.main' }}>
                         Description
                       </Typography>
@@ -923,7 +923,7 @@ export function PlatformServicesEnhanced() {
                       </Typography>
                     </Grid>
 
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, height: '100%' }}>
                         <CardContent>
                           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: 'success.main' }}>
@@ -939,7 +939,7 @@ export function PlatformServicesEnhanced() {
                       </Card>
                     </Grid>
 
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, height: '100%' }}>
                         <CardContent>
                           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: 'warning.main' }}>
@@ -970,7 +970,7 @@ export function PlatformServicesEnhanced() {
                       </Card>
                     </Grid>
 
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
                         <CardContent>
                           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>
@@ -1006,7 +1006,7 @@ export function PlatformServicesEnhanced() {
                 {/* Pricing & Details Tab */}
                 {previewTab === 1 && (
                   <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
                         <CardContent>
                           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: 'primary.main' }}>
@@ -1032,7 +1032,7 @@ export function PlatformServicesEnhanced() {
                       </Card>
                     </Grid>
 
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
                         <CardContent>
                           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: 'success.main' }}>
@@ -1067,7 +1067,7 @@ export function PlatformServicesEnhanced() {
                 {/* Features Tab */}
                 {previewTab === 2 && (
                   <Grid container spacing={2}>
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: 'primary.main' }}>
                         Features
                       </Typography>
@@ -1082,11 +1082,11 @@ export function PlatformServicesEnhanced() {
                       )}
                     </Grid>
 
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <Divider />
                     </Grid>
 
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: 'secondary.main' }}>
                         Requirements
                       </Typography>
@@ -1106,11 +1106,11 @@ export function PlatformServicesEnhanced() {
                       )}
                     </Grid>
 
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <Divider />
                     </Grid>
 
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: 'info.main' }}>
                         Tags
                       </Typography>
@@ -1130,7 +1130,7 @@ export function PlatformServicesEnhanced() {
                 {/* Availability Tab */}
                 {previewTab === 3 && (
                   <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
                         <CardContent>
                           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>
@@ -1149,7 +1149,7 @@ export function PlatformServicesEnhanced() {
                       </Card>
                     </Grid>
 
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
                         <CardContent>
                           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>
@@ -1168,7 +1168,7 @@ export function PlatformServicesEnhanced() {
                       </Card>
                     </Grid>
 
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
                         <CardContent>
                           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>
@@ -1211,7 +1211,7 @@ export function PlatformServicesEnhanced() {
                 {/* Products Tab */}
                 {previewTab === 4 && (
                   <Grid container spacing={2}>
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>
                         Product Options
                       </Typography>
@@ -1228,19 +1228,19 @@ export function PlatformServicesEnhanced() {
                                 </Box>
                                 <Grid container spacing={1}>
                                   {product.brand && (
-                                    <Grid item xs={6}>
+                                    <Grid size={{ xs: 6 }}>
                                       <Typography variant="caption" color="text.secondary">Brand</Typography>
                                       <Typography variant="body2">{product.brand}</Typography>
                                     </Grid>
                                   )}
                                   {product.warranty && (
-                                    <Grid item xs={6}>
+                                    <Grid size={{ xs: 6 }}>
                                       <Typography variant="caption" color="text.secondary">Warranty</Typography>
                                       <Typography variant="body2">{product.warranty}</Typography>
                                     </Grid>
                                   )}
                                   {product.description && (
-                                    <Grid item xs={12}>
+                                    <Grid size={{ xs: 12 }}>
                                       <Typography variant="caption" color="text.secondary">Description</Typography>
                                       <Typography variant="body2">{product.description}</Typography>
                                     </Grid>
@@ -1255,11 +1255,11 @@ export function PlatformServicesEnhanced() {
                       )}
                     </Grid>
 
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <Divider sx={{ my: 2 }} />
                     </Grid>
 
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>
                         Service Areas
                       </Typography>

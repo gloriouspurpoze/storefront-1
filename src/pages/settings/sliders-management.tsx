@@ -616,7 +616,7 @@ export default function SlidersManagement() {
                           Basic Information
                         </Typography>
                         <Grid container spacing={3}>
-                          <Grid item xs={12} sm={8}>
+                          <Grid size={{ xs: 12, sm: 8 }}>
                             <FormField
                               label="Title"
                               value={formData.title}
@@ -627,7 +627,7 @@ export default function SlidersManagement() {
                                 }
                               }}
                               required
-                              error={!!formErrors.title}
+                              error={formErrors.title || undefined}
                               helperText={formErrors.title || "The main heading displayed on the slider"}
                               placeholder="Summer Sale 2024"
                               maxLength={100}
@@ -635,19 +635,20 @@ export default function SlidersManagement() {
                             />
                           </Grid>
 
-                          <Grid item xs={12} sm={4}>
+                          <Grid size={{ xs: 12, sm: 4 }}>
                             <FormField
                               label="Position"
                               value={formData.position}
-                              onChange={(value) => setFormData({ ...formData, position: Number(value) })}
+                              onChange={(value) =>
+                                setFormData({ ...formData, position: Math.max(1, Number(value) || 1) })
+                              }
                               type="number"
                               helperText="Lower numbers appear first"
                               placeholder="1"
-                              inputProps={{ min: 1 }}
                             />
                           </Grid>
 
-                          <Grid item xs={12}>
+                          <Grid size={{ xs: 12 }}>
                             <FormField
                               label="Subtitle"
                               value={formData.subtitle}
@@ -659,7 +660,7 @@ export default function SlidersManagement() {
                             />
                           </Grid>
 
-                          <Grid item xs={12}>
+                          <Grid size={{ xs: 12 }}>
                             <FormField
                               label="Description"
                               value={formData.description}
@@ -696,7 +697,7 @@ export default function SlidersManagement() {
                           Image & Media
                         </Typography>
                         <Grid container spacing={3}>
-                          <Grid item xs={12}>
+                          <Grid size={{ xs: 12 }}>
                             <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
                               <Typography variant="body2">
                                 <strong>Recommended size:</strong> 1920x600px for best results. Maximum file size: 5MB.
@@ -704,7 +705,7 @@ export default function SlidersManagement() {
                             </Alert>
                           </Grid>
 
-                          <Grid item xs={12}>
+                          <Grid size={{ xs: 12 }}>
                             <ImageUploadField
                               label="Slider Image"
                               value={uploadedImages}
@@ -740,7 +741,7 @@ export default function SlidersManagement() {
                             )}
                           </Grid>
 
-                          <Grid item xs={12}>
+                          <Grid size={{ xs: 12 }}>
                             <Divider sx={{ my: 2 }}>
                               <Typography variant="body2" color="text.secondary">
                                 OR
@@ -748,7 +749,7 @@ export default function SlidersManagement() {
                             </Divider>
                           </Grid>
 
-                          <Grid item xs={12}>
+                          <Grid size={{ xs: 12 }}>
                             <FormField
                               label="Image URL"
                               value={formData.image_url}
@@ -761,11 +762,11 @@ export default function SlidersManagement() {
                               placeholder="https://example.com/image.jpg"
                               helperText="Enter the full URL of the slider image if you prefer to use an external image"
                               type="url"
-                              error={!!formErrors.image_url}
+                              error={formErrors.image_url || undefined}
                             />
                           </Grid>
 
-                          <Grid item xs={12}>
+                          <Grid size={{ xs: 12 }}>
                             <FormField
                               label="Image Alt Text"
                               value={formData.image_alt}
@@ -777,7 +778,7 @@ export default function SlidersManagement() {
 
                           {/* Image Preview */}
                           {imageUrl && (
-                            <Grid item xs={12}>
+                            <Grid size={{ xs: 12 }}>
                               <Card
                                 sx={{
                                   borderRadius: 2,
@@ -838,7 +839,7 @@ export default function SlidersManagement() {
                           Call to Action
                         </Typography>
                         <Grid container spacing={3}>
-                          <Grid item xs={12}>
+                          <Grid size={{ xs: 12 }}>
                             <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
                               <Typography variant="body2">
                                 Add a button to drive user engagement. Both button text and URL are optional, but if you provide text, URL is required.
@@ -846,7 +847,7 @@ export default function SlidersManagement() {
                             </Alert>
                           </Grid>
 
-                          <Grid item xs={12} sm={6}>
+                          <Grid size={{ xs: 12, sm: 6 }}>
                             <FormField
                               label="Button Text"
                               value={formData.button_text}
@@ -863,7 +864,7 @@ export default function SlidersManagement() {
                             />
                           </Grid>
 
-                          <Grid item xs={12} sm={6}>
+                          <Grid size={{ xs: 12, sm: 6 }}>
                             <FormField
                               label="Button URL"
                               value={formData.button_url}
@@ -876,7 +877,7 @@ export default function SlidersManagement() {
                               placeholder="/services or https://example.com"
                               helperText={formData.button_text ? 'Required when button text is provided' : 'URL where the button should link to (optional)'}
                               type="url"
-                              error={!!formErrors.button_url}
+                              error={formErrors.button_url || undefined}
                             />
                           </Grid>
                         </Grid>
@@ -903,7 +904,7 @@ export default function SlidersManagement() {
                           Settings & Schedule
                         </Typography>
                         <Grid container spacing={3}>
-                          <Grid item xs={12} sm={6}>
+                          <Grid size={{ xs: 12, sm: 6 }}>
                             <FormControl fullWidth>
                               <InputLabel>Target Audience</InputLabel>
                               <Select
@@ -920,7 +921,7 @@ export default function SlidersManagement() {
                             </FormControl>
                           </Grid>
 
-                          <Grid item xs={12} sm={6}>
+                          <Grid size={{ xs: 12, sm: 6 }}>
                             <Card
                               sx={{
                                 p: 2.5,
@@ -958,7 +959,7 @@ export default function SlidersManagement() {
                             </Card>
                           </Grid>
 
-                          <Grid item xs={12}>
+                          <Grid size={{ xs: 12 }}>
                             <Divider sx={{ my: 2 }} />
                             <Typography
                               variant="h6"
@@ -978,7 +979,7 @@ export default function SlidersManagement() {
                             </Typography>
                           </Grid>
 
-                          <Grid item xs={12} sm={6}>
+                          <Grid size={{ xs: 12, sm: 6 }}>
                             <TextField
                               fullWidth
                               label="Start Date"
@@ -998,7 +999,7 @@ export default function SlidersManagement() {
                             />
                           </Grid>
 
-                          <Grid item xs={12} sm={6}>
+                          <Grid size={{ xs: 12, sm: 6 }}>
                             <TextField
                               fullWidth
                               label="End Date"
@@ -1330,7 +1331,7 @@ export default function SlidersManagement() {
 
       {/* Stats Cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card
             sx={{
               borderRadius: 2,
@@ -1363,7 +1364,7 @@ export default function SlidersManagement() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card
             sx={{
               borderRadius: 2,
@@ -1396,7 +1397,7 @@ export default function SlidersManagement() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card
             sx={{
               borderRadius: 2,
@@ -1429,7 +1430,7 @@ export default function SlidersManagement() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card
             sx={{
               borderRadius: 2,
@@ -1473,7 +1474,7 @@ export default function SlidersManagement() {
       >
         <CardContent sx={{ p: 3 }}>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <TextField
                 fullWidth
                 size="small"
@@ -1488,7 +1489,7 @@ export default function SlidersManagement() {
                 }}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <FormControl fullWidth size="small">
                 <InputLabel>Status</InputLabel>
                 <Select
@@ -1508,7 +1509,7 @@ export default function SlidersManagement() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <FormControl fullWidth size="small">
                 <InputLabel>Audience</InputLabel>
                 <Select
@@ -1528,7 +1529,7 @@ export default function SlidersManagement() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={2}>
+            <Grid size={{ xs: 12, md: 2 }}>
               <Button
                 variant="outlined"
                 onClick={handleClearFilters}

@@ -6,7 +6,6 @@ import {
   DialogActions,
   TextField,
   Button,
-  Grid,
   FormControl,
   InputLabel,
   Select,
@@ -19,6 +18,7 @@ import {
   FormControlLabel,
   Divider,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   Close as CloseIcon,
   Add as AddIcon,
