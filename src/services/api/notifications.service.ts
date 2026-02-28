@@ -98,7 +98,7 @@ export interface NotificationStats {
 }
 
 class NotificationsService {
-  private baseUrl = '/notifications-mongo'; // Updated to use MongoDB endpoints (relative to baseURL)
+  private baseUrl = '/notifications'; // Backend in-app (MongoDB) routes at /api/notifications
 
   // Notifications (MongoDB-based)
   async getNotifications(limit: number = 50, page: number = 1): Promise<PushNotification[]> {

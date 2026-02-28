@@ -9,7 +9,8 @@
  */
 
 import React, { useState, useEffect } from 'react'
-import { Box, Grid, Card, CardContent, Typography, CircularProgress } from '@mui/material'
+import { Box, Card, CardContent, Typography, CircularProgress } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   People as PeopleIcon,
   CheckCircle as VerifiedIcon,

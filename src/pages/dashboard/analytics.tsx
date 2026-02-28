@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   Box,
   Card,
@@ -10,10 +10,11 @@ import {
   Select,
   MenuItem,
   useTheme,
-  useMediaQuery,
   Stack,
   Paper,
   Chip,
+  CircularProgress,
+  Alert,
 } from '@mui/material'
 import Grid from '@mui/material/GridLegacy'
 import {
@@ -43,43 +44,215 @@ import {
 import { formatCurrency } from '../../lib/utils'
 import { StatCard } from '../../shared/components'
 import { TIME_RANGES } from '../../constants'
-// Mock data for charts
-const revenueData = [
-  { month: 'Jan', revenue: 12000, orders: 45, users: 120 },
-  { month: 'Feb', revenue: 15000, orders: 52, users: 135 },
-  { month: 'Mar', revenue: 18000, orders: 61, users: 150 },
-  { month: 'Apr', revenue: 22000, orders: 73, users: 168 },
-  { month: 'May', revenue: 19000, orders: 68, users: 155 },
-  { month: 'Jun', revenue: 25000, orders: 85, users: 180 },
-  { month: 'Jul', revenue: 28000, orders: 92, users: 195 },
-  { month: 'Aug', revenue: 32000, orders: 105, users: 210 },
-]
-const categoryData = [
-  { name: 'Plumbing', value: 35, revenue: 3200, color: '#2563eb' },
-  { name: 'Electrical', value: 28, revenue: 2800, color: '#7c3aed' },
-  { name: 'Cleaning', value: 20, revenue: 1200, color: '#059669' },
-  { name: 'HVAC', value: 12, revenue: 1800, color: '#dc2626' },
-  { name: 'Security', value: 5, revenue: 2400, color: '#d97706' },
-]
-const topProducts = [
-  { name: 'Professional Pipe Wrench Set', sales: 45, revenue: 4049.55, growth: 12.5 },
-  { name: 'Smart Touchless Faucet', sales: 32, revenue: 9599.68, growth: 8.3 },
-  { name: 'LED Recessed Light Kit', sales: 28, revenue: 2239.72, growth: -2.1 },
-  { name: 'Smart Thermostat', sales: 25, revenue: 4999.75, growth: 15.7 },
-  { name: 'Robot Vacuum Cleaner', sales: 18, revenue: 10799.82, growth: 22.4 },
-]
+import { AnalyticsService } from '../../services/api'
+import type { DashboardAnalytics } from '../../types'
+
+const CHART_COLORS = ['#2563eb', '#7c3aed', '#059669', '#dc2626', '#d97706', '#0891b2', '#4f46e5', '#b45309']
+
+function getMonthsFromTimeRange(timeRange: string): number {
+  switch (timeRange) {
+    case TIME_RANGES.LAST_7_DAYS:
+    case TIME_RANGES.LAST_30_DAYS:
+      return 1
+    case TIME_RANGES.LAST_3_MONTHS:
+      return 3
+    case TIME_RANGES.LAST_6_MONTHS:
+      return 6
+    case TIME_RANGES.LAST_YEAR:
+      return 12
+    default:
+      return 6
+  }
+}
+
+function getDateRangeFromTimeRange(timeRange: string): { startDate: string; endDate: string } {
+  const end = new Date()
+  const start = new Date()
+  switch (timeRange) {
+    case TIME_RANGES.LAST_7_DAYS:
+      start.setDate(start.getDate() - 7)
+      break
+    case TIME_RANGES.LAST_30_DAYS:
+      start.setDate(start.getDate() - 30)
+      break
+    case TIME_RANGES.LAST_3_MONTHS:
+      start.setMonth(start.getMonth() - 3)
+      break
+    case TIME_RANGES.LAST_6_MONTHS:
+      start.setMonth(start.getMonth() - 6)
+      break
+    case TIME_RANGES.LAST_YEAR:
+      start.setFullYear(start.getFullYear() - 1)
+      break
+    default:
+      start.setMonth(start.getMonth() - 6)
+  }
+  return {
+    startDate: start.toISOString().split('T')[0],
+    endDate: end.toISOString().split('T')[0],
+  }
+}
+
 export function Analytics() {
   const theme = useTheme()
   const [timeRange, setTimeRange] = useState('6m')
   const [selectedMetric, setSelectedMetric] = useState('revenue')
-  const handleExport = () => {
-    console.log('Exporting analytics data...')
-    // Handle export logic here
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [overview, setOverview] = useState<DashboardAnalytics['overview'] | null>(null)
+  const [revenueAnalytics, setRevenueAnalytics] = useState<{
+    totalRevenue: number
+    growthRate: number
+    averageRevenue: number
+    revenueBreakdown: Array<{ period: string; revenue: number; bookings: number }>
+    revenueByServiceType: Array<{ serviceType: string; revenue: number; percentage: number }>
+  } | null>(null)
+  const [userAnalytics, setUserAnalytics] = useState<{
+    totalUsers: number
+    newUsers: number
+    userGrowth: Array<{ date: string; newUsers: number; totalUsers: number }>
+  } | null>(null)
+  const [providerAnalytics, setProviderAnalytics] = useState<{
+    totalProviders: number
+    topProviders: Array<{ id: string; businessName: string; rating: number; totalBookings: number; totalRevenue: number }>
+  } | null>(null)
+  const [bookingAnalytics, setBookingAnalytics] = useState<{
+    completionRate: number
+    averageBookingValue: number
+  } | null>(null)
+  const [dashboardServiceStats, setDashboardServiceStats] = useState<DashboardAnalytics['serviceStats']>([])
+
+  const months = useMemo(() => getMonthsFromTimeRange(timeRange), [timeRange])
+  const dateRange = useMemo(() => getDateRangeFromTimeRange(timeRange), [timeRange])
+
+  const fetchAll = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const [dashboardRes, revenueRes, usersRes, providersRes, bookingRes] = await Promise.allSettled([
+        AnalyticsService.getDashboardAnalytics(),
+        AnalyticsService.getRevenueAnalytics('monthly', months),
+        AnalyticsService.getUserAnalytics(dateRange),
+        AnalyticsService.getProviderAnalytics(dateRange),
+        AnalyticsService.getBookingAnalytics(dateRange),
+      ])
+
+      if (dashboardRes.status === 'fulfilled' && dashboardRes.value?.success && dashboardRes.value?.data) {
+        const data = dashboardRes.value.data as DashboardAnalytics
+        setOverview(data.overview ?? null)
+        setDashboardServiceStats(data.serviceStats ?? [])
+      }
+      if (revenueRes.status === 'fulfilled' && revenueRes.value?.success && revenueRes.value?.data) {
+        const data = revenueRes.value.data as {
+          totalRevenue: number
+          growthRate: number
+          averageRevenue: number
+          revenueBreakdown: Array<{ period: string; revenue: number; bookings: number }>
+          revenueByServiceType: Array<{ serviceType: string; revenue: number; percentage: number }>
+        }
+        setRevenueAnalytics({
+          totalRevenue: data.totalRevenue ?? 0,
+          growthRate: data.growthRate ?? 0,
+          averageRevenue: data.averageRevenue ?? 0,
+          revenueBreakdown: data.revenueBreakdown ?? [],
+          revenueByServiceType: data.revenueByServiceType ?? [],
+        })
+      }
+      if (usersRes.status === 'fulfilled' && usersRes.value?.success && usersRes.value?.data) {
+        const data = usersRes.value.data as {
+          totalUsers: number
+          newUsers: number
+          userGrowth: Array<{ date: string; newUsers: number; totalUsers: number }>
+        }
+        setUserAnalytics({
+          totalUsers: data.totalUsers ?? 0,
+          newUsers: data.newUsers ?? 0,
+          userGrowth: data.userGrowth ?? [],
+        })
+      }
+      if (providersRes.status === 'fulfilled' && providersRes.value?.success && providersRes.value?.data) {
+        const data = providersRes.value.data as {
+          totalProviders: number
+          topProviders: Array<{ id: string; businessName: string; rating: number; totalBookings: number; totalRevenue: number }>
+        }
+        setProviderAnalytics({
+          totalProviders: data.totalProviders ?? 0,
+          topProviders: data.topProviders ?? [],
+        })
+      }
+      if (bookingRes.status === 'fulfilled' && bookingRes.value?.success && bookingRes.value?.data) {
+        const data = bookingRes.value.data as { completionRate: number; averageBookingValue: number }
+        setBookingAnalytics({
+          completionRate: data.completionRate ?? 0,
+          averageBookingValue: data.averageBookingValue ?? 0,
+        })
+      }
+
+      const firstRejection = [dashboardRes, revenueRes].find((r) => r.status === 'rejected')
+      if (firstRejection?.status === 'rejected') {
+        setError((firstRejection as PromiseRejectedResult).reason?.message ?? 'Failed to load analytics')
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load analytics')
+    } finally {
+      setLoading(false)
+    }
   }
-  const handleRefresh = () => {
-    console.log('Refreshing analytics data...')
-    // Handle refresh logic here
+
+  useEffect(() => {
+    fetchAll()
+  }, [timeRange, months])
+
+  const revenueChartData = useMemo(() => {
+    if (!revenueAnalytics?.revenueBreakdown?.length) return []
+    return revenueAnalytics.revenueBreakdown.map((p) => ({
+      month: p.period?.length >= 3 ? p.period.slice(0, 3) : p.period,
+      revenue: p.revenue ?? 0,
+      orders: p.bookings ?? 0,
+    }))
+  }, [revenueAnalytics])
+
+  const categoryChartData = useMemo(() => {
+    if (!revenueAnalytics?.revenueByServiceType?.length) return []
+    return revenueAnalytics.revenueByServiceType.map((s, i) => ({
+      name: s.serviceType || 'Other',
+      value: s.percentage ?? 0,
+      revenue: s.revenue ?? 0,
+      color: CHART_COLORS[i % CHART_COLORS.length],
+    }))
+  }, [revenueAnalytics])
+
+  const userGrowthChartData = useMemo(() => {
+    if (!userAnalytics?.userGrowth?.length) return []
+    return userAnalytics.userGrowth.map((u) => ({
+      date: u.date,
+      users: u.totalUsers ?? 0,
+      newUsers: u.newUsers ?? 0,
+    }))
+  }, [userAnalytics])
+
+  const handleExport = async () => {
+    try {
+      await AnalyticsService.exportAnalyticsData({
+        reportType: 'analytics-dashboard',
+        format: 'csv',
+        dateRange: { startDate: dateRange.startDate, endDate: dateRange.endDate },
+      })
+    } catch {
+      // Error handled by service toast
+    }
   }
+
+  const handleRefresh = () => fetchAll()
+
+  if (loading && !overview && !revenueAnalytics) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <CircularProgress size={60} />
+      </Box>
+    )
+  }
+
   return (
     <Box sx={{ flexGrow: 1 }}>
       {/* Header */}
@@ -97,6 +270,7 @@ export function Analytics() {
             variant="outlined"
             startIcon={<RefreshIcon />}
             onClick={handleRefresh}
+            disabled={loading}
           >
             Refresh
           </Button>
@@ -109,6 +283,11 @@ export function Analytics() {
           </Button>
         </Stack>
       </Box>
+      {error && (
+        <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
       {/* Controls */}
       <Card sx={{ mb: 4 }}>
         <CardContent>
@@ -151,41 +330,38 @@ export function Analytics() {
         <Grid item xs={12} sm={6} lg={3}>
           <StatCard
             title="Total Revenue"
-            value={formatCurrency(15420.50)}
-            change={20.1}
+            value={formatCurrency(revenueAnalytics?.totalRevenue ?? overview?.totalRevenue ?? 0)}
+            change={revenueAnalytics?.growthRate}
             icon={<DollarIcon />}
             color="primary"
-            subtitle="This month"
+            subtitle={`Last ${months} month(s)`}
           />
         </Grid>
         <Grid item xs={12} sm={6} lg={3}>
           <StatCard
-            title="Total Orders"
-            value="1,234"
-            change={12.5}
+            title="Total Bookings"
+            value={String(overview?.totalBookings ?? 0)}
             icon={<CartIcon />}
             color="success"
-            subtitle="This month"
+            subtitle={`Last ${months} month(s)`}
           />
         </Grid>
         <Grid item xs={12} sm={6} lg={3}>
           <StatCard
             title="Active Users"
-            value="2,456"
-            change={8.3}
+            value={String(overview?.totalUsers ?? userAnalytics?.totalUsers ?? 0)}
             icon={<PeopleIcon />}
             color="info"
-            subtitle="This month"
+            subtitle={`Last ${months} month(s)`}
           />
         </Grid>
         <Grid item xs={12} sm={6} lg={3}>
           <StatCard
-            title="Avg. Order Value"
-            value={formatCurrency(285.75)}
-            change={-2.3}
+            title="Avg. Booking Value"
+            value={formatCurrency(bookingAnalytics?.averageBookingValue ?? revenueAnalytics?.averageRevenue ?? 0)}
             icon={<AssignmentIcon />}
             color="warning"
-            subtitle="This month"
+            subtitle={`Last ${months} month(s)`}
           />
         </Grid>
       </Grid>
@@ -198,38 +374,44 @@ export function Analytics() {
                 Revenue & Orders Trend
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Monthly performance over the last 8 months
+                Monthly performance over the last {months} month(s)
               </Typography>
               <Box sx={{ height: 350 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={revenueData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip 
-                      formatter={(value, name) => [
-                        name === 'revenue' ? formatCurrency(Number(value)) : value,
-                        name === 'revenue' ? 'Revenue' : 'Orders'
-                      ]}
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="revenue" 
-                      stackId="1"
-                      stroke={theme.palette.primary.main}
-                      fill={theme.palette.primary.main}
-                      fillOpacity={0.3}
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="orders" 
-                      stackId="2"
-                      stroke={theme.palette.secondary.main}
-                      fill={theme.palette.secondary.main}
-                      fillOpacity={0.3}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+                {revenueChartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={revenueChartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip
+                        formatter={(value: number, name: string) => [
+                          name === 'revenue' ? formatCurrency(value) : value,
+                          name === 'revenue' ? 'Revenue' : 'Bookings',
+                        ]}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="revenue"
+                        stackId="1"
+                        stroke={theme.palette.primary.main}
+                        fill={theme.palette.primary.main}
+                        fillOpacity={0.3}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="orders"
+                        stackId="2"
+                        stroke={theme.palette.secondary.main}
+                        fill={theme.palette.secondary.main}
+                        fillOpacity={0.3}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'text.secondary' }}>
+                    No revenue data for this period
+                  </Box>
+                )}
               </Box>
             </CardContent>
           </Card>
@@ -244,24 +426,30 @@ export function Analytics() {
                 Distribution of revenue across service categories
               </Typography>
               <Box sx={{ height: 300 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={categoryData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {categoryData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => [`${value}%`, 'Percentage']} />
-                  </PieChart>
-                </ResponsiveContainer>
+                {categoryChartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={categoryChartData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={100}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {categoryChartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value: number) => [`${Number(value).toFixed(1)}%`, 'Share']} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'text.secondary' }}>
+                    No category data for this period
+                  </Box>
+                )}
               </Box>
             </CardContent>
           </Card>
@@ -273,35 +461,43 @@ export function Analytics() {
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ mb: 1 }}>
-                Top Performing Products
+                Top Providers
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Best selling products by revenue
+                Top providers by bookings and revenue
               </Typography>
               <Stack spacing={2}>
-                {topProducts.map((product, index) => (
-                  <Paper key={index} sx={{ p: 2 }}>
+                {(providerAnalytics?.topProviders?.length
+                  ? providerAnalytics.topProviders
+                  : []
+                ).map((provider, index) => (
+                  <Paper key={provider.id || index} sx={{ p: 2 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                        {product.name}
+                        {provider.businessName || 'Provider'}
                       </Typography>
                       <Chip
-                        label={`${product.growth > 0 ? '+' : ''}${product.growth}%`}
+                        label={`★ ${Number(provider.rating).toFixed(1)}`}
                         size="small"
-                        color={product.growth > 0 ? 'success' : 'error'}
+                        color="primary"
                         variant="outlined"
                       />
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Typography variant="body2" color="text.secondary">
-                        {product.sales} sales
+                        {provider.totalBookings ?? 0} bookings
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {formatCurrency(product.revenue)}
+                        {formatCurrency(provider.totalRevenue ?? 0)}
                       </Typography>
                     </Box>
                   </Paper>
                 ))}
+                {(!providerAnalytics?.topProviders?.length) && (
+                  <Box sx={{ py: 3, textAlign: 'center', color: 'text.secondary' }}>
+                    No provider data for this period
+                  </Box>
+                )}
               </Stack>
             </CardContent>
           </Card>
@@ -313,18 +509,25 @@ export function Analytics() {
                 User Growth
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Monthly user registration trends
+                User registration trends
               </Typography>
               <Box sx={{ height: 300 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={revenueData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="users" fill={theme.palette.info.main} />
-                  </BarChart>
-                </ResponsiveContainer>
+                {userGrowthChartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={userGrowthChartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="users" name="Total users" fill={theme.palette.info.main} />
+                      <Bar dataKey="newUsers" name="New users" fill={theme.palette.success.main} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'text.secondary' }}>
+                    No user growth data for this period
+                  </Box>
+                )}
               </Box>
             </CardContent>
           </Card>
@@ -337,7 +540,12 @@ export function Analytics() {
             <CardContent sx={{ textAlign: 'center' }}>
               <StarIcon sx={{ fontSize: 40, color: 'warning.main', mb: 1 }} />
               <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                4.8
+                {dashboardServiceStats.length > 0
+                  ? (
+                      dashboardServiceStats.reduce((s, t) => s + (t.averageRating ?? 0), 0) /
+                      dashboardServiceStats.length
+                    ).toFixed(1)
+                  : '—'}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Average Rating
@@ -350,10 +558,10 @@ export function Analytics() {
             <CardContent sx={{ textAlign: 'center' }}>
               <ScheduleIcon sx={{ fontSize: 40, color: 'info.main', mb: 1 }} />
               <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                2.3h
+                {overview?.totalServiceRequests ?? '—'}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Avg. Response Time
+                Service Requests
               </Typography>
             </CardContent>
           </Card>
@@ -363,7 +571,9 @@ export function Analytics() {
             <CardContent sx={{ textAlign: 'center' }}>
               <AssignmentIcon sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
               <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                89%
+                {bookingAnalytics?.completionRate != null
+                  ? `${(bookingAnalytics.completionRate <= 1 ? bookingAnalytics.completionRate * 100 : bookingAnalytics.completionRate).toFixed(0)}%`
+                  : '—'}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Completion Rate
@@ -376,7 +586,7 @@ export function Analytics() {
             <CardContent sx={{ textAlign: 'center' }}>
               <PeopleIcon sx={{ fontSize: 40, color: 'primary.main', mb: 1 }} />
               <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                156
+                {overview?.totalProviders ?? providerAnalytics?.totalProviders ?? '—'}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Active Providers

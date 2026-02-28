@@ -24,6 +24,7 @@ import {
   Info as InfoIcon,
   Error as ErrorIcon,
   CheckCircle as CheckIcon,
+  PhotoLibrary as PhotoLibraryIcon,
 } from '@mui/icons-material'
 import { useDropzone } from 'react-dropzone'
 import UploadService from '../../services/api/upload.service'
@@ -36,6 +37,7 @@ export interface ImageFile {
   order: number
   file?: File
   publicId?: string  // Cloudinary public ID for deletion
+  fromLibrary?: boolean  // When true, don't delete from Cloudinary on remove (reused existing)
 }
 
 export interface ImageUploadFieldProps {
@@ -55,6 +57,7 @@ export interface ImageUploadFieldProps {
   allowReorder?: boolean
   allowPrimary?: boolean
   folder?: string // Cloudinary folder for uploads
+  allowFromCloudinary?: boolean // Show "Choose from Cloudinary" to pick existing images
 }
 
 export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
@@ -73,13 +76,19 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
   showPreview = true,
   allowReorder = true,
   allowPrimary = true,
-  folder = 'homeservice', // Default folder
+  folder = 'homeservice',
+  allowFromCloudinary = true,
 }) => {
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
-  const [isDeleting, setIsDeleting] = useState<string | null>(null)  // Track which image is being deleted
+  const [isDeleting, setIsDeleting] = useState<string | null>(null)
+  const [cloudinaryDialogOpen, setCloudinaryDialogOpen] = useState(false)
+  const [cloudinaryImages, setCloudinaryImages] = useState<Array<{ url: string; publicId: string }>>([])
+  const [cloudinaryLoading, setCloudinaryLoading] = useState(false)
+  const [cloudinaryError, setCloudinaryError] = useState<string | null>(null)
+  const [deletingPublicId, setDeletingPublicId] = useState<string | null>(null)
 
   const getStatusIcon = () => {
     switch (status) {
@@ -149,17 +158,16 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
   const removeImage = async (imageId: string) => {
     const imageToRemove = value.find(img => img.id === imageId)
     
-    // If image has publicId, delete from Cloudinary
-    if (imageToRemove?.publicId) {
+    // If image has publicId and was uploaded in this session (not from library), delete from Cloudinary
+    if (imageToRemove?.publicId && !imageToRemove?.fromLibrary) {
       try {
         setIsDeleting(imageId)
         await UploadService.deleteImage(imageToRemove.publicId)
-        console.log('Image deleted from Cloudinary:', imageToRemove.publicId)
       } catch (error) {
         console.error('Failed to delete image from Cloudinary:', error)
         setUploadError('Failed to delete image from cloud storage')
         setIsDeleting(null)
-        return  // Don't remove from UI if cloud deletion failed
+        return
       } finally {
         setIsDeleting(null)
       }
@@ -203,6 +211,63 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
+
+  const openCloudinaryDialog = useCallback(async () => {
+    setCloudinaryDialogOpen(true)
+    setCloudinaryError(null)
+    setCloudinaryLoading(true)
+    try {
+      const images = await UploadService.listImages(folder, 50)
+      setCloudinaryImages(images.map((img) => ({ url: img.url, publicId: img.publicId })))
+    } catch (e: any) {
+      setCloudinaryError(e?.message || 'Failed to load images')
+      setCloudinaryImages([])
+    } finally {
+      setCloudinaryLoading(false)
+    }
+  }, [folder])
+
+  const addFromCloudinary = useCallback(
+    (item: { url: string; publicId: string }) => {
+      if (value.length >= maxFiles) return
+      const nextOrder = value.length
+      const newImage: ImageFile = {
+        id: Math.random().toString(36).substr(2, 9),
+        url: item.url,
+        alt: item.publicId.split('/').pop() || 'Image',
+        isPrimary: value.length === 0,
+        order: nextOrder,
+        publicId: item.publicId,
+        fromLibrary: true,
+      }
+      onChange([...value, newImage])
+    },
+    [value, maxFiles, onChange]
+  )
+
+  const deleteFromCloudinary = useCallback(
+    async (publicId: string) => {
+      setDeletingPublicId(publicId)
+      setCloudinaryError(null)
+      try {
+        await UploadService.deleteImage(publicId)
+        setCloudinaryImages((prev) => prev.filter((img) => img.publicId !== publicId))
+        const removed = value.filter((img) => img.publicId !== publicId)
+        const hadPrimary = value.some((img) => img.publicId === publicId && img.isPrimary)
+        const updated = removed.map((img, i) => ({
+          ...img,
+          order: i,
+          isPrimary: hadPrimary && i === 0 ? true : img.isPrimary,
+        }))
+        onChange(updated)
+      } catch (e: any) {
+        setCloudinaryError(e?.message || 'Failed to delete image')
+      } finally {
+        setDeletingPublicId(null)
+      }
+    },
+    [value, onChange]
+  )
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -264,6 +329,19 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
           </Typography>
         )}
       </Box>
+
+      {allowFromCloudinary && value.length < maxFiles && (
+        <Button
+          type="button"
+          variant="outlined"
+          startIcon={<PhotoLibraryIcon />}
+          onClick={openCloudinaryDialog}
+          disabled={disabled}
+          sx={{ mt: 2 }}
+        >
+          Choose from Cloudinary
+        </Button>
+      )}
 
       {/* Upload Progress */}
       {(uploadProgress > 0 || isUploading) && (
@@ -401,6 +479,100 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setPreviewImage(null)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Choose from Cloudinary Dialog */}
+      <Dialog
+        open={cloudinaryDialogOpen}
+        onClose={() => setCloudinaryDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Choose from Cloudinary</DialogTitle>
+        <DialogContent>
+          {cloudinaryLoading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          )}
+          {!cloudinaryLoading && cloudinaryError && (
+            <Alert severity="error" sx={{ mt: 1 }} onClose={() => setCloudinaryError(null)}>
+              {cloudinaryError}
+            </Alert>
+          )}
+          {!cloudinaryLoading && !cloudinaryError && cloudinaryImages.length === 0 && (
+            <Typography color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
+              No images found in this folder. Upload some first.
+            </Typography>
+          )}
+          {!cloudinaryLoading && !cloudinaryError && cloudinaryImages.length > 0 && (
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+                gap: 2,
+                py: 2,
+              }}
+            >
+              {cloudinaryImages.map((img) => (
+                <Card key={img.publicId} sx={{ overflow: 'hidden', position: 'relative' }}>
+                  {deletingPublicId === img.publicId && (
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        inset: 0,
+                        bgcolor: 'rgba(0,0,0,0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1,
+                      }}
+                    >
+                      <CircularProgress size={32} sx={{ color: 'white' }} />
+                    </Box>
+                  )}
+                  <Box
+                    component="img"
+                    src={img.url}
+                    alt={img.publicId}
+                    sx={{
+                      width: '100%',
+                      height: 120,
+                      objectFit: 'cover',
+                      display: 'block',
+                    }}
+                  />
+                  <CardContent sx={{ p: 1, '&:last-child': { pb: 1 } }}>
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                      <Button
+                        size="small"
+                        fullWidth
+                        variant="contained"
+                        onClick={() => addFromCloudinary(img)}
+                        disabled={value.length >= maxFiles || deletingPublicId !== null}
+                      >
+                        Add
+                      </Button>
+                      <Tooltip title="Delete from Cloudinary">
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => deleteFromCloudinary(img.publicId)}
+                          disabled={deletingPublicId !== null}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </CardContent>
+                </Card>
+              ))}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCloudinaryDialogOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
     </Box>

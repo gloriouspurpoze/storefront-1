@@ -19,13 +19,6 @@ import {
   Chip,
   Tooltip,
   Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
 } from '@mui/material'
 import Grid from '@mui/material/GridLegacy'
 import {
@@ -42,6 +35,7 @@ import {
   AttachMoney as MoneyIcon,
 } from '@mui/icons-material'
 import { ConfirmDialog } from '../../components/common/ConfirmDialog'
+import { StandardTable, type StandardTableColumn } from '../../components/common'
 import { servicesService, ServiceRequest, CreateServiceRequest, UpdateServiceRequest } from '../../services/api/services.service'
 import { ServiceRequestFormDialog } from '../../components/services/ServiceRequestFormDialog'
 import { ServiceRequestDetailsDialog } from '../../components/services/ServiceRequestDetailsDialog'
@@ -279,6 +273,86 @@ export function Services() {
 
   const filteredServices = services
 
+  const serviceColumns: StandardTableColumn<ServiceRequest>[] = [
+    {
+      id: 'title',
+      label: 'Title',
+      sortable: true,
+      render: (_, s) => (
+        <>
+          <Typography variant="body2" fontWeight="500">
+            {s.title}
+          </Typography>
+          <Typography variant="caption" color="textSecondary" noWrap sx={{ maxWidth: 200, display: 'block' }}>
+            {s.description}
+          </Typography>
+        </>
+      ),
+    },
+    {
+      id: 'service_type',
+      label: 'Service Type',
+      sortable: true,
+      render: (_, s) => <Chip label={s.service_type} size="small" />,
+    },
+    {
+      id: 'location',
+      label: 'Location',
+      render: (_, s) => (
+        <Stack direction="row" spacing={0.5} alignItems="center">
+          <LocationIcon fontSize="small" color="action" />
+          <Typography variant="body2">
+            {s.location?.city ?? (s as any).location?.city ?? '—'}, {s.location?.state ?? (s as any).location?.state ?? '—'}
+          </Typography>
+        </Stack>
+      ),
+    },
+    {
+      id: 'urgency',
+      label: 'Urgency',
+      sortable: true,
+      render: (_, s) => (
+        <Chip
+          label={(s.urgency ?? '').toUpperCase()}
+          size="small"
+          color={getUrgencyColor(s.urgency ?? '') as any}
+        />
+      ),
+    },
+    {
+      id: 'budget',
+      label: 'Budget',
+      render: (_, s) => (
+        <Typography variant="body2">
+          {formatCurrency(s.budget_min ?? '0')} - {formatCurrency(s.budget_max ?? '0')}
+        </Typography>
+      ),
+    },
+    {
+      id: 'status',
+      label: 'Status',
+      sortable: true,
+      render: (_, s) => (
+        <Chip
+          label={String(s.status ?? '').replace('_', ' ').toUpperCase()}
+          size="small"
+          color={getStatusColor(s.status ?? '') as any}
+        />
+      ),
+    },
+    {
+      id: 'created_at',
+      label: 'Created At',
+      sortable: true,
+      valueGetter: (s) => s.created_at ?? '',
+      render: (_, s) => (
+        <Typography variant="body2">
+          {s.created_at ? new Date(s.created_at).toLocaleDateString() : '—'}
+        </Typography>
+      ),
+    },
+  ]
+
   return (
     <Box sx={{ p: 3 }}>
       {/* Header */}
@@ -429,105 +503,32 @@ export function Services() {
 
       {/* Table */}
       <Card>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Title</TableCell>
-                <TableCell>Service Type</TableCell>
-                <TableCell>Location</TableCell>
-                <TableCell>Urgency</TableCell>
-                <TableCell>Budget</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Created At</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={8} align="center">
-                    Loading...
-                  </TableCell>
-                </TableRow>
-              ) : filteredServices.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} align="center">
-                    No service requests found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredServices.map((service) => (
-                  <TableRow key={service.id} hover>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight="500">
-                        {service.title}
-                      </Typography>
-                      <Typography variant="caption" color="textSecondary" noWrap sx={{ maxWidth: 200, display: 'block' }}>
-                        {service.description}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip label={service.service_type} size="small" />
-                    </TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={0.5} alignItems="center">
-                        <LocationIcon fontSize="small" color="action" />
-                        <Typography variant="body2">
-                          {service.location.city}, {service.location.state}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={service.urgency.toUpperCase()}
-                        size="small"
-                        color={getUrgencyColor(service.urgency) as any}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {formatCurrency(service.budget_min)} - {formatCurrency(service.budget_max)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={service.status.replace('_', ' ').toUpperCase()}
-                        size="small"
-                        color={getStatusColor(service.status) as any}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {new Date(service.created_at).toLocaleDateString()}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => handleMenuOpen(e, service)}
-                      >
-                        <MoreVertIcon />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          component="div"
-          count={totalCount}
-          page={page}
-          onPageChange={(e, newPage) => setPage(newPage)}
-          rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={(e) => {
-            setRowsPerPage(parseInt(e.target.value, 10))
-            setPage(0)
-          }}
-          rowsPerPageOptions={[5, 10, 25, 50]}
-        />
+        <CardContent>
+          <StandardTable<ServiceRequest>
+            columns={serviceColumns}
+            data={filteredServices}
+            getRowId={(row) => row.id ?? ''}
+            loading={loading}
+            emptyMessage="No service requests found"
+            showSearch={false}
+            page={page}
+            rowsPerPage={rowsPerPage}
+            totalCount={totalCount}
+            onPageChange={setPage}
+            onRowsPerPageChange={(r) => {
+              setRowsPerPage(r)
+              setPage(0)
+            }}
+            rowsPerPageOptions={[5, 10, 25, 50]}
+            renderActions={(service) => (
+              <IconButton size="small" onClick={(e) => handleMenuOpen(e, service)}>
+                <MoreVertIcon />
+              </IconButton>
+            )}
+            size="small"
+            minHeight={360}
+          />
+        </CardContent>
       </Card>
 
       {/* Action Menu */}

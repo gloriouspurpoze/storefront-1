@@ -179,8 +179,10 @@ export default function PromotionManagement() {
   };
 
   const getUsagePercentage = (promo: Promotion) => {
-    if (!promo.usage.totalLimit) return 0;
-    return (promo.usage.currentUsage / promo.usage.totalLimit) * 100;
+    const usage = promo.usage ?? (promo as any).usage_stats;
+    if (!usage?.totalLimit) return 0;
+    const current = usage.currentUsage ?? (usage as any).current_usage ?? 0;
+    return (current / (usage.totalLimit ?? 1)) * 100;
   };
 
   return (
@@ -359,10 +361,10 @@ export default function PromotionManagement() {
                           Usage
                         </Typography>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {promo.usage.currentUsage} / {promo.usage.totalLimit || '∞'}
+                          {promo.usage?.currentUsage ?? (promo as any).usage_stats?.current_usage ?? 0} / {promo.usage?.totalLimit ?? (promo as any).usage_stats?.total_limit ?? '∞'}
                         </Typography>
                       </Stack>
-                      {promo.usage.totalLimit && (
+                      {(promo.usage?.totalLimit ?? (promo as any).usage_stats?.total_limit) && (
                         <LinearProgress
                           variant="determinate"
                           value={getUsagePercentage(promo)}

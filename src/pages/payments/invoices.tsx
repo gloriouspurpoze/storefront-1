@@ -65,6 +65,7 @@ import {
   Description as InvoiceIcon,
 } from '@mui/icons-material'
 import { PageHeader } from '../../components/common/PageHeader'
+import { StandardTable, type StandardTableColumn } from '../../components/common'
 import { InvoicesService } from '../../services/api/invoices.service'
 import type { Invoice } from '../../services/api/invoices.service'
 
@@ -257,6 +258,107 @@ export function Invoices() {
     })
   }
 
+  const invoiceColumns: StandardTableColumn<Invoice>[] = [
+    {
+      id: 'invoiceNumber',
+      label: 'Invoice #',
+      sortable: true,
+      render: (_, inv) => (
+        <>
+          <Typography variant="body2" fontWeight="600">
+            {inv.invoiceNumber}
+          </Typography>
+          {inv.bookingId && (
+            <Typography variant="caption" color="text.secondary" display="block">
+              Booking: {inv.bookingId}
+            </Typography>
+          )}
+        </>
+      ),
+    },
+    {
+      id: 'customer',
+      label: 'Customer',
+      sortable: true,
+      valueGetter: (inv) => {
+        const c = inv.customerId as any
+        return c ? `${c.firstName ?? ''} ${c.lastName ?? ''} ${c.email ?? ''}` : ''
+      },
+      render: (_, inv) => {
+        const c = inv.customerId as any
+        if (!c) return '—'
+        return (
+          <Box display="flex" alignItems="center" gap={1}>
+            <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
+              {(c.firstName ?? '?')[0]}
+            </Avatar>
+            <Box>
+              <Typography variant="body2" fontWeight="500">
+                {c.firstName} {c.lastName}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block">
+                {c.email}
+              </Typography>
+            </Box>
+          </Box>
+        )
+      },
+    },
+    {
+      id: 'issuedDate',
+      label: 'Issue Date',
+      sortable: true,
+      render: (_, inv) => (
+        <Box display="flex" alignItems="center" gap={0.5}>
+          <CalendarIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+          <Typography variant="body2">{formatDate(inv.issuedDate)}</Typography>
+        </Box>
+      ),
+    },
+    {
+      id: 'dueDate',
+      label: 'Due Date',
+      sortable: true,
+      render: (_, inv) =>
+        inv.dueDate ? (
+          <Typography variant="body2">{formatDate(inv.dueDate)}</Typography>
+        ) : (
+          <Typography variant="body2" color="text.secondary">
+            N/A
+          </Typography>
+        ),
+    },
+    {
+      id: 'totalAmount',
+      label: 'Amount',
+      align: 'right',
+      sortable: true,
+      render: (_, inv) => (
+        <Typography variant="body2" fontWeight="600">
+          {formatCurrency(inv.totalAmount)}
+        </Typography>
+      ),
+    },
+    {
+      id: 'paymentStatus',
+      label: 'Status',
+      sortable: true,
+      valueGetter: (inv) => inv.paymentStatus ?? (inv as any).payment_status ?? '',
+      render: (_, inv) => {
+        const status = inv.paymentStatus ?? (inv as any).payment_status ?? ''
+        const config = getStatusColor(status)
+        return (
+          <Chip
+            label={String(status).replace('_', ' ').toUpperCase()}
+            size="small"
+            icon={getStatusIcon(status)}
+            sx={{ bgcolor: config.bg, color: config.color, fontWeight: 600 }}
+          />
+        )
+      },
+    },
+  ]
+
   return (
     <Box sx={{ p: 3 }}>
       <PageHeader
@@ -418,129 +520,37 @@ export function Invoices() {
           <Tab label="Refunded" />
         </Tabs>
 
-        {loading ? (
-          <Box display="flex" justifyContent="center" alignItems="center" minHeight={400}>
-            <CircularProgress />
-          </Box>
-        ) : error ? (
+        {error ? (
           <Box p={3}>
             <Alert severity="error">{error}</Alert>
           </Box>
-        ) : filteredInvoices.length === 0 ? (
-          <Box
-            display="flex"
-            flexDirection="column"
-            alignItems="center"
-            justifyContent="center"
-            minHeight={400}
-            p={3}
-          >
-            <ReceiptIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              No Invoices Found
-            </Typography>
-            <Typography variant="body2" color="text.secondary" textAlign="center">
-              {searchQuery || activeTab !== 0
-                ? 'Try adjusting your filters'
-                : 'Generate your first invoice to get started'}
-            </Typography>
-          </Box>
         ) : (
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Invoice #</TableCell>
-                  <TableCell>Customer</TableCell>
-                  <TableCell>Issue Date</TableCell>
-                  <TableCell>Due Date</TableCell>
-                  <TableCell align="right">Amount</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell align="center">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredInvoices.map((invoice) => {
-                  const statusConfig = getStatusColor(invoice.paymentStatus)
-                  return (
-                    <TableRow key={invoice._id} hover>
-                      <TableCell>
-                        <Typography variant="body2" fontWeight="600">
-                          {invoice.invoiceNumber}
-                        </Typography>
-                        {invoice.bookingId && (
-                          <Typography variant="caption" color="text.secondary">
-                            Booking: {invoice.bookingId}
-                          </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <Avatar
-                            sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}
-                          >
-                            {invoice.customerId.firstName[0]}
-                          </Avatar>
-                          <Box>
-                            <Typography variant="body2" fontWeight="500">
-                              {invoice.customerId.firstName} {invoice.customerId.lastName}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {invoice.customerId.email}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Box display="flex" alignItems="center" gap={0.5}>
-                          <CalendarIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                          <Typography variant="body2">
-                            {formatDate(invoice.issuedDate)}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        {invoice.dueDate ? (
-                          <Typography variant="body2">
-                            {formatDate(invoice.dueDate)}
-                          </Typography>
-                        ) : (
-                          <Typography variant="body2" color="text.secondary">
-                            N/A
-                          </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography variant="body2" fontWeight="600">
-                          {formatCurrency(invoice.totalAmount)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={invoice.paymentStatus.replace('_', ' ').toUpperCase()}
-                          size="small"
-                          icon={getStatusIcon(invoice.paymentStatus)}
-                          sx={{
-                            bgcolor: statusConfig.bg,
-                            color: statusConfig.color,
-                            fontWeight: 600,
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell align="center">
-                        <IconButton
-                          size="small"
-                          onClick={(e) => handleMenuOpen(e, invoice)}
-                        >
-                          <MoreIcon />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          <Box sx={{ px: 2, pb: 2 }}>
+            <StandardTable<Invoice>
+              columns={invoiceColumns}
+              data={filteredInvoices}
+              getRowId={(row) => row._id ?? row.id ?? ''}
+              loading={loading}
+              emptyMessage="No invoices found"
+              emptyDescription={
+                searchQuery || activeTab !== 0
+                  ? 'Try adjusting your filters'
+                  : 'Generate your first invoice to get started'
+              }
+              error={null}
+              showSearch={false}
+              renderActions={(invoice) => (
+                <IconButton
+                  size="small"
+                  onClick={(e) => handleMenuOpen(e, invoice)}
+                >
+                  <MoreIcon />
+                </IconButton>
+              )}
+              size="small"
+              minHeight={380}
+            />
+          </Box>
         )}
       </Card>
 

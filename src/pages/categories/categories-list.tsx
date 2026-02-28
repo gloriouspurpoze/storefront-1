@@ -1,23 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import {
   Box,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
   IconButton,
   Chip,
   Avatar,
   Typography,
   Button,
-  TextField,
-  InputAdornment,
   Tooltip,
-  CircularProgress,
   Alert,
   Stack,
   Card,
@@ -28,7 +17,6 @@ import {
   Visibility as ViewIcon,
   Delete as DeleteIcon,
   Add as AddIcon,
-  Search as SearchIcon,
   Category as CategoryIcon,
   TrendingUp as TrendingIcon,
 } from '@mui/icons-material'
@@ -36,6 +24,7 @@ import { useNavigate } from 'react-router-dom'
 import { CategoriesService } from '../../services/api/categories.service'
 import { useAppDispatch } from '../../store/hooks'
 import { addToast } from '../../store/slices/uiSlice'
+import { StandardTable, type StandardTableColumn } from '../../components/common'
 import type { Category } from '../../types'
 
 export function CategoriesList() {
@@ -153,6 +142,95 @@ export function CategoriesList() {
       : (category.isActive ?? category.status === 'active')
   }
 
+  const categoryColumns: StandardTableColumn<Category>[] = [
+    {
+      id: 'image',
+      label: 'Image',
+      width: 80,
+      render: (_, cat) => (
+        <Avatar
+          src={cat.image || (cat as any).icon}
+          alt={cat.name}
+          sx={{ width: 50, height: 50 }}
+        >
+          <CategoryIcon />
+        </Avatar>
+      ),
+    },
+    {
+      id: 'name',
+      label: 'Name',
+      sortable: true,
+      render: (_, cat) => (
+        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+          {cat.name}
+        </Typography>
+      ),
+    },
+    {
+      id: 'type',
+      label: 'Type',
+      sortable: true,
+      valueGetter: (cat) => getCategoryType(cat),
+      render: (_, cat) => (
+        <Chip
+          label={getCategoryType(cat)}
+          size="small"
+          color={
+            getCategoryType(cat) === 'product'
+              ? 'primary'
+              : getCategoryType(cat) === 'service'
+                ? 'secondary'
+                : 'default'
+          }
+          sx={{ textTransform: 'capitalize' }}
+        />
+      ),
+    },
+    {
+      id: 'description',
+      label: 'Description',
+      render: (_, cat) => (
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{
+            maxWidth: 300,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {cat.description || 'No description'}
+        </Typography>
+      ),
+    },
+    {
+      id: 'status',
+      label: 'Status',
+      sortable: true,
+      valueGetter: (cat) => (getCategoryStatus(cat) ? 'active' : 'inactive'),
+      render: (_, cat) => (
+        <Chip
+          label={getCategoryStatus(cat) ? 'Active' : 'Inactive'}
+          size="small"
+          color={getCategoryStatus(cat) ? 'success' : 'default'}
+        />
+      ),
+    },
+    {
+      id: 'sortOrder',
+      label: 'Sort Order',
+      sortable: true,
+      valueGetter: (cat) => cat.sortOrder ?? (cat as any).sort_order ?? 0,
+      render: (_, cat) => (
+        <Typography variant="body2">
+          {cat.sortOrder ?? (cat as any).sort_order ?? 0}
+        </Typography>
+      ),
+    },
+  ]
+
   return (
     <Box sx={{ flexGrow: 1, p: { xs: 2, sm: 3 } }}>
       {/* Header */}
@@ -225,23 +303,6 @@ export function CategoriesList() {
         </Card>
       </Box>
 
-      {/* Search */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <TextField
-          fullWidth
-          placeholder="Search categories..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-        />
-      </Paper>
-
       {/* Error State */}
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -249,140 +310,49 @@ export function CategoriesList() {
         </Alert>
       )}
 
-      {/* Loading State */}
-      {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-          <CircularProgress />
-        </Box>
-      ) : (
-        <>
-          {/* Table */}
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow sx={{ bgcolor: 'grey.50' }}>
-                  <TableCell>Image</TableCell>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Type</TableCell>
-                  <TableCell>Description</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Sort Order</TableCell>
-                  <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {categories.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
-                      <Typography variant="body1" color="text.secondary">
-                        No categories found. Create your first category to get started!
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  categories.map((category) => (
-                    <TableRow key={category.id} hover>
-                      <TableCell>
-                        <Avatar
-                          src={category.image || category.icon}
-                          alt={category.name}
-                          sx={{ width: 50, height: 50 }}
-                        >
-                          <CategoryIcon />
-                        </Avatar>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                          {category.name}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={getCategoryType(category)}
-                          size="small"
-                          color={
-                            getCategoryType(category) === 'product' ? 'primary' :
-                            getCategoryType(category) === 'service' ? 'secondary' : 'default'
-                          }
-                          sx={{ textTransform: 'capitalize' }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{
-                            maxWidth: 300,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {category.description || 'No description'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={getCategoryStatus(category) ? 'Active' : 'Inactive'}
-                          size="small"
-                          color={getCategoryStatus(category) ? 'success' : 'default'}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {category.sortOrder || category.sort_order || 0}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Stack direction="row" spacing={1} justifyContent="flex-end">
-                          <Tooltip title="View Details">
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => handleView(category)}
-                            >
-                              <ViewIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Edit Category">
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => handleEdit(category)}
-                            >
-                              <EditIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Delete Category">
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => handleDelete(category)}
-                            >
-                              <DeleteIcon />
-                            </IconButton>
-                          </Tooltip>
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          {/* Pagination */}
-          <TablePagination
-            component="div"
-            count={totalCount}
-            page={page}
-            onPageChange={handleChangePage}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-            rowsPerPageOptions={[5, 10, 25, 50]}
-          />
-        </>
-      )}
+      <StandardTable<Category>
+        columns={categoryColumns}
+        data={categories}
+        getRowId={(row) => getCategoryId(row)}
+        loading={isLoading}
+        emptyMessage="No categories found"
+        emptyDescription="Create your first category to get started!"
+        searchPlaceholder="Search categories..."
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchControlled
+        showSearch
+        page={page}
+        rowsPerPage={rowsPerPage}
+        totalCount={totalCount}
+        onPageChange={setPage}
+        onRowsPerPageChange={(r) => {
+          setRowsPerPage(r)
+          setPage(0)
+        }}
+        rowsPerPageOptions={[5, 10, 25, 50]}
+        renderActions={(category) => (
+          <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+            <Tooltip title="View Details">
+              <IconButton size="small" color="primary" onClick={() => handleView(category)}>
+                <ViewIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Edit Category">
+              <IconButton size="small" color="primary" onClick={() => handleEdit(category)}>
+                <EditIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Delete Category">
+              <IconButton size="small" color="error" onClick={() => handleDelete(category)}>
+                <DeleteIcon />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        )}
+        size="small"
+        minHeight={400}
+      />
     </Box>
   )
 }

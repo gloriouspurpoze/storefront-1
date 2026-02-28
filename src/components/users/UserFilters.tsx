@@ -1,7 +1,6 @@
 import React from 'react'
 import {
   Box,
-  Grid,
   TextField,
   InputAdornment,
   FormControl,
@@ -12,6 +11,7 @@ import {
   Chip,
   Stack,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   Search as SearchIcon,
   FilterList as FilterIcon,

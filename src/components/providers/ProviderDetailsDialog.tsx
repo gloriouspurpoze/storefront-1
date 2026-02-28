@@ -52,7 +52,7 @@ export function ProviderDetailsDialog({ open, onClose, provider }: ProviderDetai
     }
   }
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string): React.ReactElement => {
     switch (status) {
       case 'verified':
         return <VerifiedIcon />
@@ -61,7 +61,7 @@ export function ProviderDetailsDialog({ open, onClose, provider }: ProviderDetai
       case 'rejected':
         return <RejectedIcon />
       default:
-        return null
+        return <PendingIcon />
     }
   }
 

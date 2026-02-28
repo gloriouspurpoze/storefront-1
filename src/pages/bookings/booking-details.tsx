@@ -67,6 +67,7 @@ import { AssignProfessionalDialog } from '../../components/bookings/AssignProfes
 import { BookingsService } from '../../services/api/bookings.service'
 import { ProfessionalsService } from '../../services/api/professionals.service'
 import { PaymentsService } from '../../services/api/payments.service'
+import { apiClient } from '../../services/apiClient'
 import { useAppSelector, useAppDispatch } from '../../store/hooks'
 import { addToast } from '../../store/slices/uiSlice'
 
@@ -194,6 +195,7 @@ export function BookingDetails() {
   const [paymentReceivedDialog, setPaymentReceivedDialog] = useState(false)
   const [paymentAmount, setPaymentAmount] = useState('')
   const [paymentNotes, setPaymentNotes] = useState('')
+  const [earningData, setEarningData] = useState<{ earning: any; payout: any } | null>(null)
 
   // Check if current professional is assigned to this booking
   const isAssignedProfessional = booking && isProfessional && booking.professional && (
@@ -206,6 +208,37 @@ export function BookingDetails() {
   useEffect(() => {
     loadBooking()
   }, [id])
+
+  // Admin: fetch earning by booking when booking is completed (for Payment & earnings section)
+  useEffect(() => {
+    if (!id || !booking || booking.status !== 'completed') {
+      setEarningData(null)
+      return
+    }
+    const isAdminUser = userType === 'admin' || userType === 'super_admin'
+    if (!isAdminUser) return
+
+    let cancelled = false
+    const fetchEarning = async () => {
+      try {
+        const res = await apiClient.get(`/earnings/admin/earning-by-booking/${id}`, {
+          showLoading: false,
+          showSuccessToast: false,
+          showErrorToast: false,
+        }) as any
+        const data = res?.data ?? res
+        if (!cancelled && data?.success && data?.data) {
+          setEarningData(data.data)
+        } else {
+          setEarningData(null)
+        }
+      } catch {
+        if (!cancelled) setEarningData(null)
+      }
+    }
+    fetchEarning()
+    return () => { cancelled = true }
+  }, [id, booking?.status, userType])
 
   const loadBooking = async () => {
     if (!id) return
@@ -1834,6 +1867,86 @@ console.log("detailssss",booking)
               </Stack>
             </CardContent>
           </Card>
+
+          {/* Admin: Payment & earnings — pending receivable, professional payout status */}
+          {isAdmin && booking.status === 'completed' && (
+            <Card
+              sx={{
+                borderRadius: 3,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                border: '1px solid',
+                borderColor: 'primary.200',
+                mb: 3,
+              }}
+            >
+              <CardContent sx={{ p: 3.5 }}>
+                <Box display="flex" alignItems="center" gap={1.5} mb={3}>
+                  <Box
+                    sx={{
+                      p: 1.5,
+                      borderRadius: 2,
+                      bgcolor: 'primary.main',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <AccountBalanceWallet sx={{ fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" fontWeight="700" color="text.primary">
+                    Payment & earnings
+                  </Typography>
+                  <Chip label="Admin view" size="small" color="primary" variant="outlined" />
+                </Box>
+                <Divider sx={{ mb: 3 }} />
+                {earningData?.earning ? (
+                  <Stack spacing={2}>
+                    <Box display="flex" justifyContent="space-between" alignItems="center" p={1.5} bgcolor={alpha('#2196F3', 0.06)} borderRadius={1.5}>
+                      <Typography variant="body2" color="text.secondary" fontWeight="600">Booking amount</Typography>
+                      <Typography variant="body1" fontWeight="700">₹{Number(earningData.earning.bookingAmount || 0).toLocaleString()}</Typography>
+                    </Box>
+                    <Box display="flex" justifyContent="space-between" alignItems="center" p={1.5} bgcolor={alpha('#4CAF50', 0.08)} borderRadius={1.5}>
+                      <Typography variant="body2" color="text.secondary" fontWeight="600">Platform commission (pending receivable)</Typography>
+                      <Typography variant="body1" fontWeight="700" color="success.main">₹{Number(earningData.earning.platformCommission || 0).toLocaleString()}</Typography>
+                    </Box>
+                    <Box display="flex" justifyContent="space-between" alignItems="center" p={1.5} bgcolor={alpha('#FF9800', 0.08)} borderRadius={1.5}>
+                      <Typography variant="body2" color="text.secondary" fontWeight="600">Professional earnings</Typography>
+                      <Typography variant="body1" fontWeight="700">₹{Number(earningData.earning.professionalEarnings || 0).toLocaleString()}</Typography>
+                    </Box>
+                    <Box display="flex" justifyContent="space-between" alignItems="center" p={1.5} borderRadius={1.5}>
+                      <Typography variant="body2" color="text.secondary" fontWeight="600">Customer payment</Typography>
+                      <Chip
+                        label={String(earningData.earning.paymentStatus || 'pending').replace('_', ' ')}
+                        size="small"
+                        color={earningData.earning.paymentStatus === 'verified' || earningData.earning.paymentStatus === 'customer_paid' ? 'success' : 'warning'}
+                        sx={{ textTransform: 'capitalize' }}
+                      />
+                    </Box>
+                    <Box display="flex" justifyContent="space-between" alignItems="center" p={1.5} borderRadius={1.5}>
+                      <Typography variant="body2" color="text.secondary" fontWeight="600">Payout status</Typography>
+                      <Chip
+                        label={String(earningData.earning.payoutStatus || 'pending')}
+                        size="small"
+                        color={earningData.earning.payoutStatus === 'paid' ? 'success' : 'default'}
+                        sx={{ textTransform: 'capitalize' }}
+                      />
+                    </Box>
+                    {earningData.payout?.status === 'completed' && earningData.payout.completedAt && (
+                      <Alert severity="success" sx={{ mt: 1 }}>
+                        Professional received payment on {new Date(earningData.payout.completedAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}.
+                        {earningData.payout.payoutReference && ` Ref: ${earningData.payout.payoutReference}`}
+                      </Alert>
+                    )}
+                  </Stack>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    Earning record is created when the booking is marked completed. If you just completed this booking, refresh the page in a moment.
+                  </Typography>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Payment Review Section - Show when booking is completed and payment is received */}
           {(() => {

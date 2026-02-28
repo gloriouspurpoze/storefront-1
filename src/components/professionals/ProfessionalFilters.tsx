@@ -18,9 +18,9 @@ import {
   MenuItem,
   Button,
   Paper,
-  Grid,
   InputAdornment,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   Search as SearchIcon,
   FilterAlt as FilterIcon,

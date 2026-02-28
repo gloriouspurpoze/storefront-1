@@ -8,7 +8,6 @@ import {
   DialogTitle,
   FormControl,
   FormControlLabel,
-  Grid,
   IconButton,
   InputLabel,
   MenuItem as MuiMenuItem,
@@ -22,6 +21,7 @@ import {
   Alert,
   Autocomplete,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   Add as AddIcon,
   Delete as DeleteIcon,

@@ -200,11 +200,31 @@ export function Bookings() {
       try {
         setStatsLoading(true)
         const response = await BookingsService.getBookingStats()
-        if (response.success && response.data) {
+        const raw = (response as any)?.data
+        if (response.success && raw) {
+          // Support both flat (data.total) and nested (data.stats.total) or snake_case (data.total_bookings)
+          const stats = raw.stats ?? raw
+          const total =
+            stats.total ??
+            raw.total ??
+            (raw as any).total_bookings ??
+            0
+          const byStatus =
+            stats.byStatus ??
+            stats.by_status ??
+            raw.byStatus ??
+            raw.by_status ??
+            {}
+          const totalRevenue =
+            stats.totalRevenue ??
+            stats.total_revenue ??
+            raw.totalRevenue ??
+            raw.total_revenue ??
+            0
           setBookingStats({
-            total: response.data.total || 0,
-            byStatus: response.data.byStatus || {},
-            totalRevenue: response.data.totalRevenue || 0,
+            total: Number(total),
+            byStatus: typeof byStatus === 'object' && byStatus !== null ? byStatus : {},
+            totalRevenue: Number(totalRevenue),
           })
         }
       } catch {
@@ -237,35 +257,48 @@ export function Bookings() {
   )
 
   const resolvedStats = useMemo(() => {
-    // Prefer server stats (accurate across pages), fallback to current list.
-    if (bookingStats) {
+    const fromList = {
+      total: totalRows > 0 ? totalRows : bookings.length,
+      pending: bookings.filter((b) => (b.status ?? (b as any).status) === 'pending').length,
+      confirmed: bookings.filter((b) => (b.status ?? (b as any).status) === 'confirmed').length,
+      scheduled: bookings.filter((b) => (b.status ?? (b as any).status) === 'scheduled').length,
+      accepted: bookings.filter((b) => (b.status ?? (b as any).status) === 'accepted').length,
+      in_progress: bookings.filter((b) => (b.status ?? (b as any).status) === 'in_progress').length,
+      completed: bookings.filter((b) => (b.status ?? (b as any).status) === 'completed').length,
+      cancelled: bookings.filter((b) => (b.status ?? (b as any).status) === 'cancelled').length,
+      revenue: bookings
+        .filter((b) => (b.status ?? (b as any).status) === 'completed')
+        .reduce((sum, b) => sum + (Number(b.totalAmount) || Number((b as any).total_amount) || 0), 0),
+    }
+
+    // Use server stats only when they have at least a non-zero total; otherwise fall back to list-derived stats
+    if (bookingStats && bookingStats.total > 0) {
       return {
         total: bookingStats.total,
-        pending: bookingStats.byStatus?.pending || 0,
-        confirmed: bookingStats.byStatus?.confirmed || 0,
-        scheduled: bookingStats.byStatus?.scheduled || 0,
-        accepted: bookingStats.byStatus?.accepted || 0,
-        in_progress: bookingStats.byStatus?.in_progress || 0,
-        completed: bookingStats.byStatus?.completed || 0,
-        cancelled: bookingStats.byStatus?.cancelled || 0,
-        revenue: bookingStats.totalRevenue || 0,
+        pending: bookingStats.byStatus?.pending ?? 0,
+        confirmed: bookingStats.byStatus?.confirmed ?? 0,
+        scheduled: bookingStats.byStatus?.scheduled ?? 0,
+        accepted: bookingStats.byStatus?.accepted ?? 0,
+        in_progress: bookingStats.byStatus?.in_progress ?? 0,
+        completed: bookingStats.byStatus?.completed ?? 0,
+        cancelled: bookingStats.byStatus?.cancelled ?? 0,
+        revenue: bookingStats.totalRevenue ?? 0,
       }
     }
 
+    // When stats API returned 0 or failed: show totals from list/pagination so cards match the table
     return {
-      total: bookings.length,
-      pending: bookings.filter((b) => b.status === 'pending').length,
-      confirmed: bookings.filter((b) => b.status === 'confirmed').length,
-      scheduled: bookings.filter((b) => b.status === 'scheduled').length,
-      accepted: bookings.filter((b) => b.status === 'accepted').length,
-      in_progress: bookings.filter((b) => b.status === 'in_progress').length,
-      completed: bookings.filter((b) => b.status === 'completed').length,
-      cancelled: bookings.filter((b) => b.status === 'cancelled').length,
-      revenue: bookings
-        .filter((b) => b.status === 'completed')
-        .reduce((sum, b) => sum + (b.totalAmount || 0), 0),
+      total: fromList.total,
+      pending: totalRows > 0 ? fromList.pending : fromList.pending,
+      confirmed: fromList.confirmed,
+      scheduled: fromList.scheduled,
+      accepted: fromList.accepted,
+      in_progress: fromList.in_progress,
+      completed: fromList.completed,
+      cancelled: fromList.cancelled,
+      revenue: fromList.revenue,
     }
-  }, [bookingStats, bookings])
+  }, [bookingStats, bookings, totalRows])
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, booking: Booking) => {
     setAnchorEl(event.currentTarget)
@@ -575,21 +608,34 @@ export function Bookings() {
       {
         field: 'totalAmount',
         headerName: 'Amount',
-        minWidth: 140,
-        flex: 0.8,
+        minWidth: 120,
+        flex: 0.7,
         align: 'right',
         headerAlign: 'right',
         valueFormatter: (v: any) => formatCurrency(v.value || 0),
         renderCell: (params: GridRenderCellParams<Booking>) => (
-          <Box textAlign="right" width="100%">
-            <Typography variant="body2" fontWeight={900} color="success.main">
-              {formatCurrency(params.row.totalAmount || 0)}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {params.row.paymentStatus || '—'}
-            </Typography>
-          </Box>
+          <Typography variant="body2" fontWeight={900} color="success.main">
+            {formatCurrency(params.row.totalAmount || 0)}
+          </Typography>
         ),
+      },
+      {
+        field: 'paymentStatus',
+        headerName: 'Payment',
+        minWidth: 130,
+        flex: 0.7,
+        renderCell: (params: GridRenderCellParams<Booking>) => {
+          const ps = (params.row.paymentStatus || 'pending').toString().toLowerCase()
+          const isPaid = ['paid', 'completed', 'success', 'received', 'customer_paid', 'verified'].includes(ps)
+          return (
+            <Chip
+              label={(params.row.paymentStatus || '—').toString().replace(/_/g, ' ')}
+              size="small"
+              color={isPaid ? 'success' : 'warning'}
+              sx={{ textTransform: 'capitalize', fontWeight: 600 }}
+            />
+          )
+        },
       },
       {
         field: 'status',

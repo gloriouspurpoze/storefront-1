@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { lazy, Suspense } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { Provider } from 'react-redux'
+import { Box, CircularProgress } from '@mui/material'
 import { ThemeProvider } from './contexts/theme-context'
 import { DataProvider } from './contexts/data-context'
 import { SidebarProvider } from './contexts/sidebar-context'
@@ -8,102 +9,89 @@ import { store } from './store'
 import { MainLayout } from './components/layout/main-layout'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { RoleBasedRoute } from './components/auth/RoleBasedRoute'
-import { ToastProvider } from './components/providers/ToastProvider'
 import { LoadingProvider } from './components/providers/LoadingProvider'
-// Dashboard
-import { Dashboard } from './pages/dashboard/dashboard'
-import { SmartDashboard } from './pages/dashboard/smart-dashboard'
-import { Analytics } from './pages/dashboard/analytics'
-
-// Auth
-import { Auth } from './pages/auth/auth'
-import { Signup } from './pages/auth/signup'
-import Unauthorized from './pages/auth/unauthorized'
-
-// Users
-import { Users } from './pages/users/users'
-
-// Products
-import { Products } from './pages/products/products'
-import { AddProduct } from './pages/products/add-product'
-
-// Categories
-import CategoriesList from './pages/categories/categories-list'
-import CreateCategory from './pages/categories/create-category'
-
-// Services
-import { Services } from './pages/services/services'
-import { CreateService } from './pages/services/create-service'
-import { PlatformServicesEnhanced as PlatformServices } from './pages/services/platform-services-enhanced'
-
-// Providers
-import { Providers } from './pages/providers/providers'
-import { CreateProvider } from './pages/providers/create-provider'
-import { EditProvider } from './pages/providers/edit-provider'
-import { ProviderDashboard } from './pages/providers/provider-dashboard'
-import { ProviderBookings } from './pages/bookings/provider-bookings'
-import { ProviderProfile } from './pages/providers/provider-profile'
-import { ProviderEarnings } from './pages/providers/provider-earnings'
-
-// Professionals
-import { Professionals } from './pages/professionals/professionals'
-import { CreateProfessional } from './pages/professionals/create-professional'
-import { ProfessionalDashboard } from './pages/professionals/professional-dashboard'
-import { ProfessionalBookings } from './pages/bookings/professional-bookings'
-import { ProfessionalProfile } from './pages/professionals/professional-profile'
-import { ProfessionalEarningsWallet } from './pages/professionals/professional-earnings-wallet'
-import { ProfessionalReviews } from './pages/professionals/professional-reviews'
-import { ProfessionalDocuments } from './pages/professionals/professional-documents'
-import { ProfessionalServices } from './pages/professionals/professional-services'
-import { ProfessionalSettings } from './pages/professionals/professional-settings'
-
-// Bookings
-import { Bookings } from './pages/bookings/bookings'
-import { BookingDetails } from './pages/bookings/booking-details'
-
-// Orders
-import { Orders } from './pages/orders/orders'
-import { Quotes } from './pages/orders/quotes'
-import { ServiceRequests } from './pages/orders/service-requests'
-
-// Payments
-import { Payments } from './pages/payments/payments'
-import { Invoices } from './pages/payments/invoices'
-import { AdminEarningsOverview } from './pages/dashboard/admin-earnings-overview'
-
-// Communication
-import { Messages } from './pages/communication/messages'
-import ChatPage from './pages/communication/chat'
-import { Notifications } from './pages/communication/notifications'
-
-// Settings
-import { Settings } from './pages/settings/settings'
-import { Sliders } from './pages/settings/sliders'
-import SystemStatus from './pages/settings/system-status'
-
-// Marketing
-import Coupons from './pages/marketing/coupons'
-import Referrals from './pages/marketing/referrals'
-
-// Support
-import Support from './pages/support/support'
-import Reports from './pages/support/reports'
-
-// CMS
-import CMSDashboard from './pages/cms/CMSDashboard'
-import BannerManagement from './pages/cms/BannerManagement'
-import PromotionManagement from './pages/cms/PromotionManagement'
-import TestimonialManagement from './pages/cms/TestimonialManagement'
-import FAQManagement from './pages/cms/FAQManagement'
-import SEOManagement from './pages/cms/SEOManagement'
-import HomepageManagement from './pages/cms/HomepageManagement'
-import BlogManagement from './pages/cms/BlogManagement'
-import BlogCategoryManagement from './pages/cms/BlogCategoryManagement'
-import MediaLibrary from './pages/cms/MediaLibrary'
-import PageManagement from './pages/cms/PageManagement'
-import MenuManagement from './pages/cms/MenuManagement'
-
 import { Toaster } from './components/ui'
+
+// Route-level code splitting (industry standard for performance)
+const Auth = lazy(() => import('./pages/auth/auth').then((m) => ({ default: m.Auth })))
+const Signup = lazy(() => import('./pages/auth/signup').then((m) => ({ default: m.Signup })))
+const Unauthorized = lazy(() => import('./pages/auth/unauthorized'))
+const NotFound = lazy(() => import('./pages/NotFound').then((m) => ({ default: m.NotFound })))
+
+const SmartDashboard = lazy(() => import('./pages/dashboard/smart-dashboard').then((m) => ({ default: m.SmartDashboard })))
+const Dashboard = lazy(() => import('./pages/dashboard/dashboard').then((m) => ({ default: m.Dashboard })))
+const Analytics = lazy(() => import('./pages/dashboard/analytics').then((m) => ({ default: m.Analytics })))
+const AdminEarningsOverview = lazy(() => import('./pages/dashboard/admin-earnings-overview').then((m) => ({ default: m.AdminEarningsOverview })))
+
+const Users = lazy(() => import('./pages/users/users').then((m) => ({ default: m.Users })))
+const Products = lazy(() => import('./pages/products/products').then((m) => ({ default: m.Products })))
+const AddProduct = lazy(() => import('./pages/products/add-product').then((m) => ({ default: m.AddProduct })))
+const CategoriesList = lazy(() => import('./pages/categories/categories-list'))
+const CreateCategory = lazy(() => import('./pages/categories/create-category'))
+
+const Services = lazy(() => import('./pages/services/services').then((m) => ({ default: m.Services })))
+const CreateService = lazy(() => import('./pages/services/create-service').then((m) => ({ default: m.CreateService })))
+const PlatformServices = lazy(() => import('./pages/services/platform-services-enhanced').then((m) => ({ default: m.PlatformServicesEnhanced })))
+
+const Providers = lazy(() => import('./pages/providers/providers').then((m) => ({ default: m.Providers })))
+const CreateProvider = lazy(() => import('./pages/providers/create-provider').then((m) => ({ default: m.CreateProvider })))
+const EditProvider = lazy(() => import('./pages/providers/edit-provider').then((m) => ({ default: m.EditProvider })))
+const ProviderDashboard = lazy(() => import('./pages/providers/provider-dashboard').then((m) => ({ default: m.ProviderDashboard })))
+const ProviderBookings = lazy(() => import('./pages/bookings/provider-bookings').then((m) => ({ default: m.ProviderBookings })))
+const ProviderProfile = lazy(() => import('./pages/providers/provider-profile').then((m) => ({ default: m.ProviderProfile })))
+const ProviderEarnings = lazy(() => import('./pages/providers/provider-earnings').then((m) => ({ default: m.ProviderEarnings })))
+
+const Professionals = lazy(() => import('./pages/professionals/professionals').then((m) => ({ default: m.Professionals })))
+const CreateProfessional = lazy(() => import('./pages/professionals/create-professional').then((m) => ({ default: m.CreateProfessional })))
+const ProfessionalDashboard = lazy(() => import('./pages/professionals/professional-dashboard').then((m) => ({ default: m.ProfessionalDashboard })))
+const ProfessionalBookings = lazy(() => import('./pages/bookings/professional-bookings').then((m) => ({ default: m.ProfessionalBookings })))
+const ProfessionalProfile = lazy(() => import('./pages/professionals/professional-profile').then((m) => ({ default: m.ProfessionalProfile })))
+const ProfessionalEarningsWallet = lazy(() => import('./pages/professionals/professional-earnings-wallet').then((m) => ({ default: m.ProfessionalEarningsWallet })))
+const ProfessionalReviews = lazy(() => import('./pages/professionals/professional-reviews').then((m) => ({ default: m.ProfessionalReviews })))
+const ProfessionalDocuments = lazy(() => import('./pages/professionals/professional-documents').then((m) => ({ default: m.ProfessionalDocuments })))
+const ProfessionalServices = lazy(() => import('./pages/professionals/professional-services').then((m) => ({ default: m.ProfessionalServices })))
+const ProfessionalSettings = lazy(() => import('./pages/professionals/professional-settings').then((m) => ({ default: m.ProfessionalSettings })))
+
+const Bookings = lazy(() => import('./pages/bookings/bookings').then((m) => ({ default: m.Bookings })))
+const BookingDetails = lazy(() => import('./pages/bookings/booking-details').then((m) => ({ default: m.BookingDetails })))
+const Orders = lazy(() => import('./pages/orders/orders').then((m) => ({ default: m.Orders })))
+const Quotes = lazy(() => import('./pages/orders/quotes').then((m) => ({ default: m.Quotes })))
+const ServiceRequests = lazy(() => import('./pages/orders/service-requests').then((m) => ({ default: m.ServiceRequests })))
+
+const Payments = lazy(() => import('./pages/payments/payments').then((m) => ({ default: m.Payments })))
+const Invoices = lazy(() => import('./pages/payments/invoices').then((m) => ({ default: m.Invoices })))
+
+const Messages = lazy(() => import('./pages/communication/messages').then((m) => ({ default: m.Messages })))
+const ChatPage = lazy(() => import('./pages/communication/chat'))
+const Notifications = lazy(() => import('./pages/communication/notifications').then((m) => ({ default: m.Notifications })))
+
+const Settings = lazy(() => import('./pages/settings/settings').then((m) => ({ default: m.Settings })))
+const Sliders = lazy(() => import('./pages/settings/sliders').then((m) => ({ default: m.Sliders })))
+const SystemStatus = lazy(() => import('./pages/settings/system-status'))
+
+const Coupons = lazy(() => import('./pages/marketing/coupons'))
+const Referrals = lazy(() => import('./pages/marketing/referrals'))
+const Support = lazy(() => import('./pages/support/support'))
+const Reports = lazy(() => import('./pages/support/reports'))
+
+const CMSDashboard = lazy(() => import('./pages/cms/CMSDashboard'))
+const BannerManagement = lazy(() => import('./pages/cms/BannerManagement'))
+const PromotionManagement = lazy(() => import('./pages/cms/PromotionManagement'))
+const TestimonialManagement = lazy(() => import('./pages/cms/TestimonialManagement'))
+const FAQManagement = lazy(() => import('./pages/cms/FAQManagement'))
+const SEOManagement = lazy(() => import('./pages/cms/SEOManagement'))
+const HomepageManagement = lazy(() => import('./pages/cms/HomepageManagement'))
+const BlogManagement = lazy(() => import('./pages/cms/BlogManagement'))
+const BlogCategoryManagement = lazy(() => import('./pages/cms/BlogCategoryManagement'))
+const MediaLibrary = lazy(() => import('./pages/cms/MediaLibrary'))
+const PageManagement = lazy(() => import('./pages/cms/PageManagement'))
+const MenuManagement = lazy(() => import('./pages/cms/MenuManagement'))
+
+const RouteFallback = (
+  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 280, width: '100%' }}>
+    <CircularProgress size={40} />
+  </Box>
+)
 
 function App() {
   return (
@@ -111,6 +99,7 @@ function App() {
       <ThemeProvider>
         <DataProvider>
           <Router>
+            <Suspense fallback={RouteFallback}>
             <Routes>
               {/* Public routes */}
               <Route path="/auth" element={<Auth />} />
@@ -693,12 +682,16 @@ function App() {
                           </ProtectedRoute>
                         } 
                       />
+
+                      {/* 404 - catch-all: must be last */}
+                      <Route path="*" element={<NotFound />} />
                     </Routes>
                     </MainLayout>
                   </SidebarProvider>
                 </ProtectedRoute>
               } />
             </Routes>
+            </Suspense>
           </Router>
           {/* shadcn/ui Toaster */}
           <Toaster />

@@ -7,6 +7,10 @@ export { StatusBadge } from './StatusBadge'
 export { OrderStatsCard } from './OrderStatsCard'
 export { OrderFilters } from './OrderFilters'
 export { Pagination } from './Pagination'
-export { PreviewModal } from './PreviewModal'
-export { OrderPreview } from './OrderPreview'
-export { ProductPreview } from './ProductPreview'
+export {
+  StandardTable,
+  type StandardTableColumn,
+  type StandardTableProps,
+  type SortOrder,
+} from './StandardTable'
+export { ErrorBoundary } from './ErrorBoundary'

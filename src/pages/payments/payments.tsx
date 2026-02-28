@@ -10,12 +10,6 @@ import {
   InputAdornment,
   Tab,
   Tabs,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   IconButton,
   Menu,
   MenuItem,
@@ -49,6 +43,7 @@ import {
   FileDownload as DownloadIcon,
 } from '@mui/icons-material'
 import { PageHeader } from '../../components/common/PageHeader'
+import { StandardTable, type StandardTableColumn } from '../../components/common'
 import { PaymentsService } from '../../services/api/payments.service'
 import type { Payment } from '../../types'
 
@@ -219,6 +214,140 @@ export function Payments() {
       handleActionMenuClose()
     }
   }
+
+  const paymentColumns: StandardTableColumn<Payment>[] = [
+    {
+      id: 'transactionId',
+      label: 'Transaction ID',
+      sortable: true,
+      render: (_, p) => (
+        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+          {(p as any).transaction_id || p.transactionId || `TXN-${(p.id || '').slice(0, 8)}`}
+        </Typography>
+      ),
+    },
+    {
+      id: 'bookingId',
+      label: 'Booking',
+      render: (_, p) => (
+        <Typography variant="body2">
+          {(p as any).booking_id || p.bookingId || 'N/A'}
+        </Typography>
+      ),
+    },
+    {
+      id: 'customer',
+      label: 'Customer',
+      sortable: true,
+      valueGetter: (p) =>
+        (p as any).customer_name || p.customerName || (p as any).customer?.name || '',
+      render: (_, p) => (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Avatar sx={{ width: 32, height: 32 }}>
+            {(p as any).customer_name?.charAt(0) ||
+              p.customerName?.charAt(0) ||
+              (p as any).customer?.name?.charAt(0) ||
+              'C'}
+          </Avatar>
+          <Box>
+            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              {(p as any).customer_name || p.customerName || (p as any).customer?.name || 'N/A'}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" display="block">
+              {(p as any).customer_email || p.customerEmail || (p as any).customer?.email || ''}
+            </Typography>
+          </Box>
+        </Box>
+      ),
+    },
+    {
+      id: 'provider',
+      label: 'Provider',
+      render: (_, p) => (
+        <>
+          <Typography variant="body2">
+            {(p as any).provider_name || p.providerName || (p as any).provider?.name || 'N/A'}
+          </Typography>
+          <Typography variant="caption" color="text.secondary" display="block">
+            {(p as any).provider_email || p.providerEmail || (p as any).provider?.email || ''}
+          </Typography>
+        </>
+      ),
+    },
+    {
+      id: 'service',
+      label: 'Service',
+      render: (_, p) => (
+        <>
+          <Typography variant="body2">
+            {(p as any).service_name || p.serviceName || (p as any).service || 'N/A'}
+          </Typography>
+          {p.category && (
+            <Typography variant="caption" color="text.secondary" display="block">
+              {p.category}
+            </Typography>
+          )}
+        </>
+      ),
+    },
+    {
+      id: 'paymentMethod',
+      label: 'Payment Method',
+      render: (_, p) => {
+        const method = (p as any).payment_method || p.paymentMethod || 'card'
+        return (
+          <Chip
+            icon={getPaymentMethodIcon(method)}
+            label={String(method).toUpperCase()}
+            size="small"
+            variant="outlined"
+          />
+        )
+      },
+    },
+    {
+      id: 'amount',
+      label: 'Amount',
+      align: 'right',
+      sortable: true,
+      valueGetter: (p) => p.amount ?? 0,
+      render: (_, p) => (
+        <>
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            ${p.amount || 0}
+          </Typography>
+          <Typography variant="caption" color="text.secondary" display="block">
+            Fee: ${(p as any).platform_fee || p.platformFee || p.fee || 0}
+          </Typography>
+        </>
+      ),
+    },
+    {
+      id: 'status',
+      label: 'Status',
+      sortable: true,
+      render: (_, p) => (
+        <Chip
+          label={p.status}
+          color={getStatusColor(p.status) as any}
+          size="small"
+          icon={getStatusIcon(p.status)}
+          sx={{ textTransform: 'capitalize' }}
+        />
+      ),
+    },
+    {
+      id: 'date',
+      label: 'Date',
+      sortable: true,
+      valueGetter: (p) => (p as any).created_at || p.createdAt || '',
+      render: (_, p) => (
+        <Typography variant="body2">
+          {(p as any).created_at || p.createdAt || 'N/A'}
+        </Typography>
+      ),
+    },
+  ]
 
   return (
     <Box>
@@ -422,149 +551,32 @@ export function Payments() {
         </Box>
 
         <CardContent>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Transaction ID</TableCell>
-                  <TableCell>Booking</TableCell>
-                  <TableCell>Customer</TableCell>
-                  <TableCell>Provider</TableCell>
-                  <TableCell>Service</TableCell>
-                  <TableCell>Payment Method</TableCell>
-                  <TableCell>Amount</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Date</TableCell>
-                  <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
-                      <CircularProgress />
-                    </TableCell>
-                  </TableRow>
-                ) : filteredPayments.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
-                      <Typography variant="body1" color="text.secondary">
-                        No payments found
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredPayments.map((payment) => (
-                    <TableRow key={payment.id} hover>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {(payment as any).transaction_id || payment.transactionId || `TXN-${payment.id.slice(0, 8)}`}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {(payment as any).booking_id || payment.bookingId || 'N/A'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Avatar sx={{ width: 32, height: 32 }}>
-                            {(payment as any).customer_name?.charAt(0) ||
-                              payment.customerName?.charAt(0) ||
-                              (payment as any).customer?.name?.charAt(0) ||
-                              'C'}
-                          </Avatar>
-                          <Box>
-                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                              {(payment as any).customer_name ||
-                                payment.customerName ||
-                                (payment as any).customer?.name ||
-                                'N/A'}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {(payment as any).customer_email ||
-                                payment.customerEmail ||
-                                (payment as any).customer?.email ||
-                                ''}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {(payment as any).provider_name ||
-                            payment.providerName ||
-                            (payment as any).provider?.name ||
-                            'N/A'}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {(payment as any).provider_email ||
-                            payment.providerEmail ||
-                            (payment as any).provider?.email ||
-                            ''}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {(payment as any).service_name ||
-                            payment.serviceName ||
-                            (payment as any).service ||
-                            'N/A'}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {payment.category || ''}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        {(() => {
-                          const method =
-                            (payment as any).payment_method || payment.paymentMethod || 'card'
-                          return (
-                        <Chip
-                          icon={getPaymentMethodIcon(method)}
-                          label={String(method).toUpperCase()}
-                          size="small"
-                          variant="outlined"
-                        />
-                          )
-                        })()}
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          ${payment.amount || 0}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          Fee: ${(payment as any).platform_fee || payment.platformFee || payment.fee || 0}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={payment.status}
-                          color={getStatusColor(payment.status)}
-                          size="small"
-                          icon={getStatusIcon(payment.status)}
-                          sx={{ textTransform: 'capitalize' }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {(payment as any).created_at || payment.createdAt || 'N/A'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <IconButton
-                          size="small"
-                          onClick={(e) => handleActionMenuOpen(e, payment)}
-                        >
-                          <MoreIcon />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          <StandardTable<Payment>
+            columns={paymentColumns}
+            data={filteredPayments}
+            getRowId={(row) => row.id ?? (row as any)._id ?? ''}
+            loading={loading}
+            emptyMessage="No payments found"
+            showSearch={false}
+            sortControlled={false}
+            page={pagination.page - 1}
+            rowsPerPage={pagination.limit}
+            totalCount={pagination.total}
+            onPageChange={(p) => setPagination((prev) => ({ ...prev, page: p + 1 }))}
+            onRowsPerPageChange={(limit) =>
+              setPagination((prev) => ({ ...prev, limit, page: 1 }))
+            }
+            renderActions={(payment) => (
+              <IconButton
+                size="small"
+                onClick={(e) => handleActionMenuOpen(e, payment)}
+              >
+                <MoreIcon />
+              </IconButton>
+            )}
+            size="small"
+            minHeight={360}
+          />
         </CardContent>
       </Card>
 

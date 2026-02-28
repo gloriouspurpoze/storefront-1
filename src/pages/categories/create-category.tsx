@@ -71,28 +71,48 @@ export function CreateCategory() {
   }, [id, isEditMode, isViewMode])
 
   const fetchCategoryData = async (categoryId: string) => {
+    if (!categoryId?.trim()) return
     try {
       setLoadingData(true)
       const response = await CategoriesService.getCategory(categoryId)
-      
-      if (response.success && response.data) {
-        const category = response.data
-        
+      // Backend may return category as response.data or nested as response.data.category / response.data.data
+      const raw = response?.data
+      const category = (raw && typeof raw === 'object' && 'name' in raw)
+        ? raw
+        : (raw as any)?.category ?? (raw as any)?.data ?? null
+
+      if (category && (category.name != null || category.description != null)) {
+        const isActive =
+          category.isActive !== undefined
+            ? Boolean(category.isActive)
+            : (category as any).is_active !== undefined
+              ? Boolean((category as any).is_active)
+              : category.status === 'active'
+        const sortOrder = category.sortOrder ?? (category as any).sort_order ?? 0
+        const categoryType = (category.type || category.categoryType || (category as any).category_type || 'product') as 'service' | 'product' | 'both'
+        const imageUrl = category.image ?? (category as any).icon ?? (category as any).featuredImage
+
         setFormData({
           name: category.name || '',
           description: category.description || '',
-          categoryType: (category.type || category.categoryType || 'product') as any,
-          images: category.image ? [{
+          categoryType,
+          images: imageUrl ? [{
             id: '1',
-            url: category.image,
+            url: imageUrl,
             file: undefined,
             alt: category.name,
             isPrimary: true,
             order: 0,
           }] : [],
-          sortOrder: category.sortOrder || category.sort_order || 0,
-          isActive: category.isActive !== undefined ? category.isActive : category.status === 'active',
+          sortOrder: Number(sortOrder) || 0,
+          isActive,
         })
+      } else if (response?.success && isEditMode) {
+        dispatch(addToast({
+          message: 'Category data could not be loaded. Please try again.',
+          severity: 'warning',
+          duration: 4000,
+        }))
       }
     } catch (error) {
       console.error('Error fetching category:', error)

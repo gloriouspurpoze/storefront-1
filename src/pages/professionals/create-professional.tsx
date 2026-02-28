@@ -83,9 +83,9 @@ export function CreateProfessional() {
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
 
-  // Form data
+  // Form data — required fields empty; all optional fields pre-filled
   const [formData, setFormData] = useState({
-    // Personal Info
+    // Personal Info (required: firstName, lastName, email, phoneNumber)
     firstName: '',
     lastName: '',
     email: '',
@@ -93,27 +93,27 @@ export function CreateProfessional() {
     alternatePhone: '',
     dateOfBirth: '',
     gender: 'male' as 'male' | 'female' | 'other',
-    password: 'SecurePass123!', // Default password
-    
-    // Professional Details
+    password: 'SecurePass123!',
+
+    // Professional Details (required: at least one category, experience >= 0)
     categories: [] as string[],
     skills: [] as string[],
-    experience: 0,
+    experience: 2,
     expertiseLevel: 'intermediate' as 'beginner' | 'intermediate' | 'expert',
-    bio: '',
+    bio: 'Experienced professional. Quality service guaranteed. Available for bookings.',
     isIndependent: true,
-    
-    // Location
+
+    // Location (required: area, city, pincode, at least one working day)
     address: {
-      street: '',
+      street: 'To be updated',
       area: '',
       city: 'Mumbai',
       state: 'Maharashtra',
       pincode: '',
     },
-    
+
     // Availability
-    workingDays: [] as string[],
+    workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as string[],
     workingHours: {
       start: '09:00',
       end: '18:00',

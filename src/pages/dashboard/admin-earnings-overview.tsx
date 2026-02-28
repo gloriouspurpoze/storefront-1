@@ -262,13 +262,13 @@ export function AdminEarningsOverview() {
               <CardContent>
                 <Box display="flex" alignItems="center" mb={1}>
                   <TrendingUp sx={{ mr: 1 }} />
-                  <Typography variant="body2">Platform Commission</Typography>
+                  <Typography variant="body2">Platform Commission (Pending Receivable)</Typography>
                 </Box>
                 <Typography variant="h4" fontWeight="700">
                   ₹{summary.totalPlatformCommission.toLocaleString()}
                 </Typography>
                 <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                  {((summary.totalPlatformCommission / summary.totalBookingAmount) * 100).toFixed(1)}% average commission
+                  Total receivable from completed bookings · {summary.totalBookingAmount ? ((summary.totalPlatformCommission / summary.totalBookingAmount) * 100).toFixed(1) : 0}% average
                 </Typography>
               </CardContent>
             </Card>
@@ -342,10 +342,13 @@ export function AdminEarningsOverview() {
           <Grid item xs={12} md={4}>
             <Paper sx={{ p: 2 }}>
               <Typography variant="body2" color="text.secondary" gutterBottom>
-                Cash In Hand (Platform)
+                Cash In Hand / Commission Received (Platform)
               </Typography>
               <Typography variant="h6" fontWeight="600" color="success.main">
                 ₹{summary.cashInHand.toLocaleString()}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Commission available with platform
               </Typography>
             </Paper>
           </Grid>

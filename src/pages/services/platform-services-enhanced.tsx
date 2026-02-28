@@ -67,6 +67,7 @@ import {
   Cancel as CancelIcon,
 } from '@mui/icons-material'
 import { platformServicesService, PlatformService } from '../../services/api/platformServices.service'
+import { CategoriesService } from '../../services/api/categories.service'
 import { ConfirmDialog } from '../../components/common/ConfirmDialog'
 import { useNavigate } from 'react-router-dom'
 
@@ -91,6 +92,8 @@ export function PlatformServicesEnhanced() {
   const [totalCount, setTotalCount] = useState(0)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
   const [showFilters, setShowFilters] = useState(false)
+  // Category id -> name (lowercase id for lookup; API returns lowercase ids)
+  const [categoryNameById, setCategoryNameById] = useState<Record<string, string>>({})
 
   // Dialogs
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -113,6 +116,30 @@ export function PlatformServicesEnhanced() {
     active: 0,
     featured: 0,
   })
+
+  // Fetch categories for name lookup (API returns category as id string)
+  useEffect(() => {
+    let isMounted = true
+    const loadLookups = async () => {
+      try {
+        const catRes = await CategoriesService.getCategories({ page: 1, limit: 500, is_active: true }).catch(() => null)
+        if (!isMounted) return
+        const byId: Record<string, string> = {}
+        const list = (catRes as any)?.data?.categories ?? (catRes as any)?.data ?? (Array.isArray(catRes) ? catRes : [])
+        const cats = Array.isArray(list) ? list : []
+        cats.forEach((c: any) => {
+          const id = (c?.id ?? c?._id ?? '').toString().toLowerCase()
+          const name = (c?.name ?? c?.title ?? '').toString().trim()
+          if (id) byId[id] = name || id
+        })
+        setCategoryNameById(byId)
+      } catch {
+        // ignore
+      }
+    }
+    loadLookups()
+    return () => { isMounted = false }
+  }, [])
 
   useEffect(() => {
     let isMounted = true
@@ -254,6 +281,12 @@ export function PlatformServicesEnhanced() {
     } catch (error: any) {
       showSnackbar(error.message || 'Failed to update service', 'error')
     }
+  }
+
+  const getCategoryDisplayName = (categoryId: string | undefined) => {
+    if (!categoryId) return 'Uncategorized'
+    const name = categoryNameById[String(categoryId).toLowerCase()]
+    return name || categoryId
   }
 
   const handleDuplicate = async (service: PlatformService) => {
@@ -605,7 +638,7 @@ export function PlatformServicesEnhanced() {
                       </TableCell>
                       <TableCell sx={{ py: 2 }}>
                         <Chip 
-                          label={(service.category || 'uncategorized').replace('_', ' ').toUpperCase()} 
+                          label={getCategoryDisplayName(service.category)} 
                           size="small" 
                           sx={{ 
                             fontWeight: 500,
@@ -721,7 +754,7 @@ export function PlatformServicesEnhanced() {
                           {service.name}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {(service.category || 'uncategorized').replace('_', ' ').toUpperCase()}
+                          {getCategoryDisplayName(service.category)}
                         </Typography>
                       </Box>
                     </Box>
@@ -1015,7 +1048,7 @@ export function PlatformServicesEnhanced() {
                           <Stack spacing={1.5}>
                             <Box>
                               <Typography variant="caption" color="text.secondary">Category</Typography>
-                              <Typography variant="body2" fontWeight={500}>{selectedService.category}</Typography>
+                              <Typography variant="body2" fontWeight={500}>{getCategoryDisplayName(selectedService.category)}</Typography>
                             </Box>
                             <Box>
                               <Typography variant="caption" color="text.secondary">Service Type</Typography>

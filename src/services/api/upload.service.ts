@@ -3,10 +3,17 @@ import { apiClient } from '../apiClient'
 export interface UploadResponse {
   url: string
   publicId: string
-  width: number
-  height: number
-  format: string
-  size: number
+  width?: number
+  height?: number
+  format?: string
+  size?: number
+}
+
+export interface CloudinaryImageItem {
+  url: string
+  publicId: string
+  width?: number
+  height?: number
 }
 
 interface ApiResponse {
@@ -38,6 +45,26 @@ export class UploadService {
     if (response?.url) return response as UploadResponse
 
     throw new Error(response?.message || 'Upload failed')
+  }
+
+  /**
+   * List existing images from Cloudinary (for "choose from library").
+   */
+  static async listImages(folder: string = 'homeservice', limit: number = 50): Promise<CloudinaryImageItem[]> {
+    try {
+      const params = new URLSearchParams({ folder, limit: String(limit) })
+      const response = await apiClient.get<{ success?: boolean; data?: { images?: CloudinaryImageItem[] }; images?: CloudinaryImageItem[] }>(
+        `/upload/images?${params.toString()}`,
+        { showLoading: false, showSuccessToast: false, showErrorToast: false }
+      )
+      if (response?.data?.images) return response.data.images
+      if (Array.isArray((response as any).images)) return (response as any).images
+      if (Array.isArray(response?.data)) return response.data as CloudinaryImageItem[]
+      return []
+    } catch (error: any) {
+      console.error('List images error:', error)
+      throw new Error(error?.response?.data?.message || error?.message || 'Failed to list images')
+    }
   }
 
   /**

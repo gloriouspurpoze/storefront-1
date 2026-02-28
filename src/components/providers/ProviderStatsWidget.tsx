@@ -105,7 +105,16 @@ export function ProviderStatsWidget({ onRefresh }: ProviderStatsWidgetProps) {
       const response = await ProvidersService.getProviderStats()
       
       if (response.data) {
-        setStats(response.data)
+        const d = response.data as Record<string, number | undefined>
+        setStats({
+          total_providers: d.total_providers ?? 0,
+          verified_providers: d.verified_providers ?? 0,
+          pending_providers: d.pending_providers ?? 0,
+          rejected_providers: d.rejected_providers ?? 0,
+          average_rating: d.average_rating ?? 0,
+          total_services: d.total_services ?? 0,
+          total_bookings: d.total_bookings ?? 0,
+        })
       }
     } catch (err: any) {
       console.error('Error fetching provider stats:', err)

@@ -61,6 +61,7 @@ import {
 import { useNavigate, useParams } from 'react-router-dom'
 import { platformServicesService, PlatformService } from '../../services/api/platformServices.service'
 import { CategoriesService } from '../../services/api/categories.service'
+import { SubcategoriesService } from '../../services/api/subcategories.service'
 import { ProvidersService } from '../../services/api/providers.service'
 import { ProductsService } from '../../services/api/products.service'
 import {
@@ -105,62 +106,89 @@ export function CreateService() {
   const [loadingProviders, setLoadingProviders] = useState(false)
   const [loadingProducts, setLoadingProducts] = useState(false)
 
-  // Form state
+  // Form state — optional fields pre-filled with valid defaults so user only fills mandatory ones
   const [formData, setFormData] = useState({
-  // Basic Info
+  // Basic Info (mandatory: name, category, subcategory, description)
     name: '',
     slug: '',
     description: '',
-    short_description: '',
+    short_description: 'Quality service by trained professionals.',
     category: '',
     subcategory: '',
     provider_id: '',
     selected_products: [] as string[],
-    service_type: 'fixed',
-    duration: '',
+    service_type: 'fixed' as 'fixed' | 'hourly' | 'consultation',
+    duration: '60 mins',
     images: [] as ImageFile[],
     is_popular: false,
     is_active: true,
-  
-  // Pricing
-    base_price: '',
-    hourly_rate: '',
-    consultation_fee: '',
-    min_hours: '',
-    max_hours: '',
+  // Pricing (pre-filled)
+    base_price: '299',
+    hourly_rate: '199',
+    consultation_fee: '99',
+    min_hours: '1',
+    max_hours: '8',
     gst_percentage: 18,
     tax_included: false,
-  
-  // Availability
-    working_days: [] as string[],
-    time_slots: [] as string[],
+  // Availability (pre-filled)
+    working_days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as string[],
+    time_slots: ['morning', 'afternoon'] as string[],
     advance_booking_hours: 24,
-    same_day_booking: false,
+    same_day_booking: true,
     emergency_service: false,
     emergency_charge: '',
-  
   // Features & Requirements
     features: [] as string[],
     requirements: [] as string[],
-  
-    // Product Options
-    product_options: [] as any[],
-  
-  // Service Areas
-    service_areas: [] as any[],
-    
-    // NEW: Customer-focused sections
-    our_process: [] as Array<{ step: number; title: string; description: string }>,
-    whats_included: [] as string[],
-    whats_excluded: [] as string[],
-    please_note: [] as string[],
-    our_promises: [] as string[],
-    faqs: [] as Array<{ question: string; answer: string }>,
-    
-    // Legacy fields for API compatibility
+    // Product Options — industry defaults (edit as needed)
+    product_options: [
+      { name: 'Standard Service', price: '0', brand: '', warranty: '30 days', description: 'Basic repair or installation as per booking.' },
+      { name: 'Premium / Extended Warranty', price: '99', brand: '', warranty: '90 days', description: 'Extended warranty on workmanship and parts.' },
+    ] as any[],
+    // Service Areas — real-world defaults
+    service_areas: [
+      { name: 'Within city (0–15 km)', multiplier: 1.0, active: true },
+      { name: 'Suburbs / outskirts (15–30 km)', multiplier: 1.2, active: true },
+      { name: 'Out of city (30+ km)', multiplier: 1.5, active: true },
+    ] as any[],
+    // Our Process — step-by-step home service flow
+    our_process: [
+      { step: 1, title: 'Book online', description: 'Select your service, choose a time slot, and confirm your booking. You will receive a confirmation with expert details.' },
+      { step: 2, title: 'Expert assigned', description: 'A verified professional is assigned to your job. You can view their profile and get an estimated arrival time.' },
+      { step: 3, title: 'Service at your place', description: 'Our expert arrives at the scheduled time, completes the job with quality materials, and explains what was done.' },
+      { step: 4, title: 'Payment & feedback', description: 'Pay securely after service. Share your feedback to help us improve and to help other customers.' },
+    ] as Array<{ step: number; title: string; description: string }>,
+    whats_included: [
+      'Labour and service charges as quoted',
+      'Basic materials and consumables (unless specified otherwise)',
+      'Workmanship warranty as per plan',
+      'Post-service support for the warranty period',
+    ] as string[],
+    whats_excluded: [
+      'Parts or components not included in the quote',
+      'Additional work not part of the original scope',
+      'Structural or design changes',
+      'Repairs due to misuse or tampering after service',
+    ] as string[],
+    please_note: [
+      'Advance booking of at least 24 hours is recommended for confirmed slots.',
+      'Please keep the work area accessible; our expert will need power/water as applicable.',
+      'Valid ID may be required for verification at the time of service.',
+    ] as string[],
+    our_promises: [
+      'Verified, trained professionals for every booking',
+      'Transparent pricing—no hidden charges',
+      'Satisfaction guarantee on workmanship',
+      'Easy reschedule or cancellation as per policy',
+    ] as string[],
+    faqs: [
+      { question: 'What is included in the service?', answer: 'Labour, basic materials as mentioned in the quote, and workmanship warranty are included. Any parts not in the quote are charged separately with your consent.' },
+      { question: 'How do I book and pay?', answer: 'Book online by selecting date and time. You can pay online or pay at the time of service. We accept cards, UPI, and cash as per policy.' },
+      { question: 'Is there a warranty?', answer: 'Yes. We offer workmanship warranty as per your chosen plan. Defects in our work within the warranty period will be rectified at no extra cost.' },
+    ] as Array<{ question: string; answer: string }>,
     base_price_legacy: '',
     price_type: 'fixed',
-    duration_minutes: '',
+    duration_minutes: '60',
     is_featured: false,
     sort_order: 0,
     tags: [] as string[],
@@ -205,6 +233,10 @@ export function CreateService() {
     message: '',
     severity: 'success' as 'success' | 'error',
   })
+
+  // Create subcategory inline (for selected category)
+  const [newSubcategoryName, setNewSubcategoryName] = useState('')
+  const [creatingSubcategory, setCreatingSubcategory] = useState(false)
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
@@ -469,64 +501,94 @@ export function CreateService() {
   const handleSubmit = async (action: 'draft' | 'publish' = 'publish') => {
     try {
       setLoading(true)
-      
+
+      if (!formData.name?.trim()) {
+        showSnackbar('Service name is required', 'error')
+        setActiveTab(0)
+        return
+      }
+      if (!formData.category) {
+        showSnackbar('Please select a category', 'error')
+        setActiveTab(0)
+        return
+      }
+      if (!formData.subcategory) {
+        showSnackbar('Please select a subcategory', 'error')
+        setActiveTab(0)
+        return
+      }
+      if (!formData.description?.trim()) {
+        showSnackbar('Description is required', 'error')
+        setActiveTab(0)
+        return
+      }
+
       // Get primary image or first image
       const primaryImage = formData.images.find(img => img.isPrimary) || formData.images[0]
-      
-      // Map new form data to API format
-      const submitData = {
-        name: formData.name,
-        slug: formData.slug,
-        description: formData.description,
-        short_description: formData.short_description,
-        category: formData.category,
-        subcategory: formData.subcategory,
-        provider_id: formData.provider_id,
-        selected_products: formData.selected_products,
+
+      // Map new form data to API format; use undefined for empty strings so they are omitted in JSON (avoids 400 on strict backends)
+      const raw: Record<string, any> = {
+        name: formData.name.trim(),
+        display_name: formData.name.trim(),
+        slug: formData.slug || undefined,
+        description: formData.description?.trim() || undefined,
+        short_description: formData.short_description?.trim() || undefined,
+        category: formData.category?.trim() || undefined,
+        subcategory: formData.subcategory?.trim() || undefined,
+        provider_id: formData.provider_id?.trim() || undefined,
+        selected_products: formData.selected_products?.length ? formData.selected_products : undefined,
         service_type: formData.service_type as 'fixed' | 'hourly' | 'consultation',
-        duration: formData.duration,
-        base_price: formData.base_price ? parseFloat(formData.base_price) : undefined,
-        hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : undefined,
-        consultation_fee: formData.consultation_fee ? parseFloat(formData.consultation_fee) : undefined,
-        min_hours: formData.min_hours ? parseInt(formData.min_hours) : undefined,
-        max_hours: formData.max_hours ? parseInt(formData.max_hours) : undefined,
+        duration: formData.duration?.trim() || undefined,
+        base_price: formData.base_price ? parseFloat(String(formData.base_price)) : undefined,
+        hourly_rate: formData.hourly_rate ? parseFloat(String(formData.hourly_rate)) : undefined,
+        consultation_fee: formData.consultation_fee ? parseFloat(String(formData.consultation_fee)) : undefined,
+        min_hours: formData.min_hours ? parseInt(String(formData.min_hours), 10) : undefined,
+        max_hours: formData.max_hours ? parseInt(String(formData.max_hours), 10) : undefined,
         gst_percentage: formData.gst_percentage,
         tax_included: formData.tax_included,
-        is_active: action === 'publish' ? true : false,
+        is_active: action === 'publish',
         is_featured: formData.is_featured,
         is_popular: formData.is_popular,
         sort_order: formData.sort_order,
-        tags: formData.tags,
-        features: formData.features,
-        requirements: formData.requirements,
-        working_days: formData.working_days,
-        time_slots: formData.time_slots,
+        tags: formData.tags?.length ? formData.tags : undefined,
+        features: formData.features?.length ? formData.features : undefined,
+        requirements: formData.requirements?.length ? formData.requirements : undefined,
+        working_days: formData.working_days?.length ? formData.working_days : undefined,
+        time_slots: formData.time_slots?.length ? formData.time_slots : undefined,
         advance_booking_hours: formData.advance_booking_hours,
         same_day_booking: formData.same_day_booking,
         emergency_service: formData.emergency_service,
-        emergency_charge: formData.emergency_charge ? parseFloat(formData.emergency_charge) : undefined,
-        product_options: formData.product_options,
-        service_areas: formData.service_areas,
-        icon: formData.icon,
-        image: primaryImage?.url || '',
-        images: formData.images.map(img => img.url),
-        status: action === 'publish' ? 'published' as const : 'draft' as const,
-        
-        // NEW: Customer-focused sections
-        our_process: formData.our_process,
-        whats_included: formData.whats_included,
-        whats_excluded: formData.whats_excluded,
-        please_note: formData.please_note,
-        our_promises: formData.our_promises,
-        faqs: formData.faqs,
+        emergency_charge: formData.emergency_charge ? parseFloat(String(formData.emergency_charge)) : undefined,
+        product_options: formData.product_options?.length ? formData.product_options : undefined,
+        service_areas: formData.service_areas?.length ? formData.service_areas : undefined,
+        icon: formData.icon?.trim() || undefined,
+        image: primaryImage?.url || undefined,
+        images: formData.images?.length ? formData.images.map((img: any) => img.url).filter(Boolean) : undefined,
+        our_process: formData.our_process?.length ? formData.our_process : undefined,
+        whats_included: formData.whats_included?.length ? formData.whats_included : undefined,
+        whats_excluded: formData.whats_excluded?.length ? formData.whats_excluded : undefined,
+        please_note: formData.please_note?.length ? formData.please_note : undefined,
+        our_promises: formData.our_promises?.length ? formData.our_promises : undefined,
+        faqs: formData.faqs?.length ? formData.faqs : undefined,
+      }
+      // Only include status for publish; draft endpoint implies status=draft (some backends 400 if status is in body)
+      if (action === 'publish') {
+        raw.status = 'published'
       }
 
+      // Drop undefined, empty string, and NaN so backend doesn't get invalid values
+      const submitData = Object.fromEntries(
+        Object.entries(raw).filter(([, v]) => {
+          if (v === undefined || v === '') return false
+          if (typeof v === 'number' && Number.isNaN(v)) return false
+          return true
+        })
+      ) as any
+
       if (isEditMode && id) {
-        // Update existing service
         await platformServicesService.updateService(id, submitData)
         showSnackbar('Service updated successfully!', 'success')
       } else {
-        // Create new service
         if (action === 'draft') {
           await platformServicesService.saveAsDraft(submitData)
           showSnackbar('Service saved as draft successfully!', 'success')
@@ -535,14 +597,15 @@ export function CreateService() {
           showSnackbar('Service published successfully!', 'success')
         }
       }
-      
-      // Navigate back to services list
-      setTimeout(() => {
-        navigate('/platform-services')
-      }, 1500)
-      
+
+      setTimeout(() => navigate('/platform-services'), 1500)
     } catch (error: any) {
-      showSnackbar(error.message || `Failed to ${isEditMode ? 'update' : action} service`, 'error')
+      const message =
+        error?.response?.data?.message ??
+        error?.message ??
+        (error?.errors ? error.errors.map((e: any) => e.message || e.msg).join(', ') : null) ??
+        `Failed to ${isEditMode ? 'update' : action} service`
+      showSnackbar(String(message), 'error')
     } finally {
       setLoading(false)
     }
@@ -561,26 +624,55 @@ export function CreateService() {
         setLoadingService(true)
         const service = await platformServicesService.getServiceById(id)
         
+        // Normalize category/subcategory to lowercase string id (API returns e.g. "690b45c8b1b9905e4aefb06f")
+        const rawCat = (service as any).category
+        const rawSub = (service as any).subcategory
+        const categoryId = rawCat != null
+          ? String((typeof rawCat === 'object' ? (rawCat?.id ?? rawCat?._id) : rawCat) ?? '').toLowerCase()
+          : ''
+        const subcategoryId = rawSub != null
+          ? String((typeof rawSub === 'object' ? (rawSub?.id ?? rawSub?._id) : rawSub) ?? '').toLowerCase()
+          : ''
+        // Normalize images: support image (string), images (array of strings or objects with url)
+        const rawImages = (service as any).images ?? ((service as any).image ? [(service as any).image] : [])
+        const images: ImageFile[] = (Array.isArray(rawImages) ? rawImages : []).map((img: any, i: number) => {
+          const url = typeof img === 'string' ? img : (img?.url ?? img?.secure_url ?? '')
+          if (!url) return null
+          return {
+            id: (img?.id ?? img?.public_id ?? `loaded-${i}-${Date.now()}`).toString(),
+            url,
+            alt: (typeof img === 'object' && img.alt) ? img.alt : (service.name || 'Service image'),
+            isPrimary: i === 0,
+            order: i,
+            file: undefined,
+            publicId: typeof img === 'object' ? img.public_id ?? img.publicId : undefined,
+            fromLibrary: true,
+          }
+        }).filter(Boolean) as ImageFile[]
+        // If no array images, fallback to single service.image
+        const finalImages = images.length > 0 ? images : (service.image ? [{
+          id: `loaded-0-${Date.now()}`,
+          url: service.image,
+          file: undefined,
+          isPrimary: true,
+          alt: service.name || 'Service image',
+          order: 0,
+          fromLibrary: true,
+        }] as ImageFile[] : [])
+
         // Convert service data to form format
         setFormData({
           name: service.name || '',
           slug: service.slug || '',
           description: service.description || '',
           short_description: service.short_description || '',
-          category: service.category || '',
-          subcategory: service.subcategory || '',
+          category: String(categoryId || ''),
+          subcategory: String(subcategoryId || ''),
           provider_id: '', // Not available in API response
           selected_products: [], // Not available in API response
           service_type: service.service_type || 'fixed',
           duration: service.duration || '',
-          images: service.image ? [{
-            id: Date.now().toString(),
-            url: service.image,
-            file: undefined,
-            isPrimary: true,
-            alt: service.name || 'Service image',
-            order: 0
-          }] : [],
+          images: finalImages,
           is_popular: service.is_popular || false,
           is_active: service.is_active || false,
           
@@ -608,8 +700,12 @@ export function CreateService() {
           // Product Options
           product_options: service.product_options || [],
           
-          // Service Areas
-          service_areas: service.service_areas || [],
+          // Service Areas (backend returns { city, areas?, pincodes? }; form uses { name, multiplier, active })
+          service_areas: (service.service_areas || []).map((a: any) => ({
+            name: a.city ?? a.name ?? 'General',
+            multiplier: a.multiplier ?? 1,
+            active: a.active !== false,
+          })),
           
           // NEW: Customer-focused sections
           our_process: (service as any).our_process || [],
@@ -642,24 +738,61 @@ export function CreateService() {
     loadService()
   }, [id])
 
-  // Fetch categories and subcategories from API
+  // Normalize category id (backend may return id or _id); use lowercase so it matches API (e.g. 690b45c8b1b9905e4aefb06f)
+  const getCategoryId = (c: any) => ((c?.id ?? c?._id ?? '') + '').toLowerCase()
+
+  // Fetch categories for dropdown: support multiple API shapes, normalize id/name, show root-only, fallback without type filter
   useEffect(() => {
+    const normalizeList = (raw: any): any[] => {
+      const list = Array.isArray(raw)
+        ? raw
+        : raw?.categories ?? raw?.data?.categories ?? []
+      return (list || [])
+        .map((c: any) => ({
+          ...c,
+          id: getCategoryId(c),
+          name: (c.name ?? c.title ?? '').toString().trim(),
+        }))
+        .filter((c: any) => c.id && c.name)
+    }
     const fetchCategories = async () => {
       try {
         setLoadingCategories(true)
+        let list: any[] = []
         const response = await CategoriesService.getCategories({
           page: 1,
-          limit: 100,
+          limit: 200,
           is_active: true,
-          category_type: 'service'
+          category_type: 'service',
         })
-        
-        if (response.success) {
-          setCategories(response.data.categories || [])
+        if (response?.success && response.data != null) {
+          list = normalizeList(response.data)
+        }
+        // Only root categories in Category dropdown (no parent)
+        const roots = list.filter(
+          (c: any) => !(c.parentId ?? c.parent_id)
+        )
+        if (roots.length > 0) {
+          setCategories(roots)
+          return
+        }
+        // Fallback: no service-type categories — fetch all and use roots
+        const fallback = await CategoriesService.getCategories({
+          page: 1,
+          limit: 200,
+          is_active: true,
+        })
+        if (fallback?.success && fallback.data != null) {
+          const all = normalizeList(fallback.data)
+          const fallbackRoots = all.filter((c: any) => !(c.parentId ?? c.parent_id))
+          setCategories(fallbackRoots.length > 0 ? fallbackRoots : all)
+        } else {
+          setCategories(roots)
         }
       } catch (error) {
         console.error('Error fetching categories:', error)
         showSnackbar('Failed to load categories', 'error')
+        setCategories([])
       } finally {
         setLoadingCategories(false)
       }
@@ -717,38 +850,80 @@ export function CreateService() {
     fetchProducts()
   }, [])
 
-  // Fetch subcategories when category changes
-  useEffect(() => {
-    const fetchSubcategories = async () => {
-      if (!formData.category) {
-        setSubcategories([])
-        setLoadingSubcategories(false)
-        return
-      }
-
-      try {
-        setLoadingSubcategories(true)
-        const response = await CategoriesService.getCategories({
-          page: 1,
-          limit: 100,
-          is_active: true,
-          category_type: 'service',
-          parent_id: formData.category
-        })
-        
-        if (response.success) {
-          setSubcategories(response.data.categories || [])
-        }
-      } catch (error) {
-        console.error('Error fetching subcategories:', error)
-        showSnackbar('Failed to load subcategories', 'error')
-      } finally {
-        setLoadingSubcategories(false)
-      }
+  const fetchSubcategoriesForCategory = async (categoryId: string) => {
+    if (!categoryId) {
+      setSubcategories([])
+      return
     }
+    try {
+      setLoadingSubcategories(true)
+      const response = await SubcategoriesService.getSubcategories({
+        categoryId,
+        is_active: true,
+      })
+      const raw = response?.data
+      const list = raw?.subcategories ?? (Array.isArray(raw) ? raw : [])
+      const normalized = list.map((sub: any) => ({
+        ...sub,
+        id: sub.id ?? sub._id ?? '',
+        name: sub.name ?? sub.displayName ?? sub.title ?? '',
+      })).filter((sub: any) => sub.id && sub.name)
+      setSubcategories(normalized)
+    } catch (error) {
+      console.error('Error fetching subcategories:', error)
+      showSnackbar('Failed to load subcategories', 'error')
+    } finally {
+      setLoadingSubcategories(false)
+    }
+  }
 
-    fetchSubcategories()
+  useEffect(() => {
+    fetchSubcategoriesForCategory(formData.category)
   }, [formData.category])
+
+  const handleCreateSubcategory = async () => {
+    const name = newSubcategoryName.trim()
+    if (!name) {
+      showSnackbar('Enter a subcategory name', 'error')
+      return
+    }
+    if (!formData.category) {
+      showSnackbar('Select a category first', 'error')
+      return
+    }
+    const parentCategory = categories.find((c) => getCategoryId(c) === formData.category)
+    try {
+      setCreatingSubcategory(true)
+      const response = await SubcategoriesService.createSubcategory(
+        {
+          name,
+          category_id: formData.category,
+          service_intent: 'repair',
+          is_active: true,
+        },
+        { showSuccessToast: false, showLoading: false }
+      )
+      const raw = response?.data
+      const created = (raw && typeof raw === 'object' && ('name' in raw || 'id' in raw))
+        ? raw
+        : (raw as any)?.subcategory ?? (raw as any)?.data
+      const newId = created ? (created.id ?? (created as any)._id) : null
+      if (newId) {
+        setSubcategories((prev) => [...prev, { ...created, id: newId, name: created.name ?? name }])
+        handleInputChange('subcategory', newId)
+        setNewSubcategoryName('')
+        showSnackbar(`Subcategory "${name}" created under ${parentCategory?.name ?? 'category'}`, 'success')
+      } else {
+        await fetchSubcategoriesForCategory(formData.category)
+        showSnackbar('Subcategory created', 'success')
+      }
+    } catch (error: any) {
+      console.error('Error creating subcategory:', error)
+      showSnackbar(error?.message ?? 'Failed to create subcategory', 'error')
+    } finally {
+      setCreatingSubcategory(false)
+    }
+  }
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
@@ -800,7 +975,7 @@ export function CreateService() {
                 variant="contained"
                 startIcon={loading ? <CircularProgress size={16} /> : <SaveIcon />}
                 onClick={() => handleSubmit('publish')}
-                disabled={loading || !formData.name || !formData.category}
+                disabled={loading || !formData.name?.trim() || !formData.category || !formData.subcategory || !formData.description?.trim()}
                 sx={{ textTransform: 'none' }}
               >
                 {loading ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Service' : 'Create Service')}
@@ -883,230 +1058,257 @@ export function CreateService() {
 
         {/* Tab Content */}
         <Box sx={{ p: 3 }}>
-          {/* Basic Information Tab */}
+          {/* Basic Information Tab — Mandatory fields first, then optional (pre-filled) */}
           {activeTab === 0 && (
             <Box>
-              <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-            Basic Service Information
-          </Typography>
-              
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                {/* Service Name */}
-              <TextField
-                fullWidth
-                  label="Service Name"
-                value={formData.name}
-                  onChange={(e) => handleNameChange(e.target.value)}
-                placeholder="e.g., Switch & Socket Repair"
-                  required
-                  disabled={previewMode}
-                />
-
-                {/* Slug (read-only but visible) */}
-                <TextField
-                  fullWidth
-                  label="URL Slug"
-                  value={formData.slug}
-                  onChange={(e) => handleInputChange('slug', e.target.value)}
-                  placeholder="auto-generated from name"
-                  disabled={previewMode}
-                  helperText="URL-friendly version of the service name. Auto-generated but can be edited."
-                  InputProps={{
-                    sx: { fontFamily: 'monospace' }
-                  }}
-                />
-
-                {/* Category & Subcategory */}
-                <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-                  <FormControl fullWidth required sx={{ flex: 1 }}>
-                    <InputLabel>Category</InputLabel>
-                <Select
-                  value={formData.category}
-                      label="Category"
-                      onChange={(e) => {
-                        handleInputChange('category', e.target.value)
-                        handleInputChange('subcategory', '') // Reset subcategory when category changes
-                      }}
-                      disabled={previewMode || loadingCategories}
-                    >
-                      {loadingCategories ? (
-                        <MenuItem disabled>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <CircularProgress size={16} />
-                            Loading categories...
-                          </Box>
-                        </MenuItem>
-                      ) : categories.length === 0 ? (
-                        <MenuItem disabled>No categories available</MenuItem>
-                      ) : (
-                        categories.map((cat) => (
-                          <MenuItem key={cat.id} value={cat.id}>
-                            {cat.name}
-                    </MenuItem>
-                        ))
-                      )}
-                </Select>
-              </FormControl>
-                  
-                  <FormControl fullWidth required sx={{ flex: 1 }}>
-                    <InputLabel>Subcategory </InputLabel>
-                <Select
-                  value={formData.subcategory}
-                      label="Subcategory"
-                  onChange={(e) => handleInputChange('subcategory', e.target.value)}
-                      disabled={previewMode || !formData.category || loadingSubcategories}
-                    >
-                      {loadingSubcategories ? (
-                        <MenuItem disabled>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <CircularProgress size={16} />
-                            Loading subcategories...
-                          </Box>
-                        </MenuItem>
-                      ) : subcategories.length === 0 ? (
-                        <MenuItem disabled>
-                          {formData.category ? 'No subcategories available' : 'Select a category first'}
-                    </MenuItem>
-                      ) : (
-                        subcategories.map((sub) => (
-                          <MenuItem key={sub.id} value={sub.id}>
-                            {sub.name}
-                          </MenuItem>
-                        ))
-                      )}
-                </Select>
-              </FormControl>
-                </Box>
-
-                {/* Provider Selection */}
-                <Box>
-                  <FormControl fullWidth>
-                    <InputLabel>Service Provider </InputLabel>
-                    <Select
-                      value={formData.provider_id}
-                      label="Service Provider (Optional)"
-                      onChange={(e) => handleInputChange('provider_id', e.target.value)}
-                      disabled={previewMode || loadingProviders}
-                    >
-                      <MenuItem value="">
-                        <em>No Provider Selected - Platform Managed Service</em>
-                      </MenuItem>
-                      {loadingProviders ? (
-                        <MenuItem disabled>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <CircularProgress size={16} />
-                            Loading providers...
-                          </Box>
-                        </MenuItem>
-                      ) : providers.length === 0 ? (
-                        <MenuItem disabled>No providers available</MenuItem>
-                      ) : (
-                        providers?.map((provider) => (
-                          
-                          <MenuItem key={provider.id} value={provider.id}>
-                            {provider.business_name} | {provider.is_available ? 'Available' : 'Not Available'}
-                          </MenuItem>
-                        ))
-                      )}
-                    </Select>
-                  </FormControl>
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                    Leave empty for platform-managed services, or select a specific provider
-                  </Typography>
-                  {providers.length > 0 && (
-                    <Typography variant="caption" color="success.main" sx={{ mt: 0.5, display: 'block' }}>
-                      ✓ {providers.length} provider(s) available
-                    </Typography>
-                  )}
-                </Box>
-
-                {/* Service Type & Duration */}
-                <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-                  <FormControl fullWidth sx={{ flex: 1 }}>
-                    <InputLabel>Service Type *</InputLabel>
-                <Select
-                      value={formData.service_type}
-                      label="Service Type *"
-                      onChange={(e) => handleInputChange('service_type', e.target.value)}
-                      disabled={previewMode}
-                    >
-                      {PRICE_TYPES.map((type) => (
-                        <MenuItem key={type.value} value={type.value}>
-                          {type.label}
-                        </MenuItem>
-                      ))}
-                </Select>
-              </FormControl>
-                  
-              <TextField
-                fullWidth
-                    label="Duration"
-                value={formData.duration}
-                onChange={(e) => handleInputChange('duration', e.target.value)}
-                placeholder="e.g., 45-60 mins"
-                    disabled={previewMode}
-                    sx={{ flex: 1 }}
-              />
-                </Box>
-
-                {/* Description - Rich Text Editor */}
-                <RichTextField
-                  label="Description"
-                  value={formData.description}
-                  onChange={(value) => handleInputChange('description', value)}
-                  placeholder="Describe the service in detail... You can use formatting, lists, and add links."
-                  required
-                  disabled={previewMode}
-                  height={250}
-                  helperText="Provide a detailed description of the service, what's included, and what customers can expect"
-                />
-
-                {/* Service Images */}
-                <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                Service Images
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Fill the 4 required fields below to create your service. All other fields have sensible defaults and can be changed later.
               </Typography>
-                  <ImageUploadField
-                    label="Upload Service Images"
-                    value={formData.images}
-                    onChange={(images) => handleInputChange('images', images)}
-                    maxFiles={5}
-                    maxSize={5}
+
+              {/* ——— Required (mandatory) ——— */}
+              <Paper variant="outlined" sx={{ p: 3, mb: 3, bgcolor: 'primary.50', borderColor: 'primary.200' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Chip label="Required" size="small" color="primary" />
+                  Basic info
+                </Typography>
+                <Stack spacing={2.5}>
+                  <TextField
+                    fullWidth
+                    label="Service Name"
+                    value={formData.name}
+                    onChange={(e) => handleNameChange(e.target.value)}
+                    placeholder="e.g., Switch & Socket Repair"
+                    required
                     disabled={previewMode}
-                    allowPrimary={true}
-                    required={true}
-                    showPreview={true}
-                    helperText="Upload up to 5 images. First image will be used as primary. Recommended size: 800x600px. Max file size: 5MB each"
-                    error={formData.images.length === 0 ? 'Service images are required' : undefined}
+                    helperText="Clear name customers will see"
                   />
-                </Box>
+                  <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
+                    <FormControl fullWidth required sx={{ flex: 1 }}>
+                      <InputLabel>Category</InputLabel>
+                      <Select
+                        value={formData.category}
+                        label="Category"
+                        onChange={(e) => {
+                          handleInputChange('category', e.target.value)
+                          handleInputChange('subcategory', '')
+                        }}
+                        disabled={previewMode || loadingCategories}
+                        renderValue={(v) => {
+                          if (!v) return ''
+                          const cat = categories.find((c) => getCategoryId(c) === v)
+                          return cat?.name ?? v
+                        }}
+                      >
+                        {loadingCategories ? (
+                          <MenuItem disabled><CircularProgress size={16} /> Loading...</MenuItem>
+                        ) : categories.length === 0 ? (
+                          <MenuItem disabled>No categories available</MenuItem>
+                        ) : (
+                          categories.map((cat) => (
+                            <MenuItem key={getCategoryId(cat)} value={getCategoryId(cat)}>{cat.name}</MenuItem>
+                          ))
+                        )}
+                      </Select>
+                    </FormControl>
+                    <FormControl fullWidth required sx={{ flex: 1 }}>
+                      <InputLabel>Subcategory</InputLabel>
+                      <Select
+                        value={formData.subcategory}
+                        label="Subcategory"
+                        onChange={(e) => handleInputChange('subcategory', e.target.value)}
+                        disabled={previewMode || !formData.category || loadingSubcategories}
+                        renderValue={(v) => {
+                          if (!v) return ''
+                          const sub = subcategories.find((s) => getCategoryId(s) === v)
+                          return sub?.name ?? v
+                        }}
+                      >
+                        {loadingSubcategories ? (
+                          <MenuItem disabled><CircularProgress size={16} /> Loading...</MenuItem>
+                        ) : subcategories.length === 0 ? (
+                          <MenuItem disabled>{formData.category ? 'No subcategories' : 'Select category first'}</MenuItem>
+                        ) : (
+                          subcategories.map((sub) => (
+                            <MenuItem key={getCategoryId(sub)} value={getCategoryId(sub)}>{sub.name}</MenuItem>
+                          ))
+                        )}
+                      </Select>
+                    </FormControl>
+                  </Box>
+                  {formData.category && (
+                    <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: 'background.paper' }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                        Need a new subcategory?
+                      </Typography>
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="flex-end">
+                        <TextField
+                          size="small"
+                          placeholder="e.g. Socket, Switch"
+                          value={newSubcategoryName}
+                          onChange={(e) => setNewSubcategoryName(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleCreateSubcategory())}
+                          disabled={creatingSubcategory || previewMode}
+                          sx={{ flex: 1, minWidth: 140 }}
+                          label="New subcategory name"
+                        />
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={creatingSubcategory ? <CircularProgress size={14} /> : <AddIcon />}
+                          onClick={handleCreateSubcategory}
+                          disabled={creatingSubcategory || !newSubcategoryName.trim() || previewMode}
+                        >
+                          {creatingSubcategory ? 'Creating…' : 'Add'}
+                        </Button>
+                      </Stack>
+                    </Box>
+                  )}
+                  <RichTextField
+                    label="Description"
+                    value={formData.description}
+                    onChange={(value) => handleInputChange('description', value)}
+                    placeholder="Describe what the service includes and what customers can expect. You can use formatting and lists."
+                    required
+                    disabled={previewMode}
+                    height={200}
+                    helperText="Required. Detailed description helps customers and SEO."
+                  />
+                </Stack>
+              </Paper>
 
-              
+              {/* ——— Service Images (important, always visible) ——— */}
+              <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <UploadIcon color="primary" />
+                  Service Images
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Add at least one image so customers can see the service. First image is used as the main image.
+                </Typography>
+                <ImageUploadField
+                  label="Upload Service Images"
+                  value={formData.images}
+                  onChange={(images) => handleInputChange('images', images)}
+                  maxFiles={5}
+                  maxSize={5}
+                  disabled={previewMode}
+                  allowPrimary
+                  showPreview
+                  helperText="Up to 5 images. Recommended size: 800×600px. Max 5MB each. First image = primary."
+                  error={formData.images.length === 0 ? 'Add at least one image for a better listing' : undefined}
+                />
+              </Paper>
 
-                {/* Status & Popular */}
-                <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                <FormControlLabel
-                  control={
+              {/* ——— Featured & Popular (Basic Info) ——— */}
+              <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+                  Visibility
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={formData.is_featured}
+                        onChange={(e) => handleInputChange('is_featured', e.target.checked)}
+                        disabled={previewMode}
+                        color="primary"
+                      />
+                    }
+                    label="Featured"
+                  />
+                  <FormControlLabel
+                    control={
                       <Switch
                         checked={formData.is_popular}
                         onChange={(e) => handleInputChange('is_popular', e.target.checked)}
                         disabled={previewMode}
-                    />
-                  }
-                  label="Mark as Popular"
-                />
-                <FormControlLabel
-                  control={
+                        color="primary"
+                      />
+                    }
+                    label="Popular"
+                  />
+                  <FormControlLabel
+                    control={
                       <Switch
                         checked={formData.is_active}
                         onChange={(e) => handleInputChange('is_active', e.target.checked)}
                         disabled={previewMode}
+                        color="primary"
+                      />
+                    }
+                    label="Active"
+                  />
+                </Box>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                  Featured services appear in highlighted sections; popular in &quot;Popular&quot; listings. Inactive services are hidden from customers.
+                </Typography>
+              </Paper>
+
+              {/* ——— Optional (pre-filled with defaults) ——— */}
+              <Accordion defaultExpanded={false} sx={{ '&:before': { display: 'none' }, boxShadow: 0 }}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Optional details (pre-filled with defaults — edit if needed)
+                  </Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Stack spacing={2.5}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="URL Slug (optional)"
+                      value={formData.slug}
+                      onChange={(e) => handleInputChange('slug', e.target.value)}
+                      placeholder="Auto-generated from name"
+                      disabled={previewMode}
+                      helperText="Leave blank to auto-generate from service name"
+                      InputProps={{ sx: { fontFamily: 'monospace' } }}
                     />
-                  }
-                  label="Active Service"
-                />
-              </Box>
-              </Box>
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Service Provider (optional)</InputLabel>
+                      <Select
+                        value={formData.provider_id}
+                        label="Service Provider (optional)"
+                        onChange={(e) => handleInputChange('provider_id', e.target.value)}
+                        disabled={previewMode || loadingProviders}
+                      >
+                        <MenuItem value=""><em>Platform managed</em></MenuItem>
+                        {providers?.map((p) => (
+                          <MenuItem key={p.id} value={p.id}>{p.business_name}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
+                      <FormControl fullWidth size="small" sx={{ flex: 1 }}>
+                        <InputLabel>Service type</InputLabel>
+                        <Select
+                          value={formData.service_type}
+                          label="Service type"
+                          onChange={(e) => handleInputChange('service_type', e.target.value)}
+                          disabled={previewMode}
+                        >
+                          {PRICE_TYPES.map((t) => (
+                            <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Duration"
+                        value={formData.duration}
+                        onChange={(e) => handleInputChange('duration', e.target.value)}
+                        placeholder="e.g. 60 mins"
+                        disabled={previewMode}
+                        sx={{ flex: 1 }}
+                      />
+                    </Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Featured, Popular and Active toggles are in Basic Info above.
+                    </Typography>
+                  </Stack>
+                </AccordionDetails>
+              </Accordion>
             </Box>
           )}
 
@@ -2438,7 +2640,7 @@ export function CreateService() {
               <Button
                 variant="outlined"
                 onClick={() => handleSubmit('draft')}
-                disabled={loading || !formData.name || !formData.category}
+                disabled={loading || !formData.name?.trim() || !formData.category || !formData.subcategory || !formData.description?.trim()}
                 sx={{ textTransform: 'none' }}
               >
                 Save as Draft
@@ -2447,7 +2649,7 @@ export function CreateService() {
                 variant="contained"
                 startIcon={loading ? <CircularProgress size={16} /> : <SaveIcon />}
                 onClick={() => handleSubmit('publish')}
-                disabled={loading || !formData.name || !formData.category}
+                disabled={loading || !formData.name?.trim() || !formData.category || !formData.subcategory || !formData.description?.trim()}
                 sx={{ textTransform: 'none' }}
               >
                 {loading ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Service' : 'Publish Service')}

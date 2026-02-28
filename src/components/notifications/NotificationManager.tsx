@@ -29,8 +29,8 @@ import {
   Tooltip,
   Badge,
   CircularProgress,
-  Grid
 } from '@mui/material';
+import Grid from '@mui/material/GridLegacy';
 import {
   Add as AddIcon,
   Send as SendIcon,

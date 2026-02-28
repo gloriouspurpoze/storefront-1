@@ -218,12 +218,15 @@ export const platformServicesService = {
     const url = queryParams.toString() ? `/platform-services?${queryParams.toString()}` : '/platform-services'
     const response = await apiClient.get(url) as any
     
-    // Handle the response structure
-    if (response?.data) {
-      return response.data
+    // Handle the response structure: { data: { services, pagination } } or { services, pagination }
+    const inner = response?.data
+    if (inner?.services && inner?.pagination) {
+      return inner
+    }
+    if (response?.services && response?.pagination) {
+      return response
     }
     
-    // Fallback if structure is different
     throw new Error('Invalid response structure from API')
   },
 

@@ -275,7 +275,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const navigate = useNavigate()
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
-  const { isOpen: sidebarOpen, toggle } = useSidebar()
+  const { isOpen: sidebarOpen, toggleSidebar } = useSidebar()
   const authState = useAppSelector((state) => state.auth)
   const user = authState?.user || null
   const [openSubmenus, setOpenSubmenus] = useState<{ [key: string]: boolean }>({})
@@ -334,28 +334,28 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     (user as any)?.userType === 'professional'
   
   // Select appropriate navigation
-  const activeNavigationGroups = useMemo(() => {
-    const groups = isProfessional
-      ? professionalNavigationGroups
+  const activeNavigationGroups = useMemo((): SidebarGroup[] => {
+    const groups: SidebarGroup[] = isProfessional
+      ? professionalNavigationGroups as SidebarGroup[]
       : isProvider
-      ? providerNavigationGroups 
+      ? providerNavigationGroups as SidebarGroup[]
       : filterNavigationByPermissions(navigationGroups)
-    
+
     // Filter by search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase()
       return groups.map(group => ({
         ...group,
-        items: group.items.filter(item => {
+        items: group.items.filter((item: SidebarItem) => {
           const matchesName = item.name.toLowerCase().includes(query)
-          const matchesSubItems = item.subItems?.some(sub => 
+          const matchesSubItems = item.subItems?.some((sub: SidebarSubItem) =>
             sub.name.toLowerCase().includes(query)
           )
-          return matchesName || matchesSubItems
+          return matchesName || !!matchesSubItems
         })
       })).filter(group => group.items.length > 0)
     }
-    
+
     return groups
   }, [isProvider, isProfessional, searchQuery, user])
 
@@ -363,9 +363,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   React.useEffect(() => {
     const currentPath = location.pathname
     navigationGroups.forEach(group => {
-      group.items.forEach(item => {
-        if (item.hasSubmenu && item.subItems) {
-          const hasActiveSubItem = item.subItems.some(sub => sub.href === currentPath)
+      group.items.forEach((item: SidebarItem) => {
+        if ((item as SidebarItem).hasSubmenu && (item as SidebarItem).subItems) {
+          const subItems = (item as SidebarItem).subItems!
+          const hasActiveSubItem = subItems.some((sub: SidebarSubItem) => sub.href === currentPath)
           if (hasActiveSubItem) {
             setOpenSubmenus(prev => ({ ...prev, [item.name]: true }))
           }
@@ -404,10 +405,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
   const getUserRole = () => {
     if (user?.userType) {
-      return user.userType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
+      return user.userType.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
     }
     if (user?.role?.name) {
-      return user.role.name.replace(/\b\w/g, l => l.toUpperCase())
+      return user.role.name.replace(/\b\w/g, (l: string) => l.toUpperCase())
     }
     return 'Member'
   }

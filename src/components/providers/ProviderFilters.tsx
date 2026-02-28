@@ -8,7 +8,6 @@ import {
   MenuItem,
   Button,
   Chip,
-  Grid,
   Paper,
   Typography,
   IconButton,
@@ -18,6 +17,7 @@ import {
   FilterList as FilterIcon,
   Clear as ClearIcon,
 } from '@mui/icons-material'
+import Grid from '@mui/material/GridLegacy'
 
 interface ProviderFiltersProps {
   searchTerm: string
