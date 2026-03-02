@@ -79,156 +79,113 @@ export class BookingsService {
   }
 
   /**
-   * Start work on booking (Professional/Provider)
-   * Tries multiple endpoint patterns
+   * Start work on booking (Professional/Provider).
+   * Uses PATCH /bookings/:id/start (notifies customer + admin), fallback to PATCH /bookings/:id/status.
    */
   static async startBooking(id: string, notes?: string) {
-    // Try different endpoint patterns
-    const endpoints = [
-      `/bookings/provider/${id}/start`,
-      `/bookings/${id}/start`,
-      `/bookings/provider/${id}/status`,
-      `/bookings/${id}/status`,
-    ]
-    
-    let lastError: any = null
-    
-    for (let i = 0; i < endpoints.length; i++) {
-      const endpoint = endpoints[i]
-      const isLast = i === endpoints.length - 1
-      
-      try {
-        const result = await api.patch<Booking>(endpoint, { 
-          status: 'in_progress',
-          notes 
-        }, {
-          loadingMessage: i === 0 ? 'Starting work...' : undefined, // Only show loading on first attempt
-          successMessage: 'Work started successfully!',
-          errorMessage: 'Failed to start work.',
-          showErrorToast: false, // Don't show toast on individual attempts
-          showLoading: i === 0, // Only show loading on first attempt
-        })
-        
-        // If successful, return immediately
-        if (result.success) {
-          return result
-        }
-      } catch (err: any) {
-        lastError = err
-        
-        // Check if it's a 404/not found error
-        const is404 = err.status === 404 || 
-                     (err as any)?.code === 'NOT_FOUND' ||
-                     err.message?.toLowerCase().includes('not found') ||
-                     err.message?.toLowerCase().includes('404')
-        
-        // If it's not a 404, throw immediately (don't try other endpoints)
-        if (!is404) {
-          throw err
-        }
-        
-        // If this is the last endpoint and it's a 404, throw a helpful error
-        if (isLast) {
-          throw new Error('Unable to start work. The booking status update endpoint is not available on the server. Please contact support or check if the backend API is properly configured.')
-        }
-        
-        // Otherwise, continue to next endpoint
-        continue
-      }
+    const body = notes ? { status: 'in_progress', notes } : { status: 'in_progress' }
+    const opts = {
+      loadingMessage: 'Starting work...',
+      successMessage: 'Work started. Customer and admin have been notified.',
+      errorMessage: 'Failed to start work.',
     }
-    
-    // This should never be reached, but just in case
-    throw lastError || new Error('No valid endpoint found to start booking')
+
+    try {
+      const result = await api.patch<Booking>(`/bookings/${id}/start`, body, opts)
+      if (result?.success) return result
+    } catch (err: any) {
+      const is404 = err?.status === 404 || err?.message?.toLowerCase().includes('not found')
+      if (!is404) throw err
+    }
+
+    try {
+      return await api.patch<Booking>(`/bookings/${id}/status`, body, {
+        ...opts,
+        successMessage: 'Work started successfully!',
+      })
+    } catch {
+      throw new Error('Unable to start work. Please try again or contact support.')
+    }
   }
 
   /**
    * Complete booking (Professional/Provider)
-   * Tries multiple endpoint patterns
-   * Note: Backend should handle payment completion and admin notification
+   * Uses PUT/PATCH /bookings/provider/:id/complete or /bookings/:id/complete with payment option.
+   * Backend sets status to completed and updates payment status when paymentReceived is 'cash'.
    */
-  static async completeBooking(id: string, notes?: string, options?: {
-    notifyAdmin?: boolean
-    notifyCustomer?: boolean
-  }) {
-    // Try different endpoint patterns
+  static async completeBooking(
+    id: string,
+    notes?: string,
+    options?: {
+      notifyAdmin?: boolean
+      notifyCustomer?: boolean
+      /** How the customer paid: cash (mark paid on complete) or online */
+      paymentReceived: 'cash' | 'online'
+    }
+  ) {
+    const paymentReceived = options?.paymentReceived ?? 'online'
     const endpoints = [
       `/bookings/provider/${id}/complete`,
       `/bookings/${id}/complete`,
       `/bookings/provider/${id}/status`,
       `/bookings/${id}/status`,
     ]
-    
+
+    const bodyComplete = {
+      notes: notes ?? '',
+      notifyAdmin: options?.notifyAdmin !== false,
+      notifyCustomer: options?.notifyCustomer !== false,
+      paymentReceived,
+    }
+    const bodyStatus = {
+      status: 'completed',
+      notes: notes ?? '',
+      notifyAdmin: options?.notifyAdmin !== false,
+      notifyCustomer: options?.notifyCustomer !== false,
+    }
+
     let lastError: any = null
-    
+
     for (let i = 0; i < endpoints.length; i++) {
       const endpoint = endpoints[i]
       const isLast = i === endpoints.length - 1
-      
+      const isStatusEndpoint = endpoint.includes('/status')
+
       try {
-        // For status endpoints, use PATCH with status: 'completed'
-        // For complete endpoints, use PUT with notes
-        const isStatusEndpoint = endpoint.includes('/status')
-        const body = isStatusEndpoint 
-          ? { 
-              status: 'completed', 
-              notes,
-              notifyAdmin: options?.notifyAdmin !== false,
-              notifyCustomer: options?.notifyCustomer !== false,
-            }
-          : { 
-              notes,
-              notifyAdmin: options?.notifyAdmin !== false,
-              notifyCustomer: options?.notifyCustomer !== false,
-            }
-        
-        let result: any
-        if (isStatusEndpoint) {
-          result = await api.patch<Booking>(endpoint, body, {
-            loadingMessage: i === 0 ? 'Completing booking...' : undefined,
-            successMessage: 'Booking completed successfully!',
-            errorMessage: 'Failed to complete booking.',
-            showErrorToast: false,
-            showLoading: i === 0,
-          })
-        } else {
-          result = await api.put<Booking>(endpoint, body, {
-            loadingMessage: i === 0 ? 'Completing booking...' : undefined,
-            successMessage: 'Booking completed successfully!',
-            errorMessage: 'Failed to complete booking.',
-            showErrorToast: false,
-            showLoading: i === 0,
-          })
-        }
-        
-        // If successful, return immediately
-        if (result.success) {
-          return result
-        }
+        const body = isStatusEndpoint ? bodyStatus : bodyComplete
+        const result = isStatusEndpoint
+          ? await api.patch<Booking>(endpoint, body, {
+              loadingMessage: i === 0 ? 'Completing booking...' : undefined,
+              successMessage: 'Booking completed successfully!',
+              errorMessage: 'Failed to complete booking.',
+              showErrorToast: false,
+              showLoading: i === 0,
+            })
+          : await api.put<Booking>(endpoint, body, {
+              loadingMessage: i === 0 ? 'Completing booking...' : undefined,
+              successMessage: 'Booking completed successfully!',
+              errorMessage: 'Failed to complete booking.',
+              showErrorToast: false,
+              showLoading: i === 0,
+            })
+
+        if (result.success) return result
       } catch (err: any) {
         lastError = err
-        
-        // Check if it's a 404/not found error
-        const is404 = err.status === 404 || 
-                     (err as any)?.code === 'NOT_FOUND' ||
-                     err.message?.toLowerCase().includes('not found') ||
-                     err.message?.toLowerCase().includes('404')
-        
-        // If it's not a 404, throw immediately (don't try other endpoints)
-        if (!is404) {
-          throw err
-        }
-        
-        // If this is the last endpoint and it's a 404, throw a helpful error
+        const is404 =
+          err.status === 404 ||
+          (err as any)?.code === 'NOT_FOUND' ||
+          err.message?.toLowerCase().includes('not found') ||
+          err.message?.toLowerCase().includes('404')
+        if (!is404) throw err
         if (isLast) {
-          throw new Error('Unable to complete booking. The booking completion endpoint is not available on the server. Please contact support or check if the backend API is properly configured.')
+          throw new Error(
+            'Unable to complete booking. The booking completion endpoint is not available on the server. Please contact support or check if the backend API is properly configured.'
+          )
         }
-        
-        // Otherwise, continue to next endpoint
-        continue
       }
     }
-    
-    // This should never be reached, but just in case
+
     throw lastError || new Error('No valid endpoint found to complete booking')
   }
 
@@ -468,21 +425,47 @@ export class BookingsService {
 
   /**
    * Get professional's bookings (Professional only)
-   * Note: Uses same endpoint as provider, backend differentiates by JWT userType
+   * Tries professional-specific endpoint first; falls back to provider endpoint if backend
+   * uses a single route that differentiates by JWT userType.
    */
   static async getProfessionalBookings(query: BookingsQuery = {}) {
     const params = new URLSearchParams()
-    
-    Object.entries(query).forEach(([key, value]) => {
+    const limit = query.limit != null ? Math.min(Number(query.limit), 100) : 100
+    const safeQuery = { ...query, limit }
+    Object.entries(safeQuery).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         params.append(key, value.toString())
       }
     })
+    const queryString = params.toString() ? `?${params.toString()}` : ''
 
-    // Backend uses same endpoint but routes to different service based on JWT userType
-    const endpoint = `/bookings/provider/my-bookings${params.toString() ? `?${params.toString()}` : ''}`
-    
-    return api.get<BookingsResponse>(endpoint, {
+    // 1) Try professional-specific endpoint (bookings where current user is assigned professional)
+    try {
+      const professionalEndpoint = `/bookings/professional/my-bookings${queryString}`
+      const res = await api.get<BookingsResponse>(professionalEndpoint, {
+        loadingMessage: 'Loading your bookings...',
+        showSuccessToast: false,
+      })
+      if (res?.success !== false) return res
+    } catch (err: any) {
+      const status = err?.status ?? err?.response?.status
+      const is404 = status === 404
+      const is4xx = status >= 400 && status < 500
+      // If endpoint doesn't exist (404) or other client error, try fallback
+      if (!is4xx || is404) {
+        // 2) Fallback: same as provider my-bookings (backend may use JWT userType to return professional's bookings)
+        const fallbackEndpoint = `/bookings/provider/my-bookings${queryString}`
+        return api.get<BookingsResponse>(fallbackEndpoint, {
+          loadingMessage: 'Loading your bookings...',
+          showSuccessToast: false,
+        })
+      }
+      throw err
+    }
+
+    // If success was false but no throw, still try fallback once
+    const fallbackEndpoint = `/bookings/provider/my-bookings${queryString}`
+    return api.get<BookingsResponse>(fallbackEndpoint, {
       loadingMessage: 'Loading your bookings...',
       showSuccessToast: false,
     })

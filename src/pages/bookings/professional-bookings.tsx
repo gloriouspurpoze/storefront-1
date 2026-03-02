@@ -67,6 +67,7 @@ import {
   AccessTime,
   Receipt,
   Star,
+  CreditCard,
 } from '@mui/icons-material'
 import { BookingsService } from '../../services/api/bookings.service'
 import { PaymentsService } from '../../services/api/payments.service'
@@ -124,6 +125,7 @@ export function ProfessionalBookings() {
   const [actionDialog, setActionDialog] = useState(false)
   const [action, setAction] = useState<'accept' | 'reject' | 'start' | 'complete' | null>(null)
   const [notes, setNotes] = useState('')
+  const [completePaymentMethod, setCompletePaymentMethod] = useState<'cash' | 'online'>('cash')
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' })
   const [paymentReceivedDialog, setPaymentReceivedDialog] = useState(false)
   const [selectedBookingForPayment, setSelectedBookingForPayment] = useState<Booking | null>(null)
@@ -145,16 +147,21 @@ export function ProfessionalBookings() {
       const response = await BookingsService.getProfessionalBookings({
         status: getStatusFilter(),
         page: 1,
-        limit: 100,
+        limit: 50, // Backend max is 100
       })
       
       console.log('✅ Professional bookings response:', response)
       
       if (response.success && response.data) {
-        const bookingsData = response.data.bookings || response.data || []
-        
-        // Transform bookings to match interface
-        const transformedBookings: Booking[] = bookingsData.map((booking: any) => ({
+        // Backend may return { bookings: [] }, { data: [] }, or array at data
+        const raw = response.data as any
+        const bookingsData = Array.isArray(raw)
+          ? raw
+          : raw?.bookings ?? raw?.data ?? (raw?.bookingsData ?? [])
+        const list = Array.isArray(bookingsData) ? bookingsData : []
+
+        // Transform to match interface (bookings assigned to this professional)
+        const transformedBookings: Booking[] = list.map((booking: any) => ({
           _id: booking._id || booking.id,
           id: booking.id || booking._id,
           serviceName: booking.services?.[0]?.serviceName || booking.services?.[0]?.serviceDetails?.name || 'Service',
@@ -185,6 +192,9 @@ export function ProfessionalBookings() {
         
         setBookings(transformedBookings)
         console.log(`✅ Loaded ${transformedBookings.length} bookings`)
+      } else if (response.success && !response.data) {
+        // Success but no data = empty list
+        setBookings([])
       } else {
         throw new Error(response.message || 'Failed to fetch bookings')
       }
@@ -340,8 +350,9 @@ export function ProfessionalBookings() {
           // - Send notification to admin
           // - Calculate and add earnings to professional wallet
           response = await BookingsService.completeBooking(selectedBooking._id, notes || undefined, {
-            notifyAdmin: true, // ✅ Notify admin when service is completed
-            notifyCustomer: true, // Notify customer
+            notifyAdmin: true,
+            notifyCustomer: true,
+            paymentReceived: completePaymentMethod,
           })
           
           // Step 3: Show success message with earnings info
@@ -361,19 +372,20 @@ export function ProfessionalBookings() {
       }
       
       if (response.success) {
-        const actionMessages = {
+        const actionMessages: Record<string, string> = {
           accept: 'Booking accepted successfully!',
           reject: 'Booking rejected successfully!',
-          start: 'Work started successfully!',
+          start: (response as any).message || 'Work started. Customer and admin have been notified.',
           complete: 'Booking completed successfully!',
         }
-        setSnackbar({ open: true, message: actionMessages[action], severity: 'success' })
+        setSnackbar({ open: true, message: actionMessages[action] ?? (response as any).message ?? 'Done', severity: 'success' })
         // Reload bookings to get updated data
         await loadBookings()
         setActionDialog(false)
         setSelectedBooking(null)
         setAction(null)
         setNotes('')
+        setCompletePaymentMethod('cash')
       } else {
         throw new Error(response.message || 'Failed to update booking')
       }
@@ -385,6 +397,7 @@ export function ProfessionalBookings() {
       setSelectedBooking(null)
       setAction(null)
       setNotes('')
+      setCompletePaymentMethod('cash')
     }
   }
 
@@ -1367,7 +1380,15 @@ export function ProfessionalBookings() {
       )}
 
       {/* Action Dialog */}
-      <Dialog open={actionDialog} onClose={() => setActionDialog(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={actionDialog}
+        onClose={() => {
+          setActionDialog(false)
+          setCompletePaymentMethod('cash')
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>
           {action === 'accept' && 'Accept Booking'}
           {action === 'reject' && 'Reject Booking'}
@@ -1388,27 +1409,36 @@ export function ProfessionalBookings() {
               </Typography>
               
               {action === 'complete' && (
-                <Alert severity="info" sx={{ mt: 2, mb: 2 }}>
-                  <Typography variant="body2">
-                    <strong>Payment Status:</strong> {(((selectedBooking as any).paymentStatus === 'paid' || (selectedBooking as any).paymentStatus === 'completed' || (selectedBooking as any).paymentStatus === 'customer_paid' || (selectedBooking as any).paymentStatus === 'verified'))
-                      ? '✅ Payment Completed' 
-                      : (() => {
-                          const method = selectedBooking.paymentMethod?.toLowerCase() || ''
-                          return method === 'cash' || 
-                                 method === 'pay_after_service' ||
-                                 method === 'pay_later' ||
-                                 method.includes('pay_later') ||
-                                 method.includes('pay after') ||
-                                 method === 'cash_on_delivery' ||
-                                 method === 'pay_after' ||
-                                 method === 'cod'
-                        })()
-                      ? '💵 Cash/Pay After Service - You can complete this booking'
-                      : 'ℹ️ Payment verification will be handled by backend when you complete the booking'}
+                <Box sx={{ mt: 2, mb: 2 }}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    How did the customer pay?
                   </Typography>
-                </Alert>
+                  <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                    <Button
+                      variant={completePaymentMethod === 'cash' ? 'contained' : 'outlined'}
+                      size="small"
+                      onClick={() => setCompletePaymentMethod('cash')}
+                      startIcon={<AttachMoney />}
+                    >
+                      Cash
+                    </Button>
+                    <Button
+                      variant={completePaymentMethod === 'online' ? 'contained' : 'outlined'}
+                      size="small"
+                      onClick={() => setCompletePaymentMethod('online')}
+                      startIcon={<CreditCard />}
+                    >
+                      Online
+                    </Button>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+                    {completePaymentMethod === 'cash'
+                      ? 'Payment will be marked as received on completion.'
+                      : 'Payment status will remain as recorded.'}
+                  </Typography>
+                </Box>
               )}
-              
+
               <TextField
                 fullWidth
                 multiline
@@ -1427,19 +1457,7 @@ export function ProfessionalBookings() {
             variant="contained"
             onClick={handleConfirmAction}
             color={action === 'reject' ? 'error' : action === 'complete' ? 'success' : 'primary'}
-            disabled={Boolean(action === 'complete' && selectedBooking && !(() => {
-              const method = selectedBooking.paymentMethod?.toLowerCase() || ''
-              const isCashOrPayLater = method === 'cash' || 
-                                      method === 'pay_after_service' ||
-                                      method === 'pay_later' ||
-                                      method.includes('pay_later') ||
-                                      method.includes('pay after') ||
-                                      method === 'cash_on_delivery' ||
-                                      method.includes('cash')
-              return (selectedBooking as any).paymentStatus === 'paid' || 
-                     (selectedBooking as any).paymentStatus === 'completed' || 
-                     isCashOrPayLater
-            })())}
+            disabled={false}
           >
             Confirm
           </Button>

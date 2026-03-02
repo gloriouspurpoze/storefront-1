@@ -27,7 +27,6 @@ import {
 import Grid from '@mui/material/GridLegacy'
 import {
   Search as SearchIcon,
-  FilterList as FilterIcon,
   MoreVert as MoreIcon,
   CheckCircle as CheckIcon,
   Cancel as CancelIcon,
@@ -66,58 +65,97 @@ export function Payments() {
     totalPages: 0,
   })
 
-  // Real stats from API
+  // Real stats from API (normalized for backend: totalAmount, completedPayments, pendingPayments, refundAmount)
   const [stats, setStats] = useState({
     totalRevenue: 0,
     pendingPayments: 0,
     completedPayments: 0,
+    failedPayments: 0,
+    refundedCount: 0,
     refundedAmount: 0,
+    totalCount: 0,
   })
 
+  const [dateRange, setDateRange] = useState<'all' | 'today' | '7d' | '30d'>('all')
+
   useEffect(() => {
-    // Reset to first page when filter context changes
     setPagination((prev) => ({ ...prev, page: 1 }))
-  }, [currentTab, searchQuery])
+  }, [currentTab, searchQuery, dateRange])
 
   useEffect(() => {
     fetchPaymentsData()
-  }, [currentTab, searchQuery, pagination.page, pagination.limit])
+  }, [currentTab, searchQuery, pagination.page, pagination.limit, dateRange])
+
+  const getDateRangeParams = (): { start_date?: string; end_date?: string } => {
+    const now = new Date()
+    const end = new Date(now)
+    end.setHours(23, 59, 59, 999)
+    let start: Date
+    if (dateRange === 'today') {
+      start = new Date(now)
+      start.setHours(0, 0, 0, 0)
+    } else if (dateRange === '7d') {
+      start = new Date(now)
+      start.setDate(start.getDate() - 7)
+      start.setHours(0, 0, 0, 0)
+    } else if (dateRange === '30d') {
+      start = new Date(now)
+      start.setDate(start.getDate() - 30)
+      start.setHours(0, 0, 0, 0)
+    } else {
+      return {}
+    }
+    return {
+      start_date: start.toISOString(),
+      end_date: end.toISOString(),
+    }
+  }
 
   const fetchPaymentsData = async () => {
     try {
       setLoading(true)
       setError(null)
-      
-      // Fetch payment stats
+
       const statsResponse = await PaymentsService.getPaymentStats()
       if (statsResponse.success && statsResponse.data) {
+        const d = statsResponse.data as any
         setStats({
-          totalRevenue: statsResponse.data.totalRevenue || 0,
-          pendingPayments: statsResponse.data.byStatus?.pending || 0,
-          completedPayments: statsResponse.data.byStatus?.completed || 0,
-          refundedAmount: statsResponse.data.totalRefunds || 0,
+          totalRevenue: d.totalAmount ?? d.totalRevenue ?? 0,
+          pendingPayments: d.pendingPayments ?? d.byStatus?.pending ?? 0,
+          completedPayments: d.completedPayments ?? d.byStatus?.completed ?? 0,
+          failedPayments: d.failedPayments ?? d.byStatus?.failed ?? 0,
+          refundedCount: d.totalRefunds ?? 0,
+          refundedAmount: d.refundAmount ?? 0,
+          totalCount: d.totalPayments ?? 0,
         })
       }
-      
-      // Fetch payments list
+
       const status = tabs[currentTab].value
-      const query: any = { 
-        page: pagination.page, 
-        limit: pagination.limit 
+      const query: any = {
+        page: pagination.page,
+        limit: pagination.limit,
+        ...getDateRangeParams(),
       }
       if (status !== 'all') query.status = status
-      if (searchQuery) query.search = searchQuery
-      
+      if (searchQuery.trim()) query.search = searchQuery.trim()
+
       const paymentsResponse = await PaymentsService.getPayments(query)
       if (paymentsResponse.success && paymentsResponse.data) {
-        setPayments(paymentsResponse.data.payments || [])
-        if (paymentsResponse.data.pagination) {
-          setPagination((prev) => ({ ...prev, ...paymentsResponse.data.pagination }))
+        const data = paymentsResponse.data as any
+        const list = data.payments ?? data ?? []
+        setPayments(Array.isArray(list) ? list : [])
+        if (data.pagination) {
+          setPagination((prev) => ({
+            ...prev,
+            page: data.pagination.page ?? prev.page,
+            limit: data.pagination.limit ?? prev.limit,
+            total: data.pagination.total ?? 0,
+            totalPages: data.pagination.totalPages ?? 0,
+          }))
         }
       } else {
         setPayments([])
       }
-      
     } catch (err: any) {
       console.error('Error fetching payments:', err)
       setError(err?.message || 'Failed to load payments')
@@ -166,17 +204,49 @@ export function Payments() {
   }
 
   const getPaymentMethodIcon = (method: string) => {
-    switch (method) {
+    switch (String(method || '').toLowerCase()) {
       case 'card':
         return <CreditCardIcon fontSize="small" />
       case 'bank':
+      case 'netbanking':
         return <BankIcon fontSize="small" />
       case 'wallet':
       case 'cash':
+      case 'upi':
         return <MoneyIcon fontSize="small" />
       default:
         return <MoneyIcon fontSize="small" />
     }
+  }
+
+  const formatDate = (val: string | Date | undefined) => {
+    if (!val) return '—'
+    const d = typeof val === 'string' ? new Date(val) : val
+    if (Number.isNaN(d.getTime())) return String(val)
+    return d.toLocaleString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  const formatCurrency = (amount: number | undefined, currency?: string) => {
+    if (amount == null) return '—'
+    const c = (currency || 'INR').toUpperCase()
+    if (c === 'INR' || c === '₹') return `₹${Number(amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+    return `${c} ${Number(amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+  }
+
+  const getPaymentMethodLabel = (method: string) => {
+    const m = String(method || '').toLowerCase()
+    if (m === 'upi') return 'UPI'
+    if (m === 'card' || m === 'credit_card') return 'Card'
+    if (m === 'netbanking' || m === 'bank') return 'Net Banking'
+    if (m === 'cash' || m === 'pay_after_service') return 'Cash'
+    if (m === 'wallet') return 'Wallet'
+    return method ? String(method).replace(/_/g, ' ') : '—'
   }
 
   const filteredPayments = payments
@@ -220,85 +290,64 @@ export function Payments() {
       id: 'transactionId',
       label: 'Transaction ID',
       sortable: true,
-      render: (_, p) => (
-        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-          {(p as any).transaction_id || p.transactionId || `TXN-${(p.id || '').slice(0, 8)}`}
-        </Typography>
-      ),
+      render: (_, p) => {
+        const txn = (p as any).transaction_id || p.transactionId || (p as any).transactionId
+        const id = p.id ?? (p as any)._id ?? ''
+        const display = txn || (id ? `TXN-${String(id).slice(-8)}` : '—')
+        return (
+          <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: 'monospace' }}>
+            {display}
+          </Typography>
+        )
+      },
     },
     {
       id: 'bookingId',
-      label: 'Booking',
+      label: 'Booking / Ref',
       render: (_, p) => (
         <Typography variant="body2">
-          {(p as any).booking_id || p.bookingId || 'N/A'}
+          {(p as any).booking_id || p.bookingId || (p as any).description || '—'}
         </Typography>
       ),
     },
     {
       id: 'customer',
-      label: 'Customer',
+      label: 'Customer / Payer',
       sortable: true,
       valueGetter: (p) =>
         (p as any).customer_name || p.customerName || (p as any).customer?.name || '',
-      render: (_, p) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Avatar sx={{ width: 32, height: 32 }}>
-            {(p as any).customer_name?.charAt(0) ||
-              p.customerName?.charAt(0) ||
-              (p as any).customer?.name?.charAt(0) ||
-              'C'}
-          </Avatar>
-          <Box>
-            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-              {(p as any).customer_name || p.customerName || (p as any).customer?.name || 'N/A'}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" display="block">
-              {(p as any).customer_email || p.customerEmail || (p as any).customer?.email || ''}
-            </Typography>
+      render: (_, p) => {
+        const name = (p as any).customer_name || p.customerName || (p as any).customer?.name
+        const email = (p as any).customer_email || p.customerEmail || (p as any).customer?.email
+        if (!name && !email) return <Typography variant="body2" color="text.secondary">—</Typography>
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Avatar sx={{ width: 32, height: 32 }}>
+              {(name || email || '?').charAt(0).toUpperCase()}
+            </Avatar>
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                {name || '—'}
+              </Typography>
+              {email && (
+                <Typography variant="caption" color="text.secondary" display="block">
+                  {email}
+                </Typography>
+              )}
+            </Box>
           </Box>
-        </Box>
-      ),
-    },
-    {
-      id: 'provider',
-      label: 'Provider',
-      render: (_, p) => (
-        <>
-          <Typography variant="body2">
-            {(p as any).provider_name || p.providerName || (p as any).provider?.name || 'N/A'}
-          </Typography>
-          <Typography variant="caption" color="text.secondary" display="block">
-            {(p as any).provider_email || p.providerEmail || (p as any).provider?.email || ''}
-          </Typography>
-        </>
-      ),
-    },
-    {
-      id: 'service',
-      label: 'Service',
-      render: (_, p) => (
-        <>
-          <Typography variant="body2">
-            {(p as any).service_name || p.serviceName || (p as any).service || 'N/A'}
-          </Typography>
-          {p.category && (
-            <Typography variant="caption" color="text.secondary" display="block">
-              {p.category}
-            </Typography>
-          )}
-        </>
-      ),
+        )
+      },
     },
     {
       id: 'paymentMethod',
-      label: 'Payment Method',
+      label: 'Method',
       render: (_, p) => {
-        const method = (p as any).payment_method || p.paymentMethod || 'card'
+        const method = (p as any).payment_method || p.paymentMethod || ''
         return (
           <Chip
             icon={getPaymentMethodIcon(method)}
-            label={String(method).toUpperCase()}
+            label={getPaymentMethodLabel(method)}
             size="small"
             variant="outlined"
           />
@@ -311,39 +360,49 @@ export function Payments() {
       align: 'right',
       sortable: true,
       valueGetter: (p) => p.amount ?? 0,
-      render: (_, p) => (
-        <>
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-            ${p.amount || 0}
-          </Typography>
-          <Typography variant="caption" color="text.secondary" display="block">
-            Fee: ${(p as any).platform_fee || p.platformFee || p.fee || 0}
-          </Typography>
-        </>
-      ),
+      render: (_, p) => {
+        const amount = p.amount ?? 0
+        const currency = (p as any).currency || 'INR'
+        const fee = (p as any).platform_fee ?? p.platformFee ?? p.fee
+        return (
+          <Box sx={{ textAlign: 'right' }}>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {formatCurrency(amount, currency)}
+            </Typography>
+            {fee != null && Number(fee) > 0 && (
+              <Typography variant="caption" color="text.secondary">
+                Fee: {formatCurrency(Number(fee), currency)}
+              </Typography>
+            )}
+          </Box>
+        )
+      },
     },
     {
       id: 'status',
       label: 'Status',
       sortable: true,
-      render: (_, p) => (
-        <Chip
-          label={p.status}
-          color={getStatusColor(p.status) as any}
-          size="small"
-          icon={getStatusIcon(p.status)}
-          sx={{ textTransform: 'capitalize' }}
-        />
-      ),
+      render: (_, p) => {
+        const status = p.status ?? (p as any).status ?? 'pending'
+        return (
+          <Chip
+            label={String(status).replace(/_/g, ' ')}
+            color={getStatusColor(status) as any}
+            size="small"
+            icon={getStatusIcon(status)}
+            sx={{ textTransform: 'capitalize' }}
+          />
+        )
+      },
     },
     {
       id: 'date',
-      label: 'Date',
+      label: 'Date & Time',
       sortable: true,
       valueGetter: (p) => (p as any).created_at || p.createdAt || '',
       render: (_, p) => (
-        <Typography variant="body2">
-          {(p as any).created_at || p.createdAt || 'N/A'}
+        <Typography variant="body2" color="text.secondary">
+          {formatDate((p as any).created_at || p.createdAt)}
         </Typography>
       ),
     },
@@ -385,7 +444,7 @@ export function Payments() {
         </Alert>
       )}
 
-      {/* Stats Cards */}
+      {/* Stats Cards — industry-standard KPIs */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ borderRadius: 2 }}>
@@ -404,13 +463,45 @@ export function Payments() {
                 >
                   <MoneyIcon sx={{ color: 'success.main' }} />
                 </Box>
-                <Chip label="+12%" color="success" size="small" />
               </Box>
               <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                ${stats.totalRevenue.toLocaleString()}
+                {formatCurrency(stats.totalRevenue)}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Total Revenue
+              </Typography>
+              {stats.totalCount > 0 && (
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                  {stats.totalCount} transaction{stats.totalCount !== 1 ? 's' : ''}
+                </Typography>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ borderRadius: 2 }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                <Box
+                  sx={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 2,
+                    bgcolor: 'primary.light',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <CheckIcon sx={{ color: 'primary.main' }} />
+                </Box>
+              </Box>
+              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+                {stats.completedPayments}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Completed
               </Typography>
             </CardContent>
           </Card>
@@ -433,42 +524,12 @@ export function Payments() {
                 >
                   <PendingIcon sx={{ color: 'warning.main' }} />
                 </Box>
-                <Chip label={stats.pendingPayments} size="small" />
               </Box>
               <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
                 {stats.pendingPayments}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Pending Payments
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ borderRadius: 2 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                <Box
-                  sx={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 2,
-                    bgcolor: 'primary.light',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <CheckIcon sx={{ color: 'primary.main' }} />
-                </Box>
-                <Chip label="+8%" color="success" size="small" />
-              </Box>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                {stats.completedPayments}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Completed Payments
+                Pending
               </Typography>
             </CardContent>
           </Card>
@@ -491,16 +552,18 @@ export function Payments() {
                 >
                   <RefreshIcon sx={{ color: 'info.main' }} />
                 </Box>
-                <Typography variant="caption" color="text.secondary">
-                  This Month
-                </Typography>
               </Box>
               <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                ${stats.refundedAmount.toFixed(2)}
+                {formatCurrency(stats.refundedAmount)}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Refunded Amount
+                Refunded
               </Typography>
+              {stats.refundedCount > 0 && (
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                  {stats.refundedCount} refund{stats.refundedCount !== 1 ? 's' : ''}
+                </Typography>
+              )}
             </CardContent>
           </Card>
         </Grid>
@@ -511,11 +574,11 @@ export function Payments() {
         <CardContent>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
             <TextField
-              placeholder="Search by transaction ID, booking ID, customer, or provider..."
+              placeholder="Search by transaction ID, booking ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               size="small"
-              sx={{ flex: 1, minWidth: 300 }}
+              sx={{ flex: 1, minWidth: 260 }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -524,13 +587,19 @@ export function Payments() {
                 ),
               }}
             />
-            <Button
-              variant="outlined"
-              startIcon={<FilterIcon />}
-              sx={{ borderRadius: 1.5 }}
-            >
-              Filters
-            </Button>
+            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+              {(['all', 'today', '7d', '30d'] as const).map((range) => (
+                <Button
+                  key={range}
+                  size="small"
+                  variant={dateRange === range ? 'contained' : 'outlined'}
+                  onClick={() => setDateRange(range)}
+                  sx={{ borderRadius: 1.5 }}
+                >
+                  {range === 'all' ? 'All time' : range === 'today' ? 'Today' : range === '7d' ? 'Last 7 days' : 'Last 30 days'}
+                </Button>
+              ))}
+            </Stack>
           </Box>
         </CardContent>
       </Card>
@@ -554,9 +623,13 @@ export function Payments() {
           <StandardTable<Payment>
             columns={paymentColumns}
             data={filteredPayments}
-            getRowId={(row) => row.id ?? (row as any)._id ?? ''}
+            getRowId={(row) => String(row.id ?? (row as any)._id ?? '')}
             loading={loading}
-            emptyMessage="No payments found"
+            emptyMessage={
+              dateRange !== 'all'
+                ? `No payments in this period. Try "All time" or another filter.`
+                : 'No payments yet. Transactions will appear here once payments are recorded.'
+            }
             showSearch={false}
             sortControlled={false}
             page={pagination.page - 1}
@@ -615,145 +688,112 @@ export function Payments() {
           </Typography>
         </DialogTitle>
         <DialogContent dividers>
-          {selectedPayment && (
-            <Grid container spacing={3}>
-              <Grid item xs={12}>
-                <Paper sx={{ p: 2, bgcolor: 'primary.main', color: 'white' }}>
-                  <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
-                    {selectedPayment.transactionId}
+          {selectedPayment && (() => {
+            const p = selectedPayment as any
+            const txnId = p.transaction_id || p.transactionId || p.id || '—'
+            const status = p.status || 'pending'
+            const bookingRef = p.booking_id || p.bookingId || p.description || '—'
+            const amount = p.amount ?? 0
+            const currency = p.currency || 'INR'
+            const fee = p.platform_fee ?? p.platformFee ?? p.fee
+            const netAmount = p.netAmount ?? p.providerAmount ?? amount - (fee ?? 0)
+            const method = p.payment_method || p.paymentMethod || ''
+            const createdAt = p.created_at || p.createdAt
+            const completedAt = p.completedAt || p.updated_at || p.updatedAt
+            return (
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <Paper sx={{ p: 2, bgcolor: 'primary.main', color: 'white' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5, fontFamily: 'monospace' }}>
+                      {txnId}
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      <Chip
+                        label={String(status).replace(/_/g, ' ')}
+                        size="small"
+                        sx={{
+                          bgcolor: 'white',
+                          color: 'primary.main',
+                          fontWeight: 600,
+                          textTransform: 'capitalize',
+                        }}
+                      />
+                      <Chip
+                        label={`Ref: ${bookingRef}`}
+                        size="small"
+                        sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}
+                      />
+                    </Box>
+                  </Paper>
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Customer / Payer
                   </Typography>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Chip
-                      label={selectedPayment.status}
-                      size="small"
-                      sx={{
-                        bgcolor: 'white',
-                        color: 'primary.main',
-                        fontWeight: 600,
-                        textTransform: 'capitalize',
-                      }}
-                    />
-                    <Chip
-                      label={`Booking: ${selectedPayment.bookingId}`}
-                      size="small"
-                      sx={{
-                        bgcolor: 'rgba(255,255,255,0.2)',
-                        color: 'white',
-                      }}
-                    />
-                  </Box>
-                </Paper>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                  Customer Information
-                </Typography>
-                <Stack spacing={1.5}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <PersonIcon fontSize="small" color="action" />
+                  <Stack spacing={1}>
                     <Typography variant="body2">
-                      {selectedPayment.customerName || (selectedPayment as any).customer?.name || 'N/A'}
+                      {p.customer_name || p.customerName || p.customer?.name || '—'}
                     </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="body2">
-                      {selectedPayment.customerEmail || (selectedPayment as any).customer?.email || ''}
-                    </Typography>
-                  </Box>
-                </Stack>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                  Provider Information
-                </Typography>
-                <Stack spacing={1.5}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <PersonIcon fontSize="small" color="action" />
-                    <Typography variant="body2">
-                      {selectedPayment.providerName || (selectedPayment as any).provider?.name || 'N/A'}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="body2">
-                      {selectedPayment.providerEmail || (selectedPayment as any).provider?.email || ''}
-                    </Typography>
-                  </Box>
-                </Stack>
-              </Grid>
-
-              <Grid item xs={12}>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                  Payment Breakdown
-                </Typography>
-                <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
-                  <Stack spacing={1.5}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2">Service Amount:</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        ${selectedPayment.amount}
+                    {(p.customer_email || p.customerEmail || p.customer?.email) && (
+                      <Typography variant="caption" color="text.secondary">
+                        {p.customer_email || p.customerEmail || p.customer?.email}
                       </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Platform Fee (10%):
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        -${selectedPayment.fee}
-                      </Typography>
-                    </Box>
-                    <Divider />
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                        Net Amount to Provider:
-                      </Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 700, color: 'success.main' }}>
-                        ${selectedPayment.netAmount}
-                      </Typography>
-                    </Box>
+                    )}
                   </Stack>
-                </Paper>
-              </Grid>
+                </Grid>
 
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                  Service Details
-                </Typography>
-                <Stack spacing={1}>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {selectedPayment.serviceName || (selectedPayment as any).service_name || (selectedPayment as any).service || 'N/A'}
+                <Grid item xs={12} md={6}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Payment method & date
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {selectedPayment.category || (selectedPayment as any).category_name || ''}
-                  </Typography>
-                </Stack>
-              </Grid>
+                  <Stack spacing={1}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {getPaymentMethodIcon(method)}
+                      <Typography variant="body2">{getPaymentMethodLabel(method)}</Typography>
+                    </Box>
+                    <Typography variant="body2">{formatDate(createdAt)}</Typography>
+                    {completedAt && (
+                      <Typography variant="caption" color="text.secondary">
+                        Completed: {formatDate(completedAt)}
+                      </Typography>
+                    )}
+                  </Stack>
+                </Grid>
 
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                  Payment Information
-                </Typography>
-                <Stack spacing={1}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    {getPaymentMethodIcon(selectedPayment.paymentMethod)}
-                    <Typography variant="body2">
-                      {selectedPayment.paymentMethod.toUpperCase()}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <CalendarIcon fontSize="small" color="action" />
-                    <Typography variant="body2">{selectedPayment.createdAt}</Typography>
-                  </Box>
-                  {selectedPayment.completedAt && (
-                    <Typography variant="caption" color="text.secondary">
-                      Completed: {selectedPayment.completedAt}
-                    </Typography>
-                  )}
-                </Stack>
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Payment breakdown
+                  </Typography>
+                  <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
+                    <Stack spacing={1.5}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2">Amount</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {formatCurrency(amount, currency)}
+                        </Typography>
+                      </Box>
+                      {fee != null && Number(fee) > 0 && (
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Typography variant="body2" color="text.secondary">Platform fee</Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {formatCurrency(Number(fee), currency)}
+                          </Typography>
+                        </Box>
+                      )}
+                      <Divider />
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body1" sx={{ fontWeight: 600 }}>Net amount</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 700, color: 'success.main' }}>
+                          {formatCurrency(netAmount, currency)}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </Paper>
+                </Grid>
               </Grid>
-            </Grid>
-          )}
+            )
+          })()}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDetailsOpen(false)}>Close</Button>

@@ -167,6 +167,58 @@ If the backend route doesn't exist, you need to:
    // Define testimonial schema
    ```
 
+## Professional Bookings (My Bookings for Professionals)
+
+When a **professional** logs in and goes to "My Bookings", the frontend loads their assigned bookings. For that to work, the backend must return bookings where the **logged-in user (professional)** is the assigned professional.
+
+### Option A – Dedicated professional endpoint (recommended)
+
+Implement:
+
+- **GET** `/api/bookings/professional/my-bookings?page=1&limit=100&status=...`
+
+Behaviour:
+
+- Use the JWT to identify the current user (professional).
+- Return only bookings where `professionalId` (or your equivalent field) equals that user’s professional ID.
+- Response shape: `{ success: true, data: { bookings: [...] } }` or `{ success: true, data: { bookings: [], pagination: { page, limit, total, totalPages } } }`.
+
+The frontend calls this first. If the backend does not have this route (e.g. 404), the frontend falls back to Option B.
+
+### Option B – Single “my-bookings” endpoint for both provider and professional
+
+If you only have:
+
+- **GET** `/api/bookings/provider/my-bookings`
+
+then that same route must behave differently by **user type** from the JWT:
+
+- If the user is a **provider**: return bookings where `providerId` (or equivalent) equals the current user.
+- If the user is a **professional**: return bookings where `professionalId` (or equivalent) equals the current user.
+
+If this route only filters by `providerId`, professionals will never see any bookings. In that case either:
+
+- Add a dedicated **GET** `/api/bookings/professional/my-bookings` that filters by `professionalId`, or  
+- Update the existing “my-bookings” handler to also support professionals (e.g. by checking `userType`/role and filtering by `professionalId` when the user is a professional).
+
+### Assigning a professional (admin)
+
+When admin assigns a professional to a booking, the backend must:
+
+- Accept **PATCH** `/api/bookings/:bookingId/assign-professional` with body e.g. `{ professionalId, notifyProfessional?, notifyCustomer? }`.
+- Persist the assignment (e.g. set `professionalId` on the booking).
+- Optionally send notifications.
+
+Until the booking document has the correct `professionalId`, “My Bookings” for that professional will not show it.
+
+### Quick checks
+
+1. After assigning a professional (admin), does the booking row in the DB have `professionalId` (or your field) set?
+2. When the professional calls **GET** `/api/bookings/professional/my-bookings` or **GET** `/api/bookings/provider/my-bookings`, does the backend filter by that professional’s ID and return that booking?
+3. Is the professional’s JWT correct (same user id / professional id as the one stored on the booking)?
+
+---
+
 ## Current Frontend Configuration
 
 - **Base URL:** `http://localhost:8005/api` (from `.env`)

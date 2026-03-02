@@ -33,6 +33,12 @@ import {
   Stack,
   Tooltip,
   alpha,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from '@mui/material'
 import {
   ArrowBack,
@@ -71,6 +77,24 @@ import { apiClient } from '../../services/apiClient'
 import { useAppSelector, useAppDispatch } from '../../store/hooks'
 import { addToast } from '../../store/slices/uiSlice'
 
+// Line item from API (services[] or items[])
+interface BookingServiceItem {
+  serviceId: string
+  serviceName: string
+  variantName?: string | null
+  quantity: number
+  price: number
+  serviceDetails?: {
+    id: string
+    name: string
+    slug?: string
+    description?: string
+    category?: string
+    image?: string
+    price: number
+  }
+}
+
 interface BookingDetails {
   _id: string
   bookingId: string
@@ -80,7 +104,7 @@ interface BookingDetails {
     lastName: string
     email: string
     phone: string
-    totalBookings: number
+    totalBookings?: number
   }
   service: {
     _id: string
@@ -88,12 +112,20 @@ interface BookingDetails {
     category: string
     duration: number
   }
+  // Line items (from API services or items)
+  services?: BookingServiceItem[]
   address: {
+    firstName?: string
+    lastName?: string
     street: string
-    area: string
+    area?: string
+    address?: string
     city: string
     state: string
-    pincode: string
+    pincode?: string
+    zipCode?: string
+    country?: string
+    phone?: string
     landmark?: string
   }
   provider?: {
@@ -104,24 +136,39 @@ interface BookingDetails {
   }
   professional?: {
     _id: string
+    id?: string
     firstName: string
     lastName: string
     email: string
     phone: string
     rating: number
+    avatar?: string
     categories: string[]
   }
   scheduledDate: string
   scheduledTime: string
-  status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled'
+  status: 'pending' | 'confirmed' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
   totalAmount: number
   baseAmount: number
   taxAmount: number
   discountAmount: number
-  paymentStatus: 'pending' | 'paid' | 'completed' | 'refunded'
+  paidAmount?: number
+  paymentStatus: string
   paymentMethod?: string
+  bookingType?: string
   notes?: string
   customerNotes?: string
+  cancellationReason?: string | null
+  assignedAt?: string | null
+  completedDate?: string | null
+  invoice?: {
+    id: string
+    invoiceNumber?: string
+    invoiceDate?: string | null
+    status?: string
+    total?: number
+    pdfUrl?: string
+  } | null
   activity: Array<{
     action: string
     user: string
@@ -132,7 +179,7 @@ interface BookingDetails {
   updatedAt: string
 }
 
-const statusConfig = {
+const statusConfig: Record<string, { color: string; bg: string; label: string; gradient: string }> = {
   pending: { 
     color: '#FF9800', 
     bg: '#FFF3E0', 
@@ -144,6 +191,12 @@ const statusConfig = {
     bg: '#E3F2FD', 
     label: 'Confirmed',
     gradient: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)'
+  },
+  scheduled: { 
+    color: '#00ACC1', 
+    bg: '#E0F7FA', 
+    label: 'Scheduled',
+    gradient: 'linear-gradient(135deg, #00ACC1 0%, #00838F 100%)'
   },
   in_progress: { 
     color: '#9C27B0', 
@@ -252,13 +305,30 @@ export function BookingDetails() {
         const apiBooking = response.data.booking || response.data
         console.log('📦 API Booking Data:', apiBooking)
         
+        // Line items: prefer services, fallback to items
+        const lineItems: BookingServiceItem[] = (apiBooking.services || apiBooking.items || []).map((s: any) => ({
+          serviceId: s.serviceId || s.serviceDetails?.id || '',
+          serviceName: s.serviceName || s.serviceDetails?.name || 'Service',
+          variantName: s.variantName || null,
+          quantity: Number(s.quantity) || 1,
+          price: Number(s.price) || 0,
+          serviceDetails: s.serviceDetails,
+        }))
+        
+        const firstService = lineItems[0]
+        const primaryService = apiBooking.service || (firstService && {
+          id: firstService.serviceId,
+          name: firstService.serviceName,
+          category: firstService.serviceDetails?.category || 'General',
+          duration: 60,
+        })
+        
         const transformed: BookingDetails = {
           _id: apiBooking._id || apiBooking.id,
-          bookingId: apiBooking.bookingId || `BKG-${String(apiBooking._id).slice(-8).toUpperCase()}`,
+          bookingId: apiBooking.bookingNumber || apiBooking.bookingId || `BKG-${String(apiBooking._id || apiBooking.id).slice(-8).toUpperCase()}`,
           
-          // Customer data - handle both formats
           customer: {
-            _id: apiBooking.customer?.id || apiBooking.customer?._id || apiBooking.customerId || 'unknown',
+            _id: apiBooking.customer?.id || apiBooking.customer?._id || apiBooking.customerId || apiBooking.customer_id || 'unknown',
             firstName: apiBooking.customer?.firstName || apiBooking.address?.firstName || 'Unknown',
             lastName: apiBooking.customer?.lastName || apiBooking.address?.lastName || 'Customer',
             email: apiBooking.customer?.email || 'N/A',
@@ -266,77 +336,80 @@ export function BookingDetails() {
             totalBookings: apiBooking.customer?.totalBookings || 0,
           },
           
-          // Service data - handle services array
-          service: apiBooking.services && apiBooking.services.length > 0 ? {
-            _id: apiBooking.services[0].serviceId || apiBooking.services[0].serviceDetails?.id || 'unknown',
-            name: apiBooking.services[0].serviceName || apiBooking.services[0].serviceDetails?.name || 'Service',
-            category: apiBooking.services[0].serviceDetails?.category || apiBooking.service?.category || 'General',
-            duration: apiBooking.service?.duration || 60,
-          } : (apiBooking.service ? {
-            _id: apiBooking.service.id || apiBooking.service._id || 'unknown',
-            name: apiBooking.service.name || 'Service',
-            category: apiBooking.service.category || 'General',
-            duration: apiBooking.service.duration || 60,
+          service: primaryService ? {
+            _id: primaryService.id || primaryService._id || firstService?.serviceId || 'unknown',
+            name: primaryService.name || firstService?.serviceName || 'Service',
+            category: primaryService.category || firstService?.serviceDetails?.category || 'General',
+            duration: primaryService.duration || 60,
           } : {
             _id: 'unknown',
             name: 'Service',
             category: 'General',
             duration: 60,
-          }),
+          },
           
-          // Address data
+          services: lineItems.length > 0 ? lineItems : undefined,
+          
           address: apiBooking.address ? {
+            firstName: apiBooking.address.firstName,
+            lastName: apiBooking.address.lastName,
             street: apiBooking.address.address || apiBooking.address.street || 'N/A',
-            area: apiBooking.address.area || '',
+            area: apiBooking.address.area,
+            address: apiBooking.address.address,
             city: apiBooking.address.city || 'N/A',
             state: apiBooking.address.state || 'N/A',
-            pincode: apiBooking.address.zipCode || apiBooking.address.pincode || 'N/A',
+            pincode: apiBooking.address.zipCode || apiBooking.address.pincode,
+            zipCode: apiBooking.address.zipCode || apiBooking.address.pincode,
+            country: apiBooking.address.country,
+            phone: apiBooking.address.phone,
             landmark: apiBooking.address.landmark,
           } : {
             street: 'N/A',
-            area: 'N/A',
             city: 'N/A',
             state: 'N/A',
-            pincode: 'N/A',
           },
           
-          // Provider data
-          provider: apiBooking.provider || apiBooking.providerId ? {
-            _id: apiBooking.provider?._id || apiBooking.provider?.id || apiBooking.providerId?._id || apiBooking.providerId || 'unknown',
-            businessName: apiBooking.provider?.businessName || 'N/A',
-            email: apiBooking.provider?.businessEmail || apiBooking.provider?.email || 'N/A',
-            phone: apiBooking.provider?.businessPhone || apiBooking.provider?.phone || 'N/A',
+          provider: apiBooking.provider && (apiBooking.providerId || apiBooking.provider_id) ? {
+            _id: apiBooking.provider.id || apiBooking.provider._id || apiBooking.providerId || 'unknown',
+            businessName: (apiBooking.provider as any).businessName || 'N/A',
+            email: (apiBooking.provider as any).email || (apiBooking.provider as any).businessEmail || 'N/A',
+            phone: (apiBooking.provider as any).phone || (apiBooking.provider as any).businessPhone || 'N/A',
           } : undefined,
           
-          // Professional data - handle all possible field names and formats
-          professional: undefined, // Will be set below if professional data exists
+          professional: undefined,
           
-          // Dates and times
-          scheduledDate: apiBooking.scheduledDate ? 
-            new Date(apiBooking.scheduledDate).toLocaleDateString('en-US', { 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            }) : 'N/A',
-          scheduledTime: apiBooking.scheduledTime || 'N/A',
+          scheduledDate: apiBooking.scheduledDate || apiBooking.scheduled_date
+            ? new Date(apiBooking.scheduledDate || apiBooking.scheduled_date).toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })
+            : 'N/A',
+          scheduledTime: apiBooking.scheduledTime || apiBooking.scheduled_time || 'N/A',
           
-          // Status and payment
-          status: apiBooking.status || 'pending',
-          totalAmount: apiBooking.totalAmount || apiBooking.total_amount || 0,
-          baseAmount: apiBooking.baseAmount || apiBooking.totalAmount || apiBooking.total_amount || 0,
-          taxAmount: apiBooking.taxAmount || 0,
-          discountAmount: apiBooking.discountAmount || 0,
-          paymentStatus: apiBooking.paymentStatus || apiBooking.payment_status || 'pending',
-          paymentMethod: apiBooking.paymentMethod || apiBooking.payment_method || 'N/A',
-          
-          // Notes
+          status: (apiBooking.status || 'pending') as BookingDetails['status'],
+          totalAmount: Number(apiBooking.totalAmount ?? apiBooking.total_amount ?? apiBooking.totalPrice ?? 0),
+          baseAmount: Number(apiBooking.baseAmount ?? apiBooking.totalAmount ?? apiBooking.total_amount ?? 0),
+          taxAmount: Number(apiBooking.taxAmount ?? 0),
+          discountAmount: Number(apiBooking.discountAmount ?? 0),
+          paidAmount: apiBooking.paidAmount ?? apiBooking.paid_amount,
+          paymentStatus: apiBooking.paymentStatus ?? apiBooking.payment_status ?? 'pending',
+          paymentMethod: apiBooking.paymentMethod ?? apiBooking.payment_method,
+          bookingType: apiBooking.bookingType ?? apiBooking.booking_type,
           notes: apiBooking.notes || '',
           customerNotes: apiBooking.customerNotes || apiBooking.notes || '',
-          
-          // Activity
+          cancellationReason: apiBooking.cancellationReason ?? apiBooking.cancellation_reason ?? null,
+          assignedAt: apiBooking.assignedAt ?? apiBooking.assigned_at ?? null,
+          completedDate: apiBooking.completedDate ?? apiBooking.completed_date ?? null,
+          invoice: apiBooking.invoice ? {
+            id: apiBooking.invoice.id || apiBooking.invoice_id,
+            invoiceNumber: apiBooking.invoice.invoiceNumber,
+            invoiceDate: apiBooking.invoice.invoiceDate,
+            status: apiBooking.invoice.status,
+            total: apiBooking.invoice.total,
+            pdfUrl: apiBooking.invoice.pdfUrl,
+          } : null,
           activity: apiBooking.activity || [],
-          
-          // Timestamps
           createdAt: apiBooking.createdAt || apiBooking.created_at || new Date().toISOString(),
           updatedAt: apiBooking.updatedAt || apiBooking.updated_at || new Date().toISOString(),
         }
@@ -344,45 +417,40 @@ export function BookingDetails() {
         console.log('✅ Transformed Booking:', transformed)
         setBooking(transformed)
         
-        // Handle professional data - fetch if it's just an ID, or use if it's already populated
-        const professionalData = apiBooking.professionalId || apiBooking.professional_id || apiBooking.professional;
-        
+        // Handle professional: use populated object from API or fetch by ID
+        const professionalData = apiBooking.professional ?? apiBooking.professionalId ?? apiBooking.professional_id
         if (professionalData) {
           if (typeof professionalData === 'string') {
-            // It's just an ID, fetch the professional details
             try {
-              console.log('🔍 Fetching professional details for ID:', professionalData)
               const professionalResponse = await ProfessionalsService.getProfessional(professionalData)
               if (professionalResponse.success && professionalResponse.data) {
                 const profData = professionalResponse.data as any
                 const professionalDetails = {
                   _id: profData._id || profData.id || professionalData,
-                  firstName: profData.firstName || profData.user?.firstName || 'N/A',
+                  firstName: profData.firstName || profData.user?.firstName || '',
                   lastName: profData.lastName || profData.user?.lastName || '',
                   email: profData.email || profData.user?.email || 'N/A',
                   phone: profData.phoneNumber || profData.phone || profData.user?.phone || 'N/A',
-                  rating: profData.averageRating || profData.rating || 0,
-                  categories: profData.categories || profData.services?.map((s: any) => s.name || s) || [],
+                  rating: Number(profData.averageRating ?? profData.rating ?? 0),
+                  categories: Array.isArray(profData.categories) ? profData.categories : (profData.services?.map((s: any) => s.name || s) || []),
                 }
-                console.log('✅ Professional details fetched:', professionalDetails)
                 setBooking(prev => prev ? { ...prev, professional: professionalDetails } : prev)
               }
             } catch (profErr: any) {
               console.warn('⚠️ Failed to fetch professional details:', profErr.message)
-              // Don't fail the whole page load if professional fetch fails
             }
           } else {
-            // It's already a populated object, use it directly
+            const p = professionalData as any
             const professionalDetails = {
-              _id: professionalData._id || professionalData.id || 'unknown',
-              firstName: professionalData.firstName || (professionalData as any).user?.firstName || 'N/A',
-              lastName: professionalData.lastName || (professionalData as any).user?.lastName || '',
-              email: professionalData.email || (professionalData as any).user?.email || 'N/A',
-              phone: professionalData.phoneNumber || professionalData.phone || (professionalData as any).user?.phone || 'N/A',
-              rating: (professionalData as any).averageRating || professionalData.rating || 0,
-              categories: professionalData.categories || professionalData.services?.map((s: any) => s.name || s) || [],
+              _id: p._id || p.id || 'unknown',
+              firstName: p.firstName || p.user?.firstName || '',
+              lastName: p.lastName || p.user?.lastName || '',
+              email: p.email || p.user?.email || 'N/A',
+              phone: p.phoneNumber || p.phone || p.user?.phone || 'N/A',
+              rating: Number(p.averageRating ?? p.rating ?? 0),
+              avatar: p.avatar,
+              categories: Array.isArray(p.categories) ? p.categories : [],
             }
-            console.log('✅ Using populated professional data:', professionalDetails)
             setBooking(prev => prev ? { ...prev, professional: professionalDetails } : prev)
           }
         }
@@ -399,7 +467,11 @@ export function BookingDetails() {
 
   const handleNavigate = () => {
     if (booking) {
-      const query = `${booking.address.street}, ${booking.address.area}, ${booking.address.city}, ${booking.address.state}`
+      const addr = booking.address
+      const line1 = addr.address || addr.street || ''
+      const line2 = [addr.city, addr.state].filter(Boolean).join(', ')
+      const line3 = addr.zipCode || addr.pincode || ''
+      const query = [line1, line2, line3, addr.country].filter(Boolean).join(' ')
       window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`)
     }
   }
@@ -633,8 +705,14 @@ export function BookingDetails() {
     )
   }
 
-  const config = statusConfig[booking.status]
-console.log("detailssss",booking)
+  const config = statusConfig[booking.status] || statusConfig.pending
+
+  const displayAddress = booking.address.address || booking.address.street
+  const displayPincode = booking.address.zipCode || booking.address.pincode
+  const professionalDisplayName = booking.professional
+    ? [booking.professional.firstName, booking.professional.lastName].filter(Boolean).join(' ').trim() || `Professional #${(booking.professional._id || booking.professional.id || '').slice(-6)}`
+    : ''
+
   return (
     <Box sx={{ 
       p: { xs: 2, md: 4 },
@@ -1068,7 +1146,7 @@ console.log("detailssss",booking)
                     boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
                   }}
                 >
-                  {booking.customer.firstName[0]}{booking.customer.lastName[0]}
+                  {([booking.customer.firstName, booking.customer.lastName].filter(Boolean).join(' ').trim().slice(0, 2) || 'C').toUpperCase()}
                 </Avatar>
                 <Box flex={1}>
                   <Box display="flex" alignItems="center" gap={1.5} mb={0.5}>
@@ -1077,17 +1155,19 @@ console.log("detailssss",booking)
                     </Typography>
                     <Verified sx={{ fontSize: 20, color: 'success.main' }} />
                   </Box>
-                  <Chip
-                    icon={<Person />}
-                    label={`${booking.customer.totalBookings} Previous Bookings`}
-                    size="small"
-                    sx={{
-                      bgcolor: alpha('#4CAF50', 0.1),
-                      color: 'success.dark',
-                      fontWeight: 600,
-                      height: 24,
-                    }}
-                  />
+                  {(booking.customer.totalBookings != null && booking.customer.totalBookings > 0) && (
+                    <Chip
+                      icon={<Person />}
+                      label={`${booking.customer.totalBookings} Previous Bookings`}
+                      size="small"
+                      sx={{
+                        bgcolor: alpha('#4CAF50', 0.1),
+                        color: 'success.dark',
+                        fontWeight: 600,
+                        height: 24,
+                      }}
+                    />
+                  )}
                 </Box>
               </Box>
 
@@ -1180,7 +1260,7 @@ console.log("detailssss",booking)
             </CardContent>
           </Card>
 
-          {/* Premium Service Details Card */}
+          {/* Service Details & Order Items */}
           <Card 
             sx={{ 
               mb: 3, 
@@ -1210,7 +1290,7 @@ console.log("detailssss",booking)
                   <Schedule sx={{ fontSize: 24 }} />
                 </Box>
                 <Typography variant="h6" fontWeight="700" color="text.primary">
-                  Service Details
+                  Service & Order Items
                 </Typography>
               </Box>
               <Divider sx={{ mb: 3 }} />
@@ -1231,6 +1311,43 @@ console.log("detailssss",booking)
                   }} 
                 />
               </Box>
+
+              {booking.services && booking.services.length > 0 ? (
+                <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, mb: 3 }}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: alpha('#2196F3', 0.08) }}>
+                        <TableCell sx={{ fontWeight: 700 }}>Service</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 700 }}>Qty</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700 }}>Unit Price</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700 }}>Total</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {booking.services.map((item, idx) => {
+                        const lineTotal = item.quantity * item.price
+                        return (
+                          <TableRow key={idx}>
+                            <TableCell>
+                              <Typography variant="body2" fontWeight={600}>
+                                {item.serviceName}
+                              </Typography>
+                              {item.variantName && (
+                                <Typography variant="caption" color="text.secondary">
+                                  {item.variantName}
+                                </Typography>
+                              )}
+                            </TableCell>
+                            <TableCell align="center">{item.quantity}</TableCell>
+                            <TableCell align="right">₹{item.price}</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 700 }}>₹{lineTotal}</TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              ) : null}
 
               <Grid container spacing={2.5}>
                 <Grid item xs={12} sm={4}>
@@ -1385,15 +1502,28 @@ console.log("detailssss",booking)
               >
                 <LocationOn sx={{ color: 'error.main', fontSize: 40, flexShrink: 0 }} />
                 <Box flex={1}>
+                  {(booking.address.firstName || booking.address.lastName) && (
+                    <Typography variant="body2" color="text.secondary" mb={0.5}>
+                      {[booking.address.firstName, booking.address.lastName].filter(Boolean).join(' ')}
+                    </Typography>
+                  )}
                   <Typography variant="body1" fontWeight="700" color="text.primary" mb={1}>
-                    {booking.address.street}
+                    {displayAddress}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" mb={0.5}>
-                    {booking.address.area}, {booking.address.city}
+                    {[booking.address.city, booking.address.state].filter(Boolean).join(', ')}
+                    {displayPincode ? ` - ${displayPincode}` : ''}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" mb={1}>
-                    {booking.address.state} - {booking.address.pincode}
-                  </Typography>
+                  {booking.address.country && (
+                    <Typography variant="body2" color="text.secondary" mb={0.5}>
+                      {booking.address.country}
+                    </Typography>
+                  )}
+                  {booking.address.phone && (
+                    <Typography variant="body2" color="text.secondary" display="flex" alignItems="center" gap={0.5} mt={1}>
+                      <Phone sx={{ fontSize: 16 }} /> {booking.address.phone}
+                    </Typography>
+                  )}
                   {booking.address.landmark && (
                     <Box 
                       mt={1.5}
@@ -1633,6 +1763,7 @@ console.log("detailssss",booking)
                 <Box>
                   <Box display="flex" alignItems="center" gap={2.5} mb={3}>
                     <Avatar 
+                      src={booking.professional.avatar}
                       sx={{ 
                         width: 72, 
                         height: 72,
@@ -1643,16 +1774,16 @@ console.log("detailssss",booking)
                         boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
                       }}
                     >
-                      {booking.professional.firstName[0]}{booking.professional.lastName[0]}
+                      {professionalDisplayName ? professionalDisplayName.slice(0, 2).toUpperCase() : 'P'}
                     </Avatar>
                     <Box flex={1}>
                       <Typography variant="h6" fontWeight="700" color="text.primary" mb={0.5}>
-                        {booking.professional.firstName} {booking.professional.lastName}
+                        {professionalDisplayName}
                       </Typography>
                       <Box display="flex" alignItems="center" gap={1} mb={1}>
                         <Star sx={{ fontSize: 20, color: '#FFA726' }} />
                         <Typography variant="body1" fontWeight="700" color="text.primary">
-                          {booking.professional.rating.toFixed(1)}
+                          {Number(booking.professional.rating).toFixed(1)}
                         </Typography>
                         <Typography variant="caption" color="text.secondary" ml={0.5}>
                           Rating
@@ -1661,43 +1792,60 @@ console.log("detailssss",booking)
                     </Box>
                   </Box>
 
-                  <Box 
-                    display="flex" 
-                    alignItems="center" 
-                    gap={2} 
-                    mb={2.5} 
-                    p={2} 
-                    bgcolor={alpha('#2196F3', 0.08)} 
-                    borderRadius={2.5}
-                    sx={{
-                      border: '1px solid',
-                      borderColor: alpha('#2196F3', 0.2),
-                    }}
-                  >
-                    <Phone sx={{ fontSize: 22, color: 'primary.main' }} />
-                    <Typography variant="body1" fontWeight="600">
-                      {booking.professional.phone}
-                    </Typography>
-                  </Box>
+                  {(booking.professional.phone || booking.professional.email) && (
+                    <Box 
+                      display="flex" 
+                      alignItems="center" 
+                      gap={2} 
+                      mb={2.5} 
+                      p={2} 
+                      bgcolor={alpha('#2196F3', 0.08)} 
+                      borderRadius={2.5}
+                      sx={{
+                        border: '1px solid',
+                        borderColor: alpha('#2196F3', 0.2),
+                      }}
+                    >
+                      {booking.professional.phone ? (
+                        <>
+                          <Phone sx={{ fontSize: 22, color: 'primary.main' }} />
+                          <Typography variant="body1" fontWeight="600">
+                            {booking.professional.phone}
+                          </Typography>
+                        </>
+                      ) : (
+                        <>
+                          <Email sx={{ fontSize: 22, color: 'primary.main' }} />
+                          <Typography variant="body1" fontWeight="600">
+                            {booking.professional.email}
+                          </Typography>
+                        </>
+                      )}
+                    </Box>
+                  )}
 
-                  <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, mb: 1, display: 'block' }}>
-                    Specializations
-                  </Typography>
-                  <Box display="flex" flexWrap="wrap" gap={1}>
-                    {booking.professional.categories.map(cat => (
-                      <Chip 
-                        key={cat} 
-                        label={cat} 
-                        size="small"
-                        sx={{
-                          bgcolor: alpha('#2196F3', 0.1),
-                          color: 'primary.dark',
-                          fontWeight: 600,
-                          height: 28,
-                        }}
-                      />
-                    ))}
-                  </Box>
+                  {booking.professional.categories && booking.professional.categories.length > 0 && (
+                    <>
+                      <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, mb: 1, display: 'block' }}>
+                        Specializations
+                      </Typography>
+                      <Box display="flex" flexWrap="wrap" gap={1}>
+                        {booking.professional.categories.map(cat => (
+                          <Chip 
+                            key={cat} 
+                            label={cat} 
+                            size="small"
+                            sx={{
+                              bgcolor: alpha('#2196F3', 0.1),
+                              color: 'primary.dark',
+                              fontWeight: 600,
+                              height: 28,
+                            }}
+                          />
+                        ))}
+                      </Box>
+                    </>
+                  )}
                 </Box>
               ) : (
                 <Alert 
@@ -1757,68 +1905,29 @@ console.log("detailssss",booking)
                   borderRadius={1.5}
                 >
                   <Typography variant="body2" color="text.secondary" fontWeight="600">
-                    Base Amount
+                    Total Amount
                   </Typography>
                   <Typography variant="body1" fontWeight="700" color="text.primary">
-                    ₹{booking.baseAmount}
+                    ₹{booking.totalAmount.toLocaleString()}
                   </Typography>
                 </Box>
-                <Box 
-                  display="flex" 
-                  justifyContent="space-between" 
-                  alignItems="center"
-                  p={1.5}
-                  bgcolor={alpha('#2196F3', 0.05)}
-                  borderRadius={1.5}
-                >
-                  <Typography variant="body2" color="text.secondary" fontWeight="600">
-                    Tax & Fees
-                  </Typography>
-                  <Typography variant="body1" fontWeight="700" color="text.primary">
-                    ₹{booking.taxAmount}
-                  </Typography>
-                </Box>
-                {booking.discountAmount > 0 && (
+                {(booking.paidAmount != null && Number(booking.paidAmount) > 0) && (
                   <Box 
                     display="flex" 
                     justifyContent="space-between" 
                     alignItems="center"
                     p={1.5}
-                    bgcolor={alpha('#4CAF50', 0.1)}
+                    bgcolor={alpha('#4CAF50', 0.08)}
                     borderRadius={1.5}
-                    sx={{
-                      border: '1px solid',
-                      borderColor: alpha('#4CAF50', 0.2),
-                    }}
                   >
-                    <Typography variant="body2" color="success.main" fontWeight="700">
-                      Discount
+                    <Typography variant="body2" color="text.secondary" fontWeight="600">
+                      Paid Amount
                     </Typography>
-                    <Typography variant="body1" color="success.main" fontWeight="700">
-                      -₹{booking.discountAmount}
+                    <Typography variant="body1" fontWeight="700" color="success.main">
+                      ₹{Number(booking.paidAmount).toLocaleString()}
                     </Typography>
                   </Box>
                 )}
-                <Divider sx={{ my: 1 }} />
-                <Box 
-                  display="flex" 
-                  justifyContent="space-between" 
-                  alignItems="center"
-                  p={2.5}
-                  bgcolor={alpha('#4CAF50', 0.1)}
-                  borderRadius={2.5}
-                  sx={{
-                    border: '2px solid',
-                    borderColor: '#4CAF50',
-                  }}
-                >
-                  <Typography variant="h6" fontWeight="800" color="text.primary">
-                    Total Amount
-                  </Typography>
-                  <Typography variant="h4" fontWeight="800" color="success.main">
-                    ₹{booking.totalAmount}
-                  </Typography>
-                </Box>
                 <Box 
                   display="flex" 
                   justifyContent="space-between" 
@@ -1831,9 +1940,9 @@ console.log("detailssss",booking)
                     Payment Status
                   </Typography>
                   <Chip
-                    label={booking.paymentStatus}
+                    label={String(booking.paymentStatus).replace(/_/g, ' ')}
                     size="medium"
-                    color={booking.paymentStatus === 'paid' || booking.paymentStatus === 'completed' ? 'success' : 'warning'}
+                    color={['paid', 'completed', 'customer_paid', 'verified'].includes(String(booking.paymentStatus).toLowerCase()) ? 'success' : 'warning'}
                     sx={{
                       fontWeight: 700,
                       textTransform: 'capitalize',
@@ -1853,7 +1962,7 @@ console.log("detailssss",booking)
                       Payment Method
                     </Typography>
                     <Chip
-                      label={booking.paymentMethod}
+                      label={String(booking.paymentMethod).replace(/_/g, ' ')}
                       size="small"
                       sx={{
                         bgcolor: alpha('#9C27B0', 0.1),
@@ -1864,9 +1973,126 @@ console.log("detailssss",booking)
                     />
                   </Box>
                 )}
+                {booking.bookingType && (
+                  <Box 
+                    display="flex" 
+                    justifyContent="space-between" 
+                    alignItems="center"
+                    p={2}
+                    bgcolor={alpha('#2196F3', 0.05)}
+                    borderRadius={2}
+                  >
+                    <Typography variant="body2" color="text.secondary" fontWeight="600">
+                      Booking Type
+                    </Typography>
+                    <Chip
+                      label={String(booking.bookingType).replace(/_/g, ' ')}
+                      size="small"
+                      sx={{ textTransform: 'capitalize' }}
+                    />
+                  </Box>
+                )}
               </Stack>
             </CardContent>
           </Card>
+
+          {/* Booking meta: assigned at, completed at, cancellation reason */}
+          <Card sx={{ mb: 3, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', border: '1px solid rgba(0,0,0,0.05)' }}>
+            <CardContent sx={{ p: 2.5 }}>
+              <Typography variant="subtitle2" color="text.secondary" fontWeight="700" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, mb: 1.5 }}>
+                Booking Info
+              </Typography>
+              <Stack spacing={1.5}>
+                {booking.assignedAt && (
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <AssignmentInd sx={{ fontSize: 18, color: 'text.secondary' }} />
+                    <Typography variant="body2">
+                      Assigned on {new Date(booking.assignedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                    </Typography>
+                  </Box>
+                )}
+                {booking.completedDate && (
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <CheckCircle sx={{ fontSize: 18, color: 'success.main' }} />
+                    <Typography variant="body2">
+                      Completed on {new Date(booking.completedDate).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                    </Typography>
+                  </Box>
+                )}
+                {booking.status === 'cancelled' && booking.cancellationReason && (
+                  <Box display="flex" alignItems="flex-start" gap={1}>
+                    <Cancel sx={{ fontSize: 18, color: 'error.main', mt: 0.25 }} />
+                    <Typography variant="body2" color="text.secondary">
+                      <strong>Reason:</strong> {booking.cancellationReason}
+                    </Typography>
+                  </Box>
+                )}
+                {!booking.assignedAt && !booking.completedDate && booking.status !== 'cancelled' && (
+                  <Typography variant="body2" color="text.secondary">
+                    Created {new Date(booking.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                  </Typography>
+                )}
+              </Stack>
+            </CardContent>
+          </Card>
+
+          {/* Invoice card */}
+          {booking.invoice && booking.invoice.id && (
+            <Card sx={{ mb: 3, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', border: '1px solid rgba(0,0,0,0.05)' }}>
+              <CardContent sx={{ p: 3.5 }}>
+                <Box display="flex" alignItems="center" gap={1.5} mb={3}>
+                  <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: '#4CAF50', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Receipt sx={{ fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" fontWeight="700" color="text.primary">
+                    Invoice
+                  </Typography>
+                </Box>
+                <Divider sx={{ mb: 3 }} />
+                <Stack spacing={1.5}>
+                  {booking.invoice.invoiceNumber && (
+                    <Box display="flex" justifyContent="space-between" alignItems="center">
+                      <Typography variant="body2" color="text.secondary">Invoice #</Typography>
+                      <Typography variant="body2" fontWeight={600}>{booking.invoice.invoiceNumber}</Typography>
+                    </Box>
+                  )}
+                  {booking.invoice.invoiceDate && (
+                    <Box display="flex" justifyContent="space-between" alignItems="center">
+                      <Typography variant="body2" color="text.secondary">Date</Typography>
+                      <Typography variant="body2">{new Date(booking.invoice.invoiceDate).toLocaleDateString()}</Typography>
+                    </Box>
+                  )}
+                  {booking.invoice.status && (
+                    <Box display="flex" justifyContent="space-between" alignItems="center">
+                      <Typography variant="body2" color="text.secondary">Status</Typography>
+                      <Chip label={String(booking.invoice.status)} size="small" sx={{ textTransform: 'capitalize' }} />
+                    </Box>
+                  )}
+                  {booking.invoice.total != null && (
+                    <Box display="flex" justifyContent="space-between" alignItems="center">
+                      <Typography variant="body2" color="text.secondary">Total</Typography>
+                      <Typography variant="body1" fontWeight={700}>₹{Number(booking.invoice.total).toLocaleString()}</Typography>
+                    </Box>
+                  )}
+                  {booking.invoice.pdfUrl && (
+                    <Button
+                      component="a"
+                      href={booking.invoice.pdfUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      variant="outlined"
+                      size="small"
+                      startIcon={<Receipt />}
+                      fullWidth
+                      sx={{ mt: 1 }}
+                    >
+                      Download PDF
+                    </Button>
+                  )}
+                </Stack>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Admin: Payment & earnings — pending receivable, professional payout status */}
           {isAdmin && booking.status === 'completed' && (

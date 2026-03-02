@@ -61,20 +61,34 @@ export class PaymentsService {
     page?: number
     limit?: number
     status?: string
+    search?: string
     bookingId?: string
     customerId?: string
     providerId?: string
+    start_date?: string
+    end_date?: string
   } = {}) {
     const params = new URLSearchParams()
-    
-    Object.entries(query).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
+    const q = { ...query } as Record<string, string | number>
+    if (q.bookingId != null) {
+      q.booking_id = q.bookingId
+      delete q.bookingId
+    }
+    if (q.customerId != null) {
+      q.customer_id = q.customerId
+      delete q.customerId
+    }
+    if (q.providerId != null) {
+      q.provider_id = q.providerId
+      delete q.providerId
+    }
+    Object.entries(q).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
         params.append(key, value.toString())
       }
     })
 
-    const endpoint = `/payments${params.toString() ? `?${params.toString()}` : ''}`
-    
+    const endpoint = `/payments${params.toString() ? `?${params}` : ''}`
     return api.get<{
       payments: Payment[]
       pagination: {

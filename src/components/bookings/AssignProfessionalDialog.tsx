@@ -222,6 +222,20 @@ export function AssignProfessionalDialog({
           </Alert>
         )}
 
+        {/* TEMPORARY: Quick assign Zillur — backend resolves "zillur" to professional by firstName. Remove when no longer needed. */}
+        <Alert severity="info" sx={{ mb: 2 }}>
+          <strong>Quick assign:</strong>{' '}
+          <Button
+            size="small"
+            variant="contained"
+            color="primary"
+            onClick={() => handleAssign('zillur')}
+            disabled={assigning}
+          >
+            Auto-assign Zillur
+          </Button>
+        </Alert>
+
         {/* Filters */}
         <Box mb={3}>
           <Grid container spacing={2}>

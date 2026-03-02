@@ -53,6 +53,7 @@ import { Booking, BookingsQuery } from '../../types'
 import { formatCurrency, formatDate, getInitials } from '../../lib/utils'
 import { BookingsService, ProvidersService } from '../../services/api'
 import { AssignProviderModal } from '../../components/bookings/AssignProviderModal'
+import { AssignProfessionalDialog } from '../../components/bookings/AssignProfessionalDialog'
 import { UpdateBookingStatusModal } from '../../components/bookings/UpdateBookingStatusModal'
 import { useNavigate } from 'react-router-dom'
 
@@ -145,6 +146,11 @@ export function Bookings() {
     bookingId: string | null
     currentStatus: string | null
   }>({ open: false, bookingId: null, currentStatus: null })
+
+  const [assignProfessionalModal, setAssignProfessionalModal] = useState<{
+    open: boolean
+    bookingId: string | null
+  }>({ open: false, bookingId: null })
 
   const [availableProviders, setAvailableProviders] = useState<any[]>([])
   const [loadingProviders, setLoadingProviders] = useState(false)
@@ -662,6 +668,57 @@ export function Bookings() {
         },
       },
       {
+        field: 'assignProfessional',
+        headerName: 'Assign Professional',
+        minWidth: 200,
+        flex: 1,
+        sortable: false,
+        renderCell: (params: GridRenderCellParams<Booking>) => {
+          const row = params.row
+          const professional = (row as any).professional
+          const hasProfessionalId = !!(row as any).professionalId || (row as any).professional_id || professional?.id || professional?._id
+          const provider = row.provider || (row as any).assignedProfessional
+          let name =
+            (professional
+              ? [professional.firstName, professional.lastName].filter(Boolean).join(' ').trim()
+              : '') ||
+            provider?.businessName ||
+            (provider?.user
+              ? `${(provider.user as any).firstName || ''} ${(provider.user as any).lastName || ''}`.trim()
+              : '') ||
+            ''
+          if (!name && hasProfessionalId) name = 'Professional'
+          const isCompletedOrCancelled =
+            row.status === 'completed' || row.status === 'cancelled'
+          return (
+            <Box display="flex" alignItems="center" gap={1}>
+              {name ? (
+                <Typography variant="body2" noWrap sx={{ maxWidth: 120 }}>
+                  {name}
+                </Typography>
+              ) : (
+                <Typography variant="caption" color="text.secondary">
+                  Unassigned
+                </Typography>
+              )}
+              {!isCompletedOrCancelled && (
+                <Button
+                  size="small"
+                  variant={name ? 'outlined' : 'contained'}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setAssignProfessionalModal({ open: true, bookingId: row.id })
+                  }}
+                  sx={{ minWidth: 72, textTransform: 'none' }}
+                >
+                  {name ? 'Change' : 'Assign'}
+                </Button>
+              )}
+            </Box>
+          )
+        },
+      },
+      {
         field: 'actions',
         headerName: '',
         width: 92,
@@ -984,6 +1041,18 @@ export function Bookings() {
           bookingId={updateStatusModal.bookingId}
           currentStatus={updateStatusModal.currentStatus as any}
           onUpdate={handleUpdateStatus}
+        />
+      )}
+
+      {assignProfessionalModal.open && assignProfessionalModal.bookingId && (
+        <AssignProfessionalDialog
+          open={assignProfessionalModal.open}
+          onClose={() => setAssignProfessionalModal({ open: false, bookingId: null })}
+          bookingId={assignProfessionalModal.bookingId}
+          onAssigned={() => {
+            setAssignProfessionalModal({ open: false, bookingId: null })
+            fetchBookings()
+          }}
         />
       )}
     </Box>
