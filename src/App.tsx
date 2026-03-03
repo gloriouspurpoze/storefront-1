@@ -51,6 +51,7 @@ const ProfessionalReviews = lazy(() => import('./pages/professionals/professiona
 const ProfessionalDocuments = lazy(() => import('./pages/professionals/professional-documents').then((m) => ({ default: m.ProfessionalDocuments })))
 const ProfessionalServices = lazy(() => import('./pages/professionals/professional-services').then((m) => ({ default: m.ProfessionalServices })))
 const ProfessionalSettings = lazy(() => import('./pages/professionals/professional-settings').then((m) => ({ default: m.ProfessionalSettings })))
+const ProviderApplications = lazy(() => import('./pages/professionals/provider-applications').then((m) => ({ default: m.ProviderApplications })))
 
 const Bookings = lazy(() => import('./pages/bookings/bookings').then((m) => ({ default: m.Bookings })))
 const BookingDetails = lazy(() => import('./pages/bookings/booking-details').then((m) => ({ default: m.BookingDetails })))
@@ -336,6 +337,14 @@ function App() {
                         element={
                           <RoleBasedRoute permissions={['view_providers']}>
                             <Professionals />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route 
+                        path="/provider-applications" 
+                        element={
+                          <RoleBasedRoute permissions={['view_providers']}>
+                            <ProviderApplications />
                           </RoleBasedRoute>
                         }
                       />

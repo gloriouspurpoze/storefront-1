@@ -30,6 +30,7 @@ import {
   Inventory as PackageIcon,
   Build as WrenchIcon,
   Assignment as FileTextIcon,
+  AssignmentInd as AssignmentIndIcon,
   AttachMoney as DollarSignIcon,
   Event as CalendarIcon,
   People as UsersIcon,
@@ -168,6 +169,7 @@ const navigationGroups = [
       // { name: 'Products', href: '/products', icon: PackageIcon, permissions: ['view_products', 'manage_products'], badge: null },
       // { name: 'Providers', href: '/providers', icon: ShieldIcon, permissions: ['view_providers', 'manage_providers'], badge: null },
       { name: 'Professionals', href: '/professionals', icon: PersonIcon, permissions: ['view_providers', 'manage_providers'], badge: null },
+      { name: 'Provider Applications', href: '/provider-applications', icon: AssignmentIndIcon, permissions: ['view_providers', 'manage_providers'], badge: null },
     ]
   },
   {

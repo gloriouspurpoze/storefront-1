@@ -34,6 +34,11 @@ interface ApiResponse<T = any> {
   message: string
   timestamp?: string
   error?: string | { message: string; code?: string }
+  meta?: {
+    pagination?: { page: number; limit: number; total: number; totalPages: number }
+    filters?: Record<string, unknown>
+    [key: string]: unknown
+  }
 }
 
 // Error interface
@@ -239,6 +244,7 @@ class ApiBase {
       data: data.data,
       message: data.message || 'Success',
       timestamp: data.timestamp,
+      ...(data.meta && { meta: data.meta }),
     }
   }
 
