@@ -87,6 +87,8 @@ const BlogCategoryManagement = lazy(() => import('./pages/cms/BlogCategoryManage
 const MediaLibrary = lazy(() => import('./pages/cms/MediaLibrary'))
 const PageManagement = lazy(() => import('./pages/cms/PageManagement'))
 const MenuManagement = lazy(() => import('./pages/cms/MenuManagement'))
+const NewsletterManagement = lazy(() => import('./pages/cms/NewsletterManagement'))
+const SocialLinksManagement = lazy(() => import('./pages/cms/SocialLinksManagement'))
 
 const RouteFallback = (
   <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 280, width: '100%' }}>
@@ -654,6 +656,22 @@ function App() {
                         element={
                           <RoleBasedRoute permissions={['manage_system_settings']}>
                             <MenuManagement />
+                          </RoleBasedRoute>
+                        } 
+                      />
+                      <Route 
+                        path="/cms/newsletter" 
+                        element={
+                          <RoleBasedRoute permissions={['manage_system_settings']}>
+                            <NewsletterManagement />
+                          </RoleBasedRoute>
+                        } 
+                      />
+                      <Route 
+                        path="/cms/social-links" 
+                        element={
+                          <RoleBasedRoute permissions={['manage_system_settings']}>
+                            <SocialLinksManagement />
                           </RoleBasedRoute>
                         } 
                       />

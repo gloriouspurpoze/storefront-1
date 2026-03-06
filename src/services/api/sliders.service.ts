@@ -115,19 +115,21 @@ export class SlidersService {
   }
 
   /**
-   * Get active sliders for client side
+   * Get active sliders for client side (website or mobile app)
+   * @param query.placement - Filter by placement (e.g. home_page_hero, offers, mobile_app_home)
+   * @param query.platform - 'web' | 'mobile' – API may return image_url vs image_url_mobile
    */
-  static async getActiveSliders() {
-    const response = await apiClient.get('/sliders/active') as any
+  static async getActiveSliders(query?: { placement?: string; platform?: 'web' | 'mobile' }) {
+    const params = new URLSearchParams()
+    if (query?.placement) params.append('placement', query.placement)
+    if (query?.platform) params.append('platform', query.platform)
+    const qs = params.toString()
+    const endpoint = `/sliders/active${qs ? `?${qs}` : ''}`
+    const response = await apiClient.get(endpoint) as any
 
-    // Transform the response to match our expected structure
     if (response.data?.sliders) {
-      return {
-        ...response,
-        data: response.data.sliders
-      }
+      return { ...response, data: response.data.sliders }
     }
-
     return response
   }
 

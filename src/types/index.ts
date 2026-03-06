@@ -82,18 +82,39 @@ export interface ProvidersQuery {
   experience?: string
 }
 
-// Slider/Banner types
+// Slider/Banner types – industry placements for web + mobile
+export type SliderPlacement =
+  | 'home_page_hero'   // Home page main hero carousel
+  | 'offers'          // Offers & promotions section
+  | 'category'        // Category / listing page banners
+  | 'mobile_app_home' // Mobile app home hero
+  | 'announcement'    // Announcement / notice bar
+  | 'promo'          // Inline promo blocks
+  | 'seasonal'       // Seasonal / campaign banners
+
+export const SLIDER_PLACEMENT_LABELS: Record<SliderPlacement, string> = {
+  home_page_hero: 'Home Page Hero',
+  offers: 'Offers & Promotions',
+  category: 'Category Banner',
+  mobile_app_home: 'Mobile App Home',
+  announcement: 'Announcement Bar',
+  promo: 'Inline Promo',
+  seasonal: 'Seasonal / Campaign',
+}
+
 export interface Slider {
   id: string
   title: string
   subtitle?: string
   description?: string
   image_url: string
+  image_url_mobile?: string
   image_alt?: string
   button_text?: string
   button_url?: string
   position: number
   is_active: boolean
+  placement?: SliderPlacement
   start_date?: string
   end_date?: string
   target_audience?: 'all' | 'customers' | 'providers'
@@ -106,11 +127,13 @@ export interface CreateSliderRequest {
   subtitle?: string
   description?: string
   image_url: string
+  image_url_mobile?: string
   image_alt?: string
   button_text?: string
   button_url?: string
   position: number
   is_active: boolean
+  placement?: SliderPlacement
   start_date?: string
   end_date?: string
   target_audience?: 'all' | 'customers' | 'providers'
@@ -121,11 +144,13 @@ export interface UpdateSliderRequest {
   subtitle?: string
   description?: string
   image_url?: string
+  image_url_mobile?: string
   image_alt?: string
   button_text?: string
   button_url?: string
   position?: number
   is_active?: boolean
+  placement?: SliderPlacement
   start_date?: string
   end_date?: string
   target_audience?: 'all' | 'customers' | 'providers'
@@ -142,6 +167,8 @@ export interface SlidersQuery {
   search?: string
   status?: string
   position?: string
+  placement?: SliderPlacement | string
+  audience?: string
 }
 
 // Service Request types

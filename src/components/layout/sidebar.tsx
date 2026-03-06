@@ -69,6 +69,8 @@ import {
   CreditCard as CreditCardIcon,
   AccountBalance as AccountBalanceIcon,
   TrendingUp as TrendingUpIcon,
+  Link as LinkIcon,
+  Campaign as CampaignIcon,
 } from '@mui/icons-material'
 import { NotificationBell } from '../notifications/NotificationBell'
 import { useSidebar } from '../../contexts/sidebar-context'
@@ -202,6 +204,7 @@ const navigationGroups = [
           { name: 'Pages', href: '/cms/pages', icon: DescriptionIcon, permissions: ['manage_cms'] },
           { name: 'Menus', href: '/cms/menus', icon: MenusIcon, permissions: ['manage_cms'] },
           { name: 'Blog Posts', href: '/cms/blogs', icon: ArticleIcon, permissions: ['manage_cms'] },
+          { name: 'Blog Categories', href: '/cms/blog-categories', icon: CategoryIcon, permissions: ['manage_cms'] },
         ]
       },
       { 
@@ -212,9 +215,12 @@ const navigationGroups = [
         badge: null,
         subItems: [
           { name: 'Banners & Sliders', href: '/sliders', icon: SlideshowIcon, permissions: ['manage_cms'] },
+          { name: 'Announcements & Pop-ups', href: '/cms/banners', icon: SlideshowIcon, permissions: ['manage_cms'] },
           { name: 'Promotions', href: '/cms/promotions', icon: CouponIcon, permissions: ['manage_marketing'] },
           { name: 'Coupons', href: '/coupons', icon: LocalOfferIcon, permissions: ['manage_marketing'] },
           { name: 'Referrals', href: '/referrals', icon: ReferralIcon, permissions: ['manage_marketing'] },
+          { name: 'Newsletter', href: '/cms/newsletter', icon: CampaignIcon, permissions: ['manage_cms'] },
+          { name: 'Social Links', href: '/cms/social-links', icon: LinkIcon, permissions: ['manage_cms'] },
         ]
       },
       { name: 'Testimonials', href: '/cms/testimonials', icon: StarIcon, permissions: ['manage_cms'], badge: null },

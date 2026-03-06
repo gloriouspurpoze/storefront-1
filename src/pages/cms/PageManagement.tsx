@@ -15,6 +15,7 @@ import {
   FormControlLabel,
   IconButton,
   InputLabel,
+  Menu,
   MenuItem,
   Select,
   Stack,
@@ -31,8 +32,11 @@ import {
   Visibility as VisibilityIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
+  PostAdd as TemplateIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
+import { RichTextField } from '../../components/forms';
+import { PAGE_TEMPLATES, PAGE_TEMPLATE_KEYS } from './pageTemplates';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
@@ -40,13 +44,16 @@ interface Page {
   _id: string;
   title: string;
   slug: string;
-  template: string;
+  template?: string;
+  content?: string;
+  excerpt?: string;
   status: 'draft' | 'published' | 'private' | 'archived';
   publishedAt?: string;
   displayOrder: number;
-  author: { name: string };
-  analytics: { views: number };
-  settings: { showInMenu: boolean };
+  author?: { name?: string; id?: string };
+  analytics?: { views?: number };
+  settings?: { showInMenu?: boolean; showTitle?: boolean };
+  seo?: { title?: string; description?: string; keywords?: string[] };
   createdAt: string;
 }
 
@@ -56,6 +63,7 @@ export default function PageManagement() {
   const [showForm, setShowForm] = useState(false);
   const [editingPage, setEditingPage] = useState<Page | null>(null);
   const [showSEO, setShowSEO] = useState(false);
+  const [templateAnchor, setTemplateAnchor] = useState<null | HTMLElement>(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -82,9 +90,11 @@ export default function PageManagement() {
       const res = await axios.get(`${API_BASE}/cms/admin/pages`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setPages(res.data.data.pages);
+      const raw = res?.data?.data?.pages ?? res?.data?.pages;
+      setPages(Array.isArray(raw) ? raw : []);
     } catch (error) {
       console.error('Error:', error);
+      setPages([]);
     } finally {
       setLoading(false);
     }
@@ -148,18 +158,18 @@ export default function PageManagement() {
   const handleEdit = (page: Page) => {
     setEditingPage(page);
     setFormData({
-      title: page.title,
-      slug: page.slug,
-      content: '',
-      excerpt: '',
-      template: page.template,
-      status: page.status,
-      showInMenu: page.settings.showInMenu,
-      showTitle: true,
-      displayOrder: page.displayOrder,
-      seoTitle: '',
-      seoDescription: '',
-      seoKeywords: '',
+      title: page.title || '',
+      slug: page.slug || '',
+      content: page.content ?? '',
+      excerpt: page.excerpt ?? '',
+      template: page.template || 'default',
+      status: page.status || 'draft',
+      showInMenu: page.settings?.showInMenu ?? true,
+      showTitle: page.settings?.showTitle ?? true,
+      displayOrder: page.displayOrder ?? 0,
+      seoTitle: page.seo?.title ?? '',
+      seoDescription: page.seo?.description ?? '',
+      seoKeywords: Array.isArray(page.seo?.keywords) ? page.seo.keywords.join(', ') : '',
     });
     setShowForm(true);
   };
@@ -196,21 +206,86 @@ export default function PageManagement() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Box>
           <Typography variant="h4" fontWeight="bold">Page Management</Typography>
           <Typography variant="body2" color="text.secondary">
-            Create and manage static pages (About, Contact, etc.)
+            Create and manage static pages (About, Contact, Refund Policy, Cookie Policy, etc.)
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setShowForm(true)}
-        >
-          New Page
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <Button
+            variant="outlined"
+            startIcon={<TemplateIcon />}
+            onClick={(e) => setTemplateAnchor(e.currentTarget)}
+          >
+            Create from template
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => {
+              setEditingPage(null);
+              setFormData({
+                title: '',
+                slug: '',
+                content: '',
+                excerpt: '',
+                template: 'default',
+                status: 'draft',
+                showInMenu: true,
+                showTitle: true,
+                displayOrder: 0,
+                seoTitle: '',
+                seoDescription: '',
+                seoKeywords: '',
+              });
+              setShowSEO(false);
+              setShowForm(true);
+            }}
+          >
+            New Page
+          </Button>
+        </Stack>
       </Box>
+      <Menu
+        anchorEl={templateAnchor}
+        open={Boolean(templateAnchor)}
+        onClose={() => setTemplateAnchor(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        {PAGE_TEMPLATE_KEYS.map((key) => {
+          const t = PAGE_TEMPLATES[key];
+          return (
+            <MenuItem
+              key={key}
+              onClick={() => {
+                setEditingPage(null);
+                setFormData({
+                  title: t.title,
+                  slug: t.slug,
+                  content: t.content,
+                  excerpt: t.excerpt,
+                  template: 'default',
+                  status: 'draft',
+                  showInMenu: true,
+                  showTitle: true,
+                  displayOrder: 0,
+                  seoTitle: t.seoTitle,
+                  seoDescription: t.seoDescription,
+                  seoKeywords: t.seoKeywords,
+                });
+                setShowSEO(true);
+                setShowForm(true);
+                setTemplateAnchor(null);
+              }}
+            >
+              {t.title}
+            </MenuItem>
+          );
+        })}
+      </Menu>
 
       {loading ? (
         <Typography>Loading...</Typography>
@@ -230,7 +305,7 @@ export default function PageManagement() {
                           color={getStatusColor(page.status)}
                           size="small"
                         />
-                        {page.settings.showInMenu && (
+                        {page.settings?.showInMenu && (
                           <Chip label="In Menu" color="primary" size="small" variant="outlined" />
                         )}
                       </Stack>
@@ -240,17 +315,17 @@ export default function PageManagement() {
                           <strong>Slug:</strong> <code>/{page.slug}</code>
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                          <strong>Template:</strong> {page.template}
+                          <strong>Template:</strong> {page.template || 'default'}
                         </Typography>
                       </Stack>
 
                       <Stack direction="row" spacing={2}>
                         <Typography variant="caption">
                           <VisibilityIcon sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
-                          {page.analytics.views} views
+                          {page.analytics?.views ?? 0} views
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          By {page.author.name} • {new Date(page.createdAt).toLocaleDateString()}
+                          By {page.author?.name ?? '—'} • {new Date(page.createdAt).toLocaleDateString()}
                         </Typography>
                       </Stack>
                     </Box>
@@ -354,15 +429,14 @@ export default function PageManagement() {
             </Grid>
 
             <Grid item xs={12}>
-              <TextField
-                fullWidth
+              <RichTextField
                 label="Content"
-                multiline
-                rows={10}
                 value={formData.content}
-                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                required
+                onChange={(value) => setFormData({ ...formData, content: value })}
                 placeholder="Write your page content here..."
+                fullWidth
+                height={320}
+                helperText="Use the toolbar for headings, lists, links, and formatting."
               />
             </Grid>
 

@@ -99,6 +99,14 @@ export default function CMSDashboard() {
       stat: null,
     },
     {
+      title: 'Announcements & Pop-ups',
+      description: 'Site-wide notice bars and pop-up modals',
+      icon: ImageIcon,
+      link: '/cms/banners',
+      color: '#9C27B0',
+      stat: null,
+    },
+    {
       title: 'Promotions & Offers',
       description: 'Manage discount codes and promotional campaigns',
       link: '/cms/promotions',
@@ -139,6 +147,14 @@ export default function CMSDashboard() {
       stat: stats.totalBlogs || null,
     },
     {
+      title: 'Blog Categories',
+      description: 'Organize blog posts by category',
+      icon: ArticleIcon,
+      link: '/cms/blog-categories',
+      color: '#03A9F4',
+      stat: null,
+    },
+    {
       title: 'Media Library',
       description: 'Manage images, videos, and files',
       icon: MediaIcon,
@@ -160,6 +176,22 @@ export default function CMSDashboard() {
       icon: MenuIcon,
       link: '/cms/menus',
       color: '#8BC34A',
+      stat: null,
+    },
+    {
+      title: 'Newsletter & Email',
+      description: 'Subscribers and email campaign setup',
+      icon: TagIcon,
+      link: '/cms/newsletter',
+      color: '#E91E63',
+      stat: null,
+    },
+    {
+      title: 'Social Links',
+      description: 'Social and website URLs for footer/header',
+      icon: TagIcon,
+      link: '/cms/social-links',
+      color: '#607D8B',
       stat: null,
     },
   ];

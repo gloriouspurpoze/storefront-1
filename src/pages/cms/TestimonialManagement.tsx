@@ -39,17 +39,25 @@ import { CMSService } from '../../services/api';
 import { format } from 'date-fns';
 import { PageHeader } from '../../components/common/PageHeader';
 
+// Backend uses: title, content, customerRole, customerImage, order, isActive
 interface Testimonial {
   _id: string;
   customerName: string;
   customerTitle?: string;
+  customerRole?: string;
   customerAvatar?: string;
+  customerImage?: string;
   rating: number;
-  comment: string;
+  comment?: string;
+  title?: string;
+  content?: string;
   service?: string;
-  isApproved: boolean;
+  serviceType?: string;
+  isApproved?: boolean;
+  isActive?: boolean;
   isFeatured: boolean;
-  displayOrder: number;
+  displayOrder?: number;
+  order?: number;
   createdAt: string;
 }
 
@@ -81,21 +89,20 @@ export default function TestimonialManagement() {
     try {
       setLoading(true);
       const params: any = {};
-      if (filter === 'approved') params.isApproved = true;
-      if (filter === 'pending') params.isApproved = false;
+      if (filter === 'approved') params.isActive = true;
+      if (filter === 'pending') params.isActive = false;
       if (filter === 'featured') params.isFeatured = true;
 
       const data = await CMSService.getTestimonials(params);
-      // Handle different response structures
+      let list: Testimonial[] = [];
       if (Array.isArray(data)) {
-        setTestimonials(data);
+        list = data;
       } else if (data?.testimonials && Array.isArray(data.testimonials)) {
-        setTestimonials(data.testimonials);
+        list = data.testimonials;
       } else if (data?.data && Array.isArray(data.data)) {
-        setTestimonials(data.data);
-      } else {
-        setTestimonials([]);
+        list = data.data;
       }
+      setTestimonials(list.map(normalizeTestimonial));
     } catch (error: any) {
       console.error('Error fetching testimonials:', error);
       const errorMessage = error?.response?.data?.error || error?.response?.data?.message || error?.message || 'Failed to load testimonials';
@@ -106,6 +113,22 @@ export default function TestimonialManagement() {
     }
   };
 
+  function normalizeTestimonial(t: any): Testimonial {
+    return {
+      _id: t._id,
+      customerName: t.customerName || '',
+      customerTitle: t.customerRole ?? t.customerTitle,
+      customerAvatar: t.customerImage ?? t.customerAvatar,
+      rating: t.rating ?? 5,
+      comment: t.content ?? t.comment ?? '',
+      service: t.serviceType ?? t.service,
+      isApproved: t.isActive ?? t.isApproved ?? true,
+      isFeatured: t.isFeatured ?? false,
+      displayOrder: t.order ?? t.displayOrder ?? 0,
+      createdAt: t.createdAt || '',
+    };
+  }
+
   const handleSubmit = async () => {
     try {
       if (!formData.customerName.trim() || !formData.comment.trim()) {
@@ -114,9 +137,16 @@ export default function TestimonialManagement() {
       }
 
       const payload = {
-        ...formData,
+        customerName: formData.customerName.trim(),
+        customerRole: formData.customerTitle || undefined,
+        customerImage: formData.customerAvatar || undefined,
         rating: Number(formData.rating),
-        displayOrder: Number(formData.displayOrder),
+        title: formData.comment.slice(0, 80) || 'Testimonial',
+        content: formData.comment.trim(),
+        serviceType: formData.service || undefined,
+        isFeatured: formData.isFeatured,
+        order: Number(formData.displayOrder),
+        isActive: formData.isApproved,
       };
 
       if (editingTestimonial) {
@@ -147,15 +177,15 @@ export default function TestimonialManagement() {
   const handleEdit = (testimonial: Testimonial) => {
     setEditingTestimonial(testimonial);
     setFormData({
-      customerName: testimonial.customerName,
-      customerTitle: testimonial.customerTitle || '',
-      customerAvatar: testimonial.customerAvatar || '',
-      rating: testimonial.rating,
-      comment: testimonial.comment,
-      service: testimonial.service || '',
-      isApproved: testimonial.isApproved,
-      isFeatured: testimonial.isFeatured,
-      displayOrder: testimonial.displayOrder,
+      customerName: testimonial.customerName || '',
+      customerTitle: testimonial.customerTitle || testimonial.customerRole || '',
+      customerAvatar: testimonial.customerAvatar || testimonial.customerImage || '',
+      rating: testimonial.rating ?? 5,
+      comment: testimonial.comment || testimonial.content || '',
+      service: testimonial.service || testimonial.serviceType || '',
+      isApproved: testimonial.isApproved ?? testimonial.isActive ?? true,
+      isFeatured: testimonial.isFeatured ?? false,
+      displayOrder: testimonial.displayOrder ?? testimonial.order ?? 0,
     });
     setShowForm(true);
   };
@@ -178,9 +208,8 @@ export default function TestimonialManagement() {
 
   const handleToggleApproval = async (testimonial: Testimonial) => {
     try {
-      await CMSService.updateTestimonial(testimonial._id, {
-        isApproved: !testimonial.isApproved,
-      });
+      const next = !(testimonial.isApproved ?? testimonial.isActive ?? true);
+      await CMSService.updateTestimonial(testimonial._id, { isActive: next });
       fetchTestimonials();
     } catch (error: any) {
       console.error('Error updating approval:', error);

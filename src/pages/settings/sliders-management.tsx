@@ -68,7 +68,7 @@ import {
 } from '@mui/icons-material';
 import { PageHeader } from '../../components/common/PageHeader';
 import { SlidersService } from '../../services/api/sliders.service';
-import { Slider } from '../../types';
+import { Slider, SliderPlacement, SLIDER_PLACEMENT_LABELS } from '../../types';
 import { ImageUploadField, FormField, type ImageFile } from '../../components/forms';
 
 interface SliderStats {
@@ -94,6 +94,7 @@ export default function SlidersManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [audienceFilter, setAudienceFilter] = useState('all');
+  const [placementFilter, setPlacementFilter] = useState<string>('all');
 
   // Pagination
   const [page, setPage] = useState(0);
@@ -114,18 +115,21 @@ export default function SlidersManagement() {
     subtitle: '',
     description: '',
     image_url: '',
+    image_url_mobile: '',
     image_alt: '',
     button_text: '',
     button_url: '',
     position: 1,
     is_active: true,
+    placement: 'home_page_hero' as SliderPlacement,
     start_date: '',
     end_date: '',
     target_audience: 'all' as 'all' | 'customers' | 'providers',
   });
 
-  // Image upload state
+  // Image upload state (web + mobile)
   const [uploadedImages, setUploadedImages] = useState<ImageFile[]>([]);
+  const [uploadedMobileImages, setUploadedMobileImages] = useState<ImageFile[]>([]);
 
   // Menu
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
@@ -143,7 +147,7 @@ export default function SlidersManagement() {
       fetchSliders();
       fetchStats();
     }
-  }, [viewMode, page, limit, searchTerm, statusFilter, audienceFilter]);
+  }, [viewMode, page, limit, searchTerm, statusFilter, audienceFilter, placementFilter]);
 
   const fetchSliders = async () => {
     try {
@@ -157,9 +161,8 @@ export default function SlidersManagement() {
       if (statusFilter !== 'all') {
         query.status = statusFilter === 'active' ? 'active' : 'inactive';
       }
-      if (audienceFilter !== 'all') {
-        query.audience = audienceFilter;
-      }
+      if (audienceFilter !== 'all') query.audience = audienceFilter;
+      if (placementFilter !== 'all') query.placement = placementFilter;
 
       const response = await SlidersService.getSliders(query);
       
@@ -232,16 +235,17 @@ export default function SlidersManagement() {
       subtitle: slider.subtitle || '',
       description: slider.description || '',
       image_url: slider.image_url || '',
+      image_url_mobile: slider.image_url_mobile || '',
       image_alt: slider.image_alt || '',
       button_text: slider.button_text || '',
       button_url: slider.button_url || '',
       position: slider.position || 1,
       is_active: slider.is_active ?? true,
+      placement: (slider.placement as SliderPlacement) || 'home_page_hero',
       start_date: slider.start_date ? slider.start_date.split('T')[0] : '',
       end_date: slider.end_date ? slider.end_date.split('T')[0] : '',
       target_audience: slider.target_audience || 'all',
     });
-    // Set uploaded images if image_url exists
     if (slider.image_url) {
       setUploadedImages([{
         id: 'existing',
@@ -252,6 +256,17 @@ export default function SlidersManagement() {
       }]);
     } else {
       setUploadedImages([]);
+    }
+    if (slider.image_url_mobile) {
+      setUploadedMobileImages([{
+        id: 'existing-mobile',
+        url: slider.image_url_mobile,
+        alt: (slider.image_alt || slider.title) + ' (mobile)',
+        isPrimary: true,
+        order: 0,
+      }]);
+    } else {
+      setUploadedMobileImages([]);
     }
     setActiveTab(0);
     setFormErrors({});
@@ -361,6 +376,10 @@ export default function SlidersManagement() {
       ? uploadedImages[0].url 
       : formData.image_url;
 
+    const mobileImageUrl = uploadedMobileImages.length > 0
+      ? uploadedMobileImages[0].url
+      : formData.image_url_mobile;
+
     try {
       setFormLoading(true);
       const payload: any = {
@@ -368,13 +387,15 @@ export default function SlidersManagement() {
         subtitle: formData.subtitle || undefined,
         description: formData.description || undefined,
         image_url: imageUrl,
-        image_alt: uploadedImages.length > 0 
-          ? uploadedImages[0].alt 
+        image_url_mobile: mobileImageUrl || undefined,
+        image_alt: uploadedImages.length > 0
+          ? uploadedImages[0].alt
           : (formData.image_alt || formData.title),
         button_text: formData.button_text || undefined,
         button_url: formData.button_url || undefined,
         position: formData.position,
         is_active: formData.is_active,
+        placement: formData.placement,
         target_audience: formData.target_audience,
       };
 
@@ -412,16 +433,19 @@ export default function SlidersManagement() {
       subtitle: '',
       description: '',
       image_url: '',
+      image_url_mobile: '',
       image_alt: '',
       button_text: '',
       button_url: '',
       position: 1,
       is_active: true,
+      placement: 'home_page_hero',
       start_date: '',
       end_date: '',
       target_audience: 'all',
     });
     setUploadedImages([]);
+    setUploadedMobileImages([]);
     setSelectedSlider(null);
     setActiveTab(0);
     setFormErrors({});
@@ -450,6 +474,7 @@ export default function SlidersManagement() {
     setSearchTerm('');
     setStatusFilter('all');
     setAudienceFilter('all');
+    setPlacementFilter('all');
     setPage(0);
   };
 
@@ -465,6 +490,11 @@ export default function SlidersManagement() {
       default: return 'default';
     }
   };
+
+  const getPlacementLabel = (placement?: string) =>
+    placement && SLIDER_PLACEMENT_LABELS[placement as SliderPlacement]
+      ? SLIDER_PLACEMENT_LABELS[placement as SliderPlacement]
+      : placement || 'Home';
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
@@ -648,6 +678,25 @@ export default function SlidersManagement() {
                             />
                           </Grid>
 
+                          <Grid size={{ xs: 12, sm: 6 }}>
+                            <FormControl fullWidth>
+                              <InputLabel>Placement</InputLabel>
+                              <Select
+                                value={formData.placement}
+                                label="Placement"
+                                onChange={(e) => setFormData({ ...formData, placement: e.target.value as SliderPlacement })}
+                                sx={{ borderRadius: 2 }}
+                              >
+                                {(Object.entries(SLIDER_PLACEMENT_LABELS) as [SliderPlacement, string][]).map(([value, label]) => (
+                                  <SelectMenuItem key={value} value={value}>
+                                    {label}
+                                  </SelectMenuItem>
+                                ))}
+                              </Select>
+                              <FormHelperText>Where this banner appears (Home, Offers, Mobile App, etc.)</FormHelperText>
+                            </FormControl>
+                          </Grid>
+
                           <Grid size={{ xs: 12 }}>
                             <FormField
                               label="Subtitle"
@@ -739,6 +788,37 @@ export default function SlidersManagement() {
                                 {formErrors.image_url}
                               </Typography>
                             )}
+                          </Grid>
+
+                          <Grid size={{ xs: 12 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                              Mobile image (optional)
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                              Used by the mobile app and mobile web. Fallback: desktop image.
+                            </Typography>
+                            <ImageUploadField
+                              label="Mobile / App image"
+                              value={uploadedMobileImages}
+                              onChange={(images) => {
+                                setUploadedMobileImages(images);
+                                if (images.length > 0) {
+                                  setFormData((prev) => ({ ...prev, image_url_mobile: images[0].url }));
+                                } else {
+                                  setFormData((prev) => ({ ...prev, image_url_mobile: '' }));
+                                }
+                              }}
+                              maxFiles={1}
+                              maxSize={5}
+                              folder="sliders"
+                              helperText="Recommended: 768×400 or 1080×600 for app"
+                            />
+                            <FormField
+                              label="Mobile image URL (optional)"
+                              value={formData.image_url_mobile}
+                              onChange={(value) => setFormData({ ...formData, image_url_mobile: value })}
+                              placeholder="https://example.com/mobile-banner.jpg"
+                            />
                           </Grid>
 
                           <Grid size={{ xs: 12 }}>
@@ -1138,10 +1218,19 @@ export default function SlidersManagement() {
                             </Box>
                           </Card>
                         ) : (
-                          <Alert severity="warning" sx={{ borderRadius: 2 }}>
-                            <Typography variant="body2">
-                              Please upload an image or provide an image URL to see the preview.
+                          <Alert severity="info" sx={{ borderRadius: 2 }}>
+                            <Typography variant="body2" sx={{ mb: 2 }}>
+                              Add an image to see how your slider will look. Go to the <strong>Image & Media</strong> tab to upload a file or paste an image URL.
                             </Typography>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              startIcon={<ImageIcon />}
+                              onClick={() => setActiveTab(1)}
+                              sx={{ textTransform: 'none' }}
+                            >
+                              Go to Image & Media
+                            </Button>
                           </Alert>
                         )}
                       </Box>
@@ -1474,7 +1563,7 @@ export default function SlidersManagement() {
       >
         <CardContent sx={{ p: 3 }}>
           <Grid container spacing={2} alignItems="center">
-            <Grid size={{ xs: 12, md: 4 }}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <TextField
                 fullWidth
                 size="small"
@@ -1489,7 +1578,7 @@ export default function SlidersManagement() {
                 }}
               />
             </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Grid size={{ xs: 12, sm: 6, md: 2 }}>
               <FormControl fullWidth size="small">
                 <InputLabel>Status</InputLabel>
                 <Select
@@ -1509,7 +1598,7 @@ export default function SlidersManagement() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Grid size={{ xs: 12, sm: 6, md: 2 }}>
               <FormControl fullWidth size="small">
                 <InputLabel>Audience</InputLabel>
                 <Select
@@ -1526,6 +1615,29 @@ export default function SlidersManagement() {
                   <SelectMenuItem value="all">All Audiences</SelectMenuItem>
                   <SelectMenuItem value="customers">Customers Only</SelectMenuItem>
                   <SelectMenuItem value="providers">Providers Only</SelectMenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Placement</InputLabel>
+                <Select
+                  value={placementFilter}
+                  onChange={(e) => setPlacementFilter(e.target.value)}
+                  label="Placement"
+                  sx={{ 
+                    borderRadius: 2,
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderRadius: 2,
+                    }
+                  }}
+                >
+                  <SelectMenuItem value="all">All Placements</SelectMenuItem>
+                  {(Object.entries(SLIDER_PLACEMENT_LABELS) as [SliderPlacement, string][]).map(([value, label]) => (
+                    <SelectMenuItem key={value} value={value}>
+                      {label}
+                    </SelectMenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Grid>
@@ -1580,7 +1692,7 @@ export default function SlidersManagement() {
               No sliders found
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mb: 4, maxWidth: 400, mx: 'auto' }}>
-              {searchTerm || statusFilter !== 'all' || audienceFilter !== 'all'
+              {searchTerm || statusFilter !== 'all' || audienceFilter !== 'all' || placementFilter !== 'all'
                 ? 'Try adjusting your filters to see more results'
                 : 'Create your first slider banner to get started with marketing campaigns'}
             </Typography>
@@ -1624,6 +1736,7 @@ export default function SlidersManagement() {
                 }}>
                   <TableCell sx={{ fontWeight: 600 }}>Preview</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Title</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Placement</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Position</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Audience</TableCell>
@@ -1683,6 +1796,14 @@ export default function SlidersManagement() {
                           </Typography>
                         )}
                       </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={getPlacementLabel(slider.placement)}
+                        size="small"
+                        variant="outlined"
+                        sx={{ fontWeight: 500 }}
+                      />
                     </TableCell>
                     <TableCell>
                       <Chip label={slider.position} size="small" variant="outlined" />

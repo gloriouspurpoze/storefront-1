@@ -224,7 +224,7 @@ export default function PromotionManagement() {
         </Card>
       ) : (
         <Grid container spacing={3}>
-          {promotions.map((promo) => (
+          {promotions.filter(Boolean).map((promo) => (
             <Grid item xs={12} md={6} key={promo._id}>
               <Card
                 sx={{
@@ -384,7 +384,9 @@ export default function PromotionManagement() {
                     <Stack direction="row" spacing={1} alignItems="center" color="text.secondary">
                       <CalendarIcon sx={{ fontSize: 16 }} />
                       <Typography variant="body2">
-                        {new Date(promo.schedule.startDate).toLocaleDateString()} - {new Date(promo.schedule.endDate).toLocaleDateString()}
+                        {promo.schedule?.startDate && promo.schedule?.endDate
+                          ? `${new Date(promo.schedule.startDate).toLocaleDateString()} - ${new Date(promo.schedule.endDate).toLocaleDateString()}`
+                          : 'No schedule'}
                       </Typography>
                     </Stack>
                   </Stack>
