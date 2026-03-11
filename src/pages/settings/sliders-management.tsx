@@ -68,7 +68,9 @@ import {
 } from '@mui/icons-material';
 import { PageHeader } from '../../components/common/PageHeader';
 import { SlidersService } from '../../services/api/sliders.service';
+import { CategoriesService } from '../../services/api/categories.service';
 import { Slider, SliderPlacement, SLIDER_PLACEMENT_LABELS } from '../../types';
+import type { Category } from '../../types';
 import { ImageUploadField, FormField, type ImageFile } from '../../components/forms';
 
 interface SliderStats {
@@ -95,6 +97,10 @@ export default function SlidersManagement() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [audienceFilter, setAudienceFilter] = useState('all');
   const [placementFilter, setPlacementFilter] = useState<string>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+
+  // Categories for slider-by-category (e.g. AC, Electrician)
+  const [categories, setCategories] = useState<Category[]>([]);
 
   // Pagination
   const [page, setPage] = useState(0);
@@ -122,6 +128,7 @@ export default function SlidersManagement() {
     position: 1,
     is_active: true,
     placement: 'home_page_hero' as SliderPlacement,
+    category_id: '' as string,
     start_date: '',
     end_date: '',
     target_audience: 'all' as 'all' | 'customers' | 'providers',
@@ -147,7 +154,19 @@ export default function SlidersManagement() {
       fetchSliders();
       fetchStats();
     }
-  }, [viewMode, page, limit, searchTerm, statusFilter, audienceFilter, placementFilter]);
+  }, [viewMode, page, limit, searchTerm, statusFilter, audienceFilter, placementFilter, categoryFilter]);
+
+  // Load categories for slider-by-category (e.g. AC, Electrician) when showing form or list filters
+  useEffect(() => {
+    if (viewMode === 'form' || viewMode === 'list') {
+      CategoriesService.getCategories({ limit: 500, is_active: true })
+        .then((res) => {
+          const list = res?.data?.categories ?? (Array.isArray(res?.data) ? res.data : []);
+          setCategories(Array.isArray(list) ? list : []);
+        })
+        .catch(() => setCategories([]));
+    }
+  }, [viewMode]);
 
   const fetchSliders = async () => {
     try {
@@ -163,6 +182,7 @@ export default function SlidersManagement() {
       }
       if (audienceFilter !== 'all') query.audience = audienceFilter;
       if (placementFilter !== 'all') query.placement = placementFilter;
+      if (categoryFilter !== 'all') query.category_id = categoryFilter;
 
       const response = await SlidersService.getSliders(query);
       
@@ -242,6 +262,7 @@ export default function SlidersManagement() {
       position: slider.position || 1,
       is_active: slider.is_active ?? true,
       placement: (slider.placement as SliderPlacement) || 'home_page_hero',
+      category_id: slider.category_id || '',
       start_date: slider.start_date ? slider.start_date.split('T')[0] : '',
       end_date: slider.end_date ? slider.end_date.split('T')[0] : '',
       target_audience: slider.target_audience || 'all',
@@ -405,6 +426,14 @@ export default function SlidersManagement() {
       if (formData.end_date) {
         payload.end_date = new Date(formData.end_date).toISOString();
       }
+      if (formData.category_id) {
+        payload.category_id = formData.category_id;
+        const cat = categories.find((c) => c.id === formData.category_id);
+        if (cat?.slug) payload.category_slug = cat.slug;
+      } else {
+        payload.category_id = undefined;
+        payload.category_slug = undefined;
+      }
 
       if (formMode === 'create') {
         await SlidersService.createSlider(payload);
@@ -440,6 +469,7 @@ export default function SlidersManagement() {
       position: 1,
       is_active: true,
       placement: 'home_page_hero',
+      category_id: '',
       start_date: '',
       end_date: '',
       target_audience: 'all',
@@ -475,6 +505,7 @@ export default function SlidersManagement() {
     setStatusFilter('all');
     setAudienceFilter('all');
     setPlacementFilter('all');
+    setCategoryFilter('all');
     setPage(0);
   };
 
@@ -694,6 +725,27 @@ export default function SlidersManagement() {
                                 ))}
                               </Select>
                               <FormHelperText>Where this banner appears (Home, Offers, Mobile App, etc.)</FormHelperText>
+                            </FormControl>
+                          </Grid>
+
+                          <Grid size={{ xs: 12, sm: 6 }}>
+                            <FormControl fullWidth>
+                              <InputLabel>Category (optional)</InputLabel>
+                              <Select
+                                value={formData.category_id || ''}
+                                label="Category (optional)"
+                                onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                                sx={{ borderRadius: 2 }}
+                              >
+                                <SelectMenuItem value="">All categories</SelectMenuItem>
+                                {categories.map((cat) => (
+                                  <SelectMenuItem key={cat.id} value={cat.id}>
+                                    {cat.name}
+                                    {cat.slug ? ` (${cat.slug})` : ''}
+                                  </SelectMenuItem>
+                                ))}
+                              </Select>
+                              <FormHelperText>Show this slider only on this category (e.g. AC, Electrician)</FormHelperText>
                             </FormControl>
                           </Grid>
 
@@ -1641,6 +1693,29 @@ export default function SlidersManagement() {
                 </Select>
               </FormControl>
             </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Category</InputLabel>
+                <Select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  label="Category"
+                  sx={{ 
+                    borderRadius: 2,
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderRadius: 2,
+                    }
+                  }}
+                >
+                  <SelectMenuItem value="all">All Categories</SelectMenuItem>
+                  {categories.map((cat) => (
+                    <SelectMenuItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectMenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
             <Grid size={{ xs: 12, md: 2 }}>
               <Button
                 variant="outlined"
@@ -1692,7 +1767,7 @@ export default function SlidersManagement() {
               No sliders found
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mb: 4, maxWidth: 400, mx: 'auto' }}>
-              {searchTerm || statusFilter !== 'all' || audienceFilter !== 'all' || placementFilter !== 'all'
+              {searchTerm || statusFilter !== 'all' || audienceFilter !== 'all' || placementFilter !== 'all' || categoryFilter !== 'all'
                 ? 'Try adjusting your filters to see more results'
                 : 'Create your first slider banner to get started with marketing campaigns'}
             </Typography>
@@ -1737,6 +1812,7 @@ export default function SlidersManagement() {
                   <TableCell sx={{ fontWeight: 600 }}>Preview</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Title</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Placement</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Position</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Audience</TableCell>
@@ -1804,6 +1880,18 @@ export default function SlidersManagement() {
                         variant="outlined"
                         sx={{ fontWeight: 500 }}
                       />
+                    </TableCell>
+                    <TableCell>
+                      {slider.category_id || slider.category_name || slider.category_slug ? (
+                        <Chip
+                          label={slider.category_name || slider.category_slug || slider.category_id}
+                          size="small"
+                          variant="outlined"
+                          sx={{ fontWeight: 500 }}
+                        />
+                      ) : (
+                        <Typography variant="caption" color="text.secondary">—</Typography>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Chip label={slider.position} size="small" variant="outlined" />

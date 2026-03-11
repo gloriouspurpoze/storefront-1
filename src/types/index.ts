@@ -115,6 +115,9 @@ export interface Slider {
   position: number
   is_active: boolean
   placement?: SliderPlacement
+  category_id?: string
+  category_slug?: string
+  category_name?: string
   start_date?: string
   end_date?: string
   target_audience?: 'all' | 'customers' | 'providers'
@@ -134,6 +137,8 @@ export interface CreateSliderRequest {
   position: number
   is_active: boolean
   placement?: SliderPlacement
+  category_id?: string
+  category_slug?: string
   start_date?: string
   end_date?: string
   target_audience?: 'all' | 'customers' | 'providers'
@@ -151,6 +156,8 @@ export interface UpdateSliderRequest {
   position?: number
   is_active?: boolean
   placement?: SliderPlacement
+  category_id?: string
+  category_slug?: string
   start_date?: string
   end_date?: string
   target_audience?: 'all' | 'customers' | 'providers'
@@ -169,6 +176,7 @@ export interface SlidersQuery {
   position?: string
   placement?: SliderPlacement | string
   audience?: string
+  category_id?: string
 }
 
 // Service Request types
@@ -381,6 +389,8 @@ export interface Booking {
     lastName: string
     phone: string
   }
+  /** Where the booking was created: 'web' (website) or 'mobile_app' */
+  source?: 'web' | 'mobile_app';
   createdAt: string
   updatedAt?: string
 }
@@ -401,6 +411,8 @@ export interface BookingsQuery {
   status?: string
   customerId?: string
   providerId?: string
+  /** Filter by where booking was created: 'web' | 'mobile_app' */
+  source?: 'web' | 'mobile_app'
 }
 
 // Payment types

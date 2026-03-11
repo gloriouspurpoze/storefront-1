@@ -44,12 +44,13 @@ Used by: **Slider Management** (admin), **mobile app** (home carousel), and any 
 
 | Method | Endpoint | Query | Description |
 |--------|----------|--------|-------------|
-| GET | `/sliders/active` | (optional) `placement`, `platform` | Get active sliders for website/mobile. Backend may filter by placement/platform in future. |
+| GET | `/sliders/active` | (optional) `placement`, `platform`, `category_id`, `category_slug` | Get active sliders. Use `category_id` or `category_slug` for category-specific sliders (e.g. AC, Electrician). |
 
 **Example (frontend/mobile):**
 ```http
 GET /api/sliders/active
 GET /api/sliders/active?placement=mobile_app_home&platform=mobile
+GET /api/sliders/active?category_slug=electrician
 ```
 
 **Response:**
@@ -86,7 +87,7 @@ GET /api/sliders/active?placement=mobile_app_home&platform=mobile
 
 | Method | Endpoint | Body / Query | Description |
 |--------|----------|--------------|-------------|
-| GET | `/sliders` | Query: `page`, `limit`, `search`, `status`, `audience`, `placement` | List sliders with pagination |
+| GET | `/sliders` | Query: `page`, `limit`, `search`, `status`, `audience`, `placement`, `category_id` | List sliders with pagination |
 | GET | `/sliders/stats` | — | Slider statistics |
 | GET | `/sliders/:id` | — | Get one slider |
 | POST | `/sliders` | CreateSliderRequest | Create slider |
@@ -96,7 +97,7 @@ GET /api/sliders/active?placement=mobile_app_home&platform=mobile
 | DELETE | `/sliders/:id` | — | Delete slider |
 
 **Create/Update body (admin):**  
-`title`, `subtitle`, `description`, `image_url`, `image_url_mobile`, `image_alt`, `button_text`, `button_url`, `position`, `is_active`, `placement`, `start_date`, `end_date`, `target_audience`.
+`title`, `subtitle`, `description`, `image_url`, `image_url_mobile`, `image_alt`, `button_text`, `button_url`, `position`, `is_active`, `placement`, `category_id`, `category_slug`, `start_date`, `end_date`, `target_audience`.
 
 ---
 

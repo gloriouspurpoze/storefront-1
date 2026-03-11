@@ -42,6 +42,8 @@ import {
   AssignmentInd as AssignmentIndIcon,
   Update as UpdateIcon,
   Delete as DeleteIcon,
+  Language as WebIcon,
+  PhoneAndroid as MobileIcon,
 } from '@mui/icons-material'
 import {
   DataGrid,
@@ -128,6 +130,7 @@ export function Bookings() {
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('all')
+  const [selectedSource, setSelectedSource] = useState<'all' | 'web' | 'mobile_app'>('all')
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [page, setPage] = useState(1) // 1-based (API)
@@ -176,6 +179,9 @@ export function Bookings() {
       if (selectedStatus !== 'all') {
         query.status = selectedStatus
       }
+      if (selectedSource !== 'all') {
+        query.source = selectedSource
+      }
 
       const response = await BookingsService.getBookings(query)
       
@@ -199,7 +205,7 @@ export function Bookings() {
 
   useEffect(() => {
     fetchBookings()
-  }, [page, pageSize, selectedStatus])
+  }, [page, pageSize, selectedStatus, selectedSource])
 
   useEffect(() => {
     const loadStats = async () => {
@@ -668,6 +674,26 @@ export function Bookings() {
         },
       },
       {
+        field: 'source',
+        headerName: 'Source',
+        minWidth: 120,
+        flex: 0.5,
+        renderCell: (params: GridRenderCellParams<Booking>) => {
+          const src = (params.row as any).source || params.row.source
+          if (!src) return <Typography variant="caption" color="text.secondary">—</Typography>
+          const isWeb = src === 'web'
+          return (
+            <Chip
+              icon={isWeb ? <WebIcon sx={{ fontSize: 16 }} /> : <MobileIcon sx={{ fontSize: 16 }} />}
+              label={isWeb ? 'Website' : 'Mobile app'}
+              size="small"
+              variant="outlined"
+              sx={{ fontWeight: 600, '& .MuiChip-icon': { color: isWeb ? 'primary.main' : 'secondary.main' } }}
+            />
+          )
+        },
+      },
+      {
         field: 'assignProfessional',
         headerName: 'Assign Professional',
         minWidth: 200,
@@ -841,7 +867,7 @@ export function Bookings() {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={5}>
+            <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
                 placeholder="Search booking #, customer, service, notes..."
@@ -861,7 +887,25 @@ export function Bookings() {
                 }}
               />
             </Grid>
-            <Grid item xs={12} md={7}>
+            <Grid item xs={12} sm={6} md={2}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Source</InputLabel>
+                <Select
+                  value={selectedSource}
+                  label="Source"
+                  onChange={(e) => {
+                    setSelectedSource(e.target.value as 'all' | 'web' | 'mobile_app')
+                    setPage(1)
+                  }}
+                  sx={{ borderRadius: 2 }}
+                >
+                  <MenuItem value="all">All sources</MenuItem>
+                  <MenuItem value="web">Website</MenuItem>
+                  <MenuItem value="mobile_app">Mobile app</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
               <Tabs
                 value={currentTabIndex}
                 onChange={(_, idx) => handleStatusChange(statusTabs[idx]?.value || 'all')}
@@ -934,7 +978,7 @@ export function Bookings() {
               }}
               localeText={{
                 noRowsLabel:
-                  searchTerm || selectedStatus !== 'all'
+                  searchTerm || selectedStatus !== 'all' || selectedSource !== 'all'
                     ? 'No bookings match your current filters.'
                     : 'No bookings yet.',
               }}
@@ -944,8 +988,8 @@ export function Bookings() {
         {!loading && !error && filteredBookings.length === 0 && (
           <Box sx={{ px: 3, pb: 3 }}>
             <Alert severity="info">
-              {searchTerm || selectedStatus !== 'all'
-                ? 'Try adjusting your search or status filter.'
+              {searchTerm || selectedStatus !== 'all' || selectedSource !== 'all'
+                ? 'Try adjusting your search, status, or source filter.'
                 : 'Bookings will appear here when customers schedule services.'}
             </Alert>
           </Box>

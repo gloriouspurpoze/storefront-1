@@ -118,11 +118,15 @@ export class SlidersService {
    * Get active sliders for client side (website or mobile app)
    * @param query.placement - Filter by placement (e.g. home_page_hero, offers, mobile_app_home)
    * @param query.platform - 'web' | 'mobile' – API may return image_url vs image_url_mobile
+   * @param query.category_id - Filter by category (e.g. show sliders for AC, Electrician category page)
+   * @param query.category_slug - Alternative: filter by category slug
    */
-  static async getActiveSliders(query?: { placement?: string; platform?: 'web' | 'mobile' }) {
+  static async getActiveSliders(query?: { placement?: string; platform?: 'web' | 'mobile'; category_id?: string; category_slug?: string }) {
     const params = new URLSearchParams()
     if (query?.placement) params.append('placement', query.placement)
     if (query?.platform) params.append('platform', query.platform)
+    if (query?.category_id) params.append('category_id', query.category_id)
+    if (query?.category_slug) params.append('category_slug', query.category_slug)
     const qs = params.toString()
     const endpoint = `/sliders/active${qs ? `?${qs}` : ''}`
     const response = await apiClient.get(endpoint) as any

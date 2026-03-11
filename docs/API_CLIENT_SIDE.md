@@ -46,13 +46,15 @@ For hero carousels, offers strip, etc. on the client website or mobile app.
 
 | Method | Endpoint | Query | Auth | Description |
 |--------|----------|--------|------|-------------|
-| GET | `/sliders/active` | `placement`, `platform` (optional) | No | Get active sliders |
+| GET | `/sliders/active` | `placement`, `platform`, `category_id`, `category_slug` (optional) | No | Get active sliders |
 
 **Examples:**
 ```http
 GET /api/sliders/active
 GET /api/sliders/active?placement=home_page_hero
 GET /api/sliders/active?placement=mobile_app_home&platform=mobile
+GET /api/sliders/active?category_id=...   # Sliders for a category (e.g. AC, Electrician)
+GET /api/sliders/active?category_slug=electrician
 ```
 
 **Response:**

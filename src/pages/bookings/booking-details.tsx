@@ -2032,6 +2032,11 @@ export function BookingDetails() {
                     Created {new Date(booking.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
                   </Typography>
                 )}
+                {(booking as any).source && (
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Source:</strong> {(booking as any).source === 'web' ? 'Website' : 'Mobile app'}
+                  </Typography>
+                )}
               </Stack>
             </CardContent>
           </Card>
