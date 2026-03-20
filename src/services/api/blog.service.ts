@@ -124,6 +124,10 @@ function mapPayloadToBackend(payload: BlogPostCreatePayload): Record<string, unk
 }
 
 export const BlogService = {
+  /**
+   * List admin posts. The backend usually paginates (default limit ~10–20);
+   * pass `limit` and `page` from the UI to load more (see Blog Management).
+   */
   async getPosts(params?: {
     page?: number;
     limit?: number;
