@@ -15,6 +15,19 @@ import type {
   BlogCategory,
 } from '../../types/cms.types';
 
+/** Response from POST /cms/admin/blogs/plagiarism-scan */
+export interface BlogPlagiarismAnalysis {
+  originalityScore: number;
+  wordCount: number;
+  sentenceCount: number;
+  lexicalDiversity: number;
+  duplicateSentenceCount: number;
+  duplicateSamples: { snippet: string; occurrences: number }[];
+  repeatedFiveGrams: { phrase: string; count: number }[];
+  signals: string[];
+  disclaimer: string;
+}
+
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 function getAuthHeaders() {
@@ -187,6 +200,27 @@ export const BlogService = {
    * Generate blog content with AI. Requires backend OPENAI_API_KEY.
    * Returns title, excerpt, content (HTML), suggestedTags.
    */
+  /**
+   * Server-side originality scan (repetition + vocabulary heuristics). Does not search the web.
+   */
+  async scanPlagiarism(payload: {
+    html?: string;
+    text?: string;
+    title?: string;
+  }): Promise<BlogPlagiarismAnalysis> {
+    const response = await axios.post(
+      `${API_BASE}/cms/admin/blogs/plagiarism-scan`,
+      payload,
+      getAuthHeaders()
+    );
+    const data = response.data?.data ?? response.data;
+    const analysis = data?.analysis;
+    if (!analysis) {
+      throw new Error('Invalid plagiarism scan response');
+    }
+    return analysis as BlogPlagiarismAnalysis;
+  },
+
   async generateWithAI(payload: {
     topic: string;
     tone?: 'professional' | 'friendly' | 'casual' | 'informative';
