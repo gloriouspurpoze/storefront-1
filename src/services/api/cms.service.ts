@@ -500,5 +500,88 @@ export class CMSService {
     );
     return response.data.data;
   }
+
+  // ==================== RATE CARD (catalog pricing parts by category) ====================
+
+  static async getRateCards(): Promise<Record<string, Array<{ name: string; price: string }>>> {
+    const response = await axios.get(
+      `${API_BASE}/cms/admin/static-content/rate-card`,
+      this.getAuthHeaders()
+    );
+    return response.data?.data ?? response.data ?? {};
+  }
+
+  static async updateRateCards(data: Record<string, Array<{ name: string; price: string }>>) {
+    const response = await axios.put(
+      `${API_BASE}/cms/admin/static-content/rate-card`,
+      data,
+      this.getAuthHeaders()
+    );
+    return response.data?.data ?? response.data;
+  }
+
+  // ==================== CATEGORY MARKETING (catalog "#1 [Category] services" blocks) ====================
+
+  static async getCategoryMarketing(): Promise<
+    Record<
+      string,
+      {
+        mainHeading: string;
+        intro: string;
+        image1?: string;
+        image2?: string;
+        serviceTypes: Array<{ title: string; description: string; bullets: string[] }>;
+        waysHeading: string;
+        waysBullets: string[];
+      }
+    >
+  > {
+    const response = await axios.get(
+      `${API_BASE}/cms/admin/static-content/category-marketing`,
+      this.getAuthHeaders()
+    );
+    return response.data?.data ?? response.data ?? {};
+  }
+
+  static async updateCategoryMarketing(
+    data: Record<
+      string,
+      {
+        mainHeading: string;
+        intro: string;
+        image1?: string;
+        image2?: string;
+        serviceTypes: Array<{ title: string; description: string; bullets: string[] }>;
+        waysHeading: string;
+        waysBullets: string[];
+      }
+    >
+  ) {
+    const response = await axios.put(
+      `${API_BASE}/cms/admin/static-content/category-marketing`,
+      data,
+      this.getAuthHeaders()
+    );
+    return response.data?.data ?? response.data;
+  }
+
+  // ==================== CROSS-LINKING (common problems by category for SEO) ====================
+
+  static async getCrossLinking(): Promise<Record<string, string[]>> {
+    const response = await axios.get(
+      `${API_BASE}/cms/admin/static-content/cross-linking`,
+      this.getAuthHeaders()
+    );
+    return response.data?.data ?? response.data ?? {};
+  }
+
+  static async updateCrossLinking(data: Record<string, string[]>) {
+    const response = await axios.put(
+      `${API_BASE}/cms/admin/static-content/cross-linking`,
+      data,
+      this.getAuthHeaders()
+    );
+    return response.data?.data ?? response.data;
+  }
 }
 

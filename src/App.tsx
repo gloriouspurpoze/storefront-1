@@ -79,6 +79,7 @@ const CMSDashboard = lazy(() => import('./pages/cms/CMSDashboard'))
 const BannerManagement = lazy(() => import('./pages/cms/BannerManagement'))
 const PromotionManagement = lazy(() => import('./pages/cms/PromotionManagement'))
 const TestimonialManagement = lazy(() => import('./pages/cms/TestimonialManagement'))
+const ReviewsManagement = lazy(() => import('./pages/cms/ReviewsManagement'))
 const FAQManagement = lazy(() => import('./pages/cms/FAQManagement'))
 const SEOManagement = lazy(() => import('./pages/cms/SEOManagement'))
 const HomepageManagement = lazy(() => import('./pages/cms/HomepageManagement'))
@@ -89,6 +90,9 @@ const PageManagement = lazy(() => import('./pages/cms/PageManagement'))
 const MenuManagement = lazy(() => import('./pages/cms/MenuManagement'))
 const NewsletterManagement = lazy(() => import('./pages/cms/NewsletterManagement'))
 const SocialLinksManagement = lazy(() => import('./pages/cms/SocialLinksManagement'))
+const RateCardManagement = lazy(() => import('./pages/cms/RateCardManagement'))
+const CategoryMarketingManagement = lazy(() => import('./pages/cms/CategoryMarketingManagement'))
+const CrossLinkingManagement = lazy(() => import('./pages/cms/CrossLinkingManagement'))
 
 const RouteFallback = (
   <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 280, width: '100%' }}>
@@ -604,6 +608,14 @@ function App() {
                         } 
                       />
                       <Route 
+                        path="/cms/reviews" 
+                        element={
+                          <RoleBasedRoute permissions={['manage_system_settings']}>
+                            <ReviewsManagement />
+                          </RoleBasedRoute>
+                        } 
+                      />
+                      <Route 
                         path="/cms/faqs" 
                         element={
                           <RoleBasedRoute permissions={['manage_system_settings']}>
@@ -672,6 +684,30 @@ function App() {
                         element={
                           <RoleBasedRoute permissions={['manage_system_settings']}>
                             <SocialLinksManagement />
+                          </RoleBasedRoute>
+                        } 
+                      />
+                      <Route 
+                        path="/cms/rate-card" 
+                        element={
+                          <RoleBasedRoute permissions={['manage_system_settings']}>
+                            <RateCardManagement />
+                          </RoleBasedRoute>
+                        } 
+                      />
+                      <Route 
+                        path="/cms/category-marketing" 
+                        element={
+                          <RoleBasedRoute permissions={['manage_system_settings']}>
+                            <CategoryMarketingManagement />
+                          </RoleBasedRoute>
+                        } 
+                      />
+                      <Route 
+                        path="/cms/cross-linking" 
+                        element={
+                          <RoleBasedRoute permissions={['manage_system_settings']}>
+                            <CrossLinkingManagement />
                           </RoleBasedRoute>
                         } 
                       />

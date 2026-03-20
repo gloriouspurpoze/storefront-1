@@ -24,6 +24,9 @@ import {
   Menu as MenuIcon,
   Visibility as EyeIcon,
   TrendingUp as TrendingUpIcon,
+  Receipt as ReceiptIcon,
+  Campaign as CampaignIcon,
+  Link as LinkIcon,
 } from '@mui/icons-material';
 import { CMSService } from '../../services/api';
 import { PageHeader } from '../../components/common/PageHeader';
@@ -123,12 +126,44 @@ export default function CMSDashboard() {
       stat: stats.totalTestimonials || null,
     },
     {
+      title: 'Reviews',
+      description: 'View all booking reviews and category feedback',
+      icon: StarIcon,
+      link: '/cms/reviews',
+      color: theme.palette.warning.dark,
+      stat: null,
+    },
+    {
       title: 'FAQs',
       description: 'Manage frequently asked questions',
       icon: HelpIcon,
       link: '/cms/faqs',
       color: theme.palette.info.main,
       stat: stats.totalFAQs || null,
+    },
+    {
+      title: 'Rate Card',
+      description: 'Category-wise spare parts & pricing for catalog',
+      icon: ReceiptIcon,
+      link: '/cms/rate-card',
+      color: '#795548',
+      stat: null,
+    },
+    {
+      title: 'Category Marketing',
+      description: '#1 [Category] services blocks & 4 ways section',
+      icon: CampaignIcon,
+      link: '/cms/category-marketing',
+      color: '#5C6BC0',
+      stat: null,
+    },
+    {
+      title: 'Cross-Linking',
+      description: 'Common problems per category for SEO',
+      icon: LinkIcon,
+      link: '/cms/cross-linking',
+      color: '#00897B',
+      stat: null,
     },
     {
       title: 'SEO Management',

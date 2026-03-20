@@ -16,6 +16,7 @@ export { ProfessionalApplicationsService } from './professionalApplications.serv
 export { OrdersService } from './orders.service'
 export { ChatService } from './chat.service'
 export { CMSService } from './cms.service'
+export { ReviewsService } from './reviews.service'
 export { BlogService } from './blog.service'
 export { CouponsService } from './coupons.service'
 export { OffersService } from './offers.service'
