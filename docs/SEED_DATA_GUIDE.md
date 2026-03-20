@@ -44,6 +44,13 @@ node src/scripts/seed-homepage-menus.js
 ### Testimonials
 See `TESTIMONIALS_SEED_DATA.md` for adding sample testimonials.
 
+### Example blog posts (3)
+See `BLOG_SEEDS.md`. From **fixer-admin**:
+
+```bash
+SEED_AUTH_TOKEN="your_jwt" npm run seed:blogs
+```
+
 ---
 
 ## ✅ After Running

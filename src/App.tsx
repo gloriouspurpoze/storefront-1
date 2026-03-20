@@ -84,6 +84,7 @@ const FAQManagement = lazy(() => import('./pages/cms/FAQManagement'))
 const SEOManagement = lazy(() => import('./pages/cms/SEOManagement'))
 const HomepageManagement = lazy(() => import('./pages/cms/HomepageManagement'))
 const BlogManagement = lazy(() => import('./pages/cms/BlogManagement'))
+const BlogEditorPage = lazy(() => import('./pages/cms/BlogEditorPage'))
 const BlogCategoryManagement = lazy(() => import('./pages/cms/BlogCategoryManagement'))
 const MediaLibrary = lazy(() => import('./pages/cms/MediaLibrary'))
 const PageManagement = lazy(() => import('./pages/cms/PageManagement'))
@@ -630,6 +631,22 @@ function App() {
                             <SEOManagement />
                           </RoleBasedRoute>
                         } 
+                      />
+                      <Route
+                        path="/cms/blogs/new"
+                        element={
+                          <RoleBasedRoute permissions={['manage_system_settings']}>
+                            <BlogEditorPage />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/cms/blogs/:postId/edit"
+                        element={
+                          <RoleBasedRoute permissions={['manage_system_settings']}>
+                            <BlogEditorPage />
+                          </RoleBasedRoute>
+                        }
                       />
                       <Route 
                         path="/cms/blogs" 

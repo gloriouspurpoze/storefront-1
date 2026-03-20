@@ -44,6 +44,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "dompurify": "^3.3.3",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.544.0",
     "quill": "^2.0.3",
@@ -70,7 +71,8 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "seed:blogs": "node scripts/seed-example-blogs.mjs"
   },
   "eslintConfig": {
     "extends": [
@@ -104,6 +106,7 @@
     "@storybook/addon-viewport": "^9.0.8",
     "@storybook/preset-create-react-app": "^9.1.10",
     "@storybook/react-webpack5": "^9.1.10",
+    "@types/dompurify": "^3.0.5",
     "autoprefixer": "^10.4.21",
     "eslint-plugin-storybook": "^9.1.10",
     "postcss": "^8.5.6",
