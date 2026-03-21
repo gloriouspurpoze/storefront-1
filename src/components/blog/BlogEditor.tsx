@@ -17,10 +17,12 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type Quill from 'quill'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
 import DOMPurify from 'dompurify'
 import { BlogService, type BlogPlagiarismAnalysis } from '../../services/api/blog.service'
+import { UploadService } from '../../services/api/upload.service'
 import { useToast } from '../ui'
 import type { BlogPostStatus } from '../../types/cms.types'
 import {
@@ -33,7 +35,14 @@ import {
   findRepeatedSentences,
   keywordMetricsForPhrases,
 } from './blog-writer-utils'
+import {
+  defaultLeadMagnetSettings,
+  buildBlogStructuredAppendixHtml,
+  buildFaqJsonLdString,
+} from './blog-lead-magnet-utils'
 import { highlightRepeatPhrasesInHtml } from './highlightRepeatPhrases'
+
+type FaqEditorRow = { id: string; question: string; answer: string }
 
 // --- Slugify (URL-safe segment from title) -----------------------------------
 
@@ -86,6 +95,7 @@ function fleschLabel(score: number): string {
 
 interface ParsedContentStats {
   wordCount: number
+  h1: number
   h2: number
   h3: number
   imageCount: number
@@ -98,6 +108,7 @@ interface ParsedContentStats {
 function parseContentHtml(html: string, internalHosts: string[]): ParsedContentStats {
   const empty: ParsedContentStats = {
     wordCount: 0,
+    h1: 0,
     h2: 0,
     h3: 0,
     imageCount: 0,
@@ -112,14 +123,15 @@ function parseContentHtml(html: string, internalHosts: string[]): ParsedContentS
     ADD_ATTR: ['target', 'rel'],
     ALLOWED_TAGS: [
       'p', 'br', 'span', 'strong', 'em', 'u', 's', 'a', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-      'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'img',
+      'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'img', 'iframe',
     ],
-    ALLOWED_ATTR: ['href', 'src', 'alt', 'class', 'style'],
+    ALLOWED_ATTR: ['href', 'src', 'alt', 'class', 'style', 'title', 'width', 'height', 'frameborder', 'allow', 'allowfullscreen'],
   })
 
   const doc = new DOMParser().parseFromString(safe, 'text/html')
   const body = doc.body
 
+  const h1 = body.querySelectorAll('h1').length
   const h2 = body.querySelectorAll('h2').length
   const h3 = body.querySelectorAll('h3').length
   const imgs = body.querySelectorAll('img')
@@ -156,6 +168,7 @@ function parseContentHtml(html: string, internalHosts: string[]): ParsedContentS
 
   return {
     wordCount,
+    h1,
     h2,
     h3,
     imageCount: imgs.length,
@@ -242,20 +255,7 @@ function computeSeoScore(params: {
   return { score: Math.min(max, Math.round(points)), hints }
 }
 
-// --- Quill toolbar -----------------------------------------------------------
-
-const QUILL_MODULES = {
-  toolbar: [
-    [{ header: [2, 3, 4, false] }],
-    ['bold', 'italic', 'underline', 'strike'],
-    [{ list: 'ordered' }, { list: 'bullet' }],
-    [{ indent: '-1' }, { indent: '+1' }],
-    ['blockquote', 'code-block'],
-    ['link', 'image'],
-    ['clean'],
-  ],
-  clipboard: { matchVisual: false },
-}
+// --- Quill formats (toolbar modules built in BlogEditor with Cloudinary handlers) ---
 
 const QUILL_FORMATS = [
   'header',
@@ -263,16 +263,23 @@ const QUILL_FORMATS = [
   'italic',
   'underline',
   'strike',
+  'color',
+  'background',
   'list',
   'bullet',
   'indent',
+  'align',
   'blockquote',
   'code-block',
   'link',
   'image',
+  'video',
 ]
 
 const WORD_TARGET = 1500
+/** Folder for in-article uploads + library picker (same as other CMS image fields). */
+const BLOG_BODY_CLOUDINARY_FOLDER = 'homeservice'
+const CLOUDINARY_LIBRARY_LIMIT = 80
 const DEBOUNCE_MS = 350
 
 // --- Component ---------------------------------------------------------------
@@ -286,6 +293,15 @@ export interface BlogEditorProps {
 
 export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps) {
   const { toast } = useToast()
+  /** Set from Quill toolbar handlers (ReactQuill may not forward ref). */
+  const quillEditorRef = useRef<Quill | null>(null)
+  /** Preserve index when file/Cloudinary dialogs steal focus from the editor. */
+  const quillInsertIndexRef = useRef(0)
+  const [cloudinaryPickerOpen, setCloudinaryPickerOpen] = useState(false)
+  const [cloudinaryImages, setCloudinaryImages] = useState<Array<{ url: string; publicId: string }>>([])
+  const [cloudinaryLoading, setCloudinaryLoading] = useState(false)
+  const [cloudinaryError, setCloudinaryError] = useState<string | null>(null)
+
   const [title, setTitle] = useState('')
   const [slug, setSlug] = useState('')
   const [slugTouched, setSlugTouched] = useState(false)
@@ -315,6 +331,9 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
   const [hasOriginalData, setHasOriginalData] = useState(false)
   const [hasDownloadableAsset, setHasDownloadableAsset] = useState(false)
   const [hasInternalLinksDeclared, setHasInternalLinksDeclared] = useState(false)
+
+  const [faqRows, setFaqRows] = useState<FaqEditorRow[]>([])
+  const [leadMagnet, setLeadMagnet] = useState(defaultLeadMagnetSettings)
 
   const [debouncedPayload, setDebouncedPayload] = useState({
     html: '',
@@ -421,6 +440,27 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`,
           )
         } else setScheduledLocal('')
+        const faqLoaded = post.faqItems ?? []
+        setFaqRows(
+          faqLoaded.map((f, i) => ({
+            id: `loaded-${i}`,
+            question: f.question ?? '',
+            answer: f.answer ?? '',
+          })),
+        )
+        setLeadMagnet(
+          post.leadMagnet
+            ? {
+                ...defaultLeadMagnetSettings(),
+                headline: post.leadMagnet.headline ?? defaultLeadMagnetSettings().headline,
+                subtext: post.leadMagnet.subtext ?? defaultLeadMagnetSettings().subtext,
+                buttonLabel: post.leadMagnet.buttonLabel ?? defaultLeadMagnetSettings().buttonLabel,
+                formActionUrl: post.leadMagnet.formActionUrl ?? '',
+                sourceTag: post.leadMagnet.sourceTag ?? defaultLeadMagnetSettings().sourceTag,
+                enabled: Boolean(post.leadMagnet.enabled),
+              }
+            : defaultLeadMagnetSettings(),
+        )
         setLoadState('idle')
       } catch (e: unknown) {
         if (!cancelled) {
@@ -451,6 +491,93 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
     const h = siteHost.trim()
     return h ? [h] : []
   }, [siteHost])
+
+  const quillModules = useMemo(
+    () => ({
+      toolbar: {
+        container: [
+          [{ header: [1, 2, 3, 4, 5, 6, false] }],
+          ['bold', 'italic', 'underline', 'strike'],
+          [{ color: [] }, { background: [] }],
+          [{ list: 'ordered' }, { list: 'bullet' }],
+          [{ indent: '-1' }, { indent: '+1' }],
+          [{ align: [] }],
+          ['blockquote', 'code-block'],
+          ['link', 'image', 'cloudinary', 'video'],
+          ['clean'],
+        ],
+        handlers: {
+          image: function (this: { quill: Quill }) {
+            quillEditorRef.current = this.quill
+            const sel = this.quill.getSelection(true)
+            const len = this.quill.getLength()
+            quillInsertIndexRef.current = sel?.index ?? Math.max(0, len - 1)
+            const input = document.createElement('input')
+            input.setAttribute('type', 'file')
+            input.setAttribute('accept', 'image/*')
+            input.click()
+            input.onchange = async () => {
+              const file = input.files?.[0]
+              if (!file) return
+              try {
+                const { url } = await UploadService.uploadImage(file, BLOG_BODY_CLOUDINARY_FOLDER)
+                const idx = quillInsertIndexRef.current
+                this.quill.insertEmbed(idx, 'image', url, 'user')
+                this.quill.setSelection(idx + 1, 0)
+                toast({ title: 'Image uploaded', description: 'Stored on Cloudinary and inserted in the post.' })
+              } catch (e: unknown) {
+                const msg = e instanceof Error ? e.message : 'Upload failed'
+                toast({ title: 'Upload failed', description: msg, variant: 'destructive' })
+              }
+            }
+          },
+          cloudinary: function (this: { quill: Quill }) {
+            quillEditorRef.current = this.quill
+            const sel = this.quill.getSelection(true)
+            const len = this.quill.getLength()
+            quillInsertIndexRef.current = sel?.index ?? Math.max(0, len - 1)
+            setCloudinaryPickerOpen(true)
+          },
+        },
+      },
+      clipboard: { matchVisual: false },
+    }),
+    [toast],
+  )
+
+  useEffect(() => {
+    if (!cloudinaryPickerOpen) return
+    let cancelled = false
+    setCloudinaryLoading(true)
+    setCloudinaryError(null)
+    void UploadService.listImages(BLOG_BODY_CLOUDINARY_FOLDER, CLOUDINARY_LIBRARY_LIMIT)
+      .then((images) => {
+        if (!cancelled) {
+          setCloudinaryImages(images.map((img) => ({ url: img.url, publicId: img.publicId })))
+        }
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) {
+          setCloudinaryError(e instanceof Error ? e.message : 'Failed to load images')
+          setCloudinaryImages([])
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setCloudinaryLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [cloudinaryPickerOpen])
+
+  const insertQuillImageFromUrl = useCallback((url: string) => {
+    const editor = quillEditorRef.current
+    if (!editor) return
+    const idx = quillInsertIndexRef.current
+    editor.insertEmbed(idx, 'image', url, 'user')
+    editor.setSelection(idx + 1, 0)
+    setCloudinaryPickerOpen(false)
+  }, [])
 
   const stats = useMemo(() => parseContentHtml(debouncedPayload.html, internalHosts), [debouncedPayload.html, internalHosts])
 
@@ -681,15 +808,82 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
     [naturalKeywordHints, writerSuggestions],
   )
 
+  const faqItemsResolved = useMemo(
+    () =>
+      faqRows
+        .map((r) => ({ question: r.question.trim(), answer: r.answer.trim() }))
+        .filter((r) => r.question && r.answer),
+    [faqRows],
+  )
+
+  const structuredBlockPurifyConfig = useMemo(
+    () => ({
+      ADD_ATTR: ['target', 'rel'],
+      ALLOWED_TAGS: [
+        'p', 'br', 'span', 'strong', 'em', 'u', 's', 'a', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+        'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'img', 'iframe',
+        'mark',
+        'section', 'dl', 'dt', 'dd', 'form', 'label', 'input', 'button',
+      ],
+      ALLOWED_ATTR: [
+        'href',
+        'src',
+        'alt',
+        'class',
+        'style',
+        'title',
+        'width',
+        'height',
+        'frameborder',
+        'allow',
+        'allowfullscreen',
+        'id',
+        'for',
+        'type',
+        'name',
+        'value',
+        'method',
+        'action',
+        'autocomplete',
+        'required',
+        'aria-labelledby',
+      ],
+    }),
+    [],
+  )
+
+  const previewStructuredAppendix = useMemo(
+    () =>
+      DOMPurify.sanitize(
+        buildBlogStructuredAppendixHtml(faqItemsResolved, leadMagnet),
+        structuredBlockPurifyConfig,
+      ),
+    [faqItemsResolved, leadMagnet, structuredBlockPurifyConfig],
+  )
+
+  const previewFaqJsonLd = useMemo(() => buildFaqJsonLdString(faqItemsResolved), [faqItemsResolved])
+
   const previewPurifyConfig = useMemo(
     () => ({
       ADD_ATTR: ['target', 'rel'],
       ALLOWED_TAGS: [
         'p', 'br', 'span', 'strong', 'em', 'u', 's', 'a', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-        'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'img',
+        'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'img', 'iframe',
         'mark',
       ],
-      ALLOWED_ATTR: ['href', 'src', 'alt', 'class', 'style', 'title'],
+      ALLOWED_ATTR: [
+        'href',
+        'src',
+        'alt',
+        'class',
+        'style',
+        'title',
+        'width',
+        'height',
+        'frameborder',
+        'allow',
+        'allowfullscreen',
+      ],
     }),
     [],
   )
@@ -697,17 +891,29 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
   const previewArticleHtml = useMemo(() => {
     const base = DOMPurify.sanitize(contentHtml, previewPurifyConfig)
     const grams = plagiarismResult?.repeatedFiveGrams
-    if (!previewHighlightRepeats || !grams?.length) return base
-    try {
-      const hi = highlightRepeatPhrasesInHtml(
-        base,
-        grams.map((g) => g.phrase),
-      )
-      return DOMPurify.sanitize(hi, previewPurifyConfig)
-    } catch {
-      return base
+    let inner = base
+    if (previewHighlightRepeats && grams?.length) {
+      try {
+        inner = DOMPurify.sanitize(
+          highlightRepeatPhrasesInHtml(
+            base,
+            grams.map((g) => g.phrase),
+          ),
+          previewPurifyConfig,
+        )
+      } catch {
+        inner = base
+      }
     }
-  }, [contentHtml, previewPurifyConfig, plagiarismResult, previewHighlightRepeats])
+    if (!previewStructuredAppendix) return inner
+    return `${inner}<div class="mt-8 border-t border-slate-200 pt-6">${previewStructuredAppendix}</div>`
+  }, [
+    contentHtml,
+    previewPurifyConfig,
+    plagiarismResult,
+    previewHighlightRepeats,
+    previewStructuredAppendix,
+  ])
 
   const runBackendPlagiarismScan = async () => {
     const html = contentHtml.trim()
@@ -769,12 +975,20 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
       ],
       ALLOWED_ATTR: ['href', 'src', 'alt', 'class'],
     })
+    const appendixSafe = DOMPurify.sanitize(
+      buildBlogStructuredAppendixHtml(faqItemsResolved, leadMagnet),
+      structuredBlockPurifyConfig,
+    )
     const html = buildExportHtmlDocument(
       title,
       effectiveSeoTitle,
       metaDescription,
       safeBody,
       featuredImageUrl.trim(),
+      {
+        appendixHtml: appendixSafe || undefined,
+        faqJsonLd: previewFaqJsonLd,
+      },
     )
     downloadTextFile(`${exportSlugBase}.html`, html, 'text/html;charset=utf-8')
     toast({ title: 'Exported', description: `${exportSlugBase}.html downloaded` })
@@ -789,12 +1003,20 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
       ],
       ALLOWED_ATTR: ['href', 'src', 'alt', 'class'],
     })
+    const appendixSafe = DOMPurify.sanitize(
+      buildBlogStructuredAppendixHtml(faqItemsResolved, leadMagnet),
+      structuredBlockPurifyConfig,
+    )
     const docHtml = buildExportHtmlDocument(
       title,
       effectiveSeoTitle,
       metaDescription,
       safeBody,
       featuredImageUrl.trim(),
+      {
+        appendixHtml: appendixSafe || undefined,
+        faqJsonLd: previewFaqJsonLd,
+      },
     )
     const w = window.open('', '_blank', 'noopener,noreferrer')
     if (!w) {
@@ -887,6 +1109,15 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             ),
           ),
           ogImage: trimmedUrl || undefined,
+        },
+        faqItems: faqItemsResolved,
+        leadMagnet: {
+          enabled: leadMagnet.enabled,
+          headline: leadMagnet.headline.trim(),
+          subtext: leadMagnet.subtext.trim(),
+          buttonLabel: leadMagnet.buttonLabel.trim(),
+          formActionUrl: leadMagnet.formActionUrl.trim(),
+          sourceTag: leadMagnet.sourceTag.trim(),
         },
       }
 
@@ -1241,10 +1472,152 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
               />
             </div>
 
+            <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4">
+              <h3 className="text-sm font-semibold text-slate-800">FAQ schema &amp; lead magnet</h3>
+              <p className="mt-1 text-xs text-slate-600">
+                Saved as <code className="rounded bg-white px-1 text-[11px]">faqItems</code> and{' '}
+                <code className="rounded bg-white px-1 text-[11px]">leadMagnet</code> on the post. The consumer site should inject FAQ JSON‑LD in{' '}
+                <code className="text-[11px]">&lt;head&gt;</code> and render the same Q&amp;A + form below the article. Preview shows the appendix and a
+                copyable JSON‑LD block.
+              </p>
+
+              <div className="mt-3 space-y-3">
+                {faqRows.map((row, idx) => (
+                  <div key={row.id} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <span className="text-xs font-medium text-slate-500">FAQ {idx + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => setFaqRows((rows) => rows.filter((r) => r.id !== row.id))}
+                        className="text-xs font-medium text-red-600 hover:text-red-700"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    <label className="mb-1 block text-xs text-slate-600">Question</label>
+                    <input
+                      className="mb-2 w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
+                      value={row.question}
+                      onChange={(e) =>
+                        setFaqRows((rows) =>
+                          rows.map((r) => (r.id === row.id ? { ...r, question: e.target.value } : r)),
+                        )
+                      }
+                      placeholder="e.g. What is included in the free guide?"
+                    />
+                    <label className="mb-1 block text-xs text-slate-600">Answer</label>
+                    <textarea
+                      className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
+                      rows={2}
+                      value={row.answer}
+                      onChange={(e) =>
+                        setFaqRows((rows) =>
+                          rows.map((r) => (r.id === row.id ? { ...r, answer: e.target.value } : r)),
+                        )
+                      }
+                      placeholder="Short answer shown on the page and in schema."
+                    />
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFaqRows((rows) => [
+                      ...rows,
+                      {
+                        id:
+                          typeof crypto !== 'undefined' && 'randomUUID' in crypto
+                            ? crypto.randomUUID()
+                            : `faq-${Date.now()}`,
+                        question: '',
+                        answer: '',
+                      },
+                    ])
+                  }
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  + Add FAQ
+                </button>
+              </div>
+
+              <div className="mt-4 space-y-3 border-t border-indigo-100 pt-4">
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
+                  <input
+                    type="checkbox"
+                    className="rounded border-slate-300"
+                    checked={leadMagnet.enabled}
+                    onChange={(e) => setLeadMagnet((m) => ({ ...m, enabled: e.target.checked }))}
+                  />
+                  Enable lead magnet form
+                </label>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <label className="mb-1 block text-xs text-slate-600">Headline</label>
+                    <input
+                      className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
+                      value={leadMagnet.headline}
+                      onChange={(e) => setLeadMagnet((m) => ({ ...m, headline: e.target.value }))}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="mb-1 block text-xs text-slate-600">Subtext</label>
+                    <input
+                      className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
+                      value={leadMagnet.subtext}
+                      onChange={(e) => setLeadMagnet((m) => ({ ...m, subtext: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs text-slate-600">Button label</label>
+                    <input
+                      className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
+                      value={leadMagnet.buttonLabel}
+                      onChange={(e) => setLeadMagnet((m) => ({ ...m, buttonLabel: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs text-slate-600">Form action URL (POST)</label>
+                    <input
+                      className="w-full rounded border border-slate-300 px-2 py-1.5 font-mono text-xs"
+                      value={leadMagnet.formActionUrl}
+                      onChange={(e) => setLeadMagnet((m) => ({ ...m, formActionUrl: e.target.value }))}
+                      placeholder="https://yoursite.com/api/leads"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="mb-1 block text-xs text-slate-600">Hidden field source</label>
+                    <input
+                      className="w-full rounded border border-slate-300 px-2 py-1.5 font-mono text-xs"
+                      value={leadMagnet.sourceTag}
+                      onChange={(e) => setLeadMagnet((m) => ({ ...m, sourceTag: e.target.value }))}
+                      placeholder="blog-lead-magnet"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div>
               <label className="mb-1 block text-sm font-medium">Content</label>
+              <p className="mb-2 text-xs text-slate-500">
+                Images: toolbar image uploads to Cloudinary; the cloud button picks an existing library image. Headings H1–H6, colors, alignment, and video match the rest of the CMS rich text fields.
+              </p>
               <div className="blog-quill rounded-lg border border-slate-300 [&_.ql-container]:min-h-[320px] [&_.ql-editor]:min-h-[280px] [&_.ql-toolbar]:rounded-t-lg [&_.ql-container]:rounded-b-lg">
-                <ReactQuill theme="snow" value={contentHtml} onChange={setContentHtml} modules={QUILL_MODULES} formats={QUILL_FORMATS} placeholder="Write pillar content…" />
+                <style>{`
+                  .blog-quill .ql-toolbar button.ql-cloudinary::before {
+                    content: '☁';
+                    font-size: 1.05rem;
+                    line-height: 0;
+                  }
+                `}</style>
+                <ReactQuill
+                  theme="snow"
+                  value={contentHtml}
+                  onChange={setContentHtml}
+                  modules={quillModules}
+                  formats={QUILL_FORMATS}
+                  placeholder="Write pillar content…"
+                />
               </div>
             </div>
           </div>
@@ -1335,9 +1708,9 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                   <dd className="font-medium">~{readingTimeMinutes} min</dd>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <dt className="text-slate-600">H2 / H3</dt>
+                  <dt className="text-slate-600">H1 / H2 / H3</dt>
                   <dd className="font-medium">
-                    {stats.h2} / {stats.h3}
+                    {stats.h1} / {stats.h2} / {stats.h3}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-4">
@@ -1531,6 +1904,68 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
         </div>
       </div>
 
+      {cloudinaryPickerOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Choose image from Cloudinary"
+          onClick={() => setCloudinaryPickerOpen(false)}
+        >
+          <div
+            className="relative my-8 w-full max-w-3xl rounded-xl border border-slate-200 bg-white shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+              <div>
+                <h2 className="text-sm font-semibold text-slate-900">Insert from Cloudinary</h2>
+                <p className="text-xs text-slate-500">
+                  Folder: {BLOG_BODY_CLOUDINARY_FOLDER} — click an image to insert at your cursor.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCloudinaryPickerOpen(false)}
+                className="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100"
+              >
+                Close
+              </button>
+            </div>
+            <div className="max-h-[min(70vh,520px)] overflow-y-auto p-4">
+              {cloudinaryLoading && <p className="text-sm text-slate-600">Loading library…</p>}
+              {!cloudinaryLoading && cloudinaryError && (
+                <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">{cloudinaryError}</p>
+              )}
+              {!cloudinaryLoading && !cloudinaryError && cloudinaryImages.length === 0 && (
+                <p className="text-sm text-slate-600">No images in this folder yet. Upload with the image button first.</p>
+              )}
+              {!cloudinaryLoading && !cloudinaryError && cloudinaryImages.length > 0 && (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                  {cloudinaryImages.map((img) => (
+                    <button
+                      key={img.publicId}
+                      type="button"
+                      onClick={() => insertQuillImageFromUrl(img.url)}
+                      className="group overflow-hidden rounded-lg border border-slate-200 bg-slate-50 text-left shadow-sm transition hover:border-indigo-300 hover:ring-2 hover:ring-indigo-200"
+                    >
+                      <img
+                        src={img.url}
+                        alt=""
+                        className="aspect-square w-full object-cover"
+                        loading="lazy"
+                      />
+                      <span className="block truncate px-2 py-1 text-[10px] text-slate-500 group-hover:text-slate-700">
+                        {img.publicId.split('/').pop()}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {previewOpen && (
         <div
           className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm"
@@ -1577,10 +2012,21 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
               <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title || 'Untitled'}</h1>
               <p className="mt-2 text-sm text-slate-500">{metaDescription || 'No meta description'}</p>
               <div
-                className="blog-preview-content mt-8 max-w-none text-slate-800 [&_a]:text-indigo-600 [&_blockquote]:border-l-4 [&_blockquote]:border-slate-200 [&_blockquote]:pl-4 [&_h2]:mt-8 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:mt-6 [&_h3]:text-lg [&_h3]:font-semibold [&_img]:max-w-full [&_img]:rounded-lg [&_mark]:rounded [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-3 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6"
+                className="blog-preview-content mt-8 max-w-none text-slate-800 [&_a]:text-indigo-600 [&_blockquote]:border-l-4 [&_blockquote]:border-slate-200 [&_blockquote]:pl-4 [&_h1]:mt-8 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:mt-8 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:mt-6 [&_h3]:text-lg [&_h3]:font-semibold [&_iframe]:aspect-video [&_iframe]:max-h-96 [&_iframe]:w-full [&_iframe]:rounded-lg [&_img]:max-w-full [&_img]:rounded-lg [&_mark]:rounded [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-3 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6"
                 // eslint-disable-next-line react/no-danger -- sanitized with DOMPurify (+ optional mark from scan)
                 dangerouslySetInnerHTML={{ __html: previewArticleHtml }}
               />
+              {previewFaqJsonLd && (
+                <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50/90 p-4">
+                  <p className="text-xs font-semibold text-amber-950">FAQ JSON‑LD for the public page &lt;head&gt;</p>
+                  <p className="mt-1 text-[11px] leading-snug text-amber-900/90">
+                    Not part of the rich-text body — your consumer app should inject this script on the blog detail route.
+                  </p>
+                  <pre className="mt-2 max-h-56 overflow-auto whitespace-pre-wrap break-all rounded border border-amber-100/80 bg-white p-3 font-mono text-[10px] text-slate-800">
+                    {`<script type="application/ld+json">\n${previewFaqJsonLd}\n</script>`}
+                  </pre>
+                </div>
+              )}
             </div>
           </div>
         </div>

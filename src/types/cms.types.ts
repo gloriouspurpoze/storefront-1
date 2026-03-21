@@ -5,6 +5,24 @@
 
 export type BlogPostStatus = 'draft' | 'published' | 'scheduled' | 'archived';
 
+/** FAQ entries: visible HTML + FAQPage JSON-LD (inject script on public site). */
+export interface BlogFaqItem {
+  question: string;
+  answer: string;
+}
+
+/** Lead capture block rendered below article on the public site. */
+export interface BlogLeadMagnetSettings {
+  enabled: boolean;
+  headline?: string;
+  subtext?: string;
+  buttonLabel?: string;
+  /** POST target for the form (consumer app). */
+  formActionUrl?: string;
+  /** Hidden field `source` value. */
+  sourceTag?: string;
+}
+
 export interface BlogCategoryRef {
   _id: string;
   name: string;
@@ -40,6 +58,8 @@ export interface BlogPost {
     keywords?: string[];
     ogImage?: string;
   };
+  faqItems?: BlogFaqItem[];
+  leadMagnet?: BlogLeadMagnetSettings;
   createdAt: string;
   updatedAt?: string;
 }
@@ -73,6 +93,8 @@ export interface BlogPostCreatePayload {
     keywords?: string[];
     ogImage?: string;
   };
+  faqItems?: BlogFaqItem[];
+  leadMagnet?: BlogLeadMagnetSettings;
 }
 
 export interface BlogListResponse {

@@ -2,6 +2,30 @@ import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit'
 import { AuthService } from '../../services/api'
 import type { User } from '../../types'
 
+/** Used when the access token has no `exp` claim; keep in sync with backend access-token TTL. */
+const ACCESS_TOKEN_TTL_MS = 24 * 60 * 60 * 1000
+
+/** Prefer JWT `exp` (seconds) when valid; otherwise login time + 24h. */
+function resolveTokenExpiryMs(accessToken: string | null | undefined): number {
+  if (accessToken) {
+    try {
+      const seg = accessToken.split('.')[1]
+      if (seg) {
+        const b64 = seg.replace(/-/g, '+').replace(/_/g, '/')
+        const json = atob(b64)
+        const payload = JSON.parse(json) as { exp?: number }
+        if (typeof payload.exp === 'number') {
+          const ms = payload.exp * 1000
+          if (ms > Date.now()) return ms
+        }
+      }
+    } catch {
+      /* malformed JWT — fall through */
+    }
+  }
+  return Date.now() + ACCESS_TOKEN_TTL_MS
+}
+
 interface AuthState {
   user: User | null
   isAuthenticated: boolean
@@ -88,9 +112,8 @@ const authSlice = createSlice({
       state.error = null
       state.lastLogin = new Date().toISOString()
       
-      // Set token expiry (30 days for access token)
       if (action.payload.token) {
-        state.tokenExpiry = Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 days
+        state.tokenExpiry = resolveTokenExpiryMs(action.payload.token)
       }
     },
     logout: (state) => {
@@ -113,7 +136,7 @@ const authSlice = createSlice({
     setTokens: (state, action: PayloadAction<{ token: string; refreshToken: string }>) => {
       state.token = action.payload.token
       state.refreshToken = action.payload.refreshToken
-      state.tokenExpiry = Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 days
+      state.tokenExpiry = resolveTokenExpiryMs(action.payload.token)
     },
   },
   extraReducers: (builder) => {
@@ -142,13 +165,14 @@ const authSlice = createSlice({
         } as User
         
         // Handle tokens from nested tokens object
-        state.token = action.payload.tokens?.accessToken || action.payload.token
+        const accessToken = action.payload.tokens?.accessToken || action.payload.token
+        state.token = accessToken
         state.refreshToken = action.payload.tokens?.refreshToken || action.payload.refreshToken
         state.isAuthenticated = true
         state.error = null
         state.lastLogin = new Date().toISOString()
-        state.tokenExpiry = Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 days
-        
+        state.tokenExpiry = resolveTokenExpiryMs(accessToken)
+
         if (state.user) {
           console.log('✅ Auth State Updated:', {
             userType: state.user.userType,
@@ -186,12 +210,13 @@ const authSlice = createSlice({
         } as User
         
         // Handle tokens from nested tokens object
-        state.token = action.payload.tokens?.accessToken || action.payload.token
+        const accessToken = action.payload.tokens?.accessToken || action.payload.token
+        state.token = accessToken
         state.refreshToken = action.payload.tokens?.refreshToken || action.payload.refreshToken
         state.isAuthenticated = true
         state.error = null
         state.lastLogin = new Date().toISOString()
-        state.tokenExpiry = Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 days
+        state.tokenExpiry = resolveTokenExpiryMs(accessToken)
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.isLoading = false
@@ -213,8 +238,9 @@ const authSlice = createSlice({
       /*
       // Refresh token
       .addCase(refreshAuthToken.fulfilled, (state, action) => {
-        state.token = action.payload.tokens?.accessToken || action.payload.token
-        state.tokenExpiry = Date.now() + (60 * 60 * 1000) // 1 hour
+        const accessToken = action.payload.tokens?.accessToken || action.payload.token
+        state.token = accessToken
+        state.tokenExpiry = resolveTokenExpiryMs(accessToken)
       })
       */
       

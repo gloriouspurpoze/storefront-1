@@ -170,21 +170,39 @@ export function buildExportHtmlDocument(
   meta: string,
   sanitizedBodyHtml: string,
   featuredUrl: string,
+  options?: {
+    /** Extra HTML after article body (e.g. FAQ + lead form), already safe/escaped. */
+    appendixHtml?: string
+    /** Raw JSON-LD string for FAQPage; embedded in head with <script> safety escapes. */
+    faqJsonLd?: string | null
+  },
 ): string {
   const hero = featuredUrl
     ? `<figure class="hero"><img src="${featuredUrl.replace(/"/g, '&quot;')}" alt="" /></figure>`
     : ''
+  const rawLd = options?.faqJsonLd?.trim()
+  const ld = rawLd
+    ? `<script type="application/ld+json">${rawLd.replace(/</g, '\\u003c')}</script>`
+    : ''
+  const appendix = options?.appendixHtml ?? ''
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
   <title>${escapeHtml(seoTitleEff || title)}</title>
   <meta name="description" content="${escapeHtml(meta)}"/>
+  ${ld}
   <style>
     body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; color: #1e293b; }
     .hero img { width: 100%; border-radius: 8px; }
     h1 { font-size: 1.75rem; margin-bottom: 0.5rem; }
     .meta { color: #64748b; font-size: 0.875rem; margin-bottom: 1.5rem; }
+    .blog-faq, .blog-lead-magnet { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0; }
+    .blog-faq dt { font-weight: 600; margin-top: 0.75rem; }
+    .blog-faq dd { margin: 0.25rem 0 0 0; color: #475569; }
+    .blog-lead-form { display: grid; gap: 0.5rem; max-width: 24rem; margin-top: 1rem; }
+    .blog-lead-form input { padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 6px; }
+    .blog-lead-form button { margin-top: 0.5rem; padding: 0.5rem 1rem; background: #4f46e5; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -192,6 +210,7 @@ export function buildExportHtmlDocument(
   <p class="meta">${escapeHtml(meta)}</p>
   ${hero}
   <article>${sanitizedBodyHtml}</article>
+  ${appendix}
 </body>
 </html>`
 }

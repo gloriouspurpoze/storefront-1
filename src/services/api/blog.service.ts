@@ -13,6 +13,8 @@ import type {
   BlogPostCreatePayload,
   BlogListResponse,
   BlogCategory,
+  BlogFaqItem,
+  BlogLeadMagnetSettings,
 } from '../../types/cms.types';
 
 /** Response from POST /cms/admin/blogs/plagiarism-scan */
@@ -61,6 +63,8 @@ interface BackendBlogPost {
   isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  faqItems?: BlogFaqItem[];
+  leadMagnet?: BlogLeadMagnetSettings;
   [key: string]: unknown;
 }
 
@@ -91,6 +95,18 @@ function mapBackendPostToFrontend(raw: BackendBlogPost): BlogPost {
     },
     featuredImage: raw.featuredImage ?? null,
     seo: raw.seo,
+    faqItems: Array.isArray(raw.faqItems)
+      ? raw.faqItems.filter(
+          (x): x is BlogFaqItem =>
+            x != null &&
+            typeof (x as BlogFaqItem).question === 'string' &&
+            typeof (x as BlogFaqItem).answer === 'string',
+        )
+      : undefined,
+    leadMagnet:
+      raw.leadMagnet != null && typeof raw.leadMagnet === 'object'
+        ? (raw.leadMagnet as BlogLeadMagnetSettings)
+        : undefined,
     createdAt: raw.createdAt ?? new Date().toISOString(),
     updatedAt: raw.updatedAt,
   };
