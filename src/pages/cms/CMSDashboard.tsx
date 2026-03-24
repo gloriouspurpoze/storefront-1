@@ -150,8 +150,8 @@ export default function CMSDashboard() {
       stat: null,
     },
     {
-      title: 'Category Marketing',
-      description: '#1 [Category] services blocks & 4 ways section',
+      title: 'Industry service pages',
+      description: 'Per-industry SEO template: hero, cards, FAQs, pricing notes',
       icon: CampaignIcon,
       link: '/cms/category-marketing',
       color: '#5C6BC0',

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import type { CategoryMarketingConfig } from '../../types/categoryMarketing';
 
 // API_BASE should include /api (e.g., http://localhost:8005/api)
 // Endpoints should NOT include /api prefix (e.g., /cms/admin/testimonials)
@@ -520,22 +521,12 @@ export class CMSService {
     return response.data?.data ?? response.data;
   }
 
-  // ==================== CATEGORY MARKETING (catalog "#1 [Category] services" blocks) ====================
-
-  static async getCategoryMarketing(): Promise<
-    Record<
-      string,
-      {
-        mainHeading: string;
-        intro: string;
-        image1?: string;
-        image2?: string;
-        serviceTypes: Array<{ title: string; description: string; bullets: string[] }>;
-        waysHeading: string;
-        waysBullets: string[];
-      }
-    >
-  > {
+  // ==================== CATEGORY MARKETING (industry service page template + catalog blocks) ====================
+  /**
+   * Backend should persist this payload as schemaless JSON per category key.
+   * If the API validates keys strictly, extend the server schema to allow the full `CategoryMarketingConfig` shape.
+   */
+  static async getCategoryMarketing(): Promise<Record<string, CategoryMarketingConfig>> {
     const response = await axios.get(
       `${API_BASE}/cms/admin/static-content/category-marketing`,
       this.getAuthHeaders()
@@ -543,20 +534,7 @@ export class CMSService {
     return response.data?.data ?? response.data ?? {};
   }
 
-  static async updateCategoryMarketing(
-    data: Record<
-      string,
-      {
-        mainHeading: string;
-        intro: string;
-        image1?: string;
-        image2?: string;
-        serviceTypes: Array<{ title: string; description: string; bullets: string[] }>;
-        waysHeading: string;
-        waysBullets: string[];
-      }
-    >
-  ) {
+  static async updateCategoryMarketing(data: Record<string, CategoryMarketingConfig>) {
     const response = await axios.put(
       `${API_BASE}/cms/admin/static-content/category-marketing`,
       data,

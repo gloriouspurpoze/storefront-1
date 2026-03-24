@@ -227,7 +227,7 @@ const navigationGroups = [
       { name: 'Reviews', href: '/cms/reviews', icon: StarIcon, permissions: ['manage_cms'], badge: null },
       { name: 'FAQs', href: '/cms/faqs', icon: HelpIcon, permissions: ['manage_cms'], badge: null },
       { name: 'Rate Card', href: '/cms/rate-card', icon: ReceiptIcon, permissions: ['manage_cms'], badge: null },
-      { name: 'Category Marketing', href: '/cms/category-marketing', icon: CampaignIcon, permissions: ['manage_cms'], badge: null },
+      { name: 'Industry service pages', href: '/cms/category-marketing', icon: CampaignIcon, permissions: ['manage_cms'], badge: null },
       { name: 'Cross-Linking', href: '/cms/cross-linking', icon: LinkIcon, permissions: ['manage_cms'], badge: null },
       { name: 'Media Library', href: '/cms/media', icon: MediaIcon, permissions: ['manage_cms'], badge: null },
       { name: 'SEO Management', href: '/cms/seo', icon: SearchIcon, permissions: ['manage_cms'], badge: null },
