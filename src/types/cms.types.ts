@@ -52,6 +52,8 @@ export interface BlogPost {
   readTime: number;
   author: BlogAuthorRef;
   featuredImage?: string | null;
+  /** Accessibility + SEO; stored when the API accepts it. */
+  featuredImageAlt?: string | null;
   seo?: {
     title?: string;
     description?: string;
@@ -86,6 +88,7 @@ export interface BlogPostCreatePayload {
   isFeatured: boolean;
   allowComments?: boolean;
   featuredImage?: string;
+  featuredImageAlt?: string;
   scheduledPublishAt?: string | null;
   seo?: {
     title?: string;

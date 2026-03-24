@@ -3,6 +3,7 @@
  * Plagiarism against the web requires a third-party API; we only analyze the draft text here.
  */
 import DOMPurify from 'dompurify'
+import { LONG_PARAGRAPH_WORD_THRESHOLD } from './blog-seo-guidelines'
 
 export interface KeywordMetricRow {
   phrase: string
@@ -88,7 +89,7 @@ export function findRepeatedSentences(plainText: string, minLength = 50): Repeat
   return out.sort((a, b) => b.count - a.count).slice(0, 8)
 }
 
-export function countLongParagraphs(html: string, minWords = 150): number {
+export function countLongParagraphs(html: string, minWords = LONG_PARAGRAPH_WORD_THRESHOLD): number {
   if (typeof window === 'undefined' || !html.trim()) return 0
   const safe = DOMPurify.sanitize(html, { ALLOWED_TAGS: ['p'] })
   const doc = new DOMParser().parseFromString(safe, 'text/html')
@@ -101,6 +102,10 @@ export function countLongParagraphs(html: string, minWords = 150): number {
   return n
 }
 
+/**
+ * Editorial / structure nudges only. SEO checklist items live under “SEO score” and “Pre-publish checklist”
+ * so we do not duplicate them here (common CMS pattern: one source of truth per issue type).
+ */
 export function buildWriterSuggestions(params: {
   wordCount: number
   h2: number
@@ -109,8 +114,6 @@ export function buildWriterSuggestions(params: {
   longParagraphs: number
   repeatedSentences: number
   internalLinks: number
-  seoHintSamples: string[]
-  checklistFails: string[]
 }): string[] {
   const s: string[] = []
   if (params.wordCount > 0 && params.wordCount < 400) {
@@ -123,19 +126,15 @@ export function buildWriterSuggestions(params: {
     s.push('Readability is fairly low — shorten sentences and swap jargon for plain language where possible.')
   }
   if (params.longParagraphs > 0) {
-    s.push(`Split ${params.longParagraphs} very long paragraph(s) (150+ words) for easier reading on mobile.`)
+    s.push(
+      `Split ${params.longParagraphs} very long paragraph(s) (${LONG_PARAGRAPH_WORD_THRESHOLD}+ words each) for easier reading on mobile.`,
+    )
   }
   if (params.repeatedSentences > 0) {
     s.push(`Remove or rewrite repeated sentences (${params.repeatedSentences} duplicate block(s)) — often from copy-paste.`)
   }
   if (params.internalLinks === 0 && params.wordCount > 350) {
     s.push('Add internal links to related articles or service pages where they naturally fit.')
-  }
-  for (const h of params.seoHintSamples.slice(0, 4)) {
-    if (!s.includes(h)) s.push(h)
-  }
-  for (const c of params.checklistFails.slice(0, 3)) {
-    if (!s.includes(c)) s.push(c)
   }
   return s.slice(0, 12)
 }
@@ -175,10 +174,13 @@ export function buildExportHtmlDocument(
     appendixHtml?: string
     /** Raw JSON-LD string for FAQPage; embedded in head with <script> safety escapes. */
     faqJsonLd?: string | null
+    /** Non-empty when hero image is used. */
+    featuredImageAlt?: string
   },
 ): string {
+  const heroAlt = (options?.featuredImageAlt ?? '').trim()
   const hero = featuredUrl
-    ? `<figure class="hero"><img src="${featuredUrl.replace(/"/g, '&quot;')}" alt="" /></figure>`
+    ? `<figure class="hero"><img src="${featuredUrl.replace(/"/g, '&quot;')}" alt="${escapeHtml(heroAlt)}" /></figure>`
     : ''
   const rawLd = options?.faqJsonLd?.trim()
   const ld = rawLd

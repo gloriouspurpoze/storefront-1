@@ -1,5 +1,5 @@
 /**
- * BlogEditor — blog form + real-time (debounced) content analysis.
+ * BlogEditor — blog form with live word count, checklist, SEO score, and keyword table (same tick of React as your typing).
  *
  * Dependencies (install if missing):
  *   npm install react-quill-new quill dompurify
@@ -36,10 +36,40 @@ import {
   keywordMetricsForPhrases,
 } from './blog-writer-utils'
 import {
+  BLOG_IMAGE_MAX_FILE_BYTES,
+  BLOG_IMAGE_RECOMMENDED_MAX_BYTES,
+  BLOG_TITLE_SOFT_MAX_CHARS,
+  H1_TARGET_COUNT,
+  H2_SOFT_MAX_COUNT,
+  H3_SOFT_MAX_COUNT,
+  H456_SOFT_MAX_COUNT,
+  HEADING_RULES_MIN_WORDS,
+  LONGFORM_MIN_WORDS_FOR_SUBHEADINGS,
+  LONG_PARAGRAPH_MAX_ALLOWED,
+  LONG_PARAGRAPH_WORD_THRESHOLD,
+  META_DESC_HARD_MAX_CHARS,
+  META_DESC_MIN_CHARS,
+  META_DESC_OPTIMAL_MAX_CHARS,
+  PILLAR_WORD_TARGET,
+  SEO_TITLE_HARD_MAX_CHARS,
+  SEO_TITLE_MIN_CHARS,
+  SEO_TITLE_OPTIMAL_MAX_CHARS,
+  SERP_SNIPPET_PREVIEW_CHARS,
+  SERP_TITLE_PREVIEW_CHARS,
+  computeBlogSeoScore,
+  isMetaDescriptionOptimalBand,
+  isSeoTitleOptimalBand,
+  suggestedMinSectionHeadings,
+} from './blog-seo-guidelines'
+import {
   defaultLeadMagnetSettings,
   buildBlogStructuredAppendixHtml,
   buildFaqJsonLdString,
 } from './blog-lead-magnet-utils'
+import {
+  READABILITY_LONG_SENTENCE_WORDS,
+  highlightReadabilityIssuesInHtml,
+} from './highlightReadabilityInHtml'
 import { highlightRepeatPhrasesInHtml } from './highlightRepeatPhrases'
 
 type FaqEditorRow = { id: string; question: string; answer: string }
@@ -91,6 +121,42 @@ function fleschLabel(score: number): string {
   return 'Very difficult'
 }
 
+/**
+ * Flesch is driven mainly by average sentence length and syllables per word — these edits move the number fastest.
+ */
+function fleschImprovementHints(score: number): string[] {
+  if (!Number.isFinite(score) || score <= 0) return []
+  const tips: string[] = []
+  if (score < 35) {
+    tips.push(
+      'Your copy reads as very dense. For a general homeowner audience, replace jargon with plain language and define unavoidable technical terms once near first use.',
+    )
+  }
+  tips.push(
+    'Shorten sentences: break chains joined by “which”, “that”, and semicolons. Aim for many sentences under ~18–20 words — average sentence length is the largest lever in the score.',
+  )
+  tips.push(
+    'Choose shorter, everyday words when the meaning stays the same (the formula counts syllables per word).',
+  )
+  tips.push('Prefer active voice (“We repair AC units”) over passive (“AC units are repaired by us”).')
+  tips.push('Split long paragraphs so each block is one idea; pair with H2/H3 subheads so scanners can skip to what they need.')
+  tips.push('Turn dense steps into numbered or bulleted lists — one short line per step reads faster than one long paragraph.')
+  if (score < 45) {
+    tips.push(
+      'Read the opening aloud: if you gasp mid-sentence, split it. Fixing the first 200 words often lifts the whole score.',
+    )
+  }
+  return tips
+}
+
+/** Traffic-light style for on-page SEO score (editorial heuristic, not a Google metric). */
+function seoScorePresentation(score: number): { label: string; bar: string; text: string } {
+  const s = Math.min(100, Math.max(0, Math.round(score)))
+  if (s >= 80) return { label: 'Strong', bar: 'bg-emerald-500', text: 'text-emerald-700' }
+  if (s >= 50) return { label: 'Needs polish', bar: 'bg-amber-500', text: 'text-amber-700' }
+  return { label: 'Weak', bar: 'bg-red-500', text: 'text-red-700' }
+}
+
 // --- Parse Quill HTML for structure metrics ----------------------------------
 
 interface ParsedContentStats {
@@ -98,6 +164,9 @@ interface ParsedContentStats {
   h1: number
   h2: number
   h3: number
+  h4: number
+  h5: number
+  h6: number
   imageCount: number
   imagesMissingAlt: number
   internalLinkCount: number
@@ -111,6 +180,9 @@ function parseContentHtml(html: string, internalHosts: string[]): ParsedContentS
     h1: 0,
     h2: 0,
     h3: 0,
+    h4: 0,
+    h5: 0,
+    h6: 0,
     imageCount: 0,
     imagesMissingAlt: 0,
     internalLinkCount: 0,
@@ -134,6 +206,9 @@ function parseContentHtml(html: string, internalHosts: string[]): ParsedContentS
   const h1 = body.querySelectorAll('h1').length
   const h2 = body.querySelectorAll('h2').length
   const h3 = body.querySelectorAll('h3').length
+  const h4 = body.querySelectorAll('h4').length
+  const h5 = body.querySelectorAll('h5').length
+  const h6 = body.querySelectorAll('h6').length
   const imgs = body.querySelectorAll('img')
   let imagesMissingAlt = 0
   imgs.forEach((img) => {
@@ -171,88 +246,15 @@ function parseContentHtml(html: string, internalHosts: string[]): ParsedContentS
     h1,
     h2,
     h3,
+    h4,
+    h5,
+    h6,
     imageCount: imgs.length,
     imagesMissingAlt,
     internalLinkCount: internal,
     externalLinkCount: external,
     plainText,
   }
-}
-
-// --- SEO score (0–100, heuristic) --------------------------------------------
-
-function computeSeoScore(params: {
-  /** Visible headline (H1 / post title). */
-  displayTitle: string
-  /** Optional `<title>` / SERP override; empty means same as display title. */
-  seoTitle: string
-  meta: string
-  keyword: string
-  plainFromHtml: string
-}): { score: number; hints: string[] } {
-  const hints: string[] = []
-  let points = 0
-  const max = 100
-
-  const serpTitle = params.seoTitle.trim() || params.displayTitle.trim()
-  const titleLen = serpTitle.length
-  if (titleLen >= 30 && titleLen <= 65) {
-    points += 25
-  } else {
-    hints.push('SEO title (or blog title if blank): aim for ~30–65 characters for SERP display.')
-    points += titleLen > 0 ? 10 : 0
-  }
-
-  const metaLen = params.meta.trim().length
-  if (metaLen >= 120 && metaLen <= 165) {
-    points += 25
-  } else {
-    hints.push('Meta description: target ~120–160 characters.')
-    points += metaLen > 0 ? 10 : 0
-  }
-
-  const kw = params.keyword.trim().toLowerCase()
-  if (kw) {
-    const serp = serpTitle.toLowerCase()
-    const display = params.displayTitle.toLowerCase()
-    const m = params.meta.toLowerCase()
-    const body = params.plainFromHtml.toLowerCase()
-    if (serp.includes(kw)) {
-      points += 20
-    } else if (display.includes(kw)) {
-      points += 12
-      hints.push('Keyword is in the blog title but not in the SEO title — add it to the SEO title for stronger SERP alignment.')
-    } else {
-      hints.push(`Include primary keyword (“${params.keyword.trim()}”) in the SEO or blog title.`)
-    }
-    if (m.includes(kw)) points += 15
-    else hints.push('Include the primary keyword in the meta description.')
-    const firstChunk = body.slice(0, 600)
-    const wc = params.plainFromHtml.trim().split(/\s+/).filter(Boolean).length
-    const occurrences = countPhraseOccurrences(params.plainFromHtml, params.keyword)
-    const densityPct = wc > 0 ? (occurrences / wc) * 100 : 0
-    if (firstChunk.includes(kw)) points += 10
-    else hints.push('Use the primary keyword early in the content.')
-    // Natural use (Google: helpful content > repetition). Soft band ~0.5–2% density is a common editor guideline.
-    if (densityPct > 2.5 || occurrences > 18) {
-      points = Math.max(0, points - 12)
-      hints.push(
-        `Primary phrase appears very often (~${occurrences}×, ~${densityPct.toFixed(1)}% of words) — likely reads as keyword stuffing. Use synonyms and write for people.`,
-      )
-    } else if (densityPct > 1.8 && wc > 500) {
-      hints.push('Keyword density is on the high side — read the post aloud; if it sounds repetitive, vary phrasing.')
-    }
-    if (occurrences >= 2 && densityPct <= 2.5 && occurrences <= 18) {
-      points += 5
-    } else if (occurrences < 2 && wc > 80) {
-      hints.push('Use the primary keyword naturally a few times in the body (headings or opening sections work well).')
-    }
-  } else {
-    hints.push('Set a primary keyword to unlock keyword-based SEO checks.')
-    points += 15
-  }
-
-  return { score: Math.min(max, Math.round(points)), hints }
 }
 
 // --- Quill formats (toolbar modules built in BlogEditor with Cloudinary handlers) ---
@@ -276,11 +278,13 @@ const QUILL_FORMATS = [
   'video',
 ]
 
-const WORD_TARGET = 1500
 /** Folder for in-article uploads + library picker (same as other CMS image fields). */
 const BLOG_BODY_CLOUDINARY_FOLDER = 'homeservice'
 const CLOUDINARY_LIBRARY_LIMIT = 80
-const DEBOUNCE_MS = 350
+function formatImageSizeCap(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  return `${Math.round(bytes / 1024)} KB`
+}
 
 // --- Component ---------------------------------------------------------------
 
@@ -298,9 +302,14 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
   /** Preserve index when file/Cloudinary dialogs steal focus from the editor. */
   const quillInsertIndexRef = useRef(0)
   const [cloudinaryPickerOpen, setCloudinaryPickerOpen] = useState(false)
+  /** What the Cloudinary library dialog applies to when an image is chosen. */
+  const [cloudinaryPickerFor, setCloudinaryPickerFor] = useState<'editor' | 'featured' | null>(null)
   const [cloudinaryImages, setCloudinaryImages] = useState<Array<{ url: string; publicId: string }>>([])
   const [cloudinaryLoading, setCloudinaryLoading] = useState(false)
   const [cloudinaryError, setCloudinaryError] = useState<string | null>(null)
+  const [bodyImageAltDialogOpen, setBodyImageAltDialogOpen] = useState(false)
+  const [pendingBodyImageUrl, setPendingBodyImageUrl] = useState<string | null>(null)
+  const [bodyImageAltDraft, setBodyImageAltDraft] = useState('')
 
   const [title, setTitle] = useState('')
   const [slug, setSlug] = useState('')
@@ -308,7 +317,8 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
   const [seoTitle, setSeoTitle] = useState('')
   const [metaDescription, setMetaDescription] = useState('')
   const [featuredImageUrl, setFeaturedImageUrl] = useState('')
-  const [featuredFilePreview, setFeaturedFilePreview] = useState<string | null>(null)
+  const [featuredImageAlt, setFeaturedImageAlt] = useState('')
+  const [featuredUploading, setFeaturedUploading] = useState(false)
   const [categoryId, setCategoryId] = useState('')
   const [cmsCategories, setCmsCategories] = useState<{ _id: string; name: string }[]>([])
   const [tagsInput, setTagsInput] = useState('')
@@ -321,6 +331,8 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
   const [plagiarismError, setPlagiarismError] = useState<string | null>(null)
   /** In preview: wrap server-reported 5-gram repeats in <mark> */
   const [previewHighlightRepeats, setPreviewHighlightRepeats] = useState(true)
+  /** In preview + sidebar: long sentences & dense blocks (Flesch coaching) */
+  const [previewHighlightReadability, setPreviewHighlightReadability] = useState(true)
   const [siteHost, setSiteHost] = useState('') // e.g. "example.com" for internal link detection
   const [status, setStatus] = useState<BlogPostStatus>('draft')
   const [isFeatured, setIsFeatured] = useState(false)
@@ -335,17 +347,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
   const [faqRows, setFaqRows] = useState<FaqEditorRow[]>([])
   const [leadMagnet, setLeadMagnet] = useState(defaultLeadMagnetSettings)
 
-  const [debouncedPayload, setDebouncedPayload] = useState({
-    html: '',
-    title: '',
-    seoTitle: '',
-    meta: '',
-    keyword: '',
-    secondaryKeywords: '',
-  })
-
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const featuredBlobUrlRef = useRef<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
 
@@ -356,21 +358,6 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
     },
     [slugTouched],
   )
-
-  // Debounce heavy analysis inputs (full snapshot) for performance
-  useEffect(() => {
-    const id = window.setTimeout(() => {
-      setDebouncedPayload({
-        html: contentHtml,
-        title,
-        seoTitle,
-        meta: metaDescription,
-        keyword: primaryKeyword,
-        secondaryKeywords: secondaryKeywordsInput,
-      })
-    }, DEBOUNCE_MS)
-    return () => window.clearTimeout(id)
-  }, [contentHtml, title, seoTitle, metaDescription, primaryKeyword, secondaryKeywordsInput])
 
   // CMS blog categories (same source as Blog Management)
   useEffect(() => {
@@ -413,11 +400,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
         setSeoTitle(loadedSeoTitle && loadedSeoTitle !== postTitle ? loadedSeoTitle : '')
         setMetaDescription(post.seo?.description ?? post.excerpt ?? '')
         setFeaturedImageUrl(post.featuredImage ?? '')
-        if (featuredBlobUrlRef.current) {
-          URL.revokeObjectURL(featuredBlobUrlRef.current)
-          featuredBlobUrlRef.current = null
-        }
-        setFeaturedFilePreview(null)
+        setFeaturedImageAlt(post.featuredImageAlt?.trim() ?? '')
         setCategoryId(
           typeof post.category === 'object' && post.category?._id ? post.category._id : '',
         )
@@ -519,12 +502,19 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             input.onchange = async () => {
               const file = input.files?.[0]
               if (!file) return
+              if (file.size > BLOG_IMAGE_MAX_FILE_BYTES) {
+                toast({
+                  title: 'Image too large',
+                  description: `Max ${formatImageSizeCap(BLOG_IMAGE_MAX_FILE_BYTES)} per upload. Compress first (aim under ${formatImageSizeCap(BLOG_IMAGE_RECOMMENDED_MAX_BYTES)}).`,
+                  variant: 'destructive',
+                })
+                return
+              }
               try {
                 const { url } = await UploadService.uploadImage(file, BLOG_BODY_CLOUDINARY_FOLDER)
-                const idx = quillInsertIndexRef.current
-                this.quill.insertEmbed(idx, 'image', url, 'user')
-                this.quill.setSelection(idx + 1, 0)
-                toast({ title: 'Image uploaded', description: 'Stored on Cloudinary and inserted in the post.' })
+                setPendingBodyImageUrl(url)
+                setBodyImageAltDraft('')
+                setBodyImageAltDialogOpen(true)
               } catch (e: unknown) {
                 const msg = e instanceof Error ? e.message : 'Upload failed'
                 toast({ title: 'Upload failed', description: msg, variant: 'destructive' })
@@ -536,6 +526,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             const sel = this.quill.getSelection(true)
             const len = this.quill.getLength()
             quillInsertIndexRef.current = sel?.index ?? Math.max(0, len - 1)
+            setCloudinaryPickerFor('editor')
             setCloudinaryPickerOpen(true)
           },
         },
@@ -544,6 +535,71 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
     }),
     [toast],
   )
+
+  const closeCloudinaryPicker = useCallback(() => {
+    setCloudinaryPickerOpen(false)
+    setCloudinaryPickerFor(null)
+  }, [])
+
+  const handleCloudinaryLibraryPick = useCallback(
+    (url: string) => {
+      if (cloudinaryPickerFor === 'featured') {
+        setFeaturedImageUrl(url)
+        closeCloudinaryPicker()
+        return
+      }
+      setPendingBodyImageUrl(url)
+      setBodyImageAltDraft('')
+      setBodyImageAltDialogOpen(true)
+      closeCloudinaryPicker()
+    },
+    [cloudinaryPickerFor, closeCloudinaryPicker],
+  )
+
+  const confirmBodyImageAlt = useCallback(() => {
+    const url = pendingBodyImageUrl
+    const alt = bodyImageAltDraft.trim()
+    if (!url) {
+      setBodyImageAltDialogOpen(false)
+      return
+    }
+    if (!alt) {
+      toast({
+        title: 'Alt text required',
+        description: 'Describe the image for screen readers and SEO.',
+        variant: 'destructive',
+      })
+      return
+    }
+    const editor = quillEditorRef.current
+    if (!editor) {
+      toast({ title: 'Editor unavailable', description: 'Click in the article body and try again.', variant: 'destructive' })
+      return
+    }
+    const idx = quillInsertIndexRef.current
+    editor.insertEmbed(idx, 'image', url, 'user')
+    editor.formatText(idx, 1, { alt }, 'user')
+    editor.setSelection(idx + 1, 0)
+    setBodyImageAltDialogOpen(false)
+    setPendingBodyImageUrl(null)
+    setBodyImageAltDraft('')
+    toast({ title: 'Image inserted', description: 'Alt text is saved with this image.' })
+  }, [pendingBodyImageUrl, bodyImageAltDraft, toast])
+
+  const cancelBodyImageAlt = useCallback(() => {
+    setBodyImageAltDialogOpen(false)
+    setPendingBodyImageUrl(null)
+    setBodyImageAltDraft('')
+  }, [])
+
+  useEffect(() => {
+    if (!bodyImageAltDialogOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') cancelBodyImageAlt()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [bodyImageAltDialogOpen, cancelBodyImageAlt])
 
   useEffect(() => {
     if (!cloudinaryPickerOpen) return
@@ -570,39 +626,77 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
     }
   }, [cloudinaryPickerOpen])
 
-  const insertQuillImageFromUrl = useCallback((url: string) => {
-    const editor = quillEditorRef.current
-    if (!editor) return
-    const idx = quillInsertIndexRef.current
-    editor.insertEmbed(idx, 'image', url, 'user')
-    editor.setSelection(idx + 1, 0)
-    setCloudinaryPickerOpen(false)
-  }, [])
-
-  const stats = useMemo(() => parseContentHtml(debouncedPayload.html, internalHosts), [debouncedPayload.html, internalHosts])
+  /** Parsed article body (structure, links, images, plain text) — always matches current editor HTML. */
+  const liveContentStats = useMemo(
+    () => parseContentHtml(contentHtml, internalHosts),
+    [contentHtml, internalHosts],
+  )
+  const liveWordCount = liveContentStats.wordCount
 
   const readingTimeMinutes = useMemo(() => {
     const wpm = 200
-    return Math.max(1, Math.ceil(stats.wordCount / wpm))
-  }, [stats.wordCount])
+    return Math.max(1, Math.ceil(liveWordCount / wpm))
+  }, [liveWordCount])
 
-  const fre = useMemo(() => fleschReadingEase(stats.plainText), [stats.plainText])
+  const fre = useMemo(() => fleschReadingEase(liveContentStats.plainText), [liveContentStats.plainText])
 
   const seo = useMemo(
     () =>
-      computeSeoScore({
-        displayTitle: debouncedPayload.title,
-        seoTitle: debouncedPayload.seoTitle,
-        meta: debouncedPayload.meta,
-        keyword: debouncedPayload.keyword,
-        plainFromHtml: stats.plainText,
+      computeBlogSeoScore({
+        displayTitle: title,
+        seoTitle,
+        meta: metaDescription,
+        keyword: primaryKeyword,
+        plainFromHtml: liveContentStats.plainText,
+        countPhraseOccurrences,
       }),
-    [debouncedPayload.title, debouncedPayload.seoTitle, debouncedPayload.meta, debouncedPayload.keyword, stats.plainText],
+    [title, seoTitle, metaDescription, primaryKeyword, liveContentStats.plainText],
   )
+
+  const seoPresentation = useMemo(() => seoScorePresentation(seo.score), [seo.score])
 
   const effectiveSeoTitle = seoTitle.trim() || title.trim()
   const seoTitleLen = seoTitle.length
   const metaLen = metaDescription.length
+  const titleLen = title.length
+  const blogTitleWordCount = title.trim() ? title.trim().split(/\s+/).filter(Boolean).length : 0
+
+  const publicSiteOrigin = (process.env.REACT_APP_PUBLIC_SITE_ORIGIN || 'https://www.profixer.in').replace(
+    /\/$/,
+    '',
+  )
+  const serpPreview = useMemo(() => {
+    const pathSlug = (slug.trim() || slugify(title)).replace(/^\/+/, '')
+    const path = pathSlug ? `/blog/${pathSlug}` : '/blog/…'
+    const url = `${publicSiteOrigin}${path}`
+    const rawTitle = effectiveSeoTitle.trim() || title.trim()
+    const titleShown =
+      rawTitle.length === 0
+        ? 'Add a title — it appears in search results'
+        : rawTitle.length <= SERP_TITLE_PREVIEW_CHARS
+          ? rawTitle
+          : `${rawTitle.slice(0, SERP_TITLE_PREVIEW_CHARS - 1)}…`
+    const rawSnip = metaDescription.replace(/\s+/g, ' ').trim()
+    const snipShown =
+      rawSnip.length === 0
+        ? 'Add a meta description — Google often shows it as the snippet under the blue title.'
+        : rawSnip.length <= SERP_SNIPPET_PREVIEW_CHARS
+          ? rawSnip
+          : `${rawSnip.slice(0, SERP_SNIPPET_PREVIEW_CHARS - 1)}…`
+    const tabRaw = effectiveSeoTitle.trim() || title.trim()
+    const tabTitleShown =
+      tabRaw.length === 0 ? '…' : tabRaw.length <= 58 ? tabRaw : `${tabRaw.slice(0, 56)}…`
+
+    return {
+      url,
+      titleShown,
+      snipShown,
+      tabTitleShown,
+      titleCharCount: rawTitle.length,
+      snippetCharCount: rawSnip.length,
+    }
+  }, [slug, title, effectiveSeoTitle, metaDescription, publicSiteOrigin])
+
   const tags = useMemo(
     () =>
       tagsInput
@@ -612,51 +706,44 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
     [tagsInput],
   )
 
-  const featuredPresent = Boolean(featuredImageUrl.trim() || featuredFilePreview)
-
-  const debouncedSerpTitle = debouncedPayload.seoTitle.trim() || debouncedPayload.title.trim()
+  const featuredPresent = Boolean(featuredImageUrl.trim())
 
   const keywordPhraseList = useMemo(() => {
-    const primary = debouncedPayload.keyword.trim()
-    const secondary = debouncedPayload.secondaryKeywords
+    const primary = primaryKeyword.trim()
+    const secondary = secondaryKeywordsInput
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean)
     const merged = primary ? [primary, ...secondary] : secondary
     return merged.slice(0, 12)
-  }, [debouncedPayload.keyword, debouncedPayload.secondaryKeywords])
+  }, [primaryKeyword, secondaryKeywordsInput])
 
-  const keywordRows = useMemo(
-    () =>
-      keywordMetricsForPhrases(
-        keywordPhraseList,
-        stats.plainText,
-        debouncedPayload.title,
-        debouncedSerpTitle,
-        debouncedPayload.meta,
-        stats.wordCount,
-      ),
-    [
+  const keywordRows = useMemo(() => {
+    const serp = seoTitle.trim() || title.trim()
+    return keywordMetricsForPhrases(
       keywordPhraseList,
-      stats.plainText,
-      stats.wordCount,
-      debouncedPayload.title,
-      debouncedSerpTitle,
-      debouncedPayload.meta,
-    ],
-  )
+      liveContentStats.plainText,
+      title,
+      serp,
+      metaDescription,
+      liveWordCount,
+    )
+  }, [keywordPhraseList, liveContentStats.plainText, title, seoTitle, metaDescription, liveWordCount])
 
-  const repeatedSentenceGroups = useMemo(() => findRepeatedSentences(stats.plainText), [stats.plainText])
+  const repeatedSentenceGroups = useMemo(
+    () => findRepeatedSentences(liveContentStats.plainText),
+    [liveContentStats.plainText],
+  )
   const longParagraphCount = useMemo(
-    () => countLongParagraphs(debouncedPayload.html),
-    [debouncedPayload.html],
+    () => countLongParagraphs(contentHtml, LONG_PARAGRAPH_WORD_THRESHOLD),
+    [contentHtml],
   )
 
   const linkWorthyWarnings: string[] = []
   if (!hasOriginalData) linkWorthyWarnings.push('No original data / research indicated.')
   if (!hasDownloadableAsset) linkWorthyWarnings.push('No downloadable asset (template, PDF, etc.) indicated.')
   if (!hasInternalLinksDeclared) linkWorthyWarnings.push('Editor has not confirmed internal links to related content.')
-  if (stats.internalLinkCount === 0 && stats.plainText.length > 200) {
+  if (liveContentStats.internalLinkCount === 0 && liveContentStats.plainText.length > 200) {
     linkWorthyWarnings.push('No internal links detected in HTML (add links to your site where relevant).')
   }
 
@@ -669,23 +756,72 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
       title.toLowerCase().includes(kw)
     const primaryRow = keywordRows[0]
     const primaryNatural =
-      !debouncedPayload.keyword.trim() ||
+      !primaryKeyword.trim() ||
       (primaryRow != null && primaryRow.densityPercent <= 2.5 && primaryRow.count <= 18)
-    const secondaryList = debouncedPayload.secondaryKeywords
+    const secondaryList = secondaryKeywordsInput
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean)
-    const secondaryCountOk = secondaryList.length <= 10
+    const secondaryCountOk =
+      secondaryList.length <= 10 && (secondaryList.length === 0 || secondaryList.length >= 3)
+
+    const minSections = suggestedMinSectionHeadings(liveWordCount)
+    const sectionHeadingsOk =
+      liveWordCount < LONGFORM_MIN_WORDS_FOR_SUBHEADINGS ||
+      liveContentStats.h2 + liveContentStats.h3 >= minSections
+    const h1Ok =
+      liveWordCount < HEADING_RULES_MIN_WORDS || liveContentStats.h1 === H1_TARGET_COUNT
+    const headingCapsOk =
+      liveContentStats.h2 <= H2_SOFT_MAX_COUNT &&
+      liveContentStats.h3 <= H3_SOFT_MAX_COUNT &&
+      liveContentStats.h4 + liveContentStats.h5 + liveContentStats.h6 <= H456_SOFT_MAX_COUNT
+
     const items: { id: string; label: string; ok: boolean }[] = [
       {
         id: 't',
-        label: 'SEO title length ~30–65 chars (blog title counts if SEO title is empty)',
-        ok: serp.length >= 30 && serp.length <= 65,
+        label: `SEO / SERP title in optimal band ${SEO_TITLE_MIN_CHARS}–${SEO_TITLE_OPTIMAL_MAX_CHARS} chars (hard max ${SEO_TITLE_HARD_MAX_CHARS}; blog title if SEO title empty)`,
+        ok: serp.length > 0 && isSeoTitleOptimalBand(serp.length),
       },
-      { id: 'm', label: 'Meta description ~120–160 characters', ok: metaLen >= 120 && metaLen <= 160 },
-      { id: 'w', label: `Word count ≥ ${WORD_TARGET} (pillar target)`, ok: stats.wordCount >= WORD_TARGET },
-      { id: 'h', label: 'At least 2 subheadings (H2/H3)', ok: stats.h2 + stats.h3 >= 2 },
-      { id: 'i', label: 'Featured image (URL or upload)', ok: featuredPresent },
+      {
+        id: 'bt',
+        label: `Blog title ≤ ${BLOG_TITLE_SOFT_MAX_CHARS} chars (on-page / template H1 elsewhere)`,
+        ok: title.trim().length > 0 && title.trim().length <= BLOG_TITLE_SOFT_MAX_CHARS,
+      },
+      {
+        id: 'm',
+        label: `Meta description in optimal band ${META_DESC_MIN_CHARS}–${META_DESC_OPTIMAL_MAX_CHARS} chars (hard max ${META_DESC_HARD_MAX_CHARS})`,
+        ok: metaLen > 0 && isMetaDescriptionOptimalBand(metaLen),
+      },
+      { id: 'w', label: `Word count ≥ ${PILLAR_WORD_TARGET} (pillar target, live)`, ok: liveWordCount >= PILLAR_WORD_TARGET },
+      {
+        id: 'h1',
+        label: `Exactly ${H1_TARGET_COUNT} H1 in article body (when ≥ ${HEADING_RULES_MIN_WORDS} words)`,
+        ok: h1Ok,
+      },
+      {
+        id: 'hsec',
+        label:
+          liveWordCount >= LONGFORM_MIN_WORDS_FOR_SUBHEADINGS
+            ? `H2+H3 sections ≥ ${minSections} for this length (~1 per ~380 words)`
+            : `H2+H3 sections (need ≥ ${minSections} when ≥ ${LONGFORM_MIN_WORDS_FOR_SUBHEADINGS} words)`,
+        ok: sectionHeadingsOk,
+      },
+      {
+        id: 'hcap',
+        label: `Heading caps: H2 ≤ ${H2_SOFT_MAX_COUNT}, H3 ≤ ${H3_SOFT_MAX_COUNT}, H4–H6 total ≤ ${H456_SOFT_MAX_COUNT}`,
+        ok: headingCapsOk,
+      },
+      {
+        id: 'p',
+        label: `Paragraphs: ≤ ${LONG_PARAGRAPH_MAX_ALLOWED} blocks over ${LONG_PARAGRAPH_WORD_THRESHOLD} words (mobile scanability)`,
+        ok: longParagraphCount <= LONG_PARAGRAPH_MAX_ALLOWED,
+      },
+      { id: 'i', label: 'Featured image (URL, upload, or Cloudinary)', ok: featuredPresent },
+      {
+        id: 'ifa',
+        label: 'Featured image alt text (required when a hero image is set)',
+        ok: !featuredPresent || featuredImageAlt.trim().length > 0,
+      },
       { id: 'k', label: 'Primary keyword in SEO or blog title', ok: keywordInTitle },
       {
         id: 'kn',
@@ -694,12 +830,16 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
       },
       {
         id: 'ks',
-        label: 'Secondary keywords focused (about 3–10 supporting phrases)',
+        label: 'Secondary keywords: optional; if listed, use 3–10 phrases (max 10)',
         ok: secondaryCountOk,
       },
       { id: 'l', label: 'Link-worthiness checkboxes (data, asset, internal)', ok: hasOriginalData && hasDownloadableAsset && hasInternalLinksDeclared },
       { id: 'r', label: 'Readability: Flesch ≥ 45 (adjust for audience)', ok: fre >= 45 },
-      { id: 'a', label: 'All images have alt text (when images exist)', ok: stats.imageCount === 0 || stats.imagesMissingAlt === 0 },
+      {
+        id: 'a',
+        label: 'All images have alt text (when images exist)',
+        ok: liveContentStats.imageCount === 0 || liveContentStats.imagesMissingAlt === 0,
+      },
     ]
     const done = items.filter((i) => i.ok).length
     return { items, done, total: items.length, pct: Math.round((done / items.length) * 100) }
@@ -707,29 +847,34 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
     title,
     seoTitle,
     metaLen,
-    stats.wordCount,
-    stats.h2,
-    stats.h3,
-    stats.imageCount,
-    stats.imagesMissingAlt,
+    liveWordCount,
+    liveContentStats.h1,
+    liveContentStats.h2,
+    liveContentStats.h3,
+    liveContentStats.h4,
+    liveContentStats.h5,
+    liveContentStats.h6,
+    liveContentStats.imageCount,
+    liveContentStats.imagesMissingAlt,
+    longParagraphCount,
     featuredPresent,
+    featuredImageAlt,
     primaryKeyword,
     hasOriginalData,
     hasDownloadableAsset,
     hasInternalLinksDeclared,
     fre,
     keywordRows,
-    debouncedPayload.keyword,
-    debouncedPayload.secondaryKeywords,
+    secondaryKeywordsInput,
   ])
 
   /** One headline %: checklist, SEO, content/readability; adds scan originality when a run exists. */
   const overallCompletion = useMemo(() => {
     const wordProgress =
-      stats.wordCount <= 0 ? 0 : Math.min(100, Math.round((stats.wordCount / WORD_TARGET) * 100))
+      liveWordCount <= 0 ? 0 : Math.min(100, Math.round((liveWordCount / PILLAR_WORD_TARGET) * 100))
     const freOk = Number.isFinite(fre) && fre > 0
     const readProgress =
-      stats.wordCount <= 0 ? 0 : !freOk ? 0 : fre >= 45 ? 100 : Math.min(100, Math.round((fre / 45) * 100))
+      liveWordCount <= 0 ? 0 : !freOk ? 0 : fre >= 45 ? 100 : Math.min(100, Math.round((fre / 45) * 100))
     const contentBlend = Math.round((wordProgress + readProgress) / 2)
     const os = plagiarismResult?.originalityScore
     const originality =
@@ -743,57 +888,48 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
     }
     const raw = 0.5 * checklist.pct + 0.35 * seo.score + 0.15 * contentBlend
     return Math.min(100, Math.max(0, Math.round(raw)))
-  }, [checklist.pct, seo.score, stats.wordCount, fre, plagiarismResult])
-
-  const checklistFails = useMemo(
-    () => checklist.items.filter((i) => !i.ok).map((i) => i.label),
-    [checklist],
-  )
+  }, [checklist.pct, seo.score, liveWordCount, fre, plagiarismResult])
 
   const writerSuggestions = useMemo(
     () =>
       buildWriterSuggestions({
-        wordCount: stats.wordCount,
-        h2: stats.h2,
-        h3: stats.h3,
+        wordCount: liveWordCount,
+        h2: liveContentStats.h2,
+        h3: liveContentStats.h3,
         fre,
         longParagraphs: longParagraphCount,
         repeatedSentences: repeatedSentenceGroups.length,
-        internalLinks: stats.internalLinkCount,
-        seoHintSamples: seo.hints,
-        checklistFails,
+        internalLinks: liveContentStats.internalLinkCount,
       }),
     [
-      stats.wordCount,
-      stats.h2,
-      stats.h3,
-      stats.internalLinkCount,
+      liveWordCount,
+      liveContentStats.h2,
+      liveContentStats.h3,
+      liveContentStats.internalLinkCount,
       fre,
       longParagraphCount,
       repeatedSentenceGroups.length,
-      seo.hints,
-      checklistFails,
     ],
   )
 
   /** Extra nudges for natural copy (not duplicate of SEO hints when possible). */
   const naturalKeywordHints = useMemo(() => {
     const h: string[] = []
-    const pk = debouncedPayload.keyword.trim()
+    const pk = primaryKeyword.trim()
     const row = keywordRows[0]
     if (pk && row) {
       if (row.densityPercent > 2.5) {
         h.push(
           `Primary phrase is ~${row.densityPercent}% of words — Google’s helpful-content signals favor natural language; cut repeats and use “also called…” or related terms.`,
         )
-      } else if (row.densityPercent > 1.8 && stats.wordCount > 600) {
+      } else if (row.densityPercent > 1.8 && liveWordCount > 600) {
         h.push('Primary keyword shows up often — if any paragraph feels written for robots, rewrite for a human reader.')
       }
       if (row.count > 18) {
         h.push('Very high repetition of the exact primary phrase — vary wording; one clear topic per post is enough.')
       }
     }
-    const secondaryList = debouncedPayload.secondaryKeywords
+    const secondaryList = secondaryKeywordsInput
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean)
@@ -801,12 +937,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
       h.push('Many secondaries — market practice is ~3–8 tight related phrases (synonyms, questions, subtopics), not a long keyword list.')
     }
     return h
-  }, [debouncedPayload.keyword, debouncedPayload.secondaryKeywords, keywordRows, stats.wordCount])
-
-  const allWriterSuggestions = useMemo(
-    () => [...naturalKeywordHints, ...writerSuggestions],
-    [naturalKeywordHints, writerSuggestions],
-  )
+  }, [primaryKeyword, secondaryKeywordsInput, keywordRows, liveWordCount])
 
   const faqItemsResolved = useMemo(
     () =>
@@ -888,6 +1019,22 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
     [],
   )
 
+  const readabilityCoachActive =
+    liveWordCount > 0 && Number.isFinite(fre) && fre > 0 && fre < 60
+
+  const readabilityLivePreviewHtml = useMemo(() => {
+    if (!readabilityCoachActive || !previewHighlightReadability) return ''
+    const base = DOMPurify.sanitize(contentHtml, previewPurifyConfig)
+    try {
+      return DOMPurify.sanitize(
+        highlightReadabilityIssuesInHtml(base, { maxWordsPerSentence: READABILITY_LONG_SENTENCE_WORDS }),
+        previewPurifyConfig,
+      )
+    } catch {
+      return ''
+    }
+  }, [contentHtml, previewPurifyConfig, readabilityCoachActive, previewHighlightReadability])
+
   const previewArticleHtml = useMemo(() => {
     const base = DOMPurify.sanitize(contentHtml, previewPurifyConfig)
     const grams = plagiarismResult?.repeatedFiveGrams
@@ -905,6 +1052,16 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
         inner = base
       }
     }
+    if (readabilityCoachActive && previewHighlightReadability) {
+      try {
+        inner = DOMPurify.sanitize(
+          highlightReadabilityIssuesInHtml(inner, { maxWordsPerSentence: READABILITY_LONG_SENTENCE_WORDS }),
+          previewPurifyConfig,
+        )
+      } catch {
+        /* keep inner */
+      }
+    }
     if (!previewStructuredAppendix) return inner
     return `${inner}<div class="mt-8 border-t border-slate-200 pt-6">${previewStructuredAppendix}</div>`
   }, [
@@ -912,7 +1069,9 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
     previewPurifyConfig,
     plagiarismResult,
     previewHighlightRepeats,
+    previewHighlightReadability,
     previewStructuredAppendix,
+    readabilityCoachActive,
   ])
 
   const runBackendPlagiarismScan = async () => {
@@ -946,7 +1105,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
   }
 
   const copyPlainTextForExternalCheck = () => {
-    const text = stats.plainText
+    const text = liveContentStats.plainText
     if (!text) {
       toast({ title: 'Nothing to copy', description: 'Add content first.', variant: 'destructive' })
       return
@@ -988,6 +1147,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
       {
         appendixHtml: appendixSafe || undefined,
         faqJsonLd: previewFaqJsonLd,
+        featuredImageAlt: featuredImageAlt.trim(),
       },
     )
     downloadTextFile(`${exportSlugBase}.html`, html, 'text/html;charset=utf-8')
@@ -1016,6 +1176,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
       {
         appendixHtml: appendixSafe || undefined,
         faqJsonLd: previewFaqJsonLd,
+        featuredImageAlt: featuredImageAlt.trim(),
       },
     )
     const w = window.open('', '_blank', 'noopener,noreferrer')
@@ -1033,12 +1194,31 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
     }
   }
 
-  const handleFeaturedFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFeaturedFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
+    const input = e.target
     if (!file) return
-    if (featuredBlobUrlRef.current) URL.revokeObjectURL(featuredBlobUrlRef.current)
-    featuredBlobUrlRef.current = URL.createObjectURL(file)
-    setFeaturedFilePreview(featuredBlobUrlRef.current)
+    if (file.size > BLOG_IMAGE_MAX_FILE_BYTES) {
+      toast({
+        title: 'Image too large',
+        description: `Max ${formatImageSizeCap(BLOG_IMAGE_MAX_FILE_BYTES)} for featured images. Compress to ~${formatImageSizeCap(BLOG_IMAGE_RECOMMENDED_MAX_BYTES)} or less for faster LCP.`,
+        variant: 'destructive',
+      })
+      input.value = ''
+      return
+    }
+    setFeaturedUploading(true)
+    try {
+      const { url } = await UploadService.uploadImage(file, BLOG_BODY_CLOUDINARY_FOLDER)
+      setFeaturedImageUrl(url)
+      toast({ title: 'Featured image uploaded', description: 'Stored on Cloudinary.' })
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Upload failed'
+      toast({ title: 'Upload failed', description: msg, variant: 'destructive' })
+    } finally {
+      setFeaturedUploading(false)
+      input.value = ''
+    }
   }
 
   const handleSave = async (statusOverride?: BlogPostStatus) => {
@@ -1053,13 +1233,26 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
       return
     }
     const trimmedUrl = featuredImageUrl.trim()
-    if (featuredFilePreview && !trimmedUrl) {
-      toast({
-        title: 'Featured image',
-        description: 'Paste a public image URL (e.g. from Media Library). A local file preview alone cannot be saved to the API.',
-        variant: 'destructive',
-      })
-      return
+    const mustEnforceImageAlt =
+      effectiveStatus === 'published' || effectiveStatus === 'scheduled'
+    if (mustEnforceImageAlt) {
+      const imgStats = parseContentHtml(contentHtml, internalHosts)
+      if (imgStats.imageCount > 0 && imgStats.imagesMissingAlt > 0) {
+        toast({
+          title: 'Images need alt text',
+          description: `${imgStats.imagesMissingAlt} image(s) in the article are missing non-empty alt text. Fix them in the editor, then publish or schedule.`,
+          variant: 'destructive',
+        })
+        return
+      }
+      if (trimmedUrl && !featuredImageAlt.trim()) {
+        toast({
+          title: 'Featured image',
+          description: 'Add alt text for the featured image before publishing or scheduling.',
+          variant: 'destructive',
+        })
+        return
+      }
     }
     if (effectiveStatus === 'scheduled' && !scheduledLocal) {
       toast({
@@ -1092,6 +1285,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
         isFeatured,
         allowComments,
         featuredImage: trimmedUrl || undefined,
+        featuredImageAlt: featuredImageAlt.trim() || undefined,
         scheduledPublishAt,
         seo: {
           title: seoTitle.trim() || title.trim(),
@@ -1185,7 +1379,9 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             )}
             <div>
               <h1 className="text-2xl font-semibold tracking-tight">{postId ? 'Edit post' : 'New post'}</h1>
-              <p className="text-sm text-slate-600">Analysis updates after you pause typing ({DEBOUNCE_MS}ms debounce).</p>
+              <p className="text-sm text-slate-600">
+                Checklist, SEO score, readability, and keyword table update in real time as you edit.
+              </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   type="button"
@@ -1303,7 +1499,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_380px]">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_minmax(22rem,26rem)]">
           {/* Left: form + editor */}
           <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <div>
@@ -1313,7 +1509,24 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                 value={title}
                 onChange={(e) => onTitleChange(e.target.value)}
                 placeholder="How to …"
+                maxLength={BLOG_TITLE_SOFT_MAX_CHARS}
+                aria-describedby="blog-title-stats"
               />
+              <div
+                id="blog-title-stats"
+                className="mt-1 flex flex-col gap-0.5 text-xs text-slate-500 sm:flex-row sm:items-start sm:justify-between"
+              >
+                <span>
+                  On-page headline (often the template H1). Aim for a tight phrase; many sites keep titles under ~{BLOG_TITLE_SOFT_MAX_CHARS}{' '}
+                  characters and roughly <strong className="font-medium text-slate-600">6–12 words</strong> for readability in SERPs and social
+                  cards.
+                </span>
+                <span className="shrink-0 tabular-nums text-slate-700">
+                  <span className="font-medium">{blogTitleWordCount}</span> {blogTitleWordCount === 1 ? 'word' : 'words'}
+                  <span className="mx-1.5 text-slate-300">·</span>
+                  {titleLen} / {BLOG_TITLE_SOFT_MAX_CHARS} chars
+                </span>
+              </div>
             </div>
 
             <div>
@@ -1323,12 +1536,14 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                 value={seoTitle}
                 onChange={(e) => setSeoTitle(e.target.value)}
                 placeholder="Leave blank to use the blog title in search results"
-                maxLength={70}
+                maxLength={SEO_TITLE_HARD_MAX_CHARS}
               />
-              <div className="mt-1 flex justify-between text-xs text-slate-500">
-                <span>Used for &lt;title&gt; and SERP; often shorter than the on-page headline.</span>
+              <div className="mt-1 flex flex-col gap-0.5 text-xs text-slate-500 sm:flex-row sm:justify-between">
                 <span>
-                  {seoTitleLen > 0 ? `${seoTitleLen}` : `→ ${effectiveSeoTitle.length}`} / 70
+                  &lt;title&gt; / SERP: industry band ~{SEO_TITLE_MIN_CHARS}–{SEO_TITLE_OPTIMAL_MAX_CHARS} chars (max {SEO_TITLE_HARD_MAX_CHARS}).
+                </span>
+                <span className="shrink-0 tabular-nums">
+                  {seoTitleLen > 0 ? `${seoTitleLen}` : `→ ${effectiveSeoTitle.length}`} / {SEO_TITLE_HARD_MAX_CHARS}
                 </span>
               </div>
             </div>
@@ -1354,44 +1569,82 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                 rows={3}
                 value={metaDescription}
                 onChange={(e) => setMetaDescription(e.target.value)}
-                maxLength={320}
+                maxLength={META_DESC_HARD_MAX_CHARS}
                 placeholder="Search result snippet…"
               />
-              <div className="mt-1 flex justify-between text-xs text-slate-500">
-                <span>Ideal ~120–160 characters</span>
+              <div className="mt-1 flex flex-col gap-0.5 text-xs text-slate-500 sm:flex-row sm:justify-between">
                 <span>
-                  {metaLen} / 320
+                  Google often shows ~{META_DESC_MIN_CHARS}–{META_DESC_OPTIMAL_MAX_CHARS} characters — put the hook in the first sentence.
+                </span>
+                <span className="shrink-0 tabular-nums">
+                  {metaLen} / {META_DESC_HARD_MAX_CHARS}
                 </span>
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-sm font-medium">Featured image URL</label>
+            <div>
+              <p className="mb-2 text-sm font-medium text-slate-800">Featured image</p>
+              <p className="mb-3 text-xs text-slate-600">
+                Upload limit {formatImageSizeCap(BLOG_IMAGE_MAX_FILE_BYTES)} per file (industry: compress heroes to ~{formatImageSizeCap(BLOG_IMAGE_RECOMMENDED_MAX_BYTES)} or less for Core Web Vitals / LCP).
+              </p>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="sm:col-span-1">
+                  <label className="mb-1 block text-xs font-medium text-slate-600">Image URL</label>
+                  <input
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    value={featuredImageUrl}
+                    onChange={(e) => setFeaturedImageUrl(e.target.value)}
+                    placeholder="https://…"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">Upload to Cloudinary</label>
+                  <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFeaturedFile} />
+                  <button
+                    type="button"
+                    disabled={featuredUploading}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full rounded-lg border border-dashed border-slate-300 px-3 py-2 text-sm text-slate-600 hover:border-indigo-400 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {featuredUploading ? 'Uploading…' : 'Choose file…'}
+                  </button>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">From library</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCloudinaryPickerFor('featured')
+                      setCloudinaryPickerOpen(true)
+                    }}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-indigo-700 shadow-sm hover:bg-indigo-50"
+                  >
+                    Choose from Cloudinary
+                  </button>
+                </div>
+              </div>
+              <div className="mt-3">
+                <label className="mb-1 block text-sm font-medium text-slate-800">
+                  Featured image alt text
+                  {featuredPresent && <span className="font-normal text-red-600"> *</span>}
+                </label>
                 <input
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  value={featuredImageUrl}
-                  onChange={(e) => setFeaturedImageUrl(e.target.value)}
-                  placeholder="https://…"
+                  value={featuredImageAlt}
+                  onChange={(e) => setFeaturedImageAlt(e.target.value)}
+                  placeholder="Describe the image for accessibility and SEO"
+                  aria-required={featuredPresent}
                 />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">Or upload</label>
-                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFeaturedFile} />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full rounded-lg border border-dashed border-slate-300 px-3 py-2 text-sm text-slate-600 hover:border-indigo-400 hover:text-indigo-700"
-                >
-                  Choose file…
-                </button>
+                <p className="mt-1 text-xs text-slate-500">
+                  Required when you publish or schedule and a featured image is set. Body images get alt text when you insert them.
+                </p>
               </div>
             </div>
-            {(featuredImageUrl || featuredFilePreview) && (
+            {featuredImageUrl.trim() && (
               <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
                 <img
-                  src={featuredFilePreview || featuredImageUrl}
-                  alt="Featured preview"
+                  src={featuredImageUrl.trim()}
+                  alt={featuredImageAlt.trim() || 'Featured image preview'}
                   className="max-h-48 w-full object-contain"
                 />
               </div>
@@ -1458,7 +1711,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
               />
               <p className="mt-1 text-xs text-slate-500">
                 <strong>Typical range:</strong> about 3–8 supporting phrases. They help topical depth and internal linking ideas; avoid a long laundry
-                list. Saved with tags into SEO keywords; coverage table is debounced.
+                list. Saved with tags into SEO keywords; coverage table matches the live editor.
               </p>
             </div>
 
@@ -1600,7 +1853,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             <div>
               <label className="mb-1 block text-sm font-medium">Content</label>
               <p className="mb-2 text-xs text-slate-500">
-                Images: toolbar image uploads to Cloudinary; the cloud button picks an existing library image. Headings H1–H6, colors, alignment, and video match the rest of the CMS rich text fields.
+                Use one H1 in the body, then H2/H3 for sections (avoid skipping levels). Images: upload max {formatImageSizeCap(BLOG_IMAGE_MAX_FILE_BYTES)} per file (compress to ~{formatImageSizeCap(BLOG_IMAGE_RECOMMENDED_MAX_BYTES)} when possible). Alt text is required on insert; publish/schedule also requires featured-image alt. Editor preview caps display size only — saved HTML is unchanged.
               </p>
               <div className="blog-quill rounded-lg border border-slate-300 [&_.ql-container]:min-h-[320px] [&_.ql-editor]:min-h-[280px] [&_.ql-toolbar]:rounded-t-lg [&_.ql-container]:rounded-b-lg">
                 <style>{`
@@ -1608,6 +1861,17 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                     content: '☁';
                     font-size: 1.05rem;
                     line-height: 0;
+                  }
+                  /* Keep body images readable: override Cloudinary / pasted width×height */
+                  .blog-quill .ql-editor img {
+                    max-width: 100% !important;
+                    width: auto !important;
+                    height: auto !important;
+                    max-height: min(52vh, 480px) !important;
+                    object-fit: contain;
+                    display: block;
+                    margin: 0.75rem auto;
+                    border-radius: 0.5rem;
                   }
                 `}</style>
                 <ReactQuill
@@ -1619,42 +1883,198 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                   placeholder="Write pillar content…"
                 />
               </div>
+              <div
+                className={`mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-sm ${
+                  liveWordCount >= PILLAR_WORD_TARGET
+                    ? 'border-emerald-200 bg-emerald-50/80'
+                    : 'border-amber-200 bg-amber-50/70'
+                }`}
+                aria-live="polite"
+              >
+                <span className="font-medium text-slate-700">Words (live)</span>
+                <span className="tabular-nums">
+                  <span className={liveWordCount >= PILLAR_WORD_TARGET ? 'text-lg font-bold text-emerald-800' : 'text-lg font-bold text-slate-900'}>
+                    {liveWordCount.toLocaleString()}
+                  </span>
+                  <span className="text-slate-500"> / {PILLAR_WORD_TARGET.toLocaleString()}</span>
+                </span>
+                {liveWordCount < PILLAR_WORD_TARGET ? (
+                  <span className="w-full text-xs font-medium text-amber-900 sm:w-auto sm:text-right">
+                    {Math.max(0, PILLAR_WORD_TARGET - liveWordCount).toLocaleString()} words below pillar minimum — keep writing.
+                  </span>
+                ) : (
+                  <span className="w-full text-xs font-medium text-emerald-800 sm:w-auto sm:text-right">Minimum length met.</span>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Right: analysis */}
-          <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
-            <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Keyword coverage</h2>
-              <p className="mt-1 text-xs text-slate-500">Counts &amp; density in body (debounced). Title/meta flags use SEO + blog title.</p>
-              <div className="mt-2 rounded-md border border-slate-200 bg-slate-50 px-2 py-2 text-xs leading-relaxed text-slate-600">
-                <strong className="text-slate-700">Natural &amp; Google:</strong> There is no official “max keywords” from Google. Rankings follow
-                relevance, quality, and helpful content — stuffing hurts. Aim for one clear topic (primary), a handful of related phrases (secondaries),
-                and copy that sounds fine when read aloud. This panel uses ~≤2.5% primary density in the body as a practical anti-stuffing guardrail
-                (common in SEO plugins; not a ranking formula).
+          {/* Right column: workflow order (checklist → SEO → content → coach) */}
+          <aside
+            className="flex flex-col gap-4 lg:sticky lg:top-6 lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto lg:self-start lg:overscroll-contain lg:pr-0.5"
+            aria-label="SEO and content analysis"
+          >
+            <div className="shrink-0 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50/95 to-white p-4 shadow-sm ring-1 ring-slate-100/80">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Live overview</p>
+              <p className="mt-0.5 text-[11px] leading-snug text-slate-500">Word count, heuristic SEO score, checklist, and Flesch — same tick as the editor.</p>
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div className="rounded-lg border border-slate-100 bg-white/95 px-2.5 py-2 shadow-sm">
+                  <p className="text-[10px] font-medium text-slate-500">Words</p>
+                  <p
+                    className={`mt-0.5 text-base font-bold tabular-nums leading-tight ${liveWordCount >= PILLAR_WORD_TARGET ? 'text-emerald-700' : 'text-slate-900'}`}
+                  >
+                    {liveWordCount.toLocaleString()}
+                    <span className="block text-[10px] font-normal text-slate-400">goal {PILLAR_WORD_TARGET.toLocaleString()}</span>
+                  </p>
+                </div>
+                <div className="rounded-lg border border-slate-100 bg-white/95 px-2.5 py-2 shadow-sm">
+                  <p className="text-[10px] font-medium text-slate-500">SEO score</p>
+                  <p className={`mt-0.5 text-base font-bold tabular-nums leading-tight ${seoPresentation.text}`}>{seo.score}</p>
+                  <p className="text-[10px] text-slate-400">{seoPresentation.label}</p>
+                </div>
+                <div className="rounded-lg border border-slate-100 bg-white/95 px-2.5 py-2 shadow-sm">
+                  <p className="text-[10px] font-medium text-slate-500">Checklist</p>
+                  <p className="mt-0.5 text-base font-bold tabular-nums leading-tight text-indigo-700">{checklist.pct}%</p>
+                  <p className="text-[10px] text-slate-400">
+                    {checklist.done}/{checklist.total} OK
+                  </p>
+                </div>
+                <div className="rounded-lg border border-slate-100 bg-white/95 px-2.5 py-2 shadow-sm">
+                  <p className="text-[10px] font-medium text-slate-500">Flesch</p>
+                  <p className="mt-0.5 text-base font-bold tabular-nums leading-tight text-slate-900">{liveWordCount ? fre : '—'}</p>
+                  <p className="text-[10px] text-slate-400">{liveWordCount ? (fre >= 45 ? 'On target' : 'Lift score') : '—'}</p>
+                </div>
+              </div>
+            </div>
+
+            <section className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Pre-publish checklist</h2>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                    checklist.done === checklist.total ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'
+                  }`}
+                >
+                  {checklist.total - checklist.done} open
+                </span>
+              </div>
+              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                <div className="h-full rounded-full bg-indigo-600 transition-all duration-300" style={{ width: `${checklist.pct}%` }} />
+              </div>
+              <p className="mt-2 text-xs text-slate-600">
+                <span className="font-semibold text-slate-800">
+                  {checklist.done}/{checklist.total}
+                </span>{' '}
+                passed · live fields + body · SEO title &amp; meta need optimal length for a green check.
+              </p>
+              <ul className="mt-3 max-h-52 space-y-2 overflow-y-auto text-sm">
+                {checklist.items.map((item) => (
+                  <li key={item.id} className="flex gap-2">
+                    <span className="mt-0.5 shrink-0 font-mono text-xs tabular-nums" aria-hidden>
+                      {item.ok ? <span className="text-emerald-600">✓</span> : <span className="text-slate-400">○</span>}
+                    </span>
+                    <span className={item.ok ? 'text-slate-700' : 'text-slate-500'}>{item.label}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <p className="px-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">SEO &amp; SERP</p>
+
+            <section className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 shadow-sm">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">Search result preview</h2>
+                <span className="text-[10px] text-slate-500">
+                  ~{serpPreview.titleCharCount} · ~{serpPreview.snippetCharCount} chars
+                </span>
+              </div>
+              <p className="mb-3 text-[11px] leading-snug text-slate-500">
+                Google-style listing (desktop). Set{' '}
+                <code className="rounded bg-white px-1 py-0.5 font-mono text-[10px] text-slate-700">
+                  REACT_APP_PUBLIC_SITE_ORIGIN
+                </code>{' '}
+                in <code className="rounded bg-white px-1 font-mono text-[10px]">.env</code> for your live URL.
+              </p>
+              <div
+                className="rounded-lg border border-slate-200 bg-white px-3 py-3 shadow-sm"
+                style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
+              >
+                <div className="text-base leading-tight text-[#1a0dab] line-clamp-2">{serpPreview.titleShown}</div>
+                <div className="mt-1 break-all text-xs leading-snug text-[#006621]">{serpPreview.url}</div>
+                <div className="mt-1 line-clamp-3 text-xs leading-snug text-[#4d5156]">{serpPreview.snipShown}</div>
+              </div>
+              <div className="mt-3 flex flex-col gap-1 rounded-lg border border-dashed border-slate-200 bg-white/90 px-3 py-2 text-[11px] text-slate-600">
+                <span className="font-semibold uppercase tracking-wide text-slate-400">Browser tab</span>
+                <span
+                  className="break-all font-mono text-[11px] text-slate-800"
+                  title={effectiveSeoTitle.trim() || title.trim() || undefined}
+                >
+                  {serpPreview.tabTitleShown}
+                </span>
+                <span className="text-[10px] text-slate-400">SEO title or blog title.</span>
+              </div>
+              {(serpPreview.titleCharCount > SEO_TITLE_OPTIMAL_MAX_CHARS ||
+                serpPreview.snippetCharCount > META_DESC_OPTIMAL_MAX_CHARS) && (
+                <p className="mt-2 text-[11px] text-amber-800">
+                  Titles often truncate after ~{SEO_TITLE_OPTIMAL_MAX_CHARS} characters; meta snippets near ~{META_DESC_OPTIMAL_MAX_CHARS}–
+                  {META_DESC_HARD_MAX_CHARS}. Tighten copy so the important words appear early.
+                </p>
+              )}
+            </section>
+
+            <section className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Keyword coverage</h2>
+              <p className="mt-1 text-xs text-slate-500">
+                Live body counts; title/meta columns use SEO title (or blog title) and meta. Match checklist bands: title {SEO_TITLE_MIN_CHARS}–
+                {SEO_TITLE_OPTIMAL_MAX_CHARS} chars, meta {META_DESC_MIN_CHARS}–{META_DESC_OPTIMAL_MAX_CHARS}.
+              </p>
+              <p className="mt-2 text-[11px] text-slate-500">
+                <span className="font-medium text-slate-600">T/M:</span> <span title="In SEO or blog title">T</span> = title ·{' '}
+                <span title="In meta description">M</span> = meta.
+              </p>
+              <div className="mt-2 rounded-md border border-slate-100 bg-slate-50/90 px-2 py-2 text-[11px] leading-relaxed text-slate-600">
+                <strong className="text-slate-700">Anti-stuffing:</strong> ~≤2.5% primary density in body is a practical guardrail (plugin-style), not a
+                Google formula. Write for people first.
               </div>
               {keywordRows.length === 0 ? (
-                <p className="mt-2 text-sm text-slate-500">Add a primary or secondary keyword.</p>
+                <p className="mt-2 text-sm text-slate-500">Add a primary or secondary keyword to populate this table.</p>
               ) : (
-                <div className="mt-3 max-h-56 overflow-auto text-xs">
+                <div className="mt-3 max-h-52 overflow-auto rounded-md border border-slate-100 text-xs">
                   <table className="w-full border-collapse text-left">
-                    <thead>
-                      <tr className="border-b border-slate-200 text-slate-500">
-                        <th className="py-1 pr-2 font-medium">Phrase</th>
-                        <th className="py-1 pr-2 font-medium">#</th>
-                        <th className="py-1 pr-2 font-medium">%</th>
-                        <th className="py-1 font-medium">T/M</th>
+                    <thead className="sticky top-0 z-[1] bg-white shadow-[0_1px_0_0_rgb(226_232_240)]">
+                      <tr className="text-slate-500">
+                        <th scope="col" className="py-1.5 pr-2 pl-1 font-medium">
+                          Phrase
+                        </th>
+                        <th scope="col" className="py-1.5 pr-2 font-medium">
+                          #
+                        </th>
+                        <th scope="col" className="py-1.5 pr-2 font-medium">
+                          Density
+                        </th>
+                        <th scope="col" className="py-1.5 pr-1 font-medium">
+                          T/M
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {keywordRows.map((row) => (
+                      {keywordRows.map((row, idx) => (
                         <tr
                           key={row.phrase}
-                          className={`border-b border-slate-100 ${row.densityPercent > 2.5 ? 'bg-amber-50' : ''}`}
+                          className={`border-b border-slate-100 ${row.densityPercent > 2.5 ? 'bg-amber-50/90' : ''}`}
                         >
-                          <td className="py-1 pr-2 text-slate-800">{row.phrase}</td>
-                          <td className="py-1 pr-2">{row.count}</td>
-                          <td className="py-1 pr-2">
+                          <td className="py-1.5 pr-2 pl-1 text-slate-800">
+                            <span className="inline-flex flex-wrap items-center gap-1">
+                              {idx === 0 && primaryKeyword.trim() ? (
+                                <span className="shrink-0 rounded bg-indigo-100 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-indigo-800">
+                                  Primary
+                                </span>
+                              ) : null}
+                              <span>{row.phrase}</span>
+                            </span>
+                          </td>
+                          <td className="py-1.5 pr-2 tabular-nums">{row.count}</td>
+                          <td className="py-1.5 pr-2 tabular-nums">
                             {row.densityPercent}%
                             {row.densityPercent > 2.5 && (
                               <span className="ml-1 text-amber-800" title="High density — may read as keyword stuffing">
@@ -1662,9 +2082,9 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                               </span>
                             )}
                           </td>
-                          <td className="py-1 text-slate-600">
-                            {(row.inSeoTitle || row.inBlogTitle) && <span title="In title">T </span>}
-                            {row.inMeta && <span title="In meta">M</span>}
+                          <td className="py-1.5 pr-1 text-slate-600">
+                            {(row.inSeoTitle || row.inBlogTitle) && <span title="In SEO or blog title">T </span>}
+                            {row.inMeta && <span title="In meta description">M</span>}
                             {!row.inSeoTitle && !row.inBlogTitle && !row.inMeta && '—'}
                           </td>
                         </tr>
@@ -1675,32 +2095,44 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
               )}
             </section>
 
-            <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Pre-publish checklist</h2>
-              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                <div className="h-full rounded-full bg-indigo-600 transition-all duration-300" style={{ width: `${checklist.pct}%` }} />
+            <section className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">SEO analysis</h2>
+                <span className={`text-[10px] font-semibold ${seoPresentation.text}`}>
+                  {seoPresentation.label} · /100
+                </span>
               </div>
-              <p className="mt-2 text-xs text-slate-600">
-                {checklist.done}/{checklist.total} complete ({checklist.pct}%)
+              <p className="mt-1 text-xs text-slate-500">
+                From titles, meta, keyword placement, and body usage — editorial heuristic (like common plugins), not a Google score.
               </p>
-              <ul className="mt-3 max-h-48 space-y-2 overflow-y-auto text-sm">
-                {checklist.items.map((item) => (
-                  <li key={item.id} className="flex gap-2">
-                    <span className={item.ok ? 'text-emerald-600' : 'text-slate-400'}>{item.ok ? '✓' : '○'}</span>
-                    <span className={item.ok ? 'text-slate-700' : 'text-slate-500'}>{item.label}</span>
-                  </li>
-                ))}
-              </ul>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+                <div className={`h-full rounded-full transition-all ${seoPresentation.bar}`} style={{ width: `${seo.score}%` }} />
+              </div>
+              <p className={`mt-2 text-2xl font-bold tabular-nums ${seoPresentation.text}`}>{seo.score}</p>
+              {seo.hints.length > 0 ? (
+                <ul className="mt-2 max-h-40 list-disc space-y-1 overflow-y-auto pl-4 text-xs text-slate-600">
+                  {seo.hints.slice(0, 8).map((h, i) => (
+                    <li key={i}>{h}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 text-xs text-emerald-700">Nothing flagged here — still verify the checklist.</p>
+              )}
             </section>
 
-            <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Content metrics</h2>
+            <p className="px-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Content &amp; readability</p>
+
+            <section className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Content metrics</h2>
+              <p className="mt-1 text-xs text-slate-500">
+                Live structure from the editor: headings, paragraphs, images, links. Targets align with long-form web guides.
+              </p>
               <dl className="mt-3 space-y-2 text-sm">
                 <div className="flex justify-between gap-4">
                   <dt className="text-slate-600">Words</dt>
-                  <dd className="font-medium">
-                    {stats.wordCount}
-                    <span className="ml-1 text-xs font-normal text-slate-500">(target &gt;{WORD_TARGET})</span>
+                  <dd className="font-medium tabular-nums">
+                    {liveWordCount.toLocaleString()}
+                    <span className="ml-1 text-xs font-normal text-slate-500">/ {PILLAR_WORD_TARGET.toLocaleString()} target</span>
                   </dd>
                 </div>
                 <div className="flex justify-between gap-4">
@@ -1709,67 +2141,150 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                 </div>
                 <div className="flex justify-between gap-4">
                   <dt className="text-slate-600">H1 / H2 / H3</dt>
+                  <dd className="font-medium tabular-nums">
+                    {liveContentStats.h1} / {liveContentStats.h2} / {liveContentStats.h3}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-slate-600">H4 / H5 / H6</dt>
+                  <dd className="font-medium tabular-nums">
+                    {liveContentStats.h4} / {liveContentStats.h5} / {liveContentStats.h6}
+                  </dd>
+                </div>
+                {liveWordCount >= LONGFORM_MIN_WORDS_FOR_SUBHEADINGS && (
+                  <p className="text-xs text-slate-600">
+                    For ~{liveWordCount.toLocaleString()} words, aim for ≥{' '}
+                    <strong>{suggestedMinSectionHeadings(liveWordCount)}</strong> combined H2+H3 sections (~1 per ~380 words).
+                  </p>
+                )}
+                <div className="flex justify-between gap-4">
+                  <dt className="text-slate-600">Long paragraphs</dt>
                   <dd className="font-medium">
-                    {stats.h1} / {stats.h2} / {stats.h3}
+                    {longParagraphCount} <span className="text-xs font-normal text-slate-500">({LONG_PARAGRAPH_WORD_THRESHOLD}+ words)</span>
                   </dd>
                 </div>
                 <div className="flex justify-between gap-4">
                   <dt className="text-slate-600">Images</dt>
-                  <dd className="font-medium">{stats.imageCount}</dd>
+                  <dd className="font-medium">{liveContentStats.imageCount}</dd>
                 </div>
                 <div className="rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-900">
-                  {stats.imageCount === 0
+                  {liveContentStats.imageCount === 0
                     ? 'Add images where they clarify the story; set descriptive alt text in the image dialog.'
-                    : stats.imagesMissingAlt > 0
-                      ? `${stats.imagesMissingAlt} image(s) missing alt text — add alt in Quill when inserting images.`
+                    : liveContentStats.imagesMissingAlt > 0
+                      ? `${liveContentStats.imagesMissingAlt} image(s) missing alt text — add alt in Quill when inserting images.`
                       : 'All images have alt text.'}
                 </div>
                 <div className="flex justify-between gap-4 border-t border-slate-100 pt-2">
                   <dt className="text-slate-600">Internal / external links</dt>
                   <dd className="font-medium">
-                    {stats.internalLinkCount} / {stats.externalLinkCount}
+                    {liveContentStats.internalLinkCount} / {liveContentStats.externalLinkCount}
                   </dd>
                 </div>
               </dl>
             </section>
 
-            <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Readability</h2>
+            <section className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Readability</h2>
               <p className="mt-2 text-2xl font-semibold text-slate-900">
-                {stats.wordCount ? fre : '—'} <span className="text-base font-normal text-slate-500">/ 100</span>
+                {liveWordCount ? fre : '—'} <span className="text-base font-normal text-slate-500">/ 100</span>
               </p>
-              <p className="text-sm text-slate-600">{stats.wordCount ? fleschLabel(fre) : 'Add content to score.'}</p>
-              <p className="mt-2 text-xs text-slate-500">Flesch Reading Ease (approximation from extracted text).</p>
-            </section>
-
-            <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">SEO score</h2>
-              <p className="mt-2 text-2xl font-semibold text-indigo-700">{seo.score}</p>
-              {seo.hints.length > 0 && (
-                <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-slate-600">
-                  {seo.hints.slice(0, 6).map((h, i) => (
-                    <li key={i}>{h}</li>
-                  ))}
-                </ul>
+              <p className="text-sm text-slate-600">{liveWordCount ? fleschLabel(fre) : 'Add content to score.'}</p>
+              <p className="mt-2 text-xs text-slate-500">
+                Flesch Reading Ease (live text from the editor). Higher = easier; typical web targets are often ~50–60+ for mixed audiences.
+              </p>
+              {liveWordCount > 0 && Number.isFinite(fre) && fre > 0 && fre < 60 && (
+                <div className="mt-4 rounded-lg border border-sky-200 bg-sky-50/90 px-3 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-sky-900">How to raise this score</p>
+                  <ul className="mt-2 list-disc space-y-1.5 pl-4 text-xs leading-relaxed text-sky-950">
+                    {fleschImprovementHints(fre).map((hint, i) => (
+                      <li key={i}>{hint}</li>
+                    ))}
+                  </ul>
+                  <label className="mt-3 flex cursor-pointer items-start gap-2 text-xs text-sky-950">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 rounded border-sky-300"
+                      checked={previewHighlightReadability}
+                      onChange={(e) => setPreviewHighlightReadability(e.target.checked)}
+                    />
+                    <span>
+                      <strong className="font-semibold">Live in-context highlights</strong> — sky marks show sentences over{' '}
+                      {READABILITY_LONG_SENTENCE_WORDS} words; dense paragraphs/list items (≥{LONG_PARAGRAPH_WORD_THRESHOLD} words) get a blue
+                      accent. Updates as you type; saved HTML is unchanged.
+                    </span>
+                  </label>
+                  {previewHighlightReadability && (
+                    <div className="mt-3">
+                      <p className="text-[11px] font-medium text-sky-900">Body preview (coaching overlay)</p>
+                      {readabilityLivePreviewHtml ? (
+                        <>
+                          <style>{`
+                            .blog-readability-live-mount .blog-readability-long-paragraph {
+                              box-shadow: inset 3px 0 0 0 #0ea5e9;
+                              background-color: rgba(224, 242, 254, 0.45);
+                              border-radius: 0 6px 6px 0;
+                              padding-left: 0.35rem;
+                            }
+                          `}</style>
+                          <div
+                            className="blog-readability-live-mount mt-1 max-h-56 overflow-y-auto rounded-md border border-sky-200/80 bg-white px-3 py-2 text-sm leading-relaxed text-slate-800 [&_a]:text-indigo-600 [&_h1]:text-lg [&_h1]:font-bold [&_h2]:mt-3 [&_h2]:text-base [&_h2]:font-semibold [&_h3]:mt-2 [&_h3]:text-sm [&_h3]:font-semibold [&_li]:my-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_ul]:list-disc [&_ul]:pl-5"
+                            // eslint-disable-next-line react/no-danger -- sanitized with DOMPurify + readability marks only
+                            dangerouslySetInnerHTML={{ __html: readabilityLivePreviewHtml }}
+                          />
+                        </>
+                      ) : (
+                        <p className="mt-1 text-[11px] text-sky-900/80">Add body content to see highlights.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+              {liveWordCount > 0 && Number.isFinite(fre) && fre >= 60 && (
+                <p className="mt-3 text-xs text-emerald-800">
+                  You&apos;re in a comfortable band for many readers. Tighten further only if your audience is time-poor, ESL, or mostly on mobile.
+                </p>
               )}
             </section>
 
-            <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Suggestions for writer</h2>
-              <p className="mt-1 text-xs text-slate-500">Editorial + SEO + structure (not a grammar checker).</p>
-              {allWriterSuggestions.length === 0 ? (
-                <p className="mt-2 text-sm text-emerald-700">Looking good — no major automated flags.</p>
+            <p className="px-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Editorial coach</p>
+
+            <section className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Suggestions for writer</h2>
+              <p className="mt-1 text-xs text-slate-500">
+                Topic and structure nudges only. SEO title, meta, and checklist items are intentionally{' '}
+                <strong className="font-medium text-slate-600">not</strong> repeated here — use <strong>SEO analysis</strong> and{' '}
+                <strong>Pre-publish checklist</strong> for those.
+              </p>
+              {naturalKeywordHints.length === 0 && writerSuggestions.length === 0 ? (
+                <p className="mt-2 text-sm text-emerald-700">No extra coaching flags — keep refining with the sections above.</p>
               ) : (
-                <ul className="mt-2 list-disc space-y-1.5 pl-4 text-sm text-slate-700">
-                  {allWriterSuggestions.map((s, i) => (
-                    <li key={i}>{s}</li>
-                  ))}
-                </ul>
+                <div className="mt-3 space-y-3">
+                  {naturalKeywordHints.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Topic &amp; keywords</p>
+                      <ul className="mt-1 list-disc space-y-1 pl-4 text-xs text-slate-700">
+                        {naturalKeywordHints.map((s, i) => (
+                          <li key={`kw-${i}`}>{s}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {writerSuggestions.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Structure &amp; flow</p>
+                      <ul className="mt-1 list-disc space-y-1 pl-4 text-sm text-slate-700">
+                        {writerSuggestions.map((s, i) => (
+                          <li key={`ws-${i}`}>{s}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
               )}
             </section>
 
-            <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Originality &amp; plagiarism</h2>
+            <section className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Originality &amp; plagiarism</h2>
               <p className="mt-2 text-xs text-slate-600">
                 <strong>Server scan</strong> runs on your backend — repetition &amp; vocabulary signals only (no web crawl, no third-party).
                 For matching against the public web, use an external tool below.
@@ -1877,8 +2392,8 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
               )}
             </section>
 
-            <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Link-worthiness</h2>
+            <section className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Link-worthiness</h2>
               <p className="mb-3 text-xs text-slate-600">Tick what applies — editors often know context Quill cannot see.</p>
               <label className="flex cursor-pointer items-start gap-2 text-sm">
                 <input type="checkbox" className="mt-0.5 rounded border-slate-300" checked={hasOriginalData} onChange={(e) => setHasOriginalData(e.target.checked)} />
@@ -1910,7 +2425,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
           role="dialog"
           aria-modal="true"
           aria-label="Choose image from Cloudinary"
-          onClick={() => setCloudinaryPickerOpen(false)}
+          onClick={() => closeCloudinaryPicker()}
         >
           <div
             className="relative my-8 w-full max-w-3xl rounded-xl border border-slate-200 bg-white shadow-xl"
@@ -1918,14 +2433,19 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
           >
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
               <div>
-                <h2 className="text-sm font-semibold text-slate-900">Insert from Cloudinary</h2>
+                <h2 className="text-sm font-semibold text-slate-900">
+                  {cloudinaryPickerFor === 'featured' ? 'Featured image from Cloudinary' : 'Insert from Cloudinary'}
+                </h2>
                 <p className="text-xs text-slate-500">
-                  Folder: {BLOG_BODY_CLOUDINARY_FOLDER} — click an image to insert at your cursor.
+                  Folder: {BLOG_BODY_CLOUDINARY_FOLDER}
+                  {cloudinaryPickerFor === 'featured'
+                    ? ' — click an image to use as the featured image.'
+                    : ' — click an image, then enter alt text to insert at your cursor.'}
                 </p>
               </div>
               <button
                 type="button"
-                onClick={() => setCloudinaryPickerOpen(false)}
+                onClick={() => closeCloudinaryPicker()}
                 className="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100"
               >
                 Close
@@ -1945,12 +2465,12 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                     <button
                       key={img.publicId}
                       type="button"
-                      onClick={() => insertQuillImageFromUrl(img.url)}
+                      onClick={() => handleCloudinaryLibraryPick(img.url)}
                       className="group overflow-hidden rounded-lg border border-slate-200 bg-slate-50 text-left shadow-sm transition hover:border-indigo-300 hover:ring-2 hover:ring-indigo-200"
                     >
                       <img
                         src={img.url}
-                        alt=""
+                        alt={img.publicId.split('/').pop() ?? 'Library image'}
                         className="aspect-square w-full object-cover"
                         loading="lazy"
                       />
@@ -1961,6 +2481,59 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {bodyImageAltDialogOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Image alt text"
+          onClick={() => cancelBodyImageAlt()}
+        >
+          <div
+            className="relative my-24 w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-sm font-semibold text-slate-900">Alt text for this image</h2>
+            <p className="mt-1 text-xs text-slate-500">
+              Describe what the image shows. Required for accessibility and before you can publish with images in the body.
+            </p>
+            <label className="mt-4 block text-xs font-medium text-slate-600" htmlFor="blog-body-img-alt">
+              Alt text
+            </label>
+            <input
+              id="blog-body-img-alt"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              value={bodyImageAltDraft}
+              onChange={(e) => setBodyImageAltDraft(e.target.value)}
+              placeholder="e.g. Technician checking AC outdoor unit in Mumbai"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  confirmBodyImageAlt()
+                }
+              }}
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => cancelBodyImageAlt()}
+                className="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => confirmBodyImageAlt()}
+                className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
+              >
+                Insert image
+              </button>
             </div>
           </div>
         </div>
@@ -1981,6 +2554,17 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             <div className="sticky top-0 z-10 flex flex-col gap-2 border-b border-slate-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <span className="text-sm font-semibold text-slate-800">Reader preview</span>
               <div className="flex flex-wrap items-center gap-3">
+                {readabilityCoachActive && (
+                  <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-600">
+                    <input
+                      type="checkbox"
+                      className="rounded border-slate-300"
+                      checked={previewHighlightReadability}
+                      onChange={(e) => setPreviewHighlightReadability(e.target.checked)}
+                    />
+                    Readability (sky: long sentences &amp; dense blocks)
+                  </label>
+                )}
                 {plagiarismResult && (plagiarismResult.repeatedFiveGrams?.length ?? 0) > 0 && (
                   <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-600">
                     <input
@@ -2002,17 +2586,36 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
               </div>
             </div>
             <div className="px-6 py-6">
+              <style>{`
+                .blog-preview-content img {
+                  max-width: 100% !important;
+                  width: auto !important;
+                  height: auto !important;
+                  max-height: min(60vh, 520px) !important;
+                  object-fit: contain;
+                  display: block;
+                  margin-left: auto;
+                  margin-right: auto;
+                  border-radius: 0.5rem;
+                }
+                .blog-preview-content .blog-readability-long-paragraph {
+                  box-shadow: inset 3px 0 0 0 #0ea5e9;
+                  background-color: rgba(224, 242, 254, 0.35);
+                  border-radius: 0 6px 6px 0;
+                  padding-left: 0.35rem;
+                }
+              `}</style>
               {featuredImageUrl.trim() && (
                 <img
                   src={featuredImageUrl.trim()}
-                  alt=""
+                  alt={featuredImageAlt.trim() || 'Featured image'}
                   className="mb-6 max-h-64 w-full rounded-lg object-cover"
                 />
               )}
               <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title || 'Untitled'}</h1>
               <p className="mt-2 text-sm text-slate-500">{metaDescription || 'No meta description'}</p>
               <div
-                className="blog-preview-content mt-8 max-w-none text-slate-800 [&_a]:text-indigo-600 [&_blockquote]:border-l-4 [&_blockquote]:border-slate-200 [&_blockquote]:pl-4 [&_h1]:mt-8 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:mt-8 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:mt-6 [&_h3]:text-lg [&_h3]:font-semibold [&_iframe]:aspect-video [&_iframe]:max-h-96 [&_iframe]:w-full [&_iframe]:rounded-lg [&_img]:max-w-full [&_img]:rounded-lg [&_mark]:rounded [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-3 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6"
+                className="blog-preview-content mt-8 max-w-none text-slate-800 [&_a]:text-indigo-600 [&_blockquote]:border-l-4 [&_blockquote]:border-slate-200 [&_blockquote]:pl-4 [&_h1]:mt-8 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:mt-8 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:mt-6 [&_h3]:text-lg [&_h3]:font-semibold [&_iframe]:aspect-video [&_iframe]:max-h-96 [&_iframe]:w-full [&_iframe]:rounded-lg [&_mark]:rounded [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-3 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6"
                 // eslint-disable-next-line react/no-danger -- sanitized with DOMPurify (+ optional mark from scan)
                 dangerouslySetInnerHTML={{ __html: previewArticleHtml }}
               />

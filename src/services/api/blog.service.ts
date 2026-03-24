@@ -50,6 +50,7 @@ interface BackendBlogPost {
   excerpt: string;
   content: string;
   featuredImage?: string;
+  featuredImageAlt?: string;
   author?: { id?: string; _id?: string; name: string; avatar?: string };
   category?: { _id: string; name: string; slug?: string } | string;
   tags?: string[];
@@ -94,6 +95,7 @@ function mapBackendPostToFrontend(raw: BackendBlogPost): BlogPost {
       name: author?.name ?? 'Admin',
     },
     featuredImage: raw.featuredImage ?? null,
+    featuredImageAlt: raw.featuredImageAlt ?? null,
     seo: raw.seo,
     faqItems: Array.isArray(raw.faqItems)
       ? raw.faqItems.filter(
