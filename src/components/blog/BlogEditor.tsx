@@ -71,6 +71,9 @@ import {
   highlightReadabilityIssuesInHtml,
 } from './highlightReadabilityInHtml'
 import { highlightRepeatPhrasesInHtml } from './highlightRepeatPhrases'
+import { registerQuillTableFormats } from './register-quill-table'
+
+registerQuillTableFormats()
 
 type FaqEditorRow = { id: string; question: string; answer: string }
 
@@ -174,6 +177,55 @@ interface ParsedContentStats {
   plainText: string
 }
 
+/** Body HTML tags allowed when sanitizing blog content (tables + Quill data-row on cells). */
+const BLOG_BODY_PURIFY_TAGS = [
+  'p',
+  'br',
+  'span',
+  'strong',
+  'em',
+  'u',
+  's',
+  'a',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'ul',
+  'ol',
+  'li',
+  'blockquote',
+  'pre',
+  'code',
+  'img',
+  'iframe',
+  'table',
+  'thead',
+  'tbody',
+  'tr',
+  'th',
+  'td',
+] as const
+
+const BLOG_BODY_PURIFY_ATTR = [
+  'href',
+  'src',
+  'alt',
+  'class',
+  'style',
+  'title',
+  'width',
+  'height',
+  'frameborder',
+  'allow',
+  'allowfullscreen',
+  'colspan',
+  'rowspan',
+  'data-row',
+] as const
+
 function parseContentHtml(html: string, internalHosts: string[]): ParsedContentStats {
   const empty: ParsedContentStats = {
     wordCount: 0,
@@ -193,11 +245,8 @@ function parseContentHtml(html: string, internalHosts: string[]): ParsedContentS
 
   const safe = DOMPurify.sanitize(html, {
     ADD_ATTR: ['target', 'rel'],
-    ALLOWED_TAGS: [
-      'p', 'br', 'span', 'strong', 'em', 'u', 's', 'a', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-      'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'img', 'iframe',
-    ],
-    ALLOWED_ATTR: ['href', 'src', 'alt', 'class', 'style', 'title', 'width', 'height', 'frameborder', 'allow', 'allowfullscreen'],
+    ALLOWED_TAGS: [...BLOG_BODY_PURIFY_TAGS],
+    ALLOWED_ATTR: [...BLOG_BODY_PURIFY_ATTR, 'target', 'rel'],
   })
 
   const doc = new DOMParser().parseFromString(safe, 'text/html')
@@ -276,6 +325,7 @@ const QUILL_FORMATS = [
   'link',
   'image',
   'video',
+  'table',
 ]
 
 /** Folder for in-article uploads + library picker (same as other CMS image fields). */
@@ -350,6 +400,8 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [submitting, setSubmitting] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
+  /** Viewport position for a small “toolbar above” hint next to the caret (fixed px). */
+  const [editorCaretHint, setEditorCaretHint] = useState<{ top: number; left: number } | null>(null)
 
   const onTitleChange = useCallback(
     (value: string) => {
@@ -477,6 +529,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
 
   const quillModules = useMemo(
     () => ({
+      table: true,
       toolbar: {
         container: [
           [{ header: [1, 2, 3, 4, 5, 6, false] }],
@@ -486,10 +539,23 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
           [{ indent: '-1' }, { indent: '+1' }],
           [{ align: [] }],
           ['blockquote', 'code-block'],
-          ['link', 'image', 'cloudinary', 'video'],
+          ['link', 'image', 'cloudinary', 'video', 'insertTable'],
           ['clean'],
         ],
         handlers: {
+          insertTable: function (this: { quill: Quill }) {
+            quillEditorRef.current = this.quill
+            const mod = this.quill.getModule('table') as { insertTable?: (rows: number, cols: number) => void }
+            if (!mod?.insertTable) {
+              toast({
+                title: 'Table tool unavailable',
+                description: 'Refresh the page and try again.',
+                variant: 'destructive',
+              })
+              return
+            }
+            mod.insertTable(3, 3)
+          },
           image: function (this: { quill: Quill }) {
             quillEditorRef.current = this.quill
             const sel = this.quill.getSelection(true)
@@ -951,23 +1017,19 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
     () => ({
       ADD_ATTR: ['target', 'rel'],
       ALLOWED_TAGS: [
-        'p', 'br', 'span', 'strong', 'em', 'u', 's', 'a', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-        'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'img', 'iframe',
+        ...BLOG_BODY_PURIFY_TAGS,
         'mark',
-        'section', 'dl', 'dt', 'dd', 'form', 'label', 'input', 'button',
+        'section',
+        'dl',
+        'dt',
+        'dd',
+        'form',
+        'label',
+        'input',
+        'button',
       ],
       ALLOWED_ATTR: [
-        'href',
-        'src',
-        'alt',
-        'class',
-        'style',
-        'title',
-        'width',
-        'height',
-        'frameborder',
-        'allow',
-        'allowfullscreen',
+        ...BLOG_BODY_PURIFY_ATTR,
         'id',
         'for',
         'type',
@@ -978,6 +1040,8 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
         'autocomplete',
         'required',
         'aria-labelledby',
+        'target',
+        'rel',
       ],
     }),
     [],
@@ -997,24 +1061,8 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
   const previewPurifyConfig = useMemo(
     () => ({
       ADD_ATTR: ['target', 'rel'],
-      ALLOWED_TAGS: [
-        'p', 'br', 'span', 'strong', 'em', 'u', 's', 'a', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-        'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'img', 'iframe',
-        'mark',
-      ],
-      ALLOWED_ATTR: [
-        'href',
-        'src',
-        'alt',
-        'class',
-        'style',
-        'title',
-        'width',
-        'height',
-        'frameborder',
-        'allow',
-        'allowfullscreen',
-      ],
+      ALLOWED_TAGS: [...BLOG_BODY_PURIFY_TAGS, 'mark'],
+      ALLOWED_ATTR: [...BLOG_BODY_PURIFY_ATTR, 'target', 'rel'],
     }),
     [],
   )
@@ -1128,11 +1176,8 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
   const handleExportHtml = () => {
     const safeBody = DOMPurify.sanitize(contentHtml, {
       ADD_ATTR: ['target', 'rel'],
-      ALLOWED_TAGS: [
-        'p', 'br', 'span', 'strong', 'em', 'u', 's', 'a', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-        'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'img',
-      ],
-      ALLOWED_ATTR: ['href', 'src', 'alt', 'class'],
+      ALLOWED_TAGS: [...BLOG_BODY_PURIFY_TAGS],
+      ALLOWED_ATTR: [...BLOG_BODY_PURIFY_ATTR, 'target', 'rel'],
     })
     const appendixSafe = DOMPurify.sanitize(
       buildBlogStructuredAppendixHtml(faqItemsResolved, leadMagnet),
@@ -1157,11 +1202,8 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
   const handlePrintPdf = () => {
     const safeBody = DOMPurify.sanitize(contentHtml, {
       ADD_ATTR: ['target', 'rel'],
-      ALLOWED_TAGS: [
-        'p', 'br', 'span', 'strong', 'em', 'u', 's', 'a', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-        'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'img',
-      ],
-      ALLOWED_ATTR: ['href', 'src', 'alt', 'class'],
+      ALLOWED_TAGS: [...BLOG_BODY_PURIFY_TAGS],
+      ALLOWED_ATTR: [...BLOG_BODY_PURIFY_ATTR, 'target', 'rel'],
     })
     const appendixSafe = DOMPurify.sanitize(
       buildBlogStructuredAppendixHtml(faqItemsResolved, leadMagnet),
@@ -1853,14 +1895,42 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             <div>
               <label className="mb-1 block text-sm font-medium">Content</label>
               <p className="mb-2 text-xs text-slate-500">
-                Use one H1 in the body, then H2/H3 for sections (avoid skipping levels). Images: upload max {formatImageSizeCap(BLOG_IMAGE_MAX_FILE_BYTES)} per file (compress to ~{formatImageSizeCap(BLOG_IMAGE_RECOMMENDED_MAX_BYTES)} when possible). Alt text is required on insert; publish/schedule also requires featured-image alt. Editor preview caps display size only — saved HTML is unchanged.
+                Use one H1 in the body, then H2/H3 for sections (avoid skipping levels). The rich-text toolbar stays pinned at the top of the editor while you scroll — use it for headings, lists, links, images, and tables. Images: upload max {formatImageSizeCap(BLOG_IMAGE_MAX_FILE_BYTES)} per file (compress to ~{formatImageSizeCap(BLOG_IMAGE_RECOMMENDED_MAX_BYTES)} when possible). Alt text is required on insert; publish/schedule also requires featured-image alt. Editor preview caps display size only — saved HTML is unchanged.
               </p>
-              <div className="blog-quill rounded-lg border border-slate-300 [&_.ql-container]:min-h-[320px] [&_.ql-editor]:min-h-[280px] [&_.ql-toolbar]:rounded-t-lg [&_.ql-container]:rounded-b-lg">
+              <div className="blog-quill relative rounded-lg border border-slate-300 [&_.ql-container]:min-h-[320px] [&_.ql-editor]:min-h-[280px] [&_.ql-toolbar]:rounded-t-lg [&_.ql-container]:rounded-b-lg">
                 <style>{`
+                  .blog-quill .ql-toolbar.ql-snow {
+                    position: sticky;
+                    top: 0;
+                    z-index: 25;
+                    background: #f8fafc;
+                    border-bottom: 1px solid #cbd5e1;
+                  }
                   .blog-quill .ql-toolbar button.ql-cloudinary::before {
                     content: '☁';
                     font-size: 1.05rem;
                     line-height: 0;
+                  }
+                  .blog-quill .ql-toolbar button.ql-insertTable::before {
+                    content: '▦';
+                    font-size: 1rem;
+                    line-height: 0;
+                  }
+                  .blog-quill .ql-editor table {
+                    border-collapse: collapse;
+                    width: 100%;
+                    margin: 0.75rem 0;
+                  }
+                  .blog-quill .ql-editor td,
+                  .blog-quill .ql-editor th {
+                    border: 1px solid #cbd5e1;
+                    padding: 0.5rem 0.6rem;
+                    min-width: 3rem;
+                    vertical-align: top;
+                  }
+                  .blog-quill .ql-editor th {
+                    background: #f1f5f9;
+                    font-weight: 600;
                   }
                   /* Keep body images readable: override Cloudinary / pasted width×height */
                   .blog-quill .ql-editor img {
@@ -1878,10 +1948,34 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                   theme="snow"
                   value={contentHtml}
                   onChange={setContentHtml}
+                  onChangeSelection={(range, _source, editor) => {
+                    if (!range || range.length > 0) {
+                      setEditorCaretHint(null)
+                      return
+                    }
+                    const b = editor.getBounds(range.index)
+                    if (!b || typeof b.top !== 'number' || typeof b.left !== 'number') {
+                      setEditorCaretHint(null)
+                      return
+                    }
+                    setEditorCaretHint({ top: b.top, left: b.left })
+                  }}
                   modules={quillModules}
                   formats={QUILL_FORMATS}
                   placeholder="Write pillar content…"
                 />
+                {editorCaretHint && (
+                  <div
+                    className="pointer-events-none fixed z-[60] max-w-[10.5rem] rounded-md border border-slate-200 bg-white/95 px-2 py-1 text-[10px] leading-tight text-slate-600 shadow-md"
+                    style={{
+                      top: Math.max(6, editorCaretHint.top - 36),
+                      left: Math.min(editorCaretHint.left, typeof window !== 'undefined' ? window.innerWidth - 140 : editorCaretHint.left),
+                    }}
+                    aria-hidden
+                  >
+                    ↑ Rich-text toolbar (sticky)
+                  </div>
+                )}
               </div>
               <div
                 className={`mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-sm ${
@@ -2615,7 +2709,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
               <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title || 'Untitled'}</h1>
               <p className="mt-2 text-sm text-slate-500">{metaDescription || 'No meta description'}</p>
               <div
-                className="blog-preview-content mt-8 max-w-none text-slate-800 [&_a]:text-indigo-600 [&_blockquote]:border-l-4 [&_blockquote]:border-slate-200 [&_blockquote]:pl-4 [&_h1]:mt-8 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:mt-8 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:mt-6 [&_h3]:text-lg [&_h3]:font-semibold [&_iframe]:aspect-video [&_iframe]:max-h-96 [&_iframe]:w-full [&_iframe]:rounded-lg [&_mark]:rounded [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-3 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6"
+                className="blog-preview-content mt-8 max-w-none text-slate-800 [&_a]:text-indigo-600 [&_blockquote]:border-l-4 [&_blockquote]:border-slate-200 [&_blockquote]:pl-4 [&_h1]:mt-8 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:mt-8 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:mt-6 [&_h3]:text-lg [&_h3]:font-semibold [&_iframe]:aspect-video [&_iframe]:max-h-96 [&_iframe]:w-full [&_iframe]:rounded-lg [&_mark]:rounded [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-3 [&_table]:my-4 [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm [&_td]:border [&_td]:border-slate-200 [&_td]:p-2 [&_td]:align-top [&_th]:border [&_th]:border-slate-200 [&_th]:bg-slate-50 [&_th]:p-2 [&_th]:text-left [&_th]:font-semibold [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6"
                 // eslint-disable-next-line react/no-danger -- sanitized with DOMPurify (+ optional mark from scan)
                 dangerouslySetInnerHTML={{ __html: previewArticleHtml }}
               />
