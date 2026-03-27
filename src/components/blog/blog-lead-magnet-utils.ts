@@ -57,17 +57,21 @@ export function buildFaqJsonLdString(items: BlogFaqItem[]): string | null {
   return JSON.stringify(doc)
 }
 
-/** Visible FAQ block (must align with JSON-LD for FAQ rich results). */
+/**
+ * Visible FAQ block as a native HTML accordion (`<details>` / `<summary>`).
+ * Pairs with the same Q&A as FAQPage JSON-LD (`buildFaqJsonLdString`).
+ */
 export function buildFaqVisibleHtml(items: BlogFaqItem[]): string {
   const valid = items.filter((i) => i.question.trim() && i.answer.trim())
   if (valid.length === 0) return ''
-  const dl = valid
-    .map(
-      (i) =>
-        `<dt>${escapeHtml(i.question.trim())}</dt><dd>${escapeHtml(i.answer.trim())}</dd>`,
-    )
+  const itemsHtml = valid
+    .map((i, index) => {
+      const q = escapeHtml(i.question.trim())
+      const a = escapeHtml(i.answer.trim()).replace(/\n/g, '<br />')
+      return `<details class="blog-faq__item" id="blog-faq-item-${index + 1}"><summary class="blog-faq__question">${q}</summary><div class="blog-faq__answer">${a}</div></details>`
+    })
     .join('')
-  return `<section class="blog-faq" aria-labelledby="blog-faq-heading"><h2 id="blog-faq-heading">Frequently asked questions</h2><dl>${dl}</dl></section>`
+  return `<section class="blog-faq" aria-labelledby="blog-faq-heading"><h2 id="blog-faq-heading">Frequently asked questions</h2><div class="blog-faq__accordion" role="region" aria-label="Frequently asked questions">${itemsHtml}</div></section>`
 }
 
 /** Lead form HTML; if no action URL, shows a placeholder (preview / draft). */

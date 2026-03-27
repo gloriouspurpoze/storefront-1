@@ -2,28 +2,33 @@ import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit'
 import { AuthService } from '../../services/api'
 import type { User } from '../../types'
 
-/** Used when the access token has no `exp` claim; keep in sync with backend access-token TTL. */
+/** Minimum client session length (persisted Redux `tokenExpiry`). Prefer matching backend access-token TTL to 24h. */
 const ACCESS_TOKEN_TTL_MS = 24 * 60 * 60 * 1000
 
-/** Prefer JWT `exp` (seconds) when valid; otherwise login time + 24h. */
+/**
+ * Resolves when the client treats the session as expired (`tokenExpiry`).
+ * - If JWT `exp` is **shorter than 24h** from now, we still use **24h** so the admin UI does not drop the session early.
+ * - If JWT `exp` is **already past**, we keep that time (session is expired).
+ * - If JWT `exp` is **longer** than 24h (e.g. long-lived token), we use JWT `exp`.
+ * API requests still fail with 401 when the real JWT expires unless the backend also issues 24h access tokens.
+ */
 function resolveTokenExpiryMs(accessToken: string | null | undefined): number {
-  if (accessToken) {
-    try {
-      const seg = accessToken.split('.')[1]
-      if (seg) {
-        const b64 = seg.replace(/-/g, '+').replace(/_/g, '/')
-        const json = atob(b64)
-        const payload = JSON.parse(json) as { exp?: number }
-        if (typeof payload.exp === 'number') {
-          const ms = payload.exp * 1000
-          if (ms > Date.now()) return ms
-        }
-      }
-    } catch {
-      /* malformed JWT — fall through */
-    }
+  const sessionEnd = Date.now() + ACCESS_TOKEN_TTL_MS
+  if (!accessToken) return sessionEnd
+  try {
+    const seg = accessToken.split('.')[1]
+    if (!seg) return sessionEnd
+    const b64 = seg.replace(/-/g, '+').replace(/_/g, '/')
+    const json = atob(b64)
+    const payload = JSON.parse(json) as { exp?: number }
+    if (typeof payload.exp !== 'number') return sessionEnd
+    const jwtMs = payload.exp * 1000
+    if (jwtMs <= Date.now()) return jwtMs
+    if (jwtMs < sessionEnd) return sessionEnd
+    return jwtMs
+  } catch {
+    return sessionEnd
   }
-  return Date.now() + ACCESS_TOKEN_TTL_MS
 }
 
 interface AuthState {

@@ -71,6 +71,11 @@ import {
   highlightReadabilityIssuesInHtml,
 } from './highlightReadabilityInHtml'
 import { highlightRepeatPhrasesInHtml } from './highlightRepeatPhrases'
+import {
+  BLOG_BODY_PURIFY_ATTR,
+  BLOG_BODY_PURIFY_TAGS,
+  sanitizeBlogBodyHtml,
+} from './blog-body-html'
 import { registerQuillTableFormats } from './register-quill-table'
 
 registerQuillTableFormats()
@@ -177,55 +182,6 @@ interface ParsedContentStats {
   plainText: string
 }
 
-/** Body HTML tags allowed when sanitizing blog content (tables + Quill data-row on cells). */
-const BLOG_BODY_PURIFY_TAGS = [
-  'p',
-  'br',
-  'span',
-  'strong',
-  'em',
-  'u',
-  's',
-  'a',
-  'h1',
-  'h2',
-  'h3',
-  'h4',
-  'h5',
-  'h6',
-  'ul',
-  'ol',
-  'li',
-  'blockquote',
-  'pre',
-  'code',
-  'img',
-  'iframe',
-  'table',
-  'thead',
-  'tbody',
-  'tr',
-  'th',
-  'td',
-] as const
-
-const BLOG_BODY_PURIFY_ATTR = [
-  'href',
-  'src',
-  'alt',
-  'class',
-  'style',
-  'title',
-  'width',
-  'height',
-  'frameborder',
-  'allow',
-  'allowfullscreen',
-  'colspan',
-  'rowspan',
-  'data-row',
-] as const
-
 function parseContentHtml(html: string, internalHosts: string[]): ParsedContentStats {
   const empty: ParsedContentStats = {
     wordCount: 0,
@@ -243,11 +199,7 @@ function parseContentHtml(html: string, internalHosts: string[]): ParsedContentS
   }
   if (!html || !html.trim()) return empty
 
-  const safe = DOMPurify.sanitize(html, {
-    ADD_ATTR: ['target', 'rel'],
-    ALLOWED_TAGS: [...BLOG_BODY_PURIFY_TAGS],
-    ALLOWED_ATTR: [...BLOG_BODY_PURIFY_ATTR, 'target', 'rel'],
-  })
+  const safe = sanitizeBlogBodyHtml(html)
 
   const doc = new DOMParser().parseFromString(safe, 'text/html')
   const body = doc.body
@@ -402,6 +354,11 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
   const [saveMessage, setSaveMessage] = useState('')
   /** Viewport position for a small “toolbar above” hint next to the caret (fixed px). */
   const [editorCaretHint, setEditorCaretHint] = useState<{ top: number; left: number } | null>(null)
+  const [importHtmlOpen, setImportHtmlOpen] = useState(false)
+  const [importHtmlDraft, setImportHtmlDraft] = useState('')
+  const [importHtmlStripStyles, setImportHtmlStripStyles] = useState(false)
+  /** ReactQuill instance — used for clipboard patch + import HTML. */
+  const reactQuillRef = useRef<InstanceType<typeof ReactQuill> | null>(null)
 
   const onTitleChange = useCallback(
     (value: string) => {
@@ -457,7 +414,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
           typeof post.category === 'object' && post.category?._id ? post.category._id : '',
         )
         setTagsInput((post.tags ?? []).join(', '))
-        setContentHtml(post.content ?? '')
+        setContentHtml(sanitizeBlogBodyHtml(post.content ?? ''))
         const allKw = post.seo?.keywords ?? []
         if (allKw[0]) setPrimaryKeyword(allKw[0])
         else setPrimaryKeyword('pillar topic')
@@ -539,10 +496,14 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
           [{ indent: '-1' }, { indent: '+1' }],
           [{ align: [] }],
           ['blockquote', 'code-block'],
-          ['link', 'image', 'cloudinary', 'video', 'insertTable'],
+          ['link', 'image', 'cloudinary', 'video', 'insertTable', 'importHtml'],
           ['clean'],
         ],
         handlers: {
+          importHtml: function (this: { quill: Quill }) {
+            quillEditorRef.current = this.quill
+            setImportHtmlOpen(true)
+          },
           insertTable: function (this: { quill: Quill }) {
             quillEditorRef.current = this.quill
             const mod = this.quill.getModule('table') as { insertTable?: (rows: number, cols: number) => void }
@@ -601,6 +562,91 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
     }),
     [toast],
   )
+
+  /** Sanitize pasted HTML before Quill converts it (Word/Docs + raw markup). */
+  useEffect(() => {
+    let restore: (() => void) | undefined
+    const timer = window.setTimeout(() => {
+      const rq = reactQuillRef.current
+      if (!rq) return
+      const quill = rq.getEditor()
+      const clipboard = quill.getModule('clipboard') as {
+        convert: (arg: { html?: string; text?: string }, formats?: object) => unknown
+      }
+      const originalConvert = clipboard.convert.bind(clipboard)
+      clipboard.convert = (arg, formats) => {
+        const next = { ...arg }
+        if (typeof next.html === 'string' && next.html.length > 0) {
+          next.html = sanitizeBlogBodyHtml(next.html)
+        }
+        return originalConvert(next, formats)
+      }
+      restore = () => {
+        clipboard.convert = originalConvert
+      }
+    }, 0)
+    return () => {
+      window.clearTimeout(timer)
+      restore?.()
+    }
+  }, [])
+
+  const applyImportHtmlAtCursor = useCallback(() => {
+    const quill = reactQuillRef.current?.getEditor() ?? quillEditorRef.current
+    if (!quill) {
+      toast({ title: 'Editor unavailable', description: 'Try again in a moment.', variant: 'destructive' })
+      return
+    }
+    const raw = importHtmlDraft.trim()
+    if (!raw) {
+      toast({ title: 'Nothing to import', description: 'Paste HTML in the box first.', variant: 'destructive' })
+      return
+    }
+    const clean = sanitizeBlogBodyHtml(raw, { stripInlineStyles: importHtmlStripStyles })
+    const range = quill.getSelection(true)
+    const idx = range?.index ?? Math.max(0, quill.getLength() - 1)
+    quill.clipboard.dangerouslyPasteHTML(idx, clean, 'user')
+    setImportHtmlOpen(false)
+    setImportHtmlDraft('')
+    toast({ title: 'HTML inserted', description: 'Sanitized and converted for the editor.' })
+  }, [importHtmlDraft, importHtmlStripStyles, toast])
+
+  const applyImportHtmlReplaceAll = useCallback(() => {
+    const quill = reactQuillRef.current?.getEditor() ?? quillEditorRef.current
+    if (!quill) {
+      toast({ title: 'Editor unavailable', description: 'Try again in a moment.', variant: 'destructive' })
+      return
+    }
+    const raw = importHtmlDraft.trim()
+    if (!raw) {
+      toast({ title: 'Nothing to import', description: 'Paste HTML in the box first.', variant: 'destructive' })
+      return
+    }
+    if (!window.confirm('Replace the entire article body with this HTML? This cannot be undone except by reverting the draft.')) {
+      return
+    }
+    const clean = sanitizeBlogBodyHtml(raw, { stripInlineStyles: importHtmlStripStyles })
+    const delta = quill.clipboard.convert({ html: clean, text: '' })
+    quill.setContents(delta, 'user')
+    setImportHtmlOpen(false)
+    setImportHtmlDraft('')
+    toast({ title: 'Body replaced', description: 'Sanitized HTML is now the article content.' })
+  }, [importHtmlDraft, importHtmlStripStyles, toast])
+
+  const closeImportHtml = useCallback(() => {
+    setImportHtmlOpen(false)
+    setImportHtmlDraft('')
+    setImportHtmlStripStyles(false)
+  }, [])
+
+  useEffect(() => {
+    if (!importHtmlOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeImportHtml()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [importHtmlOpen, closeImportHtml])
 
   const closeCloudinaryPicker = useCallback(() => {
     setCloudinaryPickerOpen(false)
@@ -1023,6 +1069,9 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
         'dl',
         'dt',
         'dd',
+        'details',
+        'summary',
+        'div',
         'form',
         'label',
         'input',
@@ -1040,6 +1089,9 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
         'autocomplete',
         'required',
         'aria-labelledby',
+        'aria-label',
+        'role',
+        'open',
         'target',
         'rel',
       ],
@@ -1174,11 +1226,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
   }
 
   const handleExportHtml = () => {
-    const safeBody = DOMPurify.sanitize(contentHtml, {
-      ADD_ATTR: ['target', 'rel'],
-      ALLOWED_TAGS: [...BLOG_BODY_PURIFY_TAGS],
-      ALLOWED_ATTR: [...BLOG_BODY_PURIFY_ATTR, 'target', 'rel'],
-    })
+    const safeBody = sanitizeBlogBodyHtml(contentHtml)
     const appendixSafe = DOMPurify.sanitize(
       buildBlogStructuredAppendixHtml(faqItemsResolved, leadMagnet),
       structuredBlockPurifyConfig,
@@ -1200,11 +1248,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
   }
 
   const handlePrintPdf = () => {
-    const safeBody = DOMPurify.sanitize(contentHtml, {
-      ADD_ATTR: ['target', 'rel'],
-      ALLOWED_TAGS: [...BLOG_BODY_PURIFY_TAGS],
-      ALLOWED_ATTR: [...BLOG_BODY_PURIFY_ATTR, 'target', 'rel'],
-    })
+    const safeBody = sanitizeBlogBodyHtml(contentHtml)
     const appendixSafe = DOMPurify.sanitize(
       buildBlogStructuredAppendixHtml(faqItemsResolved, leadMagnet),
       structuredBlockPurifyConfig,
@@ -1308,6 +1352,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
     setSubmitting(true)
     setSaveMessage('')
     try {
+      const safeContent = sanitizeBlogBodyHtml(contentHtml)
       const excerpt = metaDescription.trim().slice(0, 300)
       const tagList = tagsInput.split(',').map((t) => t.trim()).filter(Boolean)
       const kw = primaryKeyword.trim()
@@ -1320,7 +1365,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
         title: title.trim(),
         slug: slug.trim() || slugify(title),
         excerpt,
-        content: contentHtml,
+        content: safeContent,
         category: categoryId || undefined,
         tags: tagList,
         status: effectiveStatus,
@@ -1361,6 +1406,9 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
         await BlogService.updatePost(postId, payload)
       } else {
         await BlogService.createPost(payload)
+      }
+      if (safeContent !== contentHtml) {
+        setContentHtml(safeContent)
       }
       if (statusOverride) setStatus(statusOverride)
       toast({ title: 'Saved', description: postId ? 'Blog post updated.' : 'Blog post created.' })
@@ -1895,7 +1943,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             <div>
               <label className="mb-1 block text-sm font-medium">Content</label>
               <p className="mb-2 text-xs text-slate-500">
-                Use one H1 in the body, then H2/H3 for sections (avoid skipping levels). The rich-text toolbar stays pinned at the top of the editor while you scroll — use it for headings, lists, links, images, and tables. Images: upload max {formatImageSizeCap(BLOG_IMAGE_MAX_FILE_BYTES)} per file (compress to ~{formatImageSizeCap(BLOG_IMAGE_RECOMMENDED_MAX_BYTES)} when possible). Alt text is required on insert; publish/schedule also requires featured-image alt. Editor preview caps display size only — saved HTML is unchanged.
+                Use one H1 in the body, then H2/H3 for sections (avoid skipping levels). The rich-text toolbar stays pinned at the top of the editor while you scroll — use it for headings, lists, links, images, and tables. Paste or import HTML from the toolbar (HTML markup button): content is sanitized (allowlisted tags) and converted for the editor. Images: upload max {formatImageSizeCap(BLOG_IMAGE_MAX_FILE_BYTES)} per file (compress to ~{formatImageSizeCap(BLOG_IMAGE_RECOMMENDED_MAX_BYTES)} when possible). Alt text is required on insert; publish/schedule also requires featured-image alt. Editor preview caps display size only — saved HTML is unchanged.
               </p>
               <div className="blog-quill relative rounded-lg border border-slate-300 [&_.ql-container]:min-h-[320px] [&_.ql-editor]:min-h-[280px] [&_.ql-toolbar]:rounded-t-lg [&_.ql-container]:rounded-b-lg">
                 <style>{`
@@ -1914,6 +1962,13 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                   .blog-quill .ql-toolbar button.ql-insertTable::before {
                     content: '▦';
                     font-size: 1rem;
+                    line-height: 0;
+                  }
+                  .blog-quill .ql-toolbar button.ql-importHtml::before {
+                    content: '</>';
+                    font-size: 0.65rem;
+                    font-weight: 700;
+                    font-family: ui-monospace, monospace;
                     line-height: 0;
                   }
                   .blog-quill .ql-editor table {
@@ -1945,6 +2000,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                   }
                 `}</style>
                 <ReactQuill
+                  ref={reactQuillRef}
                   theme="snow"
                   value={contentHtml}
                   onChange={setContentHtml}
@@ -2580,6 +2636,71 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
         </div>
       )}
 
+      {importHtmlOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Import HTML"
+          onClick={() => closeImportHtml()}
+        >
+          <div
+            className="relative my-16 w-full max-w-2xl rounded-xl border border-slate-200 bg-white p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-sm font-semibold text-slate-900">Import HTML</h2>
+            <p className="mt-1 text-xs text-slate-500">
+              Paste HTML from another CMS, a static page, or your notes. It is cleaned to allowed tags (headings, lists, links, images, tables, embeds, etc.), then converted into editor content — same rules as paste and save.
+            </p>
+            <label className="mt-4 block text-xs font-medium text-slate-600" htmlFor="blog-import-html">
+              HTML markup
+            </label>
+            <textarea
+              id="blog-import-html"
+              className="mt-1 max-h-[min(50vh,420px)] min-h-[160px] w-full resize-y rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs leading-relaxed shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              value={importHtmlDraft}
+              onChange={(e) => setImportHtmlDraft(e.target.value)}
+              placeholder="<p>…</p>"
+              autoFocus
+            />
+            <label className="mt-3 flex cursor-pointer items-start gap-2 text-xs text-slate-600">
+              <input
+                type="checkbox"
+                className="mt-0.5 rounded border-slate-300"
+                checked={importHtmlStripStyles}
+                onChange={(e) => setImportHtmlStripStyles(e.target.checked)}
+              />
+              <span>
+                Strip inline styles (helps with Microsoft Word / Google Docs paste noise; also removes color/size from spans)
+              </span>
+            </label>
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => closeImportHtml()}
+                className="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => applyImportHtmlAtCursor()}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-800 hover:bg-slate-50"
+              >
+                Insert at cursor
+              </button>
+              <button
+                type="button"
+                onClick={() => applyImportHtmlReplaceAll()}
+                className="rounded-lg bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700"
+              >
+                Replace entire body
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {bodyImageAltDialogOpen && (
         <div
           className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm"
@@ -2697,6 +2818,36 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                   background-color: rgba(224, 242, 254, 0.35);
                   border-radius: 0 6px 6px 0;
                   padding-left: 0.35rem;
+                }
+                .blog-preview-content .blog-faq__accordion {
+                  display: flex;
+                  flex-direction: column;
+                  gap: 0.5rem;
+                }
+                .blog-preview-content .blog-faq__item {
+                  border: 1px solid #e2e8f0;
+                  border-radius: 8px;
+                  background: #f8fafc;
+                  overflow: hidden;
+                }
+                .blog-preview-content .blog-faq__item[open] {
+                  background: #fff;
+                }
+                .blog-preview-content .blog-faq__question {
+                  cursor: pointer;
+                  font-weight: 600;
+                  padding: 0.75rem 1rem;
+                  list-style: none;
+                }
+                .blog-preview-content .blog-faq__question::-webkit-details-marker {
+                  display: none;
+                }
+                .blog-preview-content .blog-faq__answer {
+                  padding: 0 1rem 1rem 1rem;
+                  color: #475569;
+                  font-size: 0.9375rem;
+                  line-height: 1.55;
+                  border-top: 1px solid #f1f5f9;
                 }
               `}</style>
               {featuredImageUrl.trim() && (
