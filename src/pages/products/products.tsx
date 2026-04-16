@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Card, Button, VStack, HStack, useToast } from '../../components/ui'
 import { ProductTable } from '../../components/products/ProductTable'
+import { ProductGrid } from '../../components/products/ProductGrid'
 import { PageHeader } from '../../components/common/PageHeader'
 import { useAppDispatch } from '../../store/hooks'
 import { addToast } from '../../store/slices/uiSlice'
@@ -253,11 +254,13 @@ export function Products() {
                 categories={categories}
               />
             ) : (
-              <Card>
-                <div className="p-8 text-center text-muted-foreground">
-                  Grid view coming soon...
-                </div>
-              </Card>
+              <ProductGrid
+                products={products}
+                categories={categories}
+                onView={handleViewProduct}
+                onDelete={handleDeleteProduct}
+                onAdd={handleAddProduct}
+              />
             )}
           </>
         )}

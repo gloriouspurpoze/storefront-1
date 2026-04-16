@@ -5,7 +5,6 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  Grid,
   Typography,
   Box,
   Chip,
@@ -16,6 +15,7 @@ import {
   Card,
   CardContent,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   Close as CloseIcon,
   Image as ImageIcon,
@@ -58,7 +58,7 @@ export function SliderDetailsDialog({ open, onClose, slider }: SliderDetailsDial
       case 'providers':
         return <GroupIcon />
       default:
-        return null
+        return <PublicIcon />
     }
   }
 
@@ -130,7 +130,11 @@ export function SliderDetailsDialog({ open, onClose, slider }: SliderDetailsDial
               />
               <Chip
                 icon={getAudienceIcon(slider.target_audience || 'all')}
-                label={slider.target_audience?.charAt(0).toUpperCase() + slider.target_audience?.slice(1) || 'All Users'}
+                label={
+                  slider.target_audience
+                    ? slider.target_audience.charAt(0).toUpperCase() + slider.target_audience.slice(1)
+                    : 'All Users'
+                }
                 color={getAudienceColor(slider.target_audience || 'all') as any}
                 sx={{ fontWeight: 500 }}
               />
@@ -223,16 +227,23 @@ export function SliderDetailsDialog({ open, onClose, slider }: SliderDetailsDial
               <Grid item xs={12}>
                 <Paper sx={{ p: 2, borderRadius: 2 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Button
-                      variant="contained"
-                      startIcon={<LinkIcon />}
-                      href={slider.button_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      sx={{ borderRadius: 2 }}
-                    >
-                      {slider.button_text}
-                    </Button>
+                    {slider.button_url ? (
+                      <Button
+                        variant="contained"
+                        startIcon={<LinkIcon />}
+                        component="a"
+                        href={slider.button_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{ borderRadius: 2 }}
+                      >
+                        {slider.button_text}
+                      </Button>
+                    ) : (
+                      <Button variant="contained" startIcon={<LinkIcon />} disabled sx={{ borderRadius: 2 }}>
+                        {slider.button_text}
+                      </Button>
+                    )}
                     <Box>
                       <Typography variant="body2" fontWeight="500">
                         Button Text: {slider.button_text}

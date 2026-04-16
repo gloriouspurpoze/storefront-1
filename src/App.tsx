@@ -32,6 +32,9 @@ const CreateCategory = lazy(() => import('./pages/categories/create-category'))
 const Services = lazy(() => import('./pages/services/services').then((m) => ({ default: m.Services })))
 const CreateService = lazy(() => import('./pages/services/create-service').then((m) => ({ default: m.CreateService })))
 const PlatformServices = lazy(() => import('./pages/services/platform-services-enhanced').then((m) => ({ default: m.PlatformServicesEnhanced })))
+const Marketplace = lazy(() => import('./pages/marketplace/Marketplace'))
+const EcommerceHub = lazy(() => import('./pages/ecommerce/EcommerceHub'))
+const InventoryManagement = lazy(() => import('./pages/inventory/InventoryManagement'))
 
 const Providers = lazy(() => import('./pages/providers/providers').then((m) => ({ default: m.Providers })))
 const CreateProvider = lazy(() => import('./pages/providers/create-provider').then((m) => ({ default: m.CreateProvider })))
@@ -216,6 +219,52 @@ function App() {
                             <PlatformServices />
                           </RoleBasedRoute>
                         } 
+                      />
+                      <Route
+                        path="/marketplace"
+                        element={
+                          <RoleBasedRoute
+                            permissions={[
+                              'view_services',
+                              'view_categories',
+                              'view_bookings',
+                              'view_providers',
+                              'view_payments',
+                              'manage_coupons',
+                              'manage_system_settings',
+                            ]}
+                          >
+                            <Marketplace />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/ecommerce"
+                        element={
+                          <RoleBasedRoute
+                            permissions={[
+                              'view_products',
+                              'create_products',
+                              'view_categories',
+                              'view_orders',
+                              'manage_coupons',
+                              'manage_system_settings',
+                              'view_settings',
+                            ]}
+                          >
+                            <EcommerceHub />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/inventory"
+                        element={
+                          <RoleBasedRoute
+                            permissions={['view_products', 'edit_products', 'manage_product_inventory']}
+                          >
+                            <InventoryManagement />
+                          </RoleBasedRoute>
+                        }
                       />
                       <Route 
                         path="/platform-services/create" 

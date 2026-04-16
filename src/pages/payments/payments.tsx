@@ -45,6 +45,7 @@ import { PageHeader } from '../../components/common/PageHeader'
 import { StandardTable, type StandardTableColumn } from '../../components/common'
 import { PaymentsService } from '../../services/api/payments.service'
 import type { Payment } from '../../types'
+import { downloadCsv, openPrintableHtml } from '../../lib/exportUtils'
 
 export function Payments() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -279,10 +280,57 @@ export function Payments() {
   }
 
   const handleDownloadReceipt = () => {
-    if (actionPayment) {
-      alert(`Download receipt for ${actionPayment.id} - Feature coming soon!`)
-      handleActionMenuClose()
+    if (!actionPayment) return
+    const p = actionPayment as any
+    const id = p.id ?? p._id ?? ''
+    const txn = p.transaction_id || p.transactionId || `TXN-${String(id).slice(-8)}`
+    const amt = p.amount ?? 0
+    const cur = (p.currency || 'INR').toUpperCase()
+    const status = p.status ?? '—'
+    const method = getPaymentMethodLabel(p.payment_method || p.paymentMethod || '')
+    const when = formatDate(p.created_at || p.createdAt)
+    const cust = p.customer_name || p.customerName || p.customer?.name || '—'
+    const booking = p.booking_id || p.bookingId || '—'
+    const body = `
+      <h1>Payment receipt</h1>
+      <p class="muted">Generated ${new Date().toLocaleString()}</p>
+      <table>
+        <tr><td>Transaction</td><td><strong>${String(txn)}</strong></td></tr>
+        <tr><td>Booking / ref</td><td>${String(booking)}</td></tr>
+        <tr><td>Customer</td><td>${String(cust)}</td></tr>
+        <tr><td>Amount</td><td><strong>${formatCurrency(amt, cur)}</strong></td></tr>
+        <tr><td>Status</td><td>${String(status)}</td></tr>
+        <tr><td>Method</td><td>${String(method)}</td></tr>
+        <tr><td>Date</td><td>${when}</td></tr>
+      </table>
+      <p class="muted" style="margin-top:24px">This is a printable summary. Retain for your records.</p>
+    `
+    openPrintableHtml(`Receipt-${txn}`, body)
+    handleActionMenuClose()
+  }
+
+  const exportPaymentsReport = () => {
+    const rows: unknown[][] = [
+      ['Transaction ID', 'Booking', 'Customer', 'Email', 'Amount', 'Currency', 'Status', 'Method', 'Date'],
+    ]
+    for (const p of filteredPayments) {
+      const x = p as any
+      const id = x.id ?? x._id ?? ''
+      const txn = x.transaction_id || x.transactionId || `TXN-${String(id).slice(-8)}`
+      rows.push([
+        txn,
+        String(x.booking_id || x.bookingId || ''),
+        String(x.customer_name || x.customerName || x.customer?.name || ''),
+        String(x.customer_email || x.customerEmail || x.customer?.email || ''),
+        x.amount ?? '',
+        (x.currency || 'INR').toString(),
+        String(x.status || ''),
+        getPaymentMethodLabel(x.payment_method || x.paymentMethod || ''),
+        formatDate(x.created_at || x.createdAt),
+      ])
     }
+    const stamp = new Date().toISOString().slice(0, 10)
+    downloadCsv(`payments-export-${stamp}.csv`, rows)
   }
 
   const paymentColumns: StandardTableColumn<Payment>[] = [
@@ -420,7 +468,7 @@ export function Payments() {
               variant="outlined"
               startIcon={<DownloadIcon />}
               sx={{ borderRadius: 2 }}
-              onClick={() => alert('Export feature coming soon!')}
+              onClick={exportPaymentsReport}
             >
               Export Report
             </Button>

@@ -22,20 +22,30 @@ export function useNotifications(): UseNotificationsReturn {
   const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** `null` means the unread API failed; use in-app list as fallback. */
+  const [serverUnreadCount, setServerUnreadCount] = useState<number | null>(null);
   const dispatch = useAppDispatch();
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount =
+    serverUnreadCount !== null
+      ? serverUnreadCount
+      : notifications.filter((n) => !n.isRead).length;
 
   const refreshNotifications = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const [notificationsData, preferencesData] = await Promise.all([
+      const [notificationsData, preferencesData, unreadResult] = await Promise.all([
         notificationsService.getNotifications(),
-        notificationsService.getPreferences()
+        notificationsService.getPreferences(),
+        notificationsService.getUnreadCount().then(
+          (n) => ({ ok: true as const, n }),
+          () => ({ ok: false as const })
+        ),
       ]);
       setNotifications(notificationsData);
       setPreferences(preferencesData);
+      setServerUnreadCount(unreadResult.ok ? unreadResult.n : null);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load notifications';
       setError(errorMessage);
@@ -134,6 +144,9 @@ export function useNotifications(): UseNotificationsReturn {
       setNotifications(prev => 
         prev.map(n => (n.id === notificationId || n._id === notificationId) ? { ...n, isRead: true } : n)
       );
+      setServerUnreadCount((prev) =>
+        prev !== null ? Math.max(0, prev - 1) : prev
+      );
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to mark notification as read';
       dispatch(addToast({
@@ -150,6 +163,7 @@ export function useNotifications(): UseNotificationsReturn {
       setNotifications(prev => 
         prev.map(n => ({ ...n, isRead: true }))
       );
+      setServerUnreadCount(0);
       dispatch(addToast({
         message: 'All notifications marked as read',
         severity: 'success'

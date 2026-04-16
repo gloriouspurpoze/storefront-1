@@ -28,6 +28,7 @@ import {
 import {
   Dashboard as DashboardIcon,
   Inventory as PackageIcon,
+  Inventory2 as InventoryIcon,
   Build as WrenchIcon,
   Assignment as FileTextIcon,
   AssignmentInd as AssignmentIndIcon,
@@ -71,6 +72,8 @@ import {
   TrendingUp as TrendingUpIcon,
   Link as LinkIcon,
   Campaign as CampaignIcon,
+  Storefront as StorefrontIcon,
+  ShoppingBag as ShoppingBagIcon,
 } from '@mui/icons-material'
 import { NotificationBell } from '../notifications/NotificationBell'
 import { useSidebar } from '../../contexts/sidebar-context'
@@ -168,10 +171,55 @@ const navigationGroups = [
     items: [
       { name: 'Categories', href: '/categories', icon: CategoryIcon, permissions: ['view_categories', 'manage_categories'], badge: null },
       { name: 'Platform Services', href: '/platform-services', icon: HomeIcon, permissions: ['view_services', 'manage_services'], badge: null },
+      {
+        name: 'Marketplace',
+        href: '/marketplace',
+        icon: StorefrontIcon,
+        permissions: [
+          'view_services',
+          'view_categories',
+          'view_bookings',
+          'view_providers',
+          'view_payments',
+          'manage_coupons',
+          'manage_system_settings',
+        ],
+        badge: null,
+      },
       // { name: 'Products', href: '/products', icon: PackageIcon, permissions: ['view_products', 'manage_products'], badge: null },
       // { name: 'Providers', href: '/providers', icon: ShieldIcon, permissions: ['view_providers', 'manage_providers'], badge: null },
       { name: 'Professionals', href: '/professionals', icon: PersonIcon, permissions: ['view_providers', 'manage_providers'], badge: null },
       { name: 'Provider Applications', href: '/provider-applications', icon: AssignmentIndIcon, permissions: ['view_providers', 'manage_providers'], badge: null },
+    ]
+  },
+  {
+    title: 'E-commerce',
+    icon: ShoppingBagIcon,
+    items: [
+      {
+        name: 'Store overview',
+        href: '/ecommerce',
+        icon: ShoppingBagIcon,
+        permissions: [
+          'view_products',
+          'create_products',
+          'view_categories',
+          'view_orders',
+          'manage_coupons',
+          'manage_system_settings',
+          'view_settings',
+        ],
+        badge: null,
+      },
+      { name: 'Products', href: '/products', icon: PackageIcon, permissions: ['view_products'], badge: null },
+      {
+        name: 'Inventory',
+        href: '/inventory',
+        icon: InventoryIcon,
+        permissions: ['view_products', 'edit_products', 'manage_product_inventory'],
+        badge: null,
+      },
+      { name: 'Orders', href: '/orders', icon: ShoppingCartIcon, permissions: ['view_orders'], badge: null },
     ]
   },
   {

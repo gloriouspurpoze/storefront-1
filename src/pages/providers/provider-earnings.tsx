@@ -36,6 +36,7 @@ import {
 } from '@mui/icons-material'
 import { PaymentsService } from '../../services/api/payments.service'
 import type { Payment } from '../../types'
+import { downloadCsv } from '../../lib/exportUtils'
 
 export function ProviderEarnings() {
   const [loading, setLoading] = useState(true)
@@ -117,6 +118,43 @@ export function ProviderEarnings() {
   const monthlyGrowth = ((earnings.thisMonth - earnings.lastMonth) / earnings.lastMonth * 100).toFixed(1)
   const isGrowthPositive = parseFloat(monthlyGrowth) > 0
 
+  const handleDownloadStatement = async () => {
+    try {
+      const res = await PaymentsService.getProviderTransactions({ page: 1, limit: 500 })
+      const rows: unknown[][] = []
+      const list =
+        res?.success && res.data
+          ? (res.data as { payments?: Payment[] }).payments || []
+          : transactions
+      rows.push(['Summary', 'Value'])
+      rows.push(['Total earnings', earnings.totalEarnings])
+      rows.push(['Pending payouts', earnings.pendingPayouts])
+      rows.push(['Completed payouts', earnings.completedPayouts])
+      rows.push(['This month', earnings.thisMonth])
+      rows.push(['Last month', earnings.lastMonth])
+      rows.push(['Average per job', earnings.averagePerJob])
+      rows.push(['Total jobs', earnings.totalJobs])
+      rows.push([])
+      rows.push(['Transaction ID', 'Amount', 'Status', 'Method', 'Date', 'Booking'])
+      for (const p of list) {
+        const id = (p as any).id ?? (p as any)._id ?? ''
+        const txn = (p as any).transaction_id ?? (p as any).transactionId ?? ''
+        rows.push([
+          txn || String(id),
+          (p as any).amount ?? '',
+          (p as any).status ?? '',
+          (p as any).payment_method ?? (p as any).paymentMethod ?? '',
+          String((p as any).created_at ?? (p as any).createdAt ?? ''),
+          String((p as any).booking_id ?? (p as any).bookingId ?? ''),
+        ])
+      }
+      const stamp = new Date().toISOString().slice(0, 10)
+      downloadCsv(`earnings-statement-${stamp}.csv`, rows)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   return (
     <Box>
       {/* Page Header */}
@@ -134,7 +172,7 @@ export function ProviderEarnings() {
             variant="contained"
             startIcon={<DownloadIcon />}
             sx={{ borderRadius: 2 }}
-            onClick={() => alert('Download feature coming soon!')}
+            onClick={handleDownloadStatement}
           >
             Download Statement
           </Button>

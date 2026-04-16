@@ -4,6 +4,7 @@
  */
 
 import { api } from './base'
+import { store } from '../../store'
 import type { PaginationResponse } from '../../types'
 
 export interface Invoice {
@@ -229,6 +230,16 @@ export class InvoicesService {
   }
 
   /**
+   * Generate invoice for an existing booking (admin / ops)
+   */
+  static async generateInvoiceForBooking(bookingId: string) {
+    return api.post<InvoiceResponse>(`/invoices/generate-for-booking/${encodeURIComponent(bookingId)}`, {}, {
+      loadingMessage: 'Generating invoice…',
+      successMessage: 'Invoice generated successfully.',
+    })
+  }
+
+  /**
    * Generate invoice
    */
   static async generateInvoice(data: {
@@ -253,17 +264,35 @@ export class InvoicesService {
    */
   static async downloadInvoicePDF(invoiceId: string) {
     try {
+      const base =
+        process.env.REACT_APP_API_URL || 'http://localhost:5000/api'
+      const token =
+        store.getState().auth?.token ||
+        (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null)
+      if (!token) {
+        throw new Error('Not signed in — open the invoice again after logging in.')
+      }
+
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:8005/api'}/invoices/${invoiceId}/download`,
+        `${base.replace(/\/$/, '')}/invoices/${encodeURIComponent(invoiceId)}/download`,
         {
+          method: 'GET',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            Authorization: `Bearer ${token}`,
           },
         }
       )
 
       if (!response.ok) {
-        throw new Error('Failed to download invoice')
+        const errText = await response.text().catch(() => '')
+        let msg = `Download failed (${response.status})`
+        try {
+          const j = JSON.parse(errText)
+          if (j.message) msg = j.message
+        } catch {
+          if (errText) msg = errText.slice(0, 200)
+        }
+        throw new Error(msg)
       }
 
       const blob = await response.blob()

@@ -119,8 +119,8 @@ export class BookingsService {
     options?: {
       notifyAdmin?: boolean
       notifyCustomer?: boolean
-      /** How the customer paid: cash (mark paid on complete) or online */
-      paymentReceived: 'cash' | 'online'
+      /** How the customer paid: cash (mark paid on complete) or online (default). */
+      paymentReceived?: 'cash' | 'online'
     }
   ) {
     const paymentReceived = options?.paymentReceived ?? 'online'

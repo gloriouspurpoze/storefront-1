@@ -85,6 +85,8 @@ export function Invoices() {
   // Dialog states
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false)
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false)
+  const [bookingIdForGenerate, setBookingIdForGenerate] = useState('')
+  const [generateSubmitting, setGenerateSubmitting] = useState(false)
 
   // Statistics
   const [stats, setStats] = useState({
@@ -232,6 +234,25 @@ export function Invoices() {
       await InvoicesService.emailInvoiceToCustomer(selectedInvoice._id)
     } catch (error: any) {
       console.error('Failed to email invoice:', error)
+    }
+  }
+
+  const handleGenerateFromBooking = async () => {
+    const id = bookingIdForGenerate.trim()
+    if (!id) return
+    setGenerateSubmitting(true)
+    try {
+      const res = await InvoicesService.generateInvoiceForBooking(id)
+      if (res?.success) {
+        await loadInvoices()
+        setGenerateDialogOpen(false)
+        setBookingIdForGenerate('')
+      }
+    } catch (err: any) {
+      console.error('Generate invoice failed:', err)
+      setError(err?.message || 'Failed to generate invoice')
+    } finally {
+      setGenerateSubmitting(false)
     }
   }
 
@@ -416,8 +437,10 @@ export function Invoices() {
       sortable: true,
       valueGetter: (inv) => inv.paymentStatus ?? (inv as any).payment_status ?? (inv as any).status ?? '',
       render: (_, inv) => {
-        const status = inv.paymentStatus ?? (inv as any).payment_status ?? (inv as any).status ?? 'issued'
-        const display = status === 'issued' ? 'Pending' : String(status).replace('_', ' ')
+        const status = String(
+          inv.paymentStatus ?? (inv as any).payment_status ?? (inv as any).status ?? 'issued'
+        )
+        const display = status === 'issued' ? 'Pending' : status.replace('_', ' ')
         const config = getStatusColor(status === 'issued' ? 'pending' : status)
         return (
           <Chip
@@ -438,30 +461,16 @@ export function Invoices() {
         subtitle="Manage and track all billing documents"
         icon={<ReceiptIcon />}
         action={
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Chip
-              label="Coming Soon"
-              color="info"
-              size="small"
-              sx={{ fontWeight: 600 }}
-            />
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setGenerateDialogOpen(true)}
-              disabled
-              sx={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                opacity: 0.6,
-                cursor: 'not-allowed',
-                '&:hover': {
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                },
-              }}
-            >
-              Generate Invoice
-            </Button>
-          </Box>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setGenerateDialogOpen(true)}
+            sx={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            }}
+          >
+            Generate from booking
+          </Button>
         }
       />
 
@@ -615,7 +624,7 @@ export function Invoices() {
             <StandardTable<Invoice>
               columns={invoiceColumns}
               data={filteredInvoices}
-              getRowId={(row) => row._id ?? row.id ?? ''}
+              getRowId={(row) => row._id ?? ''}
               loading={loading}
               emptyMessage="No invoices found"
               emptyDescription={
@@ -798,53 +807,39 @@ export function Invoices() {
       {/* Generate Invoice Dialog */}
       <Dialog
         open={generateDialogOpen}
-        onClose={() => setGenerateDialogOpen(false)}
+        onClose={() => !generateSubmitting && setGenerateDialogOpen(false)}
         maxWidth="sm"
         fullWidth
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <InvoiceIcon color="primary" />
-          Generate New Invoice
-          <Chip label="Coming Soon" color="info" size="small" sx={{ ml: 'auto' }} />
+          Generate invoice from booking
         </DialogTitle>
         <DialogContent>
-          <Alert severity="info" sx={{ mt: 2, mb: 2 }}>
-            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-              Manual Invoice Generation
-            </Typography>
-            <Typography variant="body2">
-              Invoice generation from the admin panel is coming soon. Currently, invoices are automatically generated when bookings are completed.
-            </Typography>
+          <Alert severity="info" sx={{ mt: 1, mb: 2 }}>
+            Enter a booking ID. The server will create or refresh the invoice for that booking (same flow as when a job completes).
           </Alert>
-          <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-              Current Invoice Generation:
-            </Typography>
-            <Stack spacing={1}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <CheckCircleIcon color="success" fontSize="small" />
-                <Typography variant="body2">
-                  Automatically created when a booking is completed
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <CheckCircleIcon color="success" fontSize="small" />
-                <Typography variant="body2">
-                  Generated when a professional is assigned to a booking
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <ScheduleIcon color="info" fontSize="small" />
-                <Typography variant="body2" color="text.secondary">
-                  Manual generation from admin panel - Coming soon
-                </Typography>
-              </Box>
-            </Stack>
-          </Box>
+          <TextField
+            fullWidth
+            label="Booking ID"
+            placeholder="MongoDB ObjectId of the booking"
+            value={bookingIdForGenerate}
+            onChange={(e) => setBookingIdForGenerate(e.target.value)}
+            disabled={generateSubmitting}
+            sx={{ mt: 1 }}
+            helperText="You can copy this from the Bookings screen or booking details URL."
+          />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setGenerateDialogOpen(false)} variant="contained">
-            Got it
+          <Button onClick={() => setGenerateDialogOpen(false)} disabled={generateSubmitting}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleGenerateFromBooking}
+            disabled={generateSubmitting || !bookingIdForGenerate.trim()}
+          >
+            {generateSubmitting ? 'Generating…' : 'Generate'}
           </Button>
         </DialogActions>
       </Dialog>

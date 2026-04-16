@@ -12,7 +12,6 @@ import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   Box,
-  Grid,
   Paper,
   Typography,
   Button,
@@ -40,6 +39,7 @@ import {
   TableHead,
   TableRow,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   ArrowBack,
   Edit,

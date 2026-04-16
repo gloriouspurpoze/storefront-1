@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Box,
   Typography,
@@ -58,6 +59,7 @@ interface SupportOption {
 }
 
 export function Support() {
+  const navigate = useNavigate()
   const theme = useTheme()
   const [expandedFAQ, setExpandedFAQ] = useState<string | false>(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -84,20 +86,20 @@ export function Support() {
     {
       id: 'chat',
       title: 'Live Chat',
-      description: 'Chat with our support team in real-time',
+      description: 'Open the in-app chat console to message customers and providers',
       icon: <ChatIcon />,
       color: theme.palette.info.main,
-      action: '#',
-      available: false,
+      action: '/chat',
+      available: true,
     },
     {
       id: 'video',
       title: 'Video Call',
-      description: 'Schedule a video call for complex issues',
+      description: 'Request a scheduled call — email us with your preferred time',
       icon: <VideoCallIcon />,
       color: theme.palette.warning.main,
-      action: '#',
-      available: false,
+      action: 'mailto:support@fixer.com?subject=Video%20support%20request',
+      available: true,
     },
   ]
 
@@ -209,7 +211,15 @@ export function Support() {
                           boxShadow: theme.shadows[4],
                         } : {},
                       }}
-                      onClick={() => option.available && window.open(option.action)}
+                      onClick={() => {
+                        if (!option.available) return
+                        const a = option.action
+                        if (a.startsWith('mailto:') || a.startsWith('tel:') || a.startsWith('http')) {
+                          window.open(a, '_blank', 'noopener,noreferrer')
+                        } else {
+                          navigate(a)
+                        }
+                      }}
                     >
                       <Box
                         sx={{

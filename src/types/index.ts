@@ -585,6 +585,8 @@ export interface UpdateProductRequest {
   original_price?: number
   sku?: string
   stock_quantity?: number
+  /** Alert when on-hand quantity is at or below this level (inventory ops). */
+  low_stock_threshold?: number
   images?: string[]
   specifications?: { [key: string]: any }
   is_active?: boolean

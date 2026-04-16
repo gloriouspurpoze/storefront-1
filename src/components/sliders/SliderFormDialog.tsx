@@ -6,7 +6,6 @@ import {
   DialogActions,
   TextField,
   Button,
-  Grid,
   FormControl,
   InputLabel,
   Select,
@@ -20,6 +19,7 @@ import {
   Paper,
   Chip,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   Close as CloseIcon,
   Image as ImageIcon,

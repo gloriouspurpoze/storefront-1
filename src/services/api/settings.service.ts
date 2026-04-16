@@ -82,20 +82,31 @@ export interface SettingsListResponse {
   error?: string
 }
 
+/** Paths are appended to `REACT_APP_API_URL` (already includes `/api`). */
 class SettingsService {
-  private baseUrl = '/api/settings'
+  private baseUrl = '/settings'
+
+  private networkErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message
+    return 'Request failed'
+  }
 
   // Get settings (global or user-specific)
   async getSettings(userId?: string): Promise<SettingsResponse> {
     try {
       const params = userId ? { userId } : {}
-      const response = (await apiClient.get(this.baseUrl, { params })) as any
-      return response.data
-    } catch (error: any) {
+      const response = (await apiClient.get(this.baseUrl, {
+        params,
+        showLoading: false,
+        showErrorToast: false,
+        showSuccessToast: false,
+      })) as SettingsResponse
+      return response
+    } catch (error: unknown) {
       console.error('Error getting settings:', error)
       return {
         success: false,
-        error: error.response?.data?.error || 'Failed to get settings',
+        error: this.networkErrorMessage(error),
       }
     }
   }
@@ -103,13 +114,16 @@ class SettingsService {
   // Get global settings
   async getGlobalSettings(): Promise<SettingsResponse> {
     try {
-      const response = (await apiClient.get(`${this.baseUrl}/global`)) as any
-      return response.data
-    } catch (error: any) {
+      const response = (await apiClient.get(`${this.baseUrl}/global`, {
+        showErrorToast: false,
+        showSuccessToast: false,
+      })) as SettingsResponse
+      return response
+    } catch (error: unknown) {
       console.error('Error getting global settings:', error)
       return {
         success: false,
-        error: error.response?.data?.error || 'Failed to get global settings',
+        error: this.networkErrorMessage(error),
       }
     }
   }
@@ -121,13 +135,16 @@ class SettingsService {
   ): Promise<SettingsResponse> {
     try {
       const params = userId ? { userId } : {}
-      const response = (await apiClient.put(this.baseUrl, settingsUpdate, { params })) as any
-      return response.data
-    } catch (error: any) {
+      const response = (await apiClient.put(this.baseUrl, settingsUpdate, {
+        params,
+        showSuccessToast: false,
+      })) as SettingsResponse
+      return response
+    } catch (error: unknown) {
       console.error('Error updating settings:', error)
       return {
         success: false,
-        error: error.response?.data?.error || 'Failed to update settings',
+        error: this.networkErrorMessage(error),
       }
     }
   }
@@ -136,13 +153,16 @@ class SettingsService {
   async resetToDefaults(userId?: string): Promise<SettingsResponse> {
     try {
       const params = userId ? { userId } : {}
-      const response = (await apiClient.post(`${this.baseUrl}/reset`, {}, { params })) as any
-      return response.data
-    } catch (error: any) {
+      const response = (await apiClient.post(`${this.baseUrl}/reset`, {}, {
+        params,
+        showSuccessToast: false,
+      })) as SettingsResponse
+      return response
+    } catch (error: unknown) {
       console.error('Error resetting settings:', error)
       return {
         success: false,
-        error: error.response?.data?.error || 'Failed to reset settings',
+        error: this.networkErrorMessage(error),
       }
     }
   }
@@ -150,13 +170,16 @@ class SettingsService {
   // Get all settings (admin only)
   async getAllSettings(): Promise<SettingsListResponse> {
     try {
-      const response = (await apiClient.get(`${this.baseUrl}/all`)) as any
-      return response.data
-    } catch (error: any) {
+      const response = (await apiClient.get(`${this.baseUrl}/all`, {
+        showErrorToast: false,
+        showSuccessToast: false,
+      })) as SettingsListResponse
+      return response
+    } catch (error: unknown) {
       console.error('Error getting all settings:', error)
       return {
         success: false,
-        error: error.response?.data?.error || 'Failed to get all settings',
+        error: this.networkErrorMessage(error),
       }
     }
   }
@@ -165,13 +188,16 @@ class SettingsService {
   async deleteSettings(userId?: string): Promise<SettingsResponse> {
     try {
       const params = userId ? { userId } : {}
-      const response = (await apiClient.delete(this.baseUrl, { params })) as any
-      return response.data
-    } catch (error: any) {
+      const response = (await apiClient.delete(this.baseUrl, {
+        params,
+        showSuccessToast: false,
+      })) as SettingsResponse
+      return response
+    } catch (error: unknown) {
       console.error('Error deleting settings:', error)
       return {
         success: false,
-        error: error.response?.data?.error || 'Failed to delete settings',
+        error: this.networkErrorMessage(error),
       }
     }
   }
@@ -179,16 +205,19 @@ class SettingsService {
   // Get client control settings specifically
   async getClientControls(userId?: string): Promise<SettingsResponse> {
     try {
-      const url = userId 
-        ? `${this.baseUrl}/client-controls?userId=${userId}` 
+      const url = userId
+        ? `${this.baseUrl}/client-controls?userId=${userId}`
         : `${this.baseUrl}/client-controls`
-      const response: any = await apiClient.get(url)
-      return response.data || response
-    } catch (error: any) {
+      const response = (await apiClient.get(url, {
+        showErrorToast: false,
+        showSuccessToast: false,
+      })) as SettingsResponse
+      return response
+    } catch (error: unknown) {
       console.error('Error getting client controls:', error)
       return {
         success: false,
-        error: error.response?.data?.error || 'Failed to get client controls',
+        error: this.networkErrorMessage(error),
       }
     }
   }
@@ -199,16 +228,18 @@ class SettingsService {
     userId?: string
   ): Promise<SettingsResponse> {
     try {
-      const url = userId 
-        ? `${this.baseUrl}/client-controls?userId=${userId}` 
+      const url = userId
+        ? `${this.baseUrl}/client-controls?userId=${userId}`
         : `${this.baseUrl}/client-controls`
-      const response: any = await apiClient.put(url, clientControls)
-      return response.data || response
-    } catch (error: any) {
+      const response = (await apiClient.put(url, clientControls, {
+        showSuccessToast: false,
+      })) as SettingsResponse
+      return response
+    } catch (error: unknown) {
       console.error('Error updating client controls:', error)
       return {
         success: false,
-        error: error.response?.data?.error || 'Failed to update client controls',
+        error: this.networkErrorMessage(error),
       }
     }
   }

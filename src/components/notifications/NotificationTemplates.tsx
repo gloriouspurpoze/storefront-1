@@ -49,10 +49,28 @@ import { useAppDispatch } from '../../store/hooks';
 import { addToast } from '../../store/slices/uiSlice';
 
 interface NotificationTemplatesProps {
-  onSendNotification?: (templateId: string) => void;
+  /** Opens broadcast flow with fields prefilled from the template. */
+  onSendFromTemplate?: (template: NotificationTemplate) => void;
 }
 
-export function NotificationTemplates({ onSendNotification }: NotificationTemplatesProps) {
+function applySamplePlaceholders(text: string): string {
+  const pairs: [RegExp, string][] = [
+    [/\{\{\s*customerName\s*\}\}/gi, 'Priya Sharma'],
+    [/\{\{\s*userName\s*\}\}/gi, 'Alex Kim'],
+    [/\{\{\s*bookingId\s*\}\}/gi, 'BK-24091'],
+    [/\{\{\s*orderId\s*\}\}/gi, 'ORD-8831'],
+    [/\{\{\s*amount\s*\}\}/gi, '₹4,250'],
+    [/\{\{\s*serviceName\s*\}\}/gi, 'Deep cleaning'],
+    [/\{\{\s*date\s*\}\}/gi, '16 Apr 2026'],
+  ];
+  let out = text;
+  for (const [re, val] of pairs) {
+    out = out.replace(re, val);
+  }
+  return out.replace(/\{\{[^}]+\}\}/g, '…');
+}
+
+export function NotificationTemplates({ onSendFromTemplate }: NotificationTemplatesProps) {
   const [templates, setTemplates] = useState<NotificationTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +78,8 @@ export function NotificationTemplates({ onSendNotification }: NotificationTempla
   const [editingTemplate, setEditingTemplate] = useState<NotificationTemplate | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<NotificationTemplate | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewTemplate, setPreviewTemplate] = useState<NotificationTemplate | null>(null);
   const dispatch = useAppDispatch();
 
   const [formData, setFormData] = useState<CreateTemplateRequest>({
@@ -141,14 +161,20 @@ export function NotificationTemplates({ onSendNotification }: NotificationTempla
   const handleSaveTemplate = async () => {
     try {
       if (editingTemplate) {
-        // Update existing template
-        // This would need to be implemented in the service
-        dispatch(addToast({
-          message: 'Template update not implemented yet',
-          severity: 'info'
-        }));
+        const duplicateName =
+          formData.name.trim() === editingTemplate.name.trim()
+            ? `${editingTemplate.name} (revised)`
+            : formData.name.trim();
+        await notificationsService.createTemplate({ ...formData, name: duplicateName });
+        dispatch(
+          addToast({
+            message:
+              'Saved as a new template. In-place updates require a PATCH endpoint on the API.',
+            severity: 'success',
+          })
+        );
+        loadTemplates();
       } else {
-        // Create new template
         await notificationsService.createTemplate(formData);
         dispatch(addToast({
           message: 'Template created successfully',
@@ -167,37 +193,31 @@ export function NotificationTemplates({ onSendNotification }: NotificationTempla
   };
 
   const handleDeleteTemplate = async (template: NotificationTemplate) => {
-    if (window.confirm(`Are you sure you want to delete "${template.name}"?`)) {
-      try {
-        // This would need to be implemented in the service
-        dispatch(addToast({
-          message: 'Template deletion not implemented yet',
-          severity: 'info'
-        }));
-        loadTemplates();
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to delete template';
-        dispatch(addToast({
-          message: errorMessage,
-          severity: 'error'
-        }));
-      }
-    }
+    dispatch(
+      addToast({
+        message: `Delete for "${template.name}" is not wired to the API yet. Remove via backend admin if needed.`,
+        severity: 'info',
+      })
+    );
     setAnchorEl(null);
   };
 
   const handlePreviewTemplate = (template: NotificationTemplate) => {
-    // This would show a preview of the template with sample data
-    dispatch(addToast({
-      message: 'Template preview not implemented yet',
-      severity: 'info'
-    }));
+    setPreviewTemplate(template);
+    setPreviewOpen(true);
     setAnchorEl(null);
   };
 
   const handleSendTemplate = (template: NotificationTemplate) => {
-    if (onSendNotification) {
-      onSendNotification(template.id);
+    if (onSendFromTemplate) {
+      onSendFromTemplate(template);
+    } else {
+      dispatch(
+        addToast({
+          message: 'Broadcast flow is unavailable from this screen.',
+          severity: 'warning',
+        })
+      );
     }
     setAnchorEl(null);
   };
@@ -276,7 +296,21 @@ export function NotificationTemplates({ onSendNotification }: NotificationTempla
 
       <Card>
         <CardContent sx={{ p: 0 }}>
-          <TableContainer>
+          {templates.length === 0 && !loading ? (
+            <Box sx={{ p: 4, textAlign: 'center' }}>
+              <Typography variant="subtitle1" gutterBottom>
+                No templates yet
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Create reusable copy for operational and lifecycle messages. If the list stays empty, check API
+                permissions for <code>GET /notifications/templates</code>.
+              </Typography>
+              <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreateTemplate}>
+                Create template
+              </Button>
+            </Box>
+          ) : null}
+          <TableContainer sx={{ display: templates.length === 0 ? 'none' : undefined }}>
             <Table>
               <TableHead>
                 <TableRow>
@@ -348,7 +382,7 @@ export function NotificationTemplates({ onSendNotification }: NotificationTempla
       {/* Template Form Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>
-          {editingTemplate ? 'Edit Template' : 'Create Template'}
+          {editingTemplate ? 'Edit template (saves as new)' : 'Create template'}
         </DialogTitle>
         <DialogContent>
           <Stack spacing={3} sx={{ mt: 1 }}>
@@ -425,8 +459,43 @@ export function NotificationTemplates({ onSendNotification }: NotificationTempla
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
           <Button onClick={handleSaveTemplate} variant="contained">
-            {editingTemplate ? 'Update' : 'Create'}
+            {editingTemplate ? 'Save as new template' : 'Create'}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={previewOpen} onClose={() => setPreviewOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Preview (sample data)</DialogTitle>
+        <DialogContent>
+          {previewTemplate && (
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              <Typography variant="caption" color="text.secondary">
+                Placeholders are filled with sample values. Final rendering happens on the server when sending.
+              </Typography>
+              <Paper
+                elevation={3}
+                sx={{
+                  p: 2,
+                  borderRadius: 2,
+                  bgcolor: 'grey.900',
+                  color: 'grey.100',
+                }}
+              >
+                <Typography variant="caption" color="grey.500" display="block" gutterBottom>
+                  Push / in-app
+                </Typography>
+                <Typography variant="subtitle1" fontWeight={700}>
+                  {applySamplePlaceholders(previewTemplate.titleTemplate)}
+                </Typography>
+                <Typography variant="body2" sx={{ mt: 1, whiteSpace: 'pre-wrap' }}>
+                  {applySamplePlaceholders(previewTemplate.bodyTemplate)}
+                </Typography>
+              </Paper>
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPreviewOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
 

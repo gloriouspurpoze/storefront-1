@@ -6,7 +6,6 @@ import {
   DialogActions,
   Button,
   TextField,
-  Grid,
   FormControl,
   InputLabel,
   Select,
@@ -19,6 +18,7 @@ import {
   Avatar,
   Alert,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   Close as CloseIcon,
   CloudUpload as UploadIcon,

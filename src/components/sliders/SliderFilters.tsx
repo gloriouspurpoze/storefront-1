@@ -8,11 +8,11 @@ import {
   MenuItem,
   Button,
   Chip,
-  Grid,
   Paper,
   Typography,
   IconButton,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   Search as SearchIcon,
   FilterList as FilterIcon,

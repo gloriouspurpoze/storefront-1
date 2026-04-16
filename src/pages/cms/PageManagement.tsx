@@ -169,7 +169,8 @@ export default function PageManagement() {
       displayOrder: page.displayOrder ?? 0,
       seoTitle: page.seo?.title ?? '',
       seoDescription: page.seo?.description ?? '',
-      seoKeywords: Array.isArray(page.seo?.keywords) ? page.seo.keywords.join(', ') : '',
+      seoKeywords:
+        page.seo && Array.isArray(page.seo.keywords) ? page.seo.keywords.join(', ') : '',
     });
     setShowForm(true);
   };

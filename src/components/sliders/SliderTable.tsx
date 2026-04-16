@@ -72,7 +72,7 @@ export function SliderTable({
       case 'providers':
         return <GroupIcon fontSize="small" />
       default:
-        return null
+        return <PublicIcon fontSize="small" />
     }
   }
 
@@ -231,7 +231,11 @@ export function SliderTable({
                 <TableCell sx={{ py: 2 }}>
                   <Chip
                     icon={getAudienceIcon(slider.target_audience || 'all')}
-                    label={slider.target_audience?.charAt(0).toUpperCase() + slider.target_audience?.slice(1) || 'All'}
+                    label={
+                      slider.target_audience
+                        ? slider.target_audience.charAt(0).toUpperCase() + slider.target_audience.slice(1)
+                        : 'All'
+                    }
                     color={getAudienceColor(slider.target_audience || 'all') as any}
                     size="small"
                     sx={{ borderRadius: 2, fontWeight: 500 }}

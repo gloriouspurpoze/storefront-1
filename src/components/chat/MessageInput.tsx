@@ -7,6 +7,7 @@ import {
   Chip,
   CircularProgress,
   Tooltip,
+  Popover,
 } from '@mui/material';
 import {
   Send as SendIcon,
@@ -35,7 +36,10 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const [attachments, setAttachments] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [emojiAnchor, setEmojiAnchor] = useState<null | HTMLElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const QUICK_EMOJIS = ['😀', '😊', '👍', '🙏', '❤️', '🔥', '✅', '⚠️', '📎', '💬'];
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -131,14 +135,36 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
       {/* Input Area */}
       <Box sx={{ p: 2, display: 'flex', gap: 1, alignItems: 'flex-end' }}>
-        {/* Emoji Button (placeholder) */}
-        <Tooltip title="Coming soon">
+        <Tooltip title="Insert emoji">
           <span>
-            <IconButton size="small" disabled>
+            <IconButton size="small" onClick={(e) => setEmojiAnchor(e.currentTarget)} disabled={disabled || sending}>
               <EmojiIcon />
             </IconButton>
           </span>
         </Tooltip>
+        <Popover
+          open={Boolean(emojiAnchor)}
+          anchorEl={emojiAnchor}
+          onClose={() => setEmojiAnchor(null)}
+          anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
+          transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        >
+          <Box sx={{ p: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5, maxWidth: 220 }}>
+            {QUICK_EMOJIS.map((em) => (
+              <IconButton
+                key={em}
+                size="small"
+                sx={{ fontSize: '1.25rem' }}
+                onClick={() => {
+                  setMessage((prev) => prev + em);
+                  setEmojiAnchor(null);
+                }}
+              >
+                <span aria-hidden>{em}</span>
+              </IconButton>
+            ))}
+          </Box>
+        </Popover>
 
         {/* File Upload */}
         <input

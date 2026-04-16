@@ -8,7 +8,6 @@ import {
   Box,
   Typography,
   Avatar,
-  Grid,
   Chip,
   Divider,
   IconButton,
@@ -16,6 +15,7 @@ import {
   Card,
   CardContent,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   Close as CloseIcon,
   Email as EmailIcon,

@@ -17,7 +17,7 @@ import {
   Work as WorkIcon,
   TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material'
-import { ProvidersService } from '../../services/api/providers.service'
+import { ProvidersService, ProviderStats } from '../../services/api/providers.service'
 
 interface ProviderStatsWidgetProps {
   onRefresh?: number // timestamp to trigger refresh
@@ -105,7 +105,7 @@ export function ProviderStatsWidget({ onRefresh }: ProviderStatsWidgetProps) {
       const response = await ProvidersService.getProviderStats()
       
       if (response.data) {
-        const d = response.data as Record<string, number | undefined>
+        const d = response.data as ProviderStats
         setStats({
           total_providers: d.total_providers ?? 0,
           verified_providers: d.verified_providers ?? 0,

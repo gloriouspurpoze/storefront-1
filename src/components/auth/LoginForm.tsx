@@ -25,6 +25,10 @@ import {
   FormControl,
   InputLabel,
   Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material'
 import {
   Visibility as VisibilityIcon,
@@ -32,9 +36,6 @@ import {
   Email as EmailIcon,
   Lock as LockIcon,
   Login as LoginIcon,
-  Google as GoogleIcon,
-  Apple as AppleIcon,
-  Facebook as FacebookIcon,
   Security as SecurityIcon,
   Business as BusinessIcon,
   SupervisorAccount as SuperAdminIcon,
@@ -42,6 +43,7 @@ import {
   Build as ProviderIcon,
   FlashOn as QuickLoginIcon,
 } from '@mui/icons-material'
+import { AuthService } from '../../services/api/auth.service'
 
 interface LoginFormProps {
   onLogin: (credentials: { email: string; password: string; rememberMe: boolean }) => void
@@ -54,7 +56,7 @@ const TEST_ACCOUNTS = [
   {
     id: 'superadmin',
     label: '🔐 Super Admin',
-    email: 'superadmin@fixer.com',
+    email: 'superadmin@profixer.in',
     password: 'SuperAdmin@123',
     role: 'Super Admin',
     icon: <SuperAdminIcon />,
@@ -88,6 +90,9 @@ export function LoginForm({ onLogin, isLoading = false, error }: LoginFormProps)
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'error' as 'success' | 'error' | 'warning' | 'info' })
   const [quickLoginValue, setQuickLoginValue] = useState('admin')
+  const [forgotOpen, setForgotOpen] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotSubmitting, setForgotSubmitting] = useState(false)
 
   const theme = useTheme()
 
@@ -133,12 +138,34 @@ export function LoginForm({ onLogin, isLoading = false, error }: LoginFormProps)
     }
   }
 
-  const handleSocialLogin = (provider: string) => {
-    setSnackbar({ open: true, message: `${provider} login coming soon`, severity: 'info' })
+  const handleForgotPassword = () => {
+    setForgotEmail(formData.email || '')
+    setForgotOpen(true)
   }
 
-  const handleForgotPassword = () => {
-    setSnackbar({ open: true, message: 'Password reset feature coming soon', severity: 'info' })
+  const handleForgotSubmit = async () => {
+    const email = forgotEmail.trim()
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+      setSnackbar({ open: true, message: 'Please enter a valid email address.', severity: 'warning' })
+      return
+    }
+    setForgotSubmitting(true)
+    try {
+      const res = await AuthService.forgotPassword({ email })
+      if ((res as any)?.success !== false) {
+        setSnackbar({
+          open: true,
+          message: 'If an account exists for this email, you will receive reset instructions shortly.',
+          severity: 'success',
+        })
+        setForgotOpen(false)
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Could not send reset email. Try again later.'
+      setSnackbar({ open: true, message: msg, severity: 'error' })
+    } finally {
+      setForgotSubmitting(false)
+    }
   }
 
   const handleQuickLogin = (accountId: string) => {
@@ -508,6 +535,32 @@ export function LoginForm({ onLogin, isLoading = false, error }: LoginFormProps)
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      <Dialog open={forgotOpen} onClose={() => !forgotSubmitting && setForgotOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle>Reset password</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Enter your account email. We will send a link to reset your password if the account exists.
+          </Typography>
+          <TextField
+            autoFocus
+            fullWidth
+            label="Email"
+            type="email"
+            value={forgotEmail}
+            onChange={(e) => setForgotEmail(e.target.value)}
+            disabled={forgotSubmitting}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setForgotOpen(false)} disabled={forgotSubmitting}>
+            Cancel
+          </Button>
+          <Button variant="contained" onClick={handleForgotSubmit} disabled={forgotSubmitting}>
+            {forgotSubmitting ? 'Sending…' : 'Send link'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   )
 }

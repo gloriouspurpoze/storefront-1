@@ -225,7 +225,11 @@ export function SignupForm({ onSignup, isLoading = false, error }: SignupFormPro
   }
 
   const handleSocialSignup = (provider: string) => {
-    setSnackbar({ open: true, message: `${provider} signup coming soon`, severity: 'info' })
+    setSnackbar({
+      open: true,
+      message: `${provider} sign-up is not enabled on this deployment. Continue with email and password below.`,
+      severity: 'info',
+    })
   }
 
   const renderStepContent = () => {

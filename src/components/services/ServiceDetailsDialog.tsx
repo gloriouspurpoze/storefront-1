@@ -7,7 +7,6 @@ import {
   Button,
   Box,
   Typography,
-  Grid,
   Chip,
   Divider,
   IconButton,
@@ -16,6 +15,7 @@ import {
   CardContent,
   Rating,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   Close as CloseIcon,
   Business as BusinessIcon,

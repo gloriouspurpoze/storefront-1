@@ -26,7 +26,7 @@ export function SidebarProvider({ children }: SidebarProviderProps) {
   }, [isOpen])
 
   const toggleSidebar = () => {
-    setIsOpen(prev => !prev)
+    setIsOpen((prev: boolean) => !prev)
   }
 
   const closeSidebar = () => {

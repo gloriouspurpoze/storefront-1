@@ -14,7 +14,7 @@ interface DataProviderProps {
 
 export function DataProvider({ children }: DataProviderProps) {
   return (
-    <DataContext.Provider value={{ data: staticData as StaticData }}>
+    <DataContext.Provider value={{ data: staticData as unknown as StaticData }}>
       {children}
     </DataContext.Provider>
   )

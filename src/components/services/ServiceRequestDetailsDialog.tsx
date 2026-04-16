@@ -7,7 +7,6 @@ import {
   Button,
   Box,
   Typography,
-  Grid,
   Chip,
   Divider,
   Stack,
@@ -15,6 +14,7 @@ import {
   Card,
   CardContent,
 } from '@mui/material'
+import Grid from '@mui/material/GridLegacy'
 import {
   Close as CloseIcon,
   LocationOn as LocationIcon,

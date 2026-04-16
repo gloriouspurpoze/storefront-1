@@ -419,6 +419,26 @@ export const routePermissions: RoutePermission[] = [
     requiredPermissions: ['view_categories'],
     allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
   },
+
+  // Marketplace hub (card links enforce finer permissions)
+  {
+    path: '/marketplace',
+    requiredPermissions: ['view_services'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+
+  // E-commerce hub (products & orders)
+  {
+    path: '/ecommerce',
+    requiredPermissions: ['view_products'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+
+  {
+    path: '/inventory',
+    requiredPermissions: ['view_products'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
   
   // Payments
   {

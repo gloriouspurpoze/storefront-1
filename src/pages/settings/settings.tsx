@@ -110,7 +110,7 @@ export function Settings() {
     try {
       setIsLoading(true)
       const response = await settingsService.getSettings()
-      if (response.success && response.data) {
+      if (response?.success && response.data) {
         setSettings(response.data)
       } else {
         // If API fails or returns no data, keep default settings
