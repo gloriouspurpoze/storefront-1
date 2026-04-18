@@ -107,6 +107,10 @@ export type Permission =
   | 'delete_referrals'
   | 'manage_referrals'
 
+  // CRM permissions
+  | 'view_crm'
+  | 'manage_crm'
+
 export interface RolePermissions {
   role: UserRole
   permissions: Permission[]

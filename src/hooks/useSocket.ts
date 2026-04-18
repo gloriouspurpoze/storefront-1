@@ -1,5 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { useSelector } from 'react-redux';
 import { io, Socket } from 'socket.io-client';
+import type { RootState } from '../store';
+
+/** REST base is .../api; Socket.IO lives on origin only, namespace /chat (not /api/chat). */
+function getSocketOrigin(): string {
+  const raw = (process.env.REACT_APP_API_URL || 'http://localhost:8005/api').trim();
+  return raw.replace(/\/api\/?$/i, '').replace(/\/$/, '') || 'http://localhost:8005';
+}
 
 interface UseSocketOptions {
   autoConnect?: boolean;
@@ -17,98 +25,101 @@ interface UseSocketReturn {
 }
 
 /**
- * Custom hook for Socket.IO connection
+ * Socket.IO to backend `/chat` namespace (matches fixer-backend ChatSocketService).
  */
 export const useSocket = (options: UseSocketOptions = {}): UseSocketReturn => {
   const { autoConnect = true, onConnect, onDisconnect, onError } = options;
-  
-  const socketRef = useRef<Socket | null>(null);
+  const authToken = useSelector((s: RootState) => s.auth.token);
+  const callbacksRef = useRef({ onConnect, onDisconnect, onError });
+  callbacksRef.current = { onConnect, onDisconnect, onError };
+
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [reconnectTick, setReconnectTick] = useState(0);
 
-  const connect = () => {
-    if (socketRef.current?.connected) {
-      return;
-    }
+  const disconnect = useCallback(() => {
+    setSocket((prev) => {
+      if (prev) {
+        prev.removeAllListeners();
+        prev.disconnect();
+      }
+      return null;
+    });
+    setIsConnected(false);
+  }, []);
 
-    const token = localStorage.getItem('token');
+  const connect = useCallback(() => {
+    setReconnectTick((n) => n + 1);
+  }, []);
+
+  useEffect(() => {
+    if (!autoConnect) return;
+
+    const token = authToken || localStorage.getItem('token');
     if (!token) {
-      // Silently fail if no token - don't show error for unauthenticated users
       console.log('ℹ️ Socket: No auth token, skipping connection');
       return;
     }
 
-    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-
+    const socketOrigin = getSocketOrigin();
+    let s: Socket;
     try {
-      socketRef.current = io(`${apiUrl}/chat`, {
+      s = io(`${socketOrigin}/chat`, {
         auth: { token },
         transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionDelay: 1000,
         reconnectionAttempts: 5,
         timeout: 5000,
-        // Suppress connection errors in console if server is not available
         autoConnect: true,
       });
-    } catch (err) {
+    } catch {
       console.log('ℹ️ Socket: Connection failed (server may not be running)');
-      // Don't set error for connection failures - it's expected if server is down
       return;
     }
 
-    socketRef.current.on('connect', () => {
+    const { onConnect: oc, onDisconnect: od, onError: oe } = callbacksRef.current;
+
+    s.on('connect', () => {
       console.log('✅ Connected to chat server');
       setIsConnected(true);
       setError(null);
-      onConnect?.();
+      oc?.();
     });
 
-    socketRef.current.on('disconnect', (reason) => {
+    s.on('disconnect', (reason) => {
       console.log('❌ Disconnected from chat server:', reason);
       setIsConnected(false);
-      onDisconnect?.();
+      od?.();
     });
 
-    socketRef.current.on('error', (err) => {
+    s.on('error', (err) => {
       console.error('❌ Socket error:', err);
       const socketError = new Error(err.message || 'Socket connection error');
       setError(socketError);
-      onError?.(socketError);
+      oe?.(socketError);
     });
 
-    socketRef.current.on('connect_error', (err) => {
-      // Only log, don't show error - server may not be running
+    s.on('connect_error', (err) => {
       console.log('ℹ️ Socket: Connection error (server may not be available):', err.message);
-      // Don't set error or call onError - this is expected if chat server is not running
     });
-  };
 
-  const disconnect = () => {
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-      socketRef.current = null;
-      setIsConnected(false);
-    }
-  };
-
-  useEffect(() => {
-    if (autoConnect) {
-      connect();
-    }
+    setSocket(s);
 
     return () => {
-      disconnect();
+      s.removeAllListeners();
+      s.disconnect();
+      setSocket(null);
+      setIsConnected(false);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [autoConnect, authToken, reconnectTick]);
 
   return {
-    socket: socketRef.current,
+    socket,
     isConnected,
     error,
     connect,
     disconnect,
   };
 };
-

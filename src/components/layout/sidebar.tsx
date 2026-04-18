@@ -43,6 +43,7 @@ import {
   Chat as ChatIcon,
   ShoppingCart as ShoppingCartIcon,
   Settings as SettingsIcon,
+  Tune as TuneIcon,
   Home as HomeIcon,
   ExpandLess,
   ExpandMore,
@@ -74,6 +75,10 @@ import {
   Campaign as CampaignIcon,
   Storefront as StorefrontIcon,
   ShoppingBag as ShoppingBagIcon,
+  BusinessCenter as BusinessCenterIcon,
+  PersonSearch as PersonSearchIcon,
+  Handshake as HandshakeIcon,
+  Assignment as AssignmentIcon,
 } from '@mui/icons-material'
 import { NotificationBell } from '../notifications/NotificationBell'
 import { useSidebar } from '../../contexts/sidebar-context'
@@ -163,6 +168,19 @@ const navigationGroups = [
     items: [
       { name: 'Dashboard', href: '/', icon: DashboardIcon, permissions: [], badge: null },
       { name: 'Analytics', href: '/analytics', icon: BarChartIcon, permissions: ['view_analytics'], badge: null },
+    ]
+  },
+  {
+    title: 'CRM',
+    icon: BusinessCenterIcon,
+    items: [
+      { name: 'CRM Overview', href: '/crm', icon: BusinessCenterIcon, permissions: ['view_crm'], badge: null },
+      { name: 'Leads', href: '/crm/leads', icon: PersonSearchIcon, permissions: ['view_crm'], badge: null },
+      { name: 'Contacts', href: '/crm/contacts', icon: UsersIcon, permissions: ['view_crm'], badge: null },
+      { name: 'Companies', href: '/crm/companies', icon: BusinessIcon, permissions: ['view_crm'], badge: null },
+      { name: 'Deals', href: '/crm/deals', icon: HandshakeIcon, permissions: ['view_crm'], badge: null },
+      { name: 'Activities', href: '/crm/activities', icon: AssignmentIcon, permissions: ['view_crm'], badge: null },
+      { name: 'CRM settings', href: '/crm/settings', icon: TuneIcon, permissions: ['view_crm'], badge: null },
     ]
   },
   {

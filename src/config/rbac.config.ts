@@ -104,6 +104,9 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       'edit_referrals',
       'delete_referrals',
       'manage_referrals',
+
+      'view_crm',
+      'manage_crm',
     ]
   },
   
@@ -194,6 +197,9 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       'edit_referrals',
       'delete_referrals',
       'manage_referrals',
+
+      'view_crm',
+      'manage_crm',
     ]
   },
   
@@ -243,6 +249,9 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       
       // Notifications
       'view_notifications',
+
+      'view_crm',
+      'manage_crm',
     ]
   },
   
@@ -278,6 +287,8 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       
       // Notifications
       'view_notifications',
+
+      'view_crm',
     ]
   },
   
@@ -478,6 +489,43 @@ export const routePermissions: RoutePermission[] = [
     path: '/referrals',
     requiredPermissions: ['view_referrals'],
     allowedRoles: ['super_admin', 'admin']
+  },
+
+  // CRM
+  {
+    path: '/crm',
+    requiredPermissions: ['view_crm'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+  {
+    path: '/crm/leads',
+    requiredPermissions: ['view_crm'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+  {
+    path: '/crm/contacts',
+    requiredPermissions: ['view_crm'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+  {
+    path: '/crm/companies',
+    requiredPermissions: ['view_crm'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+  {
+    path: '/crm/deals',
+    requiredPermissions: ['view_crm'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+  {
+    path: '/crm/activities',
+    requiredPermissions: ['view_crm'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+  {
+    path: '/crm/settings',
+    requiredPermissions: ['view_crm'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
   }
 ]
 

@@ -23,6 +23,14 @@ const Dashboard = lazy(() => import('./pages/dashboard/dashboard').then((m) => (
 const Analytics = lazy(() => import('./pages/dashboard/analytics').then((m) => ({ default: m.Analytics })))
 const AdminEarningsOverview = lazy(() => import('./pages/dashboard/admin-earnings-overview').then((m) => ({ default: m.AdminEarningsOverview })))
 
+const CrmDashboard = lazy(() => import('./pages/crm/crm-dashboard').then((m) => ({ default: m.CrmDashboard })))
+const CrmLeads = lazy(() => import('./pages/crm/crm-leads').then((m) => ({ default: m.CrmLeads })))
+const CrmContacts = lazy(() => import('./pages/crm/crm-contacts').then((m) => ({ default: m.CrmContacts })))
+const CrmCompanies = lazy(() => import('./pages/crm/crm-companies').then((m) => ({ default: m.CrmCompanies })))
+const CrmDeals = lazy(() => import('./pages/crm/crm-deals').then((m) => ({ default: m.CrmDeals })))
+const CrmActivities = lazy(() => import('./pages/crm/crm-activities').then((m) => ({ default: m.CrmActivities })))
+const CrmSettings = lazy(() => import('./pages/crm/crm-settings').then((m) => ({ default: m.CrmSettings })))
+
 const Users = lazy(() => import('./pages/users/users').then((m) => ({ default: m.Users })))
 const Products = lazy(() => import('./pages/products/products').then((m) => ({ default: m.Products })))
 const AddProduct = lazy(() => import('./pages/products/add-product').then((m) => ({ default: m.AddProduct })))
@@ -517,6 +525,64 @@ function App() {
                             <Analytics />
                           </RoleBasedRoute>
                         } 
+                      />
+
+                      {/* CRM */}
+                      <Route
+                        path="/crm"
+                        element={
+                          <RoleBasedRoute permissions={['view_crm']}>
+                            <CrmDashboard />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/crm/leads"
+                        element={
+                          <RoleBasedRoute permissions={['view_crm']}>
+                            <CrmLeads />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/crm/contacts"
+                        element={
+                          <RoleBasedRoute permissions={['view_crm']}>
+                            <CrmContacts />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/crm/companies"
+                        element={
+                          <RoleBasedRoute permissions={['view_crm']}>
+                            <CrmCompanies />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/crm/deals"
+                        element={
+                          <RoleBasedRoute permissions={['view_crm']}>
+                            <CrmDeals />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/crm/activities"
+                        element={
+                          <RoleBasedRoute permissions={['view_crm']}>
+                            <CrmActivities />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/crm/settings"
+                        element={
+                          <RoleBasedRoute permissions={['view_crm']}>
+                            <CrmSettings />
+                          </RoleBasedRoute>
+                        }
                       />
                       
                       {/* Messages */}

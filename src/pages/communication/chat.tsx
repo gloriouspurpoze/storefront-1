@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Box, Paper, Alert, Snackbar, Dialog, DialogContent, Button } from '@mui/material';
 import { Business as BusinessIcon, Person as PersonIcon } from '@mui/icons-material';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../store';
 import { useSocket } from '../../hooks/useSocket';
 import { ChatService, ChatConversation, ChatMessage, ConversationType } from '../../services/api/chat.service';
 import ConversationList from '../../components/chat/ConversationList';
@@ -20,8 +22,18 @@ const ChatPage: React.FC = () => {
   const [showProviderList, setShowProviderList] = useState(false);
   const [showUserList, setShowUserList] = useState(false);
   
-  // Get current user ID from localStorage
-  const currentUserId = localStorage.getItem('userId') || '';
+  const authUser = useSelector((s: RootState) => s.auth.user);
+  const currentUserId = useMemo(() => {
+    if (authUser?.id) return String(authUser.id);
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || '{}');
+      const id = u?.id || u?._id;
+      if (id) return String(id);
+    } catch {
+      /* ignore */
+    }
+    return localStorage.getItem('userId') || '';
+  }, [authUser?.id]);
 
   // Socket.IO connection
   const { socket, isConnected, error: socketError } = useSocket({

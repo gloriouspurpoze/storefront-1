@@ -24,6 +24,8 @@ export { PaymentsService } from './payments.service'
 export { AnalyticsService } from './analytics.service'
 export { SearchService } from './search.service'
 export { dashboardService } from './dashboard.service'
+export { crmService } from './crm.service'
+export { crmApi } from './crm.api'
 export { ErrorHandler } from './error-handler'
 
 // Export types from base
