@@ -58,6 +58,7 @@ import { useAppDispatch } from '../../store/hooks'
 import { apiClient } from '../../services/apiClient'
 import { addToast } from '../../store/slices/uiSlice'
 import { useDropzone } from 'react-dropzone'
+import { useAppConfirm } from '../../components/providers/AppDialogsProvider'
 
 interface Certification {
   _id: string
@@ -72,6 +73,7 @@ interface Certification {
 
 export function ProfessionalDocuments() {
   const dispatch = useAppDispatch()
+  const confirm = useAppConfirm()
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [certifications, setCertifications] = useState<Certification[]>([])
@@ -167,7 +169,13 @@ export function ProfessionalDocuments() {
   }
 
   const handleDelete = async (certId: string) => {
-    if (!window.confirm('Are you sure you want to delete this certificate?')) return
+    const ok = await confirm({
+      title: 'Delete certificate?',
+      message: 'Are you sure you want to delete this certificate?',
+      danger: true,
+      confirmLabel: 'Delete',
+    })
+    if (!ok) return
 
     try {
       await apiClient.delete(`/professionals/certifications/${certId}`) as any

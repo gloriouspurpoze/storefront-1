@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   Box,
   Card,
@@ -23,6 +23,7 @@ import {
   Paper,
   Alert,
   CircularProgress,
+  Tooltip,
 } from '@mui/material'
 import Grid from '@mui/material/GridLegacy'
 import {
@@ -44,10 +45,24 @@ import {
 import { PageHeader } from '../../components/common/PageHeader'
 import { StandardTable, type StandardTableColumn } from '../../components/common'
 import { PaymentsService } from '../../services/api/payments.service'
+import { usePermissions } from '../../hooks/usePermissions'
 import type { Payment } from '../../types'
 import { downloadCsv, openPrintableHtml } from '../../lib/exportUtils'
 
+const PAYMENT_TABS = [
+  { label: 'All Payments', value: 'all' },
+  { label: 'Completed', value: 'completed' },
+  { label: 'Pending', value: 'pending' },
+  { label: 'Failed', value: 'failed' },
+  { label: 'Refunded', value: 'refunded' },
+] as const
+
+const EXPORT_PAGE_SIZE = 200
+
 export function Payments() {
+  const { checkPermission } = usePermissions()
+  const canRefund = checkPermission('refund_payments')
+  const canExport = checkPermission('export_payments')
   const [searchQuery, setSearchQuery] = useState('')
   const [currentTab, setCurrentTab] = useState(0)
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
@@ -83,9 +98,13 @@ export function Payments() {
     setPagination((prev) => ({ ...prev, page: 1 }))
   }, [currentTab, searchQuery, dateRange])
 
-  useEffect(() => {
-    fetchPaymentsData()
-  }, [currentTab, searchQuery, pagination.page, pagination.limit, dateRange])
+  const [exporting, setExporting] = useState(false)
+  const [refundDialogOpen, setRefundDialogOpen] = useState(false)
+  const [refundTarget, setRefundTarget] = useState<Payment | null>(null)
+  const [refundReason, setRefundReason] = useState('')
+  const [refundAmountInput, setRefundAmountInput] = useState('')
+  const [refundSubmitting, setRefundSubmitting] = useState(false)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   const getDateRangeParams = (): { start_date?: string; end_date?: string } => {
     const now = new Date()
@@ -112,7 +131,29 @@ export function Payments() {
     }
   }
 
-  const fetchPaymentsData = async () => {
+  const buildListQuery = useCallback(
+    (page: number, limit: number) => {
+      const status = PAYMENT_TABS[currentTab].value
+      const query: {
+        page: number
+        limit: number
+        status?: string
+        search?: string
+        start_date?: string
+        end_date?: string
+      } = {
+        page,
+        limit,
+        ...getDateRangeParams(),
+      }
+      if (status !== 'all') query.status = status
+      if (searchQuery.trim()) query.search = searchQuery.trim()
+      return query
+    },
+    [currentTab, searchQuery, dateRange]
+  )
+
+  const fetchPaymentsData = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -131,16 +172,7 @@ export function Payments() {
         })
       }
 
-      const status = tabs[currentTab].value
-      const query: any = {
-        page: pagination.page,
-        limit: pagination.limit,
-        ...getDateRangeParams(),
-      }
-      if (status !== 'all') query.status = status
-      if (searchQuery.trim()) query.search = searchQuery.trim()
-
-      const paymentsResponse = await PaymentsService.getPayments(query)
+      const paymentsResponse = await PaymentsService.getPayments(buildListQuery(pagination.page, pagination.limit))
       if (paymentsResponse.success && paymentsResponse.data) {
         const data = paymentsResponse.data as any
         const list = data.payments ?? data ?? []
@@ -163,15 +195,11 @@ export function Payments() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [buildListQuery, pagination.page, pagination.limit])
 
-  const tabs = [
-    { label: 'All Payments', value: 'all' },
-    { label: 'Completed', value: 'completed' },
-    { label: 'Pending', value: 'pending' },
-    { label: 'Failed', value: 'failed' },
-    { label: 'Refunded', value: 'refunded' },
-  ]
+  useEffect(() => {
+    void fetchPaymentsData()
+  }, [fetchPaymentsData])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -268,20 +296,68 @@ export function Payments() {
     handleActionMenuClose()
   }
 
-  const handleRefund = async () => {
-    if (!actionPayment) return
+  const openRefundDialog = (payment: Payment) => {
+    if (!canRefund) return
+    setRefundTarget(payment)
+    setRefundReason('')
+    setRefundAmountInput('')
+    setRefundDialogOpen(true)
+    setDetailsOpen(false)
+    setError(null)
+    handleActionMenuClose()
+  }
+
+  const closeRefundDialog = () => {
+    if (refundSubmitting) return
+    setRefundDialogOpen(false)
+    setRefundTarget(null)
+  }
+
+  const submitRefund = async () => {
+    if (!refundTarget) return
+    const reason = refundReason.trim()
+    if (!reason) {
+      setError('Please enter a reason for the refund.')
+      return
+    }
+    const p = refundTarget as any
+    const id = String(p.id ?? p._id ?? '')
+    if (!id) {
+      setError('Missing payment id.')
+      return
+    }
+    const maxAmt = Number(p.amount ?? 0)
+    let amount: number | undefined
+    if (refundAmountInput.trim()) {
+      const n = parseFloat(refundAmountInput.replace(/,/g, ''))
+      if (Number.isNaN(n) || n <= 0) {
+        setError('Enter a valid partial refund amount.')
+        return
+      }
+      if (n > maxAmt) {
+        setError('Refund amount cannot exceed the original payment amount.')
+        return
+      }
+      amount = n
+    }
+    setRefundSubmitting(true)
+    setError(null)
     try {
-      await PaymentsService.refundPayment(actionPayment.id)
-      fetchPaymentsData() // Refresh list
-      handleActionMenuClose()
+      await PaymentsService.refundPayment(id, amount, reason)
+      setSuccessMessage('Refund processed successfully.')
+      setRefundDialogOpen(false)
+      setRefundTarget(null)
+      await fetchPaymentsData()
     } catch (err: any) {
       setError(err?.message || 'Failed to process refund')
+    } finally {
+      setRefundSubmitting(false)
     }
   }
 
-  const handleDownloadReceipt = () => {
-    if (!actionPayment) return
-    const p = actionPayment as any
+  const handleDownloadReceipt = (payment?: Payment | null) => {
+    const p = (payment ?? actionPayment ?? selectedPayment) as any
+    if (!p) return
     const id = p.id ?? p._id ?? ''
     const txn = p.transaction_id || p.transactionId || `TXN-${String(id).slice(-8)}`
     const amt = p.amount ?? 0
@@ -309,11 +385,11 @@ export function Payments() {
     handleActionMenuClose()
   }
 
-  const exportPaymentsReport = () => {
+  const buildCsvRows = (list: Payment[]) => {
     const rows: unknown[][] = [
       ['Transaction ID', 'Booking', 'Customer', 'Email', 'Amount', 'Currency', 'Status', 'Method', 'Date'],
     ]
-    for (const p of filteredPayments) {
+    for (const p of list) {
       const x = p as any
       const id = x.id ?? x._id ?? ''
       const txn = x.transaction_id || x.transactionId || `TXN-${String(id).slice(-8)}`
@@ -329,8 +405,41 @@ export function Payments() {
         formatDate(x.created_at || x.createdAt),
       ])
     }
-    const stamp = new Date().toISOString().slice(0, 10)
-    downloadCsv(`payments-export-${stamp}.csv`, rows)
+    return rows
+  }
+
+  const exportPaymentsReport = async () => {
+    if (!canExport) return
+    setExporting(true)
+    setError(null)
+    setSuccessMessage(null)
+    try {
+      const all: Payment[] = []
+      let page = 1
+      let totalPages = 1
+      const maxPages = 500
+      while (page <= totalPages && page <= maxPages) {
+        const res = await PaymentsService.getPayments(buildListQuery(page, EXPORT_PAGE_SIZE))
+        if (!res.success || !res.data) break
+        const data = res.data as any
+        const list = data.payments ?? data ?? []
+        if (!Array.isArray(list) || list.length === 0) break
+        all.push(...list)
+        const tp = data.pagination?.totalPages
+        totalPages = typeof tp === 'number' && tp >= 1 ? tp : page
+        if (page >= totalPages) break
+        page += 1
+      }
+      const stamp = new Date().toISOString().slice(0, 10)
+      downloadCsv(`payments-export-${stamp}.csv`, buildCsvRows(all))
+      setSuccessMessage(
+        `Exported ${all.length} payment${all.length !== 1 ? 's' : ''} (all rows matching current tab, search, and date filters).`
+      )
+    } catch (err: any) {
+      setError(err?.message || 'Export failed')
+    } finally {
+      setExporting(false)
+    }
   }
 
   const paymentColumns: StandardTableColumn<Payment>[] = [
@@ -463,20 +572,31 @@ export function Payments() {
         title="Payments & Transactions"
         subtitle="Manage payments, transactions, and refunds"
         action={
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <Button
-              variant="outlined"
-              startIcon={<DownloadIcon />}
-              sx={{ borderRadius: 2 }}
-              onClick={exportPaymentsReport}
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Tooltip
+              title={
+                canExport
+                  ? 'Downloads all payments matching the current tab, search, and date filters (multiple pages).'
+                  : 'You need export permission to download payment reports.'
+              }
             >
-              Export Report
-            </Button>
+              <span>
+                <Button
+                  variant="outlined"
+                  startIcon={exporting ? <CircularProgress size={18} /> : <DownloadIcon />}
+                  sx={{ borderRadius: 2 }}
+                  onClick={() => void exportPaymentsReport()}
+                  disabled={!canExport || exporting || loading}
+                >
+                  Export report
+                </Button>
+              </span>
+            </Tooltip>
             <Button
               variant="contained"
               startIcon={<RefreshIcon />}
               sx={{ borderRadius: 2 }}
-              onClick={fetchPaymentsData}
+              onClick={() => void fetchPaymentsData()}
               disabled={loading}
             >
               Refresh
@@ -484,6 +604,12 @@ export function Payments() {
           </Box>
         }
       />
+
+      {successMessage && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccessMessage(null)}>
+          {successMessage}
+        </Alert>
+      )}
 
       {/* Error Alert */}
       {error && (
@@ -494,7 +620,7 @@ export function Payments() {
 
       {/* Stats Cards — industry-standard KPIs */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={4}>
           <Card sx={{ borderRadius: 2 }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -527,7 +653,7 @@ export function Payments() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={4}>
           <Card sx={{ borderRadius: 2 }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -555,7 +681,7 @@ export function Payments() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={4}>
           <Card sx={{ borderRadius: 2 }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -583,7 +709,35 @@ export function Payments() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={4}>
+          <Card sx={{ borderRadius: 2 }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                <Box
+                  sx={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 2,
+                    bgcolor: 'error.light',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <CancelIcon sx={{ color: 'error.main' }} />
+                </Box>
+              </Box>
+              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+                {stats.failedPayments}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Failed
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={4}>
           <Card sx={{ borderRadius: 2 }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -661,7 +815,7 @@ export function Payments() {
             variant="scrollable"
             scrollButtons="auto"
           >
-            {tabs.map((tab, index) => (
+            {PAYMENT_TABS.map((tab, index) => (
               <Tab key={index} label={tab.label} />
             ))}
           </Tabs>
@@ -710,14 +864,18 @@ export function Payments() {
         <MenuItem onClick={() => actionPayment && handleViewDetails(actionPayment)}>
           View Details
         </MenuItem>
-        <MenuItem onClick={handleDownloadReceipt}>
+        <MenuItem onClick={() => actionPayment && handleDownloadReceipt(actionPayment)}>
           Download Receipt
         </MenuItem>
-        {actionPayment?.status === 'completed' && (
+        {canRefund &&
+          ['completed', 'paid'].includes(String(actionPayment?.status ?? '').toLowerCase()) && (
           <>
             <Divider />
-            <MenuItem onClick={handleRefund} sx={{ color: 'error.main' }}>
-              Process Refund
+            <MenuItem
+              onClick={() => actionPayment && openRefundDialog(actionPayment)}
+              sx={{ color: 'error.main' }}
+            >
+              Process refund
             </MenuItem>
           </>
         )}
@@ -845,14 +1003,72 @@ export function Payments() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDetailsOpen(false)}>Close</Button>
-          <Button variant="outlined" onClick={handleDownloadReceipt}>
+          <Button variant="outlined" onClick={() => handleDownloadReceipt(selectedPayment)}>
             Download Receipt
           </Button>
-          {selectedPayment?.status === 'completed' && (
-            <Button variant="contained" color="error" onClick={handleRefund}>
-              Process Refund
+          {canRefund &&
+            ['completed', 'paid'].includes(String(selectedPayment?.status ?? '').toLowerCase()) && (
+            <Button
+              variant="contained"
+              color="error"
+              onClick={() => selectedPayment && openRefundDialog(selectedPayment)}
+            >
+              Process refund
             </Button>
           )}
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={refundDialogOpen} onClose={closeRefundDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>Process refund</DialogTitle>
+        <DialogContent dividers>
+          {refundTarget && (
+            <Stack spacing={2} sx={{ pt: 0.5 }}>
+              <Typography variant="body2" color="text.secondary">
+                Refunds are sent to your payment provider. Enter a reason for your audit trail.
+              </Typography>
+              <Typography variant="body2">
+                Amount:{' '}
+                <strong>
+                  {formatCurrency(
+                    (refundTarget as any).amount,
+                    (refundTarget as any).currency || 'INR'
+                  )}
+                </strong>
+              </Typography>
+              <TextField
+                label="Reason (required)"
+                required
+                multiline
+                minRows={2}
+                fullWidth
+                value={refundReason}
+                onChange={(e) => setRefundReason(e.target.value)}
+                placeholder="e.g. Customer requested cancellation, service not completed"
+              />
+              <TextField
+                label="Partial amount (optional)"
+                fullWidth
+                helperText="Leave blank for a full refund. Must not exceed the original amount."
+                value={refundAmountInput}
+                onChange={(e) => setRefundAmountInput(e.target.value)}
+                placeholder="e.g. 500"
+              />
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeRefundDialog} disabled={refundSubmitting}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={() => void submitRefund()}
+            disabled={refundSubmitting}
+          >
+            {refundSubmitting ? 'Processing…' : 'Confirm refund'}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

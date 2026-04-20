@@ -29,6 +29,8 @@ import {
   Language as LanguageIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
+import { appToast } from '../../lib/appToast';
+import { useAppConfirm } from '../../components/providers/AppDialogsProvider';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
@@ -45,6 +47,7 @@ interface SEOMeta {
 }
 
 export default function SEOManagement() {
+  const confirm = useAppConfirm();
   const [seoPages, setSeoPages] = useState<SEOMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -113,14 +116,20 @@ export default function SEOManagement() {
 
       fetchSEOPages();
       handleCloseForm();
-      alert('SEO metadata saved successfully!');
+      appToast('SEO metadata saved successfully!', 'success');
     } catch (error: any) {
-      alert('Error: ' + (error.response?.data?.error || 'Failed to save'));
+      appToast('Error: ' + (error.response?.data?.error || 'Failed to save'), 'error');
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this SEO configuration?')) return;
+    const ok = await confirm({
+      title: 'Delete SEO configuration?',
+      message: 'Delete this SEO configuration?',
+      danger: true,
+      confirmLabel: 'Delete',
+    });
+    if (!ok) return;
     try {
       const token = localStorage.getItem('token');
       await axios.delete(`${API_BASE}/cms/admin/seo/${id}`, {
@@ -128,7 +137,7 @@ export default function SEOManagement() {
       });
       fetchSEOPages();
     } catch (error) {
-      alert('Error deleting SEO configuration');
+      appToast('Error deleting SEO configuration', 'error');
     }
   };
 

@@ -4,13 +4,23 @@ import { Business as BusinessIcon, Person as PersonIcon } from '@mui/icons-mater
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import { useSocket } from '../../hooks/useSocket';
-import { ChatService, ChatConversation, ChatMessage, ConversationType } from '../../services/api/chat.service';
+import {
+  ChatService,
+  ChatConversation,
+  ChatMessage,
+  ConversationType,
+  normalizeConversationList,
+  normalizeMessageList,
+} from '../../services/api/chat.service';
 import ConversationList from '../../components/chat/ConversationList';
 import MessageThread from '../../components/chat/MessageThread';
 import ProviderListForChat from '../../components/chat/ProviderListForChat';
 import UserListForChat from '../../components/chat/UserListForChat';
+import { useAppConfirm, useAppPrompt } from '../../components/providers/AppDialogsProvider';
 
 const ChatPage: React.FC = () => {
+  const confirm = useAppConfirm();
+  const prompt = useAppPrompt();
   // State
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<ChatConversation | null>(null);
@@ -51,28 +61,30 @@ const ChatPage: React.FC = () => {
     setSnackbar({ open: true, message, severity });
   };
 
-  // Load conversations
-  const loadConversations = async () => {
+  // Load conversations (API returns conversation array in `data`, not `data.conversations`)
+  const loadConversations = async (): Promise<ChatConversation[]> => {
     try {
       setLoading(true);
       const response = await ChatService.getConversations();
-      if (response.success && response.data) {
-        setConversations(response.data.conversations || []);
+      if (response.success && response.data !== undefined) {
+        const list = normalizeConversationList(response.data);
+        setConversations(list);
+        return list;
       }
     } catch (err: any) {
       setError(err.message || 'Failed to load conversations');
     } finally {
       setLoading(false);
     }
+    return [];
   };
 
-  // Load messages for a conversation
   const loadMessages = async (conversationId: string) => {
     try {
       setMessagesLoading(true);
       const response = await ChatService.getMessages(conversationId);
-      if (response.success && response.data) {
-        setMessages(response.data.messages || []);
+      if (response.success && response.data !== undefined) {
+        setMessages(normalizeMessageList(response.data));
       }
     } catch (err: any) {
       showSnackbar(err.message || 'Failed to load messages', 'error');
@@ -142,8 +154,14 @@ const ChatPage: React.FC = () => {
 
   // Handle edit message
   const handleEditMessage = async (message: ChatMessage) => {
-    const newContent = prompt('Edit message:', message.content);
-    if (!newContent || newContent === message.content) return;
+    const newContent = await prompt({
+      title: 'Edit message',
+      label: 'Message',
+      defaultValue: message.content,
+      multiline: true,
+      confirmLabel: 'Save',
+    });
+    if (newContent == null || newContent === message.content) return;
 
     try {
       await ChatService.editMessage(message._id, newContent);
@@ -155,7 +173,13 @@ const ChatPage: React.FC = () => {
 
   // Handle delete message
   const handleDeleteMessage = async (message: ChatMessage) => {
-    if (!window.confirm('Are you sure you want to delete this message?')) return;
+    const ok = await confirm({
+      title: 'Delete message?',
+      message: 'Are you sure you want to delete this message?',
+      danger: true,
+      confirmLabel: 'Delete',
+    });
+    if (!ok) return;
 
     try {
       await ChatService.deleteMessage(message._id);
@@ -167,11 +191,16 @@ const ChatPage: React.FC = () => {
 
   // Handle react to message
   const handleReactToMessage = async (message: ChatMessage) => {
-    const emoji = prompt('Enter emoji (e.g., 👍, ❤️, 😊):');
-    if (!emoji) return;
+    const emoji = await prompt({
+      title: 'Add reaction',
+      message: 'Enter an emoji (e.g. 👍, ❤️, 😊)',
+      label: 'Emoji',
+      defaultValue: '',
+    });
+    if (emoji == null || !emoji.trim()) return;
 
     try {
-      await ChatService.addReaction(message._id, emoji);
+      await ChatService.addReaction(message._id, emoji.trim());
       showSnackbar('Reaction added');
     } catch (err: any) {
       showSnackbar(err.message || 'Failed to add reaction', 'error');
@@ -184,25 +213,34 @@ const ChatPage: React.FC = () => {
 
     // Listen for new messages
     socket.on('message:received', (data: { message: ChatMessage }) => {
-      setMessages(prev => [...prev, data.message]);
-      
-      // Update last message in conversations list
-      setConversations(prev =>
-        prev.map(conv =>
-          conv._id === data.message.conversationId
+      const msg = data.message;
+      const senderRaw = msg.senderId as unknown;
+      const senderIdStr =
+        typeof senderRaw === 'object' && senderRaw !== null && '_id' in senderRaw
+          ? String((senderRaw as { _id: string })._id)
+          : String(senderRaw ?? '');
+
+      setMessages((prev) => {
+        if (prev.some((m) => m._id === msg._id)) return prev;
+        return [...prev, msg];
+      });
+
+      setConversations((prev) =>
+        prev.map((conv) =>
+          conv._id === msg.conversationId
             ? {
                 ...conv,
                 lastMessage: {
-                  text: data.message.content,
-                  senderId: data.message.senderId._id,
-                  sentAt: data.message.createdAt,
-                  messageType: data.message.type,
+                  text: msg.content,
+                  senderId: senderIdStr,
+                  sentAt: msg.createdAt,
+                  messageType: msg.type,
                 },
-                participants: conv.participants.map(p =>
-                  p.userId._id === currentUserId && data.message.senderId._id !== currentUserId
+                participants: conv.participants.map((p) =>
+                  p.userId._id === currentUserId && senderIdStr !== currentUserId
                     ? { ...p, unreadCount: p.unreadCount + 1 }
                     : p
-                )
+                ),
               }
             : conv
         )
@@ -249,28 +287,24 @@ const ChatPage: React.FC = () => {
     loadConversations();
   }, []);
 
-  const handleProviderSelect = (providerId: string, conversationId: string) => {
+  const handleProviderSelect = async (_providerId: string, conversationId: string) => {
     setShowProviderList(false);
     showSnackbar('Conversation started successfully', 'success');
-    // Reload conversations and select the new one
-    loadConversations().then(() => {
-      const conversation = conversations.find(c => c._id === conversationId);
-      if (conversation) {
-        setSelectedConversation(conversation);
-      }
-    });
+    const list = await loadConversations();
+    const conversation = list.find((c) => c._id === conversationId);
+    if (conversation) {
+      await handleSelectConversation(conversation);
+    }
   };
 
-  const handleUserSelect = (userId: string, conversationId: string) => {
+  const handleUserSelect = async (_userId: string, conversationId: string) => {
     setShowUserList(false);
     showSnackbar('Conversation started successfully', 'success');
-    // Reload conversations and select the new one
-    loadConversations().then(() => {
-      const conversation = conversations.find(c => c._id === conversationId);
-      if (conversation) {
-        setSelectedConversation(conversation);
-      }
-    });
+    const list = await loadConversations();
+    const conversation = list.find((c) => c._id === conversationId);
+    if (conversation) {
+      await handleSelectConversation(conversation);
+    }
   };
 
   return (

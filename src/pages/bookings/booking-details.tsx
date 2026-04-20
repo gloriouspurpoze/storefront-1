@@ -905,6 +905,124 @@ export function BookingDetails() {
               >
                 Delete
               </Button>
+              {/* Admin: same lifecycle as assigned professional (support / oversight); backend allows admin on these routes */}
+              {booking.status === 'pending' && (
+                <>
+                  <Button
+                    variant="contained"
+                    color="success"
+                    startIcon={<CheckCircle />}
+                    onClick={() => {
+                      setAction('accept')
+                      setActionDialog(true)
+                    }}
+                    sx={{
+                      borderRadius: 2,
+                      px: 3,
+                      py: 1.2,
+                      fontWeight: 600,
+                      textTransform: 'none',
+                      boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)',
+                    }}
+                  >
+                    Accept Booking
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    startIcon={<Cancel />}
+                    onClick={() => setCancelDialogOpen(true)}
+                    sx={{ borderRadius: 2, px: 3, py: 1.2, fontWeight: 600, textTransform: 'none', borderWidth: 2 }}
+                  >
+                    Reject
+                  </Button>
+                </>
+              )}
+              {(booking.status === 'confirmed' || booking.status === 'scheduled') && (
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<PlayArrow />}
+                  onClick={() => {
+                    setAction('start')
+                    setActionDialog(true)
+                  }}
+                  sx={{
+                    borderRadius: 2,
+                    px: 3,
+                    py: 1.2,
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    boxShadow: '0 4px 12px rgba(33, 150, 243, 0.3)',
+                  }}
+                >
+                  Start Work
+                </Button>
+              )}
+              {booking.status === 'in_progress' && (
+                <Button
+                  variant="contained"
+                  color="success"
+                  startIcon={<CheckCircle />}
+                  onClick={() => {
+                    setAction('complete')
+                    setActionDialog(true)
+                  }}
+                  sx={{
+                    borderRadius: 2,
+                    px: 3,
+                    py: 1.2,
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)',
+                  }}
+                >
+                  Mark Complete
+                </Button>
+              )}
+              {(() => {
+                const statusLower = booking.status?.toLowerCase() || ''
+                const isCompleted = statusLower === 'completed'
+                const paymentMethodLower = booking.paymentMethod?.toLowerCase() || ''
+                const isPayAfterService =
+                  paymentMethodLower.includes('pay_after') ||
+                  paymentMethodLower.includes('pay after') ||
+                  paymentMethodLower === 'pay_after_service' ||
+                  paymentMethodLower === 'pay_later' ||
+                  paymentMethodLower.includes('pay_later') ||
+                  paymentMethodLower.includes('pay later')
+                const isCash =
+                  paymentMethodLower === 'cash' ||
+                  paymentMethodLower === 'cash_on_delivery' ||
+                  paymentMethodLower.includes('cash')
+                const paymentStatusLower = booking.paymentStatus?.toLowerCase() || ''
+                const paymentNotPaid =
+                  paymentStatusLower !== 'paid' &&
+                  paymentStatusLower !== 'completed' &&
+                  paymentStatusLower !== 'success' &&
+                  paymentStatusLower !== 'received' &&
+                  paymentStatusLower !== 'customer_paid' &&
+                  paymentStatusLower !== 'verified'
+                const showAdminPayment =
+                  isCompleted &&
+                  (isPayAfterService || isCash) &&
+                  paymentNotPaid
+                if (!showAdminPayment) return null
+                return (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<Payment />}
+                    onClick={() => {
+                      setPaymentAmount(booking.totalAmount.toString())
+                      setPaymentReceivedDialog(true)
+                    }}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    Mark Payment Received
+                  </Button>
+                )
+              })()}
             </>
           ) : isProfessional ? (
             // Professional buttons - only show if this booking is assigned to them
@@ -1035,7 +1153,11 @@ export function BookingDetails() {
                                   paymentStatusLower !== 'customer_paid' &&
                                   paymentStatusLower !== 'verified'
                   
-                  const shouldShowButton = isCompleted && (isPayAfterService || isCash) && paymentNotPaid && isAssignedProfessional
+                  const shouldShowButton =
+                    isCompleted &&
+                    (isPayAfterService || isCash) &&
+                    paymentNotPaid &&
+                    (isAssignedProfessional || isAdmin)
                   
                   // Disable button if payment is already marked as received
                   const isPaymentReceived = !paymentNotPaid
@@ -1097,7 +1219,11 @@ export function BookingDetails() {
                                 paymentMethodLower.includes('cash')
                   const paymentStatusLower = booking.paymentStatus?.toLowerCase() || ''
                   const paymentNotPaid = paymentStatusLower !== 'paid' && paymentStatusLower !== 'completed' && paymentStatusLower !== 'success'
-                  const shouldShowPaymentButton = isCompleted && (isPayAfterService || isCash) && paymentNotPaid && isAssignedProfessional
+                  const shouldShowPaymentButton =
+                    isCompleted &&
+                    (isPayAfterService || isCash) &&
+                    paymentNotPaid &&
+                    (isAssignedProfessional || isAdmin)
                   
                   return (isCompleted || booking.status === 'cancelled') && !shouldShowPaymentButton ? (
                     <Typography variant="body2" color="text.secondary">
@@ -2321,8 +2447,8 @@ export function BookingDetails() {
         </DialogActions>
       </Dialog>
 
-      {/* Professional Action Dialog */}
-      {isProfessional && (
+      {/* Booking lifecycle (professional or admin) */}
+      {(isProfessional || isAdmin) && (
         <Dialog open={actionDialog} onClose={() => {
           setActionDialog(false)
           setAction(null)
@@ -2393,18 +2519,25 @@ export function BookingDetails() {
               variant="contained"
               onClick={handleProfessionalAction}
               color={action === 'complete' ? 'success' : 'primary'}
-              disabled={action === 'complete' && !(() => {
-                const method = booking.paymentMethod?.toLowerCase() || ''
-                const isCashOrPayLater = method === 'cash' || 
-                                        method === 'pay_after_service' ||
-                                        method === 'pay_later' ||
-                                        method.includes('pay_later') ||
-                                        method.includes('pay after') ||
-                                        method.includes('cash')
-                return booking.paymentStatus === 'paid' || 
-                       booking.paymentStatus === 'completed' || 
-                       isCashOrPayLater
-              })()}
+              disabled={
+                action === 'complete' &&
+                !isAdmin &&
+                !(() => {
+                  const method = booking.paymentMethod?.toLowerCase() || ''
+                  const isCashOrPayLater =
+                    method === 'cash' ||
+                    method === 'pay_after_service' ||
+                    method === 'pay_later' ||
+                    method.includes('pay_later') ||
+                    method.includes('pay after') ||
+                    method.includes('cash')
+                  return (
+                    booking.paymentStatus === 'paid' ||
+                    booking.paymentStatus === 'completed' ||
+                    isCashOrPayLater
+                  )
+                })()
+              }
             >
               Confirm
             </Button>
@@ -2500,7 +2633,7 @@ export function BookingDetails() {
       )}
 
       {/* Payment Received Dialog - For pay after service */}
-      {isProfessional && paymentReceivedDialog && booking && (
+      {(isProfessional || isAdmin) && paymentReceivedDialog && booking && (
         <Dialog 
           open={paymentReceivedDialog} 
           onClose={() => {

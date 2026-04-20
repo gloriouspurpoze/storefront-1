@@ -229,6 +229,13 @@ const navigationGroups = [
         ],
         badge: null,
       },
+      {
+        name: 'Bazaar (P2P)',
+        href: '/bazaar',
+        icon: StorefrontIcon,
+        permissions: ['view_orders', 'manage_system_settings'],
+        badge: null,
+      },
       { name: 'Products', href: '/products', icon: PackageIcon, permissions: ['view_products'], badge: null },
       {
         name: 'Inventory',

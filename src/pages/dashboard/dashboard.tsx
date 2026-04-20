@@ -156,17 +156,25 @@ export function Dashboard() {
     )
   }
 
-  if (!dashboardData) {
-    return null
+  const emptyDashboard: AdminDashboardData = {
+    stats: {
+      totalRevenue: 0,
+      totalOrders: 0,
+      activeProviders: 0,
+      averageRating: 0,
+      revenueGrowth: 0,
+      ordersGrowth: 0,
+      providersGrowth: 0,
+      ratingChange: 0,
+    },
+    revenueData: [],
+    categoryPerformance: [],
+    recentOrders: [],
+    topProviders: [],
   }
 
-  const { 
-    stats, 
-    revenueData, 
-    categoryPerformance, 
-    recentOrders, 
-    topProviders 
-  } = dashboardData
+  const { stats, revenueData, categoryPerformance, recentOrders, topProviders } =
+    dashboardData ?? emptyDashboard
 
   // Provide default values to prevent undefined errors
   const safeStats = stats || {

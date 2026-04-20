@@ -10,6 +10,8 @@ import { MainLayout } from './components/layout/main-layout'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { RoleBasedRoute } from './components/auth/RoleBasedRoute'
 import { LoadingProvider } from './components/providers/LoadingProvider'
+import { ToastProvider } from './components/providers/ToastProvider'
+import { AppDialogsProvider } from './components/providers/AppDialogsProvider'
 import { Toaster } from './components/ui'
 
 // Route-level code splitting (industry standard for performance)
@@ -42,6 +44,7 @@ const CreateService = lazy(() => import('./pages/services/create-service').then(
 const PlatformServices = lazy(() => import('./pages/services/platform-services-enhanced').then((m) => ({ default: m.PlatformServicesEnhanced })))
 const Marketplace = lazy(() => import('./pages/marketplace/Marketplace'))
 const EcommerceHub = lazy(() => import('./pages/ecommerce/EcommerceHub'))
+const BazaarMarketplaceHub = lazy(() => import('./pages/bazaar/BazaarMarketplaceHub'))
 const InventoryManagement = lazy(() => import('./pages/inventory/InventoryManagement'))
 
 const Providers = lazy(() => import('./pages/providers/providers').then((m) => ({ default: m.Providers })))
@@ -116,6 +119,7 @@ function App() {
   return (
     <Provider store={store}>
       <ThemeProvider>
+        <AppDialogsProvider>
         <DataProvider>
           <Router>
             <Suspense fallback={RouteFallback}>
@@ -261,6 +265,16 @@ function App() {
                             ]}
                           >
                             <EcommerceHub />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/bazaar"
+                        element={
+                          <RoleBasedRoute
+                            permissions={['view_orders', 'manage_system_settings']}
+                          >
+                            <BazaarMarketplaceHub />
                           </RoleBasedRoute>
                         }
                       />
@@ -890,9 +904,10 @@ function App() {
           </Router>
           {/* shadcn/ui Toaster */}
           <Toaster />
-          {/* <ToastProvider /> */}
+          <ToastProvider />
           <LoadingProvider />
         </DataProvider>
+        </AppDialogsProvider>
       </ThemeProvider>
     </Provider>
   )

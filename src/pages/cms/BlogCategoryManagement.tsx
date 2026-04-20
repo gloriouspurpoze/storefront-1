@@ -34,6 +34,8 @@ import {
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { appToast } from '../../lib/appToast';
+import { useAppConfirm } from '../../components/providers/AppDialogsProvider';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
@@ -49,6 +51,7 @@ interface BlogCategory {
 }
 
 export default function BlogCategoryManagement() {
+  const confirm = useAppConfirm();
   const [categories, setCategories] = useState<BlogCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -103,14 +106,20 @@ export default function BlogCategoryManagement() {
 
       fetchCategories();
       handleCloseForm();
-      alert('Category saved successfully!');
+      appToast('Category saved successfully!', 'success');
     } catch (error: any) {
-      alert('Error: ' + (error.response?.data?.error || 'Failed to save'));
+      appToast('Error: ' + (error.response?.data?.error || 'Failed to save'), 'error');
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this category?')) return;
+    const ok = await confirm({
+      title: 'Delete category?',
+      message: 'Delete this category?',
+      danger: true,
+      confirmLabel: 'Delete',
+    });
+    if (!ok) return;
     try {
       const token = localStorage.getItem('token');
       await axios.delete(`${API_BASE}/cms/admin/blog-categories/${id}`, {
@@ -118,7 +127,7 @@ export default function BlogCategoryManagement() {
       });
       fetchCategories();
     } catch (error) {
-      alert('Error deleting category');
+      appToast('Error deleting category', 'error');
     }
   };
 

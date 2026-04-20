@@ -44,6 +44,8 @@ import {
   InsertDriveFile as FileIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
+import { appToast } from '../../lib/appToast';
+import { useAppConfirm } from '../../components/providers/AppDialogsProvider';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
@@ -68,6 +70,7 @@ interface MediaFile {
 }
 
 export default function MediaLibrary() {
+  const confirm = useAppConfirm();
   const [files, setFiles] = useState<MediaFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -136,14 +139,20 @@ export default function MediaLibrary() {
       fetchFiles();
       setShowUploadForm(false);
       resetUploadForm();
-      alert('File uploaded successfully!');
+      appToast('File uploaded successfully!', 'success');
     } catch (error: any) {
-      alert('Error: ' + (error.response?.data?.error || 'Failed to upload'));
+      appToast('Error: ' + (error.response?.data?.error || 'Failed to upload'), 'error');
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this file?')) return;
+    const ok = await confirm({
+      title: 'Delete file?',
+      message: 'Delete this file?',
+      danger: true,
+      confirmLabel: 'Delete',
+    });
+    if (!ok) return;
     try {
       const token = localStorage.getItem('token');
       await axios.delete(`${API_BASE}/cms/admin/media/${id}`, {
@@ -152,7 +161,7 @@ export default function MediaLibrary() {
       fetchFiles();
       setSelectedFile(null);
     } catch (error) {
-      alert('Error deleting file');
+      appToast('Error deleting file', 'error');
     }
   };
 

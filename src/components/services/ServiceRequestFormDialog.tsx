@@ -26,6 +26,7 @@ import {
   CloudUpload as UploadIcon,
 } from '@mui/icons-material'
 import { ServiceRequest, CreateServiceRequest, UpdateServiceRequest } from '../../services/api/services.service'
+import { useAppPrompt } from '../providers/AppDialogsProvider'
 
 interface ServiceRequestFormDialogProps {
   open: boolean
@@ -65,6 +66,7 @@ export function ServiceRequestFormDialog({
   onSubmit,
   loading = false,
 }: ServiceRequestFormDialogProps) {
+  const prompt = useAppPrompt()
   const [formData, setFormData] = useState<any>({
     service_type: '',
     title: '',
@@ -157,8 +159,13 @@ export function ServiceRequestFormDialog({
     }))
   }
 
-  const handleAddImage = () => {
-    const imageUrl = prompt('Enter image URL:')
+  const handleAddImage = async () => {
+    const imageUrl = await prompt({
+      title: 'Add image',
+      label: 'Image URL',
+      defaultValue: '',
+      confirmLabel: 'Add',
+    })
     if (imageUrl && imageUrl.trim()) {
       setFormData((prev: any) => ({
         ...prev,

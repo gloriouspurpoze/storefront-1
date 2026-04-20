@@ -52,6 +52,112 @@ export interface AdminDashboardData {
   topProviders: TopProvider[];
 }
 
+/** Backend (fixer-backend) returns summary + recentActivity; legacy/mock may return stats + recentOrders. */
+function normalizeAdminDashboardPayload(raw: any): AdminDashboardData {
+  let data = raw
+  if (
+    raw &&
+    typeof raw === 'object' &&
+    raw.data != null &&
+    typeof raw.data === 'object' &&
+    !Array.isArray(raw.data)
+  ) {
+    data = raw.data
+  }
+  if (!data || typeof data !== 'object') {
+    return {
+      stats: {
+        totalRevenue: 0,
+        totalOrders: 0,
+        activeProviders: 0,
+        averageRating: 0,
+        revenueGrowth: 0,
+        ordersGrowth: 0,
+        providersGrowth: 0,
+        ratingChange: 0,
+      },
+      revenueData: [],
+      categoryPerformance: [],
+      recentOrders: [],
+      topProviders: [],
+    }
+  }
+
+  const summary = data.summary || {}
+  const fromStats = data.stats || {}
+
+  const stats: DashboardStats = {
+    totalRevenue: Number(fromStats.totalRevenue ?? summary.totalRevenue ?? 0),
+    totalOrders: Number(fromStats.totalOrders ?? summary.totalOrders ?? 0),
+    activeProviders: Number(fromStats.activeProviders ?? summary.totalProviders ?? 0),
+    averageRating: Number(fromStats.averageRating ?? summary.averageRating ?? 0),
+    revenueGrowth: Number(fromStats.revenueGrowth ?? 0),
+    ordersGrowth: Number(fromStats.ordersGrowth ?? 0),
+    providersGrowth: Number(fromStats.providersGrowth ?? 0),
+    ratingChange: Number(fromStats.ratingChange ?? 0),
+  }
+
+  let revenueData: RevenueDataPoint[] = Array.isArray(data.revenueData) ? data.revenueData : []
+  if (revenueData.length === 0 && (stats.totalRevenue > 0 || stats.totalOrders > 0)) {
+    const label = new Date().toLocaleString('en-US', { month: 'short', year: 'numeric' })
+    revenueData = [
+      {
+        month: label,
+        revenue: stats.totalRevenue,
+        orders: stats.totalOrders,
+        services: 0,
+      },
+    ]
+  }
+
+  let categoryPerformance: CategoryPerformance[] = Array.isArray(data.categoryPerformance)
+    ? data.categoryPerformance
+    : []
+  if (categoryPerformance.length === 0 && data.statusBreakdowns?.orders) {
+    const ob = data.statusBreakdowns.orders as Record<string, number>
+    categoryPerformance = Object.entries(ob).map(([name, count], i) => ({
+      name,
+      value: count,
+      count,
+      growth: 0,
+      color: ['#2563eb', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'][i % 5],
+    }))
+  }
+
+  let recentOrders: RecentOrder[] = []
+  if (Array.isArray(data.recentOrders) && data.recentOrders.length) {
+    recentOrders = data.recentOrders.map((o: any) => ({
+      id: String(o.id ?? o._id ?? ''),
+      customer: o.customer ?? '—',
+      service: o.service ?? '—',
+      amount: Number(o.amount ?? 0),
+      status: String(o.status ?? 'pending'),
+      date: typeof o.date === 'string' ? o.date : o.createdAt ? new Date(o.createdAt).toLocaleString() : '',
+      avatar: o.avatar,
+    }))
+  } else if (Array.isArray(data.recentActivity?.orders)) {
+    recentOrders = data.recentActivity.orders.map((o: any) => ({
+      id: String(o.id ?? o._id ?? ''),
+      customer: o.customer ?? '—',
+      service: o.orderNumber ? `Order #${o.orderNumber}` : 'Order',
+      amount: Number(o.totalAmount ?? o.amount ?? 0),
+      status: String(o.status ?? 'pending'),
+      date: o.createdAt ? new Date(o.createdAt).toLocaleString() : '',
+      avatar: o.avatar,
+    }))
+  }
+
+  const topProviders: TopProvider[] = Array.isArray(data.topProviders) ? data.topProviders : []
+
+  return {
+    stats,
+    revenueData,
+    categoryPerformance,
+    recentOrders,
+    topProviders,
+  }
+}
+
 class DashboardService {
   /**
    * Get admin dashboard data
@@ -59,27 +165,7 @@ class DashboardService {
   async getAdminDashboard(): Promise<AdminDashboardData> {
     try {
       const response = await apiClient.get('/dashboard/admin') as any;
-      // apiClient.get() returns the parsed JSON response directly
-      // Backend returns: { success: true, message: '...', data: {...} }
-      const data = response.data || response;
-      
-      // Ensure all required properties exist with defaults
-      return {
-        stats: data.stats || {
-          totalRevenue: 0,
-          totalOrders: 0,
-          activeProviders: 0,
-          averageRating: 0,
-          revenueGrowth: 0,
-          ordersGrowth: 0,
-          providersGrowth: 0,
-          ratingChange: 0
-        },
-        revenueData: data.revenueData || [],
-        categoryPerformance: data.categoryPerformance || [],
-        recentOrders: data.recentOrders || [],
-        topProviders: data.topProviders || []
-      };
+      return normalizeAdminDashboardPayload(response)
     } catch (error: any) {
       console.error('Error fetching admin dashboard:', error);
       throw error;

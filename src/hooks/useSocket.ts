@@ -3,10 +3,10 @@ import { useSelector } from 'react-redux';
 import { io, Socket } from 'socket.io-client';
 import type { RootState } from '../store';
 
-/** REST base is .../api; Socket.IO lives on origin only, namespace /chat (not /api/chat). */
+/** REST base is .../api; Socket.IO lives on same host, namespace /chat (not /api/chat). */
 function getSocketOrigin(): string {
-  const raw = (process.env.REACT_APP_API_URL || 'http://localhost:8005/api').trim();
-  return raw.replace(/\/api\/?$/i, '').replace(/\/$/, '') || 'http://localhost:8005';
+  const raw = (process.env.REACT_APP_API_URL || 'http://localhost:5000/api').trim();
+  return raw.replace(/\/api\/?$/i, '').replace(/\/$/, '') || 'http://localhost:5000';
 }
 
 interface UseSocketOptions {
@@ -103,6 +103,9 @@ export const useSocket = (options: UseSocketOptions = {}): UseSocketReturn => {
 
     s.on('connect_error', (err) => {
       console.log('ℹ️ Socket: Connection error (server may not be available):', err.message);
+      const socketError = new Error(err.message || 'Chat socket connection failed');
+      setError(socketError);
+      callbacksRef.current.onError?.(socketError);
     });
 
     setSocket(s);

@@ -96,6 +96,31 @@ export interface ChatConversation {
 }
 
 /**
+ * Backend GET /chat/conversations returns `{ success, data: Conversation[] }` (array in `data`).
+ * Some clients use `{ data: { conversations: [] } }` — accept both.
+ */
+export function normalizeConversationList(data: unknown): ChatConversation[] {
+  if (Array.isArray(data)) return data as ChatConversation[]
+  if (
+    data &&
+    typeof data === 'object' &&
+    Array.isArray((data as { conversations?: ChatConversation[] }).conversations)
+  ) {
+    return (data as { conversations: ChatConversation[] }).conversations
+  }
+  return []
+}
+
+/** Same pattern for GET .../messages — `data` is often `Message[]` directly. */
+export function normalizeMessageList(data: unknown): ChatMessage[] {
+  if (Array.isArray(data)) return data as ChatMessage[]
+  if (data && typeof data === 'object' && Array.isArray((data as { messages?: ChatMessage[] }).messages)) {
+    return (data as { messages: ChatMessage[] }).messages
+  }
+  return []
+}
+
+/**
  * Chat Service
  */
 export class ChatService {
@@ -380,9 +405,6 @@ export class ChatService {
       fileSize: number;
       mimeType: string;
     }>('/chat/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
       showSuccessToast: false,
     });
   }
@@ -403,9 +425,6 @@ export class ChatService {
       fileSize: number;
       mimeType: string;
     }>>('/chat/upload/multiple', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
       showSuccessToast: false,
     });
   }

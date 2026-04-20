@@ -72,6 +72,7 @@ import { CategoriesService } from '../../services/api/categories.service';
 import { Slider, SliderPlacement, SLIDER_PLACEMENT_LABELS } from '../../types';
 import type { Category } from '../../types';
 import { ImageUploadField, FormField, type ImageFile } from '../../components/forms';
+import { useAppConfirm } from '../../components/providers/AppDialogsProvider';
 
 interface SliderStats {
   total_sliders: number;
@@ -82,6 +83,7 @@ interface SliderStats {
 
 export default function SlidersManagement() {
   const theme = useTheme();
+  const confirm = useAppConfirm();
   const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
   const [sliders, setSliders] = useState<Slider[]>([]);
   const [loading, setLoading] = useState(true);
@@ -297,8 +299,14 @@ export default function SlidersManagement() {
   };
 
   const handleDelete = async (slider: Slider) => {
-    if (!window.confirm(`Are you sure you want to delete "${slider.title}"?`)) return;
-    
+    const ok = await confirm({
+      title: 'Delete slider?',
+      message: `Are you sure you want to delete "${slider.title}"?`,
+      danger: true,
+      confirmLabel: 'Delete',
+    });
+    if (!ok) return;
+
     try {
       await SlidersService.deleteSlider(slider.id);
       showSnackbar('Slider deleted successfully', 'success');

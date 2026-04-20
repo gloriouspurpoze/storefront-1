@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import TabContext from '@mui/lab/TabContext'
 import TabList from '@mui/lab/TabList'
@@ -20,6 +20,8 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  Checkbox,
+  FormControlLabel,
   IconButton,
   Tab,
 } from '@mui/material'
@@ -45,8 +47,10 @@ import {
 } from '../../components/blog/blog-seo-guidelines'
 import {
   type CategoryMarketingConfig,
+  type LocalityGuideCmsFields,
   type ServiceTypeBlock,
   emptyCategoryMarketingConfig,
+  emptyLocalityGuideSection,
   emptyBookingStep,
   emptyComparisonRow,
   emptyFaq,
@@ -55,8 +59,10 @@ import {
   emptyServiceTypeBlock,
   emptySparePart,
   emptyTrustBenefit,
+  mergeCategoryConfig,
   normalizeCategoryMarketingRecord,
 } from '../../types/categoryMarketing'
+import { appToast } from '../../lib/appToast'
 
 type TabKey =
   | 'metadata'
@@ -67,6 +73,7 @@ type TabKey =
   | 'areas'
   | 'pricing'
   | 'faqs'
+  | 'localityGuide'
   | 'closing'
 
 function charCountColor(len: number, min: number, optimal: number, hard: number): string {
@@ -81,7 +88,17 @@ export default function CategoryMarketingManagement() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<string>('ac')
+  /** URL locality slug for composite CMS keys, e.g. `mira-bhayandar` → `electric__mira-bhayandar`. */
+  const [localitySlugForKey, setLocalitySlugForKey] = useState('')
+  const [duplicateSourceKey, setDuplicateSourceKey] = useState('')
+  const [importJsonText, setImportJsonText] = useState('')
   const [tab, setTab] = useState<TabKey>('metadata')
+
+  const effectiveKey = useMemo(() => {
+    const loc = localitySlugForKey.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-')
+    if (!loc) return selectedCategory
+    return `${selectedCategory}__${loc}`
+  }, [selectedCategory, localitySlugForKey])
 
   useEffect(() => {
     fetchData()
@@ -100,42 +117,49 @@ export default function CategoryMarketingManagement() {
           ? (error as { response?: { data?: { error?: string } } }).response?.data?.error
           : undefined
       const fallback = error instanceof Error ? error.message : 'Failed to load'
-      alert('Error: ' + (msg || fallback))
+      appToast('Error: ' + (msg || fallback), 'error')
       setData({})
     } finally {
       setLoading(false)
     }
   }
 
-  const config = data[selectedCategory] ?? emptyCategoryMarketingConfig()
+  const config = data[effectiveKey] ?? emptyCategoryMarketingConfig()
 
   const updateConfig = (updates: Partial<CategoryMarketingConfig>) => {
     setData((prev) => {
-      const base = prev[selectedCategory] ?? emptyCategoryMarketingConfig()
+      const base = prev[effectiveKey] ?? emptyCategoryMarketingConfig()
       const next: CategoryMarketingConfig = {
         ...base,
         ...updates,
         leadMagnet: updates.leadMagnet
           ? { ...base.leadMagnet, ...updates.leadMagnet }
           : base.leadMagnet,
+        localityGuide: updates.localityGuide
+          ? { ...base.localityGuide, ...updates.localityGuide }
+          : base.localityGuide,
       }
-      return { ...prev, [selectedCategory]: next }
+      return { ...prev, [effectiveKey]: next }
     })
+  }
+
+  const updateLocalityGuide = (updates: Partial<LocalityGuideCmsFields>) => {
+    updateConfig({ localityGuide: { ...config.localityGuide, ...updates } })
   }
 
   const handleSave = async () => {
     try {
       setSaving(true)
-      const payload = { ...data, [selectedCategory]: config }
+      const payload = { ...data, [effectiveKey]: config }
       await CMSService.updateCategoryMarketing(payload)
-      alert('Category marketing saved.')
+      appToast('Category marketing saved.', 'success')
       fetchData()
     } catch (error: unknown) {
       const msg =
         error && typeof error === 'object' && 'response' in error
           ? (error as { response?: { data?: { error?: string } } }).response?.data?.error
           : undefined
-      alert('Error: ' + (msg || 'Failed to save'))
+      appToast('Error: ' + (msg || 'Failed to save'), 'error')
     } finally {
       setSaving(false)
     }
@@ -225,7 +249,10 @@ export default function CategoryMarketingManagement() {
               <Select
                 value={selectedCategory}
                 label="Industry (catalog category)"
-                onChange={(e) => setSelectedCategory(e.target.value)}
+                onChange={(e) => {
+                  setSelectedCategory(e.target.value)
+                  setLocalitySlugForKey('')
+                }}
                 sx={{ borderRadius: 2 }}
               >
                 {CMS_CATALOG_CATEGORIES.map((opt) => (
@@ -235,7 +262,149 @@ export default function CategoryMarketingManagement() {
                 ))}
               </Select>
             </FormControl>
+            <TextField
+              size="small"
+              sx={{ minWidth: 260, flex: 1 }}
+              label="Locality slug (optional)"
+              value={localitySlugForKey}
+              onChange={(e) => setLocalitySlugForKey(e.target.value)}
+              placeholder="e.g. mira-bhayandar"
+              helperText="Leave empty for industry-wide. With slug, record key is industry__locality (matches public URLs)."
+            />
           </Stack>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Editing CMS key: <strong>{effectiveKey}</strong>
+          </Typography>
+        </CardContent>
+      </Card>
+
+      <Card sx={{ mb: 3, borderRadius: 2 }}>
+        <CardContent>
+          <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+            Copy from another key
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Duplicate an existing record into <strong>{effectiveKey}</strong> (unsaved until you click Save). Use this to
+            clone <code>electric</code> into <code>electric__mira-bhayandar</code>, then edit the hyperlocal fields.
+          </Typography>
+          {Object.keys(data).filter((k) => k !== effectiveKey).length === 0 && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              No other keys loaded yet—save at least one industry template, or paste JSON below, then pick a hyperlocal
+              slug and merge.
+            </Alert>
+          )}
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }} flexWrap="wrap">
+            <FormControl size="small" sx={{ minWidth: 280 }}>
+              <InputLabel>Source key</InputLabel>
+              <Select
+                value={duplicateSourceKey}
+                label="Source key"
+                onChange={(e) => setDuplicateSourceKey(e.target.value)}
+              >
+                <MenuItem value="">
+                  <em>Select a key…</em>
+                </MenuItem>
+                {Object.keys(data)
+                  .sort((a, b) => a.localeCompare(b))
+                  .filter((k) => k !== effectiveKey)
+                  .map((k) => (
+                    <MenuItem key={k} value={k}>
+                      {k}
+                    </MenuItem>
+                  ))}
+              </Select>
+            </FormControl>
+            <Button
+              variant="outlined"
+              disabled={!duplicateSourceKey || !data[duplicateSourceKey]}
+              onClick={() => {
+                const src = data[duplicateSourceKey]
+                if (!src) return
+                const full = mergeCategoryConfig(src as Record<string, unknown>)
+                setData((prev) => ({
+                  ...prev,
+                  [effectiveKey]: JSON.parse(JSON.stringify(full)) as CategoryMarketingConfig,
+                }))
+                appToast(
+                  `Replaced "${effectiveKey}" with a full copy from "${duplicateSourceKey}". Click Save to persist.`,
+                  'success',
+                )
+              }}
+            >
+              Replace current with full copy
+            </Button>
+            <Button
+              variant="outlined"
+              color="secondary"
+              disabled={!duplicateSourceKey || !data[duplicateSourceKey]}
+              onClick={() => {
+                const src = data[duplicateSourceKey]
+                if (!src) return
+                const full = mergeCategoryConfig(src as Record<string, unknown>)
+                updateConfig({
+                  localityGuide: JSON.parse(JSON.stringify(full.localityGuide)) as LocalityGuideCmsFields,
+                })
+                appToast(`Merged locality guide from "${duplicateSourceKey}". Click Save to persist.`, 'success')
+              }}
+            >
+              Merge locality guide only
+            </Button>
+          </Stack>
+
+          <Accordion sx={{ mt: 2, border: 1, borderColor: 'divider', borderRadius: 1, '&:before': { display: 'none' } }}>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography variant="subtitle2">Import JSON (merge into current key)</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Stack spacing={2}>
+                <Typography variant="body2" color="text.secondary">
+                  Paste a partial or full marketing object (same shape as the API). Values are merged into{' '}
+                  <strong>{effectiveKey}</strong>; nested <code>leadMagnet</code> and <code>localityGuide</code> are merged
+                  field-by-field. Invalid JSON shows an error toast.
+                </Typography>
+                <TextField
+                  fullWidth
+                  multiline
+                  minRows={8}
+                  value={importJsonText}
+                  onChange={(e) => setImportJsonText(e.target.value)}
+                  placeholder={`{\n  "seoTitle": "...",\n  "localityGuide": { "enabled": true, "articleH2": "..." }\n}`}
+                  InputProps={{ sx: { fontFamily: 'ui-monospace, monospace', fontSize: 13 } }}
+                />
+                <Stack direction="row" spacing={1} flexWrap="wrap">
+                  <Button
+                    variant="contained"
+                    onClick={() => {
+                      try {
+                        const parsed = JSON.parse(importJsonText) as Record<string, unknown>
+                        const patch = mergeCategoryConfig(parsed)
+                        setData((prev) => {
+                          const base = mergeCategoryConfig(
+                            (prev[effectiveKey] ?? emptyCategoryMarketingConfig()) as Record<string, unknown>,
+                          )
+                          const combined = mergeCategoryConfig({
+                            ...base,
+                            ...patch,
+                            leadMagnet: { ...base.leadMagnet, ...patch.leadMagnet },
+                            localityGuide: { ...base.localityGuide, ...patch.localityGuide },
+                          } as Record<string, unknown>)
+                          return { ...prev, [effectiveKey]: combined }
+                        })
+                        appToast(`Merged JSON into "${effectiveKey}". Click Save to persist.`, 'success')
+                      } catch (e) {
+                        appToast(e instanceof Error ? e.message : 'Invalid JSON', 'error')
+                      }
+                    }}
+                  >
+                    Apply merge
+                  </Button>
+                  <Button variant="text" onClick={() => setImportJsonText('')}>
+                    Clear
+                  </Button>
+                </Stack>
+              </Stack>
+            </AccordionDetails>
+          </Accordion>
         </CardContent>
       </Card>
 
@@ -261,6 +430,7 @@ export default function CategoryMarketingManagement() {
                 <Tab label="Areas & booking" value="areas" />
                 <Tab label="Pricing & comparison" value="pricing" />
                 <Tab label="FAQs & links" value="faqs" />
+                <Tab label="Locality guide (SEO)" value="localityGuide" />
                 <Tab label="Closing & advanced" value="closing" />
               </TabList>
             </Box>
@@ -1186,6 +1356,240 @@ export default function CategoryMarketingManagement() {
                         </IconButton>
                       </Stack>
                     ))}
+                  </CardContent>
+                </Card>
+              </Stack>
+            </TabPanel>
+
+            <TabPanel value="localityGuide" sx={{ px: 0 }}>
+              <Stack spacing={2}>
+                <Alert severity="info">
+                  For hyperlocal URLs (e.g. <code>/services/electrician/mira-bhayandar</code>), set Industry to{' '}
+                  <strong>Electrical</strong> and Locality slug to <strong>mira-bhayandar</strong>. The CMS key becomes{' '}
+                  <code>electric__mira-bhayandar</code>. Fill Metadata + FAQs, then enable the article here.
+                </Alert>
+                <Card sx={{ borderRadius: 2 }}>
+                  <CardContent>
+                    <Stack spacing={2}>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={config.localityGuide.enabled}
+                            onChange={(e) => updateLocalityGuide({ enabled: e.target.checked })}
+                          />
+                        }
+                        label="Enable CMS locality article (replaces auto-generated guide body)"
+                      />
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={config.localityGuide.expandDetailsByDefault}
+                            onChange={(e) => updateLocalityGuide({ expandDetailsByDefault: e.target.checked })}
+                          />
+                        }
+                        label="Expand long-form sections by default (better for crawlers)"
+                      />
+                      <TextField
+                        fullWidth
+                        label="Article H2 (section under the catalogue)"
+                        value={config.localityGuide.articleH2}
+                        onChange={(e) => updateLocalityGuide({ articleH2: e.target.value })}
+                      />
+                      <TextField
+                        fullWidth
+                        multiline
+                        minRows={3}
+                        label="Summary lead (visible under H2)"
+                        value={config.localityGuide.summaryLead}
+                        onChange={(e) => updateLocalityGuide({ summaryLead: e.target.value })}
+                      />
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Lead paragraphs (main article body)
+                      </Typography>
+                      {(config.localityGuide.leadParagraphs.length
+                        ? config.localityGuide.leadParagraphs
+                        : ['']
+                      ).map((para, i) => (
+                        <Stack key={i} direction="row" spacing={1} alignItems="flex-start">
+                          <TextField
+                            fullWidth
+                            multiline
+                            minRows={3}
+                            label={`Paragraph ${i + 1}`}
+                            value={para}
+                            onChange={(e) => {
+                              const base = config.localityGuide.leadParagraphs.length
+                                ? [...config.localityGuide.leadParagraphs]
+                                : ['']
+                              base[i] = e.target.value
+                              updateLocalityGuide({ leadParagraphs: base })
+                            }}
+                          />
+                          <IconButton
+                            color="error"
+                            aria-label="Remove paragraph"
+                            onClick={() => {
+                              const base = [...config.localityGuide.leadParagraphs]
+                              base.splice(i, 1)
+                              updateLocalityGuide({ leadParagraphs: base.length ? base : [''] })
+                            }}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Stack>
+                      ))}
+                      <Button
+                        size="small"
+                        startIcon={<AddIcon />}
+                        onClick={() =>
+                          updateLocalityGuide({
+                            leadParagraphs: [...config.localityGuide.leadParagraphs, ''],
+                          })
+                        }
+                      >
+                        Add lead paragraph
+                      </Button>
+                      <Typography variant="subtitle2" color="text.secondary" sx={{ pt: 1 }}>
+                        Depth sections (optional H2 blocks)
+                      </Typography>
+                      {config.localityGuide.sections.map((sec, si) => (
+                        <Accordion key={si} defaultExpanded={si === 0}>
+                          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                            <Typography variant="body2">
+                              Section {si + 1}: {sec.h2.trim() || '(untitled)'}
+                            </Typography>
+                          </AccordionSummary>
+                          <AccordionDetails>
+                            <Stack spacing={2}>
+                              <TextField
+                                fullWidth
+                                size="small"
+                                label="Section H2"
+                                value={sec.h2}
+                                onChange={(e) => {
+                                  const next = [...config.localityGuide.sections]
+                                  next[si] = { ...next[si], h2: e.target.value }
+                                  updateLocalityGuide({ sections: next })
+                                }}
+                              />
+                              {(sec.paragraphs.length ? sec.paragraphs : ['']).map((p, pi) => (
+                                <TextField
+                                  key={pi}
+                                  fullWidth
+                                  multiline
+                                  minRows={2}
+                                  size="small"
+                                  label={`Paragraph ${pi + 1}`}
+                                  value={p}
+                                  onChange={(e) => {
+                                    const next = [...config.localityGuide.sections]
+                                    const paras = [...(next[si].paragraphs.length ? next[si].paragraphs : [''])]
+                                    paras[pi] = e.target.value
+                                    next[si] = { ...next[si], paragraphs: paras }
+                                    updateLocalityGuide({ sections: next })
+                                  }}
+                                />
+                              ))}
+                              <Stack direction="row" spacing={1}>
+                                <Button
+                                  size="small"
+                                  onClick={() => {
+                                    const next = [...config.localityGuide.sections]
+                                    next[si] = {
+                                      ...next[si],
+                                      paragraphs: [...next[si].paragraphs, ''],
+                                    }
+                                    updateLocalityGuide({ sections: next })
+                                  }}
+                                >
+                                  Add paragraph in section
+                                </Button>
+                                <Button
+                                  size="small"
+                                  color="error"
+                                  onClick={() => {
+                                    const next = config.localityGuide.sections.filter((_, j) => j !== si)
+                                    updateLocalityGuide({ sections: next.length ? next : [emptyLocalityGuideSection()] })
+                                  }}
+                                >
+                                  Remove section
+                                </Button>
+                              </Stack>
+                            </Stack>
+                          </AccordionDetails>
+                        </Accordion>
+                      ))}
+                      <Button
+                        size="small"
+                        startIcon={<AddIcon />}
+                        onClick={() =>
+                          updateLocalityGuide({
+                            sections: [...config.localityGuide.sections, emptyLocalityGuideSection()],
+                          })
+                        }
+                      >
+                        Add section
+                      </Button>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Key takeaways (bullets)
+                      </Typography>
+                      {(config.localityGuide.takeaways.length ? config.localityGuide.takeaways : ['']).map((t, i) => (
+                        <TextField
+                          key={i}
+                          fullWidth
+                          size="small"
+                          value={t}
+                          onChange={(e) => {
+                            const base = config.localityGuide.takeaways.length
+                              ? [...config.localityGuide.takeaways]
+                              : ['']
+                            base[i] = e.target.value
+                            updateLocalityGuide({ takeaways: base })
+                          }}
+                        />
+                      ))}
+                      <Button
+                        size="small"
+                        startIcon={<AddIcon />}
+                        onClick={() => updateLocalityGuide({ takeaways: [...config.localityGuide.takeaways, ''] })}
+                      >
+                        Add takeaway
+                      </Button>
+                      <TextField
+                        fullWidth
+                        label="JSON-LD primary name (optional)"
+                        value={config.localityGuide.jsonLdBrandServiceName}
+                        onChange={(e) => updateLocalityGuide({ jsonLdBrandServiceName: e.target.value })}
+                        helperText="Overrides Service/LocalBusiness name in structured data when set."
+                      />
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={config.localityGuide.useFaqsForSchema}
+                            onChange={(e) => updateLocalityGuide({ useFaqsForSchema: e.target.checked })}
+                          />
+                        }
+                        label="Emit FAQPage schema from the FAQs tab on this record"
+                      />
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={config.localityGuide.showInboundLinkStrip}
+                            onChange={(e) => updateLocalityGuide({ showInboundLinkStrip: e.target.checked })}
+                          />
+                        }
+                        label="Show Related links (FAQs tab → related links) above the guide"
+                      />
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={config.localityGuide.showBookingCtaStrip}
+                            onChange={(e) => updateLocalityGuide({ showBookingCtaStrip: e.target.checked })}
+                          />
+                        }
+                        label="Show call + book CTA strip"
+                      />
+                    </Stack>
                   </CardContent>
                 </Card>
               </Stack>

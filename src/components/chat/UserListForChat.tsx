@@ -2,7 +2,9 @@
  * User/Customer List for Chat (Admin)
  * Allows admins to browse and start conversations with customers
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../store';
 import {
   Box,
   TextField,
@@ -26,7 +28,7 @@ import {
   CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
 import { usersService, User } from '../../services/api/users.service';
-import { ChatService, ConversationType } from '../../services/api/chat.service';
+import { ChatService, ConversationType, normalizeConversationList } from '../../services/api/chat.service';
 
 interface UserListForChatProps {
   onUserSelect: (userId: string, conversationId: string) => void;
@@ -37,6 +39,18 @@ export const UserListForChat: React.FC<UserListForChatProps> = ({
   onUserSelect,
   onClose,
 }) => {
+  const authUser = useSelector((s: RootState) => s.auth.user);
+  const adminUserId = useMemo(() => {
+    if (authUser?.id) return String(authUser.id);
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || '{}');
+      if (u?.id || u?._id) return String(u.id || u._id);
+    } catch {
+      /* ignore */
+    }
+    return localStorage.getItem('userId') || '';
+  }, [authUser?.id]);
+
   const [users, setUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
@@ -81,19 +95,19 @@ export const UserListForChat: React.FC<UserListForChatProps> = ({
   const handleStartChat = async (user: User) => {
     setCreatingConversation(user.id);
     try {
-      const currentUserId = localStorage.getItem('userId');
-      if (!currentUserId) {
-        setError('Admin user not authenticated.');
+      if (!adminUserId) {
+        setError('Admin user not authenticated. Please log in again.');
         return;
       }
 
-      // Check if a conversation already exists
       const existingConversationsResponse = await ChatService.getConversations();
-      if (existingConversationsResponse.success && existingConversationsResponse.data) {
-        const existingConversation = existingConversationsResponse.data.conversations.find(conv =>
-          conv.type === ConversationType.DIRECT &&
-          conv.participants.some(p => p.userId._id === currentUserId) &&
-          conv.participants.some(p => p.userId._id === user.id)
+      if (existingConversationsResponse.success && existingConversationsResponse.data !== undefined) {
+        const convs = normalizeConversationList(existingConversationsResponse.data);
+        const existingConversation = convs.find(
+          (conv) =>
+            conv.type === ConversationType.DIRECT &&
+            conv.participants.some((p) => String(p.userId._id) === adminUserId) &&
+            conv.participants.some((p) => String(p.userId._id) === String(user.id))
         );
 
         if (existingConversation) {
@@ -106,7 +120,7 @@ export const UserListForChat: React.FC<UserListForChatProps> = ({
       const response = await ChatService.createConversation({
         type: ConversationType.DIRECT,
         participants: [
-          { userId: currentUserId, role: 'admin' },
+          { userId: adminUserId, role: 'admin' },
           { userId: user.id, role: 'customer' }
         ],
         metadata: {

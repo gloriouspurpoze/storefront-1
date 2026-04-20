@@ -3,7 +3,7 @@ import { setLoading, addToast } from '../../store/slices/uiSlice'
 // DISABLED: Auto refresh token functionality (commented out for now)
 // import { refreshAuthToken, logout } from '../../store/slices/authSlice'
 import { logout } from '../../store/slices/authSlice'
-import { ErrorHandler } from './error-handler'
+import { ErrorHandler, isAuthCredentialFailure401 } from './error-handler'
 
 // API Configuration
 const API_CONFIG = {
@@ -181,12 +181,16 @@ class ApiBase {
 
   /**
    * Create request headers
+   * For FormData bodies, omit Content-Type so the browser sets multipart boundary.
    */
-  private createHeaders(customHeaders: Record<string, string> = {}): HeadersInit {
+  private createHeaders(
+    customHeaders: Record<string, string> = {},
+    omitContentType = false
+  ): HeadersInit {
     const token = this.getAuthToken()
-    
+
     return {
-      'Content-Type': 'application/json',
+      ...(omitContentType ? {} : { 'Content-Type': 'application/json' }),
       ...(token && { Authorization: `Bearer ${token}` }),
       ...customHeaders,
     }
@@ -218,8 +222,28 @@ class ApiBase {
     }
     */
 
-    // If 401, immediately throw unauthorized error
+    // If 401: session expired (redirect in ErrorHandler) — unless this is login/register-style failure
     if (response.status === 401) {
+      if (isAuthCredentialFailure401(endpoint)) {
+        let data: Record<string, unknown> = {}
+        try {
+          data = (await response.json()) as Record<string, unknown>
+        } catch {
+          /* empty body */
+        }
+        const err = (data.error as Record<string, unknown> | undefined) ?? data
+        const rawCode = err?.code as string | undefined
+        const code =
+          rawCode && rawCode !== 'UNAUTHORIZED'
+            ? (rawCode as ApiError['code'])
+            : 'VALIDATION_ERROR'
+        throw {
+          code,
+          message: (err?.message as string) || 'Request failed.',
+          details: err?.details,
+          status: 401,
+        } as ApiError
+      }
       throw {
         code: 'UNAUTHORIZED',
         message: 'Session expired. Please login again.',
@@ -249,20 +273,33 @@ class ApiBase {
   }
 
   /**
-   * Retry failed requests
+   * Retry failed requests (5xx only). Error toasts are shown once here after retries
+   * exhaust — not on every attempt — otherwise users see duplicate stacked snackbars.
    */
   private async retryRequest<T>(
     requestFn: () => Promise<ApiResponse<T>>,
+    config: RequestConfig,
     attempt: number = 1
   ): Promise<ApiResponse<T>> {
+    const showErrorToast = config.showErrorToast ?? true
+    const errorMessage = config.errorMessage ?? 'An error occurred'
     try {
       return await requestFn()
     } catch (error) {
       const apiError = error as ApiError
-      if (attempt < this.retryAttempts && apiError.status >= 500) {
-        // Wait before retrying (exponential backoff)
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000))
-        return this.retryRequest(requestFn, attempt + 1)
+      const status = apiError.status
+      const canRetry =
+        attempt < this.retryAttempts &&
+        typeof status === 'number' &&
+        status >= 500
+      if (canRetry) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, Math.pow(2, attempt) * 1000)
+        )
+        return this.retryRequest(requestFn, config, attempt + 1)
+      }
+      if (showErrorToast) {
+        ErrorHandler.handleApiError(apiError, errorMessage)
       }
       throw apiError
     }
@@ -282,9 +319,7 @@ class ApiBase {
       showLoading = true,
       loadingMessage = 'Loading...',
       showSuccessToast = true,
-      showErrorToast = true,
       successMessage = 'Operation completed successfully',
-      errorMessage = 'An error occurred',
       timeout = this.timeout,
     } = config
 
@@ -313,10 +348,13 @@ class ApiBase {
         }
       }
 
+      const isFormData =
+        typeof FormData !== 'undefined' && body instanceof FormData
+
       const response = await fetch(url, {
         method,
-        headers: this.createHeaders(headers),
-        body: body ? JSON.stringify(body) : undefined,
+        headers: this.createHeaders(headers, isFormData),
+        body: isFormData ? body : body ? JSON.stringify(body) : undefined,
         signal: controller.signal,
       })
 
@@ -331,12 +369,8 @@ class ApiBase {
       return result
     } catch (error) {
       const apiError = error as ApiError
-      
-      // Use enhanced error handling
-      if (showErrorToast) {
-        ErrorHandler.handleApiError(apiError, errorMessage)
-      }
-
+      // Error toast is handled in retryRequest once retries are exhausted (avoids
+      // 3 identical toast when a 5xx is retried up to retryAttempts).
       throw apiError
     } finally {
       // Hide loading if enabled
@@ -350,23 +384,28 @@ class ApiBase {
    * HTTP Methods
    */
   async get<T>(endpoint: string, config?: Omit<RequestConfig, 'method' | 'body'>): Promise<ApiResponse<T>> {
-    return this.retryRequest(() => this.request<T>(endpoint, { ...config, method: 'GET' }))
+    const merged: RequestConfig = { ...config, method: 'GET' }
+    return this.retryRequest(() => this.request<T>(endpoint, merged), merged)
   }
 
   async post<T>(endpoint: string, body?: any, config?: Omit<RequestConfig, 'method' | 'body'>): Promise<ApiResponse<T>> {
-    return this.retryRequest(() => this.request<T>(endpoint, { ...config, method: 'POST', body }))
+    const merged: RequestConfig = { ...config, method: 'POST', body }
+    return this.retryRequest(() => this.request<T>(endpoint, merged), merged)
   }
 
   async put<T>(endpoint: string, body?: any, config?: Omit<RequestConfig, 'method' | 'body'>): Promise<ApiResponse<T>> {
-    return this.retryRequest(() => this.request<T>(endpoint, { ...config, method: 'PUT', body }))
+    const merged: RequestConfig = { ...config, method: 'PUT', body }
+    return this.retryRequest(() => this.request<T>(endpoint, merged), merged)
   }
 
   async patch<T>(endpoint: string, body?: any, config?: Omit<RequestConfig, 'method' | 'body'>): Promise<ApiResponse<T>> {
-    return this.retryRequest(() => this.request<T>(endpoint, { ...config, method: 'PATCH', body }))
+    const merged: RequestConfig = { ...config, method: 'PATCH', body }
+    return this.retryRequest(() => this.request<T>(endpoint, merged), merged)
   }
 
   async delete<T>(endpoint: string, config?: Omit<RequestConfig, 'method' | 'body'>): Promise<ApiResponse<T>> {
-    return this.retryRequest(() => this.request<T>(endpoint, { ...config, method: 'DELETE' }))
+    const merged: RequestConfig = { ...config, method: 'DELETE' }
+    return this.retryRequest(() => this.request<T>(endpoint, merged), merged)
   }
 
   /**

@@ -41,6 +41,8 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { PageHeader } from '../../components/common/PageHeader';
+import { appToast } from '../../lib/appToast';
+import { useAppConfirm } from '../../components/providers/AppDialogsProvider';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
@@ -60,6 +62,7 @@ interface Promotion {
 
 export default function PromotionManagement() {
   const theme = useTheme();
+  const confirm = useAppConfirm();
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -136,12 +139,18 @@ export default function PromotionManagement() {
       fetchPromotions();
       handleCloseForm();
     } catch (error: any) {
-      alert('Error: ' + (error.response?.data?.error || 'Failed to save'));
+      appToast('Error: ' + (error.response?.data?.error || 'Failed to save'), 'error');
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this promotion?')) return;
+    const ok = await confirm({
+      title: 'Delete promotion?',
+      message: 'Delete this promotion?',
+      danger: true,
+      confirmLabel: 'Delete',
+    });
+    if (!ok) return;
     try {
       const token = localStorage.getItem('token');
       await axios.delete(`${API_BASE}/cms/admin/promotions/${id}`, {
@@ -149,7 +158,7 @@ export default function PromotionManagement() {
       });
       fetchPromotions();
     } catch (error) {
-      alert('Error deleting promotion');
+      appToast('Error deleting promotion', 'error');
     }
   };
 

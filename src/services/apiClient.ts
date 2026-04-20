@@ -1,5 +1,7 @@
 import { store } from '../store'
 import { setLoading, addToast } from '../store/slices/uiSlice'
+import type { ApiError } from './api/base'
+import { ErrorHandler, isAuthCredentialFailure401 } from './api/error-handler'
 
 // API Client configuration
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api'
@@ -78,7 +80,20 @@ class ApiClient {
       })
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
+        const errorData = (await response.json().catch(() => ({}))) as {
+          message?: string
+        }
+
+        if (response.status === 401 && !isAuthCredentialFailure401(endpoint)) {
+          const apiError: ApiError = {
+            code: 'UNAUTHORIZED',
+            message: 'Session expired. Please login again.',
+            status: 401,
+          }
+          ErrorHandler.handleApiError(apiError, errorMessage)
+          throw apiError
+        }
+
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
       }
 
@@ -95,8 +110,11 @@ class ApiClient {
 
       return data
     } catch (error) {
-      // Show error toast if enabled
-      if (showErrorToast) {
+      const isUnauthorized =
+        error &&
+        typeof error === 'object' &&
+        (error as ApiError).code === 'UNAUTHORIZED'
+      if (showErrorToast && !isUnauthorized) {
         store.dispatch(addToast({
           message: errorMessage,
           severity: 'error',
@@ -161,6 +179,15 @@ class ApiClient {
       })
 
       if (!response.ok) {
+        if (response.status === 401 && !isAuthCredentialFailure401(endpoint)) {
+          const apiError: ApiError = {
+            code: 'UNAUTHORIZED',
+            message: 'Session expired. Please login again.',
+            status: 401,
+          }
+          ErrorHandler.handleApiError(apiError, errorMessage)
+          throw apiError
+        }
         throw new Error(`Upload failed! status: ${response.status}`)
       }
 
@@ -176,7 +203,11 @@ class ApiClient {
 
       return data
     } catch (error) {
-      if (showErrorToast) {
+      const isUnauthorized =
+        error &&
+        typeof error === 'object' &&
+        (error as ApiError).code === 'UNAUTHORIZED'
+      if (showErrorToast && !isUnauthorized) {
         store.dispatch(addToast({
           message: errorMessage,
           severity: 'error',

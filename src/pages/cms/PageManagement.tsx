@@ -37,6 +37,8 @@ import {
 import axios from 'axios';
 import { RichTextField } from '../../components/forms';
 import { PAGE_TEMPLATES, PAGE_TEMPLATE_KEYS } from './pageTemplates';
+import { appToast } from '../../lib/appToast';
+import { useAppConfirm } from '../../components/providers/AppDialogsProvider';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
@@ -58,6 +60,7 @@ interface Page {
 }
 
 export default function PageManagement() {
+  const confirm = useAppConfirm();
   const [pages, setPages] = useState<Page[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -136,14 +139,20 @@ export default function PageManagement() {
 
       fetchPages();
       handleCloseForm();
-      alert('Page saved successfully!');
+      appToast('Page saved successfully!', 'success');
     } catch (error: any) {
-      alert('Error: ' + (error.response?.data?.error || 'Failed to save'));
+      appToast('Error: ' + (error.response?.data?.error || 'Failed to save'), 'error');
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this page?')) return;
+    const ok = await confirm({
+      title: 'Delete page?',
+      message: 'Delete this page?',
+      danger: true,
+      confirmLabel: 'Delete',
+    });
+    if (!ok) return;
     try {
       const token = localStorage.getItem('token');
       await axios.delete(`${API_BASE}/cms/admin/pages/${id}`, {
@@ -151,7 +160,7 @@ export default function PageManagement() {
       });
       fetchPages();
     } catch (error: any) {
-      alert('Error: ' + (error.response?.data?.error || 'Failed to delete'));
+      appToast('Error: ' + (error.response?.data?.error || 'Failed to delete'), 'error');
     }
   };
 

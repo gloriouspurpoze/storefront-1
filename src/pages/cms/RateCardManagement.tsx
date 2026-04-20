@@ -31,6 +31,8 @@ import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, AttachMoney as 
 import { CMSService } from '../../services/api';
 import { PageHeader } from '../../components/common/PageHeader';
 import { CMS_CATALOG_CATEGORIES } from '../../constants/cmsCatalogCategories';
+import { appToast } from '../../lib/appToast';
+import { useAppConfirm } from '../../components/providers/AppDialogsProvider';
 
 interface RateCardPart {
   name: string;
@@ -39,6 +41,7 @@ interface RateCardPart {
 
 export default function RateCardManagement() {
   const theme = useTheme();
+  const confirm = useAppConfirm();
   const [data, setData] = useState<Record<string, RateCardPart[]>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -59,7 +62,7 @@ export default function RateCardManagement() {
     } catch (error: any) {
       console.error('Error fetching rate cards:', error);
       const msg = error.response?.data?.error || error.message || 'Failed to load rate cards';
-      alert('Error: ' + msg);
+      appToast('Error: ' + msg, 'error');
       setData({});
     } finally {
       setLoading(false);
@@ -72,11 +75,11 @@ export default function RateCardManagement() {
     try {
       setSaving(true);
       await CMSService.updateRateCards(data);
-      alert('Rate cards saved successfully.');
+      appToast('Rate cards saved successfully.', 'success');
       fetchData();
     } catch (error: any) {
       console.error('Error saving rate cards:', error);
-      alert('Error: ' + (error.response?.data?.error || 'Failed to save'));
+      appToast('Error: ' + (error.response?.data?.error || 'Failed to save'), 'error');
     } finally {
       setSaving(false);
     }
@@ -84,7 +87,7 @@ export default function RateCardManagement() {
 
   const handleAddPart = () => {
     if (!formPart.name.trim()) {
-      alert('Part name is required.');
+      appToast('Part name is required.', 'warning');
       return;
     }
     const next = [...parts, { name: formPart.name.trim(), price: formPart.price.trim() || 'As per rate card' }];
@@ -109,8 +112,14 @@ export default function RateCardManagement() {
     setShowForm(false);
   };
 
-  const handleDeletePart = (index: number) => {
-    if (!window.confirm('Remove this rate card line?')) return;
+  const handleDeletePart = async (index: number) => {
+    const ok = await confirm({
+      title: 'Remove line?',
+      message: 'Remove this rate card line?',
+      danger: true,
+      confirmLabel: 'Remove',
+    });
+    if (!ok) return;
     const next = parts.filter((_, i) => i !== index);
     setData((prev) => ({ ...prev, [selectedCategory]: next.length ? next : [] }));
   };

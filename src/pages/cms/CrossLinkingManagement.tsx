@@ -24,6 +24,7 @@ import { Add as AddIcon, Delete as DeleteIcon, Link as LinkIcon } from '@mui/ico
 import { CMSService } from '../../services/api';
 import { PageHeader } from '../../components/common/PageHeader';
 import { CMS_CATALOG_CATEGORIES } from '../../constants/cmsCatalogCategories';
+import { appToast } from '../../lib/appToast';
 
 export default function CrossLinkingManagement() {
   const theme = useTheme();
@@ -45,7 +46,7 @@ export default function CrossLinkingManagement() {
     } catch (error: any) {
       console.error('Error fetching cross-linking:', error);
       const msg = error.response?.data?.error || error.message || 'Failed to load';
-      alert('Error: ' + msg);
+      appToast('Error: ' + msg, 'error');
       setData({});
     } finally {
       setLoading(false);
@@ -58,10 +59,10 @@ export default function CrossLinkingManagement() {
     try {
       setSaving(true);
       await CMSService.updateCrossLinking(data);
-      alert('Cross-linking saved.');
+      appToast('Cross-linking saved.', 'success');
       fetchData();
     } catch (error: any) {
-      alert('Error: ' + (error.response?.data?.error || 'Failed to save'));
+      appToast('Error: ' + (error.response?.data?.error || 'Failed to save'), 'error');
     } finally {
       setSaving(false);
     }

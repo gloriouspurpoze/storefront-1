@@ -25,11 +25,13 @@ import { CategoriesService } from '../../services/api/categories.service'
 import { useAppDispatch } from '../../store/hooks'
 import { addToast } from '../../store/slices/uiSlice'
 import { StandardTable, type StandardTableColumn } from '../../components/common'
+import { useAppConfirm } from '../../components/providers/AppDialogsProvider'
 import type { Category } from '../../types'
 
 export function CategoriesList() {
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
+  const confirm = useAppConfirm()
   
   const [categories, setCategories] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -96,9 +98,13 @@ export function CategoriesList() {
   }
 
   const handleDelete = async (category: Category) => {
-    if (!window.confirm(`Are you sure you want to delete "${category.name}"?`)) {
-      return
-    }
+    const ok = await confirm({
+      title: 'Delete category?',
+      message: `Are you sure you want to delete "${category.name}"?`,
+      danger: true,
+      confirmLabel: 'Delete',
+    })
+    if (!ok) return
 
     try {
       const id = getCategoryId(category)

@@ -35,6 +35,8 @@ import {
   TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
 import { PageHeader } from '../../components/common/PageHeader';
+import { appToast } from '../../lib/appToast';
+import { useAppConfirm } from '../../components/providers/AppDialogsProvider';
 
 interface Referral {
   id: string;
@@ -69,6 +71,7 @@ type ReferralFormData = Pick<
 
 export default function Referrals() {
   const theme = useTheme();
+  const confirm = useAppConfirm();
   const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
@@ -143,17 +146,26 @@ export default function Referrals() {
       setViewMode('list');
       resetForm();
     } catch (error: any) {
-      alert('Error: ' + (error.response?.data?.error || 'Failed to save referral'));
+      appToast(
+        'Error: ' + (error.response?.data?.error || 'Failed to save referral'),
+        'error'
+      );
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this referral program?')) return;
+    const ok = await confirm({
+      title: 'Delete referral program?',
+      message: 'Delete this referral program?',
+      danger: true,
+      confirmLabel: 'Delete',
+    });
+    if (!ok) return;
     try {
       // await ReferralsService.deleteReferral(id);
       fetchReferrals();
     } catch (error) {
-      alert('Error deleting referral');
+      appToast('Error deleting referral', 'error');
     }
   };
 

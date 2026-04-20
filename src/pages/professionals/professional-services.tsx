@@ -57,6 +57,7 @@ import { apiClient } from '../../services/apiClient'
 import { addToast } from '../../store/slices/uiSlice'
 import { ProfessionalsService } from '../../services/api/professionals.service'
 import { platformServicesService, PlatformService } from '../../services/api/platformServices.service'
+import { useAppConfirm } from '../../components/providers/AppDialogsProvider'
 
 interface Service {
   _id: string
@@ -78,6 +79,7 @@ interface AvailableService {
 
 export function ProfessionalServices() {
   const dispatch = useAppDispatch()
+  const confirm = useAppConfirm()
   const [loading, setLoading] = useState(true)
   const [myServices, setMyServices] = useState<Service[]>([])
   const [availableServices, setAvailableServices] = useState<AvailableService[]>([])
@@ -175,7 +177,13 @@ export function ProfessionalServices() {
   }
 
   const handleRemoveService = async (serviceId: string) => {
-    if (!window.confirm('Are you sure you want to remove this service?')) return
+    const ok = await confirm({
+      title: 'Remove service?',
+      message: 'Are you sure you want to remove this service?',
+      danger: true,
+      confirmLabel: 'Remove',
+    })
+    if (!ok) return
 
     try {
       const response = await ProfessionalsService.getProfessionals({})

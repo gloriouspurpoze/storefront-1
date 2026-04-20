@@ -58,6 +58,7 @@ import { AssignProviderModal } from '../../components/bookings/AssignProviderMod
 import { AssignProfessionalDialog } from '../../components/bookings/AssignProfessionalDialog'
 import { UpdateBookingStatusModal } from '../../components/bookings/UpdateBookingStatusModal'
 import { useNavigate } from 'react-router-dom'
+import { useAppConfirm } from '../../components/providers/AppDialogsProvider'
 
 const statusConfig = {
   pending: { 
@@ -123,7 +124,8 @@ const statusTabs: Array<{ label: string; value: string }> = [
 
 export function Bookings() {
   const navigate = useNavigate()
-  
+  const confirm = useAppConfirm()
+
   // State management
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
@@ -332,9 +334,13 @@ export function Bookings() {
   }
 
   const handleCancelBooking = async (bookingId: string) => {
-    if (!window.confirm('Are you sure you want to cancel this booking?')) {
-      return
-    }
+    const ok = await confirm({
+      title: 'Cancel booking?',
+      message: 'Are you sure you want to cancel this booking?',
+      danger: true,
+      confirmLabel: 'Cancel booking',
+    })
+    if (!ok) return
 
     try {
       setLoading(true)

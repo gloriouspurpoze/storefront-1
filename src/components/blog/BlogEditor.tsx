@@ -24,6 +24,7 @@ import DOMPurify from 'dompurify'
 import { BlogService, type BlogPlagiarismAnalysis } from '../../services/api/blog.service'
 import { UploadService } from '../../services/api/upload.service'
 import { useToast } from '../ui'
+import { useAppConfirm } from '../providers/AppDialogsProvider'
 import type { BlogPostStatus } from '../../types/cms.types'
 import {
   buildExportHtmlDocument,
@@ -299,6 +300,7 @@ export interface BlogEditorProps {
 
 export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps) {
   const { toast } = useToast()
+  const confirm = useAppConfirm()
   /** Set from Quill toolbar handlers (ReactQuill may not forward ref). */
   const quillEditorRef = useRef<Quill | null>(null)
   /** Preserve index when file/Cloudinary dialogs steal focus from the editor. */
@@ -611,7 +613,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
     toast({ title: 'HTML inserted', description: 'Sanitized and converted for the editor.' })
   }, [importHtmlDraft, importHtmlStripStyles, toast])
 
-  const applyImportHtmlReplaceAll = useCallback(() => {
+  const applyImportHtmlReplaceAll = useCallback(async () => {
     const quill = reactQuillRef.current?.getEditor() ?? quillEditorRef.current
     if (!quill) {
       toast({ title: 'Editor unavailable', description: 'Try again in a moment.', variant: 'destructive' })
@@ -622,16 +624,21 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
       toast({ title: 'Nothing to import', description: 'Paste HTML in the box first.', variant: 'destructive' })
       return
     }
-    if (!window.confirm('Replace the entire article body with this HTML? This cannot be undone except by reverting the draft.')) {
-      return
-    }
+    const ok = await confirm({
+      title: 'Replace entire article body?',
+      message:
+        'Replace the entire article body with this HTML? This cannot be undone except by reverting the draft.',
+      danger: true,
+      confirmLabel: 'Replace',
+    })
+    if (!ok) return
     const clean = sanitizeBlogBodyHtml(raw, { stripInlineStyles: importHtmlStripStyles })
     const delta = quill.clipboard.convert({ html: clean, text: '' })
     quill.setContents(delta, 'user')
     setImportHtmlOpen(false)
     setImportHtmlDraft('')
     toast({ title: 'Body replaced', description: 'Sanitized HTML is now the article content.' })
-  }, [importHtmlDraft, importHtmlStripStyles, toast])
+  }, [importHtmlDraft, importHtmlStripStyles, toast, confirm])
 
   const closeImportHtml = useCallback(() => {
     setImportHtmlOpen(false)

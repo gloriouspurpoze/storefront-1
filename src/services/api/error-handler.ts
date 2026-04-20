@@ -4,6 +4,22 @@ import { addToast } from '../../store/slices/uiSlice'
 import type { ApiError } from './base'
 
 /**
+ * Endpoints where HTTP 401 means invalid credentials or similar — not an expired session.
+ * (Session expiry should clear the app and send the user to `/auth`.)
+ */
+const AUTH_401_NOT_SESSION_ENDPOINTS = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+  '/auth/change-password',
+] as const
+
+export function isAuthCredentialFailure401(endpoint: string): boolean {
+  return AUTH_401_NOT_SESSION_ENDPOINTS.some((p) => endpoint.includes(p))
+}
+
+/**
  * Enhanced Error Handler
  * Provides centralized error handling with specific error type handling
  */
@@ -71,8 +87,9 @@ export class ErrorHandler {
       duration: 5000,
     }))
 
-    // Redirect to login (you might want to use a router here)
-    // window.location.href = '/login'
+    if (window.location.pathname !== '/auth') {
+      window.location.replace('/auth')
+    }
   }
 
   /**
@@ -198,6 +215,11 @@ export class ErrorHandler {
    * Handle file upload errors
    */
   static handleFileUploadError(error: any) {
+    if (error?.code === 'UNAUTHORIZED') {
+      this.handleApiError(error as ApiError)
+      return
+    }
+
     let message = 'File upload failed. Please try again.'
     
     if (error.message) {

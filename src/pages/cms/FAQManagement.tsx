@@ -43,6 +43,8 @@ import {
 } from '@mui/icons-material';
 import { CMSService } from '../../services/api';
 import { PageHeader } from '../../components/common/PageHeader';
+import { appToast } from '../../lib/appToast';
+import { useAppConfirm } from '../../components/providers/AppDialogsProvider';
 
 interface FAQ {
   _id: string;
@@ -60,6 +62,7 @@ interface FAQ {
 
 export default function FAQManagement() {
   const theme = useTheme();
+  const confirm = useAppConfirm();
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,7 +100,7 @@ export default function FAQManagement() {
       setFaqs(data.faqs || []);
     } catch (error: any) {
       console.error('Error fetching FAQs:', error);
-      alert('Error: ' + (error.response?.data?.error || 'Failed to load FAQs'));
+      appToast('Error: ' + (error.response?.data?.error || 'Failed to load FAQs'), 'error');
     } finally {
       setLoading(false);
     }
@@ -115,7 +118,7 @@ export default function FAQManagement() {
   const handleSubmit = async () => {
     try {
       if (!formData.question.trim() || !formData.answer.trim() || !formData.category.trim()) {
-        alert('Please fill in all required fields');
+        appToast('Please fill in all required fields', 'warning');
         return;
       }
 
@@ -135,18 +138,24 @@ export default function FAQManagement() {
       handleCloseForm();
     } catch (error: any) {
       console.error('Error saving FAQ:', error);
-      alert('Error: ' + (error.response?.data?.error || 'Failed to save FAQ'));
+      appToast('Error: ' + (error.response?.data?.error || 'Failed to save FAQ'), 'error');
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this FAQ?')) return;
+    const ok = await confirm({
+      title: 'Delete FAQ?',
+      message: 'Are you sure you want to delete this FAQ?',
+      danger: true,
+      confirmLabel: 'Delete',
+    });
+    if (!ok) return;
     try {
       await CMSService.deleteFAQ(id);
       fetchFAQs();
     } catch (error: any) {
       console.error('Error deleting FAQ:', error);
-      alert('Error: ' + (error.response?.data?.error || 'Failed to delete FAQ'));
+      appToast('Error: ' + (error.response?.data?.error || 'Failed to delete FAQ'), 'error');
     }
   };
 
@@ -182,7 +191,7 @@ export default function FAQManagement() {
       fetchFAQs();
     } catch (error: any) {
       console.error('Error updating FAQ:', error);
-      alert('Error: ' + (error.response?.data?.error || 'Failed to update FAQ'));
+      appToast('Error: ' + (error.response?.data?.error || 'Failed to update FAQ'), 'error');
     }
   };
 

@@ -2,7 +2,9 @@
  * Provider List for Chat (Admin)
  * Allows admins to browse and start conversations with service providers
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../store';
 import {
   Box,
   TextField,
@@ -27,7 +29,7 @@ import {
   Business as BusinessIcon,
 } from '@mui/icons-material';
 import { ProvidersService } from '../../services/api/providers.service';
-import { ChatService, ConversationType } from '../../services/api/chat.service';
+import { ChatService, ConversationType, normalizeConversationList } from '../../services/api/chat.service';
 
 interface Provider {
   id: string;
@@ -52,6 +54,19 @@ export const ProviderListForChat: React.FC<ProviderListForChatProps> = ({
   onProviderSelect,
   onClose,
 }) => {
+  const authUser = useSelector((s: RootState) => s.auth.user);
+  const adminUserId = useMemo(() => {
+    if (authUser?.id) return String(authUser.id);
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || '{}');
+      if (u?.id || u?._id) return String(u.id || u._id);
+    } catch {
+      /* ignore */
+    }
+    const legacy = localStorage.getItem('userId');
+    return legacy || '';
+  }, [authUser?.id]);
+
   const [providers, setProviders] = useState<Provider[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
@@ -65,30 +80,36 @@ export const ProviderListForChat: React.FC<ProviderListForChatProps> = ({
   const fetchProviders = async () => {
     try {
       setLoading(true);
-      const response = await ProvidersService.getAvailableProviders({
+      // Admin picker: list active providers (do not require verified+available — that often yields empty in dev)
+      const response = await ProvidersService.getProviders({
         page: 1,
-        limit: 100,
+        limit: 200,
       });
 
-      if (response.data) {
-        // Handle both possible response formats
-        const providersList = response.data.serviceProviders || response.data.providers || [];
-        
-        // Transform data to ensure consistent format
-        const transformedProviders: Provider[] = providersList.map((p: any) => ({
-          id: p.id || p._id,
-          businessName: p.business_name || p.businessName || 'Unknown Business',
-          email: p.user?.email || p.email || 'N/A',
-          phone: p.user?.phone || p.phone || 'N/A',
-          rating: p.rating || 0,
-          totalJobs: p.totalBookings || p.completed_bookings || p.totalJobs || 0,
-          verificationStatus: p.verification_status || p.verificationStatus || 'pending',
-          avatar: p.user?.avatar || p.avatar,
-          user_id: p.user_id || p.userId,
-        }));
-
-        setProviders(transformedProviders);
+      const payload = response.data as Record<string, unknown> | unknown[] | undefined;
+      let providersList: unknown[] = [];
+      if (Array.isArray(payload)) {
+        providersList = payload;
+      } else if (payload && typeof payload === 'object') {
+        const o = payload as Record<string, unknown>;
+        const raw =
+          o.serviceProviders || o.providers || o.items || o.data;
+        providersList = Array.isArray(raw) ? raw : [];
       }
+
+      const transformedProviders: Provider[] = (providersList as any[]).map((p: any) => ({
+        id: String(p.id || p._id || ''),
+        businessName: p.business_name || p.businessName || 'Unknown Business',
+        email: p.user?.email || p.email || 'N/A',
+        phone: p.user?.phone || p.phone || 'N/A',
+        rating: p.rating || 0,
+        totalJobs: p.totalBookings || p.completed_bookings || p.totalJobs || 0,
+        verificationStatus: p.verification_status || p.verificationStatus || 'pending',
+        avatar: p.user?.avatar || p.avatar,
+        user_id: p.user_id || p.userId || p.user?.id,
+      }));
+
+      setProviders(transformedProviders.filter((p) => p.id));
     } catch (err: any) {
       console.error('Error fetching providers:', err);
       setError('Failed to load providers. Please try again.');
@@ -109,21 +130,25 @@ export const ProviderListForChat: React.FC<ProviderListForChatProps> = ({
   const handleStartChat = async (provider: Provider) => {
     setCreatingConversation(provider.id);
     try {
-      const currentUserId = localStorage.getItem('userId');
-      if (!currentUserId) {
-        setError('Admin user not authenticated.');
+      if (!adminUserId) {
+        setError('Admin user not authenticated. Please log in again.');
         return;
       }
 
-      const targetUserId = provider.user_id || provider.id;
+      const targetUserId = String(provider.user_id || provider.id || '');
+      if (!targetUserId) {
+        setError('This provider has no linked user account.');
+        return;
+      }
 
-      // Check if a conversation already exists
       const existingConversationsResponse = await ChatService.getConversations();
-      if (existingConversationsResponse.success && existingConversationsResponse.data) {
-        const existingConversation = existingConversationsResponse.data.conversations.find(conv =>
-          conv.type === ConversationType.DIRECT &&
-          conv.participants.some(p => p.userId._id === currentUserId) &&
-          conv.participants.some(p => p.userId._id === targetUserId)
+      if (existingConversationsResponse.success && existingConversationsResponse.data !== undefined) {
+        const convs = normalizeConversationList(existingConversationsResponse.data);
+        const existingConversation = convs.find(
+          (conv) =>
+            conv.type === ConversationType.DIRECT &&
+            conv.participants.some((p) => String(p.userId._id) === adminUserId) &&
+            conv.participants.some((p) => String(p.userId._id) === targetUserId)
         );
 
         if (existingConversation) {
@@ -136,7 +161,7 @@ export const ProviderListForChat: React.FC<ProviderListForChatProps> = ({
       const response = await ChatService.createConversation({
         type: ConversationType.DIRECT,
         participants: [
-          { userId: currentUserId, role: 'admin' },
+          { userId: adminUserId, role: 'admin' },
           { userId: targetUserId, role: 'provider' }
         ],
         metadata: {

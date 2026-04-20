@@ -38,6 +38,8 @@ import {
 import { CMSService } from '../../services/api';
 import { format } from 'date-fns';
 import { PageHeader } from '../../components/common/PageHeader';
+import { appToast } from '../../lib/appToast';
+import { useAppConfirm } from '../../components/providers/AppDialogsProvider';
 
 // Backend uses: title, content, customerRole, customerImage, order, isActive
 interface Testimonial {
@@ -63,6 +65,7 @@ interface Testimonial {
 
 export default function TestimonialManagement() {
   const theme = useTheme();
+  const confirm = useAppConfirm();
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -106,7 +109,7 @@ export default function TestimonialManagement() {
     } catch (error: any) {
       console.error('Error fetching testimonials:', error);
       const errorMessage = error?.response?.data?.error || error?.response?.data?.message || error?.message || 'Failed to load testimonials';
-      alert('Error: ' + errorMessage);
+      appToast('Error: ' + errorMessage, 'error');
       setTestimonials([]);
     } finally {
       setLoading(false);
@@ -132,7 +135,7 @@ export default function TestimonialManagement() {
   const handleSubmit = async () => {
     try {
       if (!formData.customerName.trim() || !formData.comment.trim()) {
-        alert('Please fill in all required fields');
+        appToast('Please fill in all required fields', 'warning');
         return;
       }
 
@@ -159,18 +162,24 @@ export default function TestimonialManagement() {
       handleCloseForm();
     } catch (error: any) {
       console.error('Error saving testimonial:', error);
-      alert('Error: ' + (error.response?.data?.error || 'Failed to save testimonial'));
+      appToast('Error: ' + (error.response?.data?.error || 'Failed to save testimonial'), 'error');
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this testimonial?')) return;
+    const ok = await confirm({
+      title: 'Delete testimonial?',
+      message: 'Are you sure you want to delete this testimonial?',
+      danger: true,
+      confirmLabel: 'Delete',
+    });
+    if (!ok) return;
     try {
       await CMSService.deleteTestimonial(id);
       fetchTestimonials();
     } catch (error: any) {
       console.error('Error deleting testimonial:', error);
-      alert('Error: ' + (error.response?.data?.error || 'Failed to delete testimonial'));
+      appToast('Error: ' + (error.response?.data?.error || 'Failed to delete testimonial'), 'error');
     }
   };
 
@@ -213,7 +222,7 @@ export default function TestimonialManagement() {
       fetchTestimonials();
     } catch (error: any) {
       console.error('Error updating approval:', error);
-      alert('Error: ' + (error.response?.data?.error || 'Failed to update approval'));
+      appToast('Error: ' + (error.response?.data?.error || 'Failed to update approval'), 'error');
     }
   };
 
@@ -225,7 +234,7 @@ export default function TestimonialManagement() {
       fetchTestimonials();
     } catch (error: any) {
       console.error('Error updating featured status:', error);
-      alert('Error: ' + (error.response?.data?.error || 'Failed to update featured status'));
+      appToast('Error: ' + (error.response?.data?.error || 'Failed to update featured status'), 'error');
     }
   };
 

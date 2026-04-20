@@ -43,6 +43,8 @@ import {
 import axios from 'axios';
 import { ImageUploadField, type ImageFile } from '../../components/forms';
 import { PageHeader } from '../../components/common/PageHeader';
+import { appToast } from '../../lib/appToast';
+import { useAppConfirm } from '../../components/providers/AppDialogsProvider';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
@@ -59,6 +61,7 @@ interface Banner {
 
 export default function BannerManagement() {
   const theme = useTheme();
+  const confirm = useAppConfirm();
   const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -138,12 +141,21 @@ export default function BannerManagement() {
       fetchBanners();
       handleCloseForm();
     } catch (error: any) {
-      alert('Error: ' + (error.response?.data?.error || 'Failed to save banner'));
+      appToast(
+        'Error: ' + (error.response?.data?.error || 'Failed to save banner'),
+        'error'
+      );
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this banner?')) return;
+    const ok = await confirm({
+      title: 'Delete banner?',
+      message: 'Delete this banner?',
+      danger: true,
+      confirmLabel: 'Delete',
+    });
+    if (!ok) return;
     try {
       const token = localStorage.getItem('token');
       await axios.delete(`${API_BASE}/cms/admin/banners/${id}`, {
@@ -151,7 +163,7 @@ export default function BannerManagement() {
       });
       fetchBanners();
     } catch (error) {
-      alert('Error deleting banner');
+      appToast('Error deleting banner', 'error');
     }
   };
 

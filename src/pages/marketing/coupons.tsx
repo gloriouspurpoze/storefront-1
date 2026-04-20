@@ -41,6 +41,8 @@ import {
 } from '@mui/icons-material';
 import { PageHeader } from '../../components/common/PageHeader';
 import { CouponsService } from '../../services/api';
+import { appToast } from '../../lib/appToast';
+import { useAppConfirm } from '../../components/providers/AppDialogsProvider';
 
 interface Coupon {
   id: string;
@@ -82,6 +84,7 @@ type CouponFormData = Pick<
 
 export default function Coupons() {
   const theme = useTheme();
+  const confirm = useAppConfirm();
   const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
@@ -161,17 +164,26 @@ export default function Coupons() {
       setViewMode('list');
       resetForm();
     } catch (error: any) {
-      alert('Error: ' + (error.response?.data?.error || 'Failed to save coupon'));
+      appToast(
+        'Error: ' + (error.response?.data?.error || 'Failed to save coupon'),
+        'error'
+      );
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this coupon?')) return;
+    const ok = await confirm({
+      title: 'Delete coupon?',
+      message: 'Delete this coupon?',
+      danger: true,
+      confirmLabel: 'Delete',
+    });
+    if (!ok) return;
     try {
       // await CouponsService.deleteCoupon(id);
       fetchCoupons();
     } catch (error) {
-      alert('Error deleting coupon');
+      appToast('Error deleting coupon', 'error');
     }
   };
 
