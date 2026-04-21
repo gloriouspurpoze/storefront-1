@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { notificationsService, PushNotification, NotificationPreferences } from '../services/api/notifications.service';
+import { urlBase64ToUint8Array } from '../lib/webPush';
 import { useAppDispatch } from '../store/hooks';
 import { addToast } from '../store/slices/uiSlice';
 
@@ -62,9 +63,10 @@ export function useNotifications(): UseNotificationsReturn {
     try {
       if ('serviceWorker' in navigator && 'PushManager' in window) {
         const registration = await navigator.serviceWorker.ready;
+        const vapidB64 = await notificationsService.getVAPIDKey();
         const subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: await getVAPIDKey()
+          applicationServerKey: urlBase64ToUint8Array(vapidB64),
         });
 
         await notificationsService.registerDevice({
@@ -177,15 +179,6 @@ export function useNotifications(): UseNotificationsReturn {
       throw err;
     }
   }, [dispatch]);
-
-  const getVAPIDKey = async (): Promise<string> => {
-    try {
-      return await notificationsService.getVAPIDKey();
-    } catch (err) {
-      console.error('Failed to get VAPID key:', err);
-      throw new Error('Failed to get VAPID key');
-    }
-  };
 
   useEffect(() => {
     refreshNotifications();

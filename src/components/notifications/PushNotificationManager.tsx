@@ -51,10 +51,6 @@ export function PushNotificationManager({
       if (permission === 'granted') {
         await enablePushNotifications();
         onPermissionGranted?.();
-        dispatch(addToast({
-          message: 'Push notifications enabled successfully',
-          severity: 'success'
-        }));
       } else {
         onPermissionDenied?.();
         dispatch(addToast({
@@ -73,26 +69,27 @@ export function PushNotificationManager({
 
   const enablePushNotifications = async () => {
     try {
-      if ('serviceWorker' in navigator && 'PushManager' in window) {
-        // Register service worker
-        const registration = await navigator.serviceWorker.register('/sw.js');
-        console.log('Service worker registered:', registration);
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
 
-        // Subscribe to push notifications
-        const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: await getVAPIDKey()
-        });
-
-        // Register device with backend
-        await registerDevice();
-
-        setIsRegistered(true);
-        console.log('Push subscription created:', subscription);
+      try {
+        await navigator.serviceWorker.register('/sw.js');
+        await navigator.serviceWorker.ready;
+      } catch (swError) {
+        console.error('Service worker registration failed:', swError);
+        dispatch(
+          addToast({
+            message: 'Could not register the app worker for push. Check that /sw.js is served.',
+            severity: 'error',
+          })
+        );
+        return;
       }
+
+      await registerDevice();
+      setIsRegistered(true);
     } catch (error) {
       console.error('Error enabling push notifications:', error);
-      throw error;
+      // `registerDevice` already shows an error toast
     }
   };
 
@@ -119,17 +116,6 @@ export function PushNotificationManager({
         message: 'Failed to disable push notifications',
         severity: 'error'
       }));
-    }
-  };
-
-  const getVAPIDKey = async (): Promise<string> => {
-    try {
-      const response = await fetch('/api/notifications/vapid-key');
-      const data = await response.json();
-      return data.publicKey;
-    } catch (error) {
-      console.error('Error getting VAPID key:', error);
-      throw new Error('Failed to get VAPID key');
     }
   };
 

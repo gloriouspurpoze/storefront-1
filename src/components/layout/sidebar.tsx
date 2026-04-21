@@ -22,7 +22,6 @@ import {
   InputAdornment,
   Badge,
   alpha,
-  Chip,
   Fade,
 } from '@mui/material'
 import {
@@ -82,14 +81,19 @@ import {
   RateReview as RateReviewIcon,
   VerifiedUser as VerifiedUserIcon,
 } from '@mui/icons-material'
-import { NotificationBell } from '../notifications/NotificationBell'
 import { useSidebar } from '../../contexts/sidebar-context'
 import { useAppSelector } from '../../store/hooks'
 import { getInitials } from '../../lib/utils'
 import { SaasTenantIndicator } from './SaasTenantIndicator'
+import { FixerLogoMark } from './FixerLogoMark'
+import {
+  APP_BAR_HEIGHT_PX,
+  DRAWER_WIDTH_COLLAPSED_PX,
+  DRAWER_WIDTH_EXPANDED_PX,
+} from './layout-constants'
 
-const drawerWidth = 280
-const collapsedDrawerWidth = 72
+const drawerWidth = DRAWER_WIDTH_EXPANDED_PX
+const collapsedDrawerWidth = DRAWER_WIDTH_COLLAPSED_PX
 
 /**
  * Provider Navigation Menu - For Service Providers
@@ -177,7 +181,7 @@ const navigationGroups = [
     title: 'CRM',
     icon: BusinessCenterIcon,
     items: [
-      { name: 'CRM Overview', href: '/crm', icon: BusinessCenterIcon, permissions: ['view_crm'], badge: null },
+      { name: 'CRM overview', href: '/crm', icon: BusinessCenterIcon, permissions: ['view_crm'], badge: null },
       { name: 'Leads', href: '/crm/leads', icon: PersonSearchIcon, permissions: ['view_crm'], badge: null },
       { name: 'Contacts', href: '/crm/contacts', icon: UsersIcon, permissions: ['view_crm'], badge: null },
       { name: 'Companies', href: '/crm/companies', icon: BusinessIcon, permissions: ['view_crm'], badge: null },
@@ -191,7 +195,7 @@ const navigationGroups = [
     icon: PackageIcon,
     items: [
       { name: 'Categories', href: '/categories', icon: CategoryIcon, permissions: ['view_categories', 'manage_categories'], badge: null },
-      { name: 'Platform Services', href: '/platform-services', icon: HomeIcon, permissions: ['view_services', 'manage_services'], badge: null },
+      { name: 'Platform services', href: '/platform-services', icon: HomeIcon, permissions: ['view_services', 'manage_services'], badge: null },
       {
         name: 'Marketplace',
         href: '/marketplace',
@@ -313,18 +317,18 @@ const navigationGroups = [
     icon: WebIcon,
     items: [
       { 
-        name: 'Website Content', 
+        name: 'Website content', 
         icon: WebIcon, 
         hasSubmenu: true,
         permissions: ['view_cms', 'manage_cms'],
         badge: null,
         subItems: [
-          { name: 'CMS Overview', href: '/cms', icon: WebIcon, permissions: ['view_cms'] },
+          { name: 'CMS overview', href: '/cms', icon: WebIcon, permissions: ['view_cms'] },
           { name: 'Homepage', href: '/cms/homepage', icon: HomeIcon, permissions: ['manage_cms'] },
           { name: 'Pages', href: '/cms/pages', icon: DescriptionIcon, permissions: ['manage_cms'] },
           { name: 'Menus', href: '/cms/menus', icon: MenusIcon, permissions: ['manage_cms'] },
-          { name: 'Blog Posts', href: '/cms/blogs', icon: ArticleIcon, permissions: ['manage_cms'] },
-          { name: 'Blog Categories', href: '/cms/blog-categories', icon: CategoryIcon, permissions: ['manage_cms'] },
+          { name: 'Blog posts', href: '/cms/blogs', icon: ArticleIcon, permissions: ['manage_cms'] },
+          { name: 'Blog categories', href: '/cms/blog-categories', icon: CategoryIcon, permissions: ['manage_cms'] },
         ]
       },
       { 
@@ -559,32 +563,22 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           bgcolor: alpha(theme.palette.primary.main, 0.05),
         }}
       >
-        <Box
+        <FixerLogoMark
+          size={44}
           sx={{
-            width: 44,
-            height: 44,
-            borderRadius: 2,
-            bgcolor: 'primary.main',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+            boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.35)}`,
             transition: 'transform 0.2s',
-            '&:hover': {
-              transform: 'scale(1.05)',
-            },
+            '&:hover': { transform: 'scale(1.04)' },
           }}
-        >
-          <HomeIcon sx={{ color: 'white', fontSize: 26 }} />
-        </Box>
+        />
         {sidebarOpen && (
           <Fade in={sidebarOpen}>
             <Box>
-              <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary', fontSize: '1.1rem' }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary', fontSize: '1.05rem', letterSpacing: '-0.02em' }}>
                 Fixer Admin
               </Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
-                Management Portal
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem', fontWeight: 500 }}>
+                Operations console
               </Typography>
             </Box>
           </Fade>
@@ -597,7 +591,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           <TextField
             fullWidth
             size="small"
-            placeholder="Search menu..."
+            placeholder="Filter navigation…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             InputProps={{
@@ -955,6 +949,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           boxSizing: 'border-box',
           width: sidebarOpen ? drawerWidth : collapsedDrawerWidth,
           borderRight: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+          top: APP_BAR_HEIGHT_PX,
+          height: `calc(100vh - ${APP_BAR_HEIGHT_PX}px)`,
           transition: theme.transitions.create('width', {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.enteringScreen,

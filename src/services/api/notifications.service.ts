@@ -246,10 +246,14 @@ class NotificationsService {
   }
 
   async getVAPIDKey(): Promise<string> {
-    const j = await fetch(`${apiBase()}/notifications/vapid-key`)
-    const data = await j.json()
-    if (!j.ok) throw new Error(data.error || 'Failed to load VAPID key')
-    return String(data.publicKey || '')
+    const data = await authFetch<{ publicKey?: string }>('/notifications/vapid-key', { method: 'GET' })
+    const key = String(data?.publicKey ?? '').trim()
+    if (!key) {
+      throw new Error(
+        'Push is not configured: the server returned no VAPID public key. Ask an admin to enable web push on the API.'
+      )
+    }
+    return key
   }
 
   async registerDevice(data: DeviceRegistrationRequest): Promise<void> {

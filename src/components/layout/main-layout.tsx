@@ -1,10 +1,14 @@
 import React, { useState } from 'react'
-import { Box, useTheme, useMediaQuery } from '@mui/material'
+import { Box, useTheme } from '@mui/material'
 import { Sidebar } from './sidebar'
 import { Header } from './header'
+import { AppBreadcrumbs } from './AppBreadcrumbs'
 import { useSidebar } from '../../contexts/sidebar-context'
-
-const drawerWidth = 280
+import {
+  APP_BAR_HEIGHT_PX,
+  DRAWER_WIDTH_COLLAPSED_PX,
+  DRAWER_WIDTH_EXPANDED_PX,
+} from './layout-constants'
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -13,8 +17,8 @@ interface MainLayoutProps {
 export function MainLayout({ children }: MainLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
-  const { isOpen: sidebarOpen } = useSidebar()
+  const { isOpen: sidebarExpanded } = useSidebar()
+  const drawerOffsetPx = sidebarExpanded ? DRAWER_WIDTH_EXPANDED_PX : DRAWER_WIDTH_COLLAPSED_PX
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen)
@@ -34,21 +38,22 @@ export function MainLayout({ children }: MainLayoutProps) {
         sx={{
           flexGrow: 1,
           p: { xs: 2, sm: 3 },
-          width: { 
-            md: sidebarOpen ? `calc(100% - ${drawerWidth}px)` : '100%' 
+          width: {
+            md: `calc(100% - ${drawerOffsetPx}px)`,
           },
-          ml: { 
-            md: sidebarOpen ? `${drawerWidth}px` : 0 
+          ml: {
+            md: `${drawerOffsetPx}px`,
           },
-          mt: '64px', // Height of AppBar
+          mt: `${APP_BAR_HEIGHT_PX}px`,
           backgroundColor: 'background.default',
-          minHeight: 'calc(100vh - 64px)',
+          minHeight: `calc(100vh - ${APP_BAR_HEIGHT_PX}px)`,
           transition: theme.transitions.create(['margin', 'width'], {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen,
           }),
         }}
       >
+        <AppBreadcrumbs />
         {children}
       </Box>
     </Box>

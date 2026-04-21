@@ -3,6 +3,9 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { Provider } from 'react-redux'
 import { Box, CircularProgress } from '@mui/material'
 import { ThemeProvider } from './contexts/theme-context'
+import { CommandPaletteProvider } from './contexts/command-palette-context'
+import { AppMuiThemeProvider } from './components/providers/AppMuiThemeProvider'
+import { CommandPalette } from './components/command-palette/CommandPalette'
 import { DataProvider } from './contexts/data-context'
 import { SidebarProvider } from './contexts/sidebar-context'
 import { store } from './store'
@@ -121,9 +124,11 @@ function App() {
   return (
     <Provider store={store}>
       <ThemeProvider>
+        <AppMuiThemeProvider>
         <AppDialogsProvider>
         <DataProvider>
           <Router>
+          <CommandPaletteProvider>
             <Suspense fallback={RouteFallback}>
             <Routes>
               {/* Public routes */}
@@ -947,13 +952,16 @@ function App() {
               } />
             </Routes>
             </Suspense>
-          </Router>
+            <CommandPalette />
           {/* shadcn/ui Toaster */}
           <Toaster />
           <ToastProvider />
           <LoadingProvider />
+          </CommandPaletteProvider>
+          </Router>
         </DataProvider>
         </AppDialogsProvider>
+        </AppMuiThemeProvider>
       </ThemeProvider>
     </Provider>
   )

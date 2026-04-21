@@ -7,7 +7,6 @@ import {
   Box,
   TextField,
   InputAdornment,
-  Badge,
   Avatar,
   Menu,
   MenuItem,
@@ -18,8 +17,6 @@ import {
 import {
   Menu as MenuIcon,
   Search as SearchIcon,
-  Notifications as NotificationsIcon,
-  AccountCircle as AccountIcon,
   DarkMode as DarkModeIcon,
   LightMode as LightModeIcon,
   Settings as SettingsIcon,
@@ -27,6 +24,7 @@ import {
   Person as PersonIcon,
 } from '@mui/icons-material'
 import { useTheme as useCustomTheme } from '../../contexts/theme-context'
+import { useCommandPalette } from '../../contexts/command-palette-context'
 import { useAppSelector, useAppDispatch } from '../../store/hooks'
 import { logout } from '../../store/slices/authSlice'
 import { NotificationBell } from '../notifications/NotificationBell'
@@ -45,7 +43,11 @@ export function Header({ onMenuClick }: HeaderProps) {
   const user = authState?.user || null
   const dispatch = useAppDispatch()
   const { toggleSidebar } = useSidebar()
+  const { openPalette } = useCommandPalette()
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null)
+  const jumpHint = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
+    ? '⌘K'
+    : 'Ctrl+K'
 
   const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget)
@@ -93,22 +95,27 @@ export function Header({ onMenuClick }: HeaderProps) {
           <MenuIcon />
         </IconButton>
 
-        {/* Search */}
+        {/* Quick open (same as ⌘K palette) */}
         <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
           {!isMobile && (
             <TextField
-              placeholder="Search..."
+              placeholder={`Jump to page… (${jumpHint})`}
               size="small"
+              onFocus={openPalette}
+              onClick={openPalette}
+              inputProps={{ readOnly: true, 'aria-label': 'Open quick navigation' }}
               sx={{
-                minWidth: 300,
+                minWidth: 280,
+                maxWidth: 420,
                 '& .MuiOutlinedInput-root': {
-                  backgroundColor: 'background.default',
+                  backgroundColor: 'action.hover',
+                  cursor: 'pointer',
                 },
               }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <SearchIcon color="action" />
+                    <SearchIcon color="action" fontSize="small" />
                   </InputAdornment>
                 ),
               }}
@@ -130,9 +137,8 @@ export function Header({ onMenuClick }: HeaderProps) {
           {/* Notifications */}
           <NotificationBell />
 
-          {/* Mobile search */}
           {isMobile && (
-            <IconButton color="inherit">
+            <IconButton color="inherit" aria-label="Open quick navigation" onClick={openPalette}>
               <SearchIcon />
             </IconButton>
           )}
