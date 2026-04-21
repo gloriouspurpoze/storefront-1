@@ -30,6 +30,7 @@ interface UseSocketReturn {
 export const useSocket = (options: UseSocketOptions = {}): UseSocketReturn => {
   const { autoConnect = true, onConnect, onDisconnect, onError } = options;
   const authToken = useSelector((s: RootState) => s.auth.token);
+  const tenantId = useSelector((s: RootState) => s.tenant?.tenantId ?? null);
   const callbacksRef = useRef({ onConnect, onDisconnect, onError });
   callbacksRef.current = { onConnect, onDisconnect, onError };
 
@@ -66,7 +67,7 @@ export const useSocket = (options: UseSocketOptions = {}): UseSocketReturn => {
     let s: Socket;
     try {
       s = io(`${socketOrigin}/chat`, {
-        auth: { token },
+        auth: { token, ...(tenantId ? { tenantId } : {}) },
         transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionDelay: 1000,
@@ -116,7 +117,7 @@ export const useSocket = (options: UseSocketOptions = {}): UseSocketReturn => {
       setSocket(null);
       setIsConnected(false);
     };
-  }, [autoConnect, authToken, reconnectTick]);
+  }, [autoConnect, authToken, tenantId, reconnectTick]);
 
   return {
     socket,

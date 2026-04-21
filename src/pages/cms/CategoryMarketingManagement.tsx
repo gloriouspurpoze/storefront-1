@@ -320,7 +320,7 @@ export default function CategoryMarketingManagement() {
               onClick={() => {
                 const src = data[duplicateSourceKey]
                 if (!src) return
-                const full = mergeCategoryConfig(src as Record<string, unknown>)
+                const full = mergeCategoryConfig(src)
                 setData((prev) => ({
                   ...prev,
                   [effectiveKey]: JSON.parse(JSON.stringify(full)) as CategoryMarketingConfig,
@@ -340,7 +340,7 @@ export default function CategoryMarketingManagement() {
               onClick={() => {
                 const src = data[duplicateSourceKey]
                 if (!src) return
-                const full = mergeCategoryConfig(src as Record<string, unknown>)
+                const full = mergeCategoryConfig(src)
                 updateConfig({
                   localityGuide: JSON.parse(JSON.stringify(full.localityGuide)) as LocalityGuideCmsFields,
                 })
@@ -380,14 +380,14 @@ export default function CategoryMarketingManagement() {
                         const patch = mergeCategoryConfig(parsed)
                         setData((prev) => {
                           const base = mergeCategoryConfig(
-                            (prev[effectiveKey] ?? emptyCategoryMarketingConfig()) as Record<string, unknown>,
+                            prev[effectiveKey] ?? emptyCategoryMarketingConfig(),
                           )
                           const combined = mergeCategoryConfig({
                             ...base,
                             ...patch,
                             leadMagnet: { ...base.leadMagnet, ...patch.leadMagnet },
                             localityGuide: { ...base.localityGuide, ...patch.localityGuide },
-                          } as Record<string, unknown>)
+                          })
                           return { ...prev, [effectiveKey]: combined }
                         })
                         appToast(`Merged JSON into "${effectiveKey}". Click Save to persist.`, 'success')

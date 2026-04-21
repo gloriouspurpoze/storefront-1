@@ -4,6 +4,7 @@ import { setLoading, addToast } from '../../store/slices/uiSlice'
 // import { refreshAuthToken, logout } from '../../store/slices/authSlice'
 import { logout } from '../../store/slices/authSlice'
 import { ErrorHandler, isAuthCredentialFailure401 } from './error-handler'
+import { TENANT_HEADER } from '../../lib/saasEnv'
 
 // API Configuration
 const API_CONFIG = {
@@ -188,11 +189,13 @@ class ApiBase {
     omitContentType = false
   ): HeadersInit {
     const token = this.getAuthToken()
+    const tenantId = store.getState().tenant?.tenantId ?? null
 
     return {
       ...(omitContentType ? {} : { 'Content-Type': 'application/json' }),
       ...(token && { Authorization: `Bearer ${token}` }),
       ...customHeaders,
+      ...(tenantId ? { [TENANT_HEADER]: tenantId } : {}),
     }
   }
 
@@ -431,10 +434,12 @@ class ApiBase {
 
     try {
       const token = this.getAuthToken()
+      const tenantId = store.getState().tenant?.tenantId ?? null
       const response = await fetch(`${this.baseURL}${endpoint}`, {
         method: 'POST',
         headers: {
           ...(token && { Authorization: `Bearer ${token}` }),
+          ...(tenantId ? { [TENANT_HEADER]: tenantId } : {}),
         },
         body: formData,
       })

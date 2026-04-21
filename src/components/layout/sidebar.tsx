@@ -79,11 +79,14 @@ import {
   PersonSearch as PersonSearchIcon,
   Handshake as HandshakeIcon,
   Assignment as AssignmentIcon,
+  RateReview as RateReviewIcon,
+  VerifiedUser as VerifiedUserIcon,
 } from '@mui/icons-material'
 import { NotificationBell } from '../notifications/NotificationBell'
 import { useSidebar } from '../../contexts/sidebar-context'
 import { useAppSelector } from '../../store/hooks'
 import { getInitials } from '../../lib/utils'
+import { SaasTenantIndicator } from './SaasTenantIndicator'
 
 const drawerWidth = 280
 const collapsedDrawerWidth = 72
@@ -229,13 +232,6 @@ const navigationGroups = [
         ],
         badge: null,
       },
-      {
-        name: 'Bazaar (P2P)',
-        href: '/bazaar',
-        icon: StorefrontIcon,
-        permissions: ['view_orders', 'manage_system_settings'],
-        badge: null,
-      },
       { name: 'Products', href: '/products', icon: PackageIcon, permissions: ['view_products'], badge: null },
       {
         name: 'Inventory',
@@ -245,6 +241,57 @@ const navigationGroups = [
         badge: null,
       },
       { name: 'Orders', href: '/orders', icon: ShoppingCartIcon, permissions: ['view_orders'], badge: null },
+    ]
+  },
+  {
+    title: 'Bazaar',
+    icon: StorefrontIcon,
+    items: [
+      {
+        name: 'Offers & listing chats',
+        href: '/bazaar',
+        icon: HandshakeIcon,
+        permissions: [
+          'view_products',
+          'create_products',
+          'view_categories',
+          'view_orders',
+          'manage_coupons',
+          'manage_system_settings',
+          'view_settings',
+        ],
+        badge: null,
+      },
+      {
+        name: 'Listing review',
+        href: '/bazaar/listing-review',
+        icon: RateReviewIcon,
+        permissions: [
+          'view_products',
+          'create_products',
+          'view_categories',
+          'view_orders',
+          'manage_coupons',
+          'manage_system_settings',
+          'view_settings',
+        ],
+        badge: null,
+      },
+      {
+        name: 'Pro-Verify queue',
+        href: '/bazaar/pro-verify',
+        icon: VerifiedUserIcon,
+        permissions: [
+          'view_products',
+          'create_products',
+          'view_categories',
+          'view_orders',
+          'manage_coupons',
+          'manage_system_settings',
+          'view_settings',
+        ],
+        badge: null,
+      },
     ]
   },
   {
@@ -735,6 +782,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           </Box>
         ))}
       </Box>
+
+      <SaasTenantIndicator variant="sidebar" sidebarOpen={sidebarOpen} />
 
       <Divider sx={{ borderColor: alpha(theme.palette.divider, 0.1) }} />
       

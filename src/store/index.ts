@@ -3,6 +3,7 @@ import { persistStore, persistReducer, createTransform } from 'redux-persist'
 import storage from 'redux-persist/lib/storage' // defaults to localStorage
 import { combineReducers } from '@reduxjs/toolkit'
 import authSlice from './slices/authSlice'
+import tenantSlice from './slices/tenantSlice'
 import uiSlice from './slices/uiSlice'
 import dataSlice from './slices/dataSlice'
 
@@ -47,13 +48,14 @@ const authTransform = createTransform(
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['auth'], // Only persist auth state
+  whitelist: ['auth', 'tenant'], // Auth + tenant context (org id for SaaS API headers)
   transforms: [authTransform], // Apply transformation
 }
 
 // Combine reducers
 const rootReducer = combineReducers({
   auth: authSlice,
+  tenant: tenantSlice,
   ui: uiSlice,
   data: dataSlice,
 })

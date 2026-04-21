@@ -1,14 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
   Alert,
   Box,
   Button,
   Chip,
   CircularProgress,
-  Divider,
   Drawer,
   IconButton,
   MenuItem,
@@ -33,12 +29,12 @@ import {
 import {
   Storefront as StorefrontIcon,
   Close as CloseIcon,
-  ExpandMore as ExpandMoreIcon,
   Download as DownloadIcon,
   FilterList as FilterListIcon,
 } from '@mui/icons-material'
 import { Link as RouterLink } from 'react-router-dom'
 import { PageHeader } from '../../components/common/PageHeader'
+import { BazaarGuidanceAccordion } from './BazaarGuidanceAccordion'
 import { BazaarMarketplaceService } from '../../services/api/bazaarMarketplace.service'
 import type {
   BazaarAdminConversationRow,
@@ -239,48 +235,7 @@ export default function BazaarMarketplaceHub() {
         icon={<StorefrontIcon color="primary" />}
       />
 
-      <Accordion defaultExpanded={false} sx={{ mb: 2 }}>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography fontWeight={600}>Operations, lifecycle & compliance</Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Stack spacing={2}>
-            <Box>
-              <Typography variant="subtitle2" gutterBottom>
-                Offer semantics
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Typical lifecycle: <strong>pending</strong> → optional <strong>countered</strong> →{' '}
-                <strong>accepted</strong>, <strong>declined</strong>, <strong>withdrawn</strong>, or{' '}
-                <strong>expired</strong> after <code>expiresAt</code>. Settlement and fulfillment are defined by your
-                product rules (pickup, delivery, off-platform payment, etc.).
-              </Typography>
-            </Box>
-            <Divider />
-            <Box>
-              <Typography variant="subtitle2" gutterBottom>
-                Listing threads
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Each thread is scoped to a listing (see <code>metadata.listingId</code>). When a listing is removed or
-                sold, archive or close threads in the backend so buyers are not misled. Message retention should match
-                your privacy policy and jurisdiction.
-              </Typography>
-            </Box>
-            <Divider />
-            <Box>
-              <Typography variant="subtitle2" gutterBottom>
-                Trust & safety
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Use rate limits and abuse detection on the API for public endpoints. For moderation, wire reports to
-                support or a queue; this admin screen is for <strong>visibility</strong> and export — blocking users or
-                hiding listings requires backend/admin actions you control.
-              </Typography>
-            </Box>
-          </Stack>
-        </AccordionDetails>
-      </Accordion>
+      <BazaarGuidanceAccordion />
 
       <Alert severity="warning" sx={{ mb: 2 }}>
         <strong>Peer-to-peer disclaimer:</strong> Payments and handoffs may occur outside this admin app. Ensure

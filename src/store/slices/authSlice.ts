@@ -1,6 +1,7 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit'
 import { AuthService } from '../../services/api'
 import type { User } from '../../types'
+import { extractTenantFromAuthPayload } from '../../lib/extractTenantFromAuth'
 
 /** Minimum client session length (persisted Redux `tokenExpiry`). Prefer matching backend access-token TTL to 24h. */
 const ACCESS_TOKEN_TTL_MS = 24 * 60 * 60 * 1000
@@ -156,6 +157,7 @@ const authSlice = createSlice({
         
         // Transform backend response (snake_case) to frontend format (camelCase)
         const backendUser = action.payload.user as any
+        const tenantRef = extractTenantFromAuthPayload(action.payload)
         state.user = {
           id: backendUser.id,
           email: backendUser.email,
@@ -167,6 +169,7 @@ const authSlice = createSlice({
           profilePicture: backendUser.profile_picture || backendUser.profilePicture,
           createdAt: backendUser.created_at || backendUser.createdAt || new Date().toISOString(),
           updatedAt: backendUser.updated_at || backendUser.updatedAt,
+          ...(tenantRef ? { tenant: tenantRef } : {}),
         } as User
         
         // Handle tokens from nested tokens object
@@ -201,6 +204,7 @@ const authSlice = createSlice({
         
         // Transform backend response (snake_case) to frontend format (camelCase)
         const backendUser = action.payload.user as any
+        const tenantRef = extractTenantFromAuthPayload(action.payload)
         state.user = {
           id: backendUser.id,
           email: backendUser.email,
@@ -212,6 +216,7 @@ const authSlice = createSlice({
           profilePicture: backendUser.profile_picture || backendUser.profilePicture,
           createdAt: backendUser.created_at || backendUser.createdAt || new Date().toISOString(),
           updatedAt: backendUser.updated_at || backendUser.updatedAt,
+          ...(tenantRef ? { tenant: tenantRef } : {}),
         } as User
         
         // Handle tokens from nested tokens object
@@ -253,6 +258,9 @@ const authSlice = createSlice({
       .addCase(getUserProfile.fulfilled, (state, action) => {
         // Transform backend response
         const backendUser = action.payload as any
+        const tenantRef =
+          extractTenantFromAuthPayload({ user: action.payload }) ||
+          extractTenantFromAuthPayload(action.payload)
         state.user = {
           id: backendUser.id,
           email: backendUser.email,
@@ -264,6 +272,7 @@ const authSlice = createSlice({
           profilePicture: backendUser.profile_picture || backendUser.profilePicture,
           createdAt: backendUser.created_at || backendUser.createdAt || new Date().toISOString(),
           updatedAt: backendUser.updated_at || backendUser.updatedAt,
+          ...(tenantRef ? { tenant: tenantRef } : {}),
         } as User
       })
       
@@ -271,6 +280,9 @@ const authSlice = createSlice({
       .addCase(updateUserProfile.fulfilled, (state, action) => {
         // Transform backend response
         const backendUser = action.payload as any
+        const tenantRef =
+          extractTenantFromAuthPayload({ user: action.payload }) ||
+          extractTenantFromAuthPayload(action.payload)
         state.user = {
           id: backendUser.id,
           email: backendUser.email,
@@ -282,6 +294,7 @@ const authSlice = createSlice({
           profilePicture: backendUser.profile_picture || backendUser.profilePicture,
           createdAt: backendUser.created_at || backendUser.createdAt || new Date().toISOString(),
           updatedAt: backendUser.updated_at || backendUser.updatedAt,
+          ...(tenantRef ? { tenant: tenantRef } : {}),
         } as User
       })
   },

@@ -17,6 +17,13 @@ export interface Location {
   }
 }
 
+/** SaaS / multi-tenant organization reference (from API or login). */
+export interface TenantRef {
+  id: string
+  name?: string
+  slug?: string
+}
+
 // User types
 export interface User {
   id: string
@@ -30,6 +37,8 @@ export interface User {
   profilePicture?: string
   createdAt: string
   updatedAt?: string
+  /** Present when API returns org/tenant context for SaaS admins. */
+  tenant?: TenantRef
 }
 
 // Service Provider types

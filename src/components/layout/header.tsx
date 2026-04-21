@@ -31,6 +31,7 @@ import { useAppSelector, useAppDispatch } from '../../store/hooks'
 import { logout } from '../../store/slices/authSlice'
 import { NotificationBell } from '../notifications/NotificationBell'
 import { useSidebar } from '../../contexts/sidebar-context'
+import { SaasTenantIndicator } from './SaasTenantIndicator'
 
 interface HeaderProps {
   onMenuClick: () => void
@@ -113,6 +114,10 @@ export function Header({ onMenuClick }: HeaderProps) {
               }}
             />
           )}
+        </Box>
+
+        <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', mr: 1 }}>
+          <SaasTenantIndicator variant="header" />
         </Box>
 
         {/* Right side actions */}

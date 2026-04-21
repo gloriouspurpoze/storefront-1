@@ -34,6 +34,32 @@ export interface BazaarAdminConversationRow {
   updatedAt: string
 }
 
+/** User-submitted listings awaiting or past moderation */
+export interface BazaarAdminListingRow {
+  id: string
+  title: string
+  priceInr: number
+  moderationStatus: 'pending_review' | 'published' | 'rejected'
+  rejectionReason?: string | null
+  createdAt: string
+  seller?: { firstName?: string; lastName?: string; email?: string; userId?: string }
+}
+
+export interface BazaarProVerifyRequestRow {
+  id: string
+  listingId: string
+  contactPhone: string
+  slotPreferenceId: string
+  slotPreferenceLabel: string
+  workflowStep: 1 | 2 | 3 | 4
+  technicianSummary?: string
+  scheduledVisitAt?: string | null
+  consentAccepted: boolean
+  createdAt: string
+  updatedAt: string
+  seller?: { firstName?: string; lastName?: string; email?: string; userId?: string; phone?: string }
+}
+
 export class BazaarMarketplaceService {
   static async adminListOffers(params?: {
     page?: number
@@ -57,5 +83,60 @@ export class BazaarMarketplaceService {
       params,
       showSuccessToast: false,
     })
+  }
+
+  static async adminListListings(params?: {
+    page?: number
+    limit?: number
+    status?: 'pending_review' | 'published' | 'rejected'
+  }) {
+    const { status, ...rest } = params || {}
+    return api.get<BazaarAdminListingRow[]>('/bazaar/admin/listings', {
+      params: {
+        ...rest,
+        ...(status ? { status } : {}),
+      },
+      showSuccessToast: false,
+    })
+  }
+
+  static async adminModerateListing(
+    id: string,
+    body: { action: 'approve' | 'reject'; rejectionReason?: string }
+  ) {
+    return api.patch<unknown>(
+      `/bazaar/admin/listings/${encodeURIComponent(id)}/moderate`,
+      { action: body.action, rejectionReason: body.rejectionReason },
+      {
+        showSuccessToast: true,
+        successMessage:
+          body.action === 'approve' ? 'Listing published' : 'Listing rejected',
+      }
+    )
+  }
+
+  /** GET /api/bazaar/admin/pro-verify */
+  static async adminListProVerify(params?: { page?: number; limit?: number }) {
+    return api.get<BazaarProVerifyRequestRow[]>('/bazaar/admin/pro-verify', {
+      params,
+      showSuccessToast: false,
+    })
+  }
+
+  /** PATCH /api/bazaar/admin/pro-verify/:id */
+  static async adminPatchProVerify(
+    id: string,
+    body: {
+      workflowStep?: number
+      technicianSummary?: string
+      scheduledVisitAt?: string | null
+      adminInternalNote?: string
+    }
+  ) {
+    return api.patch<BazaarProVerifyRequestRow>(
+      `/bazaar/admin/pro-verify/${encodeURIComponent(id)}`,
+      body,
+      { showSuccessToast: true, successMessage: 'Pro-Verify updated' }
+    )
   }
 }

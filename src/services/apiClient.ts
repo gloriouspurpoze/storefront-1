@@ -2,6 +2,7 @@ import { store } from '../store'
 import { setLoading, addToast } from '../store/slices/uiSlice'
 import type { ApiError } from './api/base'
 import { ErrorHandler, isAuthCredentialFailure401 } from './api/error-handler'
+import { TENANT_HEADER } from '../lib/saasEnv'
 
 // API Client configuration
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api'
@@ -52,6 +53,7 @@ class ApiClient {
       // Get token from Redux store
       const state = store.getState()
       const token = state.auth?.token || null
+      const tenantId = state.tenant?.tenantId ?? null
 
       // Build URL with query parameters if params are provided
       let url = `${this.baseURL}${endpoint}`
@@ -75,6 +77,7 @@ class ApiClient {
           'Content-Type': 'application/json',
           ...(token && { Authorization: `Bearer ${token}` }),
           ...headers,
+          ...(tenantId ? { [TENANT_HEADER]: tenantId } : {}),
         },
         body: body ? JSON.stringify(body) : undefined,
       })
@@ -169,11 +172,13 @@ class ApiClient {
     try {
       const state = store.getState()
       const token = state.auth?.token || null
+      const tenantId = state.tenant?.tenantId ?? null
 
       const response = await fetch(`${this.baseURL}${endpoint}`, {
         method: 'POST',
         headers: {
           ...(token && { Authorization: `Bearer ${token}` }),
+          ...(tenantId ? { [TENANT_HEADER]: tenantId } : {}),
         },
         body: formData,
       })
