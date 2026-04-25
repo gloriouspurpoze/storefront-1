@@ -1,28 +1,18 @@
 import React, { useState } from 'react'
+import { Plus, Trash2, Info, CheckCircle2, AlertCircle, AlertTriangle } from 'lucide-react'
+import { Input } from '../ui/input'
+import { Label } from '../ui/label'
+import { Button } from '../ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
+import { Badge } from '../ui/badge'
 import {
-  Box,
-  Typography,
-  TextField,
-  Button,
-  IconButton,
-  Card,
-  CardContent,
-  Chip,
-  Stack,
-  Tooltip,
-  FormControl,
-  InputLabel,
   Select,
-  MenuItem,
-  Alert,
-} from '@mui/material'
-import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Info as InfoIcon,
-  Error as ErrorIcon,
-  CheckCircle as CheckIcon,
-} from '@mui/icons-material'
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select'
+import { cn } from '../../lib/utils'
 
 export interface Specification {
   key: string
@@ -45,6 +35,23 @@ export interface SpecificationFieldProps {
   maxSpecifications?: number
 }
 
+const StatusIcon = ({ status }: { status?: SpecificationFieldProps['status'] }) => {
+  if (!status) return null
+  const cls = 'h-4 w-4 shrink-0'
+  switch (status) {
+    case 'success':
+      return <CheckCircle2 className={cn(cls, 'text-green-600')} aria-hidden />
+    case 'error':
+      return <AlertCircle className={cn(cls, 'text-destructive')} aria-hidden />
+    case 'warning':
+      return <AlertTriangle className={cn(cls, 'text-amber-600')} aria-hidden />
+    case 'info':
+      return <Info className={cn(cls, 'text-muted-foreground')} aria-hidden />
+    default:
+      return null
+  }
+}
+
 export const SpecificationField: React.FC<SpecificationFieldProps> = ({
   label,
   value = [],
@@ -56,43 +63,24 @@ export const SpecificationField: React.FC<SpecificationFieldProps> = ({
   tooltip,
   status,
   groups = ['General', 'Technical', 'Physical', 'Warranty', 'Other'],
-  allowCustomGroups = true,
+  allowCustomGroups: _allowCustomGroups = true,
   maxSpecifications = 50,
 }) => {
   const [newKey, setNewKey] = useState('')
   const [newValue, setNewValue] = useState('')
   const [newGroup, setNewGroup] = useState('General')
 
-  const getStatusIcon = () => {
-    switch (status) {
-      case 'success':
-        return <CheckIcon color="success" fontSize="small" />
-      case 'error':
-        return <ErrorIcon color="error" fontSize="small" />
-      case 'warning':
-        return <ErrorIcon color="warning" fontSize="small" />
-      case 'info':
-        return <InfoIcon color="info" fontSize="small" />
-      default:
-        return null
-    }
-  }
-
-  const handleSpecificationChange = (index: number, field: keyof Specification, newValue: string) => {
-    const updatedSpecs = value.map((spec, i) =>
-      i === index ? { ...spec, [field]: newValue } : spec
-    )
-    onChange(updatedSpecs)
+  const handleSpecificationChange = (index: number, field: keyof Specification, v: string) => {
+    const updated = value.map((s, i) => (i === index ? { ...s, [field]: v } : s))
+    onChange(updated)
   }
 
   const addSpecification = () => {
     if (newKey.trim() && newValue.trim() && value.length < maxSpecifications) {
-      const newSpec: Specification = {
-        key: newKey.trim(),
-        value: newValue.trim(),
-        group: newGroup,
-      }
-      onChange([...value, newSpec])
+      onChange([
+        ...value,
+        { key: newKey.trim(), value: newValue.trim(), group: newGroup },
+      ])
       setNewKey('')
       setNewValue('')
       setNewGroup('General')
@@ -100,210 +88,200 @@ export const SpecificationField: React.FC<SpecificationFieldProps> = ({
   }
 
   const removeSpecification = (index: number) => {
-    const updatedSpecs = value.filter((_, i) => i !== index)
-    onChange(updatedSpecs)
+    onChange(value.filter((_, i) => i !== index))
   }
 
-  const groupedSpecs = value.reduce((acc, spec) => {
-    const group = spec.group || 'General'
-    if (!acc[group]) {
-      acc[group] = []
-    }
-    acc[group].push(spec)
+  const groupedSpecs = value.reduce<Record<string, Specification[]>>((acc, spec) => {
+    const g = spec.group || 'General'
+    if (!acc[g]) acc[g] = []
+    acc[g].push(spec)
     return acc
-  }, {} as Record<string, Specification[]>)
+  }, {})
 
   const canAddMore = value.length < maxSpecifications
 
   return (
-    <Box sx={{ width: '100%' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-        <Typography
-          variant="subtitle2"
-          sx={{
-            fontWeight: 600,
-            color: error ? 'error.main' : 'text.primary',
-          }}
+    <div className="w-full space-y-4">
+      <div className="mb-1 flex items-center gap-1">
+        <Label
+          className={cn('text-sm font-semibold', error && 'text-destructive')}
         >
           {label}
-          {required && (
-            <Typography component="span" color="error.main" sx={{ ml: 0.5 }}>
-              *
-            </Typography>
-          )}
-        </Typography>
+          {required && <span className="ml-0.5 text-destructive">*</span>}
+        </Label>
         {tooltip && (
-          <Tooltip title={tooltip} arrow>
-            <InfoIcon fontSize="small" color="action" />
-          </Tooltip>
+          <span title={tooltip} className="inline-flex cursor-default text-muted-foreground">
+            <Info className="h-4 w-4" />
+          </span>
         )}
-        {getStatusIcon()}
-      </Box>
+        <StatusIcon status={status} />
+      </div>
 
-      {/* Specifications List */}
       {value.length > 0 && (
-        <Box sx={{ mb: 3 }}>
+        <div className="space-y-3">
           {Object.entries(groupedSpecs).map(([group, specs]) => (
-            <Card key={group} sx={{ mb: 2 }}>
-              <CardContent sx={{ pb: 1 }}>
-                <Typography variant="subtitle2" sx={{ mb: 2, color: 'primary.main' }}>
+            <Card key={group}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base text-primary">
                   {group} ({specs.length})
-                </Typography>
-                <Stack spacing={1}>
-                  {specs.map((spec, index) => {
-                    const globalIndex = value.findIndex(s => s === spec)
-                    return (
-                      <Box key={globalIndex} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                        <TextField
-                          fullWidth
-                          label="Key"
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 pt-0">
+                {specs.map((spec) => {
+                  const globalIndex = value.findIndex((s) => s === spec)
+                  return (
+                    <div
+                      key={globalIndex}
+                      className="flex flex-col gap-2 sm:flex-row sm:items-end"
+                    >
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <Label className="text-xs">Key</Label>
+                        <Input
+                          className="h-9 w-full"
                           value={spec.key}
-                          onChange={(e) => handleSpecificationChange(globalIndex, 'key', e.target.value)}
-                          size="small"
+                          onChange={(e) =>
+                            handleSpecificationChange(globalIndex, 'key', e.target.value)
+                          }
                           disabled={disabled}
-                          variant="outlined"
                         />
-                        <TextField
-                          fullWidth
-                          label="Value"
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <Label className="text-xs">Value</Label>
+                        <Input
+                          className="h-9 w-full"
                           value={spec.value}
-                          onChange={(e) => handleSpecificationChange(globalIndex, 'value', e.target.value)}
-                          size="small"
+                          onChange={(e) =>
+                            handleSpecificationChange(globalIndex, 'value', e.target.value)
+                          }
                           disabled={disabled}
-                          variant="outlined"
                         />
-                        <FormControl size="small" sx={{ minWidth: 120 }}>
-                          <InputLabel>Group</InputLabel>
-                          <Select
-                            value={spec.group}
-                            label="Group"
-                            onChange={(e) => handleSpecificationChange(globalIndex, 'group', e.target.value)}
-                            disabled={disabled}
-                          >
-                            {groups.map((group) => (
-                              <MenuItem key={group} value={group}>
-                                {group}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                        <IconButton
-                          onClick={() => removeSpecification(globalIndex)}
-                          color="error"
+                      </div>
+                      <div className="w-full sm:w-32">
+                        <Label className="text-xs">Group</Label>
+                        <Select
+                          value={spec.group}
+                          onValueChange={(v) =>
+                            handleSpecificationChange(globalIndex, 'group', v)
+                          }
                           disabled={disabled}
-                          size="small"
                         >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Box>
-                    )
-                  })}
-                </Stack>
+                          <SelectTrigger className="h-9 w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {groups.map((g) => (
+                              <SelectItem key={g} value={g}>
+                                {g}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 shrink-0 self-end text-destructive hover:text-destructive"
+                        onClick={() => removeSpecification(globalIndex)}
+                        disabled={disabled}
+                        aria-label="Remove specification"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )
+                })}
               </CardContent>
             </Card>
           ))}
-        </Box>
+        </div>
       )}
 
-      {/* Add New Specification */}
       {canAddMore && (
-        <Card variant="outlined">
-          <CardContent>
-            <Typography variant="subtitle2" sx={{ mb: 2 }}>
-              Add New Specification
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-              <TextField
-                fullWidth
-                label="Specification Key"
-                value={newKey}
-                onChange={(e) => setNewKey(e.target.value)}
-                size="small"
-                disabled={disabled}
-                variant="outlined"
-                placeholder="e.g., Weight, Color, Material"
-              />
-              <TextField
-                fullWidth
-                label="Value"
-                value={newValue}
-                onChange={(e) => setNewValue(e.target.value)}
-                size="small"
-                disabled={disabled}
-                variant="outlined"
-                placeholder="e.g., 2.5 lbs, Red, Steel"
-              />
-              <FormControl size="small" sx={{ minWidth: 120 }}>
-                <InputLabel>Group</InputLabel>
+        <Card>
+          <CardContent className="pt-4">
+            <h4 className="mb-2 text-sm font-medium">Add New Specification</h4>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+              <div className="min-w-0 flex-1 space-y-1">
+                <Label className="text-xs">Specification Key</Label>
+                <Input
+                  className="h-9 w-full"
+                  value={newKey}
+                  onChange={(e) => setNewKey(e.target.value)}
+                  disabled={disabled}
+                  placeholder="e.g., Weight, Color, Material"
+                />
+              </div>
+              <div className="min-w-0 flex-1 space-y-1">
+                <Label className="text-xs">Value</Label>
+                <Input
+                  className="h-9 w-full"
+                  value={newValue}
+                  onChange={(e) => setNewValue(e.target.value)}
+                  disabled={disabled}
+                  placeholder="e.g., 2.5 lbs, Red, Steel"
+                />
+              </div>
+              <div className="w-full sm:w-32">
+                <Label className="text-xs">Group</Label>
                 <Select
                   value={newGroup}
-                  label="Group"
-                  onChange={(e) => setNewGroup(e.target.value)}
+                  onValueChange={setNewGroup}
                   disabled={disabled}
                 >
-                  {groups.map((group) => (
-                    <MenuItem key={group} value={group}>
-                      {group}
-                    </MenuItem>
-                  ))}
+                  <SelectTrigger className="h-9 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {groups.map((g) => (
+                      <SelectItem key={g} value={g}>
+                        {g}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
-              </FormControl>
+              </div>
               <Button
-                variant="outlined"
+                type="button"
+                variant="outline"
+                size="sm"
                 onClick={addSpecification}
                 disabled={!newKey.trim() || !newValue.trim() || disabled}
-                startIcon={<AddIcon />}
-                size="small"
-                sx={{ minWidth: 'auto', px: 2 }}
+                className="shrink-0"
+                leftIcon={<Plus className="h-4 w-4" />}
               >
                 Add
               </Button>
-            </Box>
+            </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Max Specifications Warning */}
       {!canAddMore && (
-        <Alert severity="warning" sx={{ mt: 2 }}>
+        <div
+          className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
+          role="status"
+        >
           Maximum {maxSpecifications} specifications allowed. Remove some to add more.
-        </Alert>
+        </div>
       )}
 
-      {/* Error Message */}
-      {error && (
-        <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
-          {error}
-        </Typography>
-      )}
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      {helperText && !error && <p className="text-sm text-muted-foreground">{helperText}</p>}
 
-      {/* Helper Text */}
-      {helperText && !error && (
-        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-          {helperText}
-        </Typography>
-      )}
-
-      {/* Summary */}
       {value.length > 0 && (
-        <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <Chip
-            label={`${value.length} specifications`}
-            color="primary"
-            variant="outlined"
-            size="small"
-          />
-          {Object.keys(groupedSpecs).map((group) => (
-            <Chip
-              key={group}
-              label={`${group}: ${groupedSpecs[group].length}`}
-              variant="outlined"
-              size="small"
-            />
+        <div className="flex flex-wrap gap-1">
+          <Badge variant="outline" className="text-xs">
+            {value.length} specifications
+          </Badge>
+          {Object.keys(groupedSpecs).map((g) => (
+            <Badge key={g} variant="outline" className="text-xs">
+              {g}: {groupedSpecs[g].length}
+            </Badge>
           ))}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   )
 }
 

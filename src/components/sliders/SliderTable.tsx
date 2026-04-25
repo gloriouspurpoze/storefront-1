@@ -1,33 +1,21 @@
 import React from 'react'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  IconButton,
-  Box,
-  Typography,
-  Avatar,
-  Tooltip,
-  Switch,
-} from '@mui/material'
-import {
-  MoreVert as MoreVertIcon,
+  MoreVertical,
   Image as ImageIcon,
-  Visibility as ViewIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  ArrowUpward as ArrowUpIcon,
-  ArrowDownward as ArrowDownIcon,
-  Schedule as ScheduleIcon,
-  Public as PublicIcon,
-  Group as GroupIcon,
-} from '@mui/icons-material'
+  Eye,
+  Pencil,
+  Trash2,
+  ArrowUp,
+  ArrowDown,
+  Globe,
+  Users,
+} from 'lucide-react'
 import { Slider } from '../../types'
+import { cn } from '../../lib/utils'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
+import { Badge } from '../ui/badge'
+import { Button } from '../ui/button'
+import { Switch } from '../ui/switch'
 
 interface SliderTableProps {
   sliders: Slider[]
@@ -38,41 +26,35 @@ interface SliderTableProps {
   onMoveDown?: (slider: Slider) => void
 }
 
-export function SliderTable({ 
-  sliders, 
-  loading, 
-  onMenuClick, 
+function audienceIcon(audience: string) {
+  const c = 'h-3.5 w-3.5'
+  switch (audience) {
+    case 'customers':
+    case 'providers':
+      return <Users className={c} />
+    default:
+      return <Globe className={c} />
+  }
+}
+
+export function SliderTable({
+  sliders,
+  loading,
+  onMenuClick,
   onToggleStatus,
   onMoveUp,
-  onMoveDown 
+  onMoveDown,
 }: SliderTableProps) {
-  const getStatusColor = (isActive: boolean) => {
-    return isActive ? 'success' : 'default'
-  }
-
-  const getAudienceColor = (audience: string) => {
+  const getAudienceVariant = (audience: string): 'default' | 'secondary' | 'outline' => {
     switch (audience) {
       case 'all':
-        return 'primary'
-      case 'customers':
-        return 'success'
-      case 'providers':
-        return 'info'
-      default:
         return 'default'
-    }
-  }
-
-  const getAudienceIcon = (audience: string) => {
-    switch (audience) {
-      case 'all':
-        return <PublicIcon fontSize="small" />
       case 'customers':
-        return <GroupIcon fontSize="small" />
+        return 'secondary'
       case 'providers':
-        return <GroupIcon fontSize="small" />
+        return 'outline'
       default:
-        return <PublicIcon fontSize="small" />
+        return 'secondary'
     }
   }
 
@@ -87,252 +69,195 @@ export function SliderTable({
 
   if (loading) {
     return (
-      <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
+      <div className="overflow-hidden rounded-lg border">
         <Table>
           <TableBody>
             <TableRow>
-              <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
-                <Typography color="text.secondary">Loading sliders...</Typography>
+              <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
+                Loading sliders...
               </TableCell>
             </TableRow>
           </TableBody>
         </Table>
-      </TableContainer>
+      </div>
     )
   }
 
   return (
-    <TableContainer component={Paper} sx={{ borderRadius: 2, overflow: 'hidden' }}>
+    <div className="overflow-hidden rounded-lg border border-border bg-card">
       <Table>
-        <TableHead>
-          <TableRow sx={{ bgcolor: 'grey.50' }}>
-            <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Preview</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Title</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Position</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Status</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Audience</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Schedule</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Actions</TableCell>
-            <TableCell align="right" sx={{ fontWeight: 600, color: 'text.primary' }}>Menu</TableCell>
+        <TableHeader>
+          <TableRow className="bg-muted/50">
+            <TableHead className="font-semibold">Preview</TableHead>
+            <TableHead className="font-semibold">Title</TableHead>
+            <TableHead className="font-semibold">Position</TableHead>
+            <TableHead className="font-semibold">Status</TableHead>
+            <TableHead className="font-semibold">Audience</TableHead>
+            <TableHead className="font-semibold">Schedule</TableHead>
+            <TableHead className="font-semibold">Actions</TableHead>
+            <TableHead className="text-right font-semibold">Menu</TableHead>
           </TableRow>
-        </TableHead>
+        </TableHeader>
         <TableBody>
           {sliders.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
-                <Typography color="text.secondary">No sliders found</Typography>
+              <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
+                No sliders found
               </TableCell>
             </TableRow>
           ) : (
             sliders.map((slider, index) => (
-              <TableRow key={slider.id} hover>
-                <TableCell sx={{ py: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar
-                      variant="rounded"
-                      sx={{ 
-                        width: 60, 
-                        height: 40, 
-                        bgcolor: 'grey.100',
-                        border: '1px solid',
-                        borderColor: 'grey.300'
-                      }}
-                    >
+              <TableRow key={slider.id}>
+                <TableCell className="py-3">
+                  <div className="flex max-w-xs items-center gap-2">
+                    <div className="h-10 w-16 shrink-0 overflow-hidden rounded border border-border bg-muted">
                       {slider.image_url ? (
                         <img
                           src={slider.image_url}
                           alt={slider.image_alt || slider.title}
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                            borderRadius: '4px'
-                          }}
+                          className="h-full w-full object-cover"
                         />
                       ) : (
-                        <ImageIcon color="action" />
+                        <div className="flex h-full w-full items-center justify-center">
+                          <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                        </div>
                       )}
-                    </Avatar>
-                    <Box>
-                      <Typography variant="body2" fontWeight="500" noWrap>
-                        {slider.title}
-                      </Typography>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{slider.title}</p>
                       {slider.subtitle && (
-                        <Typography variant="caption" color="text.secondary" noWrap>
-                          {slider.subtitle}
-                        </Typography>
+                        <p className="truncate text-xs text-muted-foreground">{slider.subtitle}</p>
                       )}
-                    </Box>
-                  </Box>
+                    </div>
+                  </div>
                 </TableCell>
-                
-                <TableCell sx={{ py: 2 }}>
-                  <Box>
-                    <Typography variant="body2" fontWeight="500">
-                      {slider.title}
-                    </Typography>
-                    {slider.subtitle && (
-                      <Typography variant="caption" color="text.secondary">
-                        {slider.subtitle}
-                      </Typography>
-                    )}
-                  </Box>
+                <TableCell className="py-3">
+                  <p className="text-sm font-medium">{slider.title}</p>
+                  {slider.subtitle && (
+                    <p className="text-xs text-muted-foreground">{slider.subtitle}</p>
+                  )}
                 </TableCell>
-                
-                <TableCell sx={{ py: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="body2" fontWeight="500">
-                      {slider.position}
-                    </Typography>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                <TableCell className="py-3">
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-medium">{slider.position}</span>
+                    <div className="flex flex-col">
                       {onMoveUp && index > 0 && (
-                        <Tooltip title="Move up">
-                          <IconButton
-                            size="small"
-                            onClick={() => onMoveUp(slider)}
-                            sx={{ p: 0.5 }}
-                          >
-                            <ArrowUpIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          title="Move up"
+                          onClick={() => onMoveUp(slider)}
+                        >
+                          <ArrowUp className="h-3.5 w-3.5" />
+                        </Button>
                       )}
                       {onMoveDown && index < sliders.length - 1 && (
-                        <Tooltip title="Move down">
-                          <IconButton
-                            size="small"
-                            onClick={() => onMoveDown(slider)}
-                            sx={{ p: 0.5 }}
-                          >
-                            <ArrowDownIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          title="Move down"
+                          onClick={() => onMoveDown(slider)}
+                        >
+                          <ArrowDown className="h-3.5 w-3.5" />
+                        </Button>
                       )}
-                    </Box>
-                  </Box>
+                    </div>
+                  </div>
                 </TableCell>
-                
-                <TableCell sx={{ py: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <TableCell className="py-3">
+                  <div className="flex items-center gap-2">
                     <Switch
                       checked={slider.is_active}
-                      onChange={() => onToggleStatus?.(slider)}
-                      size="small"
-                      color="success"
+                      onCheckedChange={() => onToggleStatus?.(slider)}
                     />
-                    <Chip
-                      label={slider.is_active ? 'Active' : 'Inactive'}
-                      color={getStatusColor(slider.is_active) as any}
-                      size="small"
-                      sx={{ borderRadius: 2, fontWeight: 500 }}
-                    />
-                  </Box>
+                    <Badge variant={slider.is_active ? 'default' : 'secondary'}>
+                      {slider.is_active ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </div>
                 </TableCell>
-                
-                <TableCell sx={{ py: 2 }}>
-                  <Chip
-                    icon={getAudienceIcon(slider.target_audience || 'all')}
-                    label={
-                      slider.target_audience
-                        ? slider.target_audience.charAt(0).toUpperCase() + slider.target_audience.slice(1)
-                        : 'All'
-                    }
-                    color={getAudienceColor(slider.target_audience || 'all') as any}
-                    size="small"
-                    sx={{ borderRadius: 2, fontWeight: 500 }}
-                  />
+                <TableCell className="py-3">
+                  <Badge variant={getAudienceVariant(slider.target_audience || 'all')} className="gap-1">
+                    {audienceIcon(slider.target_audience || 'all')}
+                    {slider.target_audience
+                      ? slider.target_audience.charAt(0).toUpperCase() + slider.target_audience.slice(1)
+                      : 'All'}
+                  </Badge>
                 </TableCell>
-                
-                <TableCell sx={{ py: 2 }}>
-                  <Box>
-                    {slider.start_date && (
-                      <Typography variant="caption" color="text.secondary" display="block">
-                        Start: {formatDate(slider.start_date)}
-                      </Typography>
-                    )}
-                    {slider.end_date && (
-                      <Typography 
-                        variant="caption" 
-                        color={isExpired(slider.end_date) ? 'error.main' : 'text.secondary'} 
-                        display="block"
-                      >
-                        End: {formatDate(slider.end_date)}
-                        {isExpired(slider.end_date) && ' (Expired)'}
-                      </Typography>
-                    )}
-                    {!slider.start_date && !slider.end_date && (
-                      <Typography variant="caption" color="text.secondary">
-                        No schedule
-                      </Typography>
-                    )}
-                  </Box>
+                <TableCell className="py-3">
+                  {slider.start_date && (
+                    <span className="block text-xs text-muted-foreground">
+                      Start: {formatDate(slider.start_date)}
+                    </span>
+                  )}
+                  {slider.end_date && (
+                    <span
+                      className={cn(
+                        'block text-xs',
+                        isExpired(slider.end_date) ? 'text-destructive' : 'text-muted-foreground',
+                      )}
+                    >
+                      End: {formatDate(slider.end_date)}
+                      {isExpired(slider.end_date) && ' (Expired)'}
+                    </span>
+                  )}
+                  {!slider.start_date && !slider.end_date && (
+                    <span className="text-xs text-muted-foreground">No schedule</span>
+                  )}
                 </TableCell>
-                
-                <TableCell sx={{ py: 2 }}>
-                  <Box sx={{ display: 'flex', gap: 0.5 }}>
-                    <Tooltip title="View Details">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => onMenuClick(e, slider)}
-                        sx={{
-                          '&:hover': {
-                            bgcolor: 'primary.100',
-                            color: 'primary.main'
-                          }
-                        }}
-                      >
-                        <ViewIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Edit">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => onMenuClick(e, slider)}
-                        sx={{
-                          '&:hover': {
-                            bgcolor: 'warning.100',
-                            color: 'warning.main'
-                          }
-                        }}
-                      >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => onMenuClick(e, slider)}
-                        sx={{
-                          '&:hover': {
-                            bgcolor: 'error.100',
-                            color: 'error.main'
-                          }
-                        }}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
+                <TableCell className="py-3">
+                  <div className="flex gap-0.5">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      title="View Details"
+                      onClick={(e) => onMenuClick(e, slider)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      title="Edit"
+                      onClick={(e) => onMenuClick(e, slider)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive"
+                      title="Delete"
+                      onClick={(e) => onMenuClick(e, slider)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TableCell>
-                
-                <TableCell align="right" sx={{ py: 2 }}>
-                  <IconButton
-                    size="small"
+                <TableCell className="py-3 text-right">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
                     onClick={(e) => onMenuClick(e, slider)}
-                    sx={{
-                      '&:hover': {
-                        bgcolor: 'primary.100',
-                        color: 'primary.main'
-                      }
-                    }}
                   >
-                    <MoreVertIcon />
-                  </IconButton>
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
                 </TableCell>
               </TableRow>
             ))
           )}
         </TableBody>
       </Table>
-    </TableContainer>
+    </div>
   )
 }

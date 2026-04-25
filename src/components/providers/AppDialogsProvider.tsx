@@ -6,15 +6,18 @@ import React, {
   useRef,
   useState,
 } from 'react'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
+import { Label } from '../ui/label'
+import { Textarea } from '../ui/textarea'
 import {
-  Button,
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  TextField,
-  Typography,
-} from '@mui/material'
+} from '../ui/dialog'
 
 export type AppConfirmOptions = {
   title: string
@@ -82,82 +85,85 @@ export function AppDialogsProvider({ children }: { children: React.ReactNode }) 
     promptResolve.current(value)
   }, [])
 
-  const value = useMemo(
-    () => ({ confirm, prompt }),
-    [confirm, prompt]
-  )
+  const value = useMemo(() => ({ confirm, prompt }), [confirm, prompt])
 
   return (
     <AppDialogsContext.Provider value={value}>
       {children}
 
-      <Dialog
-        open={confirmOpen}
-        onClose={() => finishConfirm(false)}
-        maxWidth="xs"
-        fullWidth
-        aria-labelledby="app-confirm-title"
-      >
-        <DialogTitle id="app-confirm-title">{confirmOpts.title}</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
-            {confirmOpts.message}
-          </Typography>
+      <Dialog open={confirmOpen} onOpenChange={(o) => !o && finishConfirm(false)}>
+        <DialogContent
+          className="max-w-md"
+          aria-describedby="app-confirm-message"
+        >
+          <DialogHeader>
+            <DialogTitle id="app-confirm-title">{confirmOpts.title}</DialogTitle>
+            <DialogDescription id="app-confirm-message" className="whitespace-pre-wrap">
+              {confirmOpts.message}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => finishConfirm(false)}>
+              {confirmOpts.cancelLabel ?? 'Cancel'}
+            </Button>
+            <Button
+              type="button"
+              variant={confirmOpts.danger ? 'destructive' : 'default'}
+              autoFocus
+              onClick={() => finishConfirm(true)}
+            >
+              {confirmOpts.confirmLabel ?? 'OK'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => finishConfirm(false)} variant="outlined">
-            {confirmOpts.cancelLabel ?? 'Cancel'}
-          </Button>
-          <Button
-            onClick={() => finishConfirm(true)}
-            variant="contained"
-            color={confirmOpts.danger ? 'error' : 'primary'}
-            autoFocus
-          >
-            {confirmOpts.confirmLabel ?? 'OK'}
-          </Button>
-        </DialogActions>
       </Dialog>
 
-      <Dialog
-        open={promptOpen}
-        onClose={() => finishPrompt(null)}
-        maxWidth="sm"
-        fullWidth
-        aria-labelledby="app-prompt-title"
-      >
-        <DialogTitle id="app-prompt-title">{promptOpts.title}</DialogTitle>
-        <DialogContent>
-          {promptOpts.message ? (
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {promptOpts.message}
-            </Typography>
-          ) : null}
-          <TextField
-            autoFocus
-            margin="dense"
-            label={promptOpts.label ?? 'Value'}
-            fullWidth
-            multiline={promptOpts.multiline}
-            minRows={promptOpts.multiline ? 3 : 1}
-            value={promptValue}
-            onChange={(e) => setPromptValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !promptOpts.multiline && !e.shiftKey) {
-                e.preventDefault()
-                finishPrompt(promptValue)
-              }
-            }}
-          />
+      <Dialog open={promptOpen} onOpenChange={(o) => !o && finishPrompt(null)}>
+        <DialogContent
+          className="max-w-md"
+          aria-describedby={promptOpts.message ? 'app-prompt-message' : undefined}
+        >
+          <DialogHeader>
+            <DialogTitle id="app-prompt-title">{promptOpts.title}</DialogTitle>
+            {promptOpts.message ? (
+              <DialogDescription id="app-prompt-message">{promptOpts.message}</DialogDescription>
+            ) : null}
+          </DialogHeader>
+          <div className="grid gap-2 py-2">
+            <Label htmlFor="app-prompt-input">{promptOpts.label ?? 'Value'}</Label>
+            {promptOpts.multiline ? (
+              <Textarea
+                id="app-prompt-input"
+                className="min-h-[100px] resize-y"
+                value={promptValue}
+                onChange={(e) => setPromptValue(e.target.value)}
+                autoFocus
+                rows={3}
+              />
+            ) : (
+              <Input
+                id="app-prompt-input"
+                value={promptValue}
+                onChange={(e) => setPromptValue(e.target.value)}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    finishPrompt(promptValue)
+                  }
+                }}
+              />
+            )}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => finishPrompt(null)}>
+              {promptOpts.cancelLabel ?? 'Cancel'}
+            </Button>
+            <Button type="button" onClick={() => finishPrompt(promptValue)}>
+              {promptOpts.confirmLabel ?? 'OK'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => finishPrompt(null)} variant="outlined">
-            {promptOpts.cancelLabel ?? 'Cancel'}
-          </Button>
-          <Button onClick={() => finishPrompt(promptValue)} variant="contained">
-            {promptOpts.confirmLabel ?? 'OK'}
-          </Button>
-        </DialogActions>
       </Dialog>
     </AppDialogsContext.Provider>
   )
@@ -171,7 +177,6 @@ export function useAppDialogs(): AppDialogsContextValue {
   return ctx
 }
 
-/** Convenience: confirm only */
 export function useAppConfirm() {
   return useAppDialogs().confirm
 }

@@ -1,15 +1,13 @@
 import React from 'react'
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
-  Typography,
-  Box,
-  IconButton,
-} from '@mui/material'
-import { Close as CloseIcon } from '@mui/icons-material'
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '../ui/dialog'
+import { Button } from '../ui/button'
 
 interface ConfirmDialogProps {
   open: boolean
@@ -34,71 +32,41 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
   loading = false,
-  severity = 'info'
+  severity = 'info',
 }: ConfirmDialogProps) {
-  const getConfirmButtonColor = () => {
-    if (confirmColor) return confirmColor
-    switch (severity) {
-      case 'error':
-        return 'error'
-      case 'warning':
-        return 'warning'
-      default:
-        return 'primary'
-    }
+  const getConfirmVariant = () => {
+    if (confirmColor === 'error' || severity === 'error') return 'destructive' as const
+    if (confirmColor === 'secondary') return 'secondary' as const
+    return 'default' as const
   }
 
   return (
     <Dialog
       open={open}
-      onClose={onCancel}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{
-        sx: { borderRadius: 2 }
+      onOpenChange={(newOpen) => {
+        if (!newOpen && !loading) onCancel()
       }}
     >
-      <DialogTitle sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        pb: 1
-      }}>
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          {title}
-        </Typography>
-        <IconButton
-          onClick={onCancel}
-          size="small"
-          disabled={loading}
-        >
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
-      
-      <DialogContent sx={{ pt: 1 }}>
-        <Typography variant="body1" color="text.secondary">
-          {message}
-        </Typography>
+      <DialogContent className="max-w-sm sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{message}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="mt-2 gap-2 sm:justify-end">
+          <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
+            {cancelText}
+          </Button>
+          <Button
+            type="button"
+            variant={getConfirmVariant()}
+            onClick={onConfirm}
+            disabled={loading}
+            loading={loading}
+          >
+            {confirmText}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      
-      <DialogActions sx={{ p: 3, pt: 2 }}>
-        <Button
-          onClick={onCancel}
-          disabled={loading}
-          variant="outlined"
-        >
-          {cancelText}
-        </Button>
-        <Button
-          onClick={onConfirm}
-          disabled={loading}
-          variant="contained"
-          color={getConfirmButtonColor()}
-        >
-          {confirmText}
-        </Button>
-      </DialogActions>
     </Dialog>
   )
 }

@@ -35,7 +35,7 @@ Updated all relative import paths from `../` to `../../` for files in subdirecto
 - ✅ `src/pages/dashboard/smart-dashboard.tsx`
 - ✅ `src/pages/dashboard/dashboard.tsx`
 - ✅ `src/pages/dashboard/analytics.tsx`
-- ✅ `src/pages/dashboard/admin-earnings-overview.tsx`
+- ✅ `src/pages/payments/admin-earnings-overview.tsx`
 - ✅ `src/pages/auth/auth.tsx`
 - ✅ `src/pages/auth/signup.tsx`
 - ✅ `src/pages/auth/unauthorized.tsx`

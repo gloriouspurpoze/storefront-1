@@ -1,26 +1,23 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Pagination,
-  Paper,
-  Select,
-  Stack,
-  TextField,
-  Typography,
-} from '@mui/material'
+import { Loader2 } from 'lucide-react'
 import { BazaarGuidanceAccordion } from './BazaarGuidanceAccordion'
 import { PageHeader } from '../../components/common/PageHeader'
 import {
   BazaarMarketplaceService,
   type BazaarProVerifyRequestRow,
 } from '../../services/api/bazaarMarketplace.service'
-
+import { Button } from '../../components/ui/button'
+import { Card, CardContent } from '../../components/ui/card'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
+import { Textarea } from '../../components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select'
 function formatSeller(r: BazaarProVerifyRequestRow): string {
   const s = r.seller
   if (!s || typeof s !== 'object') return '—'
@@ -68,9 +65,7 @@ export default function BazaarProVerifyModeration() {
               workflowStep: r.workflowStep,
               technicianSummary: r.technicianSummary ?? '',
               adminInternalNote: '',
-              scheduledVisitAt: r.scheduledVisitAt
-                ? r.scheduledVisitAt.slice(0, 16)
-                : '',
+              scheduledVisitAt: r.scheduledVisitAt ? r.scheduledVisitAt.slice(0, 16) : '',
             }
           }
         }
@@ -98,9 +93,7 @@ export default function BazaarProVerifyModeration() {
         workflowStep: d.workflowStep,
         technicianSummary: d.technicianSummary.trim() || undefined,
         adminInternalNote: d.adminInternalNote.trim() || undefined,
-        scheduledVisitAt: d.scheduledVisitAt
-          ? new Date(d.scheduledVisitAt).toISOString()
-          : null,
+        scheduledVisitAt: d.scheduledVisitAt ? new Date(d.scheduledVisitAt).toISOString() : null,
       })
       void load()
     } catch (e) {
@@ -111,7 +104,7 @@ export default function BazaarProVerifyModeration() {
   }
 
   return (
-    <Box>
+    <div className="p-4">
       <PageHeader
         title="Bazaar — Pro-Verify queue"
         subtitle="Advance seller on-site verification; step 4 marks the listing ProFixer Certified"
@@ -119,33 +112,39 @@ export default function BazaarProVerifyModeration() {
 
       <BazaarGuidanceAccordion />
 
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, maxWidth: 880 }}>
-        Same admin session as <strong>Listing review</strong>. Step 4 updates the public listing badge;
-        sellers see progress in the Bazaar app.
-      </Typography>
+      <p className="mb-3 max-w-3xl text-sm text-muted-foreground">
+        Same admin session as <strong>Listing review</strong>. Step 4 updates the public listing badge; sellers see
+        progress in the Bazaar app.
+      </p>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+        <div
+          className="mb-3 flex items-center justify-between gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          role="alert"
+        >
           {error}
-        </Alert>
+          <Button type="button" variant="ghost" size="sm" onClick={() => setError(null)}>
+            Dismiss
+          </Button>
+        </div>
       )}
 
-      <Stack direction="row" justifyContent="flex-end" sx={{ mb: 2 }}>
-        <Button variant="outlined" onClick={() => void load()} disabled={loading}>
+      <div className="mb-3 flex justify-end">
+        <Button type="button" variant="outline" onClick={() => void load()} disabled={loading}>
           Refresh
         </Button>
-      </Stack>
+      </div>
 
       {loading && rows.length === 0 ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-          <CircularProgress />
-        </Box>
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
       ) : rows.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Typography color="text.secondary">No Pro-Verify requests yet.</Typography>
-        </Paper>
+        <Card>
+          <CardContent className="p-8 text-center text-sm text-muted-foreground">No Pro-Verify requests yet.</CardContent>
+        </Card>
       ) : (
-        <Stack spacing={3}>
+        <div className="space-y-4">
           {rows.map((r) => {
             const d = drafts[r.id] ?? {
               workflowStep: r.workflowStep,
@@ -154,101 +153,116 @@ export default function BazaarProVerifyModeration() {
               scheduledVisitAt: r.scheduledVisitAt ? r.scheduledVisitAt.slice(0, 16) : '',
             }
             return (
-              <Paper key={r.id} sx={{ p: 2.5 }}>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                  Listing ID
-                </Typography>
-                <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 600, mb: 1 }}>
-                  {r.listingId}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  +91 {r.contactPhone} · {r.slotPreferenceLabel} · Seller: {formatSeller(r)}
-                </Typography>
+              <Card key={r.id}>
+                <CardContent className="space-y-3 p-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Listing ID</p>
+                    <p className="font-mono text-sm font-semibold">{r.listingId}</p>
+                    <p className="text-sm text-muted-foreground">
+                      +91 {r.contactPhone} · {r.slotPreferenceLabel} · Seller: {formatSeller(r)}
+                    </p>
+                  </div>
 
-                <Stack spacing={2} sx={{ maxWidth: 480 }}>
-                  <FormControl size="small" fullWidth>
-                    <InputLabel id={`step-${r.id}`}>Workflow step</InputLabel>
-                    <Select
-                      labelId={`step-${r.id}`}
-                      label="Workflow step"
-                      value={d.workflowStep}
-                      onChange={(e) =>
-                        setDrafts((prev) => ({
-                          ...prev,
-                          [r.id]: { ...d, workflowStep: Number(e.target.value) },
-                        }))
-                      }
+                  <div className="max-w-md space-y-3">
+                    <div>
+                      <Label>Workflow step</Label>
+                      <Select
+                        value={String(d.workflowStep)}
+                        onValueChange={(v) =>
+                          setDrafts((prev) => ({
+                            ...prev,
+                            [r.id]: { ...d, workflowStep: Number(v) },
+                          }))
+                        }
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1 — Request received</SelectItem>
+                          <SelectItem value="2">2 — Technician / visit scheduled</SelectItem>
+                          <SelectItem value="3">3 — Inspection & listing update</SelectItem>
+                          <SelectItem value="4">4 — Certified (badge on listing)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Dispatch note (shown to seller)</Label>
+                      <Textarea
+                        className="mt-1"
+                        value={d.technicianSummary}
+                        onChange={(e) =>
+                          setDrafts((prev) => ({
+                            ...prev,
+                            [r.id]: { ...d, technicianSummary: e.target.value },
+                          }))
+                        }
+                        placeholder="e.g. Technician assigned — window confirmed"
+                        rows={2}
+                      />
+                    </div>
+                    <div>
+                      <Label>Visit (local)</Label>
+                      <Input
+                        className="mt-1"
+                        type="datetime-local"
+                        value={d.scheduledVisitAt}
+                        onChange={(e) =>
+                          setDrafts((prev) => ({
+                            ...prev,
+                            [r.id]: { ...d, scheduledVisitAt: e.target.value },
+                          }))
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label>Internal note (ops only)</Label>
+                      <Input
+                        className="mt-1"
+                        value={d.adminInternalNote}
+                        onChange={(e) =>
+                          setDrafts((prev) => ({
+                            ...prev,
+                            [r.id]: { ...d, adminInternalNote: e.target.value },
+                          }))
+                        }
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      disabled={savingId === r.id}
+                      onClick={() => void saveRow(r)}
                     >
-                      <MenuItem value={1}>1 — Request received</MenuItem>
-                      <MenuItem value={2}>2 — Technician / visit scheduled</MenuItem>
-                      <MenuItem value={3}>3 — Inspection & listing update</MenuItem>
-                      <MenuItem value={4}>4 — Certified (badge on listing)</MenuItem>
-                    </Select>
-                  </FormControl>
-                  <TextField
-                    size="small"
-                    fullWidth
-                    label="Dispatch note (shown to seller)"
-                    value={d.technicianSummary}
-                    onChange={(e) =>
-                      setDrafts((prev) => ({
-                        ...prev,
-                        [r.id]: { ...d, technicianSummary: e.target.value },
-                      }))
-                    }
-                    placeholder="e.g. Technician assigned — window confirmed"
-                  />
-                  <TextField
-                    size="small"
-                    fullWidth
-                    type="datetime-local"
-                    label="Visit (local)"
-                    InputLabelProps={{ shrink: true }}
-                    value={d.scheduledVisitAt}
-                    onChange={(e) =>
-                      setDrafts((prev) => ({
-                        ...prev,
-                        [r.id]: { ...d, scheduledVisitAt: e.target.value },
-                      }))
-                    }
-                  />
-                  <TextField
-                    size="small"
-                    fullWidth
-                    label="Internal note (ops only)"
-                    value={d.adminInternalNote}
-                    onChange={(e) =>
-                      setDrafts((prev) => ({
-                        ...prev,
-                        [r.id]: { ...d, adminInternalNote: e.target.value },
-                      }))
-                    }
-                  />
-                  <Button
-                    variant="contained"
-                    disabled={savingId === r.id}
-                    onClick={() => void saveRow(r)}
-                    sx={{ alignSelf: 'flex-start' }}
-                  >
-                    {savingId === r.id ? 'Saving…' : 'Save progress'}
-                  </Button>
-                </Stack>
-              </Paper>
+                      {savingId === r.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {savingId === r.id ? 'Saving…' : 'Save progress'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             )
           })}
-        </Stack>
+        </div>
       )}
 
       {totalPages > 1 ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-          <Pagination
-            count={totalPages}
-            page={page}
-            onChange={(_, p) => setPage(p)}
-            color="primary"
-          />
-        </Box>
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+          <Button type="button" variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+            Previous
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            Page {page} of {totalPages}
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            Next
+          </Button>
+        </div>
       ) : null}
-    </Box>
+    </div>
   )
 }

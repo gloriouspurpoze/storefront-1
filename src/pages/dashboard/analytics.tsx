@@ -1,32 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  useTheme,
-  Stack,
-  Paper,
-  Chip,
-  CircularProgress,
-  Alert,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
-import {
-  AttachMoney as DollarIcon,
-  People as PeopleIcon,
-  ShoppingCart as CartIcon,
-  Assignment as AssignmentIcon,
-  Star as StarIcon,
-  Schedule as ScheduleIcon,
-  Download as DownloadIcon,
-  Refresh as RefreshIcon,
-} from '@mui/icons-material'
+  IndianRupee,
+  ShoppingCart,
+  Users,
+  ClipboardList,
+  Star,
+  CalendarClock,
+  Download,
+  RefreshCw,
+  Loader2,
+} from 'lucide-react'
 import {
   XAxis,
   YAxis,
@@ -46,8 +29,23 @@ import { StatCard } from '../../shared/components'
 import { TIME_RANGES } from '../../constants'
 import { AnalyticsService } from '../../services/api'
 import type { DashboardAnalytics } from '../../types'
+import { Card, CardContent } from '../../components/ui/card'
+import { Button } from '../../components/ui/button'
+import { Label } from '../../components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select'
+import { Badge } from '../../components/ui/badge'
 
 const CHART_COLORS = ['#2563eb', '#7c3aed', '#059669', '#dc2626', '#d97706', '#0891b2', '#4f46e5', '#b45309']
+const COL_PRIMARY = '#2563eb'
+const COL_SECONDARY = '#7c3aed'
+const COL_INFO = '#0ea5e9'
+const COL_SUCCESS = '#16a34a'
 
 function getMonthsFromTimeRange(timeRange: string): number {
   switch (timeRange) {
@@ -94,8 +92,7 @@ function getDateRangeFromTimeRange(timeRange: string): { startDate: string; endD
 }
 
 export function Analytics() {
-  const theme = useTheme()
-  const [timeRange, setTimeRange] = useState('6m')
+  const [timeRange, setTimeRange] = useState<string>(TIME_RANGES.LAST_6_MONTHS)
   const [selectedMetric, setSelectedMetric] = useState('revenue')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -114,7 +111,13 @@ export function Analytics() {
   } | null>(null)
   const [providerAnalytics, setProviderAnalytics] = useState<{
     totalProviders: number
-    topProviders: Array<{ id: string; businessName: string; rating: number; totalBookings: number; totalRevenue: number }>
+    topProviders: Array<{
+      id: string
+      businessName: string
+      rating: number
+      totalBookings: number
+      totalRevenue: number
+    }>
   } | null>(null)
   const [bookingAnalytics, setBookingAnalytics] = useState<{
     completionRate: number
@@ -173,7 +176,13 @@ export function Analytics() {
       if (providersRes.status === 'fulfilled' && providersRes.value?.success && providersRes.value?.data) {
         const data = providersRes.value.data as {
           totalProviders: number
-          topProviders: Array<{ id: string; businessName: string; rating: number; totalBookings: number; totalRevenue: number }>
+          topProviders: Array<{
+            id: string
+            businessName: string
+            rating: number
+            totalBookings: number
+            totalRevenue: number
+          }>
         }
         setProviderAnalytics({
           totalProviders: data.totalProviders ?? 0,
@@ -247,136 +256,127 @@ export function Analytics() {
 
   if (loading && !overview && !revenueAnalytics) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-        <CircularProgress size={60} />
-      </Box>
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="h-14 w-14 animate-spin text-primary" />
+      </div>
     )
   }
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 4 }}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-            Analytics Dashboard
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Track your business performance and key metrics
-          </Typography>
-        </Box>
-        <Stack direction="row" spacing={1}>
-          <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={handleRefresh}
-            disabled={loading}
-          >
+    <div className="min-h-screen flex-1">
+      <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Analytics dashboard</h1>
+          <p className="text-muted-foreground">Track your business performance and key metrics</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" className="gap-1" onClick={handleRefresh} disabled={loading}>
+            <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
-          <Button
-            variant="contained"
-            startIcon={<DownloadIcon />}
-            onClick={handleExport}
-          >
+          <Button type="button" className="gap-1" onClick={handleExport}>
+            <Download className="h-4 w-4" />
             Export
           </Button>
-        </Stack>
-      </Box>
+        </div>
+      </div>
+
       {error && (
-        <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
+        <div
+          className="mb-4 rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-200"
+          role="alert"
+        >
+          <div className="flex items-center justify-between gap-2">
+            {error}
+            <Button type="button" variant="ghost" size="sm" onClick={() => setError(null)}>
+              Dismiss
+            </Button>
+          </div>
+        </div>
       )}
-      {/* Controls */}
-      <Card sx={{ mb: 4 }}>
-        <CardContent>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth>
-                <InputLabel>Time Range</InputLabel>
-                <Select
-                  value={timeRange}
-                  label="Time Range"
-                  onChange={(e) => setTimeRange(e.target.value)}
-                >
-                  <MenuItem value={TIME_RANGES.LAST_7_DAYS}>Last 7 days</MenuItem>
-                  <MenuItem value={TIME_RANGES.LAST_30_DAYS}>Last 30 days</MenuItem>
-                  <MenuItem value={TIME_RANGES.LAST_3_MONTHS}>Last 3 months</MenuItem>
-                  <MenuItem value={TIME_RANGES.LAST_6_MONTHS}>Last 6 months</MenuItem>
-                  <MenuItem value={TIME_RANGES.LAST_YEAR}>Last year</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth>
-                <InputLabel>Metric</InputLabel>
-                <Select
-                  value={selectedMetric}
-                  label="Metric"
-                  onChange={(e) => setSelectedMetric(e.target.value)}
-                >
-                  <MenuItem value="revenue">Revenue</MenuItem>
-                  <MenuItem value="orders">Orders</MenuItem>
-                  <MenuItem value="users">Users</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
+
+      <Card className="mb-6">
+        <CardContent className="grid gap-4 pt-6 sm:grid-cols-2 md:grid-cols-3">
+          <div className="space-y-2">
+            <Label>Time range</Label>
+            <Select value={timeRange} onValueChange={setTimeRange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Time range" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={TIME_RANGES.LAST_7_DAYS}>Last 7 days</SelectItem>
+                <SelectItem value={TIME_RANGES.LAST_30_DAYS}>Last 30 days</SelectItem>
+                <SelectItem value={TIME_RANGES.LAST_3_MONTHS}>Last 3 months</SelectItem>
+                <SelectItem value={TIME_RANGES.LAST_6_MONTHS}>Last 6 months</SelectItem>
+                <SelectItem value={TIME_RANGES.LAST_YEAR}>Last year</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Metric</Label>
+            <Select value={selectedMetric} onValueChange={setSelectedMetric}>
+              <SelectTrigger>
+                <SelectValue placeholder="Metric" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="revenue">Revenue</SelectItem>
+                <SelectItem value="orders">Orders</SelectItem>
+                <SelectItem value="users">Users</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </CardContent>
       </Card>
-      {/* Key Metrics */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} lg={3}>
+
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div>
           <StatCard
-            title="Total Revenue"
+            title="Total revenue"
             value={formatCurrency(revenueAnalytics?.totalRevenue ?? overview?.totalRevenue ?? 0)}
             change={revenueAnalytics?.growthRate}
-            icon={<DollarIcon />}
+            icon={<IndianRupee className="h-6 w-6" />}
             color="primary"
             subtitle={`Last ${months} month(s)`}
           />
-        </Grid>
-        <Grid item xs={12} sm={6} lg={3}>
+        </div>
+        <div>
           <StatCard
-            title="Total Bookings"
+            title="Total bookings"
             value={String(overview?.totalBookings ?? 0)}
-            icon={<CartIcon />}
+            icon={<ShoppingCart className="h-6 w-6" />}
             color="success"
             subtitle={`Last ${months} month(s)`}
           />
-        </Grid>
-        <Grid item xs={12} sm={6} lg={3}>
+        </div>
+        <div>
           <StatCard
-            title="Active Users"
+            title="Active users"
             value={String(overview?.totalUsers ?? userAnalytics?.totalUsers ?? 0)}
-            icon={<PeopleIcon />}
+            icon={<Users className="h-6 w-6" />}
             color="info"
             subtitle={`Last ${months} month(s)`}
           />
-        </Grid>
-        <Grid item xs={12} sm={6} lg={3}>
+        </div>
+        <div>
           <StatCard
-            title="Avg. Booking Value"
+            title="Avg. booking value"
             value={formatCurrency(bookingAnalytics?.averageBookingValue ?? revenueAnalytics?.averageRevenue ?? 0)}
-            icon={<AssignmentIcon />}
+            icon={<ClipboardList className="h-6 w-6" />}
             color="warning"
             subtitle={`Last ${months} month(s)`}
           />
-        </Grid>
-      </Grid>
-      {/* Charts Row */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} lg={8}>
+        </div>
+      </div>
+
+      <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="lg:col-span-8">
           <Card>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 1 }}>
-                Revenue & Orders Trend
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            <CardContent className="p-6">
+              <h2 className="text-lg font-semibold">Revenue &amp; orders trend</h2>
+              <p className="mb-4 text-sm text-muted-foreground">
                 Monthly performance over the last {months} month(s)
-              </Typography>
-              <Box sx={{ height: 350 }}>
+              </p>
+              <div className="h-[350px] w-full min-w-0">
                 {revenueChartData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={revenueChartData}>
@@ -393,39 +393,35 @@ export function Analytics() {
                         type="monotone"
                         dataKey="revenue"
                         stackId="1"
-                        stroke={theme.palette.primary.main}
-                        fill={theme.palette.primary.main}
+                        stroke={COL_PRIMARY}
+                        fill={COL_PRIMARY}
                         fillOpacity={0.3}
                       />
                       <Area
                         type="monotone"
                         dataKey="orders"
                         stackId="2"
-                        stroke={theme.palette.secondary.main}
-                        fill={theme.palette.secondary.main}
+                        stroke={COL_SECONDARY}
+                        fill={COL_SECONDARY}
                         fillOpacity={0.3}
                       />
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : (
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'text.secondary' }}>
+                  <div className="flex h-full items-center justify-center text-muted-foreground">
                     No revenue data for this period
-                  </Box>
+                  </div>
                 )}
-              </Box>
+              </div>
             </CardContent>
           </Card>
-        </Grid>
-        <Grid item xs={12} lg={4}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 1 }}>
-                Revenue by Category
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Distribution of revenue across service categories
-              </Typography>
-              <Box sx={{ height: 300 }}>
+        </div>
+        <div className="lg:col-span-4">
+          <Card className="h-full">
+            <CardContent className="p-6">
+              <h2 className="text-lg font-semibold">Revenue by category</h2>
+              <p className="mb-4 text-sm text-muted-foreground">Distribution of revenue across service categories</p>
+              <div className="h-[300px] w-full min-w-0">
                 {categoryChartData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -446,155 +442,110 @@ export function Analytics() {
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'text.secondary' }}>
+                  <div className="flex h-full items-center justify-center text-muted-foreground">
                     No category data for this period
-                  </Box>
+                  </div>
                 )}
-              </Box>
+              </div>
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
-      {/* Bottom Row */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} lg={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 1 }}>
-                Top Providers
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Top providers by bookings and revenue
-              </Typography>
-              <Stack spacing={2}>
-                {(providerAnalytics?.topProviders?.length
-                  ? providerAnalytics.topProviders
-                  : []
-                ).map((provider, index) => (
-                  <Paper key={provider.id || index} sx={{ p: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                        {provider.businessName || 'Provider'}
-                      </Typography>
-                      <Chip
-                        label={`★ ${Number(provider.rating).toFixed(1)}`}
-                        size="small"
-                        color="primary"
-                        variant="outlined"
-                      />
-                    </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="body2" color="text.secondary">
-                        {provider.totalBookings ?? 0} bookings
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {formatCurrency(provider.totalRevenue ?? 0)}
-                      </Typography>
-                    </Box>
-                  </Paper>
-                ))}
-                {(!providerAnalytics?.topProviders?.length) && (
-                  <Box sx={{ py: 3, textAlign: 'center', color: 'text.secondary' }}>
-                    No provider data for this period
-                  </Box>
-                )}
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} lg={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 1 }}>
-                User Growth
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                User registration trends
-              </Typography>
-              <Box sx={{ height: 300 }}>
-                {userGrowthChartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={userGrowthChartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="users" name="Total users" fill={theme.palette.info.main} />
-                      <Bar dataKey="newUsers" name="New users" fill={theme.palette.success.main} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'text.secondary' }}>
-                    No user growth data for this period
-                  </Box>
-                )}
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-      {/* Additional Metrics */}
-      <Grid container spacing={3}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <StarIcon sx={{ fontSize: 40, color: 'warning.main', mb: 1 }} />
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                {dashboardServiceStats.length > 0
-                  ? (
-                      dashboardServiceStats.reduce((s, t) => s + (t.averageRating ?? 0), 0) /
-                      dashboardServiceStats.length
-                    ).toFixed(1)
-                  : '—'}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Average Rating
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <ScheduleIcon sx={{ fontSize: 40, color: 'info.main', mb: 1 }} />
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                {overview?.totalServiceRequests ?? '—'}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Service Requests
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <AssignmentIcon sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                {bookingAnalytics?.completionRate != null
-                  ? `${(bookingAnalytics.completionRate <= 1 ? bookingAnalytics.completionRate * 100 : bookingAnalytics.completionRate).toFixed(0)}%`
-                  : '—'}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Completion Rate
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <PeopleIcon sx={{ fontSize: 40, color: 'primary.main', mb: 1 }} />
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                {overview?.totalProviders ?? providerAnalytics?.totalProviders ?? '—'}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Active Providers
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    </Box>
+        </div>
+      </div>
+
+      <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+        <Card>
+          <CardContent className="p-6">
+            <h2 className="text-lg font-semibold">Top providers</h2>
+            <p className="mb-4 text-sm text-muted-foreground">Top providers by bookings and revenue</p>
+            <div className="space-y-3">
+              {(providerAnalytics?.topProviders?.length ? providerAnalytics.topProviders : []).map((provider, index) => (
+                <div key={provider.id || index} className="rounded-lg border p-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-sm font-semibold">{provider.businessName || 'Provider'}</span>
+                    <Badge variant="outline" className="text-xs">
+                      ★ {Number(provider.rating).toFixed(1)}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">{provider.totalBookings ?? 0} bookings</span>
+                    <span className="font-semibold">{formatCurrency(provider.totalRevenue ?? 0)}</span>
+                  </div>
+                </div>
+              ))}
+              {(!providerAnalytics?.topProviders?.length) && (
+                <p className="py-6 text-center text-sm text-muted-foreground">No provider data for this period</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <h2 className="text-lg font-semibold">User growth</h2>
+            <p className="mb-4 text-sm text-muted-foreground">User registration trends</p>
+            <div className="h-[300px] w-full min-w-0">
+              {userGrowthChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={userGrowthChartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="users" name="Total users" fill={COL_INFO} />
+                    <Bar dataKey="newUsers" name="New users" fill={COL_SUCCESS} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-full items-center justify-center text-muted-foreground">
+                  No user growth data for this period
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+        <Card>
+          <CardContent className="p-6 text-center">
+            <Star className="mx-auto mb-2 h-10 w-10 text-amber-500" />
+            <p className="mb-1 text-3xl font-bold">
+              {dashboardServiceStats.length > 0
+                ? (
+                    dashboardServiceStats.reduce((s, t) => s + (t.averageRating ?? 0), 0) / dashboardServiceStats.length
+                  ).toFixed(1)
+                : '—'}
+            </p>
+            <p className="text-sm text-muted-foreground">Average rating</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6 text-center">
+            <CalendarClock className="mx-auto mb-2 h-10 w-10 text-sky-500" />
+            <p className="mb-1 text-3xl font-bold">{overview?.totalServiceRequests ?? '—'}</p>
+            <p className="text-sm text-muted-foreground">Service requests</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6 text-center">
+            <ClipboardList className="mx-auto mb-2 h-10 w-10 text-emerald-500" />
+            <p className="mb-1 text-3xl font-bold">
+              {bookingAnalytics?.completionRate != null
+                ? `${(bookingAnalytics.completionRate <= 1 ? bookingAnalytics.completionRate * 100 : bookingAnalytics.completionRate).toFixed(0)}%`
+                : '—'}
+            </p>
+            <p className="text-sm text-muted-foreground">Completion rate</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6 text-center">
+            <Users className="mx-auto mb-2 h-10 w-10 text-primary" />
+            <p className="mb-1 text-3xl font-bold">
+              {overview?.totalProviders ?? providerAnalytics?.totalProviders ?? '—'}
+            </p>
+            <p className="text-sm text-muted-foreground">Active providers</p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   )
 }

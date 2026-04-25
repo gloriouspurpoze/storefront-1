@@ -1,23 +1,18 @@
 import React from 'react'
+import { Search, Filter, X } from 'lucide-react'
+import { useMediaQuery, muiMdUp } from '../../hooks/useMediaQuery'
+import { Input } from '../ui/input'
+import { Label } from '../ui/label'
+import { Button } from '../ui/button'
+import { Badge } from '../ui/badge'
 import {
-  Box,
-  TextField,
   Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Button,
-  IconButton,
-  useTheme,
-  useMediaQuery,
-  Stack,
-  Chip
-} from '@mui/material'
-import {
-  Search as SearchIcon,
-  FilterList as FilterIcon,
-  Clear as ClearIcon
-} from '@mui/icons-material'
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select'
+import { cn } from '../../lib/utils'
 
 interface OrderFiltersProps {
   searchQuery: string
@@ -39,7 +34,7 @@ const statusOptions = [
   { value: 'accepted', label: 'Accepted' },
   { value: 'completed', label: 'Completed' },
   { value: 'rejected', label: 'Rejected' },
-  { value: 'cancelled', label: 'Cancelled' }
+  { value: 'cancelled', label: 'Cancelled' },
 ]
 
 export const OrderFilters: React.FC<OrderFiltersProps> = ({
@@ -50,166 +45,164 @@ export const OrderFilters: React.FC<OrderFiltersProps> = ({
   dateRange,
   onDateRangeChange,
   onClearFilters,
-  onMoreFilters
+  onMoreFilters,
 }) => {
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+  const isDesktop = useMediaQuery(muiMdUp)
 
   return (
-    <Box sx={{ mb: 3 }}>
-      <Stack 
-        direction={{ xs: 'column', md: 'row' }} 
-        spacing={2} 
-        alignItems={{ xs: 'stretch', md: 'center' }}
+    <div className="mb-6">
+      <div
+        className={cn(
+          'flex flex-col gap-3',
+          isDesktop && 'md:flex-row md:flex-wrap md:items-center',
+        )}
       >
-        {/* Search Field */}
-        <TextField
-          fullWidth={isMobile}
-          placeholder="Search by name, Order ID..."
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          InputProps={{
-            startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />,
-            endAdornment: searchQuery && (
-              <IconButton
-                size="small"
-                onClick={() => onSearchChange('')}
-                sx={{ mr: -1 }}
-              >
-                <ClearIcon fontSize="small" />
-              </IconButton>
-            )
-          }}
-          sx={{ 
-            minWidth: { xs: '100%', md: 300 },
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 2
-            }
-          }}
-        />
+        <div className={cn('relative min-w-0', isDesktop && 'md:min-w-[300px] md:max-w-md md:flex-1')}>
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="rounded-md pl-9 pr-9"
+            placeholder="Search by name, Order ID..."
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            aria-label="Search orders"
+          />
+          {searchQuery ? (
+            <button
+              type="button"
+              onClick={() => onSearchChange('')}
+              className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-1.5 text-muted-foreground hover:bg-muted"
+              aria-label="Clear search"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
 
-        {/* Status Filter */}
-        <FormControl sx={{ minWidth: { xs: '100%', md: 150 } }}>
-          <InputLabel>Status</InputLabel>
-          <Select
-            value={statusFilter}
-            onChange={(e) => onStatusChange(e.target.value)}
-            label="Status"
-            sx={{ borderRadius: 2 }}
-          >
-            {statusOptions.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
-              </MenuItem>
-            ))}
+        <div className={cn('w-full', isDesktop && 'md:w-[150px]')}>
+          <Label htmlFor="order-status" className="sr-only">
+            Status
+          </Label>
+          <Select value={statusFilter} onValueChange={onStatusChange}>
+            <SelectTrigger id="order-status" className="rounded-md">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              {statusOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
-        </FormControl>
+        </div>
 
-        {/* Date Range Fields */}
-        <Box sx={{ display: 'flex', gap: 1, minWidth: { xs: '100%', md: 300 } }}>
-          <TextField
-            label="Start Date"
-            type="date"
-            size="small"
-            value={dateRange.start ? dateRange.start.toISOString().split('T')[0] : ''}
-            onChange={(e) => onDateRangeChange(e.target.value ? new Date(e.target.value) : null, dateRange.end)}
-            InputLabelProps={{ shrink: true }}
-            sx={{ 
-              flex: 1,
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 2
+        <div
+          className={cn(
+            'flex w-full min-w-0 flex-col gap-2 sm:flex-row',
+            isDesktop && 'md:min-w-[300px] md:max-w-md',
+          )}
+        >
+          <div className="min-w-0 flex-1 space-y-1">
+            <Label htmlFor="order-start" className="text-xs text-muted-foreground">
+              Start Date
+            </Label>
+            <Input
+              id="order-start"
+              type="date"
+              className="rounded-md"
+              value={dateRange.start ? dateRange.start.toISOString().split('T')[0] : ''}
+              onChange={(e) =>
+                onDateRangeChange(e.target.value ? new Date(e.target.value) : null, dateRange.end)
               }
-            }}
-          />
-          <TextField
-            label="End Date"
-            type="date"
-            size="small"
-            value={dateRange.end ? dateRange.end.toISOString().split('T')[0] : ''}
-            onChange={(e) => onDateRangeChange(dateRange.start, e.target.value ? new Date(e.target.value) : null)}
-            InputLabelProps={{ shrink: true }}
-            sx={{ 
-              flex: 1,
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 2
+            />
+          </div>
+          <div className="min-w-0 flex-1 space-y-1">
+            <Label htmlFor="order-end" className="text-xs text-muted-foreground">
+              End Date
+            </Label>
+            <Input
+              id="order-end"
+              type="date"
+              className="rounded-md"
+              value={dateRange.end ? dateRange.end.toISOString().split('T')[0] : ''}
+              onChange={(e) =>
+                onDateRangeChange(dateRange.start, e.target.value ? new Date(e.target.value) : null)
               }
-            }}
-          />
-        </Box>
+            />
+          </div>
+        </div>
 
-        {/* Action Buttons */}
-        <Stack direction="row" spacing={1}>
-          <Button
-            variant="outlined"
-            startIcon={<FilterIcon />}
-            onClick={onMoreFilters}
-            sx={{ 
-              borderRadius: 2,
-              px: 2,
-              whiteSpace: 'nowrap'
-            }}
-          >
+        <div className="flex flex-row flex-wrap gap-2">
+          <Button type="button" variant="outline" className="rounded-md px-4" onClick={onMoreFilters}>
+            <Filter className="mr-1.5 h-4 w-4" />
             More Filter
           </Button>
-          
+
           {(searchQuery || statusFilter !== 'all' || dateRange.start || dateRange.end) && (
-            <Button
-              variant="text"
-              startIcon={<ClearIcon />}
-              onClick={onClearFilters}
-              sx={{ 
-                borderRadius: 2,
-                px: 2,
-                whiteSpace: 'nowrap'
-              }}
-            >
+            <Button type="button" variant="ghost" className="rounded-md px-4" onClick={onClearFilters}>
+              <X className="mr-1.5 h-4 w-4" />
               Clear
             </Button>
           )}
-        </Stack>
-      </Stack>
+        </div>
+      </div>
 
-      {/* Active Filters Display */}
       {(searchQuery || statusFilter !== 'all' || dateRange.start || dateRange.end) && (
-        <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+        <div className="mt-3 flex flex-wrap gap-2">
           {searchQuery && (
-            <Chip
-              label={`Search: "${searchQuery}"`}
-              onDelete={() => onSearchChange('')}
-              size="small"
-              color="primary"
-              variant="outlined"
-            />
+            <Badge variant="outline" className="gap-1">
+              Search: &quot;{searchQuery}&quot;
+              <button
+                type="button"
+                className="ml-1 rounded-sm hover:bg-muted"
+                onClick={() => onSearchChange('')}
+                aria-label="Remove search filter"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
           )}
           {statusFilter !== 'all' && (
-            <Chip
-              label={`Status: ${statusOptions.find(opt => opt.value === statusFilter)?.label}`}
-              onDelete={() => onStatusChange('all')}
-              size="small"
-              color="secondary"
-              variant="outlined"
-            />
+            <Badge variant="secondary" className="gap-1">
+              Status: {statusOptions.find((opt) => opt.value === statusFilter)?.label}
+              <button
+                type="button"
+                className="ml-1 rounded-sm hover:bg-muted"
+                onClick={() => onStatusChange('all')}
+                aria-label="Remove status filter"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
           )}
           {dateRange.start && (
-            <Chip
-              label={`From: ${dateRange.start.toLocaleDateString()}`}
-              onDelete={() => onDateRangeChange(null, dateRange.end)}
-              size="small"
-              color="info"
-              variant="outlined"
-            />
+            <Badge variant="outline" className="gap-1">
+              From: {dateRange.start.toLocaleDateString()}
+              <button
+                type="button"
+                className="ml-1 rounded-sm hover:bg-muted"
+                onClick={() => onDateRangeChange(null, dateRange.end)}
+                aria-label="Remove start date"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
           )}
           {dateRange.end && (
-            <Chip
-              label={`To: ${dateRange.end.toLocaleDateString()}`}
-              onDelete={() => onDateRangeChange(dateRange.start, null)}
-              size="small"
-              color="info"
-              variant="outlined"
-            />
+            <Badge variant="outline" className="gap-1">
+              To: {dateRange.end.toLocaleDateString()}
+              <button
+                type="button"
+                className="ml-1 rounded-sm hover:bg-muted"
+                onClick={() => onDateRangeChange(dateRange.start, null)}
+                aria-label="Remove end date"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
           )}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   )
 }

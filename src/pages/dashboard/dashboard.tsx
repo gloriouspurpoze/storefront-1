@@ -1,65 +1,30 @@
 import React, { useEffect, useState } from 'react'
 import {
-  Box,
-  Typography,
-  useMediaQuery,
-  Chip,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemAvatar,
-  Avatar,
-  Paper,
-  LinearProgress,
-  IconButton,
-  Button,
-  Divider,
-  Stack,
-  Card,
-  CardContent,
-  CircularProgress,
-  Alert
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
-import {
-  TrendingUp as TrendingUpIcon,
-  TrendingDown as TrendingDownIcon,
-  AttachMoney as MoneyIcon,
-  People as PeopleIcon,
-  Assignment as AssignmentIcon,
-  Build as BuildIcon,
-  ShoppingCart as ShoppingCartIcon,
-  Star as StarIcon,
-  ArrowForward as ArrowForwardIcon,
-  MoreVert as MoreVertIcon,
-  FiberManualRecord as DotIcon,
-  CheckCircle as CheckCircleIcon,
-  Pending as PendingIcon,
-  Schedule as ScheduleIcon,
-  LocalOffer as LocalOfferIcon,
-  Refresh as RefreshIcon
-} from '@mui/icons-material'
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  AreaChart,
-  Area,
-  Legend
-} from 'recharts'
+  TrendingUp,
+  TrendingDown,
+  IndianRupee,
+  Wrench,
+  ShoppingCart,
+  Star,
+  ArrowRight,
+  MoreVertical,
+  Circle,
+  CheckCircle2,
+  Clock,
+  RefreshCw,
+  Loader2,
+} from 'lucide-react'
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, Legend } from 'recharts'
 import { formatCurrency } from '../../lib/utils'
 import { useNavigate } from 'react-router-dom'
-import { useTheme as useCustomTheme, useThemeColors } from '../../contexts/theme-context'
 import { dashboardService } from '../../services/api/dashboard.service'
 import type { AdminDashboardData } from '../../services/api/dashboard.service'
+import { Button } from '../../components/ui/button'
+import { Card, CardContent } from '../../components/ui/card'
+import { Badge } from '../../components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar'
+import { cn } from '../../lib/utils'
 
-// Color palette for charts
 const chartColors = {
   primary: '#2563eb',
   secondary: '#8b5cf6',
@@ -72,35 +37,36 @@ const chartColors = {
   background: '#ffffff',
 }
 
-const getStatusColor = (status: string) => {
+function statusBadgeClass(status: string) {
   switch (status) {
     case 'completed':
     case 'delivered':
-      return 'success'
+      return 'border-emerald-600/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200'
     case 'in_progress':
     case 'processing':
-      return 'warning'
+      return 'border-amber-600/30 bg-amber-500/10 text-amber-900 dark:text-amber-200'
     case 'pending':
-      return 'info'
+      return 'border-sky-600/30 bg-sky-500/10 text-sky-900 dark:text-sky-200'
     case 'cancelled':
-      return 'error'
+      return 'border-destructive/30 bg-destructive/10 text-destructive'
     default:
-      return 'default'
+      return 'border-border bg-muted text-foreground'
   }
 }
 
-const getStatusIcon = (status: string) => {
+function StatusIcon({ status }: { status: string }) {
+  const c = 'h-3.5 w-3.5'
   switch (status) {
     case 'completed':
     case 'delivered':
-      return <CheckCircleIcon fontSize="small" />
+      return <CheckCircle2 className={c} />
     case 'in_progress':
     case 'processing':
-      return <ScheduleIcon fontSize="small" />
+      return <Clock className={c} />
     case 'pending':
-      return <PendingIcon fontSize="small" />
+      return <Clock className={c} />
     default:
-      return <DotIcon fontSize="small" />
+      return <Circle className={c} />
   }
 }
 
@@ -116,9 +82,9 @@ export function Dashboard() {
       setError(null)
       const data = await dashboardService.getAdminDashboard()
       setDashboardData(data)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching dashboard data:', err)
-      setError(err.message || 'Failed to load dashboard data')
+      setError(err instanceof Error ? err.message : 'Failed to load dashboard data')
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -136,23 +102,24 @@ export function Dashboard() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-        <CircularProgress size={60} />
-      </Box>
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="h-14 w-14 animate-spin text-primary" />
+      </div>
     )
   }
 
   if (error) {
     return (
-      <Box sx={{ p: 4 }}>
-        <Alert severity="error" action={
-          <Button color="inherit" size="small" onClick={fetchDashboardData}>
-            Retry
-          </Button>
-        }>
-          {error}
-        </Alert>
-      </Box>
+      <div className="p-8">
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-destructive">
+          <div className="flex items-center justify-between gap-2">
+            <span>{error}</span>
+            <Button type="button" variant="outline" size="sm" onClick={fetchDashboardData}>
+              Retry
+            </Button>
+          </div>
+        </div>
+      </div>
     )
   }
 
@@ -173,10 +140,8 @@ export function Dashboard() {
     topProviders: [],
   }
 
-  const { stats, revenueData, categoryPerformance, recentOrders, topProviders } =
-    dashboardData ?? emptyDashboard
+  const { stats, revenueData, categoryPerformance, recentOrders, topProviders } = dashboardData ?? emptyDashboard
 
-  // Provide default values to prevent undefined errors
   const safeStats = stats || {
     totalRevenue: 0,
     totalOrders: 0,
@@ -185,7 +150,7 @@ export function Dashboard() {
     revenueGrowth: 0,
     ordersGrowth: 0,
     providersGrowth: 0,
-    ratingChange: 0
+    ratingChange: 0,
   }
 
   const safeRevenueData = revenueData || []
@@ -193,503 +158,341 @@ export function Dashboard() {
   const safeRecentOrders = recentOrders || []
   const safeTopProviders = topProviders || []
 
+  const maxCat =
+    safeCategoryPerformance.length > 0 ? Math.max(...safeCategoryPerformance.map((c) => c.value), 1) : 1
+
   return (
-    <Box sx={{ flexGrow: 1, p: { xs: 2, sm: 3, md: 4 }, bgcolor: 'background.default' }}>
-      {/* Welcome Header */}
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box>
-          <Typography 
-            variant="h4" 
-            sx={{ 
-              fontWeight: 700, 
-              mb: 0.5,
-              fontSize: { xs: '1.75rem', sm: '2rem', md: '2.25rem' }
-            }}
-          >
-            Welcome back, Admin! 👋
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Here's what's happening with your business today
-          </Typography>
-        </Box>
-        <IconButton 
-          onClick={handleRefresh} 
+    <div className="min-h-screen flex-1 bg-background p-4 sm:p-6 md:p-8">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Welcome back, Admin!</h1>
+          <p className="text-muted-foreground">Here&apos;s what&apos;s happening with your business today</p>
+        </div>
+        <Button
+          type="button"
+          size="icon"
+          className="rounded-full"
           disabled={refreshing}
-          sx={{ 
-            bgcolor: 'primary.main', 
-            color: 'white',
-            '&:hover': { bgcolor: 'primary.dark' }
+          onClick={handleRefresh}
+          aria-label="Refresh"
+        >
+          <RefreshCw className={cn('h-5 w-5', refreshing && 'animate-spin')} />
+        </Button>
+      </div>
+
+      <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <Card
+          className="relative overflow-hidden border-0 text-white"
+          style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           }}
         >
-          <RefreshIcon className={refreshing ? 'rotating' : ''} />
-        </IconButton>
-      </Box>
+          <CardContent className="p-6">
+            <div className="mb-2 flex justify-between">
+              <p className="text-sm opacity-90">Total Revenue</p>
+              <IndianRupee className="h-5 w-5 opacity-80" />
+            </div>
+            <p className="mb-1 text-3xl font-bold">{formatCurrency(safeStats.totalRevenue)}</p>
+            <div className="flex items-center gap-1 text-sm">
+              {safeStats.revenueGrowth >= 0 ? (
+                <TrendingUp className="h-4 w-4" />
+              ) : (
+                <TrendingDown className="h-4 w-4" />
+              )}
+              <span>
+                {safeStats.revenueGrowth >= 0 ? '+' : ''}
+                {safeStats.revenueGrowth.toFixed(1)}% from last month
+              </span>
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Key Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} lg={3}>
-          <Card sx={{ 
-            height: '100%',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white',
-            position: 'relative',
-            overflow: 'hidden',
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              width: '200px',
-              height: '200px',
-              background: 'rgba(255,255,255,0.1)',
-              borderRadius: '50%',
-              top: '-100px',
-              right: '-50px'
-            }
-          }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                  Total Revenue
-                </Typography>
-                <MoneyIcon sx={{ opacity: 0.8 }} />
-              </Box>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                {formatCurrency(safeStats.totalRevenue)}
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                {safeStats.revenueGrowth >= 0 ? <TrendingUpIcon fontSize="small" /> : <TrendingDownIcon fontSize="small" />}
-                <Typography variant="body2">
-                  {safeStats.revenueGrowth >= 0 ? '+' : ''}{safeStats.revenueGrowth.toFixed(1)}% from last month
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+        <Card
+          className="relative overflow-hidden border-0 text-white"
+          style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}
+        >
+          <CardContent className="p-6">
+            <div className="mb-2 flex justify-between">
+              <p className="text-sm opacity-90">Total Orders</p>
+              <ShoppingCart className="h-5 w-5 opacity-80" />
+            </div>
+            <p className="mb-1 text-3xl font-bold">{safeStats.totalOrders}</p>
+            <div className="flex items-center gap-1 text-sm">
+              {safeStats.ordersGrowth >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+              <span>
+                {safeStats.ordersGrowth >= 0 ? '+' : ''}
+                {safeStats.ordersGrowth.toFixed(1)}% from last month
+              </span>
+            </div>
+          </CardContent>
+        </Card>
 
-        <Grid item xs={12} sm={6} lg={3}>
-          <Card sx={{ 
-            height: '100%',
-            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-            color: 'white',
-            position: 'relative',
-            overflow: 'hidden',
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              width: '200px',
-              height: '200px',
-              background: 'rgba(255,255,255,0.1)',
-              borderRadius: '50%',
-              top: '-100px',
-              right: '-50px'
-            }
-          }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                  Total Orders
-                </Typography>
-                <ShoppingCartIcon sx={{ opacity: 0.8 }} />
-              </Box>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                {safeStats.totalOrders}
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                {safeStats.ordersGrowth >= 0 ? <TrendingUpIcon fontSize="small" /> : <TrendingDownIcon fontSize="small" />}
-                <Typography variant="body2">
-                  {safeStats.ordersGrowth >= 0 ? '+' : ''}{safeStats.ordersGrowth.toFixed(1)}% from last month
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+        <Card
+          className="relative overflow-hidden border-0 text-white"
+          style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }}
+        >
+          <CardContent className="p-6">
+            <div className="mb-2 flex justify-between">
+              <p className="text-sm opacity-90">Active Providers</p>
+              <Wrench className="h-5 w-5 opacity-80" />
+            </div>
+            <p className="mb-1 text-3xl font-bold">{safeStats.activeProviders}</p>
+            <div className="flex items-center gap-1 text-sm">
+              {safeStats.providersGrowth >= 0 ? (
+                <TrendingUp className="h-4 w-4" />
+              ) : (
+                <TrendingDown className="h-4 w-4" />
+              )}
+              <span>
+                {safeStats.providersGrowth >= 0 ? '+' : ''}
+                {safeStats.providersGrowth.toFixed(1)}% from last month
+              </span>
+            </div>
+          </CardContent>
+        </Card>
 
-        <Grid item xs={12} sm={6} lg={3}>
-          <Card sx={{ 
-            height: '100%',
-            background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-            color: 'white',
-            position: 'relative',
-            overflow: 'hidden',
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              width: '200px',
-              height: '200px',
-              background: 'rgba(255,255,255,0.1)',
-              borderRadius: '50%',
-              top: '-100px',
-              right: '-50px'
-            }
-          }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                  Active Providers
-                </Typography>
-                <BuildIcon sx={{ opacity: 0.8 }} />
-              </Box>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                {safeStats.activeProviders}
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                {safeStats.providersGrowth >= 0 ? <TrendingUpIcon fontSize="small" /> : <TrendingDownIcon fontSize="small" />}
-                <Typography variant="body2">
-                  {safeStats.providersGrowth >= 0 ? '+' : ''}{safeStats.providersGrowth.toFixed(1)}% from last month
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+        <Card
+          className="relative overflow-hidden border-0 text-white"
+          style={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' }}
+        >
+          <CardContent className="p-6">
+            <div className="mb-2 flex justify-between">
+              <p className="text-sm opacity-90">Avg. Rating</p>
+              <Star className="h-5 w-5 opacity-80" />
+            </div>
+            <p className="mb-1 text-3xl font-bold">{safeStats.averageRating.toFixed(1)}</p>
+            <div className="flex items-center gap-1 text-sm">
+              {safeStats.ratingChange >= 0 ? (
+                <TrendingUp className="h-4 w-4" />
+              ) : (
+                <TrendingDown className="h-4 w-4" />
+              )}
+              <span>
+                {safeStats.ratingChange >= 0 ? '+' : ''}
+                {safeStats.ratingChange.toFixed(1)} from last month
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-        <Grid item xs={12} sm={6} lg={3}>
-          <Card sx={{ 
-            height: '100%',
-            background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-            color: 'white',
-            position: 'relative',
-            overflow: 'hidden',
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              width: '200px',
-              height: '200px',
-              background: 'rgba(255,255,255,0.1)',
-              borderRadius: '50%',
-              top: '-100px',
-              right: '-50px'
-            }
-          }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                  Avg. Rating
-                </Typography>
-                <StarIcon sx={{ opacity: 0.8 }} />
-              </Box>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                {safeStats.averageRating.toFixed(1)}
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                {safeStats.ratingChange >= 0 ? <TrendingUpIcon fontSize="small" /> : <TrendingDownIcon fontSize="small" />}
-                <Typography variant="body2">
-                  {safeStats.ratingChange >= 0 ? '+' : ''}{safeStats.ratingChange.toFixed(1)} from last month
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Charts Section */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {/* Revenue Chart */}
-        <Grid item xs={12} lg={8}>
-          <Paper sx={{ p: 3, height: '100%' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-              <Box>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
-                  Revenue & Orders Overview
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Performance metrics for the last 6 months
-                </Typography>
-              </Box>
-              <IconButton size="small">
-                <MoreVertIcon />
-              </IconButton>
-            </Box>
-            <Box sx={{ height: 300 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={safeRevenueData}>
-                  <defs>
-                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={chartColors.primary} stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor={chartColors.primary} stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorOrders" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={chartColors.secondary} stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor={chartColors.secondary} stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.divider} />
-                  <XAxis dataKey="month" stroke={chartColors.textSecondary} />
-                  <YAxis stroke={chartColors.textSecondary} />
-                  <Tooltip 
-                    contentStyle={{
-                      backgroundColor: chartColors.background,
-                      border: `1px solid ${chartColors.divider}`,
-                      borderRadius: 8
-                    }}
-                    formatter={(value: any, name: string) => [
-                      name === 'revenue' ? formatCurrency(Number(value)) : value,
-                      name === 'revenue' ? 'Revenue' : 'Orders'
-                    ]}
-                  />
-                  <Legend />
-                  <Area 
-                    type="monotone" 
-                    dataKey="revenue" 
-                    stroke={chartColors.primary}
-                    fillOpacity={1}
-                    fill="url(#colorRevenue)"
-                    strokeWidth={2}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="orders" 
-                    stroke={chartColors.secondary}
-                    fillOpacity={1}
-                    fill="url(#colorOrders)"
-                    strokeWidth={2}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </Box>
-          </Paper>
-        </Grid>
-
-        {/* Category Performance */}
-        <Grid item xs={12} lg={4}>
-          <Paper sx={{ p: 3, height: '100%' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-              <Box>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
-                  Top Categories
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Best performing services
-                </Typography>
-              </Box>
-            </Box>
-            <Stack spacing={2}>
-              {safeCategoryPerformance.length > 0 ? (
-                safeCategoryPerformance.map((category, index) => (
-                  <Box key={category.name}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Box
-                          sx={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: '50%',
-                            backgroundColor: category.color
-                          }}
-                        />
-                        <Typography variant="body2" fontWeight={500}>
-                          {category.name}
-                        </Typography>
-                      </Box>
-                      <Typography variant="body2" fontWeight={600} color="primary">
-                        {formatCurrency(category.value)}
-                      </Typography>
-                    </Box>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={(category.value / (safeCategoryPerformance[0]?.value || 1)) * 100}
-                      sx={{
-                        height: 6,
-                        borderRadius: 3,
-                        backgroundColor: `${category.color}20`,
-                        '& .MuiLinearProgress-bar': {
-                          backgroundColor: category.color,
-                          borderRadius: 3
-                        }
+      <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="lg:col-span-8">
+          <Card className="h-full">
+            <CardContent className="p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold">Revenue &amp; Orders Overview</h2>
+                  <p className="text-sm text-muted-foreground">Performance metrics for the last 6 months</p>
+                </div>
+                <Button type="button" variant="ghost" size="icon">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="h-[300px] w-full min-w-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={safeRevenueData}>
+                    <defs>
+                      <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={chartColors.primary} stopOpacity={0.3} />
+                        <stop offset="95%" stopColor={chartColors.primary} stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="colorOrders" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={chartColors.secondary} stopOpacity={0.3} />
+                        <stop offset="95%" stopColor={chartColors.secondary} stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke={chartColors.divider} />
+                    <XAxis dataKey="month" stroke={chartColors.textSecondary} />
+                    <YAxis stroke={chartColors.textSecondary} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: chartColors.background,
+                        border: `1px solid ${chartColors.divider}`,
+                        borderRadius: 8,
                       }}
+                      formatter={(value: number | string, name: string) => [
+                        name === 'revenue' ? formatCurrency(Number(value)) : value,
+                        name === 'revenue' ? 'Revenue' : 'Orders',
+                      ]}
                     />
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
-                      <Typography variant="caption" color="text.secondary">
-                        {category.count} services
-                      </Typography>
-                      <Typography variant="caption" color="success.main" fontWeight={500}>
-                        +{category.growth.toFixed(1)}%
-                      </Typography>
-                    </Box>
-                  </Box>
-                ))
-              ) : (
-                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
-                  No category data available
-                </Typography>
-              )}
-            </Stack>
-          </Paper>
-        </Grid>
-      </Grid>
+                    <Legend />
+                    <Area
+                      type="monotone"
+                      dataKey="revenue"
+                      stroke={chartColors.primary}
+                      fillOpacity={1}
+                      fill="url(#colorRevenue)"
+                      strokeWidth={2}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="orders"
+                      stroke={chartColors.secondary}
+                      fillOpacity={1}
+                      fill="url(#colorOrders)"
+                      strokeWidth={2}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-      {/* Recent Orders & Top Providers */}
-      <Grid container spacing={3}>
-        {/* Recent Orders */}
-        <Grid item xs={12} lg={8}>
-          <Paper sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-              <Box>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
-                  Recent Orders
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Latest customer orders
-                </Typography>
-              </Box>
-              <Button 
-                endIcon={<ArrowForwardIcon />}
-                onClick={() => navigate('/orders')}
-              >
-                View All
-              </Button>
-            </Box>
-            <List>
-              {safeRecentOrders.length > 0 ? (
-                safeRecentOrders.map((order, index) => (
-                  <React.Fragment key={order.id}>
-                    <ListItem 
-                      sx={{ 
-                        px: 0,
-                        py: 2,
-                        '&:hover': {
-                          backgroundColor: 'action.hover',
-                          borderRadius: 1,
-                          cursor: 'pointer'
-                        }
-                      }}
-                      onClick={() => navigate(`/orders/${order.id}`)}
-                    >
-                      <ListItemAvatar>
-                        <Avatar src={order.avatar} sx={{ bgcolor: 'primary.main' }}>
-                          {order.customer.charAt(0).toUpperCase()}
-                        </Avatar>
-                      </ListItemAvatar>
-                      <ListItemText
-                        primary={
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="subtitle2" fontWeight={600}>
-                              {order.customer}
-                            </Typography>
-                            <Chip 
-                              label={order.id}
-                              size="small"
-                              variant="outlined"
+        <div className="lg:col-span-4">
+          <Card className="h-full">
+            <CardContent className="p-6">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold">Top Categories</h2>
+                <p className="text-sm text-muted-foreground">Best performing services</p>
+              </div>
+              <div className="flex flex-col gap-4">
+                {safeCategoryPerformance.length > 0 ? (
+                  safeCategoryPerformance.map((category) => {
+                    const pct = (category.value / maxCat) * 100
+                    return (
+                      <div key={category.name}>
+                        <div className="mb-1 flex justify-between">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="h-2 w-2 rounded-full"
+                              style={{ backgroundColor: category.color }}
                             />
-                          </Box>
-                        }
-                        secondary={
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                            <Typography variant="body2" color="text.secondary">
-                              {order.service}
-                            </Typography>
-                            <DotIcon sx={{ fontSize: 6, color: 'text.secondary' }} />
-                            <Typography variant="body2" color="text.secondary">
-                              {order.date}
-                            </Typography>
-                          </Box>
-                        }
-                      />
-                      <Box sx={{ textAlign: 'right' }}>
-                        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5 }}>
-                          {formatCurrency(order.amount)}
-                        </Typography>
-                        <Chip 
-                          label={order.status}
-                          size="small"
-                          color={getStatusColor(order.status) as any}
-                          icon={getStatusIcon(order.status)}
-                          sx={{ textTransform: 'capitalize' }}
-                        />
-                      </Box>
-                    </ListItem>
-                    {index < safeRecentOrders.length - 1 && <Divider />}
-                  </React.Fragment>
-                ))
-              ) : (
-                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
-                  No recent orders
-                </Typography>
-              )}
-            </List>
-          </Paper>
-        </Grid>
+                            <span className="text-sm font-medium">{category.name}</span>
+                          </div>
+                          <span className="text-sm font-semibold text-primary">{formatCurrency(category.value)}</span>
+                        </div>
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{ width: `${pct}%`, backgroundColor: category.color }}
+                          />
+                        </div>
+                        <div className="mt-1 flex justify-between text-xs text-muted-foreground">
+                          <span>{category.count} services</span>
+                          <span className="font-medium text-emerald-600">+{category.growth.toFixed(1)}%</span>
+                        </div>
+                      </div>
+                    )
+                  })
+                ) : (
+                  <p className="py-8 text-center text-sm text-muted-foreground">No category data available</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
-        {/* Top Providers */}
-        <Grid item xs={12} lg={4}>
-          <Paper sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-              <Box>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
-                  Top Providers
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Best performing this month
-                </Typography>
-              </Box>
-            </Box>
-            <Stack spacing={2}>
-              {safeTopProviders.length > 0 ? (
-                safeTopProviders.map((provider, index) => (
-                  <Box 
-                    key={provider.name}
-                    sx={{
-                      p: 2,
-                      borderRadius: 2,
-                      border: `1px solid ${chartColors.divider}`,
-                      '&:hover': {
-                        backgroundColor: 'action.hover',
-                        cursor: 'pointer'
-                      }
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                      <Avatar src={provider.avatar} sx={{ bgcolor: 'primary.main' }}>
-                        {provider.name.charAt(0).toUpperCase()}
-                      </Avatar>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography variant="subtitle2" fontWeight={600}>
-                          {provider.name}
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <StarIcon sx={{ fontSize: 14, color: 'warning.main' }} />
-                          <Typography variant="caption" fontWeight={500}>
-                            {provider.rating.toFixed(1)}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            • {provider.jobs} jobs
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Revenue
-                      </Typography>
-                      <Typography variant="subtitle2" fontWeight={600} color="primary">
-                        {formatCurrency(provider.revenue)}
-                      </Typography>
-                    </Box>
-                  </Box>
-                ))
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="lg:col-span-8">
+          <Card>
+            <CardContent className="p-6">
+              <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold">Recent Orders</h2>
+                  <p className="text-sm text-muted-foreground">Latest customer orders</p>
+                </div>
+                <Button type="button" variant="outline" className="gap-1" onClick={() => navigate('/orders')}>
+                  View all
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+              {safeRecentOrders.length > 0 ? (
+                <ul className="divide-y">
+                  {safeRecentOrders.map((order) => (
+                    <li key={order.id}>
+                      <button
+                        type="button"
+                        className="flex w-full items-start gap-3 rounded-md py-3 text-left transition-colors hover:bg-muted/60"
+                        onClick={() => navigate(`/orders/${order.id}`)}
+                      >
+                        <Avatar className="mt-0.5 h-10 w-10">
+                          {order.avatar ? <AvatarImage src={order.avatar} alt="" /> : null}
+                          <AvatarFallback className="bg-primary text-primary-foreground">
+                            {order.customer.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-semibold">{order.customer}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {order.id}
+                            </Badge>
+                          </div>
+                          <div className="mt-1 flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
+                            <span>{order.service}</span>
+                            <Circle className="h-1 w-1 fill-current" />
+                            <span>{order.date}</span>
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className="mb-1 font-semibold">{formatCurrency(order.amount)}</p>
+                          <Badge
+                            variant="secondary"
+                            className={cn('inline-flex max-w-full items-center gap-1 capitalize', statusBadgeClass(order.status))}
+                          >
+                            <StatusIcon status={order.status} />
+                            {order.status}
+                          </Badge>
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               ) : (
-                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
-                  No provider data available
-                </Typography>
+                <p className="py-8 text-center text-sm text-muted-foreground">No recent orders</p>
               )}
-            </Stack>
-          </Paper>
-        </Grid>
-      </Grid>
+            </CardContent>
+          </Card>
+        </div>
 
-      {/* Add CSS for rotating animation */}
-      <style>{`
-        @keyframes rotate {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
-        }
-        .rotating {
-          animation: rotate 1s linear infinite;
-        }
-      `}</style>
-    </Box>
+        <div className="lg:col-span-4">
+          <Card>
+            <CardContent className="p-6">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold">Top Providers</h2>
+                <p className="text-sm text-muted-foreground">Best performing this month</p>
+              </div>
+              <div className="flex flex-col gap-3">
+                {safeTopProviders.length > 0 ? (
+                  safeTopProviders.map((provider) => (
+                    <div
+                      key={provider.name}
+                      className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/50"
+                    >
+                      <div className="mb-2 flex items-center gap-2">
+                        <Avatar className="h-9 w-9">
+                          {provider.avatar ? <AvatarImage src={provider.avatar} alt="" /> : null}
+                          <AvatarFallback className="bg-primary text-primary-foreground">
+                            {provider.name.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold">{provider.name}</p>
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Star className="h-3 w-3 text-amber-500" />
+                            <span className="font-medium">{provider.rating.toFixed(1)}</span>
+                            <span>• {provider.jobs} jobs</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Revenue</span>
+                        <span className="font-semibold text-primary">{formatCurrency(provider.revenue)}</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="py-8 text-center text-sm text-muted-foreground">No provider data available</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
   )
 }
 

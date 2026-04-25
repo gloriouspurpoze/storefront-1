@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAppSelector } from '../../store/hooks'
 import { Dashboard } from './dashboard'
 import { ProviderDashboard } from '../providers/provider-dashboard'
-import { CircularProgress, Box } from '@mui/material'
+import { Loader2 } from 'lucide-react'
 
 /**
  * Smart Dashboard Component
@@ -39,9 +39,9 @@ export function SmartDashboard() {
   if (isLoading || !user) {
     console.log('🔍 SmartDashboard - Loading auth state...')
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-        <CircularProgress />
-      </Box>
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-label="Loading" />
+      </div>
     )
   }
   
@@ -54,9 +54,9 @@ export function SmartDashboard() {
   if (isProfessional) {
     // Show loading while redirecting to professional dashboard
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-        <CircularProgress />
-      </Box>
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-label="Loading" />
+      </div>
     )
   }
   

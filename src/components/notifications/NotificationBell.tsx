@@ -1,51 +1,53 @@
-import React, { useState } from 'react';
-import { IconButton, Badge, Tooltip } from '@mui/material';
-import { Notifications as NotificationsIcon } from '@mui/icons-material';
-import { NotificationCenter } from './NotificationCenter';
-import { useNotifications } from '../../hooks/useNotifications';
+import React, { useState } from 'react'
+import { Bell } from 'lucide-react'
+import { NotificationCenter } from './NotificationCenter'
+import { useNotifications } from '../../hooks/useNotifications'
+import { Button } from '../ui/button'
+import { Badge } from '../ui/badge'
+import { cn } from '../../lib/utils'
 
 export function NotificationBell() {
-  const [notificationCenterOpen, setNotificationCenterOpen] = useState(false);
-  const { unreadCount } = useNotifications();
+  const [notificationCenterOpen, setNotificationCenterOpen] = useState(false)
+  const { unreadCount } = useNotifications()
 
   const handleClick = () => {
-    setNotificationCenterOpen(true);
-  };
+    setNotificationCenterOpen(true)
+  }
 
   const handleClose = () => {
-    setNotificationCenterOpen(false);
-  };
+    setNotificationCenterOpen(false)
+  }
 
   return (
     <>
-      <Tooltip title="Notifications">
-        <IconButton
-          color="inherit"
-          onClick={handleClick}
-          sx={{ position: 'relative' }}
-        >
-          <Badge
-            badgeContent={unreadCount}
-            color="error"
-            max={99}
-            sx={{
-              '& .MuiBadge-badge': {
-                fontSize: '0.75rem',
-                height: '18px',
-                minWidth: '18px',
-                padding: '0 6px'
-              }
-            }}
-          >
-            <NotificationsIcon />
-          </Badge>
-        </IconButton>
-      </Tooltip>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="relative text-inherit"
+        onClick={handleClick}
+        title="Notifications"
+        aria-label="Notifications"
+      >
+        <span className="relative inline-flex">
+          <Bell className="h-5 w-5" />
+          {unreadCount > 0 && (
+            <Badge
+              variant="destructive"
+              className={cn(
+                'absolute -right-2 -top-2 h-[18px] min-w-[18px] justify-center px-1.5 text-[0.75rem] font-semibold',
+              )}
+            >
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </Badge>
+          )}
+        </span>
+      </Button>
 
       <NotificationCenter
         open={notificationCenterOpen}
         onClose={handleClose}
       />
     </>
-  );
+  )
 }

@@ -1,56 +1,53 @@
 import React, { useMemo, useState, useEffect } from 'react'
+import type { LucideIcon } from 'lucide-react'
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  TextField,
-  InputAdornment,
-  Chip,
-  Avatar,
-  Divider,
-  FormControl,
-  InputLabel,
+  Search,
+  Eye,
+  Calendar,
+  CheckCircle2,
+  XCircle,
+  CalendarClock,
+  Clock,
+  RefreshCw,
+  UserCog,
+  RefreshCcw,
+  Trash2,
+  Globe,
+  Smartphone,
+  MoreVertical,
+  Loader2,
+} from 'lucide-react'
+import { Card, CardContent } from '../../components/ui/card'
+import { Button } from '../../components/ui/button'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
+import { Badge } from '../../components/ui/badge'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/table'
+import {
   Select,
-  MenuItem,
-  Stack,
-  IconButton,
-  Menu,
-  CircularProgress,
-  Alert,
-  Snackbar,
-  Tooltip,
-  alpha,
-  Tabs,
-  Tab,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select'
+import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs'
 import {
-  Search as SearchIcon,
-  Visibility as VisibilityIcon,
-  CalendarToday as CalendarIcon,
-  LocationOn as LocationIcon,
-  AttachMoney as DollarIcon,
-  AccessTime as TimeIcon,
-  Person as PersonIcon,
-  MoreVert as MoreVertIcon,
-  CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
-  Schedule as ScheduleIcon,
-  Refresh as RefreshIcon,
-  AssignmentInd as AssignmentIndIcon,
-  Update as UpdateIcon,
-  Delete as DeleteIcon,
-  Language as WebIcon,
-  PhoneAndroid as MobileIcon,
-} from '@mui/icons-material'
-import {
-  DataGrid,
-  GridColDef,
-  GridRenderCellParams,
-  GridToolbarContainer,
-} from '@mui/x-data-grid'
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../../components/ui/dropdown-menu'
+import { FixedMessage } from '../../components/common/FixedMessage'
+import { Pagination } from '../../components/common/Pagination'
+import { cn } from '../../lib/utils'
 import { Booking, BookingsQuery } from '../../types'
 import { formatCurrency, formatDate, getInitials } from '../../lib/utils'
 import { BookingsService, ProvidersService } from '../../services/api'
@@ -60,57 +57,60 @@ import { UpdateBookingStatusModal } from '../../components/bookings/UpdateBookin
 import { useNavigate } from 'react-router-dom'
 import { useAppConfirm } from '../../components/providers/AppDialogsProvider'
 
-const statusConfig = {
-  pending: { 
-    color: '#FF9800', 
-    bg: '#FFF3E0', 
-    icon: ScheduleIcon, 
+const statusConfig: Record<
+  string,
+  { color: string; bg: string; icon: LucideIcon; label: string; gradient: string }
+> = {
+  pending: {
+    color: '#FF9800',
+    bg: '#FFF3E0',
+    icon: CalendarClock,
     label: 'Pending',
-    gradient: 'linear-gradient(135deg, #FF9800 0%, #F57C00 100%)'
+    gradient: 'linear-gradient(135deg, #FF9800 0%, #F57C00 100%)',
   },
-  confirmed: { 
-    color: '#2196F3', 
-    bg: '#E3F2FD', 
-    icon: CheckCircleIcon, 
+  confirmed: {
+    color: '#2196F3',
+    bg: '#E3F2FD',
+    icon: CheckCircle2,
     label: 'Confirmed',
-    gradient: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)'
+    gradient: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)',
   },
-  in_progress: { 
-    color: '#9C27B0', 
-    bg: '#F3E5F5', 
-    icon: TimeIcon, 
+  in_progress: {
+    color: '#9C27B0',
+    bg: '#F3E5F5',
+    icon: Clock,
     label: 'In Progress',
-    gradient: 'linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%)'
+    gradient: 'linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%)',
   },
-  completed: { 
-    color: '#4CAF50', 
-    bg: '#E8F5E9', 
-    icon: CheckCircleIcon, 
+  completed: {
+    color: '#4CAF50',
+    bg: '#E8F5E9',
+    icon: CheckCircle2,
     label: 'Completed',
-    gradient: 'linear-gradient(135deg, #4CAF50 0%, #388E3C 100%)'
+    gradient: 'linear-gradient(135deg, #4CAF50 0%, #388E3C 100%)',
   },
-  cancelled: { 
-    color: '#F44336', 
-    bg: '#FFEBEE', 
-    icon: CancelIcon, 
+  cancelled: {
+    color: '#F44336',
+    bg: '#FFEBEE',
+    icon: XCircle,
     label: 'Cancelled',
-    gradient: 'linear-gradient(135deg, #F44336 0%, #D32F2F 100%)'
+    gradient: 'linear-gradient(135deg, #F44336 0%, #D32F2F 100%)',
   },
   scheduled: {
     color: '#00ACC1',
     bg: '#E0F7FA',
-    icon: CalendarIcon,
+    icon: Calendar,
     label: 'Scheduled',
     gradient: 'linear-gradient(135deg, #00ACC1 0%, #00838F 100%)',
   },
   accepted: {
     color: '#1565C0',
     bg: '#E3F2FD',
-    icon: CheckCircleIcon,
+    icon: CheckCircle2,
     label: 'Accepted',
     gradient: 'linear-gradient(135deg, #1565C0 0%, #0D47A1 100%)',
   },
-} as const
+}
 
 const statusTabs: Array<{ label: string; value: string }> = [
   { label: 'All', value: 'all' },
@@ -133,13 +133,17 @@ export function Bookings() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('all')
   const [selectedSource, setSelectedSource] = useState<'all' | 'web' | 'mobile_app'>('all')
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
-  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [page, setPage] = useState(1) // 1-based (API)
   const [pageSize, setPageSize] = useState(20)
   const [totalRows, setTotalRows] = useState(0)
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' })
-  
+
+  useEffect(() => {
+    if (!snackbar.open) return undefined
+    const t = window.setTimeout(() => setSnackbar((s) => ({ ...s, open: false })), 6000)
+    return () => window.clearTimeout(t)
+  }, [snackbar.open, snackbar.message])
+
   // Modal states
   const [assignProviderModal, setAssignProviderModal] = useState<{
     open: boolean
@@ -314,23 +318,12 @@ export function Bookings() {
     }
   }, [bookingStats, bookings, totalRows])
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, booking: Booking) => {
-    setAnchorEl(event.currentTarget)
-    setSelectedBooking(booking)
-  }
-
-  const handleMenuClose = () => {
-    setAnchorEl(null)
-    setSelectedBooking(null)
-  }
-
   const handleRefresh = () => {
     fetchBookings()
   }
 
   const handleViewBooking = (booking: Booking) => {
     navigate(`/bookings/${booking.id}`)
-    handleMenuClose()
   }
 
   const handleCancelBooking = async (bookingId: string) => {
@@ -347,7 +340,6 @@ export function Bookings() {
       await BookingsService.cancelBooking(bookingId, 'Cancelled by admin')
       setSnackbar({ open: true, message: 'Booking cancelled successfully', severity: 'success' })
       fetchBookings()
-      handleMenuClose()
     } catch (err: any) {
       setSnackbar({ open: true, message: err.message || 'Failed to cancel booking', severity: 'error' })
     } finally {
@@ -358,10 +350,6 @@ export function Bookings() {
   const handleStatusChange = (status: string) => {
     setSelectedStatus(status)
     setPage(1)
-  }
-
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false })
   }
 
   const fetchAvailableProviders = async () => {
@@ -395,8 +383,7 @@ export function Bookings() {
 
   const handleOpenAssignProvider = async (bookingId: string) => {
     setAssignProviderModal({ open: true, bookingId })
-    handleMenuClose()
-    
+
     if (availableProviders.length === 0) {
       await fetchAvailableProviders()
     }
@@ -433,7 +420,6 @@ export function Bookings() {
 
   const handleOpenUpdateStatus = (bookingId: string, currentStatus: string) => {
     setUpdateStatusModal({ open: true, bookingId, currentStatus })
-    handleMenuClose()
   }
 
   const handleUpdateStatus = async (
@@ -469,610 +455,428 @@ export function Bookings() {
     }
   }
 
-  // Modern Stats Card Component
-  const StatsCard = ({ title, value, icon: Icon, color, gradient, onClick }: any) => (
-    <Card 
-      sx={{ 
-        position: 'relative',
-        overflow: 'hidden',
-        '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: 6,
-        },
-        transition: 'all 0.3s ease',
-        cursor: onClick ? 'pointer' : 'default',
-      }}
-      onClick={onClick}
-    >
-      <Box
-        sx={{
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          width: 120,
-          height: 120,
-          borderRadius: '50%',
-          background: gradient,
-          opacity: 0.1,
-          transform: 'translate(30px, -30px)',
-        }}
-      />
-      <CardContent sx={{ position: 'relative' }}>
-        <Box display="flex" alignItems="center" justifyContent="space-between">
-          <Box>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              {title}
-            </Typography>
-            <Typography variant="h4" fontWeight="700" color={color}>
-              {value}
-            </Typography>
-          </Box>
-          <Avatar
-            sx={{
-              bgcolor: alpha(color, 0.1),
-              color: color,
-              width: 56,
-              height: 56,
-            }}
-          >
-            <Icon sx={{ fontSize: 32 }} />
-          </Avatar>
-        </Box>
-      </CardContent>
-    </Card>
-  )
-  const columns = useMemo<GridColDef<Booking>[]>(() => {
-    const cols: GridColDef<Booking>[] = [
-      {
-        field: 'bookingNumber',
-        headerName: 'Booking',
-        minWidth: 160,
-        flex: 1,
-        valueGetter: (_value, row) => row.bookingNumber || `#${row.id}`,
-        renderCell: (params: GridRenderCellParams<Booking>) => {
-          const row = params.row
-          return (
-            <Box>
-              <Typography variant="body2" fontWeight={800}>
-                {row.bookingNumber || `#${row.id}`}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {formatDate(row.createdAt)}
-              </Typography>
-            </Box>
-          )
-        },
-      },
-      {
-        field: 'customerName',
-        headerName: 'Customer',
-        minWidth: 220,
-        flex: 1.2,
-        sortable: false,
-        renderCell: (params: GridRenderCellParams<Booking>) => {
-          const row = params.row
-          const name =
-            row.customerName ||
-            (row.customer ? `${row.customer.firstName || ''} ${row.customer.lastName || ''}`.trim() : '') ||
-            'N/A'
-          const phone = row.customerPhone || row.customer?.phone || ''
-          return (
-            <Box display="flex" alignItems="center" gap={1.25} minWidth={0}>
-              <Avatar sx={{ width: 34, height: 34, bgcolor: alpha('#667eea', 0.15), color: '#3f51b5' }}>
-                {getInitials(name)}
-              </Avatar>
-              <Box minWidth={0}>
-                <Typography variant="body2" fontWeight={700} noWrap>
-                  {name}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" noWrap>
-                  {phone}
-                </Typography>
-              </Box>
-            </Box>
-          )
-        },
-      },
-      {
-        field: 'service',
-        headerName: 'Service',
-        minWidth: 260,
-        flex: 1.6,
-        sortable: false,
-        valueGetter: (_value, row) =>
-          row.serviceRequest?.title || row.serviceName || row.services?.[0]?.serviceName || 'N/A',
-        renderCell: (params: GridRenderCellParams<Booking>) => {
-          const row = params.row
-          const title = row.serviceRequest?.title || row.serviceName || row.services?.[0]?.serviceName || 'N/A'
-          const city = row.serviceRequest?.location?.city || row.city || row.address?.city || ''
-          const state = row.serviceRequest?.location?.state || ''
-          return (
-            <Box minWidth={0}>
-              <Typography variant="body2" fontWeight={700} noWrap>
-                {title}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" noWrap>
-                {city}
-                {city && state ? ', ' : ''}
-                {state}
-              </Typography>
-            </Box>
-          )
-        },
-      },
-      {
-        field: 'scheduledDate',
-        headerName: 'Schedule',
-        minWidth: 200,
-        flex: 1.1,
-        valueGetter: (_value, row) => `${formatDate(row.scheduledDate)} ${row.scheduledTime || ''}`.trim(),
-        renderCell: (params: GridRenderCellParams<Booking>) => {
-          const row = params.row
-          return (
-            <Box display="flex" alignItems="center" gap={1}>
-              <CalendarIcon fontSize="small" color="action" />
-              <Box>
-                <Typography variant="body2" fontWeight={700}>
-                  {formatDate(row.scheduledDate)}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {row.scheduledTime || 'TBD'}
-                </Typography>
-              </Box>
-            </Box>
-          )
-        },
-      },
-      {
-        field: 'totalAmount',
-        headerName: 'Amount',
-        minWidth: 120,
-        flex: 0.7,
-        align: 'right',
-        headerAlign: 'right',
-        valueFormatter: (v: any) => formatCurrency(v.value || 0),
-        renderCell: (params: GridRenderCellParams<Booking>) => (
-          <Typography variant="body2" fontWeight={900} color="success.main">
-            {formatCurrency(params.row.totalAmount || 0)}
-          </Typography>
-        ),
-      },
-      {
-        field: 'paymentStatus',
-        headerName: 'Payment',
-        minWidth: 130,
-        flex: 0.7,
-        renderCell: (params: GridRenderCellParams<Booking>) => {
-          const ps = (params.row.paymentStatus || 'pending').toString().toLowerCase()
-          const isPaid = ['paid', 'completed', 'success', 'received', 'customer_paid', 'verified'].includes(ps)
-          return (
-            <Chip
-              label={(params.row.paymentStatus || '—').toString().replace(/_/g, ' ')}
-              size="small"
-              color={isPaid ? 'success' : 'warning'}
-              sx={{ textTransform: 'capitalize', fontWeight: 600 }}
-            />
-          )
-        },
-      },
-      {
-        field: 'status',
-        headerName: 'Status',
-        minWidth: 160,
-        flex: 0.9,
-        renderCell: (params: GridRenderCellParams<Booking>) => {
-          const row = params.row
-          const cfg = (statusConfig as any)[row.status] || statusConfig.pending
-          const StatusIcon = cfg.icon
-          return (
-            <Chip
-              icon={<StatusIcon sx={{ fontSize: 18 }} />}
-              label={cfg.label}
-              size="small"
-              sx={{
-                bgcolor: cfg.bg,
-                color: cfg.color,
-                fontWeight: 800,
-                '& .MuiChip-icon': { color: cfg.color },
-              }}
-            />
-          )
-        },
-      },
-      {
-        field: 'source',
-        headerName: 'Source',
-        minWidth: 120,
-        flex: 0.5,
-        renderCell: (params: GridRenderCellParams<Booking>) => {
-          const src = (params.row as any).source || params.row.source
-          if (!src) return <Typography variant="caption" color="text.secondary">—</Typography>
-          const isWeb = src === 'web'
-          return (
-            <Chip
-              icon={isWeb ? <WebIcon sx={{ fontSize: 16 }} /> : <MobileIcon sx={{ fontSize: 16 }} />}
-              label={isWeb ? 'Website' : 'Mobile app'}
-              size="small"
-              variant="outlined"
-              sx={{ fontWeight: 600, '& .MuiChip-icon': { color: isWeb ? 'primary.main' : 'secondary.main' } }}
-            />
-          )
-        },
-      },
-      {
-        field: 'assignProfessional',
-        headerName: 'Assign Professional',
-        minWidth: 200,
-        flex: 1,
-        sortable: false,
-        renderCell: (params: GridRenderCellParams<Booking>) => {
-          const row = params.row
-          const professional = (row as any).professional
-          const hasProfessionalId = !!(row as any).professionalId || (row as any).professional_id || professional?.id || professional?._id
-          const provider = row.provider || (row as any).assignedProfessional
-          let name =
-            (professional
-              ? [professional.firstName, professional.lastName].filter(Boolean).join(' ').trim()
-              : '') ||
-            provider?.businessName ||
-            (provider?.user
-              ? `${(provider.user as any).firstName || ''} ${(provider.user as any).lastName || ''}`.trim()
-              : '') ||
-            ''
-          if (!name && hasProfessionalId) name = 'Professional'
-          const isCompletedOrCancelled =
-            row.status === 'completed' || row.status === 'cancelled'
-          return (
-            <Box display="flex" alignItems="center" gap={1}>
-              {name ? (
-                <Typography variant="body2" noWrap sx={{ maxWidth: 120 }}>
-                  {name}
-                </Typography>
-              ) : (
-                <Typography variant="caption" color="text.secondary">
-                  Unassigned
-                </Typography>
-              )}
-              {!isCompletedOrCancelled && (
-                <Button
-                  size="small"
-                  variant={name ? 'outlined' : 'contained'}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setAssignProfessionalModal({ open: true, bookingId: row.id })
-                  }}
-                  sx={{ minWidth: 72, textTransform: 'none' }}
-                >
-                  {name ? 'Change' : 'Assign'}
-                </Button>
-              )}
-            </Box>
-          )
-        },
-      },
-      {
-        field: 'actions',
-        headerName: '',
-        width: 92,
-        sortable: false,
-        filterable: false,
-        align: 'right',
-        headerAlign: 'right',
-        renderCell: (params: GridRenderCellParams<Booking>) => (
-          <Stack direction="row" spacing={0.5} justifyContent="flex-end" width="100%">
-            <Tooltip title="View">
-              <IconButton
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  navigate(`/bookings/${params.row.id}`)
-                }}
-              >
-                <VisibilityIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="More">
-              <IconButton
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleMenuOpen(e, params.row)
-                }}
-              >
-                <MoreVertIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Stack>
-        ),
-      },
-    ]
-    return cols
-  }, [navigate])
+  const getBookingRowId = (row: Booking) =>
+    String(row.id ?? (row as any)._id ?? `${(row as any).serviceRequestId}-${row.scheduledDate}`)
 
-  const currentTabIndex = useMemo(() => {
-    const idx = statusTabs.findIndex((t) => t.value === selectedStatus)
-    return idx >= 0 ? idx : 0
-  }, [selectedStatus])
-
-  const Toolbar = () => (
-    <GridToolbarContainer sx={{ px: 2, py: 1.5, gap: 1.5, alignItems: 'center' }}>
-      <Box flex={1}>
-        <Typography variant="body2" color="text.secondary" fontWeight={600}>
-          {totalRows ? `${totalRows.toLocaleString()} bookings` : 'Bookings'}
-        </Typography>
-      </Box>
-      <Button
-        variant="outlined"
-        startIcon={<RefreshIcon />}
-        onClick={handleRefresh}
-        disabled={loading}
-        sx={{ borderRadius: 2 }}
-      >
-        Refresh
-      </Button>
-    </GridToolbarContainer>
-  )
+  const totalPages = Math.max(1, Math.ceil((totalRows || 0) / pageSize))
 
   return (
-    <Box sx={{ flexGrow: 1, p: { xs: 2, md: 3 } }}>
-      {/* Header */}
-      <Box mb={4}>
-        <Typography variant="h4" fontWeight="700" gutterBottom>
-          Bookings Management
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Manage and track all service bookings
-        </Typography>
-      </Box>
+    <div className="flex-1 p-4 md:p-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Bookings Management</h1>
+        <p className="text-sm text-muted-foreground md:text-base">Manage and track all service bookings</p>
+      </div>
 
-      {/* Stats Grid */}
-      <Grid container spacing={3} mb={4}>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatsCard
-            title="Total Bookings"
-            value={resolvedStats.total}
-            icon={AssignmentIndIcon}
-            color="#2196F3"
-            gradient="linear-gradient(135deg, #2196F3 0%, #1976D2 100%)"
-            onClick={() => handleStatusChange('all')}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatsCard
-            title="Pending"
-            value={resolvedStats.pending}
-            icon={ScheduleIcon}
-            color="#FF9800"
-            gradient="linear-gradient(135deg, #FF9800 0%, #F57C00 100%)"
-            onClick={() => handleStatusChange('pending')}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatsCard
-            title="In Progress"
-            value={resolvedStats.in_progress}
-            icon={TimeIcon}
-            color="#9C27B0"
-            gradient="linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%)"
-            onClick={() => handleStatusChange('in_progress')}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatsCard
-            title="Completed"
-            value={resolvedStats.completed}
-            icon={CheckCircleIcon}
-            color="#4CAF50"
-            gradient="linear-gradient(135deg, #4CAF50 0%, #388E3C 100%)"
-            onClick={() => handleStatusChange('completed')}
-          />
-        </Grid>
-      </Grid>
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          {
+            title: 'Total Bookings',
+            value: resolvedStats.total,
+            icon: UserCog,
+            color: '#2196F3',
+            gradient: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)',
+            onStatus: 'all' as const,
+          },
+          {
+            title: 'Pending',
+            value: resolvedStats.pending,
+            icon: CalendarClock,
+            color: '#FF9800',
+            gradient: 'linear-gradient(135deg, #FF9800 0%, #F57C00 100%)',
+            onStatus: 'pending' as const,
+          },
+          {
+            title: 'In Progress',
+            value: resolvedStats.in_progress,
+            icon: Clock,
+            color: '#9C27B0',
+            gradient: 'linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%)',
+            onStatus: 'in_progress' as const,
+          },
+          {
+            title: 'Completed',
+            value: resolvedStats.completed,
+            icon: CheckCircle2,
+            color: '#4CAF50',
+            gradient: 'linear-gradient(135deg, #4CAF50 0%, #388E3C 100%)',
+            onStatus: 'completed' as const,
+          },
+        ].map((s) => {
+          const Ic = s.icon
+          return (
+            <Card
+              key={s.title}
+              className="relative cursor-pointer overflow-hidden border transition-all hover:-translate-y-0.5 hover:shadow-md"
+              onClick={() => handleStatusChange(s.onStatus)}
+            >
+              <div
+                className="absolute right-0 top-0 h-28 w-28 translate-x-4 -translate-y-4 rounded-full opacity-[0.12]"
+                style={{ background: s.gradient }}
+              />
+              <CardContent className="relative flex items-center justify-between p-4">
+                <div>
+                  <p className="text-xs text-muted-foreground md:text-sm">{s.title}</p>
+                  <p className="text-2xl font-bold" style={{ color: s.color }}>
+                    {s.value}
+                  </p>
+                </div>
+                <div
+                  className="flex h-12 w-12 items-center justify-center rounded-full"
+                  style={{ color: s.color, backgroundColor: `${s.color}18` }}
+                >
+                  <Ic className="h-6 w-6" />
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
 
-      {/* Filters */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
+      <Card className="mb-4">
+        <CardContent className="p-4">
+          <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12">
+            <div className="relative min-w-0 lg:col-span-4">
+              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                className="pl-9"
                 placeholder="Search booking #, customer, service, notes..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon color="action" />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2,
-                  },
-                }}
               />
-            </Grid>
-            <Grid item xs={12} sm={6} md={2}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Source</InputLabel>
-                <Select
-                  value={selectedSource}
-                  label="Source"
-                  onChange={(e) => {
-                    setSelectedSource(e.target.value as 'all' | 'web' | 'mobile_app')
-                    setPage(1)
-                  }}
-                  sx={{ borderRadius: 2 }}
-                >
-                  <MenuItem value="all">All sources</MenuItem>
-                  <MenuItem value="web">Website</MenuItem>
-                  <MenuItem value="mobile_app">Mobile app</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Tabs
-                value={currentTabIndex}
-                onChange={(_, idx) => handleStatusChange(statusTabs[idx]?.value || 'all')}
-                variant="scrollable"
-                scrollButtons="auto"
-                sx={{
-                  minHeight: 40,
-                  '& .MuiTab-root': {
-                    minHeight: 40,
-                    textTransform: 'none',
-                    fontWeight: 700,
-                  },
+            </div>
+            <div className="lg:col-span-2">
+              <Label className="text-xs">Source</Label>
+              <Select
+                value={selectedSource}
+                onValueChange={(v) => {
+                  setSelectedSource(v as 'all' | 'web' | 'mobile_app')
+                  setPage(1)
                 }}
               >
-                {statusTabs.map((t) => (
-                  <Tab key={t.value} label={t.label} />
-                ))}
+                <SelectTrigger className="mt-1 h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All sources</SelectItem>
+                  <SelectItem value="web">Website</SelectItem>
+                  <SelectItem value="mobile_app">Mobile app</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="min-w-0 lg:col-span-6">
+              <Tabs value={selectedStatus} onValueChange={handleStatusChange} className="w-full">
+                <TabsList className="h-auto w-full flex-wrap justify-start p-1">
+                  {statusTabs.map((t) => (
+                    <TabsTrigger
+                      key={t.value}
+                      value={t.value}
+                      className="px-2 py-1.5 text-xs font-bold sm:text-sm"
+                    >
+                      {t.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
               </Tabs>
-              {statsLoading && (
-                <Typography variant="caption" color="text.secondary">
-                  Updating stats…
-                </Typography>
-              )}
-            </Grid>
-          </Grid>
+              {statsLoading && <p className="mt-1 text-xs text-muted-foreground">Updating stats…</p>}
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Error State */}
       {error && !loading && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
           {error}
-        </Alert>
+        </div>
       )}
 
-      {/* Bookings Table */}
-      <Card sx={{ borderRadius: 3 }}>
-        <CardContent sx={{ p: 0 }}>
-          <Box sx={{ height: 640, width: '100%' }}>
-            <DataGrid
-              rows={filteredBookings}
-              columns={columns}
-              getRowId={(row) => row.id || row._id || `${row.serviceRequestId}-${row.scheduledDate}`}
-              loading={loading}
-              disableRowSelectionOnClick
-              onRowClick={(params) => navigate(`/bookings/${(params.row as Booking).id}`)}
-              slots={{ toolbar: Toolbar }}
-              paginationMode="server"
-              rowCount={totalRows}
-              paginationModel={{ page: page - 1, pageSize }}
-              onPaginationModelChange={(model) => {
-                const nextPage = model.page + 1
-                if (nextPage !== page) setPage(nextPage)
-                if (model.pageSize !== pageSize) {
-                  setPageSize(model.pageSize)
-                  setPage(1)
-                }
-              }}
-              pageSizeOptions={[10, 20, 50, 100]}
-              sx={{
-                border: 'none',
-                '& .MuiDataGrid-columnHeaders': {
-                  bgcolor: alpha('#667eea', 0.06),
-                  borderBottom: '1px solid',
-                  borderBottomColor: alpha('#000', 0.06),
-                },
-                '& .MuiDataGrid-row:hover': {
-                  bgcolor: alpha('#2196F3', 0.04),
-                },
-              }}
-              localeText={{
-                noRowsLabel:
-                  searchTerm || selectedStatus !== 'all' || selectedSource !== 'all'
-                    ? 'No bookings match your current filters.'
-                    : 'No bookings yet.',
-              }}
-            />
-          </Box>
+      <Card>
+        <CardContent className="p-0">
+          <div className="relative min-h-[400px] w-full overflow-x-auto p-0">
+            {loading && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            )}
+            <div className="border-b p-2 sm:flex sm:items-center sm:justify-between">
+              <p className="px-1 text-sm font-semibold text-muted-foreground">
+                {totalRows ? `${totalRows.toLocaleString()} bookings` : 'Bookings'}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="ml-auto mt-2 gap-1.5 sm:mt-0"
+                onClick={handleRefresh}
+                disabled={loading}
+              >
+                <RefreshCw className="h-4 w-4" />
+                Refresh
+              </Button>
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-primary/[0.06]">
+                  <TableHead>Booking</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Service</TableHead>
+                  <TableHead>Schedule</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>Payment</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Source</TableHead>
+                  <TableHead>Assign Professional</TableHead>
+                  <TableHead className="w-24" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredBookings.length === 0 && !loading ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="h-32 text-center text-sm text-muted-foreground">
+                      {searchTerm || selectedStatus !== 'all' || selectedSource !== 'all'
+                        ? 'No bookings match your current filters.'
+                        : 'No bookings yet.'}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredBookings.map((row) => {
+                    const name =
+                      row.customerName ||
+                      (row.customer
+                        ? `${row.customer.firstName || ''} ${row.customer.lastName || ''}`.trim()
+                        : '') ||
+                      'N/A'
+                    const phone = row.customerPhone || row.customer?.phone || ''
+                    const title =
+                      row.serviceRequest?.title ||
+                      row.serviceName ||
+                      row.services?.[0]?.serviceName ||
+                      'N/A'
+                    const city = row.serviceRequest?.location?.city || row.city || row.address?.city || ''
+                    const state = row.serviceRequest?.location?.state || ''
+                    const professional = (row as any).professional
+                    const hasProfessionalId =
+                      !!(row as any).professionalId ||
+                      (row as any).professional_id ||
+                      professional?.id ||
+                      professional?._id
+                    const provider = row.provider || (row as any).assignedProfessional
+                    let proName =
+                      (professional
+                        ? [professional.firstName, professional.lastName].filter(Boolean).join(' ').trim()
+                        : '') ||
+                      provider?.businessName ||
+                      (provider?.user
+                        ? `${(provider.user as any).firstName || ''} ${(provider.user as any).lastName || ''}`.trim()
+                        : '') ||
+                      ''
+                    if (!proName && hasProfessionalId) proName = 'Professional'
+                    const isCompletedOrCancelled = row.status === 'completed' || row.status === 'cancelled'
+                    const ps = (row.paymentStatus || 'pending').toString().toLowerCase()
+                    const isPaid = ['paid', 'completed', 'success', 'received', 'customer_paid', 'verified'].includes(ps)
+                    const st = row.status
+                    const cfg = (statusConfig as any)[st] || statusConfig.pending
+                    const StatusIc = cfg.icon
+                    const src = (row as any).source || row.source
+                    const isWeb = src === 'web'
+
+                    return (
+                      <TableRow
+                        key={getBookingRowId(row)}
+                        className="cursor-pointer hover:bg-muted/40"
+                        onClick={() => navigate(`/bookings/${row.id}`)}
+                      >
+                        <TableCell className="align-top">
+                          <p className="text-sm font-extrabold">
+                            {row.bookingNumber || `#${row.id}`}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{formatDate(row.createdAt)}</p>
+                        </TableCell>
+                        <TableCell className="align-top">
+                          <div className="flex min-w-0 max-w-[200px] items-center gap-2">
+                            <div
+                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+                              style={{ background: 'rgb(102 126 234 / 0.15)', color: '#3f51b5' }}
+                            >
+                              {getInitials(name)}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-bold">{name}</p>
+                              <p className="truncate text-xs text-muted-foreground">{phone}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="align-top">
+                          <div className="max-w-[220px]">
+                            <p className="truncate text-sm font-bold">{title}</p>
+                            <p className="truncate text-xs text-muted-foreground">
+                              {city}
+                              {city && state ? ', ' : ''}
+                              {state}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="align-top">
+                          <div className="flex items-center gap-1.5">
+                            <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            <div>
+                              <p className="text-sm font-bold">{formatDate(row.scheduledDate)}</p>
+                              <p className="text-xs text-muted-foreground">{row.scheduledTime || 'TBD'}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-black text-emerald-600 align-top">
+                          {formatCurrency(row.totalAmount || 0)}
+                        </TableCell>
+                        <TableCell className="align-top">
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              'text-xs capitalize',
+                              isPaid
+                                ? 'border-emerald-200 bg-emerald-500/10 text-emerald-800'
+                                : 'border-amber-200 bg-amber-500/10 text-amber-800',
+                            )}
+                          >
+                            {(row.paymentStatus || '—').toString().replace(/_/g, ' ')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="align-top">
+                          <div
+                            className="inline-flex max-w-full items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-extrabold"
+                            style={{ backgroundColor: cfg.bg, color: cfg.color, borderColor: 'transparent' }}
+                          >
+                            <StatusIc className="h-3.5 w-3.5 shrink-0" style={{ color: cfg.color }} />
+                            {cfg.label}
+                          </div>
+                        </TableCell>
+                        <TableCell className="align-top">
+                          {src ? (
+                            <div className="inline-flex items-center gap-1 text-xs">
+                              {isWeb ? <Globe className="h-3.5 w-3.5" /> : <Smartphone className="h-3.5 w-3.5" />}
+                              {isWeb ? 'Website' : 'Mobile app'}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell
+                          className="align-top"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex flex-wrap items-center gap-1">
+                            {proName ? (
+                              <span className="max-w-[100px] truncate text-xs sm:text-sm">{proName}</span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">Unassigned</span>
+                            )}
+                            {!isCompletedOrCancelled && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant={proName ? 'outline' : 'default'}
+                                className="h-7 min-w-[72px] px-2 text-xs"
+                                onClick={() => setAssignProfessionalModal({ open: true, bookingId: String(row.id) })}
+                              >
+                                {proName ? 'Change' : 'Assign'}
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell
+                          className="w-24 align-top text-right"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex justify-end gap-0.5">
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              title="View"
+                              onClick={() => navigate(`/bookings/${row.id}`)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8"
+                                  title="More"
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuItem onClick={() => handleViewBooking(row)}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View details
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  disabled={row.status === 'completed' || row.status === 'cancelled'}
+                                  onClick={() => handleOpenAssignProvider(String(row.id))}
+                                >
+                                  <UserCog className="mr-2 h-4 w-4" />
+                                  Assign provider
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleOpenUpdateStatus(String(row.id), String(row.status))}
+                                >
+                                  <RefreshCcw className="mr-2 h-4 w-4" />
+                                  Update status
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  disabled={row.status === 'completed' || row.status === 'cancelled'}
+                                  onClick={() => handleCancelBooking(String(row.id))}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Cancel booking
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
+                )}
+              </TableBody>
+            </Table>
+            {totalRows > 0 && (
+              <div className="mt-0 border-t p-0">
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  totalItems={totalRows}
+                  itemsPerPage={pageSize}
+                  onPageChange={setPage}
+                  onItemsPerPageChange={(n) => {
+                    setPageSize(n)
+                    setPage(1)
+                  }}
+                />
+              </div>
+            )}
+          </div>
         </CardContent>
         {!loading && !error && filteredBookings.length === 0 && (
-          <Box sx={{ px: 3, pb: 3 }}>
-            <Alert severity="info">
-              {searchTerm || selectedStatus !== 'all' || selectedSource !== 'all'
-                ? 'Try adjusting your search, status, or source filter.'
-                : 'Bookings will appear here when customers schedule services.'}
-            </Alert>
-          </Box>
+          <div className="border-t bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+            {searchTerm || selectedStatus !== 'all' || selectedSource !== 'all'
+              ? 'Try adjusting your search, status, or source filter.'
+              : 'Bookings will appear here when customers schedule services.'}
+          </div>
         )}
       </Card>
 
-      {/* Actions Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-        PaperProps={{
-          sx: { 
-            minWidth: 180,
-            boxShadow: 3,
-            borderRadius: 2,
-          }
-        }}
-      >
-        <MenuItem 
-          onClick={() => {
-            if (selectedBooking) {
-              handleViewBooking(selectedBooking)
-            }
-          }}
-        >
-          <VisibilityIcon sx={{ mr: 1, fontSize: 20 }} />
-          View Details
-        </MenuItem>
-        <Divider />
-        <MenuItem 
-          onClick={() => {
-            if (selectedBooking) {
-              handleOpenAssignProvider(selectedBooking.id)
-            }
-          }}
-          disabled={selectedBooking?.status === 'completed' || selectedBooking?.status === 'cancelled'}
-        >
-          <AssignmentIndIcon sx={{ mr: 1, fontSize: 20 }} />
-          Assign Provider
-        </MenuItem>
-        <MenuItem 
-          onClick={() => {
-            if (selectedBooking) {
-              handleOpenUpdateStatus(selectedBooking.id, selectedBooking.status)
-            }
-          }}
-        >
-          <UpdateIcon sx={{ mr: 1, fontSize: 20 }} />
-          Update Status
-        </MenuItem>
-        <MenuItem 
-          onClick={() => {
-            if (selectedBooking) {
-              handleCancelBooking(selectedBooking.id)
-            }
-          }} 
-          sx={{ color: 'error.main' }}
-          disabled={selectedBooking?.status === 'completed' || selectedBooking?.status === 'cancelled'}
-        >
-          <DeleteIcon sx={{ mr: 1, fontSize: 20 }} />
-          Cancel Booking
-        </MenuItem>
-      </Menu>
-
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+      {snackbar.open && (
+        <FixedMessage variant={snackbar.severity === 'error' ? 'error' : 'default'}>
           {snackbar.message}
-        </Alert>
-      </Snackbar>
-
+        </FixedMessage>
+      )}
       {/* Modals */}
       {assignProviderModal.open && assignProviderModal.bookingId && (
         <AssignProviderModal
@@ -1105,6 +909,6 @@ export function Bookings() {
           }}
         />
       )}
-    </Box>
+    </div>
   )
 }

@@ -758,37 +758,16 @@ export function CreateService() {
     const fetchCategories = async () => {
       try {
         setLoadingCategories(true)
-        let list: any[] = []
-        const response = await CategoriesService.getCategories({
+        const raw = await CategoriesService.getCategoriesForServiceUIs({
           page: 1,
           limit: 200,
           is_active: true,
-          category_type: 'service',
         })
-        if (response?.success && response.data != null) {
-          list = normalizeList(response.data)
-        }
-        // Only root categories in Category dropdown (no parent)
+        const list = normalizeList({ categories: raw })
         const roots = list.filter(
           (c: any) => !(c.parentId ?? c.parent_id)
         )
-        if (roots.length > 0) {
-          setCategories(roots)
-          return
-        }
-        // Fallback: no service-type categories — fetch all and use roots
-        const fallback = await CategoriesService.getCategories({
-          page: 1,
-          limit: 200,
-          is_active: true,
-        })
-        if (fallback?.success && fallback.data != null) {
-          const all = normalizeList(fallback.data)
-          const fallbackRoots = all.filter((c: any) => !(c.parentId ?? c.parent_id))
-          setCategories(fallbackRoots.length > 0 ? fallbackRoots : all)
-        } else {
-          setCategories(roots)
-        }
+        setCategories(roots.length > 0 ? roots : list)
       } catch (error) {
         console.error('Error fetching categories:', error)
         showSnackbar('Failed to load categories', 'error')

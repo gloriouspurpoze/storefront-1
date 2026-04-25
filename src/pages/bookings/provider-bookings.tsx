@@ -1,64 +1,82 @@
 import React, { useState, useEffect } from 'react'
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  Chip,
-  Avatar,
-  IconButton,
-  Paper,
+  Search,
+  Filter,
+  MoreVertical,
+  CheckCircle,
+  XCircle,
+  Calendar,
+  MapPin,
+  IndianRupee,
+  User,
+  Phone,
+  Play,
+} from 'lucide-react'
+import { BookingsService } from '../../services/api/bookings.service'
+import type { Booking } from '../../types'
+import { Card, CardContent } from '../../components/ui/card'
+import { Button } from '../../components/ui/button'
+import { Input } from '../../components/ui/input'
+import { Badge } from '../../components/ui/badge'
+import { Avatar, AvatarFallback } from '../../components/ui/avatar'
+import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  TextField,
-  InputAdornment,
-  Tab,
-  Tabs,
-  Menu,
-  MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Stack,
-  Divider,
-  CircularProgress,
-  Alert,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
+} from '../../components/ui/table'
 import {
-  Search as SearchIcon,
-  FilterList as FilterIcon,
-  MoreVert as MoreIcon,
-  CheckCircle as CheckIcon,
-  Cancel as CancelIcon,
-  Schedule as PendingIcon,
-  PlayArrow as StartIcon,
-  CalendarToday as CalendarIcon,
-  LocationOn as LocationIcon,
-  AttachMoney as MoneyIcon,
-  Person as PersonIcon,
-  Phone as PhoneIcon,
-} from '@mui/icons-material'
-import { BookingsService } from '../../services/api/bookings.service'
-import type { Booking } from '../../types'
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../../components/ui/dropdown-menu'
+import { Loader2 } from 'lucide-react'
+import { cn } from '../../lib/utils'
+
+const tabs = [
+  { label: 'All Bookings', value: 'all' },
+  { label: 'Pending', value: 'pending' },
+  { label: 'Accepted', value: 'accepted' },
+  { label: 'In Progress', value: 'in_progress' },
+  { label: 'Completed', value: 'completed' },
+]
+
+function statusBadgeClass(status: string) {
+  switch (status) {
+    case 'pending':
+      return 'bg-amber-500/15 text-amber-800 dark:text-amber-200'
+    case 'accepted':
+      return 'bg-sky-500/15 text-sky-800 dark:text-sky-200'
+    case 'in_progress':
+      return 'bg-primary/15 text-primary'
+    case 'completed':
+      return 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-200'
+    case 'cancelled':
+      return 'bg-destructive/15 text-destructive'
+    default:
+      return 'bg-muted text-muted-foreground'
+  }
+}
 
 export function ProviderBookings() {
   const [searchQuery, setSearchQuery] = useState('')
   const [currentTab, setCurrentTab] = useState(0)
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
-  const [actionMenuAnchor, setActionMenuAnchor] = useState<null | HTMLElement>(null)
-  const [actionBooking, setActionBooking] = useState<Booking | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Real bookings data from API
   const [bookings, setBookings] = useState<Booking[]>([])
   const [pagination, setPagination] = useState({
     page: 1,
@@ -75,21 +93,21 @@ export function ProviderBookings() {
     try {
       setLoading(true)
       setError(null)
-      
+
       const status = tabs[currentTab].value
-      const query: any = {
+      const query: Record<string, unknown> = {
         page: pagination.page,
         limit: pagination.limit,
       }
-      
+
       if (status !== 'all') {
         query.status = status
       }
-      
+
       if (searchQuery) {
         query.search = searchQuery
       }
-      
+
       const response = await BookingsService.getProviderBookings(query)
       if (response.success && response.data) {
         setBookings(response.data.bookings || [])
@@ -99,451 +117,377 @@ export function ProviderBookings() {
       } else {
         setBookings([])
       }
-      
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching bookings:', err)
-      setError(err?.message || 'Failed to load bookings')
+      setError(err instanceof Error ? err.message : 'Failed to load bookings')
     } finally {
       setLoading(false)
     }
   }
 
-  const tabs = [
-    { label: 'All Bookings', value: 'all' },
-    { label: 'Pending', value: 'pending' },
-    { label: 'Accepted', value: 'accepted' },
-    { label: 'In Progress', value: 'in_progress' },
-    { label: 'Completed', value: 'completed' },
-  ]
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'warning'
-      case 'accepted':
-        return 'info'
-      case 'in_progress':
-        return 'primary'
-      case 'completed':
-        return 'success'
-      case 'cancelled':
-        return 'error'
-      default:
-        return 'default'
-    }
-  }
-
   const getStatusIcon = (status: string) => {
+    const cls = 'h-3.5 w-3.5'
     switch (status) {
       case 'pending':
-        return <PendingIcon fontSize="small" />
+        return <Calendar className={cls} />
       case 'accepted':
       case 'completed':
-        return <CheckIcon fontSize="small" />
+        return <CheckCircle className={cls} />
       case 'cancelled':
-        return <CancelIcon fontSize="small" />
+        return <XCircle className={cls} />
       default:
-        return <StartIcon fontSize="small" />
+        return <Play className={cls} />
     }
   }
 
   const filteredBookings = bookings
 
-  const handleActionMenuOpen = (event: React.MouseEvent<HTMLElement>, booking: Booking) => {
-    setActionMenuAnchor(event.currentTarget)
-    setActionBooking(booking)
-  }
-
-  const handleActionMenuClose = () => {
-    setActionMenuAnchor(null)
-    setActionBooking(null)
-  }
-
   const handleViewDetails = (booking: Booking) => {
     setSelectedBooking(booking)
     setDetailsOpen(true)
-    handleActionMenuClose()
   }
 
-  const handleAcceptBooking = async () => {
-    if (!actionBooking) return
+  const handleAcceptBooking = async (b: Booking) => {
     try {
-      await BookingsService.updateBookingStatus(actionBooking.id, { status: 'accepted' })
-      fetchBookings() // Refresh list
-      handleActionMenuClose()
-    } catch (err: any) {
-      setError(err?.message || 'Failed to accept booking')
+      await BookingsService.updateBookingStatus(b.id, { status: 'accepted' })
+      await fetchBookings()
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to accept booking')
     }
   }
 
-  const handleStartJob = async () => {
-    if (!actionBooking) return
+  const handleStartJob = async (b: Booking) => {
     try {
-      await BookingsService.updateBookingStatus(actionBooking.id, { status: 'in_progress' })
-      fetchBookings()
-      handleActionMenuClose()
-    } catch (err: any) {
-      setError(err?.message || 'Failed to start job')
+      await BookingsService.updateBookingStatus(b.id, { status: 'in_progress' })
+      await fetchBookings()
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to start job')
     }
   }
 
-  const handleCompleteJob = async () => {
-    if (!actionBooking) return
+  const handleCompleteJob = async (b: Booking) => {
     try {
-      await BookingsService.completeBooking(actionBooking.id)
-      fetchBookings()
-      handleActionMenuClose()
-    } catch (err: any) {
-      setError(err?.message || 'Failed to complete job')
+      await BookingsService.completeBooking(b.id)
+      await fetchBookings()
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to complete job')
     }
   }
 
-  const handleCancelBooking = async () => {
-    if (!actionBooking) return
+  const handleCancelBooking = async (b: Booking) => {
     try {
-      await BookingsService.cancelBooking(actionBooking.id, 'Cancelled by provider')
-      fetchBookings()
-      handleActionMenuClose()
-    } catch (err: any) {
-      setError(err?.message || 'Failed to cancel booking')
+      await BookingsService.cancelBooking(b.id, 'Cancelled by provider')
+      await fetchBookings()
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to cancel booking')
     }
   }
 
   return (
-    <Box>
-      {/* Page Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-          My Bookings
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Manage your assigned service bookings
-        </Typography>
-      </Box>
+    <div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight">My Bookings</h1>
+        <p className="text-muted-foreground">Manage your assigned service bookings</p>
+      </div>
 
-      {/* Error Alert */}
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+        <div
+          className="mb-4 flex items-center justify-between rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          role="alert"
+        >
           {error}
-        </Alert>
+          <Button type="button" variant="ghost" size="sm" onClick={() => setError(null)}>
+            Dismiss
+          </Button>
+        </div>
       )}
 
-      {/* Filters and Search */}
-      <Card sx={{ mb: 3, borderRadius: 2 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-            <TextField
+      <Card className="mb-4">
+        <CardContent className="flex flex-wrap items-center gap-3 pt-6">
+          <div className="relative min-w-[200px] flex-1">
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-8"
               placeholder="Search bookings..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              size="small"
-              sx={{ flex: 1, minWidth: 250 }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
             />
-            <Button
-              variant="outlined"
-              startIcon={<FilterIcon />}
-              sx={{ borderRadius: 1.5 }}
-            >
-              Filters
-            </Button>
-          </Box>
+          </div>
+          <Button type="button" variant="outline" className="gap-1" size="sm">
+            <Filter className="h-4 w-4" />
+            Filters
+          </Button>
         </CardContent>
       </Card>
 
-      {/* Tabs */}
-      <Card sx={{ borderRadius: 2 }}>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs
-            value={currentTab}
-            onChange={(_, newValue) => setCurrentTab(newValue)}
-            variant="scrollable"
-            scrollButtons="auto"
-          >
+      <Card>
+        <div className="border-b">
+          <div className="flex flex-wrap gap-1 overflow-x-auto p-1">
             {tabs.map((tab, index) => (
-              <Tab key={index} label={tab.label} />
+              <Button
+                key={tab.value}
+                type="button"
+                variant={currentTab === index ? 'default' : 'ghost'}
+                size="sm"
+                className="shrink-0"
+                onClick={() => setCurrentTab(index)}
+              >
+                {tab.label}
+              </Button>
             ))}
-          </Tabs>
-        </Box>
-
-        <CardContent>
-          <TableContainer>
+          </div>
+        </div>
+        <CardContent className="p-0">
+          <div className="w-full overflow-x-auto">
             <Table>
-              <TableHead>
+              <TableHeader>
                 <TableRow>
-                  <TableCell>Booking #</TableCell>
-                  <TableCell>Customer</TableCell>
-                  <TableCell>Service</TableCell>
-                  <TableCell>Schedule</TableCell>
-                  <TableCell>Location</TableCell>
-                  <TableCell>Amount</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell align="right">Actions</TableCell>
+                  <TableHead>Booking #</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Service</TableHead>
+                  <TableHead>Schedule</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
-                      <CircularProgress />
+                    <TableCell colSpan={8} className="py-8 text-center">
+                      <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
                     </TableCell>
                   </TableRow>
                 ) : filteredBookings.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
-                      <Typography variant="body1" color="text.secondary">
-                        No bookings found
-                      </Typography>
+                    <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
+                      No bookings found
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredBookings.map((booking) => (
-                    <TableRow key={booking.id} hover>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {(booking as any).booking_number || booking.bookingNumber || `BK-${booking.id.slice(0, 8)}`}
-                        </Typography>
+                    <TableRow key={booking.id}>
+                      <TableCell className="font-medium">
+                        {(booking as any).booking_number ||
+                          booking.bookingNumber ||
+                          `BK-${String(booking.id).slice(0, 8)}`}
                       </TableCell>
                       <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Avatar sx={{ width: 32, height: 32 }}>
-                            {(booking as any).customer_name?.charAt(0) || booking.customerName?.charAt(0) || 'C'}
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback>
+                              {((booking as any).customer_name?.charAt(0) ||
+                                booking.customerName?.charAt(0) ||
+                                'C') as string}
+                            </AvatarFallback>
                           </Avatar>
-                          <Box>
-                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                          <div>
+                            <p className="text-sm font-medium">
                               {(booking as any).customer_name || booking.customerName || 'N/A'}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {(booking as any).customer_phone || booking.customerPhone || booking.customer?.phone || ''}
-                            </Typography>
-                          </Box>
-                        </Box>
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {(booking as any).customer_phone ||
+                                booking.customerPhone ||
+                                booking.customer?.phone ||
+                                ''}
+                            </p>
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2">
+                        <p className="text-sm">
                           {(booking as any).service_name ||
                             booking.serviceName ||
                             (booking as any).service_request?.service_name ||
-                            booking.serviceRequest?.title ||
+                            (booking as any).serviceRequest?.title ||
                             'N/A'}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {booking.category || ''}
-                        </Typography>
+                        </p>
+                        <p className="text-xs text-muted-foreground">{booking.category || ''}</p>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2">
-                          {(booking as any).scheduled_date || booking.scheduledDate || 'N/A'}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        <p className="text-sm">{(booking as any).scheduled_date || booking.scheduledDate || 'N/A'}</p>
+                        <p className="text-xs text-muted-foreground">
                           {(booking as any).scheduled_time || booking.scheduledTime || ''}
-                        </Typography>
+                        </p>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <p className="max-w-[150px] truncate text-sm">
                           {(booking as any).service_address || (booking as any).address || 'N/A'}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {booking.city || ''}
-                        </Typography>
+                        </p>
+                        <p className="text-xs text-muted-foreground">{booking.city || ''}</p>
+                      </TableCell>
+                      <TableCell className="font-semibold">
+                        ${(booking as any).total_amount ?? booking.totalAmount ?? (booking as any).estimated_cost ?? booking.estimatedCost ?? 0}
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          ${(booking as any).total_amount ??
-                            booking.totalAmount ??
-                            (booking as any).estimated_cost ??
-                            booking.estimatedCost ??
-                            0}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={booking.status}
-                          color={getStatusColor(booking.status)}
-                          size="small"
-                          icon={getStatusIcon(booking.status)}
-                          sx={{ textTransform: 'capitalize' }}
-                        />
-                      </TableCell>
-                      <TableCell align="right">
-                        <IconButton
-                          size="small"
-                          onClick={(e) => handleActionMenuOpen(e, booking)}
+                        <Badge
+                          variant="secondary"
+                          className={cn('inline-flex max-w-full items-center gap-1 capitalize', statusBadgeClass(booking.status))}
                         >
-                          <MoreIcon />
-                        </IconButton>
+                          {getStatusIcon(booking.status)}
+                          {booking.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem onSelect={() => handleViewDetails(booking)}>View Details</DropdownMenuItem>
+                            {booking.status === 'pending' && (
+                              <DropdownMenuItem onSelect={() => void handleAcceptBooking(booking)}>
+                                Accept Booking
+                              </DropdownMenuItem>
+                            )}
+                            {booking.status === 'accepted' && (
+                              <DropdownMenuItem onSelect={() => void handleStartJob(booking)}>Start Job</DropdownMenuItem>
+                            )}
+                            {booking.status === 'in_progress' && (
+                              <DropdownMenuItem onSelect={() => void handleCompleteJob(booking)}>
+                                Complete Job
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onSelect={() => void handleCancelBooking(booking)}
+                            >
+                              Cancel Booking
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))
                 )}
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Action Menu */}
-      <Menu
-        anchorEl={actionMenuAnchor}
-        open={Boolean(actionMenuAnchor)}
-        onClose={handleActionMenuClose}
-      >
-        <MenuItem onClick={() => actionBooking && handleViewDetails(actionBooking)}>
-          View Details
-        </MenuItem>
-        {actionBooking?.status === 'pending' && (
-          <MenuItem onClick={handleAcceptBooking}>Accept Booking</MenuItem>
-        )}
-        {actionBooking?.status === 'accepted' && (
-          <MenuItem onClick={handleStartJob}>Start Job</MenuItem>
-        )}
-        {actionBooking?.status === 'in_progress' && (
-          <MenuItem onClick={handleCompleteJob}>Complete Job</MenuItem>
-        )}
-        <Divider />
-        <MenuItem onClick={handleCancelBooking} sx={{ color: 'error.main' }}>
-          Cancel Booking
-        </MenuItem>
-      </Menu>
-
-      {/* Booking Details Dialog */}
       <Dialog
         open={detailsOpen}
-        onClose={() => setDetailsOpen(false)}
-        maxWidth="md"
-        fullWidth
+        onOpenChange={(o) => {
+          if (!o) setDetailsOpen(false)
+        }}
       >
-        <DialogTitle>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            Booking Detailsssss
-          </Typography>
-        </DialogTitle>
-        <DialogContent dividers>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Booking details</DialogTitle>
+          </DialogHeader>
           {selectedBooking && (
-            <Grid container spacing={3}>
-              <Grid item xs={12}>
-                <Paper sx={{ p: 2, bgcolor: 'primary.main', color: 'white' }}>
-                  <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
-                    {(selectedBooking as any).booking_number || selectedBooking.bookingNumber || `BK-${selectedBooking.id.slice(0, 8)}`}
-                  </Typography>
-                  <Chip
-                    label={selectedBooking.status}
-                    size="small"
-                    sx={{
-                      bgcolor: 'white',
-                      color: 'primary.main',
-                      fontWeight: 600,
-                      textTransform: 'capitalize',
-                    }}
-                  />
-                </Paper>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                  Customer Information
-                </Typography>
-                <Stack spacing={1.5}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <PersonIcon fontSize="small" color="action" />
-                    <Typography variant="body2">
+            <div className="grid gap-4 py-1">
+              <div className="rounded-lg bg-primary p-3 text-primary-foreground">
+                <p className="text-xl font-bold">
+                  {(selectedBooking as any).booking_number ||
+                    selectedBooking.bookingNumber ||
+                    `BK-${String(selectedBooking.id).slice(0, 8)}`}
+                </p>
+                <Badge className="mt-1 border-white/30 bg-white/10 capitalize text-primary-foreground">
+                  {selectedBooking.status}
+                </Badge>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div>
+                  <h4 className="mb-2 text-sm font-medium text-muted-foreground">Customer</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground" />
                       {(selectedBooking as any).customer_name || selectedBooking.customerName || 'N/A'}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <PhoneIcon fontSize="small" color="action" />
-                    <Typography variant="body2">
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
                       {(selectedBooking as any).customer_phone ||
                         selectedBooking.customerPhone ||
                         selectedBooking.customer?.phone ||
                         'N/A'}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <LocationIcon fontSize="small" color="action" />
-                    <Typography variant="body2">
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
                       {(selectedBooking as any).service_address || (selectedBooking as any).address || 'N/A'}
-                    </Typography>
-                  </Box>
-                </Stack>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                  Service Details
-                </Typography>
-                <Stack spacing={1.5}>
-                  <Box>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {(selectedBooking as any).service_name ||
-                        selectedBooking.serviceName ||
-                        (selectedBooking as any).service_request?.service_name ||
-                        selectedBooking.serviceRequest?.title ||
-                        'N/A'}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {selectedBooking.category || ''}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <CalendarIcon fontSize="small" color="action" />
-                    <Typography variant="body2">
-                      {(selectedBooking as any).scheduled_date || selectedBooking.scheduledDate} at{' '}
-                      {(selectedBooking as any).scheduled_time || selectedBooking.scheduledTime}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <MoneyIcon fontSize="small" color="action" />
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="mb-2 text-sm font-medium text-muted-foreground">Service</h4>
+                  <p className="text-sm font-semibold">
+                    {(selectedBooking as any).service_name ||
+                      selectedBooking.serviceName ||
+                      (selectedBooking as any).service_request?.service_name ||
+                      (selectedBooking as any).serviceRequest?.title ||
+                      'N/A'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{selectedBooking.category || ''}</p>
+                  <div className="mt-2 flex items-center gap-2 text-sm">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    {(selectedBooking as any).scheduled_date || selectedBooking.scheduledDate} at{' '}
+                    {(selectedBooking as any).scheduled_time || selectedBooking.scheduledTime}
+                  </div>
+                  <div className="mt-1 flex items-center gap-2 text-sm">
+                    <IndianRupee className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-semibold">
                       ${(selectedBooking as any).total_amount ??
                         selectedBooking.totalAmount ??
                         (selectedBooking as any).estimated_cost ??
                         selectedBooking.estimatedCost ??
                         0}
-                    </Typography>
-                  </Box>
-                </Stack>
-              </Grid>
-
+                    </span>
+                  </div>
+                </div>
+              </div>
               {selectedBooking.notes && (
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                    Notes
-                  </Typography>
-                  <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
-                    <Typography variant="body2">{selectedBooking.notes}</Typography>
-                  </Paper>
-                </Grid>
+                <div>
+                  <h4 className="mb-1 text-sm font-medium text-muted-foreground">Notes</h4>
+                  <div className="rounded-md border bg-muted/40 p-3 text-sm">{selectedBooking.notes}</div>
+                </div>
               )}
-            </Grid>
+            </div>
           )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={() => setDetailsOpen(false)}>
+              Close
+            </Button>
+            {selectedBooking?.status === 'pending' && (
+              <Button
+                type="button"
+                onClick={() => {
+                  setDetailsOpen(false)
+                  void handleAcceptBooking(selectedBooking)
+                }}
+              >
+                Accept Booking
+              </Button>
+            )}
+            {selectedBooking?.status === 'accepted' && (
+              <Button
+                type="button"
+                onClick={() => {
+                  setDetailsOpen(false)
+                  void handleStartJob(selectedBooking)
+                }}
+              >
+                Start Job
+              </Button>
+            )}
+            {selectedBooking?.status === 'in_progress' && (
+              <Button
+                type="button"
+                onClick={() => {
+                  setDetailsOpen(false)
+                  void handleCompleteJob(selectedBooking)
+                }}
+              >
+                Complete Job
+              </Button>
+            )}
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDetailsOpen(false)}>Close</Button>
-          {selectedBooking?.status === 'pending' && (
-            <Button variant="contained" onClick={handleAcceptBooking}>
-              Accept Booking
-            </Button>
-          )}
-          {selectedBooking?.status === 'accepted' && (
-            <Button variant="contained" onClick={handleStartJob}>
-              Start Job
-            </Button>
-          )}
-          {selectedBooking?.status === 'in_progress' && (
-            <Button variant="contained" onClick={handleCompleteJob}>
-              Complete Job
-            </Button>
-          )}
-        </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   )
 }
-

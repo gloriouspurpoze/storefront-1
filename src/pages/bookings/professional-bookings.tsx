@@ -3,77 +3,51 @@
  * PROFESSIONAL BOOKINGS PAGE
  * ============================================================================
  * Bookings management for logged-in professionals
- * 
- * Features:
- * - View assigned bookings
- * - Filter by status
- * - Accept/reject bookings
- * - Update booking status
- * - View customer details
- * - Navigate to location
- * - Call customer
- * 
+ *
  * @author CTO Team
  * @date November 7, 2025
  */
 
-import React, { useState, useEffect } from 'react'
-import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  Chip,
-  IconButton,
-  Tabs,
-  Tab,
-  Card,
-  CardContent,
-  Avatar,
-  Divider,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Alert,
-  CircularProgress,
-  Snackbar,
-  Stack,
-  alpha,
-  Badge,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   Phone,
-  Navigation,
+  MapPin,
   CheckCircle,
-  Cancel,
-  PlayArrow,
-  Stop,
-  Info,
-  CalendarToday,
-  AttachMoney,
-  LocationOn,
-  Person,
-  Visibility,
-  Payment,
-  Schedule,
-  TrendingUp,
-  AccessTime,
-  Receipt,
-  Star,
+  XCircle,
+  Play,
+  Calendar,
+  IndianRupee,
+  Banknote,
+  User,
+  Eye,
   CreditCard,
-} from '@mui/icons-material'
+  CalendarClock,
+  Clock,
+  Receipt,
+  Navigation as NavigateIcon,
+  Loader2,
+} from 'lucide-react'
 import { BookingsService } from '../../services/api/bookings.service'
 import { PaymentsService } from '../../services/api/payments.service'
 import { useNavigate } from 'react-router-dom'
 import { useAppDispatch } from '../../store/hooks'
 import { addToast } from '../../store/slices/uiSlice'
+import { Card, CardContent } from '../../components/ui/card'
+import { Button } from '../../components/ui/button'
+import { Badge } from '../../components/ui/badge'
+import { Input } from '../../components/ui/input'
+import { Textarea } from '../../components/ui/textarea'
+import { Label } from '../../components/ui/label'
+import { Separator } from '../../components/ui/separator'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog'
+import { FixedMessage } from '../../components/common/FixedMessage'
+import { cn } from '../../lib/utils'
 
 interface Booking {
   _id: string
@@ -114,6 +88,47 @@ interface Booking {
   completedDate?: string
 }
 
+const STATUS_CARD: Record<
+  string,
+  {
+    label: string
+    topBar: string
+    iconBox: string
+    chip: string
+  }
+> = {
+  pending: {
+    label: 'Pending',
+    topBar: 'from-amber-500 to-amber-600',
+    iconBox: 'bg-amber-500/15 text-amber-600',
+    chip: 'bg-amber-500/15 text-amber-800',
+  },
+  confirmed: {
+    label: 'Confirmed',
+    topBar: 'from-sky-500 to-sky-600',
+    iconBox: 'bg-sky-500/15 text-sky-600',
+    chip: 'bg-sky-500/15 text-sky-800',
+  },
+  in_progress: {
+    label: 'In Progress',
+    topBar: 'from-violet-500 to-violet-600',
+    iconBox: 'bg-violet-500/15 text-violet-600',
+    chip: 'bg-violet-500/15 text-violet-800',
+  },
+  completed: {
+    label: 'Completed',
+    topBar: 'from-emerald-500 to-emerald-600',
+    iconBox: 'bg-emerald-500/15 text-emerald-600',
+    chip: 'bg-emerald-500/15 text-emerald-800',
+  },
+  cancelled: {
+    label: 'Cancelled',
+    topBar: 'from-red-500 to-red-600',
+    iconBox: 'bg-red-500/15 text-red-600',
+    chip: 'bg-red-500/15 text-red-800',
+  },
+}
+
 export function ProfessionalBookings() {
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
@@ -131,105 +146,132 @@ export function ProfessionalBookings() {
   const [selectedBookingForPayment, setSelectedBookingForPayment] = useState<Booking | null>(null)
   const [paymentAmount, setPaymentAmount] = useState('')
   const [paymentNotes, setPaymentNotes] = useState('')
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (!snackbar.open) return undefined
+    const t = window.setTimeout(() => setSnackbar((s) => ({ ...s, open: false })), 6000)
+    return () => window.clearTimeout(t)
+  }, [snackbar.open, snackbar.message])
 
   useEffect(() => {
     loadBookings()
   }, [activeTab])
 
+  const getStatusFilter = () => {
+    switch (activeTab) {
+      case 0:
+        return undefined
+      case 1:
+        return 'pending'
+      case 2:
+        return 'confirmed'
+      case 3:
+        return 'in_progress'
+      case 4:
+        return 'completed'
+      default:
+        return undefined
+    }
+  }
+
   const loadBookings = async () => {
     setLoading(true)
     setError(null)
     try {
-      console.log('📋 Loading professional bookings...')
-      
-      // Fetch bookings from API using professional endpoint
-      // Note: Backend uses /provider/my-bookings for both but routes correctly by JWT userType
       const response = await BookingsService.getProfessionalBookings({
         status: getStatusFilter(),
         page: 1,
-        limit: 50, // Backend max is 100
+        limit: 50,
       })
-      
-      console.log('✅ Professional bookings response:', response)
-      
+
       if (response.success && response.data) {
-        // Backend may return { bookings: [] }, { data: [] }, or array at data
-        const raw = response.data as any
+        const raw = response.data as unknown
         const bookingsData = Array.isArray(raw)
           ? raw
-          : raw?.bookings ?? raw?.data ?? (raw?.bookingsData ?? [])
+          : (raw as { bookings?: unknown; data?: unknown; bookingsData?: unknown }).bookings ??
+            (raw as { data?: unknown }).data ??
+            (raw as { bookingsData?: unknown }).bookingsData ??
+            []
         const list = Array.isArray(bookingsData) ? bookingsData : []
 
-        // Transform to match interface (bookings assigned to this professional)
-        const transformedBookings: Booking[] = list.map((booking: any) => ({
-          _id: booking._id || booking.id,
-          id: booking.id || booking._id,
-          serviceName: booking.services?.[0]?.serviceName || booking.services?.[0]?.serviceDetails?.name || 'Service',
-          services: booking.services,
-          customer: {
-            name: booking.customer?.firstName ? `${booking.customer.firstName} ${booking.customer.lastName}` : 'Customer',
-            firstName: booking.customer?.firstName || booking.address?.firstName,
-            lastName: booking.customer?.lastName || booking.address?.lastName,
-            phone: booking.customer?.phone || booking.address?.phone || 'N/A',
-            address: {
-              street: booking.address?.address || booking.address?.street || 'N/A',
-              area: booking.address?.area || '',
-              city: booking.address?.city || 'N/A',
-              state: booking.address?.state || 'N/A',
-              pincode: booking.address?.zipCode || booking.address?.pincode || 'N/A',
+        const transformedBookings: Booking[] = list.map((booking: Record<string, unknown>) => {
+          const services = booking.services as Array<{
+            serviceName?: string
+            serviceDetails?: { name?: string }
+          }> | undefined
+          const address = booking.address as
+            | {
+                address?: string
+                street?: string
+                area?: string
+                firstName?: string
+                lastName?: string
+                phone?: string
+                city?: string
+                state?: string
+                zipCode?: string
+                pincode?: string
+              }
+            | undefined
+          const customer = booking.customer as
+            | { firstName?: string; lastName?: string; phone?: string }
+            | undefined
+          return {
+            _id: (booking._id as string) || (booking.id as string),
+            id: (booking.id as string) || (booking._id as string),
+            serviceName:
+              services?.[0]?.serviceName || services?.[0]?.serviceDetails?.name || 'Service',
+            services: booking.services as Booking['services'],
+            customer: {
+              name: customer?.firstName
+                ? `${customer.firstName} ${customer.lastName ?? ''}`.trim()
+                : 'Customer',
+              firstName: customer?.firstName || address?.firstName,
+              lastName: customer?.lastName || address?.lastName,
+              phone: customer?.phone || address?.phone || 'N/A',
+              address: {
+                street: address?.address || address?.street || 'N/A',
+                area: address?.area || '',
+                city: address?.city || 'N/A',
+                state: address?.state || 'N/A',
+                pincode: address?.zipCode || address?.pincode || 'N/A',
+              },
             },
-          },
-          address: booking.address,
-          scheduledDate: booking.scheduledDate ? new Date(booking.scheduledDate).toISOString().split('T')[0] : 'N/A',
-          scheduledTime: booking.scheduledTime || 'N/A',
-          status: booking.status || 'pending',
-          totalAmount: booking.totalAmount || 0,
-          paymentStatus: booking.paymentStatus || booking.payment_status || 'pending',
-          paymentMethod: booking.paymentMethod || booking.payment_method,
-          notes: booking.notes,
-          completedDate: booking.completedDate || booking.completed_date || booking.completedAt,
-        }))
-        
+            address: booking.address as Booking['address'],
+            scheduledDate: booking.scheduledDate
+              ? new Date(booking.scheduledDate as string).toISOString().split('T')[0]
+              : 'N/A',
+            scheduledTime: (booking.scheduledTime as string) || 'N/A',
+            status: (booking.status as Booking['status']) || 'pending',
+            totalAmount: (booking.totalAmount as number) || 0,
+            paymentStatus: (booking.paymentStatus as Booking['paymentStatus']) ||
+              (booking.payment_status as Booking['paymentStatus']) ||
+              'pending',
+            paymentMethod: (booking.paymentMethod as string) || (booking.payment_method as string),
+            notes: booking.notes as string | undefined,
+            completedDate: (booking.completedDate as string) ||
+              (booking.completed_date as string) ||
+              (booking.completedAt as string),
+          }
+        })
+
         setBookings(transformedBookings)
-        console.log(`✅ Loaded ${transformedBookings.length} bookings`)
       } else if (response.success && !response.data) {
-        // Success but no data = empty list
         setBookings([])
       } else {
         throw new Error(response.message || 'Failed to fetch bookings')
       }
-    } catch (err: any) {
-      console.error('❌ Failed to load bookings:', err)
-      setError(err.message || 'Failed to load bookings')
+    } catch (err: unknown) {
+      console.error('Failed to load bookings:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load bookings')
       setBookings([])
     } finally {
       setLoading(false)
     }
   }
-  
-  const getStatusFilter = () => {
-    switch (activeTab) {
-      case 0: return undefined // All
-      case 1: return 'pending'
-      case 2: return 'confirmed'
-      case 3: return 'in_progress'
-      case 4: return 'completed'
-      default: return undefined
-    }
-  }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'warning'
-      case 'confirmed': return 'info'
-      case 'in_progress': return 'primary'
-      case 'completed': return 'success'
-      case 'cancelled': return 'error'
-      default: return 'default'
-    }
-  }
-
-  const handleAction = (booking: Booking, actionType: typeof action) => {
+  const handleAction = (booking: Booking, actionType: 'accept' | 'reject' | 'start' | 'complete') => {
     setSelectedBooking(booking)
     setAction(actionType)
     setActionDialog(true)
@@ -249,20 +291,19 @@ export function ProfessionalBookings() {
 
     try {
       let response
-      
+
       switch (action) {
         case 'accept':
-          // Accept booking - try professional endpoint first, fallback to regular endpoint
           try {
             response = await BookingsService.updateProfessionalBookingStatus(selectedBooking._id, {
-              status: 'scheduled' as any, // Backend may accept 'confirmed' but type says 'scheduled'
+              status: 'scheduled',
               notes: notes || undefined,
             })
-          } catch (err: any) {
-            // Fallback to regular endpoint if professional endpoint doesn't exist
-            if (err.response?.status === 404) {
+          } catch (err: unknown) {
+            const status = (err as { response?: { status?: number } })?.response?.status
+            if (status === 404) {
               response = await BookingsService.updateBookingStatus(selectedBooking._id, {
-                status: 'scheduled' as any,
+                status: 'scheduled',
                 notes: notes || undefined,
               })
             } else {
@@ -270,116 +311,101 @@ export function ProfessionalBookings() {
             }
           }
           break
-          
+
         case 'reject':
-          // Reject booking - cancel it
-          response = await BookingsService.cancelBooking(selectedBooking._id, notes || 'Rejected by professional')
+          response = await BookingsService.cancelBooking(
+            selectedBooking._id,
+            notes || 'Rejected by professional',
+          )
           break
-          
+
         case 'start':
-          // Start work - use dedicated start method that tries multiple endpoints
           response = await BookingsService.startBooking(selectedBooking._id, notes || undefined)
           break
-          
-        case 'complete':
-          // Step 1: Check payment method and status
-          const paymentCompleted = (selectedBooking as any).paymentStatus === 'paid' || 
-                                   (selectedBooking as any).paymentStatus === 'completed' ||
-                                   (selectedBooking as any).paymentStatus === 'customer_paid' ||
-                                   (selectedBooking as any).paymentStatus === 'verified'
-          
+
+        case 'complete': {
+          const ps = (selectedBooking as { paymentStatus?: string }).paymentStatus
+          const paymentCompleted =
+            ps === 'paid' ||
+            ps === 'completed' ||
+            ps === 'customer_paid' ||
+            ps === 'verified'
+
           const isCashPayment = (() => {
             const method = selectedBooking.paymentMethod?.toLowerCase() || ''
-            return method === 'cash' || 
-                   method === 'pay_after_service' ||
-                   method === 'pay_later' ||
-                   method.includes('pay_later') ||
-                   method.includes('pay after') ||
-                   method === 'cash_on_delivery' ||
-                   method.includes('cash') ||
-                   method === 'pay_after' ||
-                   method === 'cod'
+            return (
+              method === 'cash' ||
+              method === 'pay_after_service' ||
+              method === 'pay_later' ||
+              method.includes('pay_later') ||
+              method.includes('pay after') ||
+              method === 'cash_on_delivery' ||
+              method.includes('cash') ||
+              method === 'pay_after' ||
+              method === 'cod'
+            )
           })()
-          
-          // For cash/pay_after_service payments, always allow completion (backend will handle payment marking)
+
           if (isCashPayment) {
-            console.log('💵 Cash/Pay After Service payment detected - allowing completion (backend will mark payment)')
-          } 
-          // For online payments, verify payment status
-          else if (!paymentCompleted) {
-            // Try to verify payment status from API
+            /* cash flow — backend may mark payment */
+          } else if (!paymentCompleted) {
             try {
-              console.log('💳 Checking payment status before completion...')
               const paymentsResponse = await PaymentsService.getPaymentsByBooking(selectedBooking._id)
-              
               if (paymentsResponse.success && paymentsResponse.data) {
-                const payments = Array.isArray(paymentsResponse.data) 
-                  ? paymentsResponse.data 
-                  : (paymentsResponse.data as any)?.payments || []
-                
-                // Check if there's a completed payment
-                const completedPayment = payments.find((p: any) => 
-                  p.status === 'completed' || 
-                  p.status === 'paid' || 
-                  p.status === 'success' ||
-                  p.status === 'customer_paid' ||
-                  p.status === 'verified'
+                const payments = Array.isArray(paymentsResponse.data)
+                  ? paymentsResponse.data
+                  : (paymentsResponse.data as { payments?: unknown[] }).payments || []
+                const completedPayment = (payments as { status?: string }[]).find(
+                  (p) =>
+                    p.status === 'completed' ||
+                    p.status === 'paid' ||
+                    p.status === 'success' ||
+                    p.status === 'customer_paid' ||
+                    p.status === 'verified',
                 )
-                
                 if (!completedPayment) {
-                  // No completed payment found - but allow with warning for professionals
-                  console.warn('⚠️ No completed payment found, but allowing professional to complete booking')
-                  // Don't block - let backend handle payment verification
-                } else {
-                  console.log('✅ Payment verified:', completedPayment)
+                  console.warn('No completed payment found; allowing completion (backend will verify).')
                 }
-              } else {
-                // If we can't verify payment, allow with warning (backend will handle)
-                console.warn('⚠️ Unable to verify payment status, but allowing completion (backend will verify)')
               }
-            } catch (paymentErr: any) {
-              // Don't block completion if payment verification fails - backend will handle
-              console.warn('⚠️ Payment verification failed, but allowing completion:', paymentErr.message)
-              // Allow professional to complete - backend will verify and handle payment status
+            } catch (paymentErr: unknown) {
+              console.warn('Payment verification failed; allowing completion:', paymentErr)
             }
           }
-          
-          // Step 2: Complete the booking with admin notification
-          // Backend will:
-          // - Mark payment as completed (if cash/pay_after_service)
-          // - Send notification to admin
-          // - Calculate and add earnings to professional wallet
+
           response = await BookingsService.completeBooking(selectedBooking._id, notes || undefined, {
             notifyAdmin: true,
             notifyCustomer: true,
             paymentReceived: completePaymentMethod,
           })
-          
-          // Step 3: Show success message with earnings info
+
           if (response.success) {
-            dispatch(addToast({
-              message: 'Booking completed! Admin has been notified. Your earnings have been added to your wallet.',
-              severity: 'success'
-            }))
-            console.log('✅ Booking completed successfully')
-            console.log('📧 Admin notification sent by backend')
-            console.log('💰 Earnings will be added to your wallet')
+            dispatch(
+              addToast({
+                message:
+                  'Booking completed! Admin has been notified. Your earnings have been added to your wallet.',
+                severity: 'success',
+              }),
+            )
           }
           break
-          
+        }
         default:
           throw new Error('Invalid action')
       }
-      
-      if (response.success) {
+
+      if (response && response.success) {
         const actionMessages: Record<string, string> = {
           accept: 'Booking accepted successfully!',
           reject: 'Booking rejected successfully!',
-          start: (response as any).message || 'Work started. Customer and admin have been notified.',
+          start: (response as { message?: string }).message || 'Work started. Customer and admin have been notified.',
           complete: 'Booking completed successfully!',
         }
-        setSnackbar({ open: true, message: actionMessages[action] ?? (response as any).message ?? 'Done', severity: 'success' })
-        // Reload bookings to get updated data
+        setSnackbar({
+          open: true,
+          message:
+            actionMessages[action] ?? (response as { message?: string }).message ?? 'Done',
+          severity: 'success',
+        })
         await loadBookings()
         setActionDialog(false)
         setSelectedBooking(null)
@@ -387,12 +413,15 @@ export function ProfessionalBookings() {
         setNotes('')
         setCompletePaymentMethod('cash')
       } else {
-        throw new Error(response.message || 'Failed to update booking')
+        throw new Error((response && (response as { message?: string }).message) || 'Failed to update booking')
       }
-    } catch (error: any) {
-      console.error('Action failed:', error)
-      setSnackbar({ open: true, message: error.message || 'Failed to update booking', severity: 'error' })
-      // Still close dialog but show error
+    } catch (err: unknown) {
+      console.error('Action failed:', err)
+      setSnackbar({
+        open: true,
+        message: err instanceof Error ? err.message : 'Failed to update booking',
+        severity: 'error',
+      })
       setActionDialog(false)
       setSelectedBooking(null)
       setAction(null)
@@ -401,1085 +430,634 @@ export function ProfessionalBookings() {
     }
   }
 
-  const renderBookingCard = (booking: Booking) => {
-    const statusConfig = {
-      pending: { color: '#FF9800', bg: alpha('#FF9800', 0.1), label: 'Pending' },
-      confirmed: { color: '#2196F3', bg: alpha('#2196F3', 0.1), label: 'Confirmed' },
-      in_progress: { color: '#9C27B0', bg: alpha('#9C27B0', 0.1), label: 'In Progress' },
-      completed: { color: '#4CAF50', bg: alpha('#4CAF50', 0.1), label: 'Completed' },
-      cancelled: { color: '#F44336', bg: alpha('#F44336', 0.1), label: 'Cancelled' },
+  const closePaymentDialog = useCallback(() => {
+    setPaymentReceivedDialog(false)
+    setSelectedBookingForPayment(null)
+    setPaymentAmount('')
+    setPaymentNotes('')
+  }, [])
+
+  const handleMarkPaymentReceived = async () => {
+    if (!selectedBookingForPayment) return
+    setPaymentSubmitting(true)
+    try {
+      const amount = parseFloat(paymentAmount) || selectedBookingForPayment.totalAmount
+      const response = await PaymentsService.markPaymentReceived(selectedBookingForPayment._id, {
+        amount,
+        paymentMethod: selectedBookingForPayment.paymentMethod || 'cash',
+        notes: paymentNotes || undefined,
+        notifyCustomer: true,
+        notifyAdmin: true,
+      })
+      if (response.success) {
+        dispatch(
+          addToast({
+            message: 'Payment marked as received! Customer and admin have been notified.',
+            severity: 'success',
+          }),
+        )
+        setSnackbar({ open: true, message: 'Payment marked as received successfully!', severity: 'success' })
+        closePaymentDialog()
+        await loadBookings()
+      } else {
+        throw new Error((response as { message?: string }).message || 'Failed to mark payment as received')
+      }
+    } catch (err: unknown) {
+      console.error('Failed to mark payment as received:', err)
+      setSnackbar({
+        open: true,
+        message: err instanceof Error ? err.message : 'Failed to mark payment as received',
+        severity: 'error',
+      })
+    } finally {
+      setPaymentSubmitting(false)
     }
-    const status = statusConfig[booking.status] || statusConfig.pending
+  }
+
+  const renderBookingCard = (booking: Booking) => {
+    const status = STATUS_CARD[booking.status] || STATUS_CARD.pending
+
+    const isPaymentReceived = (() => {
+      const paymentStatusLower = booking.paymentStatus?.toLowerCase() || ''
+      return (
+        paymentStatusLower === 'paid' ||
+        paymentStatusLower === 'completed' ||
+        paymentStatusLower === 'success' ||
+        paymentStatusLower === 'received' ||
+        paymentStatusLower === 'customer_paid' ||
+        paymentStatusLower === 'verified'
+      )
+    })()
+
+    const showPaymentReceivedBlock =
+      booking.status === 'completed' && isPaymentReceived
 
     return (
-    <Card 
-      key={booking._id} 
-      sx={{ 
-        mb: 3,
-        borderRadius: 3,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-        border: '1px solid rgba(0,0,0,0.05)',
-        transition: 'all 0.3s ease',
-        overflow: 'hidden',
-        '&:hover': {
-          boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
-          transform: 'translateY(-4px)',
-        }
-      }}
-    >
-      <Box
-        sx={{
-          height: 4,
-          background: `linear-gradient(90deg, ${status.color} 0%, ${status.color}dd 100%)`,
-        }}
-      />
-      <CardContent sx={{ p: 3.5 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="start" mb={3}>
-          <Box flex={1}>
-            <Box display="flex" alignItems="center" gap={2} mb={1.5}>
-              <Box
-                sx={{
-                  p: 1.5,
-                  borderRadius: 2,
-                  bgcolor: status.bg,
-                  color: status.color,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Schedule sx={{ fontSize: 24 }} />
-              </Box>
-              <Box flex={1}>
-                <Typography variant="h5" fontWeight="700" color="text.primary" mb={0.5}>
-                  {booking.serviceName}
-                </Typography>
-                <Chip
-                  label={status.label}
-                  size="small"
-                  sx={{
-                    bgcolor: status.bg,
-                    color: status.color,
-                    fontWeight: 700,
-                    height: 28,
-                    px: 1,
-                  }}
-                />
-              </Box>
-            </Box>
-          </Box>
-          <Box
-            sx={{
-              p: 2,
-              borderRadius: 2.5,
-              bgcolor: alpha('#4CAF50', 0.1),
-              border: '2px solid',
-              borderColor: '#4CAF50',
-              textAlign: 'center',
-              minWidth: 100,
-            }}
-          >
-            <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-              Amount
-            </Typography>
-            <Typography variant="h5" fontWeight="800" color="success.main">
-              ₹{booking.totalAmount}
-            </Typography>
-          </Box>
-        </Box>
-
-        <Grid container spacing={2.5}>
-          <Grid item xs={12} sm={6}>
-            <Box 
-              display="flex" 
-              alignItems="center" 
-              gap={2} 
-              p={2}
-              bgcolor={alpha('#2196F3', 0.05)}
-              borderRadius={2.5}
-              sx={{
-                border: '1px solid',
-                borderColor: alpha('#2196F3', 0.15),
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  bgcolor: alpha('#2196F3', 0.08),
-                  transform: 'translateX(4px)',
-                }
-              }}
-            >
-              <Box
-                sx={{
-                  p: 1.5,
-                  borderRadius: 2,
-                  bgcolor: 'primary.main',
-                  color: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Person sx={{ fontSize: 22 }} />
-              </Box>
-              <Box>
-                <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  Customer
-                </Typography>
-                <Typography variant="body1" fontWeight="700" color="text.primary" sx={{ mt: 0.5 }}>
-                  {booking.customer.name}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  {booking.customer.phone}
-                </Typography>
-              </Box>
-            </Box>
-          </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <Box 
-              display="flex" 
-              alignItems="center" 
-              gap={2} 
-              p={2}
-              bgcolor={alpha('#FF9800', 0.05)}
-              borderRadius={2.5}
-              sx={{
-                border: '1px solid',
-                borderColor: alpha('#FF9800', 0.15),
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  bgcolor: alpha('#FF9800', 0.08),
-                  transform: 'translateX(4px)',
-                }
-              }}
-            >
-              <Box
-                sx={{
-                  p: 1.5,
-                  borderRadius: 2,
-                  bgcolor: '#FF9800',
-                  color: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <CalendarToday sx={{ fontSize: 22 }} />
-              </Box>
-              <Box>
-                <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  Scheduled
-                </Typography>
-                <Typography variant="body1" fontWeight="700" color="text.primary" sx={{ mt: 0.5 }}>
-                  {booking.scheduledDate}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  <AccessTime sx={{ fontSize: 14, verticalAlign: 'middle', mr: 0.5 }} />
-                  {booking.scheduledTime}
-                </Typography>
-              </Box>
-            </Box>
-          </Grid>
-
-          <Grid item xs={12}>
-            <Box 
-              display="flex" 
-              alignItems="start" 
-              gap={2}
-              p={2}
-              bgcolor={alpha('#F44336', 0.05)}
-              borderRadius={2.5}
-              sx={{
-                border: '1px solid',
-                borderColor: alpha('#F44336', 0.15),
-              }}
-            >
-              <Box
-                sx={{
-                  p: 1.5,
-                  borderRadius: 2,
-                  bgcolor: 'error.main',
-                  color: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <LocationOn sx={{ fontSize: 22 }} />
-              </Box>
-              <Box flex={1}>
-                <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, mb: 0.5, display: 'block' }}>
-                  Service Location
-                </Typography>
-                <Typography variant="body1" fontWeight="600" color="text.primary">
-                  {booking.customer.address.street}, {booking.customer.address.area}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  {booking.customer.address.city}, {booking.customer.address.state} - {booking.customer.address.pincode}
-                </Typography>
-              </Box>
-            </Box>
-          </Grid>
-        </Grid>
-
-        {/* Premium Payment Review Section */}
-        {(() => {
-          const statusLower = booking.status?.toLowerCase() || ''
-          const isCompleted = statusLower === 'completed'
-          const paymentStatusLower = booking.paymentStatus?.toLowerCase() || ''
-          const isPaymentReceived = paymentStatusLower === 'paid' || 
-                                   paymentStatusLower === 'completed' ||
-                                   paymentStatusLower === 'success' ||
-                                   paymentStatusLower === 'received' ||
-                                   paymentStatusLower === 'customer_paid' ||
-                                   paymentStatusLower === 'verified'
-          
-          if (isCompleted && isPaymentReceived) {
-            return (
-              <>
-                <Divider sx={{ my: 3 }} />
-                <Card 
-                  sx={{ 
-                    bgcolor: alpha('#4CAF50', 0.08),
-                    border: '2px solid',
-                    borderColor: '#4CAF50',
-                    borderRadius: 3,
-                    boxShadow: '0 4px 12px rgba(76, 175, 80, 0.2)',
-                  }}
+      <Card
+        key={booking._id}
+        className="group mb-6 overflow-hidden rounded-2xl border border-border/60 bg-card shadow-md transition-all hover:-translate-y-1 hover:shadow-lg"
+      >
+        <div className={cn('h-1 w-full bg-gradient-to-r', status.topBar)} />
+        <CardContent className="p-6">
+          <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+            <div className="min-w-0 flex-1">
+              <div className="mb-3 flex items-start gap-3">
+                <div
+                  className={cn(
+                    'flex h-12 w-12 shrink-0 items-center justify-center rounded-lg',
+                    status.iconBox,
+                  )}
                 >
-                  <CardContent sx={{ p: 3 }}>
-                    <Box display="flex" alignItems="center" gap={2} mb={2.5}>
-                      <Box
-                        sx={{
-                          p: 1.5,
-                          borderRadius: 2,
-                          bgcolor: '#4CAF50',
-                          color: 'white',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Receipt sx={{ fontSize: 24 }} />
-                      </Box>
-                      <Typography variant="h6" fontWeight="700" color="success.dark">
-                        Payment Received
-                      </Typography>
-                    </Box>
-                    <Grid container spacing={2.5}>
-                      <Grid item xs={6}>
-                        <Box
-                          p={2}
-                          bgcolor={alpha('#4CAF50', 0.1)}
-                          borderRadius={2}
-                        >
-                          <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', mb: 0.5 }}>
-                            Amount
-                          </Typography>
-                          <Typography variant="h6" fontWeight="800" color="success.main">
-                            ₹{booking.totalAmount}
-                          </Typography>
-                        </Box>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Box
-                          p={2}
-                          bgcolor={alpha('#4CAF50', 0.1)}
-                          borderRadius={2}
-                        >
-                          <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', mb: 0.5 }}>
-                            Method
-                          </Typography>
-                          <Typography variant="body1" fontWeight="700" sx={{ textTransform: 'capitalize' }}>
-                            {booking.paymentMethod || 'Cash'}
-                          </Typography>
-                        </Box>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Box
-                          p={2}
-                          bgcolor={alpha('#4CAF50', 0.1)}
-                          borderRadius={2}
-                        >
-                          <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', mb: 0.5 }}>
-                            Status
-                          </Typography>
-                          <Chip
-                            label="Received"
-                            size="small"
-                            color="success"
-                            icon={<CheckCircle />}
-                            sx={{
-                              fontWeight: 700,
-                              height: 28,
-                            }}
-                          />
-                        </Box>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Box
-                          p={2}
-                          bgcolor={alpha('#4CAF50', 0.1)}
-                          borderRadius={2}
-                        >
-                          <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', mb: 0.5 }}>
-                            Date
-                          </Typography>
-                          <Typography variant="body1" fontWeight="700">
-                            {booking.completedDate 
-                              ? new Date(booking.completedDate).toLocaleDateString('en-IN', {
-                                  day: 'numeric',
-                                  month: 'short',
-                                  year: 'numeric'
-                                })
-                              : new Date().toLocaleDateString('en-IN', {
-                                  day: 'numeric',
-                                  month: 'short',
-                                  year: 'numeric'
-                                })}
-                          </Typography>
-                        </Box>
-                      </Grid>
-                    </Grid>
-                  </CardContent>
-                </Card>
-              </>
-            )
-          }
-          return null
-        })()}
+                  <CalendarClock className="h-6 w-6" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-xl font-bold tracking-tight text-foreground">{booking.serviceName}</h3>
+                  <Badge className={cn('mt-1.5 font-semibold', status.chip)}>{status.label}</Badge>
+                </div>
+              </div>
+            </div>
+            <div className="shrink-0 rounded-xl border-2 border-emerald-500 bg-emerald-500/10 px-4 py-2 text-center">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Amount</p>
+              <p className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
+                ₹{booking.totalAmount}
+              </p>
+            </div>
+          </div>
 
-        <Divider sx={{ my: 3 }} />
+          <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="flex items-center gap-3 rounded-xl border border-sky-500/20 bg-sky-500/5 p-4 transition-transform hover:translate-x-1">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                <User className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Customer</p>
+                <p className="font-bold text-foreground">{booking.customer.name}</p>
+                <p className="text-sm text-muted-foreground">{booking.customer.phone}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 transition-transform hover:translate-x-1">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500 text-white">
+                <Calendar className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Scheduled</p>
+                <p className="font-bold text-foreground">{booking.scheduledDate}</p>
+                <p className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" />
+                  {booking.scheduledTime}
+                </p>
+              </div>
+            </div>
+          </div>
 
-        <Box display="flex" gap={1.5} flexWrap="wrap">
-          <Button
-            variant="outlined"
-            startIcon={<Visibility />}
-            onClick={() => navigate(`/bookings/${booking._id}`)}
-            sx={{
-              borderRadius: 2,
-              px: 2.5,
-              py: 1,
-              fontWeight: 600,
-              textTransform: 'none',
-              borderWidth: 2,
-              '&:hover': {
-                borderWidth: 2,
-                transform: 'translateY(-2px)',
-              },
-              transition: 'all 0.2s ease',
-            }}
-          >
-            View Details
-          </Button>
-          <Button
-            variant="contained"
-            color="success"
-            startIcon={<Phone />}
-            onClick={() => handleCallCustomer(booking.customer.phone)}
-            sx={{
-              borderRadius: 2,
-              px: 2.5,
-              py: 1,
-              fontWeight: 600,
-              textTransform: 'none',
-              boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)',
-              '&:hover': {
-                boxShadow: '0 6px 16px rgba(76, 175, 80, 0.4)',
-                transform: 'translateY(-2px)',
-              },
-              transition: 'all 0.2s ease',
-            }}
-          >
-            Call Customer
-          </Button>
-          <Button
-            variant="contained"
-            color="error"
-            startIcon={<Navigation />}
-            onClick={() => handleNavigate(booking.customer.address)}
-            sx={{
-              borderRadius: 2,
-              px: 2.5,
-              py: 1,
-              fontWeight: 600,
-              textTransform: 'none',
-              boxShadow: '0 4px 12px rgba(244, 67, 54, 0.3)',
-              '&:hover': {
-                boxShadow: '0 6px 16px rgba(244, 67, 54, 0.4)',
-                transform: 'translateY(-2px)',
-              },
-              transition: 'all 0.2s ease',
-            }}
-          >
-            Navigate
-          </Button>
+          <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-destructive text-destructive-foreground">
+              <MapPin className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Service location
+              </p>
+              <p className="font-semibold text-foreground">
+                {booking.customer.address.street}, {booking.customer.address.area}
+              </p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {booking.customer.address.city}, {booking.customer.address.state} — {booking.customer.address.pincode}
+              </p>
+            </div>
+          </div>
 
-          {booking.status === 'pending' && (
+          {showPaymentReceivedBlock && (
             <>
-              <Button
-                variant="contained"
-                color="success"
-                startIcon={<CheckCircle />}
-                onClick={() => handleAction(booking, 'accept')}
-                sx={{
-                  borderRadius: 2,
-                  px: 2.5,
-                  py: 1,
-                  fontWeight: 600,
-                  textTransform: 'none',
-                  boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)',
-                  '&:hover': {
-                    boxShadow: '0 6px 16px rgba(76, 175, 80, 0.4)',
-                    transform: 'translateY(-2px)',
-                  },
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                Accept
-              </Button>
-              <Button
-                variant="outlined"
-                color="error"
-                startIcon={<Cancel />}
-                onClick={() => handleAction(booking, 'reject')}
-                sx={{
-                  borderRadius: 2,
-                  px: 2.5,
-                  py: 1,
-                  fontWeight: 600,
-                  textTransform: 'none',
-                  borderWidth: 2,
-                  '&:hover': {
-                    borderWidth: 2,
-                    transform: 'translateY(-2px)',
-                  },
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                Reject
-              </Button>
+              <Separator className="mb-6" />
+              <Card className="border-2 border-emerald-500 bg-emerald-500/10 shadow-sm">
+                <CardContent className="p-5">
+                  <div className="mb-4 flex items-center gap-2">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500 text-white">
+                      <Receipt className="h-5 w-5" />
+                    </div>
+                    <h4 className="text-lg font-bold text-emerald-800 dark:text-emerald-200">Payment received</h4>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
+                    <div className="rounded-lg bg-emerald-500/10 p-3">
+                      <p className="text-[10px] font-semibold uppercase text-muted-foreground">Amount</p>
+                      <p className="text-lg font-extrabold text-emerald-600">₹{booking.totalAmount}</p>
+                    </div>
+                    <div className="rounded-lg bg-emerald-500/10 p-3">
+                      <p className="text-[10px] font-semibold uppercase text-muted-foreground">Method</p>
+                      <p className="font-bold capitalize text-foreground">{booking.paymentMethod || 'Cash'}</p>
+                    </div>
+                    <div className="rounded-lg bg-emerald-500/10 p-3">
+                      <p className="text-[10px] font-semibold uppercase text-muted-foreground">Status</p>
+                      <Badge className="mt-1 border-0 bg-emerald-500/20 font-semibold text-emerald-800">
+                        <CheckCircle className="mr-1 h-3.5 w-3.5" />
+                        Received
+                      </Badge>
+                    </div>
+                    <div className="rounded-lg bg-emerald-500/10 p-3">
+                      <p className="text-[10px] font-semibold uppercase text-muted-foreground">Date</p>
+                      <p className="font-bold text-foreground">
+                        {booking.completedDate
+                          ? new Date(booking.completedDate).toLocaleDateString('en-IN', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })
+                          : new Date().toLocaleDateString('en-IN', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </>
           )}
 
-          {booking.status === 'confirmed' && (
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<PlayArrow />}
-              onClick={() => handleAction(booking, 'start')}
-              sx={{
-                borderRadius: 2,
-                px: 2.5,
-                py: 1,
-                fontWeight: 600,
-                textTransform: 'none',
-                boxShadow: '0 4px 12px rgba(33, 150, 243, 0.3)',
-                '&:hover': {
-                  boxShadow: '0 6px 16px rgba(33, 150, 243, 0.4)',
-                  transform: 'translateY(-2px)',
-                },
-                transition: 'all 0.2s ease',
-              }}
-            >
-              Start Work
-            </Button>
-          )}
+          <Separator className="my-6" />
 
-          {booking.status === 'in_progress' && (
+          <div className="flex flex-wrap gap-2">
             <Button
-              variant="contained"
-              color="success"
-              startIcon={<CheckCircle />}
-              onClick={() => handleAction(booking, 'complete')}
-              sx={{
-                borderRadius: 2,
-                px: 2.5,
-                py: 1,
-                fontWeight: 600,
-                textTransform: 'none',
-                boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)',
-                '&:hover': {
-                  boxShadow: '0 6px 16px rgba(76, 175, 80, 0.4)',
-                  transform: 'translateY(-2px)',
-                },
-                transition: 'all 0.2s ease',
-              }}
+              type="button"
+              variant="outline"
+              className="gap-1.5"
+              onClick={() => navigate(`/bookings/${booking._id}`)}
             >
-              Mark Complete
+              <Eye className="h-4 w-4" />
+              View details
             </Button>
-          )}
+            <Button
+              type="button"
+              className="gap-1.5 bg-emerald-600 hover:bg-emerald-700"
+              onClick={() => handleCallCustomer(booking.customer.phone)}
+            >
+              <Phone className="h-4 w-4" />
+              Call customer
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              className="gap-1.5"
+              onClick={() => handleNavigate(booking.customer.address)}
+            >
+              <NavigateIcon className="h-4 w-4" />
+              Navigate
+            </Button>
 
-          {(() => {
-            // Debug logging and flexible condition checking
-            const statusLower = booking.status?.toLowerCase() || ''
-            const isCompleted = statusLower === 'completed'
-            
-            const paymentMethodLower = booking.paymentMethod?.toLowerCase() || ''
-            const isPayAfterService = paymentMethodLower.includes('pay_after') || 
-                                     paymentMethodLower.includes('pay after') ||
-                                     paymentMethodLower === 'pay_after_service' ||
-                                     paymentMethodLower === 'pay_later' ||
-                                     paymentMethodLower.includes('pay_later') ||
-                                     paymentMethodLower.includes('pay later')
-            const isCash = paymentMethodLower === 'cash' || 
-                          paymentMethodLower === 'cash_on_delivery' ||
-                          paymentMethodLower.includes('cash')
-            
-            const paymentStatusLower = booking.paymentStatus?.toLowerCase() || ''
-            const paymentNotPaid = paymentStatusLower !== 'paid' && 
-                                  paymentStatusLower !== 'completed' &&
-                                  paymentStatusLower !== 'success' &&
-                                  paymentStatusLower !== 'received' &&
-                                  paymentStatusLower !== 'customer_paid' &&
-                                  paymentStatusLower !== 'verified'
-            
-            const shouldShowButton = isCompleted && (isPayAfterService || isCash) && paymentNotPaid
-            
-            // Disable button if payment is already marked as received
-            const isPaymentReceived = !paymentNotPaid
-            
-            // Debug log for all completed bookings
-            if (isCompleted) {
-              console.log('🔍 Payment Button Debug:', {
-                bookingId: booking._id,
-                status: booking.status,
-                statusLower,
-                paymentMethod: booking.paymentMethod,
-                paymentMethodLower,
-                paymentStatus: booking.paymentStatus,
-                paymentStatusLower,
-                isCompleted,
-                isPayAfterService,
-                isCash,
-                paymentNotPaid,
-                shouldShowButton
-              })
-            }
-            
-            return shouldShowButton ? (
+            {booking.status === 'pending' && (
+              <>
+                <Button
+                  type="button"
+                  className="gap-1.5 bg-emerald-600 hover:bg-emerald-700"
+                  onClick={() => handleAction(booking, 'accept')}
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  Accept
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-1.5 border-destructive/50 text-destructive hover:bg-destructive/10"
+                  onClick={() => handleAction(booking, 'reject')}
+                >
+                  <XCircle className="h-4 w-4" />
+                  Reject
+                </Button>
+              </>
+            )}
+
+            {booking.status === 'confirmed' && (
               <Button
-                variant="contained"
-                color="primary"
-                startIcon={<Payment />}
-                onClick={() => {
-                  setSelectedBookingForPayment(booking)
-                  setPaymentAmount(booking.totalAmount.toString())
-                  setPaymentReceivedDialog(true)
-                }}
-                disabled={isPaymentReceived}
-                sx={{
-                  borderRadius: 2,
-                  px: 2.5,
-                  py: 1,
-                  fontWeight: 600,
-                  textTransform: 'none',
-                  boxShadow: '0 4px 12px rgba(33, 150, 243, 0.3)',
-                  '&:hover': {
-                    boxShadow: '0 6px 16px rgba(33, 150, 243, 0.4)',
-                    transform: 'translateY(-2px)',
-                  },
-                  transition: 'all 0.2s ease',
-                }}
+                type="button"
+                className="gap-1.5"
+                onClick={() => handleAction(booking, 'start')}
               >
-                {isPaymentReceived ? 'Payment Received' : 'Mark Payment Received'}
+                <Play className="h-4 w-4" />
+                Start work
               </Button>
-            ) : isCompleted && (isPayAfterService || isCash) && isPaymentReceived ? (
-              <Chip
-                icon={<CheckCircle />}
-                label="Payment Received"
-                color="success"
-                sx={{
-                  fontWeight: 700,
-                  height: 36,
-                  px: 1.5,
-                }}
-              />
-            ) : null
-          })()}
-        </Box>
-      </CardContent>
-    </Card>
+            )}
+
+            {booking.status === 'in_progress' && (
+              <Button
+                type="button"
+                className="gap-1.5 bg-emerald-600 hover:bg-emerald-700"
+                onClick={() => handleAction(booking, 'complete')}
+              >
+                <CheckCircle className="h-4 w-4" />
+                Mark complete
+              </Button>
+            )}
+
+            {(() => {
+              const statusLower = booking.status?.toLowerCase() || ''
+              const isCompleted = statusLower === 'completed'
+              const paymentMethodLower = booking.paymentMethod?.toLowerCase() || ''
+              const isPayAfterService =
+                paymentMethodLower.includes('pay_after') ||
+                paymentMethodLower.includes('pay after') ||
+                paymentMethodLower === 'pay_after_service' ||
+                paymentMethodLower === 'pay_later' ||
+                paymentMethodLower.includes('pay_later') ||
+                paymentMethodLower.includes('pay later')
+              const isCash =
+                paymentMethodLower === 'cash' ||
+                paymentMethodLower === 'cash_on_delivery' ||
+                paymentMethodLower.includes('cash')
+              const paymentStatusLower = booking.paymentStatus?.toLowerCase() || ''
+              const paymentNotPaid =
+                paymentStatusLower !== 'paid' &&
+                paymentStatusLower !== 'completed' &&
+                paymentStatusLower !== 'success' &&
+                paymentStatusLower !== 'received' &&
+                paymentStatusLower !== 'customer_paid' &&
+                paymentStatusLower !== 'verified'
+              const isPaymentDone = !paymentNotPaid
+              const shouldShowButton = isCompleted && (isPayAfterService || isCash) && paymentNotPaid
+
+              if (shouldShowButton) {
+                return (
+                  <Button
+                    type="button"
+                    className="gap-1.5"
+                    onClick={() => {
+                      setSelectedBookingForPayment(booking)
+                      setPaymentAmount(booking.totalAmount.toString())
+                      setPaymentReceivedDialog(true)
+                    }}
+                    disabled={isPaymentDone}
+                  >
+                    <IndianRupee className="h-4 w-4" />
+                    {isPaymentDone ? 'Payment received' : 'Mark payment received'}
+                  </Button>
+                )
+              }
+              if (isCompleted && (isPayAfterService || isCash) && isPaymentDone) {
+                return (
+                  <Badge className="h-9 gap-1 border-0 bg-emerald-500/20 px-3 text-emerald-800">
+                    <CheckCircle className="h-3.5 w-3.5" />
+                    Payment received
+                  </Badge>
+                )
+              }
+              return null
+            })()}
+          </div>
+        </CardContent>
+      </Card>
     )
   }
 
   const filterByTab = (booking: Booking) => {
     switch (activeTab) {
-      case 0: return true // All bookings
-      case 1: return booking.status === 'pending'
-      case 2: return booking.status === 'confirmed'
-      case 3: return booking.status === 'in_progress'
-      case 4: return booking.status === 'completed'
-      default: return true
+      case 0:
+        return true
+      case 1:
+        return booking.status === 'pending'
+      case 2:
+        return booking.status === 'confirmed'
+      case 3:
+        return booking.status === 'in_progress'
+      case 4:
+        return booking.status === 'completed'
+      default:
+        return true
     }
   }
 
   const filteredBookings = bookings.filter(filterByTab)
 
-  // Calculate stats
   const stats = {
     total: bookings.length,
-    pending: bookings.filter(b => b.status === 'pending').length,
-    confirmed: bookings.filter(b => b.status === 'confirmed').length,
-    inProgress: bookings.filter(b => b.status === 'in_progress').length,
-    completed: bookings.filter(b => b.status === 'completed').length,
+    pending: bookings.filter((b) => b.status === 'pending').length,
+    confirmed: bookings.filter((b) => b.status === 'confirmed').length,
+    inProgress: bookings.filter((b) => b.status === 'in_progress').length,
+    completed: bookings.filter((b) => b.status === 'completed').length,
     totalEarnings: bookings
-      .filter(b => b.status === 'completed')
+      .filter((b) => b.status === 'completed')
       .reduce((sum, b) => sum + (b.totalAmount || 0), 0),
   }
 
+  const tabLabels: { id: number; label: string; count: number }[] = [
+    { id: 0, label: 'All', count: stats.total },
+    { id: 1, label: 'Pending', count: stats.pending },
+    { id: 2, label: 'Confirmed', count: stats.confirmed },
+    { id: 3, label: 'In progress', count: stats.inProgress },
+    { id: 4, label: 'Completed', count: stats.completed },
+  ]
+
   return (
-    <Box sx={{ 
-      bgcolor: '#f5f7fa',
-      minHeight: '100vh',
-      p: { xs: 2, md: 4 },
-    }}>
-      {/* Premium Header Section */}
-      <Box
-        sx={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          borderRadius: 4,
-          mb: 4,
-          p: { xs: 3, md: 4 },
-          position: 'relative',
-          overflow: 'hidden',
-          boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            width: '40%',
-            height: '100%',
-            background: 'rgba(255,255,255,0.1)',
-            borderRadius: '50%',
-            transform: 'translate(30%, -30%)',
-          }
-        }}
-      >
-        <Box sx={{ position: 'relative', zIndex: 1 }}>
-          <Typography 
-            variant="h3" 
-            fontWeight="800" 
-            sx={{ 
-              color: 'white',
-              mb: 1,
-              textShadow: '0 2px 8px rgba(0,0,0,0.2)',
-              fontSize: { xs: '1.75rem', md: '2.5rem' }
-            }}
-          >
-            My Bookings
-          </Typography>
-          <Typography 
-            variant="body1" 
-            sx={{ 
-              color: 'rgba(255,255,255,0.95)',
-              fontWeight: 500,
-              fontSize: { xs: '0.9rem', md: '1rem' }
-            }}
-          >
-            Manage your assigned bookings
-          </Typography>
-        </Box>
-      </Box>
+    <div className="min-h-screen bg-muted/30 p-4 md:p-6">
+      <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-800 p-6 shadow-lg md:p-8">
+        <div className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/10" />
+        <div className="relative z-10">
+          <h1 className="text-2xl font-extrabold tracking-tight text-white drop-shadow-sm md:text-3xl">My bookings</h1>
+          <p className="mt-1 text-sm font-medium text-white/90 md:text-base">Manage your assigned bookings</p>
+        </div>
+      </div>
 
-      {/* Stats Cards */}
-      <Grid container spacing={2.5} sx={{ mb: 4 }}>
-        <Grid item xs={6} sm={4} md={3}>
-          <Card 
-            sx={{ 
-              borderRadius: 3,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-              border: '1px solid rgba(0,0,0,0.05)',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
-                transform: 'translateY(-4px)',
-              }
-            }}
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        {[
+          { label: 'Total', value: stats.total, className: 'text-primary' },
+          { label: 'Pending', value: stats.pending, className: 'text-amber-600' },
+          { label: 'In progress', value: stats.inProgress, className: 'text-sky-600' },
+          { label: 'Completed', value: stats.completed, className: 'text-emerald-600' },
+        ].map((s) => (
+          <Card
+            key={s.label}
+            className="border-border/60 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md"
           >
-            <CardContent sx={{ p: 2.5, textAlign: 'center' }}>
-              <Typography variant="h4" fontWeight="800" color="primary.main">
-                {stats.total}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                Total Bookings
-              </Typography>
+            <CardContent className="p-4 text-center">
+              <p className={cn('text-2xl font-extrabold', s.className)}>{s.value}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{s.label}</p>
             </CardContent>
           </Card>
-        </Grid>
-        <Grid item xs={6} sm={4} md={3}>
-          <Card 
-            sx={{ 
-              borderRadius: 3,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-              border: '1px solid rgba(0,0,0,0.05)',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
-                transform: 'translateY(-4px)',
-              }
-            }}
-          >
-            <CardContent sx={{ p: 2.5, textAlign: 'center' }}>
-              <Typography variant="h4" fontWeight="800" color="#FF9800">
-                {stats.pending}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                Pending
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={6} sm={4} md={3}>
-          <Card 
-            sx={{ 
-              borderRadius: 3,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-              border: '1px solid rgba(0,0,0,0.05)',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
-                transform: 'translateY(-4px)',
-              }
-            }}
-          >
-            <CardContent sx={{ p: 2.5, textAlign: 'center' }}>
-              <Typography variant="h4" fontWeight="800" color="#2196F3">
-                {stats.inProgress}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                In Progress
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={6} sm={4} md={3}>
-          <Card 
-            sx={{ 
-              borderRadius: 3,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-              border: '1px solid rgba(0,0,0,0.05)',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
-                transform: 'translateY(-4px)',
-              }
-            }}
-          >
-            <CardContent sx={{ p: 2.5, textAlign: 'center' }}>
-              <Typography variant="h4" fontWeight="800" color="#4CAF50">
-                {stats.completed}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                Completed
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={4} md={3}>
-          <Card 
-            sx={{ 
-              borderRadius: 3,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-              border: '1px solid rgba(0,0,0,0.05)',
-              background: 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                boxShadow: '0 8px 30px rgba(76, 175, 80, 0.4)',
-                transform: 'translateY(-4px)',
-              }
-            }}
-          >
-            <CardContent sx={{ p: 2.5, textAlign: 'center' }}>
-              <Typography variant="h4" fontWeight="800" sx={{ color: 'white' }}>
-                ₹{stats.totalEarnings.toLocaleString()}
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.9)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                Total Earnings
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+        ))}
+        <Card className="col-span-2 border-0 bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-md sm:col-span-1 lg:col-span-2">
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-extrabold">₹{stats.totalEarnings.toLocaleString()}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-white/90">Total earnings</p>
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* Premium Tabs */}
-      <Card 
-        sx={{ 
-          mb: 3,
-          borderRadius: 3,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-          border: '1px solid rgba(0,0,0,0.05)',
-        }}
-      >
-        <Tabs 
-          value={activeTab} 
-          onChange={(e, v) => setActiveTab(v)}
-          sx={{
-            '& .MuiTab-root': {
-              textTransform: 'none',
-              fontWeight: 600,
-              fontSize: '0.95rem',
-              minHeight: 64,
-              '&.Mui-selected': {
-                color: 'primary.main',
-              }
-            },
-            '& .MuiTabs-indicator': {
-              height: 3,
-              borderRadius: '3px 3px 0 0',
-            }
-          }}
-        >
-          <Tab 
-            label={
-              <Badge badgeContent={stats.total} color="primary" max={99}>
-                <Box sx={{ px: 1 }}>All</Box>
-              </Badge>
-            } 
-          />
-          <Tab 
-            label={
-              <Badge badgeContent={stats.pending} color="warning" max={99}>
-                <Box sx={{ px: 1 }}>Pending</Box>
-              </Badge>
-            } 
-          />
-          <Tab 
-            label={
-              <Badge badgeContent={stats.confirmed} color="info" max={99}>
-                <Box sx={{ px: 1 }}>Confirmed</Box>
-              </Badge>
-            } 
-          />
-          <Tab 
-            label={
-              <Badge badgeContent={stats.inProgress} color="primary" max={99}>
-                <Box sx={{ px: 1 }}>In Progress</Box>
-              </Badge>
-            } 
-          />
-          <Tab 
-            label={
-              <Badge badgeContent={stats.completed} color="success" max={99}>
-                <Box sx={{ px: 1 }}>Completed</Box>
-              </Badge>
-            } 
-          />
-        </Tabs>
+      <Card className="mb-6 border-border/60 shadow-sm">
+        <CardContent className="p-2">
+          <div className="flex flex-wrap gap-2">
+            {tabLabels.map((t) => (
+              <Button
+                key={t.id}
+                type="button"
+                variant={activeTab === t.id ? 'default' : 'outline'}
+                size="sm"
+                className="gap-1.5 rounded-lg"
+                onClick={() => setActiveTab(t.id)}
+              >
+                {t.label}
+                <Badge variant="secondary" className="h-5 min-w-[1.25rem] px-1.5 text-xs font-semibold">
+                  {t.count > 99 ? '99+' : t.count}
+                </Badge>
+              </Button>
+            ))}
+          </div>
+        </CardContent>
       </Card>
 
-      {/* Bookings List */}
       {loading ? (
-        <Card 
-          sx={{ 
-            borderRadius: 3,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-            border: '1px solid rgba(0,0,0,0.05)',
-          }}
-        >
-          <CardContent>
-            <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" p={6}>
-              <CircularProgress size={60} thickness={4} />
-              <Typography variant="h6" mt={3} color="text.secondary" fontWeight="600">
-                Loading bookings...
-              </Typography>
-            </Box>
+        <Card className="border-border/60 shadow-sm">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <p className="mt-4 font-semibold text-muted-foreground">Loading bookings…</p>
           </CardContent>
         </Card>
       ) : error ? (
-        <Card 
-          sx={{ 
-            borderRadius: 3,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-            border: '1px solid rgba(0,0,0,0.05)',
-          }}
-        >
-          <CardContent>
-            <Alert 
-              severity="error" 
-              action={
-                <Button 
-                  variant="contained"
-                  color="error"
-                  onClick={loadBookings}
-                  sx={{
-                    borderRadius: 2,
-                    fontWeight: 600,
-                    textTransform: 'none',
-                  }}
-                >
-                  Retry
-                </Button>
-              }
-              sx={{
-                borderRadius: 2,
-              }}
+        <Card className="border-destructive/30 shadow-sm">
+          <CardContent className="p-4">
+            <div
+              className="flex flex-col gap-3 rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm sm:flex-row sm:items-center sm:justify-between"
+              role="alert"
             >
               {error}
-            </Alert>
+              <Button type="button" size="sm" variant="destructive" onClick={() => void loadBookings()}>
+                Retry
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : bookings.length === 0 ? (
-        <Card 
-          sx={{ 
-            borderRadius: 3,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-            border: '1px solid rgba(0,0,0,0.05)',
-          }}
-        >
-          <CardContent>
-            <Box textAlign="center" p={6}>
-              <Box
-                sx={{
-                  width: 120,
-                  height: 120,
-                  borderRadius: '50%',
-                  bgcolor: alpha('#2196F3', 0.1),
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  mx: 'auto',
-                  mb: 3,
-                }}
-              >
-                <Schedule sx={{ fontSize: 60, color: 'primary.main' }} />
-              </Box>
-              <Typography variant="h5" fontWeight="700" color="text.primary" mb={1}>
-                No Bookings Yet
-              </Typography>
-              <Typography variant="body1" color="text.secondary" mb={3}>
-                No bookings assigned to you yet. Bookings will appear here once an admin assigns them to you.
-              </Typography>
-            </Box>
+        <Card className="border-border/60 shadow-sm">
+          <CardContent className="py-12 text-center">
+            <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-primary/10">
+              <CalendarClock className="h-12 w-12 text-primary" />
+            </div>
+            <h2 className="text-xl font-bold">No bookings yet</h2>
+            <p className="mt-2 text-muted-foreground">
+              No bookings assigned to you yet. Bookings will appear here once an admin assigns them to you.
+            </p>
           </CardContent>
         </Card>
       ) : filteredBookings.length === 0 ? (
-        <Card 
-          sx={{ 
-            borderRadius: 3,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-            border: '1px solid rgba(0,0,0,0.05)',
-          }}
-        >
-          <CardContent>
-            <Alert 
-              severity="info"
-              sx={{
-                borderRadius: 2,
-              }}
-            >
+        <Card className="border-border/60 shadow-sm">
+          <CardContent className="p-4">
+            <div className="rounded-md border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-sm text-sky-900 dark:text-sky-100">
               No bookings found in this category
-            </Alert>
+            </div>
           </CardContent>
         </Card>
       ) : (
-        <Box>
-          {filteredBookings.map(renderBookingCard)}
-        </Box>
+        <div>{filteredBookings.map(renderBookingCard)}</div>
       )}
 
-      {/* Action Dialog */}
       <Dialog
         open={actionDialog}
-        onClose={() => {
-          setActionDialog(false)
-          setCompletePaymentMethod('cash')
+        onOpenChange={(open) => {
+          if (!open) {
+            setActionDialog(false)
+            setCompletePaymentMethod('cash')
+          }
         }}
-        maxWidth="sm"
-        fullWidth
       >
-        <DialogTitle>
-          {action === 'accept' && 'Accept Booking'}
-          {action === 'reject' && 'Reject Booking'}
-          {action === 'start' && 'Start Work'}
-          {action === 'complete' && 'Complete Booking'}
-        </DialogTitle>
-        <DialogContent>
+        <DialogContent className="max-w-md sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {action === 'accept' && 'Accept booking'}
+              {action === 'reject' && 'Reject booking'}
+              {action === 'start' && 'Start work'}
+              {action === 'complete' && 'Complete booking'}
+            </DialogTitle>
+          </DialogHeader>
           {selectedBooking && (
-            <Box>
-              <Typography variant="body1" gutterBottom>
-                <strong>Service:</strong> {selectedBooking.serviceName}
-              </Typography>
-              <Typography variant="body1" gutterBottom>
-                <strong>Customer:</strong> {selectedBooking.customer.name}
-              </Typography>
-              <Typography variant="body1" gutterBottom>
-                <strong>Amount:</strong> ₹{selectedBooking.totalAmount}
-              </Typography>
-              
+            <div className="space-y-3 text-sm">
+              <p>
+                <span className="font-medium">Service:</span> {selectedBooking.serviceName}
+              </p>
+              <p>
+                <span className="font-medium">Customer:</span> {selectedBooking.customer.name}
+              </p>
+              <p>
+                <span className="font-medium">Amount:</span> ₹{selectedBooking.totalAmount}
+              </p>
               {action === 'complete' && (
-                <Box sx={{ mt: 2, mb: 2 }}>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                    How did the customer pay?
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                <div className="space-y-2 pt-2">
+                  <p className="text-xs font-medium text-muted-foreground">How did the customer pay?</p>
+                  <div className="flex flex-wrap gap-2">
                     <Button
-                      variant={completePaymentMethod === 'cash' ? 'contained' : 'outlined'}
-                      size="small"
+                      type="button"
+                      size="sm"
+                      variant={completePaymentMethod === 'cash' ? 'default' : 'outline'}
+                      className="gap-1"
                       onClick={() => setCompletePaymentMethod('cash')}
-                      startIcon={<AttachMoney />}
                     >
+                      <Banknote className="h-3.5 w-3.5" />
                       Cash
                     </Button>
                     <Button
-                      variant={completePaymentMethod === 'online' ? 'contained' : 'outlined'}
-                      size="small"
+                      type="button"
+                      size="sm"
+                      variant={completePaymentMethod === 'online' ? 'default' : 'outline'}
+                      className="gap-1"
                       onClick={() => setCompletePaymentMethod('online')}
-                      startIcon={<CreditCard />}
                     >
+                      <CreditCard className="h-3.5 w-3.5" />
                       Online
                     </Button>
-                  </Box>
-                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
                     {completePaymentMethod === 'cash'
                       ? 'Payment will be marked as received on completion.'
                       : 'Payment status will remain as recorded.'}
-                  </Typography>
-                </Box>
+                  </p>
+                </div>
               )}
-
-              <TextField
-                fullWidth
-                multiline
-                rows={3}
-                label="Notes (Optional)"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                sx={{ mt: 2 }}
-              />
-            </Box>
+              <div>
+                <Label htmlFor="action-notes" className="text-muted-foreground">
+                  Notes (optional)
+                </Label>
+                <Textarea
+                  id="action-notes"
+                  className="mt-1.5"
+                  rows={3}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
+              </div>
+            </div>
           )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={() => setActionDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className={cn(
+                action === 'reject' && 'bg-destructive hover:bg-destructive/90',
+                action === 'complete' && 'bg-emerald-600 hover:bg-emerald-700',
+              )}
+              onClick={() => void handleConfirmAction()}
+            >
+              Confirm
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setActionDialog(false)}>Cancel</Button>
-          <Button
-            variant="contained"
-            onClick={handleConfirmAction}
-            color={action === 'reject' ? 'error' : action === 'complete' ? 'success' : 'primary'}
-            disabled={false}
-          >
-            Confirm
-          </Button>
-        </DialogActions>
       </Dialog>
 
-      {/* Snackbar for notifications */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      <Dialog
+        open={paymentReceivedDialog}
+        onOpenChange={(open) => {
+          if (!open) closePaymentDialog()
+        }}
       >
-        <Alert 
-          onClose={() => setSnackbar({ ...snackbar, open: false })} 
-          severity={snackbar.severity} 
-          sx={{ width: '100%' }}
-        >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <IndianRupee className="h-5 w-5 text-emerald-600" />
+              Mark payment received
+            </DialogTitle>
+          </DialogHeader>
+          {selectedBookingForPayment && (
+            <div className="space-y-4 text-sm">
+              <div
+                className="rounded-md border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-sky-950 dark:text-sky-100"
+                role="status"
+              >
+                Confirm that you have received payment from the customer. This updates the payment status and
+                notifies the customer and admin.
+              </div>
+              <div>
+                <p className="text-muted-foreground">Booking amount</p>
+                <p className="text-xl font-bold text-primary">₹{selectedBookingForPayment.totalAmount}</p>
+              </div>
+              <div>
+                <Label htmlFor="amount-received">Amount received</Label>
+                <div className="relative mt-1.5">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₹</span>
+                  <Input
+                    id="amount-received"
+                    type="number"
+                    className="pl-7"
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    placeholder={String(selectedBookingForPayment.totalAmount)}
+                  />
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">Enter the amount you received from the customer</p>
+              </div>
+              <div>
+                <Label htmlFor="payment-notes">Payment notes (optional)</Label>
+                <Textarea
+                  id="payment-notes"
+                  className="mt-1.5"
+                  rows={3}
+                  value={paymentNotes}
+                  onChange={(e) => setPaymentNotes(e.target.value)}
+                  placeholder="E.g. payment method, UPI ref, etc."
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={closePaymentDialog} disabled={paymentSubmitting}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="bg-emerald-600 hover:bg-emerald-700"
+              disabled={paymentSubmitting || !selectedBookingForPayment}
+              onClick={() => void handleMarkPaymentReceived()}
+            >
+              {paymentSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {snackbar.open && (
+        <FixedMessage variant={snackbar.severity === 'error' ? 'error' : 'default'}>
           {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+        </FixedMessage>
+      )}
+    </div>
   )
 }
-

@@ -1,34 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  TextField,
-  Typography,
-  Stack,
-  Chip,
-  ToggleButton,
-  ToggleButtonGroup,
-  Snackbar,
-  Alert,
-} from '@mui/material'
-import { DataGrid, GridColDef, GridActionsCellItem, GridRowSelectionModel } from '@mui/x-data-grid'
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Download as DownloadIcon,
-  Visibility as ViewIcon,
-} from '@mui/icons-material'
+import { Download, Eye, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../../components/common/PageHeader'
 import { CrmSubnav } from '../../components/crm/CrmSubnav'
@@ -39,11 +10,39 @@ import { CrmListShell } from '../../components/crm/CrmListShell'
 import { CrmEmptyState } from '../../components/crm/CrmEmptyState'
 import { CrmDataGridSkeleton, CrmPipelineSkeleton } from '../../components/crm/CrmDataGridSkeleton'
 import { CrmDealDetailDrawer } from '../../components/crm/CrmRecordDrawers'
+import {
+  DataGrid,
+  GridActionsCellItem,
+  type GridColDef,
+  type GridRowSelectionModel,
+} from '../../components/crm/CrmDataTable'
 import { crmService } from '../../services/api/crm.service'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useCrmSearchParam } from '../../hooks/useCrmUrlFilters'
 import { activitiesForDeal, filterDeals } from '../../utils/crmFilters'
 import type { CrmActivity, CrmCompany, CrmContact, CrmDeal, CrmDealStage } from '../../types/crm.types'
+import { formatMoneyAmount, APP_CURRENCY } from '../../lib/utils'
+import { Card, CardContent } from '../../components/ui/card'
+import { Button } from '../../components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
+import { Textarea } from '../../components/ui/textarea'
+import { Badge } from '../../components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select'
+import { cn } from '../../lib/utils'
 
 const STAGES: CrmDealStage[] = ['lead', 'qualified', 'proposal', 'negotiation', 'won', 'lost']
 
@@ -54,14 +53,6 @@ const STAGE_LABELS: Record<CrmDealStage, string> = {
   negotiation: 'Negotiation',
   won: 'Won',
   lost: 'Lost',
-}
-
-function formatMoney(amount: number, currency: string) {
-  try {
-    return new Intl.NumberFormat('en-GB', { style: 'currency', currency }).format(amount)
-  } catch {
-    return `${currency} ${amount}`
-  }
 }
 
 const emptySelection: GridRowSelectionModel = { type: 'include', ids: new Set() }
@@ -131,6 +122,12 @@ export function CrmDeals() {
     }
   }, [tick])
 
+  useEffect(() => {
+    if (!snackbar.open) return undefined
+    const t = window.setTimeout(() => setSnackbar((s) => ({ ...s, open: false })), 4000)
+    return () => window.clearTimeout(t)
+  }, [snackbar.open, snackbar.message])
+
   const filteredRows = useMemo(
     () => filterDeals(rows, qInput, stageFilter),
     [rows, qInput, stageFilter]
@@ -139,7 +136,7 @@ export function CrmDeals() {
   const [form, setForm] = useState({
     name: '',
     amount: 0,
-    currency: 'GBP',
+    currency: 'INR',
     stage: 'lead' as CrmDealStage,
     probability: 10,
     companyId: '' as string | undefined,
@@ -153,7 +150,7 @@ export function CrmDeals() {
     setForm({
       name: '',
       amount: 0,
-      currency: 'GBP',
+      currency: 'INR',
       stage: 'lead',
       probability: 10,
       companyId: undefined,
@@ -227,60 +224,64 @@ export function CrmDeals() {
     }
   }
 
-  const baseColumns: GridColDef<CrmDeal>[] = [
-    { field: 'name', headerName: 'Deal', flex: 1.2, minWidth: 180 },
-    {
-      field: 'amount',
-      headerName: 'Amount',
-      width: 130,
-      renderCell: (p) => formatMoney(p.row.amount, p.row.currency),
-    },
-    {
-      field: 'stage',
-      headerName: 'Stage',
-      width: 130,
-      renderCell: (p) => <Chip size="small" label={STAGE_LABELS[p.row.stage]} />,
-    },
-    { field: 'probability', headerName: '%', width: 70 },
-    {
-      field: 'expectedCloseDate',
-      headerName: 'Close',
-      width: 120,
-      renderCell: (p) => (p.row.expectedCloseDate ? String(p.row.expectedCloseDate).slice(0, 10) : '—'),
-    },
-    {
-      field: 'view',
-      headerName: '',
-      width: 70,
-      sortable: false,
-      renderCell: (p) => (
-        <GridActionsCellItem
-          icon={<ViewIcon />}
-          label="Details"
-          onClick={() => setDrawerDeal(p.row)}
-        />
-      ),
-    },
-  ]
-
-  const actionColumn: GridColDef<CrmDeal> = {
-    field: 'actions',
-    type: 'actions',
-    headerName: '',
-    width: 100,
-    getActions: ({ row }) => [
-      <GridActionsCellItem key="edit" icon={<EditIcon />} label="Edit" onClick={() => openEdit(row)} />,
-      <GridActionsCellItem
-        key="del"
-        icon={<DeleteIcon />}
-        label="Delete"
-        onClick={() => {
-          setDealToDeleteId(row.id)
-          setDeleteTarget('single')
-        }}
-      />,
+  const baseColumns: GridColDef<CrmDeal>[] = useMemo(
+    () => [
+      { field: 'name', headerName: 'Deal', flex: 1.2, minWidth: 180 },
+      {
+        field: 'amount',
+        headerName: 'Amount',
+        width: 130,
+        renderCell: (p) => formatMoneyAmount(p.row.amount, p.row.currency),
+      },
+      {
+        field: 'stage',
+        headerName: 'Stage',
+        width: 130,
+        renderCell: (p) => <Badge className="font-normal">{STAGE_LABELS[p.row.stage]}</Badge>,
+      },
+      { field: 'probability', headerName: '%', width: 70 },
+      {
+        field: 'expectedCloseDate',
+        headerName: 'Close',
+        width: 120,
+        renderCell: (p) => (p.row.expectedCloseDate ? String(p.row.expectedCloseDate).slice(0, 10) : '—'),
+      },
+      {
+        field: 'view',
+        headerName: '',
+        width: 70,
+        sortable: false,
+        renderCell: (p) => (
+          <div className="inline-flex">
+            <GridActionsCellItem icon={<Eye className="h-4 w-4" />} label="Details" onClick={() => setDrawerDeal(p.row)} />
+          </div>
+        ),
+      },
     ],
-  }
+    []
+  )
+
+  const actionColumn: GridColDef<CrmDeal> = useMemo(
+    () => ({
+      field: 'actions',
+      type: 'actions',
+      headerName: '',
+      width: 100,
+      getActions: ({ row }) => [
+        <GridActionsCellItem key="edit" icon={<Pencil className="h-4 w-4" />} label="Edit" onClick={() => openEdit(row)} />,
+        <GridActionsCellItem
+          key="del"
+          icon={<Trash2 className="h-4 w-4" />}
+          label="Delete"
+          onClick={() => {
+            setDealToDeleteId(row.id)
+            setDeleteTarget('single')
+          }}
+        />,
+      ],
+    }),
+    [openEdit]
+  )
 
   const columns = canManage ? [...baseColumns, actionColumn] : baseColumns
 
@@ -298,68 +299,64 @@ export function CrmDeals() {
     return c ? `${c.firstName} ${c.lastName}` : undefined
   }, [drawerDeal, contacts])
 
-  const toolbarFilters = (
-    <>
-      <FormControl size="small" sx={{ minWidth: 160 }}>
-        <InputLabel>Stage</InputLabel>
-        <Select
-          label="Stage"
-          value={stageFilter}
-          onChange={(e) => setParam('stage', e.target.value)}
-        >
-          <MenuItem value="all">All stages</MenuItem>
-          {STAGES.map((s) => (
-            <MenuItem key={s} value={s}>
-              {STAGE_LABELS[s]}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-    </>
-  )
-
   const isEmpty = !loading && !loadError && rows.length === 0
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }}>
+    <div className="p-4 md:p-6">
       <PageHeader
         title="Deals"
         subtitle="Opportunity pipeline with weighted value and expected close dates."
         action={
-          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-            <ToggleButtonGroup
-              size="small"
-              value={view}
-              exclusive
-              onChange={(_, v) => v && setView(v)}
-            >
-              <ToggleButton value="pipeline">Pipeline</ToggleButton>
-              <ToggleButton value="table">Table</ToggleButton>
-            </ToggleButtonGroup>
-            <Button variant="outlined" size="small" startIcon={<DownloadIcon />} onClick={() => crmService.downloadExport('deals')}>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex gap-1">
+              <Button type="button" size="sm" variant={view === 'pipeline' ? 'default' : 'outline'} onClick={() => setView('pipeline')}>
+                Pipeline
+              </Button>
+              <Button type="button" size="sm" variant={view === 'table' ? 'default' : 'outline'} onClick={() => setView('table')}>
+                Table
+              </Button>
+            </div>
+            <Button variant="outline" size="sm" className="gap-1" onClick={() => crmService.downloadExport('deals')}>
+              <Download className="h-4 w-4" />
               Export CSV
             </Button>
             {canManage ? (
-              <Button startIcon={<AddIcon />} variant="contained" onClick={openCreate}>
+              <Button size="sm" className="gap-1" onClick={openCreate}>
+                <Plus className="h-4 w-4" />
                 New deal
               </Button>
             ) : null}
-          </Stack>
+          </div>
         }
       />
       <CrmSubnav />
 
       <CrmListToolbar qInput={qInput} onQChange={setQInput} searchPlaceholder="Search deals…">
-        {toolbarFilters}
+        <div className="space-y-1.5">
+          <Label className="sr-only">Stage</Label>
+          <Select value={stageFilter} onValueChange={(v) => setParam('stage', v)}>
+            <SelectTrigger className="h-9 w-[min(100%,10rem)] sm:w-40" aria-label="Stage">
+              <SelectValue placeholder="Stage" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All stages</SelectItem>
+              {STAGES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {STAGE_LABELS[s]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </CrmListToolbar>
 
       {canManage && view === 'table' && selectedIds.length > 0 ? (
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-          <Typography variant="body2">{selectedIds.length} selected</Typography>
-          <Button size="small" color="error" variant="outlined" onClick={() => setDeleteTarget('bulk')}>
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <p className="text-sm text-muted-foreground">{selectedIds.length} selected</p>
+          <Button size="sm" variant="outline" className="text-destructive" onClick={() => setDeleteTarget('bulk')}>
             Delete selected
           </Button>
-        </Stack>
+        </div>
       ) : null}
 
       <CrmListShell
@@ -368,7 +365,7 @@ export function CrmDeals() {
         onRetry={refresh}
         isEmpty={isEmpty}
         empty={
-          <Card variant="outlined">
+          <Card>
             <CrmEmptyState
               title="No deals yet"
               description="Create a deal to track opportunities through your pipeline."
@@ -380,8 +377,8 @@ export function CrmDeals() {
         skeleton={view === 'pipeline' ? <CrmPipelineSkeleton /> : <CrmDataGridSkeleton />}
       >
         {view === 'table' ? (
-          <Card variant="outlined">
-            <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
+          <Card>
+            <CardContent className="p-0">
               {filteredRows.length === 0 && rows.length > 0 ? (
                 <CrmEmptyState title="No matching deals" description="Try adjusting search or stage filter." />
               ) : (
@@ -390,19 +387,18 @@ export function CrmDeals() {
                   columns={columns}
                   getRowId={(r) => r.id}
                   pageSizeOptions={[10, 25, 50]}
-                  initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
+                  initialPageSize={10}
                   checkboxSelection={canManage}
                   rowSelectionModel={selectionModel}
                   onRowSelectionModelChange={setSelectionModel}
-                  disableRowSelectionOnClick
-                  autoHeight
-                  sx={{ border: 'none', minHeight: 360 }}
+                  minHeight={360}
+                  className="border-0"
                 />
               )}
             </CardContent>
           </Card>
         ) : filteredRows.length === 0 && rows.length > 0 ? (
-          <Card variant="outlined">
+          <Card>
             <CrmEmptyState title="No matching deals" description="Try adjusting search or stage filter." />
           </Card>
         ) : (
@@ -411,7 +407,7 @@ export function CrmDeals() {
             stageLabels={STAGE_LABELS}
             deals={filteredRows}
             canManage={canManage}
-            formatMoney={formatMoney}
+            formatMoney={formatMoneyAmount}
             onEdit={openEdit}
             onViewDeal={(d) => setDrawerDeal(d)}
             onMoveDeal={handleMoveDeal}
@@ -423,7 +419,7 @@ export function CrmDeals() {
         open={!!drawerDeal}
         onClose={() => setDrawerDeal(null)}
         deal={drawerDeal}
-        formatMoney={formatMoney}
+        formatMoney={formatMoneyAmount}
         companyName={drawerCompany}
         contactName={drawerContactName}
         activities={drawerActivities}
@@ -464,138 +460,173 @@ export function CrmDeals() {
         }}
       />
 
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>{editing ? 'Edit deal' : 'New deal'}</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
-          <TextField
-            label="Deal name"
-            required
-            value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-          />
-          <TextField
-            label="Amount"
-            type="number"
-            value={form.amount}
-            onChange={(e) => setForm((f) => ({ ...f, amount: Number(e.target.value) }))}
-          />
-          <TextField
-            label="Currency"
-            value={form.currency}
-            onChange={(e) => setForm((f) => ({ ...f, currency: e.target.value.toUpperCase() }))}
-          />
-          <FormControl fullWidth>
-            <InputLabel>Stage</InputLabel>
-            <Select
-              label="Stage"
-              value={form.stage}
-              onChange={(e) => setForm((f) => ({ ...f, stage: e.target.value as CrmDealStage }))}
-            >
-              {STAGES.map((s) => (
-                <MenuItem key={s} value={s}>
-                  {STAGE_LABELS[s]}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <TextField
-            label="Probability %"
-            type="number"
-            inputProps={{ min: 0, max: 100 }}
-            value={form.probability}
-            onChange={(e) => setForm((f) => ({ ...f, probability: Number(e.target.value) }))}
-          />
-          <FormControl fullWidth>
-            <InputLabel>Company</InputLabel>
-            <Select
-              label="Company"
-              value={form.companyId ?? ''}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, companyId: e.target.value ? String(e.target.value) : undefined }))
-              }
-            >
-              <MenuItem value="">None</MenuItem>
-              {companies.map((c) => (
-                <MenuItem key={c.id} value={c.id}>
-                  {c.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl fullWidth>
-            <InputLabel>Primary contact</InputLabel>
-            <Select
-              label="Primary contact"
-              value={form.primaryContactId ?? ''}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, primaryContactId: e.target.value ? String(e.target.value) : undefined }))
-              }
-            >
-              <MenuItem value="">None</MenuItem>
-              {contacts.map((c) => (
-                <MenuItem key={c.id} value={c.id}>
-                  {c.firstName} {c.lastName}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <TextField
-            label="Expected close"
-            type="date"
-            InputLabelProps={{ shrink: true }}
-            value={form.expectedCloseDate}
-            onChange={(e) => setForm((f) => ({ ...f, expectedCloseDate: e.target.value }))}
-          />
-          <TextField
-            label="Notes"
-            multiline
-            minRows={2}
-            value={form.notes}
-            onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
-          <Button
-            variant="contained"
-            onClick={() => {
-              if (!form.name.trim()) {
-                setSnackbar({ open: true, message: 'Deal name is required', severity: 'error' })
-                return
-              }
-              void (async () => {
-                try {
-                  await crmService.upsertDeal({
-                    id: editing?.id,
-                    name: form.name.trim(),
-                    amount: form.amount,
-                    currency: form.currency || 'GBP',
-                    stage: form.stage,
-                    probability: Math.min(100, Math.max(0, form.probability)),
-                    companyId: form.companyId,
-                    primaryContactId: form.primaryContactId,
-                    expectedCloseDate: form.expectedCloseDate || undefined,
-                    notes: form.notes || undefined,
-                  })
-                  setOpen(false)
-                  refresh()
-                  setSnackbar({ open: true, message: 'Deal saved', severity: 'success' })
-                } catch {
-                  setSnackbar({ open: true, message: 'Save failed', severity: 'error' })
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editing ? 'Edit deal' : 'New deal'}</DialogTitle>
+          </DialogHeader>
+          <div className="flex max-h-[75vh] flex-col gap-3 overflow-y-auto py-1 pr-1">
+            <div className="space-y-1.5">
+              <Label htmlFor="dl-name">Deal name *</Label>
+              <Input
+                id="dl-name"
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="dl-amt">Amount</Label>
+              <Input
+                id="dl-amt"
+                type="number"
+                value={form.amount}
+                onChange={(e) => setForm((f) => ({ ...f, amount: Number(e.target.value) }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="dl-cur">Currency</Label>
+              <Input
+                id="dl-cur"
+                value={form.currency}
+                onChange={(e) => setForm((f) => ({ ...f, currency: e.target.value.toUpperCase() }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Stage</Label>
+              <Select value={form.stage} onValueChange={(v) => setForm((f) => ({ ...f, stage: v as CrmDealStage }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STAGES.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {STAGE_LABELS[s]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="dl-pct">Probability %</Label>
+              <Input
+                id="dl-pct"
+                type="number"
+                min={0}
+                max={100}
+                value={form.probability}
+                onChange={(e) => setForm((f) => ({ ...f, probability: Number(e.target.value) }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Company</Label>
+              <Select
+                value={form.companyId ?? 'none'}
+                onValueChange={(v) => setForm((f) => ({ ...f, companyId: v === 'none' ? undefined : v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Company" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {companies.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Primary contact</Label>
+              <Select
+                value={form.primaryContactId ?? 'none'}
+                onValueChange={(v) => setForm((f) => ({ ...f, primaryContactId: v === 'none' ? undefined : v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Contact" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {contacts.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.firstName} {c.lastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="dl-close">Expected close</Label>
+              <Input
+                id="dl-close"
+                type="date"
+                value={form.expectedCloseDate}
+                onChange={(e) => setForm((f) => ({ ...f, expectedCloseDate: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="dl-notes">Notes</Label>
+              <Textarea
+                id="dl-notes"
+                rows={3}
+                value={form.notes}
+                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                if (!form.name.trim()) {
+                  setSnackbar({ open: true, message: 'Deal name is required', severity: 'error' })
+                  return
                 }
-              })()
-            }}
-          >
-            Save
-          </Button>
-        </DialogActions>
+                void (async () => {
+                  try {
+                    await crmService.upsertDeal({
+                      id: editing?.id,
+                      name: form.name.trim(),
+                      amount: form.amount,
+                      currency: form.currency || APP_CURRENCY,
+                      stage: form.stage,
+                      probability: Math.min(100, Math.max(0, form.probability)),
+                      companyId: form.companyId,
+                      primaryContactId: form.primaryContactId,
+                      expectedCloseDate: form.expectedCloseDate || undefined,
+                      notes: form.notes || undefined,
+                    })
+                    setOpen(false)
+                    refresh()
+                    setSnackbar({ open: true, message: 'Deal saved', severity: 'success' })
+                  } catch {
+                    setSnackbar({ open: true, message: 'Save failed', severity: 'error' })
+                  }
+                })()
+              }}
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
 
-      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar((s) => ({ ...s, open: false }))}>
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar((s) => ({ ...s, open: false }))} sx={{ width: '100%' }}>
+      {snackbar.open ? (
+        <div
+          role="status"
+          className={cn(
+            'fixed bottom-4 left-1/2 z-[200] w-[min(100%,20rem)] -translate-x-1/2 rounded-md border px-4 py-2 text-sm shadow-md',
+            snackbar.severity === 'error'
+              ? 'border-destructive bg-destructive text-destructive-foreground'
+              : 'border-emerald-600 bg-emerald-600 text-white',
+          )}
+        >
           {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+        </div>
+      ) : null}
+    </div>
   )
 }

@@ -1,44 +1,26 @@
 import React, { useState } from 'react'
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  TextField,
-  Button,
-  InputAdornment,
-  IconButton,
-  Divider,
-  Link,
-  Alert,
-  useTheme,
-  Stack,
-  Container,
-  Paper,
-  Checkbox,
-  FormControlLabel,
-  CircularProgress,
-  Snackbar,
-  Fade,
-  Slide,
-  Zoom,
-  Chip,
-  LinearProgress,
-} from '@mui/material'
-import {
-  Visibility as VisibilityIcon,
-  VisibilityOff as VisibilityOffIcon,
-  Email as EmailIcon,
-  Lock as LockIcon,
-  Person as PersonIcon,
-  Business as BusinessIcon,
-  Phone as PhoneIcon,
-  LocationOn as LocationIcon,
-  CheckCircle as CheckCircleIcon,
-  Security as SecurityIcon,
-  Google as GoogleIcon,
-  Apple as AppleIcon,
-} from '@mui/icons-material'
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  User,
+  Building2,
+  Phone,
+  MapPin,
+  CheckCircle,
+  Shield,
+} from 'lucide-react'
+import { Card, CardContent } from '../ui/card'
+import { Input } from '../ui/input'
+import { Label } from '../ui/label'
+import { Button } from '../ui/button'
+import { Checkbox } from '../ui/checkbox'
+import { Badge } from '../ui/badge'
+import { Separator } from '../ui/separator'
+import { useAppDispatch } from '../../store/hooks'
+import { addToast } from '../../store/slices/uiSlice'
+import { cn } from '../../lib/utils'
 
 interface SignupFormProps {
   onSignup: (userData: {
@@ -65,6 +47,7 @@ interface PasswordStrength {
 }
 
 export function SignupForm({ onSignup, isLoading = false, error }: SignupFormProps) {
+  const dispatch = useAppDispatch()
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -78,22 +61,23 @@ export function SignupForm({ onSignup, isLoading = false, error }: SignupFormPro
     agreeToTerms: false,
     agreeToMarketing: false,
   })
-  
+
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [errors, setErrors] = useState<{ [key: string]: string }>({})
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'error' as 'success' | 'error' | 'warning' | 'info' })
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const [currentStep, setCurrentStep] = useState(1)
-  const [passwordStrength, setPasswordStrength] = useState<PasswordStrength>({ score: 0, feedback: [], color: 'error' })
+  const [passwordStrength, setPasswordStrength] = useState<PasswordStrength>({
+    score: 0,
+    feedback: [],
+    color: 'error',
+  })
   const [isSubmitting, setIsSubmitting] = useState(false)
-
-  const theme = useTheme()
 
   const steps = [
     { title: 'Personal Info', description: 'Basic information' },
     { title: 'Account Details', description: 'Login credentials' },
     { title: 'Business Info', description: 'Professional details' },
-    { title: 'Preferences', description: 'Terms & settings' }
+    { title: 'Preferences', description: 'Terms & settings' },
   ]
 
   const calculatePasswordStrength = (password: string): PasswordStrength => {
@@ -115,23 +99,24 @@ export function SignupForm({ onSignup, isLoading = false, error }: SignupFormPro
     if (/[^A-Za-z0-9]/.test(password)) score += 1
     else feedback.push('Special character')
 
-    const colors: Array<'error' | 'warning' | 'info' | 'success'> = ['error', 'warning', 'info', 'success']
+    const colors: PasswordStrength['color'][] = ['error', 'warning', 'info', 'success', 'success']
     const color = colors[Math.min(score, 4)]
 
     return { score, feedback, color }
   }
 
+  const strengthBarClass = (c: PasswordStrength['color']) => {
+    if (c === 'error') return 'bg-destructive'
+    if (c === 'warning') return 'bg-amber-500'
+    if (c === 'info') return 'bg-sky-500'
+    return 'bg-emerald-500'
+  }
+
   const validateForm = (): boolean => {
-    const newErrors: { [key: string]: string } = {}
+    const newErrors: Record<string, string> = {}
 
-    // Step 1 validation
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'First name is required'
-    }
-
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Last name is required'
-    }
+    if (!formData.firstName.trim()) newErrors.firstName = 'First name is required'
+    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required'
 
     if (!formData.phone.trim()) {
       newErrors.phone = 'Phone number is required'
@@ -139,7 +124,6 @@ export function SignupForm({ onSignup, isLoading = false, error }: SignupFormPro
       newErrors.phone = 'Please enter a valid phone number'
     }
 
-    // Step 2 validation
     if (!formData.email) {
       newErrors.email = 'Email is required'
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
@@ -158,17 +142,11 @@ export function SignupForm({ onSignup, isLoading = false, error }: SignupFormPro
       newErrors.confirmPassword = 'Passwords do not match'
     }
 
-    // Step 3 validation (for providers)
     if (formData.userType === 'provider') {
-      if (!formData.businessName.trim()) {
-        newErrors.businessName = 'Business name is required'
-      }
-      if (!formData.location.trim()) {
-        newErrors.location = 'Location is required'
-      }
+      if (!formData.businessName.trim()) newErrors.businessName = 'Business name is required'
+      if (!formData.location.trim()) newErrors.location = 'Location is required'
     }
 
-    // Step 4 validation
     if (!formData.agreeToTerms) {
       newErrors.agreeToTerms = 'You must agree to the terms and conditions'
     }
@@ -179,7 +157,7 @@ export function SignupForm({ onSignup, isLoading = false, error }: SignupFormPro
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
-    
+
     if (validateForm()) {
       setIsSubmitting(true)
       try {
@@ -190,443 +168,373 @@ export function SignupForm({ onSignup, isLoading = false, error }: SignupFormPro
     }
   }
 
-  const handleInputChange = (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.type === 'checkbox' ? event.target.checked : event.target.value
-    
-    setFormData(prev => ({
-      ...prev,
-      [field]: value,
-    }))
-    
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({
-        ...prev,
-        [field]: '',
-      }))
-    }
+  const handleInputChange =
+    (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
+      const value = event.target.type === 'checkbox' ? event.target.checked : event.target.value
 
-    // Update password strength
-    if (field === 'password') {
-      setPasswordStrength(calculatePasswordStrength(value as string))
+      setFormData((prev) => ({
+        ...prev,
+        [field]: value,
+      }))
+
+      if (errors[field]) {
+        setErrors((prev) => ({
+          ...prev,
+          [field]: '',
+        }))
+      }
+
+      if (field === 'password') {
+        setPasswordStrength(calculatePasswordStrength(value as string))
+      }
     }
-  }
 
   const handleNext = () => {
-    if (currentStep < 4) {
-      setCurrentStep(currentStep + 1)
-    }
+    if (currentStep < 4) setCurrentStep(currentStep + 1)
   }
 
   const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
-    }
+    if (currentStep > 1) setCurrentStep(currentStep - 1)
   }
 
   const handleSocialSignup = (provider: string) => {
-    setSnackbar({
-      open: true,
-      message: `${provider} sign-up is not enabled on this deployment. Continue with email and password below.`,
-      severity: 'info',
-    })
+    dispatch(
+      addToast({
+        message: `${provider} sign-up is not enabled on this deployment. Continue with email and password below.`,
+        severity: 'info',
+      }),
+    )
   }
 
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
         return (
-          <Fade in timeout={500}>
-            <Stack spacing={3}>
-              <Typography variant="h6" sx={{ textAlign: 'center', mb: 2 }}>
-                Let's start with your personal information
-              </Typography>
-              
-              <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
-                <TextField
-                  fullWidth
-                  label="First Name"
-                  value={formData.firstName}
-                  onChange={handleInputChange('firstName')}
-                  error={!!errors.firstName}
-                  helperText={errors.firstName}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <PersonIcon color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
+          <div className="space-y-4">
+            <h2 className="text-center text-lg font-semibold">Let&apos;s start with your personal information</h2>
+            <div className="flex flex-col gap-4 sm:flex-row">
+              <div className="flex-1 space-y-1.5">
+                <Label htmlFor="su-fn">First Name</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="su-fn"
+                    className={cn('pl-9', errors.firstName && 'border-destructive')}
+                    value={formData.firstName}
+                    onChange={handleInputChange('firstName')}
+                    disabled={isLoading}
+                  />
+                </div>
+                {errors.firstName && <p className="text-xs text-destructive">{errors.firstName}</p>}
+              </div>
+              <div className="flex-1 space-y-1.5">
+                <Label htmlFor="su-ln">Last Name</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="su-ln"
+                    className={cn('pl-9', errors.lastName && 'border-destructive')}
+                    value={formData.lastName}
+                    onChange={handleInputChange('lastName')}
+                    disabled={isLoading}
+                  />
+                </div>
+                {errors.lastName && <p className="text-xs text-destructive">{errors.lastName}</p>}
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="su-phone">Phone Number</Label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="su-phone"
+                  placeholder="+1 (555) 123-4567"
+                  className={cn('pl-9', errors.phone && 'border-destructive')}
+                  value={formData.phone}
+                  onChange={handleInputChange('phone')}
                   disabled={isLoading}
                 />
-                
-                <TextField
-                  fullWidth
-                  label="Last Name"
-                  value={formData.lastName}
-                  onChange={handleInputChange('lastName')}
-                  error={!!errors.lastName}
-                  helperText={errors.lastName}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <PersonIcon color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                  disabled={isLoading}
-                />
-              </Box>
-
-              <TextField
-                fullWidth
-                label="Phone Number"
-                value={formData.phone}
-                onChange={handleInputChange('phone')}
-                error={!!errors.phone}
-                helperText={errors.phone}
-                placeholder="+1 (555) 123-4567"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <PhoneIcon color="action" />
-                    </InputAdornment>
-                  ),
-                }}
-                disabled={isLoading}
-              />
-
-              <Box sx={{ textAlign: 'center', mt: 2 }}>
-                <Button
-                  variant="contained"
-                  onClick={handleNext}
-                  disabled={!formData.firstName || !formData.lastName || !formData.phone}
-                  sx={{ minWidth: 120 }}
-                >
-                  Next Step
-                </Button>
-              </Box>
-            </Stack>
-          </Fade>
+              </div>
+              {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
+            </div>
+            <div className="pt-2 text-center">
+              <Button
+                type="button"
+                onClick={handleNext}
+                disabled={!formData.firstName || !formData.lastName || !formData.phone}
+              >
+                Next Step
+              </Button>
+            </div>
+          </div>
         )
 
       case 2:
         return (
-          <Fade in timeout={500}>
-            <Stack spacing={3}>
-              <Typography variant="h6" sx={{ textAlign: 'center', mb: 2 }}>
-                Create your secure account
-              </Typography>
-
-              <TextField
-                fullWidth
-                label="Email Address"
-                type="email"
-                value={formData.email}
-                onChange={handleInputChange('email')}
-                error={!!errors.email}
-                helperText={errors.email}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <EmailIcon color="action" />
-                    </InputAdornment>
-                  ),
-                }}
-                disabled={isLoading}
-              />
-
-              <TextField
-                fullWidth
-                label="Password"
-                type={showPassword ? 'text' : 'password'}
-                value={formData.password}
-                onChange={handleInputChange('password')}
-                error={!!errors.password}
-                helperText={errors.password}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <LockIcon color="action" />
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        onClick={() => setShowPassword(!showPassword)}
-                        edge="end"
-                        disabled={isLoading}
-                      >
-                        {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-                disabled={isLoading}
-              />
-
-              {/* Password Strength Indicator */}
-              {formData.password && (
-                <Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Password Strength:
-                    </Typography>
-                    <LinearProgress
-                      variant="determinate"
-                      value={(passwordStrength.score / 5) * 100}
-                      color={passwordStrength.color}
-                      sx={{ flexGrow: 1, height: 6, borderRadius: 3 }}
-                    />
-                    <Typography variant="body2" color={`${passwordStrength.color}.main`}>
-                      {passwordStrength.score}/5
-                    </Typography>
-                  </Box>
-                  {passwordStrength.feedback.length > 0 && (
-                    <Typography variant="caption" color="text.secondary">
-                      Missing: {passwordStrength.feedback.join(', ')}
-                    </Typography>
-                  )}
-                </Box>
-              )}
-
-              <TextField
-                fullWidth
-                label="Confirm Password"
-                type={showConfirmPassword ? 'text' : 'password'}
-                value={formData.confirmPassword}
-                onChange={handleInputChange('confirmPassword')}
-                error={!!errors.confirmPassword}
-                helperText={errors.confirmPassword}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <LockIcon color="action" />
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        edge="end"
-                        disabled={isLoading}
-                      >
-                        {showConfirmPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-                disabled={isLoading}
-              />
-
-              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
-                <Button variant="outlined" onClick={handleBack} disabled={isLoading}>
-                  Back
-                </Button>
-                <Button
-                  variant="contained"
-                  onClick={handleNext}
-                  disabled={!formData.email || !formData.password || !formData.confirmPassword || passwordStrength.score < 3}
+          <div className="space-y-4">
+            <h2 className="text-center text-lg font-semibold">Create your secure account</h2>
+            <div className="space-y-1.5">
+              <Label htmlFor="su-email">Email Address</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="su-email"
+                  type="email"
+                  className={cn('pl-9', errors.email && 'border-destructive')}
+                  value={formData.email}
+                  onChange={handleInputChange('email')}
+                  disabled={isLoading}
+                />
+              </div>
+              {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="su-pw">Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="su-pw"
+                  type={showPassword ? 'text' : 'password'}
+                  className={cn('pl-9 pr-10', errors.password && 'border-destructive')}
+                  value={formData.password}
+                  onChange={handleInputChange('password')}
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground"
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex={-1}
                 >
-                  Next Step
-                </Button>
-              </Box>
-            </Stack>
-          </Fade>
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
+            </div>
+            {formData.password ? (
+              <div>
+                <div className="mb-1 flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Password Strength:</span>
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className={cn('h-full transition-all', strengthBarClass(passwordStrength.color))}
+                      style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
+                    />
+                  </div>
+                  <span className="text-sm tabular-nums">{passwordStrength.score}/5</span>
+                </div>
+                {passwordStrength.feedback.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Missing: {passwordStrength.feedback.join(', ')}
+                  </p>
+                )}
+              </div>
+            ) : null}
+            <div className="space-y-1.5">
+              <Label htmlFor="su-pw2">Confirm Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="su-pw2"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  className={cn('pl-9 pr-10', errors.confirmPassword && 'border-destructive')}
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange('confirmPassword')}
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  tabIndex={-1}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {errors.confirmPassword && (
+                <p className="text-xs text-destructive">{errors.confirmPassword}</p>
+              )}
+            </div>
+            <div className="flex justify-center gap-2">
+              <Button type="button" variant="outline" onClick={handleBack} disabled={isLoading}>
+                Back
+              </Button>
+              <Button
+                type="button"
+                onClick={handleNext}
+                disabled={
+                  !formData.email ||
+                  !formData.password ||
+                  !formData.confirmPassword ||
+                  passwordStrength.score < 3
+                }
+              >
+                Next Step
+              </Button>
+            </div>
+          </div>
         )
 
       case 3:
         return (
-          <Fade in timeout={500}>
-            <Stack spacing={3}>
-              <Typography variant="h6" sx={{ textAlign: 'center', mb: 2 }}>
-                Tell us about your business
-              </Typography>
-
-              <Box sx={{ textAlign: 'center', mb: 3 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  How will you be using our platform?
-                </Typography>
-                <Stack direction="row" spacing={1} justifyContent="center" flexWrap="wrap">
-                  {[
-                    { value: 'customer', label: 'Customer', icon: '👤' },
-                    { value: 'provider', label: 'Service Provider', icon: '🔧' },
-                    { value: 'admin', label: 'Admin', icon: '⚙️' }
-                  ].map((type) => (
-                    <Chip
-                      key={type.value}
-                      label={`${type.icon} ${type.label}`}
-                      onClick={() => setFormData(prev => ({ ...prev, userType: type.value as any }))}
-                      color={formData.userType === type.value ? 'primary' : 'default'}
-                      variant={formData.userType === type.value ? 'filled' : 'outlined'}
-                      sx={{ mb: 1 }}
-                    />
-                  ))}
-                </Stack>
-              </Box>
-
-              {formData.userType === 'provider' && (
-                <Slide direction="up" in timeout={300}>
-                  <Stack spacing={3}>
-                    <TextField
-                      fullWidth
-                      label="Business Name"
+          <div className="space-y-4">
+            <h2 className="text-center text-lg font-semibold">Tell us about your business</h2>
+            <p className="text-center text-sm text-muted-foreground">How will you be using our platform?</p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {[
+                { value: 'customer' as const, label: 'Customer', icon: '👤' },
+                { value: 'provider' as const, label: 'Service Provider', icon: '🔧' },
+                { value: 'admin' as const, label: 'Admin', icon: '⚙️' },
+              ].map((type) => (
+                <Badge
+                  key={type.value}
+                  variant={formData.userType === type.value ? 'default' : 'outline'}
+                  className="cursor-pointer px-3 py-1.5 text-sm"
+                  onClick={() => setFormData((prev) => ({ ...prev, userType: type.value }))}
+                >
+                  {type.icon} {type.label}
+                </Badge>
+              ))}
+            </div>
+            {formData.userType === 'provider' && (
+              <div className="space-y-4 border-t border-border pt-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="su-biz">Business Name</Label>
+                  <div className="relative">
+                    <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="su-biz"
+                      className={cn('pl-9', errors.businessName && 'border-destructive')}
                       value={formData.businessName}
                       onChange={handleInputChange('businessName')}
-                      error={!!errors.businessName}
-                      helperText={errors.businessName}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <BusinessIcon color="action" />
-                          </InputAdornment>
-                        ),
-                      }}
                       disabled={isLoading}
                     />
-
-                    <TextField
-                      fullWidth
-                      label="Location"
+                  </div>
+                  {errors.businessName && <p className="text-xs text-destructive">{errors.businessName}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="su-loc">Location</Label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="su-loc"
+                      placeholder="City, State"
+                      className={cn('pl-9', errors.location && 'border-destructive')}
                       value={formData.location}
                       onChange={handleInputChange('location')}
-                      error={!!errors.location}
-                      helperText={errors.location}
-                      placeholder="City, State"
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <LocationIcon color="action" />
-                          </InputAdornment>
-                        ),
-                      }}
                       disabled={isLoading}
                     />
-                  </Stack>
-                </Slide>
-              )}
-
-              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
-                <Button variant="outlined" onClick={handleBack} disabled={isLoading}>
-                  Back
-                </Button>
-                <Button
-                  variant="contained"
-                  onClick={handleNext}
-                  disabled={formData.userType === 'provider' && (!formData.businessName || !formData.location)}
-                >
-                  Next Step
-                </Button>
-              </Box>
-            </Stack>
-          </Fade>
+                  </div>
+                  {errors.location && <p className="text-xs text-destructive">{errors.location}</p>}
+                </div>
+              </div>
+            )}
+            <div className="flex justify-center gap-2">
+              <Button type="button" variant="outline" onClick={handleBack} disabled={isLoading}>
+                Back
+              </Button>
+              <Button
+                type="button"
+                onClick={handleNext}
+                disabled={
+                  formData.userType === 'provider' && (!formData.businessName || !formData.location)
+                }
+              >
+                Next Step
+              </Button>
+            </div>
+          </div>
         )
 
       case 4:
         return (
-          <Fade in timeout={500}>
-            <Stack spacing={3}>
-              <Typography variant="h6" sx={{ textAlign: 'center', mb: 2 }}>
-                Almost done! Review and agree to terms
-              </Typography>
-
-              <Paper
-                sx={{
-                  p: 3,
-                  backgroundColor: 'grey.50',
-                  border: '1px solid',
-                  borderColor: 'grey.200',
-                }}
+          <div className="space-y-4">
+            <h2 className="text-center text-lg font-semibold">Almost done! Review and agree to terms</h2>
+            <div className="rounded-md border border-border bg-muted/40 p-4 text-sm">
+              <p className="mb-2 font-semibold">Account Summary</p>
+              <p>
+                <strong>Name:</strong> {formData.firstName} {formData.lastName}
+              </p>
+              <p>
+                <strong>Email:</strong> {formData.email}
+              </p>
+              <p>
+                <strong>Phone:</strong> {formData.phone}
+              </p>
+              <p>
+                <strong>Account Type:</strong>{' '}
+                {formData.userType.charAt(0).toUpperCase() + formData.userType.slice(1)}
+              </p>
+              {formData.userType === 'provider' && (
+                <>
+                  <p>
+                    <strong>Business:</strong> {formData.businessName}
+                  </p>
+                  <p>
+                    <strong>Location:</strong> {formData.location}
+                  </p>
+                </>
+              )}
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="terms"
+                  checked={formData.agreeToTerms}
+                  onCheckedChange={(c) =>
+                    setFormData((prev) => ({ ...prev, agreeToTerms: c === true }))
+                  }
+                  disabled={isLoading}
+                />
+                <Label htmlFor="terms" className="text-sm font-normal leading-snug">
+                  I agree to the{' '}
+                  <a href="#" className="text-primary underline">
+                    Terms of Service
+                  </a>{' '}
+                  and{' '}
+                  <a href="#" className="text-primary underline">
+                    Privacy Policy
+                  </a>
+                </Label>
+              </div>
+              {errors.agreeToTerms && <p className="text-xs text-destructive">{errors.agreeToTerms}</p>}
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="marketing"
+                  checked={formData.agreeToMarketing}
+                  onCheckedChange={(c) =>
+                    setFormData((prev) => ({ ...prev, agreeToMarketing: c === true }))
+                  }
+                  disabled={isLoading}
+                />
+                <Label htmlFor="marketing" className="text-sm font-normal text-muted-foreground">
+                  I&apos;d like to receive updates and promotional offers (optional)
+                </Label>
+              </div>
+            </div>
+            <div className="flex justify-center gap-2">
+              <Button type="button" variant="outline" onClick={handleBack} disabled={isLoading}>
+                Back
+              </Button>
+              <Button
+                type="submit"
+                disabled={isLoading || isSubmitting || !formData.agreeToTerms}
+                className="min-w-[140px]"
               >
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>
-                  Account Summary
-                </Typography>
-                <Stack spacing={1}>
-                  <Typography variant="body2">
-                    <strong>Name:</strong> {formData.firstName} {formData.lastName}
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Email:</strong> {formData.email}
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Phone:</strong> {formData.phone}
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Account Type:</strong> {formData.userType.charAt(0).toUpperCase() + formData.userType.slice(1)}
-                  </Typography>
-                  {formData.userType === 'provider' && (
-                    <>
-                      <Typography variant="body2">
-                        <strong>Business:</strong> {formData.businessName}
-                      </Typography>
-                      <Typography variant="body2">
-                        <strong>Location:</strong> {formData.location}
-                      </Typography>
-                    </>
-                  )}
-                </Stack>
-              </Paper>
-
-              <Stack spacing={2}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.agreeToTerms}
-                      onChange={handleInputChange('agreeToTerms')}
-                      disabled={isLoading}
-                    />
-                  }
-                  label={
-                    <Typography variant="body2">
-                      I agree to the{' '}
-                      <Link href="#" target="_blank" rel="noopener">
-                        Terms of Service
-                      </Link>{' '}
-                      and{' '}
-                      <Link href="#" target="_blank" rel="noopener">
-                        Privacy Policy
-                      </Link>
-                    </Typography>
-                  }
-                />
-                {errors.agreeToTerms && (
-                  <Typography variant="caption" color="error">
-                    {errors.agreeToTerms}
-                  </Typography>
+                {isLoading || isSubmitting ? (
+                  <span className="flex items-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                    Creating Account...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    Create Account
+                  </span>
                 )}
-
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formData.agreeToMarketing}
-                      onChange={handleInputChange('agreeToMarketing')}
-                      disabled={isLoading}
-                    />
-                  }
-                  label={
-                    <Typography variant="body2" color="text.secondary">
-                      I'd like to receive updates and promotional offers (optional)
-                    </Typography>
-                  }
-                />
-              </Stack>
-
-              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
-                <Button variant="outlined" onClick={handleBack} disabled={isLoading}>
-                  Back
-                </Button>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  disabled={isLoading || isSubmitting || !formData.agreeToTerms}
-                  startIcon={isLoading || isSubmitting ? <CircularProgress size={20} /> : <CheckCircleIcon />}
-                  sx={{ minWidth: 140 }}
-                >
-                  {isLoading || isSubmitting ? 'Creating Account...' : 'Create Account'}
-                </Button>
-              </Box>
-            </Stack>
-          </Fade>
+              </Button>
+            </div>
+          </div>
         )
 
       default:
@@ -635,207 +543,119 @@ export function SignupForm({ onSignup, isLoading = false, error }: SignupFormPro
   }
 
   return (
-    <Container maxWidth="sm" sx={{ px: { xs: 1, sm: 2 } }}>
-      <Box
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          py: { xs: 2, sm: 4 },
-        }}
-      >
-        <Card sx={{ 
-          width: '100%', 
-          maxWidth: 600, 
-          boxShadow: 3,
-          borderRadius: { xs: 2, sm: 3 }
-        }}>
-          <CardContent sx={{ p: { xs: 2, sm: 4 } }}>
-            {/* Header */}
-            <Box sx={{ textAlign: 'center', mb: { xs: 3, sm: 4 } }}>
-              <Zoom in timeout={600}>
-                <Box
-                  sx={{
-                    width: { xs: 48, sm: 64 },
-                    height: { xs: 48, sm: 64 },
-                    borderRadius: 2,
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    mx: 'auto',
-                    mb: 2,
-                  }}
-                >
-                  <BusinessIcon sx={{ color: 'white', fontSize: { xs: 24, sm: 32 } }} />
-                </Box>
-              </Zoom>
-              
-              <Typography variant="h4" sx={{ 
-                fontWeight: 700, 
-                mb: 1,
-                fontSize: { xs: '1.5rem', sm: '2rem' }
-              }}>
-                Join Fixer
-              </Typography>
-              <Typography variant="body1" color="text.secondary" sx={{
-                fontSize: { xs: '0.875rem', sm: '1rem' }
-              }}>
+    <div className="mx-auto min-h-screen w-full max-w-xl px-2 py-4 sm:px-4 sm:py-8">
+      <div className="flex min-h-screen items-center justify-center">
+        <Card className="w-full max-w-[600px] shadow-md">
+          <CardContent className="p-4 sm:p-8">
+            <div className="mb-6 text-center sm:mb-8">
+              <div
+                className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-lg sm:h-16 sm:w-16"
+                style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+              >
+                <Building2 className="h-6 w-6 text-white sm:h-8 sm:w-8" />
+              </div>
+              <h1 className="text-xl font-bold sm:text-3xl">Join Fixer</h1>
+              <p className="mt-1 text-sm text-muted-foreground sm:text-base">
                 Create your account and start your journey
-              </Typography>
-            </Box>
+              </p>
+            </div>
 
-            {/* Progress Stepper */}
-            <Box sx={{ mb: 4 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+            <div className="mb-6">
+              <div className="mb-3 flex justify-between gap-1">
                 {steps.map((step, index) => (
-                  <Box
-                    key={index}
-                    sx={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      flex: 1,
-                      position: 'relative',
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: '50%',
-                        backgroundColor: currentStep > index + 1 ? 'primary.main' : 
-                                        currentStep === index + 1 ? 'primary.main' : 'grey.300',
-                        color: currentStep > index + 1 ? 'white' : 
-                               currentStep === index + 1 ? 'white' : 'grey.600',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.875rem',
-                        fontWeight: 600,
-                        mb: 1,
-                        transition: 'all 0.3s ease',
-                      }}
+                  <div key={step.title} className="relative flex min-w-0 flex-1 flex-col items-center">
+                    <div
+                      className={cn(
+                        'mb-1 flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold',
+                        currentStep > index + 1 && 'bg-primary text-primary-foreground',
+                        currentStep === index + 1 && 'bg-primary text-primary-foreground',
+                        currentStep < index + 1 && 'bg-muted text-muted-foreground',
+                      )}
                     >
-                      {currentStep > index + 1 ? <CheckCircleIcon fontSize="small" /> : index + 1}
-                    </Box>
-                    <Typography variant="caption" sx={{ 
-                      textAlign: 'center',
-                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                      fontWeight: currentStep === index + 1 ? 600 : 400,
-                    }}>
+                      {currentStep > index + 1 ? <CheckCircle className="h-4 w-4" /> : index + 1}
+                    </div>
+                    <span
+                      className={cn(
+                        'text-center text-[0.65rem] sm:text-xs',
+                        currentStep === index + 1 ? 'font-semibold' : '',
+                      )}
+                    >
                       {step.title}
-                    </Typography>
+                    </span>
                     {index < steps.length - 1 && (
-                      <Box
-                        sx={{
-                          position: 'absolute',
-                          top: 16,
-                          left: '50%',
-                          width: '100%',
-                          height: 2,
-                          backgroundColor: currentStep > index + 1 ? 'primary.main' : 'grey.300',
-                          zIndex: -1,
-                        }}
+                      <div
+                        className={cn(
+                          'absolute left-[calc(50%+1rem)] top-4 z-0 hidden h-0.5 w-[calc(100%-2rem)] sm:block',
+                          currentStep > index + 1 ? 'bg-primary' : 'bg-muted',
+                        )}
                       />
                     )}
-                  </Box>
+                  </div>
                 ))}
-              </Box>
-            </Box>
+              </div>
+            </div>
 
-            {/* Error Alert */}
             {error && (
-              <Alert severity="error" sx={{ mb: 3 }}>
+              <div
+                className="mb-4 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                role="alert"
+              >
                 {error}
-              </Alert>
+              </div>
             )}
 
-            {/* Form */}
-            <Box component="form" onSubmit={handleSubmit}>
-              {renderStepContent()}
-            </Box>
+            <form onSubmit={handleSubmit}>{renderStepContent()}</form>
 
-            {/* Social Signup */}
             {currentStep === 1 && (
-              <Box sx={{ mt: 4 }}>
-                <Divider sx={{ my: 3 }}>
-                  <Typography variant="body2" color="text.secondary">
+              <div className="mt-6">
+                <div className="relative my-4">
+                  <Separator />
+                  <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
                     OR
-                  </Typography>
-                </Divider>
-
-                <Stack spacing={2}>
+                  </span>
+                </div>
+                <div className="space-y-2">
                   <Button
-                    variant="outlined"
-                    fullWidth
-                    startIcon={<GoogleIcon />}
+                    type="button"
+                    variant="outline"
+                    className="w-full"
                     onClick={() => handleSocialSignup('Google')}
                     disabled={isLoading}
-                    sx={{ py: 1.5 }}
                   >
                     Continue with Google
                   </Button>
-                  
                   <Button
-                    variant="outlined"
-                    fullWidth
-                    startIcon={<AppleIcon />}
+                    type="button"
+                    variant="outline"
+                    className="w-full"
                     onClick={() => handleSocialSignup('Apple')}
                     disabled={isLoading}
-                    sx={{ py: 1.5 }}
                   >
                     Continue with Apple
                   </Button>
-                </Stack>
-              </Box>
+                </div>
+              </div>
             )}
 
-            {/* Login Link */}
-            <Box sx={{ textAlign: 'center', mt: 4 }}>
-              <Typography variant="body2" color="text.secondary">
-                Already have an account?{' '}
-                <Link href="/auth" sx={{ fontWeight: 600, textDecoration: 'none' }}>
-                  Sign in
-                </Link>
-              </Typography>
-            </Box>
+            <p className="mt-6 text-center text-sm text-muted-foreground">
+              Already have an account?{' '}
+              <a href="/auth" className="font-semibold text-primary hover:underline">
+                Sign in
+              </a>
+            </p>
 
-            {/* Security Notice */}
-            <Paper
-              sx={{
-                p: 2,
-                mt: 3,
-                backgroundColor: 'grey.50',
-                border: '1px solid',
-                borderColor: 'grey.200',
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <SecurityIcon color="primary" fontSize="small" />
-                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                  Secure Registration
-                </Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary">
+            <div className="mt-4 rounded-md border border-border bg-muted/40 p-3 text-sm">
+              <div className="mb-1 flex items-center gap-2">
+                <Shield className="h-4 w-4 text-primary" />
+                <span className="font-semibold">Secure Registration</span>
+              </div>
+              <p className="text-muted-foreground">
                 Your information is protected with enterprise-grade security and encryption.
-              </Typography>
-            </Paper>
+              </p>
+            </div>
           </CardContent>
         </Card>
-      </Box>
-
-      {/* Snackbar for notifications */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      >
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Container>
+      </div>
+    </div>
   )
 }

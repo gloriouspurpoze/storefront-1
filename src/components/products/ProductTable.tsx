@@ -1,57 +1,45 @@
 import React, { useState } from 'react'
 import {
-  Box,
+  Edit,
+  Trash2,
+  Eye,
+  Search,
+  Filter,
+  Plus,
+} from 'lucide-react'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
+import { Product } from '../../types'
+import { formatCurrency, cn } from '../../lib/utils'
+import { useNavigate } from 'react-router-dom'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
+import { Badge } from '../ui/badge'
+import { Checkbox } from '../ui/checkbox'
+import { Card, CardContent } from '../ui/card'
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
+import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  Paper,
-  IconButton,
-  Chip,
-  Avatar,
-  Typography,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Switch,
-  FormControlLabel,
-  Rating,
-  Tooltip,
-  Alert,
-  Snackbar,
-  CircularProgress,
-  TablePagination,
-  Checkbox,
-  useTheme,
-  useMediaQuery,
-  Card,
-  CardContent,
-  CardMedia,
-  Stack,
-  Divider,
-} from '@mui/material'
+} from '../ui/table'
 import {
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Visibility as ViewIcon,
-  Save as SaveIcon,
-  Cancel as CancelIcon,
-  Add as AddIcon,
-  Search as SearchIcon,
-  FilterList as FilterIcon,
-} from '@mui/icons-material'
-import { Product } from '../../types'
-import { formatCurrency } from '../../lib/utils'
-import { useNavigate } from 'react-router-dom'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog'
+import { Pagination } from '../common/Pagination'
 
 interface ProductTableProps {
   products: Product[]
@@ -60,6 +48,12 @@ interface ProductTableProps {
   onAdd: () => void
   onView: (product: Product) => void
   categories: Array<{ id: number | string; name: string }>
+}
+
+function stockVariant(q: number): React.ComponentProps<typeof Badge>['variant'] {
+  if (q > 10) return 'success'
+  if (q > 0) return 'warning'
+  return 'destructive'
 }
 
 export function ProductTable({ products, onUpdate, onDelete, onAdd, onView, categories }: ProductTableProps) {
@@ -71,22 +65,50 @@ export function ProductTable({ products, onUpdate, onDelete, onAdd, onView, cate
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [selectedProducts, setSelectedProducts] = useState<(number | string)[]>([])
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'warning' | 'info' })
-  
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+  const [toast, setToast] = useState<{ open: boolean; message: string }>({ open: false, message: '' })
 
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.sku.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = categoryFilter === 'all' || 
-                           product.category_id?.toString() === categoryFilter
+  const isMobile = useMediaQuery('(max-width: 639px)')
+
+  const formatProductUpdated = (product: Product) => {
+    const raw = product.updated_at || product.updatedAt
+    if (!raw) return '—'
+    try {
+      return new Date(raw).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
+    } catch {
+      return '—'
+    }
+  }
+
+  const truncateText = (text: string, max: number) => {
+    if (!text) return '—'
+    const t = text.replace(/\s+/g, ' ').trim()
+    if (t.length <= max) return t
+    return `${t.slice(0, max)}…`
+  }
+
+  const q = searchTerm.toLowerCase()
+  const filteredProducts = products.filter((product) => {
+    const short = (product.short_description || '').toLowerCase()
+    const matchesSearch =
+      !q ||
+      product.name.toLowerCase().includes(q) ||
+      (product.sku && product.sku.toLowerCase().includes(q)) ||
+      short.includes(q) ||
+      (product.description && product.description.toLowerCase().includes(q))
+    const matchesCategory =
+      categoryFilter === 'all' || product.category_id?.toString() === categoryFilter
     return matchesSearch && matchesCategory
   })
 
+  const totalPages = Math.max(1, Math.ceil(Math.max(0, filteredProducts.length) / rowsPerPage))
+  const pageClamped = Math.min(page, totalPages - 1)
   const paginatedProducts = filteredProducts.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
+    pageClamped * rowsPerPage,
+    pageClamped * rowsPerPage + rowsPerPage,
   )
 
   const handleEdit = (product: Product) => {
@@ -107,373 +129,322 @@ export function ProductTable({ products, onUpdate, onDelete, onAdd, onView, cate
       onDelete(productToDelete.id)
       setDeleteDialogOpen(false)
       setProductToDelete(null)
-      setSnackbar({ open: true, message: 'Product deleted successfully', severity: 'success' })
+      setToast({ open: true, message: 'Product deleted successfully' })
+      window.setTimeout(() => setToast((t) => ({ ...t, open: false })), 4000)
     }
   }
 
-  const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.checked) {
-      setSelectedProducts(paginatedProducts.map(p => p.id))
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedProducts(paginatedProducts.map((p) => p.id))
     } else {
       setSelectedProducts([])
     }
   }
 
   const handleSelectProduct = (productId: number | string) => {
-    setSelectedProducts(prev => 
-      prev.includes(productId) 
-        ? prev.filter(id => id !== productId)
-        : [...prev, productId]
+    setSelectedProducts((prev) =>
+      prev.includes(productId) ? prev.filter((id) => id !== productId) : [...prev, productId],
     )
   }
 
   const handleBulkDelete = () => {
-    selectedProducts.forEach(id => onDelete(id))
+    selectedProducts.forEach((id) => onDelete(id))
     setSelectedProducts([])
-    setSnackbar({ open: true, message: `${selectedProducts.length} products deleted successfully`, severity: 'success' })
+    setToast({ open: true, message: `${selectedProducts.length} products deleted successfully` })
+    window.setTimeout(() => setToast((t) => ({ ...t, open: false })), 4000)
   }
 
   const getCategoryName = (categoryId: number | string) => {
-    const category = categories.find(c => c.id?.toString() === categoryId?.toString())
+    const category = categories.find((c) => c.id?.toString() === categoryId?.toString())
     return category ? category.name : 'Unknown'
   }
 
-  const ProductCard = ({ product }: { product: Product }) => (
-    <Card sx={{ mb: 2, position: 'relative' }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+  const allSelected = paginatedProducts.length > 0 && selectedProducts.length === paginatedProducts.length
+  const someSelected = selectedProducts.length > 0 && !allSelected
+
+  const ProductCard = ({ product }: { product: Product }) => {
+    const stock = product.stock_quantity || 0
+    return (
+      <Card className="relative mb-2">
+        <CardContent className="p-4">
+          <Checkbox
+            className="absolute right-2 top-2"
+            checked={selectedProducts.includes(product.id)}
+            onCheckedChange={() => handleSelectProduct(product.id)}
+            aria-label="Select product"
+          />
+          <div className="flex gap-2 pr-8">
+            <img
+              src={product.images && product.images.length > 0 ? product.images[0] : 'https://via.placeholder.com/80'}
+              alt={product.name}
+              className="h-20 w-20 shrink-0 rounded-md object-cover"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="mb-1 text-base font-semibold">{product.name}</p>
+              {product.short_description && (
+                <p className="mb-0.5 line-clamp-2 text-sm text-muted-foreground">{product.short_description}</p>
+              )}
+              <p className="mb-1 text-sm text-muted-foreground">SKU: {product.sku}</p>
+              <div className="mb-1 flex items-center gap-1 text-sm">
+                <span className="text-amber-500">★</span>
+                <span>{(product.rating || 0).toFixed(1)}</span>
+                <span className="text-muted-foreground">({product.review_count || 0})</span>
+              </div>
+              <div className="mb-2 flex flex-wrap gap-1">
+                <Badge variant="outline">{getCategoryName(product.category_id || '')}</Badge>
+                <Badge variant={stockVariant(stock)}>{stock}</Badge>
+                <Badge variant={product.is_featured || product.isFeatured ? 'default' : 'secondary'}>
+                  {product.is_featured || product.isFeatured ? 'Featured' : 'Regular'}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-lg font-bold">{formatCurrency(product.price)}</p>
+                  {product.original_price && product.original_price > product.price && (
+                    <p className="text-sm text-muted-foreground line-through">
+                      {formatCurrency(product.original_price)}
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-1">
+                  <Button type="button" variant="ghost" size="icon" title="View" onClick={() => handleView(product)}>
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button type="button" variant="ghost" size="icon" title="Edit" onClick={() => handleEdit(product)}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive"
+                    title="Delete"
+                    onClick={() => handleDeleteClick(product)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const ProductRow = ({ product }: { product: Product }) => {
+    const stock = product.stock_quantity || 0
+    return (
+      <TableRow>
+        <TableCell className="w-10">
           <Checkbox
             checked={selectedProducts.includes(product.id)}
-            onChange={() => handleSelectProduct(product.id)}
-            sx={{ position: 'absolute', top: 8, right: 8 }}
+            onCheckedChange={() => handleSelectProduct(product.id)}
           />
-          <CardMedia
-            component="img"
-            sx={{ width: 80, height: 80, borderRadius: 1, objectFit: 'cover' }}
-            image={product.images && product.images.length > 0 ? product.images[0] : 'https://via.placeholder.com/80'}
-            alt={product.name}
-          />
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, fontSize: '1rem' }}>
-              {product.name}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              SKU: {product.sku}
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <Rating value={product.rating || 0} readOnly size="small" precision={0.1} />
-              <Typography variant="body2" color="text.secondary">
-                ({product.review_count || 0})
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-              <Chip
-                label={getCategoryName(product.category_id || '')}
-                size="small"
-                variant="outlined"
-              />
-              <Chip
-                label={product.stock_quantity || 0}
-                size="small"
-                color={(product.stock_quantity || 0) > 10 ? 'success' : (product.stock_quantity || 0) > 0 ? 'warning' : 'error'}
-              />
-              <Chip
-                label={product.is_featured || product.isFeatured ? 'Featured' : 'Regular'}
-                size="small"
-                color={product.is_featured || product.isFeatured ? 'primary' : 'default'}
-              />
-            </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Box>
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                  {formatCurrency(product.price)}
-                </Typography>
-                {product.original_price && product.original_price > product.price && (
-                  <Typography variant="body2" color="text.secondary" sx={{ textDecoration: 'line-through' }}>
-                    {formatCurrency(product.original_price)}
-                  </Typography>
-                )}
-              </Box>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Tooltip title="View Details">
-                  <IconButton size="small" color="primary" onClick={() => handleView(product)}>
-                    <ViewIcon />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Edit Product">
-                  <IconButton size="small" color="primary" onClick={() => handleEdit(product)}>
-                    <EditIcon />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Delete Product">
-                  <IconButton size="small" color="error" onClick={() => handleDeleteClick(product)}>
-                    <DeleteIcon />
-                  </IconButton>
-                </Tooltip>
-              </Box>
-            </Box>
-          </Box>
-        </Box>
-      </CardContent>
-    </Card>
-  )
-
-  const ProductRow = ({ product }: { product: Product }) => (
-    <TableRow hover>
-      <TableCell padding="checkbox">
-        <Checkbox
-          checked={selectedProducts.includes(product.id)}
-          onChange={() => handleSelectProduct(product.id)}
-        />
-      </TableCell>
-      <TableCell>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Avatar
-            src={product.images && product.images.length > 0 ? product.images[0] : undefined}
-            alt={product.name}
-            sx={{ width: 48, height: 48 }}
-            variant="rounded"
-          >
-            {!product.images || product.images.length === 0 ? product.name.charAt(0) : null}
-          </Avatar>
-          <Box>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-              {product.name}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              SKU: {product.sku}
-            </Typography>
-          </Box>
-        </Box>
-      </TableCell>
-      <TableCell>
-        <Chip
-          label={getCategoryName(product.category_id || '')}
-          size="small"
-          variant="outlined"
-        />
-      </TableCell>
-      <TableCell>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Rating value={product.rating || 0} readOnly size="small" precision={0.1} />
-          <Typography variant="body2" color="text.secondary">
-            ({product.review_count || 0})
-          </Typography>
-        </Box>
-      </TableCell>
-      <TableCell>
-        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-          {formatCurrency(product.price)}
-        </Typography>
-        {product.original_price && product.original_price > product.price && (
-          <Typography variant="body2" color="text.secondary" sx={{ textDecoration: 'line-through' }}>
-            {formatCurrency(product.original_price)}
-          </Typography>
-        )}
-      </TableCell>
-      <TableCell>
-        <Chip
-          label={product.stock_quantity || 0}
-          size="small"
-          color={(product.stock_quantity || 0) > 10 ? 'success' : (product.stock_quantity || 0) > 0 ? 'warning' : 'error'}
-        />
-      </TableCell>
-      <TableCell>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Chip
-            label={product.is_featured || product.isFeatured ? 'Featured' : 'Regular'}
-            size="small"
-            color={product.is_featured || product.isFeatured ? 'primary' : 'default'}
-          />
-          <Chip
-            label={product.is_active !== undefined ? (product.is_active ? 'Active' : 'Inactive') : 'Active'}
-            size="small"
-            color={product.is_active !== false ? 'success' : 'default'}
-          />
-        </Box>
-      </TableCell>
-      <TableCell>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Tooltip title="View Details">
-            <IconButton size="small" color="primary" onClick={() => onView(product)}>
-              <ViewIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Edit Product">
-            <IconButton size="small" color="primary" onClick={() => handleEdit(product)}>
-              <EditIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Delete Product">
-            <IconButton size="small" color="error" onClick={() => handleDeleteClick(product)}>
-              <DeleteIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </TableCell>
-    </TableRow>
-  )
-
-  const DeleteDialog = () => (
-    <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-      <DialogTitle>Delete Product</DialogTitle>
-      <DialogContent>
-        <Typography>
-          Are you sure you want to delete "{productToDelete?.name}"? This action cannot be undone.
-        </Typography>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-        <Button onClick={handleDeleteConfirm} color="error" variant="contained">
-          Delete
-        </Button>
-      </DialogActions>
-    </Dialog>
-  )
+        </TableCell>
+        <TableCell>
+          <div className="flex items-center gap-2">
+            <Avatar className="h-12 w-12 rounded-md">
+              {product.images && product.images.length > 0 ? (
+                <AvatarImage src={product.images[0]} alt={product.name} className="object-cover" />
+              ) : null}
+              <AvatarFallback className="rounded-md">{product.name.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <p className="font-semibold">{product.name}</p>
+              <p className="line-clamp-2 max-w-[360px] text-sm text-muted-foreground">
+                {product.short_description ? truncateText(product.short_description, 120) : '—'}
+              </p>
+              <p className="text-sm text-muted-foreground">SKU: {product.sku}</p>
+            </div>
+          </div>
+        </TableCell>
+        <TableCell>
+          <Badge variant="outline">{getCategoryName(product.category_id || '')}</Badge>
+        </TableCell>
+        <TableCell className="text-sm text-muted-foreground">{formatProductUpdated(product)}</TableCell>
+        <TableCell>
+          <div className="flex items-center gap-1 text-sm">
+            <span className="text-amber-500">★</span>
+            {(product.rating || 0).toFixed(1)} ({product.review_count || 0})
+          </div>
+        </TableCell>
+        <TableCell>
+          <span className="font-semibold">{formatCurrency(product.price)}</span>
+          {product.original_price && product.original_price > product.price && (
+            <p className="text-xs text-muted-foreground line-through">{formatCurrency(product.original_price)}</p>
+          )}
+        </TableCell>
+        <TableCell>
+          <Badge variant={stockVariant(stock)}>{stock}</Badge>
+        </TableCell>
+        <TableCell>
+          <div className="flex flex-wrap gap-1">
+            <Badge variant={product.is_featured || product.isFeatured ? 'default' : 'secondary'}>
+              {product.is_featured || product.isFeatured ? 'Featured' : 'Regular'}
+            </Badge>
+            <Badge variant={product.is_active !== false ? 'success' : 'secondary'}>
+              {product.is_active !== undefined ? (product.is_active ? 'Active' : 'Inactive') : 'Active'}
+            </Badge>
+          </div>
+        </TableCell>
+        <TableCell>
+          <div className="flex gap-1">
+            <Button type="button" variant="ghost" size="icon" title="View" onClick={() => onView(product)}>
+              <Eye className="h-4 w-4" />
+            </Button>
+            <Button type="button" variant="ghost" size="icon" title="Edit" onClick={() => handleEdit(product)}>
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="text-destructive"
+              title="Delete"
+              onClick={() => handleDeleteClick(product)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </TableCell>
+      </TableRow>
+    )
+  }
 
   return (
-    <Box>
-      {/* Header and Filters */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 600 }}>
-          Products Management
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={onAdd}
-        >
+    <div>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-xl font-semibold">Products Management</h2>
+        <Button type="button" onClick={onAdd} className="gap-2">
+          <Plus className="h-4 w-4" />
           Add Product
         </Button>
-      </Box>
+      </div>
 
-      {/* Filters */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Box sx={{ 
-          display: 'flex', 
-          gap: 2, 
-          flexWrap: 'wrap', 
-          alignItems: 'center',
-          flexDirection: { xs: 'column', sm: 'row' }
-        }}>
-          <TextField
-            placeholder="Search products..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            sx={{ 
-              minWidth: { xs: '100%', sm: 300 }, 
-              flex: { xs: 'none', sm: 1 } 
-            }}
-            InputProps={{
-              startAdornment: <SearchIcon color="action" />,
-            }}
-          />
-          <FormControl sx={{ minWidth: { xs: '100%', sm: 200 } }}>
-            <InputLabel>Category</InputLabel>
-            <Select
-              value={categoryFilter}
-              label="Category"
-              onChange={(e) => setCategoryFilter(e.target.value)}
-            >
-              <MenuItem value="all">All Categories</MenuItem>
-              {categories.map(category => (
-                <MenuItem key={category.id} value={category.id}>
+      <Card className="mb-4 p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="relative min-w-0 flex-1 sm:min-w-[280px]">
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-9"
+              placeholder="Search by name, SKU, or short description…"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.map((category) => (
+                <SelectItem key={String(category.id)} value={String(category.id)}>
                   {category.name}
-                </MenuItem>
+                </SelectItem>
               ))}
-            </Select>
-          </FormControl>
-          <Button
-            variant="outlined"
-            startIcon={<FilterIcon />}
-            sx={{ width: { xs: '100%', sm: 'auto' } }}
-          >
+            </SelectContent>
+          </Select>
+          <Button type="button" variant="outline" className="gap-2" disabled>
+            <Filter className="h-4 w-4" />
             More Filters
           </Button>
           {selectedProducts.length > 0 && (
-            <Button
-              variant="outlined"
-              color="error"
-              onClick={handleBulkDelete}
-              sx={{ width: { xs: '100%', sm: 'auto' } }}
-            >
+            <Button type="button" variant="destructive" onClick={handleBulkDelete}>
               Delete Selected ({selectedProducts.length})
             </Button>
           )}
-        </Box>
-      </Paper>
+        </div>
+      </Card>
 
-      {/* Content - Table or Cards based on screen size */}
       {isMobile ? (
-        <Box>
+        <div>
           {paginatedProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
           {paginatedProducts.length === 0 && (
-            <Paper sx={{ p: 4, textAlign: 'center' }}>
-              <Typography variant="h6" color="text.secondary">
-                No products found
-              </Typography>
-            </Paper>
+            <Card>
+              <CardContent className="py-10 text-center text-muted-foreground">No products found</CardContent>
+            </Card>
           )}
-        </Box>
+        </div>
       ) : (
-        <TableContainer component={Paper}>
+        <div className="overflow-hidden rounded-lg border">
           <Table>
-            <TableHead>
+            <TableHeader>
               <TableRow>
-                <TableCell padding="checkbox">
+                <TableHead className="w-10">
                   <Checkbox
-                    indeterminate={selectedProducts.length > 0 && selectedProducts.length < paginatedProducts.length}
-                    checked={paginatedProducts.length > 0 && selectedProducts.length === paginatedProducts.length}
-                    onChange={handleSelectAll}
+                    checked={allSelected ? true : someSelected ? 'indeterminate' : false}
+                    onCheckedChange={(c) => handleSelectAll(c === true)}
+                    aria-label="Select all on page"
                   />
-                </TableCell>
-                <TableCell>Product</TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell>Rating</TableCell>
-                <TableCell>Price</TableCell>
-                <TableCell>Stock</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Actions</TableCell>
+                </TableHead>
+                <TableHead>Product</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Updated</TableHead>
+                <TableHead>Rating</TableHead>
+                <TableHead>Price</TableHead>
+                <TableHead>Stock</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {paginatedProducts.map((product) => (
                 <ProductRow key={product.id} product={product} />
               ))}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
       )}
 
-      {/* Pagination */}
-      <TablePagination
-        rowsPerPageOptions={[5, 10, 25, 50]}
-        component="div"
-        count={filteredProducts.length}
-        rowsPerPage={rowsPerPage}
-        page={page}
-        onPageChange={(_, newPage) => setPage(newPage)}
-        onRowsPerPageChange={(e) => {
-          setRowsPerPage(parseInt(e.target.value, 10))
-          setPage(0)
-        }}
-      />
+      {filteredProducts.length > 0 && (
+        <Pagination
+          currentPage={pageClamped + 1}
+          totalPages={totalPages}
+          totalItems={filteredProducts.length}
+          itemsPerPage={rowsPerPage}
+          onPageChange={(p) => setPage(p - 1)}
+          onItemsPerPageChange={(n) => {
+            setRowsPerPage(n)
+            setPage(0)
+          }}
+          itemsPerPageOptions={[5, 10, 25, 50]}
+        />
+      )}
 
-      {/* Dialogs */}
-      <DeleteDialog />
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Product</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete &quot;{productToDelete?.name}&quot;? This action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" variant="destructive" onClick={handleDeleteConfirm}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      >
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+      {toast.open && (
+        <div
+          className={cn(
+            'fixed bottom-4 right-4 z-50 rounded-md border bg-background px-4 py-3 text-sm shadow-lg',
+          )}
+          role="status"
+        >
+          {toast.message}
+        </div>
+      )}
+    </div>
   )
 }

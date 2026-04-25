@@ -1,38 +1,29 @@
 import React from 'react'
-import { Link as RouterLink } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import {
-  Box,
-  Card,
-  CardActionArea,
-  CardContent,
-  Typography,
-  useTheme,
-  alpha,
-  Alert,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
-import {
-  Warehouse as WarehouseIcon,
-  Inventory2 as InventoryIcon,
-  AddCircleOutline as AddProductIcon,
-  Category as CategoryIcon,
-  ShoppingCart as OrdersIcon,
-  LocalOffer as CouponIcon,
-  Campaign as PromoIcon,
-  Slideshow as SliderIcon,
-  PermMedia as MediaIcon,
-  Search as SeoIcon,
-  ShoppingBag as ShoppingBagIcon,
-} from '@mui/icons-material'
+  Warehouse,
+  Package,
+  CirclePlus,
+  LayoutGrid,
+  ShoppingCart,
+  Tag,
+  Megaphone,
+  GalleryHorizontal,
+  Images,
+  Search,
+  ShoppingBag,
+} from 'lucide-react'
+import { Card, CardContent } from '../../components/ui/card'
 import { PageHeader } from '../../components/common/PageHeader'
 import { usePermissions } from '../../hooks/usePermissions'
 import type { Permission } from '../../types/rbac.types'
+import { cn } from '../../lib/utils'
 
 type HubCard = {
   title: string
   description: string
   href: string
-  icon: React.ElementType
+  icon: React.ElementType<{ className?: string }>
   permission: Permission
 }
 
@@ -41,7 +32,6 @@ type HubCard = {
  * Mirrors common SaaS patterns (Shopify / WooCommerce–style IA).
  */
 export default function EcommerceHub() {
-  const theme = useTheme()
   const { checkPermission } = usePermissions()
 
   const cards: HubCard[] = [
@@ -49,70 +39,70 @@ export default function EcommerceHub() {
       title: 'Inventory',
       description: 'On-hand stock, low-stock alerts, and quick quantity adjustments — operations view.',
       href: '/inventory',
-      icon: WarehouseIcon,
+      icon: Warehouse,
       permission: 'view_products',
     },
     {
       title: 'Product catalog',
       description: 'SKUs, pricing, stock, images, and publish state — your single source of truth for the storefront.',
       href: '/products',
-      icon: InventoryIcon,
+      icon: Package,
       permission: 'view_products',
     },
     {
       title: 'Add product',
       description: 'Create a new product with variants, media, and SEO-friendly copy.',
       href: '/products/add',
-      icon: AddProductIcon,
+      icon: CirclePlus,
       permission: 'create_products',
     },
     {
-      title: 'Categories & taxonomy',
-      description: 'Collections and navigation for the shop; align with navigation menus where needed.',
-      href: '/categories',
-      icon: CategoryIcon,
+      title: 'Product categories',
+      description: 'Store taxonomy, collections, and how products are grouped in the shop.',
+      href: '/categories/products',
+      icon: LayoutGrid,
       permission: 'view_categories',
     },
     {
       title: 'Orders',
       description: 'Order pipeline: paid, fulfilled, refunded — align with payments and invoices.',
       href: '/orders',
-      icon: OrdersIcon,
+      icon: ShoppingCart,
       permission: 'view_orders',
     },
     {
       title: 'Coupons & codes',
       description: 'Percentage or fixed discounts; stack rules with your checkout policy.',
       href: '/coupons',
-      icon: CouponIcon,
+      icon: Tag,
       permission: 'manage_coupons',
     },
     {
       title: 'Promotions',
       description: 'Campaign-style offers and timed promos on the storefront.',
       href: '/cms/promotions',
-      icon: PromoIcon,
+      icon: Megaphone,
       permission: 'manage_system_settings',
     },
     {
       title: 'Hero & sliders',
       description: 'Homepage and category heroes featuring products or collections.',
       href: '/sliders',
-      icon: SliderIcon,
+      icon: GalleryHorizontal,
       permission: 'view_settings',
     },
     {
       title: 'Media library',
       description: 'Central assets for product shots and lifestyle imagery.',
       href: '/cms/media',
-      icon: MediaIcon,
+      icon: Images,
       permission: 'manage_system_settings',
     },
     {
       title: 'SEO for store',
       description: 'Meta templates and discoverability for product and category URLs.',
       href: '/cms/seo',
-      icon: SeoIcon,
+      icon: Search,
       permission: 'manage_system_settings',
     },
   ]
@@ -120,71 +110,53 @@ export default function EcommerceHub() {
   const visible = cards.filter((c) => checkPermission(c.permission))
 
   return (
-    <Box sx={{ p: { xs: 2, sm: 3 } }}>
+    <div className="p-4 sm:p-6">
       <PageHeader
         title="E-commerce"
         subtitle="Run your online store: catalog, merchandising, and order fulfillment. Each card opens the right tool; access follows your permissions."
-        icon={<ShoppingBagIcon color="primary" sx={{ fontSize: 40 }} />}
+        icon={<ShoppingBag className="h-10 w-10 text-primary" aria-hidden />}
       />
 
-      <Alert severity="info" sx={{ mt: 2, maxWidth: 900 }}>
-        <strong>Typical flow:</strong> set up categories → add products &amp; inventory → merchandising (sliders, promos) → monitor orders and
-        payments. Service bookings stay under <strong>Marketplace</strong> and <strong>Bookings</strong>.
-      </Alert>
+      <div className="mt-4 max-w-3xl rounded-md border border-sky-200 bg-sky-50/80 p-4 text-sm dark:border-sky-900 dark:bg-sky-950/40">
+        <p>
+          <strong>Typical flow:</strong> set up categories → add products and inventory → merchandising (sliders, promos) → monitor orders
+          and payments. Service bookings stay under <strong>Marketplace</strong> and <strong>Bookings</strong>.
+        </p>
+      </div>
 
       {visible.length === 0 ? (
-        <Typography color="text.secondary" sx={{ mt: 2 }}>
+        <p className="mt-2 text-muted-foreground">
           No e-commerce permissions on this account. Ask an admin for product, order, or store settings access.
-        </Typography>
+        </p>
       ) : (
-        <Grid container spacing={2} sx={{ mt: 2 }}>
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
           {visible.map((card) => {
             const Icon = card.icon
             return (
-              <Grid item xs={12} sm={6} md={4} key={card.href}>
+              <Link key={card.href} to={card.href} className="block h-full outline-none">
                 <Card
-                  elevation={0}
-                  sx={{
-                    height: '100%',
-                    border: `1px solid ${alpha(theme.palette.divider, 0.9)}`,
-                    borderRadius: 2,
-                    transition: 'box-shadow 0.2s, transform 0.15s',
-                    '&:hover': {
-                      boxShadow: theme.shadows[4],
-                      transform: 'translateY(-2px)',
-                    },
-                  }}
+                  className={cn(
+                    'h-full border transition-all duration-200',
+                    'hover:-translate-y-0.5 hover:shadow-md'
+                  )}
                 >
-                  <CardActionArea component={RouterLink} to={card.href} sx={{ height: '100%', alignItems: 'stretch' }}>
-                    <CardContent>
-                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-                        <Box
-                          sx={{
-                            p: 1,
-                            borderRadius: 1.5,
-                            bgcolor: alpha(theme.palette.primary.main, 0.08),
-                            color: 'primary.main',
-                          }}
-                        >
-                          <Icon />
-                        </Box>
-                        <Box>
-                          <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.05rem', mb: 0.5 }}>
-                            {card.title}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
-                            {card.description}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </CardContent>
-                  </CardActionArea>
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-3">
+                      <div className="flex shrink-0 rounded-md bg-primary/10 p-2 text-primary">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <h2 className="mb-0.5 text-base font-bold leading-tight">{card.title}</h2>
+                        <p className="text-sm leading-relaxed text-muted-foreground">{card.description}</p>
+                      </div>
+                    </div>
+                  </CardContent>
                 </Card>
-              </Grid>
+              </Link>
             )
           })}
-        </Grid>
+        </div>
       )}
-    </Box>
+    </div>
   )
 }

@@ -1,60 +1,48 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Switch,
-  FormControlLabel,
-  Box,
-  Typography,
-  Chip,
-  IconButton,
-  Paper,
-  Alert,
-  Divider,
-  InputAdornment,
-  Card,
-  CardContent,
-  CardMedia,
-  Tooltip,
-  LinearProgress,
-  Zoom,
-  Fade,
-  Stepper,
-  Step,
-  StepLabel,
-  alpha,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
-import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  CloudUpload as CloudUploadIcon,
+  Plus,
+  CloudUpload,
   Image as ImageIcon,
-  Close as CloseIcon,
-  Info as InfoIcon,
-  CheckCircle as CheckCircleIcon,
-  Edit as EditIcon,
-  AttachMoney as AttachMoneyIcon,
-  Schedule as ScheduleIcon,
-  Settings as SettingsIcon,
-  Label as LabelIcon,
-  Build as BuildIcon,
-  School as SchoolIcon,
-  VerifiedUser as VerifiedUserIcon,
-  Star as StarIcon,
-  Visibility as VisibilityIcon,
-} from '@mui/icons-material'
+  X,
+  Info,
+  CheckCircle,
+  Pencil,
+  IndianRupee,
+  Clock,
+  Settings,
+  Tag,
+  Wrench,
+  GraduationCap,
+  BadgeCheck,
+  Star,
+  Eye,
+} from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
 import { useDropzone } from 'react-dropzone'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
+import { Label } from '../ui/label'
+import { Textarea } from '../ui/textarea'
+import { Switch } from '../ui/switch'
+import { Badge } from '../ui/badge'
+import { Separator } from '../ui/separator'
+import { Card, CardContent } from '../ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select'
+import { cn } from '../../lib/utils'
 
 interface ServiceImage {
   url: string
@@ -112,20 +100,53 @@ const PRICE_TYPES = [
 
 const quillModules = {
   toolbar: [
-    [{ 'header': [1, 2, 3, false] }],
+    [{ header: [1, 2, 3, false] }],
     ['bold', 'italic', 'underline', 'strike'],
-    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-    [{ 'indent': '-1'}, { 'indent': '+1' }],
-    [{ 'color': [] }, { 'background': [] }],
+    [{ list: 'ordered' }, { list: 'bullet' }],
+    [{ indent: '-1' }, { indent: '+1' }],
+    [{ color: [] }, { background: [] }],
     ['link'],
-    ['clean']
+    ['clean'],
   ],
 }
 
 const quillFormats = [
-  'header', 'bold', 'italic', 'underline', 'strike',
-  'list', 'bullet', 'indent', 'color', 'background', 'link'
+  'header',
+  'bold',
+  'italic',
+  'underline',
+  'strike',
+  'list',
+  'bullet',
+  'indent',
+  'color',
+  'background',
+  'link',
 ]
+
+function RemovableBadge({
+  label,
+  onRemove,
+  variant = 'outline',
+}: {
+  label: string
+  onRemove: () => void
+  variant?: React.ComponentProps<typeof Badge>['variant']
+}) {
+  return (
+    <Badge variant={variant} className="gap-1 pr-0.5 font-normal">
+      {label}
+      <button
+        type="button"
+        className="rounded p-0.5 hover:bg-muted"
+        onClick={onRemove}
+        aria-label={`Remove ${label}`}
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </Badge>
+  )
+}
 
 export function ServiceFormDialog({
   open,
@@ -133,7 +154,7 @@ export function ServiceFormDialog({
   onSubmit,
   mode,
   initialData,
-  loading = false
+  loading = false,
 }: ServiceFormDialogProps) {
   const [formData, setFormData] = useState<ServiceFormData>({
     name: '',
@@ -151,12 +172,12 @@ export function ServiceFormDialog({
     requirements: {
       tools: [],
       skills: [],
-      licenses: []
+      licenses: [],
     },
     tags: [],
     images: [],
     icon: '',
-    ...initialData
+    ...initialData,
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -166,7 +187,6 @@ export function ServiceFormDialog({
   const [newLicense, setNewLicense] = useState('')
   const [completionPercentage, setCompletionPercentage] = useState(0)
 
-  // Update form data when initialData changes (for edit mode)
   useEffect(() => {
     if (open && initialData) {
       setFormData({
@@ -191,14 +211,12 @@ export function ServiceFormDialog({
         images: initialData.images || [],
         icon: initialData.icon || '',
       })
-      // Clear errors and input fields
       setErrors({})
       setNewTag('')
       setNewTool('')
       setNewSkill('')
       setNewLicense('')
     } else if (open && !initialData) {
-      // Reset form for create mode
       setFormData({
         name: '',
         slug: '',
@@ -215,13 +233,12 @@ export function ServiceFormDialog({
         requirements: {
           tools: [],
           skills: [],
-          licenses: []
+          licenses: [],
         },
         tags: [],
         images: [],
         icon: '',
       })
-      // Clear errors and input fields
       setErrors({})
       setNewTag('')
       setNewTool('')
@@ -230,7 +247,6 @@ export function ServiceFormDialog({
     }
   }, [open, initialData])
 
-  // Calculate form completion percentage
   useEffect(() => {
     const fields = [
       formData.name,
@@ -241,83 +257,70 @@ export function ServiceFormDialog({
       formData.images.length > 0 ? 'hasImages' : '',
       formData.short_description,
     ]
-    const filledFields = fields.filter(field => field && field.toString().trim() !== '').length
+    const filledFields = fields.filter((field) => field && field.toString().trim() !== '').length
     const percentage = Math.round((filledFields / fields.length) * 100)
     setCompletionPercentage(percentage)
   }, [formData])
 
-  // Auto-generate slug from name
   useEffect(() => {
     if (formData.name && !initialData?.slug && mode === 'create') {
       const slug = formData.name
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
-      setFormData(prev => ({ ...prev, slug }))
+      setFormData((prev) => ({ ...prev, slug }))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.name, mode])
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    setFormData(prev => {
+    setFormData((prev) => {
       const currentImages = prev.images
       const remainingSlots = 4 - currentImages.length
-      
-      if (remainingSlots <= 0) {
-        return prev // Already have 4 images
-      }
-      
+      if (remainingSlots <= 0) return prev
       const newImages = acceptedFiles
         .slice(0, remainingSlots)
-        .filter(file => file.type.startsWith('image/'))
-        .map(file => ({
+        .filter((file) => file.type.startsWith('image/'))
+        .map((file) => ({
           url: URL.createObjectURL(file),
-          file: file
+          file,
         }))
-      
-      return {
-        ...prev,
-        images: [...currentImages, ...newImages]
-      }
+      return { ...prev, images: [...currentImages, ...newImages] }
     })
   }, [])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
+      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp'],
     },
     multiple: true,
-    maxFiles: 4
+    maxFiles: 4,
   })
 
-  const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+  const handleInputChange = (field: string, value: unknown) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }))
+      setErrors((prev) => ({ ...prev, [field]: '' }))
     }
   }
 
   const handleRequirementsChange = (type: 'tools' | 'skills' | 'licenses', value: string[]) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      requirements: { ...prev.requirements, [type]: value }
+      requirements: { ...prev.requirements, [type]: value },
     }))
   }
 
   const addItem = (type: 'tags' | 'tools' | 'skills' | 'licenses', value: string) => {
     if (!value.trim()) return
-    
     if (type === 'tags') {
-      setFormData(prev => ({
-        ...prev,
-        tags: [...prev.tags, value.trim()]
-      }))
+      setFormData((prev) => ({ ...prev, tags: [...prev.tags, value.trim()] }))
       setNewTag('')
     } else {
       handleRequirementsChange(type as 'tools' | 'skills' | 'licenses', [
         ...formData.requirements[type as 'tools' | 'skills' | 'licenses'],
-        value.trim()
+        value.trim(),
       ])
       if (type === 'tools') setNewTool('')
       if (type === 'skills') setNewSkill('')
@@ -327,61 +330,38 @@ export function ServiceFormDialog({
 
   const removeItem = (type: 'tags' | 'tools' | 'skills' | 'licenses', index: number) => {
     if (type === 'tags') {
-      setFormData(prev => ({
-        ...prev,
-        tags: prev.tags.filter((_, i) => i !== index)
-      }))
+      setFormData((prev) => ({ ...prev, tags: prev.tags.filter((_, i) => i !== index) }))
     } else {
       const currentItems = formData.requirements[type as 'tools' | 'skills' | 'licenses']
-      handleRequirementsChange(type as 'tools' | 'skills' | 'licenses', 
-        currentItems.filter((_, i) => i !== index)
+      handleRequirementsChange(
+        type as 'tools' | 'skills' | 'licenses',
+        currentItems.filter((_, i) => i !== index),
       )
     }
   }
 
   const removeImage = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index)
-    }))
+    setFormData((prev) => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }))
   }
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
-
-    if (!formData.name.trim()) {
-      newErrors.name = 'Service name is required'
-    }
-
-    if (!formData.description.trim()) {
-      newErrors.description = 'Description is required'
-    }
-
-    if (!formData.category) {
-      newErrors.category = 'Category is required'
-    }
-
+    if (!formData.name.trim()) newErrors.name = 'Service name is required'
+    if (!formData.description.trim()) newErrors.description = 'Description is required'
+    if (!formData.category) newErrors.category = 'Category is required'
     if (formData.base_price && isNaN(Number(formData.base_price))) {
       newErrors.base_price = 'Base price must be a valid number'
     }
-
     if (formData.duration_minutes && isNaN(Number(formData.duration_minutes))) {
       newErrors.duration_minutes = 'Duration must be a valid number'
     }
-
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = () => {
-    console.log('Form submit button clicked')
-    console.log('Current form data:', formData)
-    
     if (validateForm()) {
-      console.log('Form validation passed, submitting...')
       onSubmit(formData)
-    } else {
-      console.log('Form validation failed, errors:', errors)
     }
   }
 
@@ -399,11 +379,7 @@ export function ServiceFormDialog({
       is_active: true,
       is_featured: false,
       sort_order: 0,
-      requirements: {
-        tools: [],
-        skills: [],
-        licenses: []
-      },
+      requirements: { tools: [], skills: [], licenses: [] },
       tags: [],
       images: [],
       icon: '',
@@ -413,1352 +389,618 @@ export function ServiceFormDialog({
   }
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={handleClose} 
-      maxWidth="lg" 
-      fullWidth
-      TransitionComponent={Zoom}
-      PaperProps={{
-        elevation: 24,
-        sx: {
-          borderRadius: 3,
-          overflow: 'hidden',
-        }
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o && !loading) handleClose()
       }}
     >
-      <DialogTitle 
-        sx={{ 
-          pb: 2,
-          pt: 3,
-          px: 4,
-          background: (theme) => `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-          color: 'white',
-          position: 'relative',
-        }}
-      >
-        <IconButton
-          onClick={handleClose}
-          disabled={loading}
-          sx={{
-            position: 'absolute',
-            right: 16,
-            top: 16,
-            color: 'white',
-            '&:hover': {
-              bgcolor: alpha('#fff', 0.1),
-            }
-          }}
-        >
-          <CloseIcon />
-        </IconButton>
-        
-        <Box>
-          <Typography variant="h4" component="div" sx={{ fontWeight: 700, mb: 1 }}>
-            {mode === 'create' ? 'Create New Service' : 'Edit Service'}
-          </Typography>
-          <Typography variant="body1" sx={{ opacity: 0.9, mb: 2 }}>
-            {mode === 'create' 
-              ? 'Add a new service to your platform' 
-              : 'Update service information and settings'
-            }
-          </Typography>
-          
-          {/* Completion Progress */}
-          <Box sx={{ mt: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-              <Typography variant="caption" sx={{ fontWeight: 500 }}>
-                Form Completion
-              </Typography>
-              <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                {completionPercentage}%
-              </Typography>
-            </Box>
-            <LinearProgress 
-              variant="determinate" 
-              value={completionPercentage}
-              sx={{
-                height: 6,
-                borderRadius: 3,
-                bgcolor: alpha('#fff', 0.2),
-                '& .MuiLinearProgress-bar': {
-                  bgcolor: 'white',
-                  borderRadius: 3,
-                }
-              }}
-            />
-          </Box>
-        </Box>
-      </DialogTitle>
+      <DialogContent className="flex max-h-[95vh] max-w-4xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden">
+        <div className="relative bg-primary px-6 pb-4 pt-6 text-primary-foreground">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="absolute right-2 top-2 text-primary-foreground hover:bg-white/10"
+            onClick={handleClose}
+            disabled={loading}
+          >
+            <X className="h-5 w-5" />
+          </Button>
+          <DialogHeader className="space-y-1 text-left">
+            <DialogTitle className="text-2xl font-bold text-primary-foreground">
+              {mode === 'create' ? 'Create New Service' : 'Edit Service'}
+            </DialogTitle>
+            <p className="text-sm opacity-90">
+              {mode === 'create'
+                ? 'Add a new service to your platform'
+                : 'Update service information and settings'}
+            </p>
+          </DialogHeader>
+          <div className="mt-3 space-y-1">
+            <div className="flex justify-between text-xs font-medium">
+              <span>Form Completion</span>
+              <span>{completionPercentage}%</span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/20">
+              <div
+                className="h-full rounded-full bg-white transition-all"
+                style={{ width: `${completionPercentage}%` }}
+              />
+            </div>
+          </div>
+        </div>
 
-      {loading && <LinearProgress />}
+        {loading && <div className="h-1 w-full animate-pulse bg-primary/30" />}
 
-      <DialogContent sx={{ p: 0, bgcolor: 'grey.50' }}>
-        <Box sx={{ p: 4 }}>
-          <Grid container spacing={3}>
-
-            {/* Basic Information Section */}
-            <Grid item xs={12}>
-              <Card 
-                elevation={0}
-                sx={{ 
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 3,
-                  overflow: 'visible',
-                  bgcolor: 'background.paper',
-                }}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                    <Box
-                      sx={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 2,
-                        bgcolor: 'primary.50',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        mr: 2,
-                      }}
-                    >
-                      <EditIcon sx={{ color: 'primary.main', fontSize: 24 }} />
-                    </Box>
-                    <Box>
-                      <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                        Basic Information
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Essential details about your service
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  <Grid container spacing={2.5}>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Service Name"
-                        required
+        <div className="flex-1 overflow-y-auto bg-muted/30 p-4 sm:p-6">
+          <div className="mx-auto flex max-w-3xl flex-col gap-6">
+            <Card>
+              <CardContent className="space-y-4 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                    <Pencil className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Basic Information</h3>
+                    <p className="text-sm text-muted-foreground">Essential details about your service</p>
+                  </div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-1.5 sm:col-span-1">
+                    <Label htmlFor="sf-name">Service Name *</Label>
+                    <div className="relative">
+                      <Input
+                        id="sf-name"
                         value={formData.name}
                         onChange={(e) => handleInputChange('name', e.target.value)}
-                        error={!!errors.name}
-                        helperText={errors.name || 'Enter a clear, descriptive name'}
                         placeholder="e.g., Leaky Faucet Repair"
-                        InputProps={{
-                          endAdornment: formData.name && (
-                            <InputAdornment position="end">
-                              <CheckCircleIcon sx={{ color: 'success.main', fontSize: 20 }} />
-                            </InputAdornment>
-                          ),
-                        }}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            borderRadius: 2,
-                            transition: 'all 0.2s',
-                            '&:hover': {
-                              boxShadow: '0 0 0 2px rgba(25, 118, 210, 0.08)',
-                            },
-                            '&.Mui-focused': {
-                              boxShadow: '0 0 0 2px rgba(25, 118, 210, 0.12)',
-                            }
-                          }
-                        }}
+                        className={cn(errors.name && 'border-destructive', 'pr-9')}
                       />
-                    </Grid>
-
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="URL Slug"
+                      {formData.name ? (
+                        <CheckCircle className="absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-green-600" />
+                      ) : null}
+                    </div>
+                    {errors.name ? (
+                      <p className="text-xs text-destructive">{errors.name}</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">Enter a clear, descriptive name</p>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="sf-slug">URL Slug</Label>
+                    <div className="flex rounded-md border border-input shadow-sm">
+                      <span className="flex items-center border-r bg-muted px-2 text-xs text-muted-foreground">
+                        /services/
+                      </span>
+                      <Input
+                        id="sf-slug"
+                        className="border-0 font-mono shadow-none focus-visible:ring-0"
                         value={formData.slug}
                         onChange={(e) => handleInputChange('slug', e.target.value)}
-                        placeholder="auto-generated-from-name"
-                        helperText="URL-friendly version (auto-generated)"
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <Typography variant="caption" color="text.secondary">/services/</Typography>
-                            </InputAdornment>
-                          ),
-                        }}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            borderRadius: 2,
-                            fontFamily: 'monospace',
-                          }
-                        }}
+                        placeholder="auto-generated"
                       />
-                    </Grid>
-
-                    <Grid item xs={12} md={6}>
-                      <FormControl fullWidth error={!!errors.category}>
-                        <InputLabel>Category *</InputLabel>
-                        <Select
-                          value={formData.category}
-                          label="Category *"
-                          onChange={(e) => handleInputChange('category', e.target.value)}
-                          sx={{
-                            borderRadius: 2,
-                            transition: 'all 0.2s',
-                            '&:hover': {
-                              boxShadow: '0 0 0 2px rgba(25, 118, 210, 0.08)',
-                            },
-                          }}
-                          MenuProps={{
-                            PaperProps: {
-                              sx: {
-                                borderRadius: 2,
-                                mt: 1,
-                                '& .MuiMenuItem-root': {
-                                  borderRadius: 1,
-                                  mx: 1,
-                                  my: 0.5,
-                                }
-                              }
-                            }
-                          }}
-                        >
-                          {CATEGORIES.map((cat) => (
-                            <MenuItem key={cat.value} value={cat.value}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <Box 
-                                  sx={{ 
-                                    width: 6, 
-                                    height: 6, 
-                                    borderRadius: '50%', 
-                                    bgcolor: 'primary.main' 
-                                  }} 
-                                />
-                                {cat.label}
-                              </Box>
-                            </MenuItem>
-                          ))}
-                        </Select>
-                        {errors.category && (
-                          <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <InfoIcon sx={{ fontSize: 14 }} />
-                            {errors.category}
-                          </Typography>
-                        )}
-                      </FormControl>
-                    </Grid>
-
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Short Description"
-                        value={formData.short_description}
-                        onChange={(e) => handleInputChange('short_description', e.target.value)}
-                        placeholder="Brief overview for listings (max 120 chars)"
-                        multiline
-                        rows={2}
-                        inputProps={{ maxLength: 120 }}
-                        helperText={`${formData.short_description.length}/120 characters`}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            borderRadius: 2,
-                          }
-                        }}
-                      />
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* Description Section */}
-            <Grid item xs={12}>
-              <Card 
-                elevation={0}
-                sx={{ 
-                  border: '1px solid',
-                  borderColor: errors.description ? 'error.main' : 'divider',
-                  borderRadius: 3,
-                  bgcolor: 'background.paper',
-                }}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                    <Box
-                      sx={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 2,
-                        bgcolor: 'info.50',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        mr: 2,
-                      }}
+                    </div>
+                    <p className="text-xs text-muted-foreground">URL-friendly version (auto-generated)</p>
+                  </div>
+                  <div className="space-y-1.5 sm:col-span-1">
+                    <Label>Category *</Label>
+                    <Select
+                      value={formData.category}
+                      onValueChange={(v) => handleInputChange('category', v)}
                     >
-                      <EditIcon sx={{ color: 'info.main', fontSize: 24 }} />
-                    </Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                        Detailed Description *
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Provide comprehensive information about this service
-                      </Typography>
-                    </Box>
-                    {formData.description && formData.description.replace(/<[^>]*>/g, '').length > 50 && (
-                      <Chip 
-                        icon={<CheckCircleIcon />} 
-                        label="Complete" 
-                        size="small" 
-                        color="success" 
-                        variant="outlined"
-                      />
+                      <SelectTrigger className={cn(errors.category && 'border-destructive')}>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CATEGORIES.map((cat) => (
+                          <SelectItem key={cat.value} value={cat.value}>
+                            {cat.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.category && (
+                      <p className="flex items-center gap-1 text-xs text-destructive">
+                        <Info className="h-3.5 w-3.5" />
+                        {errors.category}
+                      </p>
                     )}
-                  </Box>
-
-                  <Box sx={{ 
-                    border: errors.description ? '2px solid' : '1px solid', 
-                    borderColor: errors.description ? 'error.main' : 'divider',
-                    borderRadius: 2,
-                    overflow: 'hidden',
-                    transition: 'all 0.2s',
-                    '&:hover': {
-                      boxShadow: '0 0 0 2px rgba(25, 118, 210, 0.08)',
-                    },
-                    '& .ql-toolbar': {
-                      borderBottom: '1px solid',
-                      borderColor: 'divider',
-                      backgroundColor: 'grey.50'
-                    },
-                    '& .ql-container': {
-                      minHeight: '200px',
-                      fontSize: '14px',
-                      fontFamily: 'inherit',
-                    },
-                    '& .ql-editor': {
-                      minHeight: '200px',
-                    }
-                  }}>
-                    <ReactQuill
-                      theme="snow"
-                      value={formData.description}
-                      onChange={(value) => handleInputChange('description', value)}
-                      modules={quillModules}
-                      formats={quillFormats}
-                      placeholder="Describe what's included, process, benefits, and any important details customers should know..."
+                  </div>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label htmlFor="sf-short">Short Description</Label>
+                    <Textarea
+                      id="sf-short"
+                      rows={2}
+                      value={formData.short_description}
+                      onChange={(e) => handleInputChange('short_description', e.target.value)}
+                      placeholder="Brief overview for listings (max 120 chars)"
+                      maxLength={120}
                     />
-                  </Box>
-                  {errors.description && (
-                    <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>
-                      {errors.description}
-                    </Alert>
+                    <p className="text-xs text-muted-foreground">
+                      {formData.short_description.length}/120 characters
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className={cn(errors.description && 'border-destructive')}>
+              <CardContent className="space-y-3 p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-500/10">
+                      <Pencil className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Detailed Description *</h3>
+                      <p className="text-sm text-muted-foreground">Provide comprehensive information</p>
+                    </div>
+                  </div>
+                  {formData.description && formData.description.replace(/<[^>]*>/g, '').length > 50 && (
+                    <Badge variant="success" className="shrink-0">
+                      <CheckCircle className="mr-1 h-3 w-3" />
+                      Complete
+                    </Badge>
                   )}
-                </CardContent>
-              </Card>
-            </Grid>
+                </div>
+                <div
+                  className={cn(
+                    'overflow-hidden rounded-md border bg-background',
+                    errors.description ? 'border-destructive' : 'border-input',
+                  )}
+                >
+                  <ReactQuill
+                    theme="snow"
+                    value={formData.description}
+                    onChange={(value) => handleInputChange('description', value)}
+                    modules={quillModules}
+                    formats={quillFormats}
+                    placeholder="Describe what's included, process, benefits..."
+                  />
+                </div>
+                {errors.description && (
+                  <div className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    {errors.description}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-            {/* Pricing & Duration Section */}
-            <Grid item xs={12}>
-              <Card 
-                elevation={0}
-                sx={{ 
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 3,
-                  bgcolor: 'background.paper',
-                }}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                    <Box
-                      sx={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 2,
-                        bgcolor: 'success.50',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        mr: 2,
-                      }}
+            <Card>
+              <CardContent className="space-y-4 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-green-500/10">
+                    <IndianRupee className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Pricing &amp; Duration</h3>
+                    <p className="text-sm text-muted-foreground">Set pricing structure and estimated time</p>
+                  </div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="space-y-1.5">
+                    <Label>Price Type *</Label>
+                    <Select
+                      value={formData.price_type}
+                      onValueChange={(v) => handleInputChange('price_type', v)}
                     >
-                      <AttachMoneyIcon sx={{ color: 'success.main', fontSize: 24 }} />
-                    </Box>
-                    <Box>
-                      <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                        Pricing & Duration
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Set pricing structure and estimated completion time
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  <Grid container spacing={2.5}>
-                    <Grid item xs={12} md={4}>
-                      <FormControl fullWidth>
-                        <InputLabel>Price Type *</InputLabel>
-                        <Select
-                          value={formData.price_type}
-                          label="Price Type *"
-                          onChange={(e) => handleInputChange('price_type', e.target.value)}
-                          sx={{ 
-                            borderRadius: 2,
-                            transition: 'all 0.2s',
-                            '&:hover': {
-                              boxShadow: '0 0 0 2px rgba(46, 125, 50, 0.08)',
-                            },
-                          }}
-                          MenuProps={{
-                            PaperProps: {
-                              sx: {
-                                borderRadius: 2,
-                                mt: 1,
-                                '& .MuiMenuItem-root': {
-                                  borderRadius: 1,
-                                  mx: 1,
-                                  my: 0.5,
-                                }
-                              }
-                            }
-                          }}
-                        >
-                          {PRICE_TYPES.map((type) => (
-                            <MenuItem key={type.value} value={type.value}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <AttachMoneyIcon sx={{ fontSize: 18, color: 'success.main' }} />
-                                {type.label}
-                              </Box>
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Grid>
-
-                    <Grid item xs={12} md={4}>
-                      <TextField
-                        fullWidth
-                        label="Base Price"
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PRICE_TYPES.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>
+                            {t.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="sf-price">Base Price</Label>
+                    <div className="relative">
+                      <IndianRupee className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-green-600" />
+                      <Input
+                        id="sf-price"
                         type="number"
+                        className={cn('pl-9', errors.base_price && 'border-destructive')}
                         value={formData.base_price}
                         onChange={(e) => handleInputChange('base_price', e.target.value)}
-                        error={!!errors.base_price}
-                        helperText={errors.base_price || 'Leave empty for quote-based pricing'}
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <Typography variant="body1" sx={{ fontWeight: 600, color: 'success.main' }}>
-                                $
-                              </Typography>
-                            </InputAdornment>
-                          ),
-                          endAdornment: formData.base_price && (
-                            <InputAdornment position="end">
-                              <Chip 
-                                label={`${formData.base_price} USD`} 
-                                size="small" 
-                                color="success" 
-                                variant="outlined"
-                              />
-                            </InputAdornment>
-                          ),
-                        }}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            borderRadius: 2,
-                            '&:hover': {
-                              boxShadow: '0 0 0 2px rgba(46, 125, 50, 0.08)',
-                            },
-                          }
-                        }}
                       />
-                    </Grid>
-
-                    <Grid item xs={12} md={4}>
-                      <TextField
-                        fullWidth
-                        label="Duration (minutes)"
+                    </div>
+                    {errors.base_price ? (
+                      <p className="text-xs text-destructive">{errors.base_price}</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">Leave empty for quote-based pricing</p>
+                    )}
+                    {formData.base_price ? (
+                      <Badge variant="outline" className="mt-1">
+                        ₹{formData.base_price} (INR)
+                      </Badge>
+                    ) : null}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="sf-dur">Duration (minutes)</Label>
+                    <div className="relative">
+                      <Clock className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="sf-dur"
                         type="number"
+                        className={cn('pl-9', errors.duration_minutes && 'border-destructive')}
                         value={formData.duration_minutes}
                         onChange={(e) => handleInputChange('duration_minutes', e.target.value)}
-                        error={!!errors.duration_minutes}
-                        helperText={errors.duration_minutes || `${formData.duration_minutes ? `~${Math.round(Number(formData.duration_minutes) / 60)} hours` : 'Estimated time'}`}
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <ScheduleIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
-                            </InputAdornment>
-                          ),
-                        }}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            borderRadius: 2,
+                      />
+                    </div>
+                    {errors.duration_minutes ? (
+                      <p className="text-xs text-destructive">{errors.duration_minutes}</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        {formData.duration_minutes
+                          ? `~${Math.round(Number(formData.duration_minutes) / 60)} hours`
+                          : 'Estimated time'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="space-y-4 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-amber-500/10">
+                      <ImageIcon className="h-6 w-6 text-amber-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Service Images</h3>
+                      <p className="text-sm text-muted-foreground">Upload up to 4 images</p>
+                    </div>
+                  </div>
+                  <Badge variant={formData.images.length >= 4 ? 'destructive' : formData.images.length > 0 ? 'success' : 'secondary'}>
+                    {formData.images.length}/4
+                  </Badge>
+                </div>
+                {formData.images.length > 0 && (
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    {formData.images.map((image, index) => (
+                      <div
+                        key={index}
+                        className="relative overflow-hidden rounded-lg border-2 border-green-600/30"
+                      >
+                        {index === 0 && (
+                          <Badge className="absolute left-2 top-2 z-10">Primary</Badge>
+                        )}
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute right-2 top-2 z-10 h-7 w-7"
+                          onClick={() => removeImage(index)}
+                          title="Remove image"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                        <img
+                          src={image.url}
+                          alt=""
+                          className="h-44 w-full object-cover"
+                        />
+                        <div className="border-t bg-card p-2 text-xs">
+                          <p className="truncate font-medium">{image.file?.name || `Image ${index + 1}`}</p>
+                          <p className="text-muted-foreground">
+                            {image.file ? `${(image.file.size / 1024).toFixed(1)} KB` : 'External'}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {formData.images.length < 4 && (
+                  <div
+                    {...getRootProps()}
+                    className={cn(
+                      'cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors',
+                      isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50',
+                    )}
+                  >
+                    <input {...getInputProps()} />
+                    <CloudUpload
+                      className={cn('mx-auto mb-2 h-12 w-12', isDragActive ? 'text-primary' : 'text-muted-foreground')}
+                    />
+                    <p className="font-medium">
+                      {isDragActive
+                        ? 'Drop images here!'
+                        : formData.images.length > 0
+                          ? `Add ${4 - formData.images.length} more image${4 - formData.images.length !== 1 ? 's' : ''}`
+                          : 'Drop images here or click to browse'}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Recommended: 1200×800px, max 5MB per image
+                    </p>
+                    <div className="mt-2 flex flex-wrap justify-center gap-1">
+                      {['JPEG', 'PNG', 'WebP', 'GIF'].map((f) => (
+                        <Badge key={f} variant="outline">
+                          {f}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {formData.images.length >= 4 && (
+                  <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-100">
+                    Maximum of 4 images reached. Remove an image to upload a new one.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <div className="grid gap-4 lg:grid-cols-3">
+              {(
+                [
+                  {
+                    key: 'tools' as const,
+                    title: 'Required Tools',
+                    icon: Wrench,
+                    color: 'text-red-600',
+                    bg: 'bg-red-500/10',
+                    items: formData.requirements.tools,
+                    newVal: newTool,
+                    setNew: setNewTool,
+                    placeholder: 'e.g., Wrench, Drill…',
+                  },
+                  {
+                    key: 'skills',
+                    title: 'Required Skills',
+                    icon: GraduationCap,
+                    color: 'text-amber-600',
+                    bg: 'bg-amber-500/10',
+                    items: formData.requirements.skills,
+                    newVal: newSkill,
+                    setNew: setNewSkill,
+                    placeholder: 'e.g., Plumbing…',
+                  },
+                  {
+                    key: 'licenses',
+                    title: 'Required Licenses',
+                    icon: BadgeCheck,
+                    color: 'text-green-600',
+                    bg: 'bg-green-500/10',
+                    items: formData.requirements.licenses,
+                    newVal: newLicense,
+                    setNew: setNewLicense,
+                    placeholder: 'e.g., EPA 608…',
+                  },
+                ] as const
+              ).map((col) => (
+                <Card key={col.key}>
+                  <CardContent className="space-y-3 p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <col.icon className={cn('h-5 w-5', col.color)} />
+                        <span className="text-sm font-semibold">{col.title}</span>
+                      </div>
+                      <Badge variant="secondary">{col.items.length}</Badge>
+                    </div>
+                    <div className="flex min-h-[40px] flex-wrap gap-1">
+                      {col.items.length === 0 ? (
+                        <span className="text-xs text-muted-foreground">None added yet</span>
+                      ) : (
+                        col.items.map((item, index) => (
+                          <RemovableBadge
+                            key={`${col.key}-${index}`}
+                            label={item}
+                            onRemove={() => removeItem(col.key, index)}
+                            variant="outline"
+                          />
+                        ))
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      <Input
+                        placeholder={col.placeholder}
+                        value={col.newVal}
+                        onChange={(e) => col.setNew(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            addItem(col.key, col.newVal)
                           }
                         }}
                       />
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-            </Grid>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="secondary"
+                        disabled={!col.newVal.trim()}
+                        onClick={() => addItem(col.key, col.newVal)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
 
-            {/* Image Upload Section */}
-            <Grid item xs={12}>
-              <Card 
-                elevation={0}
-                sx={{ 
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 3,
-                  bgcolor: 'background.paper',
-                }}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                    <Box
-                      sx={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 2,
-                        bgcolor: 'warning.50',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        mr: 2,
-                      }}
-                    >
-                      <ImageIcon sx={{ color: 'warning.main', fontSize: 24 }} />
-                    </Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                        Service Images
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Upload up to 4 images for your service
-                      </Typography>
-                    </Box>
-                    <Chip 
-                      label={`${formData.images.length}/4`}
-                      size="small" 
-                      color={formData.images.length >= 4 ? 'error' : formData.images.length > 0 ? 'success' : 'default'}
-                      variant="outlined"
-                    />
-                  </Box>
-
-                  {/* Image Gallery Grid */}
-                  {formData.images.length > 0 && (
-                    <Grid container spacing={2} sx={{ mb: 3 }}>
-                      {formData.images.map((image, index) => (
-                        <Grid item xs={12} sm={6} md={3} key={index}>
-                          <Card 
-                            elevation={0}
-                            sx={{ 
-                              border: '2px solid',
-                              borderColor: 'success.light',
-                              borderRadius: 2, 
-                              overflow: 'hidden',
-                              position: 'relative',
-                              height: '100%',
-                            }}
-                          >
-                            <Box sx={{ position: 'relative' }}>
-                              {index === 0 && (
-                                <Chip 
-                                  label="Primary" 
-                                  size="small" 
-                                  color="primary"
-                                  sx={{ 
-                                    position: 'absolute', 
-                                    top: 8, 
-                                    left: 8, 
-                                    zIndex: 1,
-                                    fontWeight: 600,
-                                  }} 
-                                />
-                              )}
-                              <Tooltip title="Remove image">
-                                <IconButton 
-                                  size="small" 
-                                  onClick={() => removeImage(index)} 
-                                  sx={{ 
-                                    position: 'absolute',
-                                    top: 8,
-                                    right: 8,
-                                    zIndex: 1,
-                                    bgcolor: 'rgba(0,0,0,0.6)',
-                                    color: 'white',
-                                    '&:hover': { 
-                                      bgcolor: 'error.main',
-                                    }
-                                  }}
-                                >
-                                  <CloseIcon sx={{ fontSize: 18 }} />
-                                </IconButton>
-                              </Tooltip>
-                              <CardMedia
-                                component="img"
-                                height="180"
-                                image={image.url}
-                                alt={`Service image ${index + 1}`}
-                                sx={{ 
-                                  objectFit: 'cover',
-                                  transition: 'transform 0.3s',
-                                  '&:hover': {
-                                    transform: 'scale(1.05)',
-                                  }
-                                }}
-                              />
-                            </Box>
-                            <CardContent sx={{ p: 1.5, bgcolor: 'background.paper' }}>
-                              <Typography variant="caption" sx={{ fontWeight: 600, display: 'block' }} noWrap>
-                                {image.file?.name || `Image ${index + 1}`}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {image.file ? `${(image.file.size / 1024).toFixed(1)} KB` : 'External'}
-                              </Typography>
-                            </CardContent>
-                          </Card>
-                        </Grid>
-                      ))}
-                    </Grid>
-                  )}
-
-                  {/* Upload Zone - Show if less than 4 images */}
-                  {formData.images.length < 4 && (
-                    <Paper
-                      {...getRootProps()}
-                      elevation={0}
-                      sx={{
-                        p: 4,
-                        textAlign: 'center',
-                        border: '2px dashed',
-                        borderColor: isDragActive ? 'primary.main' : 'divider',
-                        borderRadius: 2,
-                        cursor: 'pointer',
-                        bgcolor: isDragActive ? 'primary.50' : 'background.default',
-                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                        '&:hover': {
-                          borderColor: 'primary.main',
-                          bgcolor: 'primary.50',
-                          transform: 'translateY(-2px)',
-                          boxShadow: '0 8px 16px rgba(0,0,0,0.08)',
-                        }
-                      }}
-                    >
-                      <input {...getInputProps()} />
-                      <CloudUploadIcon 
-                        sx={{ 
-                          fontSize: formData.images.length > 0 ? 48 : 64, 
-                          color: isDragActive ? 'primary.main' : 'text.secondary',
-                          mb: 2,
-                          transition: 'all 0.3s',
-                        }} 
+            <Card>
+              <CardContent className="space-y-4 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-500/10">
+                      <Tag className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Tags &amp; Keywords</h3>
+                      <p className="text-sm text-muted-foreground">Searchable tags for this service</p>
+                    </div>
+                  </div>
+                  <Badge variant="outline">{formData.tags.length} tags</Badge>
+                </div>
+                <div className="flex min-h-[50px] flex-wrap gap-2">
+                  {formData.tags.length === 0 ? (
+                    <div className="w-full rounded-md border border-dashed py-6 text-center text-sm text-muted-foreground">
+                      No tags yet. Tags help with search and categorization.
+                    </div>
+                  ) : (
+                    formData.tags.map((tag, index) => (
+                      <RemovableBadge
+                        key={index}
+                        label={tag}
+                        onRemove={() => removeItem('tags', index)}
+                        variant="default"
                       />
-                      <Typography variant={formData.images.length > 0 ? 'subtitle1' : 'h6'} gutterBottom sx={{ fontWeight: 700, color: 'text.primary' }}>
-                        {isDragActive 
-                          ? 'Drop images here!' 
-                          : formData.images.length > 0 
-                            ? `Add ${4 - formData.images.length} more image${4 - formData.images.length !== 1 ? 's' : ''}` 
-                            : 'Drop images here or click to browse'}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        {formData.images.length > 0 
-                          ? `You can add up to ${4 - formData.images.length} more image${4 - formData.images.length !== 1 ? 's' : ''}`
-                          : 'Recommended: 1200x800px, max 5MB per image'}
-                      </Typography>
-                      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'wrap' }}>
-                        {['JPEG', 'PNG', 'WebP', 'GIF'].map(format => (
-                          <Chip 
-                            key={format}
-                            label={format} 
-                            size="small" 
-                            variant="outlined" 
-                            sx={{ borderRadius: 1 }}
-                          />
-                        ))}
-                      </Box>
-                    </Paper>
+                    ))
                   )}
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Input
+                    placeholder="Type a tag and press Enter…"
+                    value={newTag}
+                    onChange={(e) => setNewTag(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        addItem('tags', newTag)
+                      }
+                    }}
+                  />
+                  <Button type="button" onClick={() => addItem('tags', newTag)} disabled={!newTag.trim()}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Tag
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
-                  {/* Max images reached message */}
-                  {formData.images.length >= 4 && (
-                    <Alert severity="info" sx={{ borderRadius: 2 }}>
-                      Maximum of 4 images reached. Remove an image to upload a new one.
-                    </Alert>
-                  )}
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* Requirements Section */}
-            <Grid item xs={12}>
-              <Card 
-                elevation={0}
-                sx={{ 
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 3,
-                  bgcolor: 'background.paper',
-                }}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                    <Box
-                      sx={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 2,
-                        bgcolor: 'error.50',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        mr: 2,
-                      }}
-                    >
-                      <BuildIcon sx={{ color: 'error.main', fontSize: 24 }} />
-                    </Box>
-                    <Box>
-                      <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                        Service Requirements
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Specify tools, skills, and licenses needed for this service
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  <Grid container spacing={2.5}>
-                    {/* Tools */}
-                    <Grid item xs={12} md={4}>
-                      <Paper 
-                        elevation={0}
-                        sx={{ 
-                          p: 2.5, 
-                          border: '1px solid',
-                          borderColor: 'divider',
-                          borderRadius: 2,
-                          bgcolor: 'background.default',
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                          <BuildIcon sx={{ fontSize: 20, color: 'error.main', mr: 1 }} />
-                          <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1 }}>
-                            Required Tools
-                          </Typography>
-                          <Chip 
-                            label={formData.requirements.tools.length} 
-                            size="small" 
-                            sx={{ height: 20, fontSize: '0.7rem' }}
-                          />
-                        </Box>
-                        <Box display="flex" flexWrap="wrap" gap={1} mb={2} minHeight={40}>
-                          {formData.requirements.tools.length === 0 ? (
-                            <Typography variant="caption" color="text.secondary" sx={{ py: 1 }}>
-                              No tools added yet
-                            </Typography>
-                          ) : (
-                            formData.requirements.tools.map((tool, index) => (
-                              <Zoom in key={index}>
-                                <Chip
-                                  label={tool}
-                                  onDelete={() => removeItem('tools', index)}
-                                  size="small"
-                                  color="error"
-                                  variant="outlined"
-                                  sx={{ borderRadius: 1.5 }}
-                                />
-                              </Zoom>
-                            ))
-                          )}
-                        </Box>
-                        <Box display="flex" gap={1}>
-                          <TextField
-                            size="small"
-                            fullWidth
-                            placeholder="e.g., Wrench, Drill..."
-                            value={newTool}
-                            onChange={(e) => setNewTool(e.target.value)}
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault()
-                                addItem('tools', newTool)
-                              }
-                            }}
-                            sx={{
-                              '& .MuiOutlinedInput-root': {
-                                borderRadius: 1.5,
-                              }
-                            }}
-                          />
-                          <Tooltip title="Add tool">
-                            <span>
-                              <IconButton
-                                size="small"
-                                onClick={() => addItem('tools', newTool)}
-                                disabled={!newTool.trim()}
-                                sx={{ 
-                                  bgcolor: 'error.50',
-                                  '&:hover': { bgcolor: 'error.100' },
-                                  '&.Mui-disabled': { bgcolor: 'action.disabledBackground' }
-                                }}
-                              >
-                                <AddIcon sx={{ fontSize: 18 }} />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                        </Box>
-                      </Paper>
-                    </Grid>
-
-                    {/* Skills */}
-                    <Grid item xs={12} md={4}>
-                      <Paper 
-                        elevation={0}
-                        sx={{ 
-                          p: 2.5, 
-                          border: '1px solid',
-                          borderColor: 'divider',
-                          borderRadius: 2,
-                          bgcolor: 'background.default',
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                          <SchoolIcon sx={{ fontSize: 20, color: 'warning.main', mr: 1 }} />
-                          <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1 }}>
-                            Required Skills
-                          </Typography>
-                          <Chip 
-                            label={formData.requirements.skills.length} 
-                            size="small" 
-                            sx={{ height: 20, fontSize: '0.7rem' }}
-                          />
-                        </Box>
-                        <Box display="flex" flexWrap="wrap" gap={1} mb={2} minHeight={40}>
-                          {formData.requirements.skills.length === 0 ? (
-                            <Typography variant="caption" color="text.secondary" sx={{ py: 1 }}>
-                              No skills added yet
-                            </Typography>
-                          ) : (
-                            formData.requirements.skills.map((skill, index) => (
-                              <Zoom in key={index}>
-                                <Chip
-                                  label={skill}
-                                  onDelete={() => removeItem('skills', index)}
-                                  size="small"
-                                  color="warning"
-                                  variant="outlined"
-                                  sx={{ borderRadius: 1.5 }}
-                                />
-                              </Zoom>
-                            ))
-                          )}
-                        </Box>
-                        <Box display="flex" gap={1}>
-                          <TextField
-                            size="small"
-                            fullWidth
-                            placeholder="e.g., Plumbing, Carpentry..."
-                            value={newSkill}
-                            onChange={(e) => setNewSkill(e.target.value)}
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault()
-                                addItem('skills', newSkill)
-                              }
-                            }}
-                            sx={{
-                              '& .MuiOutlinedInput-root': {
-                                borderRadius: 1.5,
-                              }
-                            }}
-                          />
-                          <Tooltip title="Add skill">
-                            <span>
-                              <IconButton
-                                size="small"
-                                onClick={() => addItem('skills', newSkill)}
-                                disabled={!newSkill.trim()}
-                                sx={{ 
-                                  bgcolor: 'warning.50',
-                                  '&:hover': { bgcolor: 'warning.100' },
-                                  '&.Mui-disabled': { bgcolor: 'action.disabledBackground' }
-                                }}
-                              >
-                                <AddIcon sx={{ fontSize: 18 }} />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                        </Box>
-                      </Paper>
-                    </Grid>
-
-                    {/* Licenses */}
-                    <Grid item xs={12} md={4}>
-                      <Paper 
-                        elevation={0}
-                        sx={{ 
-                          p: 2.5, 
-                          border: '1px solid',
-                          borderColor: 'divider',
-                          borderRadius: 2,
-                          bgcolor: 'background.default',
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                          <VerifiedUserIcon sx={{ fontSize: 20, color: 'success.main', mr: 1 }} />
-                          <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1 }}>
-                            Required Licenses
-                          </Typography>
-                          <Chip 
-                            label={formData.requirements.licenses.length} 
-                            size="small" 
-                            sx={{ height: 20, fontSize: '0.7rem' }}
-                          />
-                        </Box>
-                        <Box display="flex" flexWrap="wrap" gap={1} mb={2} minHeight={40}>
-                          {formData.requirements.licenses.length === 0 ? (
-                            <Typography variant="caption" color="text.secondary" sx={{ py: 1 }}>
-                              No licenses added yet
-                            </Typography>
-                          ) : (
-                            formData.requirements.licenses.map((license, index) => (
-                              <Zoom in key={index}>
-                                <Chip
-                                  label={license}
-                                  onDelete={() => removeItem('licenses', index)}
-                                  size="small"
-                                  color="success"
-                                  variant="outlined"
-                                  sx={{ borderRadius: 1.5 }}
-                                />
-                              </Zoom>
-                            ))
-                          )}
-                        </Box>
-                        <Box display="flex" gap={1}>
-                          <TextField
-                            size="small"
-                            fullWidth
-                            placeholder="e.g., EPA 608, Licensed..."
-                            value={newLicense}
-                            onChange={(e) => setNewLicense(e.target.value)}
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault()
-                                addItem('licenses', newLicense)
-                              }
-                            }}
-                            sx={{
-                              '& .MuiOutlinedInput-root': {
-                                borderRadius: 1.5,
-                              }
-                            }}
-                          />
-                          <Tooltip title="Add license">
-                            <span>
-                              <IconButton
-                                size="small"
-                                onClick={() => addItem('licenses', newLicense)}
-                                disabled={!newLicense.trim()}
-                                sx={{ 
-                                  bgcolor: 'success.50',
-                                  '&:hover': { bgcolor: 'success.100' },
-                                  '&.Mui-disabled': { bgcolor: 'action.disabledBackground' }
-                                }}
-                              >
-                                <AddIcon sx={{ fontSize: 18 }} />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                        </Box>
-                      </Paper>
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* Tags Section */}
-            <Grid item xs={12}>
-              <Card 
-                elevation={0}
-                sx={{ 
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 3,
-                  bgcolor: 'background.paper',
-                }}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                    <Box
-                      sx={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 2,
-                        bgcolor: 'info.50',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        mr: 2,
-                      }}
-                    >
-                      <LabelIcon sx={{ color: 'info.main', fontSize: 24 }} />
-                    </Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                        Tags & Keywords
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Add searchable tags to help customers find this service
-                      </Typography>
-                    </Box>
-                    <Chip 
-                      label={`${formData.tags.length} tags`} 
-                      size="small" 
-                      variant="outlined"
-                    />
-                  </Box>
-
-                  <Box display="flex" flexWrap="wrap" gap={1.5} mb={3} minHeight={50}>
-                    {formData.tags.length === 0 ? (
-                      <Box 
-                        sx={{ 
-                          width: '100%', 
-                          py: 3, 
-                          textAlign: 'center',
-                          border: '1px dashed',
-                          borderColor: 'divider',
-                          borderRadius: 2,
-                          bgcolor: 'background.default',
-                        }}
-                      >
-                        <Typography variant="body2" color="text.secondary">
-                          No tags added yet. Tags help with search and categorization.
-                        </Typography>
-                      </Box>
-                    ) : (
-                      formData.tags.map((tag, index) => (
-                        <Zoom in key={index}>
-                          <Chip
-                            icon={<LabelIcon />}
-                            label={tag}
-                            onDelete={() => removeItem('tags', index)}
-                            color="primary"
-                            variant="filled"
-                            sx={{ 
-                              borderRadius: 2,
-                              fontWeight: 500,
-                              '& .MuiChip-deleteIcon': {
-                                color: 'primary.dark',
-                                '&:hover': {
-                                  color: 'error.main',
-                                }
-                              }
-                            }}
-                          />
-                        </Zoom>
-                      ))
-                    )}
-                  </Box>
-
-                  <Box display="flex" gap={1.5}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      placeholder="Type a tag and press Enter..."
-                      value={newTag}
-                      onChange={(e) => setNewTag(e.target.value)}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault()
-                          addItem('tags', newTag)
-                        }
-                      }}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <LabelIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
-                          </InputAdornment>
-                        ),
-                      }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: 2,
-                        }
-                      }}
-                    />
-                    <Button
-                      variant="contained"
-                      startIcon={<AddIcon />}
-                      onClick={() => addItem('tags', newTag)}
-                      disabled={!newTag.trim()}
-                      sx={{ 
-                        borderRadius: 2,
-                        textTransform: 'none',
-                        fontWeight: 600,
-                        px: 3,
-                        minWidth: 120,
-                      }}
-                    >
-                      Add Tag
-                    </Button>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* Settings Section */}
-            <Grid item xs={12}>
-              <Card 
-                elevation={0}
-                sx={{ 
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 3,
-                  bgcolor: 'background.paper',
-                }}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                    <Box
-                      sx={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 2,
-                        bgcolor: 'secondary.50',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        mr: 2,
-                      }}
-                    >
-                      <SettingsIcon sx={{ color: 'secondary.main', fontSize: 24 }} />
-                    </Box>
-                    <Box>
-                      <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                        Settings & Visibility
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Configure service display options and status
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  <Grid container spacing={3}>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Icon"
+            <Card>
+              <CardContent className="space-y-4 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-violet-500/10">
+                    <Settings className="h-6 w-6 text-violet-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Settings &amp; Visibility</h3>
+                    <p className="text-sm text-muted-foreground">Display options and status</p>
+                  </div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="sf-icon">Icon</Label>
+                    <div className="relative">
+                      <ImageIcon className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="sf-icon"
+                        className="pl-9"
                         value={formData.icon || ''}
                         onChange={(e) => handleInputChange('icon', e.target.value)}
-                        placeholder="e.g., BuildIcon, plumbing-icon"
-                        helperText="Material-UI icon name or icon URL"
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <ImageIcon sx={{ color: 'text.secondary' }} />
-                            </InputAdornment>
-                          ),
-                        }}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            borderRadius: 2,
-                          }
-                        }}
+                        placeholder="Icon name or URL"
                       />
-                    </Grid>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Lucide icon name or image URL</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="sf-sort">Sort Order</Label>
+                    <Input
+                      id="sf-sort"
+                      type="number"
+                      value={formData.sort_order}
+                      onChange={(e) => handleInputChange('sort_order', parseInt(e.target.value, 10) || 0)}
+                    />
+                    <p className="text-xs text-muted-foreground">Lower numbers appear first</p>
+                  </div>
+                </div>
+                <Separator />
+                <p className="text-sm font-medium">Visibility &amp; status</p>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div
+                    className={cn(
+                      'flex items-center justify-between rounded-lg border-2 p-3',
+                      formData.is_active ? 'border-green-600/40 bg-green-500/5' : 'border-border',
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Eye className={cn('h-5 w-5', formData.is_active ? 'text-green-600' : 'text-muted-foreground')} />
+                      <div>
+                        <p className="text-sm font-semibold">Active</p>
+                        <p className="text-xs text-muted-foreground">Service is live</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={formData.is_active}
+                      onCheckedChange={(c) => handleInputChange('is_active', c === true)}
+                    />
+                  </div>
+                  <div
+                    className={cn(
+                      'flex items-center justify-between rounded-lg border-2 p-3',
+                      formData.is_popular ? 'border-amber-600/40 bg-amber-500/5' : 'border-border',
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Star className={cn('h-5 w-5', formData.is_popular ? 'text-amber-600' : 'text-muted-foreground')} />
+                      <div>
+                        <p className="text-sm font-semibold">Popular</p>
+                        <p className="text-xs text-muted-foreground">Mark as popular</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={formData.is_popular}
+                      onCheckedChange={(c) => handleInputChange('is_popular', c === true)}
+                    />
+                  </div>
+                  <div
+                    className={cn(
+                      'flex items-center justify-between rounded-lg border-2 p-3',
+                      formData.is_featured ? 'border-primary/40 bg-primary/5' : 'border-border',
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Star className={cn('h-5 w-5', formData.is_featured ? 'text-primary' : 'text-muted-foreground')} />
+                      <div>
+                        <p className="text-sm font-semibold">Featured</p>
+                        <p className="text-xs text-muted-foreground">Show in featured</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={formData.is_featured}
+                      onCheckedChange={(c) => handleInputChange('is_featured', c === true)}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
 
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        type="number"
-                        label="Sort Order"
-                        value={formData.sort_order}
-                        onChange={(e) => handleInputChange('sort_order', parseInt(e.target.value) || 0)}
-                        helperText="Lower numbers appear first in lists"
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            borderRadius: 2,
-                          }
-                        }}
-                      />
-                    </Grid>
-
-                    <Grid item xs={12}>
-                      <Divider sx={{ my: 1 }} />
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, mt: 2 }}>
-                        Visibility & Status Options
-                      </Typography>
-                    </Grid>
-
-                    <Grid item xs={12} md={4}>
-                      <Paper 
-                        elevation={0}
-                        sx={{ 
-                          p: 2.5,
-                          border: '2px solid',
-                          borderColor: formData.is_active ? 'success.main' : 'divider',
-                          borderRadius: 2,
-                          bgcolor: formData.is_active ? alpha('#2e7d32', 0.04) : 'background.default',
-                          transition: 'all 0.3s',
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                            <VisibilityIcon sx={{ color: formData.is_active ? 'success.main' : 'text.secondary' }} />
-                            <Box>
-                              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                                Active
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                Service is live
-                              </Typography>
-                            </Box>
-                          </Box>
-                          <Switch
-                            checked={formData.is_active}
-                            onChange={(e) => handleInputChange('is_active', e.target.checked)}
-                            color="success"
-                          />
-                        </Box>
-                      </Paper>
-                    </Grid>
-
-                    <Grid item xs={12} md={4}>
-                      <Paper 
-                        elevation={0}
-                        sx={{ 
-                          p: 2.5,
-                          border: '2px solid',
-                          borderColor: formData.is_popular ? 'warning.main' : 'divider',
-                          borderRadius: 2,
-                          bgcolor: formData.is_popular ? alpha('#ed6c02', 0.04) : 'background.default',
-                          transition: 'all 0.3s',
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                            <StarIcon sx={{ color: formData.is_popular ? 'warning.main' : 'text.secondary' }} />
-                            <Box>
-                              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                                Popular
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                Mark as popular
-                              </Typography>
-                            </Box>
-                          </Box>
-                          <Switch
-                            checked={formData.is_popular}
-                            onChange={(e) => handleInputChange('is_popular', e.target.checked)}
-                            color="warning"
-                          />
-                        </Box>
-                      </Paper>
-                    </Grid>
-
-                    <Grid item xs={12} md={4}>
-                      <Paper 
-                        elevation={0}
-                        sx={{ 
-                          p: 2.5,
-                          border: '2px solid',
-                          borderColor: formData.is_featured ? 'primary.main' : 'divider',
-                          borderRadius: 2,
-                          bgcolor: formData.is_featured ? alpha('#1976d2', 0.04) : 'background.default',
-                          transition: 'all 0.3s',
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                            <StarIcon sx={{ color: formData.is_featured ? 'primary.main' : 'text.secondary' }} />
-                            <Box>
-                              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                                Featured
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                Show in featured
-                              </Typography>
-                            </Box>
-                          </Box>
-                          <Switch
-                            checked={formData.is_featured}
-                            onChange={(e) => handleInputChange('is_featured', e.target.checked)}
-                            color="primary"
-                          />
-                        </Box>
-                      </Paper>
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        </Box>
+        <DialogFooter className="flex flex-col gap-3 border-t bg-background p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground" title="Form completion progress">
+            <span
+              className={cn(
+                'h-2 w-2 rounded-full',
+                completionPercentage === 100 ? 'bg-green-500' : 'bg-amber-500',
+              )}
+            />
+            {completionPercentage === 100 ? 'Ready to submit' : `${completionPercentage}% complete`}
+          </div>
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleSubmit} disabled={loading}>
+              {loading ? (
+                'Saving...'
+              ) : (
+                <>
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  {mode === 'create' ? 'Create Service' : 'Update Service'}
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogFooter>
       </DialogContent>
-
-      <DialogActions 
-        sx={{ 
-          p: 3, 
-          bgcolor: 'background.paper', 
-          borderTop: '1px solid', 
-          borderColor: 'divider',
-          gap: 2,
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
-          <Tooltip title="Form completion progress">
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Box 
-                sx={{ 
-                  width: 8, 
-                  height: 8, 
-                  borderRadius: '50%', 
-                  bgcolor: completionPercentage === 100 ? 'success.main' : 'warning.main' 
-                }} 
-              />
-              <Typography variant="caption" color="text.secondary">
-                {completionPercentage === 100 ? 'Ready to submit' : `${completionPercentage}% complete`}
-              </Typography>
-            </Box>
-          </Tooltip>
-        </Box>
-        
-        <Button 
-          onClick={handleClose} 
-          disabled={loading}
-          size="large"
-          sx={{ 
-            borderRadius: 2,
-            textTransform: 'none',
-            fontWeight: 600,
-            px: 4,
-            color: 'text.primary',
-          }}
-        >
-          Cancel
-        </Button>
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
-          disabled={loading}
-          size="large"
-          startIcon={loading ? null : <CheckCircleIcon />}
-          sx={{ 
-            minWidth: 160,
-            borderRadius: 2,
-            textTransform: 'none',
-            fontWeight: 700,
-            px: 4,
-            py: 1.5,
-            boxShadow: 3,
-            '&:hover': {
-              boxShadow: 6,
-            }
-          }}
-        >
-          {loading ? 'Saving...' : mode === 'create' ? 'Create Service' : 'Update Service'}
-        </Button>
-      </DialogActions>
     </Dialog>
   )
 }

@@ -1,53 +1,53 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  Chip,
-  TextField,
-  InputAdornment,
-  Tab,
-  Tabs,
-  IconButton,
-  Menu,
-  MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Avatar,
-  Stack,
-  Divider,
-  Paper,
-  Alert,
-  CircularProgress,
-  Tooltip,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
+  Search,
+  MoreVertical,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Receipt,
+  IndianRupee,
+  CreditCard,
+  Building2,
+  Banknote,
+  RefreshCw,
+  Download,
+  Loader2,
+} from 'lucide-react'
 import {
-  Search as SearchIcon,
-  MoreVert as MoreIcon,
-  CheckCircle as CheckIcon,
-  Cancel as CancelIcon,
-  Schedule as PendingIcon,
-  Receipt as ReceiptIcon,
-  AttachMoney as MoneyIcon,
-  TrendingUp as TrendingUpIcon,
-  Person as PersonIcon,
-  CalendarToday as CalendarIcon,
-  CreditCard as CreditCardIcon,
-  AccountBalance as BankIcon,
-  Refresh as RefreshIcon,
-  FileDownload as DownloadIcon,
-} from '@mui/icons-material'
-import { PageHeader } from '../../components/common/PageHeader'
-import { StandardTable, type StandardTableColumn } from '../../components/common'
+  DismissibleAlert,
+  KpiStatCard,
+  PageHeader,
+  StandardTable,
+  type StandardTableColumn,
+} from '../../components/common'
 import { PaymentsService } from '../../services/api/payments.service'
 import { usePermissions } from '../../hooks/usePermissions'
 import type { Payment } from '../../types'
 import { downloadCsv, openPrintableHtml } from '../../lib/exportUtils'
+import { Card, CardContent } from '../../components/ui/card'
+import { Button } from '../../components/ui/button'
+import { Badge } from '../../components/ui/badge'
+import { Input } from '../../components/ui/input'
+import { Avatar, AvatarFallback } from '../../components/ui/avatar'
+import { Separator } from '../../components/ui/separator'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../../components/ui/dropdown-menu'
+import { Textarea } from '../../components/ui/textarea'
+import { Label } from '../../components/ui/label'
+import { cn } from '../../lib/utils'
 
 const PAYMENT_TABS = [
   { label: 'All Payments', value: 'all' },
@@ -67,8 +67,6 @@ export function Payments() {
   const [currentTab, setCurrentTab] = useState(0)
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
-  const [actionMenuAnchor, setActionMenuAnchor] = useState<null | HTMLElement>(null)
-  const [actionPayment, setActionPayment] = useState<Payment | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -201,50 +199,43 @@ export function Payments() {
     void fetchPaymentsData()
   }, [fetchPaymentsData])
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'warning'
-      case 'paid':
-      case 'completed':
-        return 'success'
-      case 'failed':
-        return 'error'
-      case 'refunded':
-        return 'info'
-      default:
-        return 'default'
-    }
+  const paymentStatusClass = (status: string) => {
+    const s = String(status || '')
+      .toLowerCase()
+      .replace(/_/g, ' ')
+    if (s.includes('pending')) return 'bg-amber-500/15 text-amber-800 dark:text-amber-200 border-amber-500/30'
+    if (s === 'paid' || s === 'completed' || s.includes('success'))
+      return 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 border-emerald-500/30'
+    if (s.includes('fail') || s.includes('cancel')) return 'bg-destructive/15 text-destructive border-destructive/30'
+    if (s.includes('refund')) return 'bg-sky-500/15 text-sky-800 dark:text-sky-200 border-sky-500/30'
+    return 'bg-muted text-muted-foreground border-border'
   }
 
   const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return <PendingIcon fontSize="small" />
-      case 'paid':
-      case 'completed':
-        return <CheckIcon fontSize="small" />
-      case 'failed':
-      case 'refunded':
-        return <CancelIcon fontSize="small" />
-      default:
-        return <ReceiptIcon fontSize="small" />
-    }
+    const s = String(status || '')
+      .toLowerCase()
+      .replace(/_/g, ' ')
+    const c = 'h-3.5 w-3.5 shrink-0'
+    if (s.includes('pending')) return <Clock className={c} />
+    if (s === 'paid' || s === 'completed' || s.includes('success')) return <CheckCircle className={c} />
+    if (s.includes('fail') || s.includes('refund') || s.includes('cancel')) return <XCircle className={c} />
+    return <Receipt className={c} />
   }
 
   const getPaymentMethodIcon = (method: string) => {
+    const c = 'h-3.5 w-3.5 shrink-0'
     switch (String(method || '').toLowerCase()) {
       case 'card':
-        return <CreditCardIcon fontSize="small" />
+        return <CreditCard className={c} />
       case 'bank':
       case 'netbanking':
-        return <BankIcon fontSize="small" />
+        return <Building2 className={c} />
       case 'wallet':
       case 'cash':
       case 'upi':
-        return <MoneyIcon fontSize="small" />
+        return <Banknote className={c} />
       default:
-        return <MoneyIcon fontSize="small" />
+        return <IndianRupee className={c} />
     }
   }
 
@@ -280,20 +271,9 @@ export function Payments() {
 
   const filteredPayments = payments
 
-  const handleActionMenuOpen = (event: React.MouseEvent<HTMLElement>, payment: Payment) => {
-    setActionMenuAnchor(event.currentTarget)
-    setActionPayment(payment)
-  }
-
-  const handleActionMenuClose = () => {
-    setActionMenuAnchor(null)
-    setActionPayment(null)
-  }
-
   const handleViewDetails = (payment: Payment) => {
     setSelectedPayment(payment)
     setDetailsOpen(true)
-    handleActionMenuClose()
   }
 
   const openRefundDialog = (payment: Payment) => {
@@ -304,7 +284,6 @@ export function Payments() {
     setRefundDialogOpen(true)
     setDetailsOpen(false)
     setError(null)
-    handleActionMenuClose()
   }
 
   const closeRefundDialog = () => {
@@ -356,16 +335,24 @@ export function Payments() {
   }
 
   const handleDownloadReceipt = (payment?: Payment | null) => {
-    const p = (payment ?? actionPayment ?? selectedPayment) as any
+    const p = (payment ?? selectedPayment) as unknown as Record<string, unknown>
     if (!p) return
     const id = p.id ?? p._id ?? ''
     const txn = p.transaction_id || p.transactionId || `TXN-${String(id).slice(-8)}`
-    const amt = p.amount ?? 0
-    const cur = (p.currency || 'INR').toUpperCase()
+    const amt = Number(p.amount ?? 0)
+    const cur = String(p.currency || 'INR').toUpperCase()
     const status = p.status ?? '—'
-    const method = getPaymentMethodLabel(p.payment_method || p.paymentMethod || '')
-    const when = formatDate(p.created_at || p.createdAt)
-    const cust = p.customer_name || p.customerName || p.customer?.name || '—'
+    const method = getPaymentMethodLabel(
+      String(p.payment_method || p.paymentMethod || ''),
+    )
+    const when = formatDate(
+      (p.created_at || p.createdAt) as string | Date | undefined,
+    )
+    const cust =
+      p.customer_name ||
+      p.customerName ||
+      (p.customer as { name?: string } | undefined)?.name ||
+      '—'
     const booking = p.booking_id || p.bookingId || '—'
     const body = `
       <h1>Payment receipt</h1>
@@ -382,7 +369,6 @@ export function Payments() {
       <p class="muted" style="margin-top:24px">This is a printable summary. Retain for your records.</p>
     `
     openPrintableHtml(`Receipt-${txn}`, body)
-    handleActionMenuClose()
   }
 
   const buildCsvRows = (list: Payment[]) => {
@@ -448,51 +434,48 @@ export function Payments() {
       label: 'Transaction ID',
       sortable: true,
       render: (_, p) => {
-        const txn = (p as any).transaction_id || p.transactionId || (p as any).transactionId
-        const id = p.id ?? (p as any)._id ?? ''
-        const display = txn || (id ? `TXN-${String(id).slice(-8)}` : '—')
-        return (
-          <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: 'monospace' }}>
-            {display}
-          </Typography>
-        )
+        const r = p as unknown as Record<string, unknown>
+        const txn = r.transaction_id || r.transactionId
+        const id = p.id ?? (r._id as string) ?? ''
+        const display = (txn as string) || (id ? `TXN-${String(id).slice(-8)}` : '—')
+        return <span className="font-mono text-sm font-semibold">{String(display)}</span>
       },
     },
     {
       id: 'bookingId',
       label: 'Booking / Ref',
-      render: (_, p) => (
-        <Typography variant="body2">
-          {(p as any).booking_id || p.bookingId || (p as any).description || '—'}
-        </Typography>
-      ),
+      render: (_, p) => {
+        const r = p as unknown as Record<string, unknown>
+        return <span className="text-sm">{(r.booking_id || r.bookingId || r.description || '—') as string}</span>
+      },
     },
     {
       id: 'customer',
       label: 'Customer / Payer',
       sortable: true,
-      valueGetter: (p) =>
-        (p as any).customer_name || p.customerName || (p as any).customer?.name || '',
+      valueGetter: (p) => {
+        const r = p as unknown as Record<string, unknown>
+        return (r.customer_name || r.customerName || (r.customer as { name?: string })?.name || '') as string
+      },
       render: (_, p) => {
-        const name = (p as any).customer_name || p.customerName || (p as any).customer?.name
-        const email = (p as any).customer_email || p.customerEmail || (p as any).customer?.email
-        if (!name && !email) return <Typography variant="body2" color="text.secondary">—</Typography>
+        const r = p as unknown as Record<string, unknown>
+        const name = (r.customer_name || r.customerName || (r.customer as { name?: string })?.name) as
+          | string
+          | undefined
+        const email = (r.customer_email || r.customerEmail || (r.customer as { email?: string })?.email) as
+          | string
+          | undefined
+        if (!name && !email) return <span className="text-sm text-muted-foreground">—</span>
         return (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Avatar sx={{ width: 32, height: 32 }}>
-              {(name || email || '?').charAt(0).toUpperCase()}
+          <div className="flex items-center gap-2">
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="text-xs">{(name || email || '?').charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
-            <Box>
-              <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                {name || '—'}
-              </Typography>
-              {email && (
-                <Typography variant="caption" color="text.secondary" display="block">
-                  {email}
-                </Typography>
-              )}
-            </Box>
-          </Box>
+            <div>
+              <p className="text-sm font-medium">{name || '—'}</p>
+              {email && <p className="text-xs text-muted-foreground">{email}</p>}
+            </div>
+          </div>
         )
       },
     },
@@ -500,14 +483,13 @@ export function Payments() {
       id: 'paymentMethod',
       label: 'Method',
       render: (_, p) => {
-        const method = (p as any).payment_method || p.paymentMethod || ''
+        const r = p as unknown as Record<string, unknown>
+        const method = (r.payment_method || r.paymentMethod || '') as string
         return (
-          <Chip
-            icon={getPaymentMethodIcon(method)}
-            label={getPaymentMethodLabel(method)}
-            size="small"
-            variant="outlined"
-          />
+          <Badge variant="outline" className="gap-1 font-normal">
+            {getPaymentMethodIcon(method)}
+            {getPaymentMethodLabel(method)}
+          </Badge>
         )
       },
     },
@@ -519,19 +501,16 @@ export function Payments() {
       valueGetter: (p) => p.amount ?? 0,
       render: (_, p) => {
         const amount = p.amount ?? 0
-        const currency = (p as any).currency || 'INR'
-        const fee = (p as any).platform_fee ?? p.platformFee ?? p.fee
+        const r = p as unknown as Record<string, unknown>
+        const currency = (r.currency || 'INR') as string
+        const fee = r.platform_fee ?? r.platformFee ?? r.fee
         return (
-          <Box sx={{ textAlign: 'right' }}>
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {formatCurrency(amount, currency)}
-            </Typography>
+          <div className="text-right">
+            <p className="text-sm font-semibold">{formatCurrency(amount, currency)}</p>
             {fee != null && Number(fee) > 0 && (
-              <Typography variant="caption" color="text.secondary">
-                Fee: {formatCurrency(Number(fee), currency)}
-              </Typography>
+              <p className="text-xs text-muted-foreground">Fee: {formatCurrency(Number(fee), currency)}</p>
             )}
-          </Box>
+          </div>
         )
       },
     },
@@ -540,15 +519,13 @@ export function Payments() {
       label: 'Status',
       sortable: true,
       render: (_, p) => {
-        const status = p.status ?? (p as any).status ?? 'pending'
+        const r = p as unknown as Record<string, unknown>
+        const status = (p.status ?? r.status ?? 'pending') as string
         return (
-          <Chip
-            label={String(status).replace(/_/g, ' ')}
-            color={getStatusColor(status) as any}
-            size="small"
-            icon={getStatusIcon(status)}
-            sx={{ textTransform: 'capitalize' }}
-          />
+          <Badge variant="outline" className={cn('gap-1.5 border capitalize', paymentStatusClass(status))}>
+            {getStatusIcon(status)}
+            {String(status).replace(/_/g, ' ')}
+          </Badge>
         )
       },
     },
@@ -556,276 +533,165 @@ export function Payments() {
       id: 'date',
       label: 'Date & Time',
       sortable: true,
-      valueGetter: (p) => (p as any).created_at || p.createdAt || '',
-      render: (_, p) => (
-        <Typography variant="body2" color="text.secondary">
-          {formatDate((p as any).created_at || p.createdAt)}
-        </Typography>
-      ),
+      valueGetter: (p) => {
+        const r = p as unknown as Record<string, unknown>
+        return (r.created_at || r.createdAt || '') as string
+      },
+      render: (_, p) => {
+        const r = p as unknown as Record<string, unknown>
+        return (
+          <span className="text-sm text-muted-foreground">
+            {formatDate((r.created_at || r.createdAt) as string | Date | undefined)}
+          </span>
+        )
+      },
     },
   ]
 
   return (
-    <Box>
-      {/* Page Header */}
+    <div>
       <PageHeader
         title="Payments & Transactions"
         subtitle="Manage payments, transactions, and refunds"
         action={
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-            <Tooltip
+          <div className="flex flex-wrap items-center gap-2">
+            <span
               title={
                 canExport
                   ? 'Downloads all payments matching the current tab, search, and date filters (multiple pages).'
                   : 'You need export permission to download payment reports.'
               }
             >
-              <span>
-                <Button
-                  variant="outlined"
-                  startIcon={exporting ? <CircularProgress size={18} /> : <DownloadIcon />}
-                  sx={{ borderRadius: 2 }}
-                  onClick={() => void exportPaymentsReport()}
-                  disabled={!canExport || exporting || loading}
-                >
-                  Export report
-                </Button>
-              </span>
-            </Tooltip>
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-1.5"
+                onClick={() => void exportPaymentsReport()}
+                disabled={!canExport || exporting || loading}
+              >
+                {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                Export report
+              </Button>
+            </span>
             <Button
-              variant="contained"
-              startIcon={<RefreshIcon />}
-              sx={{ borderRadius: 2 }}
+              type="button"
+              className="gap-1.5"
               onClick={() => void fetchPaymentsData()}
               disabled={loading}
             >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               Refresh
             </Button>
-          </Box>
+          </div>
         }
       />
 
       {successMessage && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccessMessage(null)}>
-          {successMessage}
-        </Alert>
+        <DismissibleAlert
+          variant="success"
+          message={successMessage}
+          onDismiss={() => setSuccessMessage(null)}
+        />
       )}
 
-      {/* Error Alert */}
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+      {error && <DismissibleAlert variant="error" message={error} onDismiss={() => setError(null)} />}
 
-      {/* Stats Cards — industry-standard KPIs */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={4}>
-          <Card sx={{ borderRadius: 2 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                <Box
-                  sx={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 2,
-                    bgcolor: 'success.light',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <MoneyIcon sx={{ color: 'success.main' }} />
-                </Box>
-              </Box>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                {formatCurrency(stats.totalRevenue)}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Total Revenue
-              </Typography>
-              {stats.totalCount > 0 && (
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
-                  {stats.totalCount} transaction{stats.totalCount !== 1 ? 's' : ''}
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <KpiStatCard
+          tone="emerald"
+          icon={<IndianRupee className="h-6 w-6" />}
+          value={formatCurrency(stats.totalRevenue)}
+          label="Total revenue"
+          hint={
+            stats.totalCount > 0 ? (
+              <>
+                {stats.totalCount} transaction{stats.totalCount !== 1 ? 's' : ''}
+              </>
+            ) : null
+          }
+        />
+        <KpiStatCard
+          tone="primary"
+          icon={<CheckCircle className="h-6 w-6" />}
+          value={stats.completedPayments}
+          label="Completed"
+        />
+        <KpiStatCard
+          tone="amber"
+          icon={<Clock className="h-6 w-6" />}
+          value={stats.pendingPayments}
+          label="Pending"
+        />
+        <KpiStatCard
+          tone="destructive"
+          icon={<XCircle className="h-6 w-6" />}
+          value={stats.failedPayments}
+          label="Failed"
+        />
+        <KpiStatCard
+          tone="sky"
+          icon={<RefreshCw className="h-6 w-6" />}
+          value={formatCurrency(stats.refundedAmount)}
+          label="Refunded"
+          hint={
+            stats.refundedCount > 0 ? (
+              <>
+                {stats.refundedCount} refund{stats.refundedCount !== 1 ? 's' : ''}
+              </>
+            ) : null
+          }
+        />
+      </div>
 
-        <Grid item xs={12} sm={6} md={4}>
-          <Card sx={{ borderRadius: 2 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                <Box
-                  sx={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 2,
-                    bgcolor: 'primary.light',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <CheckIcon sx={{ color: 'primary.main' }} />
-                </Box>
-              </Box>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                {stats.completedPayments}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Completed
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={4}>
-          <Card sx={{ borderRadius: 2 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                <Box
-                  sx={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 2,
-                    bgcolor: 'warning.light',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <PendingIcon sx={{ color: 'warning.main' }} />
-                </Box>
-              </Box>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                {stats.pendingPayments}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Pending
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={4}>
-          <Card sx={{ borderRadius: 2 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                <Box
-                  sx={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 2,
-                    bgcolor: 'error.light',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <CancelIcon sx={{ color: 'error.main' }} />
-                </Box>
-              </Box>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                {stats.failedPayments}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Failed
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={4}>
-          <Card sx={{ borderRadius: 2 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                <Box
-                  sx={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 2,
-                    bgcolor: 'info.light',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <RefreshIcon sx={{ color: 'info.main' }} />
-                </Box>
-              </Box>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                {formatCurrency(stats.refundedAmount)}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Refunded
-              </Typography>
-              {stats.refundedCount > 0 && (
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
-                  {stats.refundedCount} refund{stats.refundedCount !== 1 ? 's' : ''}
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Filters and Search */}
-      <Card sx={{ mb: 3, borderRadius: 2 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-            <TextField
-              placeholder="Search by transaction ID, booking ID..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              size="small"
-              sx={{ flex: 1, minWidth: 260 }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+      <Card className="mb-4">
+        <CardContent className="p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+            <div className="relative min-w-0 flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                className="pl-9"
+                placeholder="Search by transaction ID, booking ID…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-wrap gap-1.5">
               {(['all', 'today', '7d', '30d'] as const).map((range) => (
                 <Button
                   key={range}
-                  size="small"
-                  variant={dateRange === range ? 'contained' : 'outlined'}
+                  type="button"
+                  size="sm"
+                  variant={dateRange === range ? 'default' : 'outline'}
                   onClick={() => setDateRange(range)}
-                  sx={{ borderRadius: 1.5 }}
                 >
                   {range === 'all' ? 'All time' : range === 'today' ? 'Today' : range === '7d' ? 'Last 7 days' : 'Last 30 days'}
                 </Button>
               ))}
-            </Stack>
-          </Box>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Tabs */}
-      <Card sx={{ borderRadius: 2 }}>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs
-            value={currentTab}
-            onChange={(_, newValue) => setCurrentTab(newValue)}
-            variant="scrollable"
-            scrollButtons="auto"
-          >
-            {PAYMENT_TABS.map((tab, index) => (
-              <Tab key={index} label={tab.label} />
-            ))}
-          </Tabs>
-        </Box>
-
+      <Card>
+        <div className="flex flex-wrap gap-1 border-b border-border p-2">
+          {PAYMENT_TABS.map((tab, index) => (
+            <Button
+              key={tab.value}
+              type="button"
+              size="sm"
+              variant={currentTab === index ? 'default' : 'ghost'}
+              className="rounded-md"
+              onClick={() => setCurrentTab(index)}
+            >
+              {tab.label}
+            </Button>
+          ))}
+        </div>
         <CardContent>
           <StandardTable<Payment>
             columns={paymentColumns}
             data={filteredPayments}
-            getRowId={(row) => String(row.id ?? (row as any)._id ?? '')}
+            getRowId={(row) => String(row.id ?? (row as { _id?: string })._id ?? '')}
             loading={loading}
             emptyMessage={
               dateRange !== 'all'
@@ -842,12 +708,33 @@ export function Payments() {
               setPagination((prev) => ({ ...prev, limit, page: 1 }))
             }
             renderActions={(payment) => (
-              <IconButton
-                size="small"
-                onClick={(e) => handleActionMenuOpen(e, payment)}
-              >
-                <MoreIcon />
-              </IconButton>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8" aria-label="Payment actions">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleViewDetails(payment)} className="cursor-pointer">
+                    View details
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleDownloadReceipt(payment)} className="cursor-pointer">
+                    Download receipt
+                  </DropdownMenuItem>
+                  {canRefund &&
+                    ['completed', 'paid'].includes(String(payment?.status ?? '').toLowerCase()) && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => openRefundDialog(payment)}
+                          className="cursor-pointer text-destructive focus:text-destructive"
+                        >
+                          Process refund
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
             size="small"
             minHeight={360}
@@ -855,223 +742,189 @@ export function Payments() {
         </CardContent>
       </Card>
 
-      {/* Action Menu */}
-      <Menu
-        anchorEl={actionMenuAnchor}
-        open={Boolean(actionMenuAnchor)}
-        onClose={handleActionMenuClose}
-      >
-        <MenuItem onClick={() => actionPayment && handleViewDetails(actionPayment)}>
-          View Details
-        </MenuItem>
-        <MenuItem onClick={() => actionPayment && handleDownloadReceipt(actionPayment)}>
-          Download Receipt
-        </MenuItem>
-        {canRefund &&
-          ['completed', 'paid'].includes(String(actionPayment?.status ?? '').toLowerCase()) && (
-          <>
-            <Divider />
-            <MenuItem
-              onClick={() => actionPayment && openRefundDialog(actionPayment)}
-              sx={{ color: 'error.main' }}
-            >
-              Process refund
-            </MenuItem>
-          </>
-        )}
-      </Menu>
-
-      {/* Payment Details Dialog */}
-      <Dialog
-        open={detailsOpen}
-        onClose={() => setDetailsOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            Payment Details
-          </Typography>
-        </DialogTitle>
-        <DialogContent dividers>
-          {selectedPayment && (() => {
-            const p = selectedPayment as any
-            const txnId = p.transaction_id || p.transactionId || p.id || '—'
-            const status = p.status || 'pending'
-            const bookingRef = p.booking_id || p.bookingId || p.description || '—'
-            const amount = p.amount ?? 0
-            const currency = p.currency || 'INR'
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto sm:max-w-2xl">
+          <div className="space-y-4">
+            <DialogHeader>
+              <DialogTitle>Payment details</DialogTitle>
+            </DialogHeader>
+            {selectedPayment && (() => {
+            const p = selectedPayment as unknown as Record<string, unknown>
+            const txnId = (p.transaction_id || p.transactionId || p.id || '—') as string
+            const status = (p.status || 'pending') as string
+            const bookingRef = (p.booking_id || p.bookingId || p.description || '—') as string
+            const amount = Number(p.amount ?? 0)
+            const currency = (p.currency || 'INR') as string
             const fee = p.platform_fee ?? p.platformFee ?? p.fee
-            const netAmount = p.netAmount ?? p.providerAmount ?? amount - (fee ?? 0)
-            const method = p.payment_method || p.paymentMethod || ''
+            const netAmount =
+              (p.netAmount as number) ??
+              (p.providerAmount as number) ??
+              amount - (fee != null ? Number(fee) : 0)
+            const method = (p.payment_method || p.paymentMethod || '') as string
             const createdAt = p.created_at || p.createdAt
             const completedAt = p.completedAt || p.updated_at || p.updatedAt
             return (
-              <Grid container spacing={3}>
-                <Grid item xs={12}>
-                  <Paper sx={{ p: 2, bgcolor: 'primary.main', color: 'white' }}>
-                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5, fontFamily: 'monospace' }}>
-                      {txnId}
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                      <Chip
-                        label={String(status).replace(/_/g, ' ')}
-                        size="small"
-                        sx={{
-                          bgcolor: 'white',
-                          color: 'primary.main',
-                          fontWeight: 600,
-                          textTransform: 'capitalize',
-                        }}
-                      />
-                      <Chip
-                        label={`Ref: ${bookingRef}`}
-                        size="small"
-                        sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}
-                      />
-                    </Box>
-                  </Paper>
-                </Grid>
+              <div className="space-y-4 text-sm">
+                <div className="rounded-lg bg-primary p-4 text-primary-foreground">
+                  <p className="font-mono text-lg font-bold">{String(txnId)}</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Badge
+                      className="border-0 bg-background capitalize text-primary"
+                      variant="secondary"
+                    >
+                      {String(status).replace(/_/g, ' ')}
+                    </Badge>
+                    <Badge
+                      className="border-0 bg-primary-foreground/20 text-primary-foreground"
+                      variant="secondary"
+                    >
+                      Ref: {String(bookingRef)}
+                    </Badge>
+                  </div>
+                </div>
 
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                    Customer / Payer
-                  </Typography>
-                  <Stack spacing={1}>
-                    <Typography variant="body2">
-                      {p.customer_name || p.customerName || p.customer?.name || '—'}
-                    </Typography>
-                    {(p.customer_email || p.customerEmail || p.customer?.email) && (
-                      <Typography variant="caption" color="text.secondary">
-                        {p.customer_email || p.customerEmail || p.customer?.email}
-                      </Typography>
-                    )}
-                  </Stack>
-                </Grid>
-
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                    Payment method & date
-                  </Typography>
-                  <Stack spacing={1}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {getPaymentMethodIcon(method)}
-                      <Typography variant="body2">{getPaymentMethodLabel(method)}</Typography>
-                    </Box>
-                    <Typography variant="body2">{formatDate(createdAt)}</Typography>
-                    {completedAt && (
-                      <Typography variant="caption" color="text.secondary">
-                        Completed: {formatDate(completedAt)}
-                      </Typography>
-                    )}
-                  </Stack>
-                </Grid>
-
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                    Payment breakdown
-                  </Typography>
-                  <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
-                    <Stack spacing={1.5}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="body2">Amount</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {formatCurrency(amount, currency)}
-                        </Typography>
-                      </Box>
-                      {fee != null && Number(fee) > 0 && (
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Typography variant="body2" color="text.secondary">Platform fee</Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {formatCurrency(Number(fee), currency)}
-                          </Typography>
-                        </Box>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Customer / payer</p>
+                    <p className="mt-1">
+                      {String(
+                        p.customer_name ||
+                          p.customerName ||
+                          (p.customer as { name?: string } | undefined)?.name ||
+                          '—',
                       )}
-                      <Divider />
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="body1" sx={{ fontWeight: 600 }}>Net amount</Typography>
-                        <Typography variant="body1" sx={{ fontWeight: 700, color: 'success.main' }}>
-                          {formatCurrency(netAmount, currency)}
-                        </Typography>
-                      </Box>
-                    </Stack>
-                  </Paper>
-                </Grid>
-              </Grid>
+                    </p>
+                    {(p.customer_email || p.customerEmail || (p.customer as { email?: string } | undefined)?.email) && (
+                      <p className="text-xs text-muted-foreground">
+                        {String(
+                          p.customer_email ||
+                            p.customerEmail ||
+                            (p.customer as { email?: string })?.email ||
+                            '',
+                        )}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-medium text-muted-foreground">Method & date</p>
+                      <div className="flex items-center gap-1.5">
+                        {getPaymentMethodIcon(method)}
+                        <span>{getPaymentMethodLabel(String(method))}</span>
+                      </div>
+                      <p className="text-sm">{formatDate(createdAt as string | Date | undefined)}</p>
+                      {completedAt ? (
+                        <p className="text-xs text-muted-foreground">
+                          Completed: {formatDate(completedAt as string | Date | undefined)}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground">Payment breakdown</p>
+                  <div className="mt-2 rounded-lg border border-border bg-muted/40 p-4">
+                    <div className="flex justify-between">
+                      <span>Amount</span>
+                      <span className="font-semibold">{formatCurrency(amount, currency)}</span>
+                    </div>
+                    {fee != null && Number(fee) > 0 && (
+                      <div className="mt-2 flex justify-between text-muted-foreground">
+                        <span>Platform fee</span>
+                        <span>{formatCurrency(Number(fee), currency)}</span>
+                      </div>
+                    )}
+                    <Separator className="my-2" />
+                    <div className="flex justify-between">
+                      <span className="font-medium">Net amount</span>
+                      <span className="font-bold text-emerald-600">{formatCurrency(netAmount, currency)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )
           })()}
+            <DialogFooter className="gap-2 sm:justify-end">
+              <Button type="button" variant="outline" onClick={() => setDetailsOpen(false)}>
+                Close
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => handleDownloadReceipt(selectedPayment)}>
+                Download receipt
+              </Button>
+              {canRefund &&
+                selectedPayment &&
+                ['completed', 'paid'].includes(String(selectedPayment?.status ?? '').toLowerCase()) && (
+                  <Button type="button" variant="destructive" onClick={() => openRefundDialog(selectedPayment)}>
+                    Process refund
+                  </Button>
+                )}
+            </DialogFooter>
+          </div>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDetailsOpen(false)}>Close</Button>
-          <Button variant="outlined" onClick={() => handleDownloadReceipt(selectedPayment)}>
-            Download Receipt
-          </Button>
-          {canRefund &&
-            ['completed', 'paid'].includes(String(selectedPayment?.status ?? '').toLowerCase()) && (
-            <Button
-              variant="contained"
-              color="error"
-              onClick={() => selectedPayment && openRefundDialog(selectedPayment)}
-            >
-              Process refund
-            </Button>
-          )}
-        </DialogActions>
       </Dialog>
 
-      <Dialog open={refundDialogOpen} onClose={closeRefundDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>Process refund</DialogTitle>
-        <DialogContent dividers>
+      <Dialog open={refundDialogOpen} onOpenChange={(o) => !o && closeRefundDialog()}>
+        <DialogContent className="max-w-md sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Process refund</DialogTitle>
+          </DialogHeader>
           {refundTarget && (
-            <Stack spacing={2} sx={{ pt: 0.5 }}>
-              <Typography variant="body2" color="text.secondary">
+            <div className="space-y-4 text-sm">
+              <p className="text-muted-foreground">
                 Refunds are sent to your payment provider. Enter a reason for your audit trail.
-              </Typography>
-              <Typography variant="body2">
+              </p>
+              <p>
                 Amount:{' '}
                 <strong>
                   {formatCurrency(
-                    (refundTarget as any).amount,
-                    (refundTarget as any).currency || 'INR'
+                    (refundTarget as { amount?: number }).amount,
+                    (refundTarget as { currency?: string }).currency || 'INR',
                   )}
                 </strong>
-              </Typography>
-              <TextField
-                label="Reason (required)"
-                required
-                multiline
-                minRows={2}
-                fullWidth
-                value={refundReason}
-                onChange={(e) => setRefundReason(e.target.value)}
-                placeholder="e.g. Customer requested cancellation, service not completed"
-              />
-              <TextField
-                label="Partial amount (optional)"
-                fullWidth
-                helperText="Leave blank for a full refund. Must not exceed the original amount."
-                value={refundAmountInput}
-                onChange={(e) => setRefundAmountInput(e.target.value)}
-                placeholder="e.g. 500"
-              />
-            </Stack>
+              </p>
+              <div>
+                <Label htmlFor="refund-reason">Reason (required)</Label>
+                <Textarea
+                  id="refund-reason"
+                  className="mt-1.5"
+                  rows={3}
+                  value={refundReason}
+                  onChange={(e) => setRefundReason(e.target.value)}
+                  placeholder="e.g. Customer requested cancellation, service not completed"
+                />
+              </div>
+              <div>
+                <Label htmlFor="refund-partial">Partial amount (optional)</Label>
+                <Input
+                  id="refund-partial"
+                  className="mt-1.5"
+                  value={refundAmountInput}
+                  onChange={(e) => setRefundAmountInput(e.target.value)}
+                  placeholder="e.g. 500"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Leave blank for a full refund. Must not exceed the original amount.
+                </p>
+              </div>
+            </div>
           )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={closeRefundDialog} disabled={refundSubmitting}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => void submitRefund()}
+              disabled={refundSubmitting}
+            >
+              {refundSubmitting ? 'Processing…' : 'Confirm refund'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={closeRefundDialog} disabled={refundSubmitting}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={() => void submitRefund()}
-            disabled={refundSubmitting}
-          >
-            {refundSubmitting ? 'Processing…' : 'Confirm refund'}
-          </Button>
-        </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   )
 }
 

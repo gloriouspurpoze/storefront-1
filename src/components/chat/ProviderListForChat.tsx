@@ -2,314 +2,273 @@
  * Provider List for Chat (Admin)
  * Allows admins to browse and start conversations with service providers
  */
-import React, { useState, useEffect, useMemo } from 'react';
-import { useSelector } from 'react-redux';
-import type { RootState } from '../../store';
-import {
-  Box,
-  TextField,
-  Typography,
-  CircularProgress,
-  Alert,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  Avatar,
-  Button,
-  InputAdornment,
-  Chip,
-  Divider,
-} from '@mui/material';
-import {
-  Search as SearchIcon,
-  Message as MessageIcon,
-  Star as StarIcon,
-  CheckCircle as CheckCircleIcon,
-  Business as BusinessIcon,
-} from '@mui/icons-material';
-import { ProvidersService } from '../../services/api/providers.service';
-import { ChatService, ConversationType, normalizeConversationList } from '../../services/api/chat.service';
+import React, { useState, useEffect, useMemo } from 'react'
+import { useSelector } from 'react-redux'
+import type { RootState } from '../../store'
+import { Search, MessageCircle, Star, CheckCircle, Building2, Loader2 } from 'lucide-react'
+import { ProvidersService } from '../../services/api/providers.service'
+import { ChatService, ConversationType, normalizeConversationList } from '../../services/api/chat.service'
+import { Input } from '../ui/input'
+import { Button } from '../ui/button'
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
+import { Separator } from '../ui/separator'
 
 interface Provider {
-  id: string;
-  businessName: string;
-  email: string;
-  phone: string;
-  rating?: number;
-  totalJobs?: number;
-  verificationStatus?: string;
-  avatar?: string;
-  user_id?: string;
-  business_name?: string;
-  verification_status?: string;
+  id: string
+  businessName: string
+  email: string
+  phone: string
+  rating?: number
+  totalJobs?: number
+  verificationStatus?: string
+  avatar?: string
+  user_id?: string
+  business_name?: string
+  verification_status?: string
 }
 
 interface ProviderListForChatProps {
-  onProviderSelect: (providerId: string, conversationId: string) => void;
-  onClose: () => void;
+  onProviderSelect: (providerId: string, conversationId: string) => void
+  onClose: () => void
 }
 
 export const ProviderListForChat: React.FC<ProviderListForChatProps> = ({
   onProviderSelect,
   onClose,
 }) => {
-  const authUser = useSelector((s: RootState) => s.auth.user);
+  const authUser = useSelector((s: RootState) => s.auth.user)
   const adminUserId = useMemo(() => {
-    if (authUser?.id) return String(authUser.id);
+    if (authUser?.id) return String(authUser.id)
     try {
-      const u = JSON.parse(localStorage.getItem('user') || '{}');
-      if (u?.id || u?._id) return String(u.id || u._id);
+      const u = JSON.parse(localStorage.getItem('user') || '{}')
+      if (u?.id || u?._id) return String(u.id || u._id)
     } catch {
       /* ignore */
     }
-    const legacy = localStorage.getItem('userId');
-    return legacy || '';
-  }, [authUser?.id]);
+    const legacy = localStorage.getItem('userId')
+    return legacy || ''
+  }, [authUser?.id])
 
-  const [providers, setProviders] = useState<Provider[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [creatingConversation, setCreatingConversation] = useState<string | null>(null);
+  const [providers, setProviders] = useState<Provider[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [creatingConversation, setCreatingConversation] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchProviders();
-  }, []);
+    void fetchProviders()
+  }, [])
 
   const fetchProviders = async () => {
     try {
-      setLoading(true);
-      // Admin picker: list active providers (do not require verified+available — that often yields empty in dev)
+      setLoading(true)
       const response = await ProvidersService.getProviders({
         page: 1,
         limit: 200,
-      });
+      })
 
-      const payload = response.data as Record<string, unknown> | unknown[] | undefined;
-      let providersList: unknown[] = [];
+      const payload = response.data as Record<string, unknown> | unknown[] | undefined
+      let providersList: unknown[] = []
       if (Array.isArray(payload)) {
-        providersList = payload;
+        providersList = payload
       } else if (payload && typeof payload === 'object') {
-        const o = payload as Record<string, unknown>;
-        const raw =
-          o.serviceProviders || o.providers || o.items || o.data;
-        providersList = Array.isArray(raw) ? raw : [];
+        const o = payload as Record<string, unknown>
+        const raw = o.serviceProviders || o.providers || o.items || o.data
+        providersList = Array.isArray(raw) ? raw : []
       }
 
-      const transformedProviders: Provider[] = (providersList as any[]).map((p: any) => ({
+      const transformedProviders: Provider[] = (providersList as Record<string, unknown>[]).map((p) => ({
         id: String(p.id || p._id || ''),
-        businessName: p.business_name || p.businessName || 'Unknown Business',
-        email: p.user?.email || p.email || 'N/A',
-        phone: p.user?.phone || p.phone || 'N/A',
-        rating: p.rating || 0,
-        totalJobs: p.totalBookings || p.completed_bookings || p.totalJobs || 0,
-        verificationStatus: p.verification_status || p.verificationStatus || 'pending',
-        avatar: p.user?.avatar || p.avatar,
-        user_id: p.user_id || p.userId || p.user?.id,
-      }));
+        businessName: (p.business_name as string) || (p.businessName as string) || 'Unknown Business',
+        email: ((p.user as { email?: string })?.email as string) || (p.email as string) || 'N/A',
+        phone: ((p.user as { phone?: string })?.phone as string) || (p.phone as string) || 'N/A',
+        rating: (p.rating as number) || 0,
+        totalJobs: (p.totalBookings as number) || (p.completed_bookings as number) || (p.totalJobs as number) || 0,
+        verificationStatus: (p.verification_status as string) || (p.verificationStatus as string) || 'pending',
+        avatar: ((p.user as { avatar?: string })?.avatar as string) || (p.avatar as string),
+        user_id: (p.user_id as string) || (p.userId as string) || (p.user as { id?: string })?.id,
+      }))
 
-      setProviders(transformedProviders.filter((p) => p.id));
-    } catch (err: any) {
-      console.error('Error fetching providers:', err);
-      setError('Failed to load providers. Please try again.');
+      setProviders(transformedProviders.filter((p) => p.id))
+    } catch (err: unknown) {
+      console.error('Error fetching providers:', err)
+      setError('Failed to load providers. Please try again.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const filteredProviders = providers.filter((provider) => {
-    const searchLower = searchTerm.toLowerCase();
+    const searchLower = searchTerm.toLowerCase()
     return (
       provider.businessName.toLowerCase().includes(searchLower) ||
       provider.email.toLowerCase().includes(searchLower) ||
       provider.phone.includes(searchTerm)
-    );
-  });
+    )
+  })
 
   const handleStartChat = async (provider: Provider) => {
-    setCreatingConversation(provider.id);
+    setCreatingConversation(provider.id)
     try {
       if (!adminUserId) {
-        setError('Admin user not authenticated. Please log in again.');
-        return;
+        setError('Admin user not authenticated. Please log in again.')
+        return
       }
 
-      const targetUserId = String(provider.user_id || provider.id || '');
+      const targetUserId = String(provider.user_id || provider.id || '')
       if (!targetUserId) {
-        setError('This provider has no linked user account.');
-        return;
+        setError('This provider has no linked user account.')
+        return
       }
 
-      const existingConversationsResponse = await ChatService.getConversations();
+      const existingConversationsResponse = await ChatService.getConversations()
       if (existingConversationsResponse.success && existingConversationsResponse.data !== undefined) {
-        const convs = normalizeConversationList(existingConversationsResponse.data);
+        const convs = normalizeConversationList(existingConversationsResponse.data)
         const existingConversation = convs.find(
           (conv) =>
             conv.type === ConversationType.DIRECT &&
             conv.participants.some((p) => String(p.userId._id) === adminUserId) &&
-            conv.participants.some((p) => String(p.userId._id) === targetUserId)
-        );
+            conv.participants.some((p) => String(p.userId._id) === targetUserId),
+        )
 
         if (existingConversation) {
-          onProviderSelect(provider.id, existingConversation._id);
-          return;
+          onProviderSelect(provider.id, existingConversation._id)
+          return
         }
       }
 
-      // Create new conversation
       const response = await ChatService.createConversation({
         type: ConversationType.DIRECT,
         participants: [
           { userId: adminUserId, role: 'admin' },
-          { userId: targetUserId, role: 'provider' }
+          { userId: targetUserId, role: 'provider' },
         ],
         metadata: {
           subject: `Admin Chat with ${provider.businessName}`,
         },
-      });
+      })
 
       if (response.success && response.data) {
-        onProviderSelect(provider.id, response.data._id);
+        onProviderSelect(provider.id, response.data._id)
       }
-    } catch (err: any) {
-      console.error('Error starting chat:', err);
-      setError(err.message || 'Failed to start chat with provider');
+    } catch (err: unknown) {
+      console.error('Error starting chat:', err)
+      const e = err as { message?: string }
+      setError(e.message || 'Failed to start chat with provider')
     } finally {
-      setCreatingConversation(null);
+      setCreatingConversation(null)
     }
-  };
+  }
 
   if (loading) {
     return (
-      <Box sx={{ py: 4, textAlign: 'center' }}>
-        <CircularProgress size={40} />
-        <Typography sx={{ mt: 2 }}>Loading providers...</Typography>
-      </Box>
-    );
+      <div className="py-8 text-center">
+        <Loader2 className="mx-auto h-10 w-10 animate-spin text-muted-foreground" />
+        <p className="mt-2 text-sm text-muted-foreground">Loading providers...</p>
+      </div>
+    )
   }
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Header */}
-      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <BusinessIcon />
+    <div className="flex h-full flex-col">
+      <div className="border-b border-border p-4">
+        <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold">
+          <Building2 className="h-5 w-5" />
           Chat with Service Providers
-        </Typography>
-        <Typography variant="body2" color="text.secondary" gutterBottom>
-          Select a provider to start a conversation
-        </Typography>
+        </h2>
+        <p className="text-sm text-muted-foreground">Select a provider to start a conversation</p>
 
-        <TextField
-          fullWidth
-          size="small"
-          placeholder="Search providers by name, email, or phone..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-          sx={{ mt: 2 }}
-        />
-      </Box>
+        <div className="relative mt-3">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Search providers by name, email, or phone..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+      </div>
 
-      {/* Error Display */}
       {error && (
-        <Alert severity="error" sx={{ m: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
+        <div
+          className="m-4 flex items-center justify-between gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          role="alert"
+        >
+          <span>{error}</span>
+          <Button type="button" variant="ghost" size="sm" onClick={() => setError(null)}>
+            Dismiss
+          </Button>
+        </div>
       )}
 
-      {/* Provider List */}
-      <Box sx={{ flex: 1, overflow: 'auto' }}>
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {filteredProviders.length === 0 ? (
-          <Box sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
-            <BusinessIcon sx={{ fontSize: 48, mb: 2, opacity: 0.5 }} />
-            <Typography>
+          <div className="py-8 text-center text-muted-foreground">
+            <Building2 className="mx-auto mb-3 h-12 w-12 opacity-50" />
+            <p>
               {searchTerm ? 'No providers found matching your search' : 'No providers available'}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         ) : (
-          <List>
+          <ul className="p-0">
             {filteredProviders.map((provider, index) => (
-              <React.Fragment key={provider.id}>
-                {index > 0 && <Divider />}
-                <ListItem
-                  sx={{
-                    px: 2,
-                    py: 1.5,
-                    '&:hover': { bgcolor: 'action.hover' },
-                  }}
-                >
-                  <ListItemAvatar>
-                    <Avatar src={provider.avatar} sx={{ bgcolor: 'primary.main', width: 48, height: 48 }}>
+              <li key={provider.id} className="list-none">
+                {index > 0 && <Separator />}
+                <div className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50">
+                  <Avatar className="h-12 w-12">
+                    {provider.avatar && <AvatarImage src={provider.avatar} alt="" />}
+                    <AvatarFallback className="bg-primary text-primary-foreground">
                       {provider.businessName?.charAt(0) || 'P'}
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <Typography variant="subtitle1" fontWeight={500}>
-                          {provider.businessName}
-                        </Typography>
-                        {provider.verificationStatus === 'verified' && (
-                          <CheckCircleIcon color="success" sx={{ fontSize: 16 }} />
-                        )}
-                      </Box>
-                    }
-                    secondary={
-                      <Box sx={{ mt: 0.5 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          {provider.email}
-                        </Typography>
-                        {provider.rating && provider.rating > 0 && (
-                          <Box display="flex" alignItems="center" gap={0.5} mt={0.5}>
-                            <StarIcon sx={{ fontSize: 14, color: 'warning.main' }} />
-                            <Typography variant="caption">
-                              {provider.rating.toFixed(1)} ({provider.totalJobs || 0} jobs)
-                            </Typography>
-                          </Box>
-                        )}
-                      </Box>
-                    }
-                  />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-medium">{provider.businessName}</span>
+                      {provider.verificationStatus === 'verified' && (
+                        <CheckCircle className="h-4 w-4 text-emerald-600" aria-label="Verified" />
+                      )}
+                    </div>
+                    <p className="mt-0.5 text-sm text-muted-foreground">{provider.email}</p>
+                    {provider.rating != null && provider.rating > 0 && (
+                      <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                        <Star className="h-3.5 w-3.5 text-amber-500" />
+                        {provider.rating.toFixed(1)} ({provider.totalJobs || 0} jobs)
+                      </p>
+                    )}
+                  </div>
                   <Button
-                    variant="contained"
-                    size="small"
-                    startIcon={
-                      creatingConversation === provider.id ? (
-                        <CircularProgress size={16} color="inherit" />
-                      ) : (
-                        <MessageIcon />
-                      )
-                    }
-                    onClick={() => handleStartChat(provider)}
+                    type="button"
+                    size="sm"
+                    className="ml-2 shrink-0"
+                    onClick={() => void handleStartChat(provider)}
                     disabled={creatingConversation !== null}
-                    sx={{ ml: 2 }}
                   >
-                    {creatingConversation === provider.id ? 'Starting...' : 'Chat'}
+                    {creatingConversation === provider.id ? (
+                      <>
+                        <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                        Starting...
+                      </>
+                    ) : (
+                      <>
+                        <MessageCircle className="mr-1 h-3.5 w-3.5" />
+                        Chat
+                      </>
+                    )}
                   </Button>
-                </ListItem>
-              </React.Fragment>
+                </div>
+              </li>
             ))}
-          </List>
+          </ul>
         )}
-      </Box>
+      </div>
 
-      {/* Footer */}
-      <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider', textAlign: 'right' }}>
-        <Button onClick={onClose} color="inherit">
+      <div className="border-t border-border p-4 text-right">
+        <Button type="button" variant="ghost" onClick={onClose}>
           Close
         </Button>
-      </Box>
-    </Box>
-  );
-};
+      </div>
+    </div>
+  )
+}
 
-export default ProviderListForChat;
-
+export default ProviderListForChat

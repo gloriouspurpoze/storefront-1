@@ -1,29 +1,25 @@
 import React, { useState, useEffect } from 'react'
+import { CloudUpload, X } from 'lucide-react'
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormControlLabel,
-  Switch,
-  Box,
-  Typography,
-  IconButton,
-  Avatar,
-  Alert,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
+import { Label } from '../ui/label'
+import { Switch } from '../ui/switch'
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import {
-  Close as CloseIcon,
-  CloudUpload as UploadIcon,
-} from '@mui/icons-material'
-import { getInitials } from '../../lib/utils'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select'
+import { cn, getInitials } from '../../lib/utils'
 
 interface User {
   id?: string
@@ -125,14 +121,13 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
     return Object.keys(newErrors).length === 0
   }
 
-  const handleChange = (field: keyof User, value: any) => {
+  const handleChange = (field: keyof User, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
-    // Clear error for this field when user starts typing
     if (errors[field]) {
       setErrors((prev) => {
-        const newErrors = { ...prev }
-        delete newErrors[field]
-        return newErrors
+        const next = { ...prev }
+        delete next[field]
+        return next
       })
     }
   }
@@ -158,7 +153,6 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
-      // In a real app, you would upload to a server or cloud storage
       const reader = new FileReader()
       reader.onloadend = () => {
         handleChange('profilePicture', reader.result as string)
@@ -168,188 +162,173 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
   }
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth="md" 
-      fullWidth
-      PaperProps={{
-        sx: { borderRadius: 2 }
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) onClose()
       }}
     >
-      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          {mode === 'create' ? 'Create New User' : 'Edit User'}
-        </Typography>
-        <IconButton onClick={onClose} size="small">
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto sm:max-w-2xl">
+        <DialogHeader className="flex flex-row items-center justify-between space-y-0 border-b border-border pb-2">
+          <DialogTitle className="text-lg font-semibold">
+            {mode === 'create' ? 'Create New User' : 'Edit User'}
+          </DialogTitle>
+          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </DialogHeader>
 
-      <DialogContent dividers>
         {error && (
-          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+          <div
+            role="alert"
+            className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          >
             {error}
-          </Alert>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="ml-2 h-6"
+              onClick={() => setError(null)}
+            >
+              Dismiss
+            </Button>
+          </div>
         )}
 
-        <Grid container spacing={3}>
-          {/* Profile Picture */}
-          <Grid item xs={12} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            <Avatar
-              src={formData.profilePicture}
-              sx={{ width: 100, height: 100 }}
-            >
-              {getInitials(`${formData.firstName} ${formData.lastName}`)}
+        <div className="grid gap-4 py-2 sm:grid-cols-2">
+          <div className="flex flex-col items-center gap-2 sm:col-span-2">
+            <Avatar className="h-24 w-24">
+              {formData.profilePicture ? <AvatarImage src={formData.profilePicture} alt="" /> : null}
+              <AvatarFallback className="text-lg">
+                {getInitials(`${formData.firstName || ''} ${formData.lastName || ''}`)}
+              </AvatarFallback>
             </Avatar>
-            <Button
-              variant="outlined"
-              component="label"
-              startIcon={<UploadIcon />}
-              size="small"
-            >
-              Upload Photo
-              <input
-                type="file"
-                hidden
-                accept="image/*"
-                onChange={handleImageUpload}
-              />
+            <Button type="button" variant="outline" size="sm" asChild>
+              <label className="cursor-pointer">
+                <CloudUpload className="mr-2 h-4 w-4" />
+                Upload Photo
+                <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+              </label>
             </Button>
-          </Grid>
+          </div>
 
-          {/* Basic Information */}
-          <Grid item xs={12}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>
-              Basic Information
-            </Typography>
-          </Grid>
+          <div className="sm:col-span-2">
+            <h3 className="text-sm font-semibold text-primary">Basic Information</h3>
+          </div>
 
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="First Name"
+          <div className="space-y-1.5">
+            <Label htmlFor="uf-first">First Name *</Label>
+            <Input
+              id="uf-first"
               value={formData.firstName}
               onChange={(e) => handleChange('firstName', e.target.value)}
-              error={!!errors.firstName}
-              helperText={errors.firstName}
-              required
+              className={cn(errors.firstName && 'border-destructive')}
             />
-          </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Last Name"
+            {errors.firstName && <p className="text-xs text-destructive">{errors.firstName}</p>}
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="uf-last">Last Name *</Label>
+            <Input
+              id="uf-last"
               value={formData.lastName}
               onChange={(e) => handleChange('lastName', e.target.value)}
-              error={!!errors.lastName}
-              helperText={errors.lastName}
-              required
+              className={cn(errors.lastName && 'border-destructive')}
             />
-          </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Email"
+            {errors.lastName && <p className="text-xs text-destructive">{errors.lastName}</p>}
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="uf-email">Email *</Label>
+            <Input
+              id="uf-email"
               type="email"
               value={formData.email}
               onChange={(e) => handleChange('email', e.target.value)}
-              error={!!errors.email}
-              helperText={errors.email}
-              required
               disabled={mode === 'edit'}
+              className={cn(errors.email && 'border-destructive')}
             />
-          </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Phone"
+            {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="uf-phone">Phone</Label>
+            <Input
+              id="uf-phone"
               value={formData.phone}
               onChange={(e) => handleChange('phone', e.target.value)}
-              error={!!errors.phone}
-              helperText={errors.phone}
               placeholder="+1-555-0000"
+              className={cn(errors.phone && 'border-destructive')}
             />
-          </Grid>
+            {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
+          </div>
 
           {mode === 'create' && (
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Password"
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="uf-pass">Password *</Label>
+              <Input
+                id="uf-pass"
                 type="password"
                 value={formData.password}
                 onChange={(e) => handleChange('password', e.target.value)}
-                error={!!errors.password}
-                helperText={errors.password || 'Minimum 8 characters'}
-                required
+                className={cn(errors.password && 'border-destructive')}
               />
-            </Grid>
+              {errors.password ? (
+                <p className="text-xs text-destructive">{errors.password}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">Minimum 8 characters</p>
+              )}
+            </div>
           )}
 
-          {/* User Type & Status */}
-          <Grid item xs={12}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>
-              User Type & Status
-            </Typography>
-          </Grid>
+          <div className="sm:col-span-2">
+            <h3 className="text-sm font-semibold text-primary">User Type &amp; Status</h3>
+          </div>
 
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth>
-              <InputLabel>User Type</InputLabel>
-              <Select
-                value={formData.userType}
-                label="User Type"
-                onChange={(e) => handleChange('userType', e.target.value)}
-              >
-                <MenuItem value="customer">Customer</MenuItem>
-                <MenuItem value="provider">Provider</MenuItem>
-                <MenuItem value="admin">Admin</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
+          <div className="space-y-1.5">
+            <Label>User Type</Label>
+            <Select
+              value={formData.userType}
+              onValueChange={(v) => handleChange('userType', v as User['userType'])}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="customer">Customer</SelectItem>
+                <SelectItem value="provider">Provider</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-          <Grid item xs={12} sm={6}>
-            <Box sx={{ display: 'flex', gap: 3, mt: 1 }}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={formData.isVerified}
-                    onChange={(e) => handleChange('isVerified', e.target.checked)}
-                  />
-                }
-                label="Verified"
+          <div className="mt-1 flex flex-wrap items-center gap-6 sm:col-span-1">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="uf-verified"
+                checked={formData.isVerified}
+                onCheckedChange={(c) => handleChange('isVerified', c === true)}
               />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={formData.isActive}
-                    onChange={(e) => handleChange('isActive', e.target.checked)}
-                  />
-                }
-                label="Active"
+              <Label htmlFor="uf-verified">Verified</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="uf-active"
+                checked={formData.isActive}
+                onCheckedChange={(c) => handleChange('isActive', c === true)}
               />
-            </Box>
-          </Grid>
-        </Grid>
+              <Label htmlFor="uf-active">Active</Label>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+            Cancel
+          </Button>
+          <Button type="button" onClick={handleSubmit} disabled={loading}>
+            {loading ? 'Saving...' : mode === 'create' ? 'Create User' : 'Save Changes'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} variant="outlined" disabled={loading}>
-          Cancel
-        </Button>
-        <Button 
-          onClick={handleSubmit} 
-          variant="contained" 
-          disabled={loading}
-        >
-          {loading ? 'Saving...' : mode === 'create' ? 'Create User' : 'Save Changes'}
-        </Button>
-      </DialogActions>
     </Dialog>
   )
 }
-

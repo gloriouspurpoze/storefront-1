@@ -1,23 +1,10 @@
 import React from 'react'
-import {
-  Box,
-  Button,
-  Chip,
-  Divider,
-  Drawer,
-  List,
-  ListItem,
-  ListItemText,
-  Stack,
-  Typography,
-} from '@mui/material'
-import type {
-  CrmActivity,
-  CrmCompany,
-  CrmContact,
-  CrmDeal,
-  CrmDealStage,
-} from '../../types/crm.types'
+import { Pencil, X } from 'lucide-react'
+import type { CrmActivity, CrmCompany, CrmContact, CrmDeal, CrmDealStage } from '../../types/crm.types'
+import { Button } from '../ui/button'
+import { Badge } from '../ui/badge'
+import { Separator } from '../ui/separator'
+import { cn } from '../../lib/utils'
 
 function formatActivityWhen(a: CrmActivity) {
   const t = a.dueAt ?? a.completedAt ?? a.createdAt
@@ -49,76 +36,90 @@ export function CrmContactDetailDrawer({
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
   )
 
+  if (!open) return null
+
   return (
-    <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: { xs: '100%', sm: 400 }, p: 0 } }}>
-      {contact ? (
-        <Box sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1} sx={{ mb: 2 }}>
-            <Box>
-              <Typography variant="h6">
-                {contact.firstName} {contact.lastName}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {contact.email}
-              </Typography>
-            </Box>
-            <Button size="small" variant="outlined" onClick={onEdit}>
-              Edit
-            </Button>
-          </Stack>
-          <Stack spacing={1} sx={{ mb: 2 }}>
-            {contact.phone ? (
-              <Typography variant="body2">
-                <strong>Phone:</strong> {contact.phone}
-              </Typography>
-            ) : null}
-            {companyName ? (
-              <Typography variant="body2">
-                <strong>Company:</strong> {companyName}
-              </Typography>
-            ) : null}
-            <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-              <strong>Lifecycle:</strong> <Chip size="small" label={contact.lifecycle} variant="outlined" />
-            </Typography>
-            {contact.leadSource ? (
-              <Typography variant="body2">
-                <strong>Source:</strong> {contact.leadSource}
-              </Typography>
-            ) : null}
-            {contact.notes ? (
-              <Typography variant="body2" color="text.secondary">
-                {contact.notes}
-              </Typography>
-            ) : null}
-          </Stack>
-          <Divider sx={{ my: 1 }} />
-          <Typography variant="subtitle2" sx={{ mb: 1 }}>
-            Activity timeline
-          </Typography>
-          <List dense sx={{ flex: 1, overflow: 'auto', py: 0 }}>
-            {sorted.length === 0 ? (
-              <Typography variant="body2" color="text.secondary">
-                No activities linked to this contact yet.
-              </Typography>
-            ) : (
-              sorted.map((a) => (
-                <ListItem key={a.id} alignItems="flex-start" sx={{ px: 0 }}>
-                  <ListItemText
-                    primary={a.subject}
-                    secondary={
-                      <>
-                        <Chip size="small" label={a.type} sx={{ mr: 0.5 }} />
+    <>
+      <button
+        type="button"
+        aria-label="Close panel"
+        className="fixed inset-0 z-[150] bg-black/50"
+        onClick={onClose}
+      />
+      <div
+        className={cn(
+          'fixed right-0 top-0 z-[160] flex h-full w-full max-w-md flex-col border-l bg-background shadow-lg',
+          'animate-in slide-in-from-right duration-200',
+        )}
+      >
+        {contact ? (
+          <div className="flex h-full flex-col p-4">
+            <div className="mb-3 flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h2 className="text-lg font-semibold leading-tight">
+                  {contact.firstName} {contact.lastName}
+                </h2>
+                <p className="text-sm text-muted-foreground">{contact.email}</p>
+              </div>
+              <div className="flex shrink-0 gap-1">
+                <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={onClose} aria-label="Close">
+                  <X className="h-4 w-4" />
+                </Button>
+                <Button type="button" size="sm" variant="outline" className="gap-1" onClick={onEdit}>
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit
+                </Button>
+              </div>
+            </div>
+            <div className="mb-4 space-y-2 text-sm">
+              {contact.phone ? (
+                <p>
+                  <span className="font-medium">Phone:</span> {contact.phone}
+                </p>
+              ) : null}
+              {companyName ? (
+                <p>
+                  <span className="font-medium">Company:</span> {companyName}
+                </p>
+              ) : null}
+              <p className="flex flex-wrap items-center gap-2">
+                <span className="font-medium">Lifecycle:</span>
+                <Badge variant="outline" className="font-normal">
+                  {contact.lifecycle}
+                </Badge>
+              </p>
+              {contact.leadSource ? (
+                <p>
+                  <span className="font-medium">Source:</span> {contact.leadSource}
+                </p>
+              ) : null}
+              {contact.notes ? <p className="text-muted-foreground">{contact.notes}</p> : null}
+            </div>
+            <Separator className="mb-3" />
+            <h3 className="mb-2 text-sm font-medium">Activity timeline</h3>
+            <ul className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1 text-sm">
+              {sorted.length === 0 ? (
+                <li className="text-muted-foreground">No activities linked to this contact yet.</li>
+              ) : (
+                sorted.map((a) => (
+                  <li key={a.id}>
+                    <p className="font-medium leading-snug">{a.subject}</p>
+                    <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                      <Badge variant="secondary" className="text-[0.7rem] font-normal">
+                        {a.type}
+                      </Badge>
+                      <span>
                         {formatActivityWhen(a)} · {a.status}
-                      </>
-                    }
-                  />
-                </ListItem>
-              ))
-            )}
-          </List>
-        </Box>
-      ) : null}
-    </Drawer>
+                      </span>
+                    </p>
+                  </li>
+                ))
+              )}
+            </ul>
+          </div>
+        ) : null}
+      </div>
+    </>
   )
 }
 
@@ -156,70 +157,83 @@ export function CrmDealDetailDrawer({
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
   )
 
+  if (!open) return null
+
   return (
-    <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: { xs: '100%', sm: 400 }, p: 0 } }}>
-      {deal ? (
-        <Box sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1} sx={{ mb: 2 }}>
-            <Box>
-              <Typography variant="h6">{deal.name}</Typography>
-              <Typography variant="body2" color="text.secondary">
-                {formatMoney(deal.amount, deal.currency)} · {deal.probability}% · {STAGE_LABELS[deal.stage]}
-              </Typography>
-            </Box>
-            <Button size="small" variant="outlined" onClick={onEdit}>
-              Edit
-            </Button>
-          </Stack>
-          <Stack spacing={1} sx={{ mb: 2 }}>
-            {deal.expectedCloseDate ? (
-              <Typography variant="body2">
-                <strong>Expected close:</strong> {String(deal.expectedCloseDate).slice(0, 10)}
-              </Typography>
-            ) : null}
-            {companyName ? (
-              <Typography variant="body2">
-                <strong>Company:</strong> {companyName}
-              </Typography>
-            ) : null}
-            {contactName ? (
-              <Typography variant="body2">
-                <strong>Primary contact:</strong> {contactName}
-              </Typography>
-            ) : null}
-            {deal.notes ? (
-              <Typography variant="body2" color="text.secondary">
-                {deal.notes}
-              </Typography>
-            ) : null}
-          </Stack>
-          <Divider sx={{ my: 1 }} />
-          <Typography variant="subtitle2" sx={{ mb: 1 }}>
-            Activity timeline
-          </Typography>
-          <List dense sx={{ flex: 1, overflow: 'auto', py: 0 }}>
-            {sorted.length === 0 ? (
-              <Typography variant="body2" color="text.secondary">
-                No activities linked to this deal yet.
-              </Typography>
-            ) : (
-              sorted.map((a) => (
-                <ListItem key={a.id} alignItems="flex-start" sx={{ px: 0 }}>
-                  <ListItemText
-                    primary={a.subject}
-                    secondary={
-                      <>
-                        <Chip size="small" label={a.type} sx={{ mr: 0.5 }} />
+    <>
+      <button
+        type="button"
+        aria-label="Close panel"
+        className="fixed inset-0 z-[150] bg-black/50"
+        onClick={onClose}
+      />
+      <div
+        className={cn(
+          'fixed right-0 top-0 z-[160] flex h-full w-full max-w-md flex-col border-l bg-background shadow-lg',
+          'animate-in slide-in-from-right duration-200',
+        )}
+      >
+        {deal ? (
+          <div className="flex h-full flex-col p-4">
+            <div className="mb-3 flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h2 className="text-lg font-semibold leading-tight">{deal.name}</h2>
+                <p className="text-sm text-muted-foreground">
+                  {formatMoney(deal.amount, deal.currency)} · {deal.probability}% · {STAGE_LABELS[deal.stage]}
+                </p>
+              </div>
+              <div className="flex shrink-0 gap-1">
+                <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={onClose} aria-label="Close">
+                  <X className="h-4 w-4" />
+                </Button>
+                <Button type="button" size="sm" variant="outline" className="gap-1" onClick={onEdit}>
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit
+                </Button>
+              </div>
+            </div>
+            <div className="mb-4 space-y-2 text-sm">
+              {deal.expectedCloseDate ? (
+                <p>
+                  <span className="font-medium">Expected close:</span> {String(deal.expectedCloseDate).slice(0, 10)}
+                </p>
+              ) : null}
+              {companyName ? (
+                <p>
+                  <span className="font-medium">Company:</span> {companyName}
+                </p>
+              ) : null}
+              {contactName ? (
+                <p>
+                  <span className="font-medium">Primary contact:</span> {contactName}
+                </p>
+              ) : null}
+              {deal.notes ? <p className="text-muted-foreground">{deal.notes}</p> : null}
+            </div>
+            <Separator className="mb-3" />
+            <h3 className="mb-2 text-sm font-medium">Activity timeline</h3>
+            <ul className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1 text-sm">
+              {sorted.length === 0 ? (
+                <li className="text-muted-foreground">No activities linked to this deal yet.</li>
+              ) : (
+                sorted.map((a) => (
+                  <li key={a.id}>
+                    <p className="font-medium leading-snug">{a.subject}</p>
+                    <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                      <Badge variant="secondary" className="text-[0.7rem] font-normal">
+                        {a.type}
+                      </Badge>
+                      <span>
                         {formatActivityWhen(a)} · {a.status}
-                      </>
-                    }
-                  />
-                </ListItem>
-              ))
-            )}
-          </List>
-        </Box>
-      ) : null}
-    </Drawer>
+                      </span>
+                    </p>
+                  </li>
+                ))
+              )}
+            </ul>
+          </div>
+        ) : null}
+      </div>
+    </>
   )
 }

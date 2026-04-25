@@ -1,23 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import {
-  Dialog,
-  DialogContent,
-  TextField,
-  InputAdornment,
-  List,
-  ListItemButton,
-  ListItemText,
-  ListSubheader,
-  Typography,
-  Box,
-  Chip,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material'
-import { Search as SearchIcon, SubdirectoryArrowRight as JumpIcon } from '@mui/icons-material'
+import { Search, CornerDownRight } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { Input } from '../ui/input'
+import { Badge } from '../ui/badge'
+import { Dialog, DialogContent, DialogTitle } from '../ui/dialog'
 import { QUICK_NAV_ITEMS, type QuickNavGroup } from '../../config/app-routes'
 import { useCommandPalette } from '../../contexts/command-palette-context'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
+import { cn } from '../../lib/utils'
 
 const GROUP_ORDER: QuickNavGroup[] = [
   'Overview',
@@ -37,13 +27,15 @@ function normalize(s: string) {
   return s.toLowerCase().trim()
 }
 
+/** MUI `breakpoints.down('sm')` — default theme `sm` = 600px */
+const downSm = '(max-width: 599px)'
+
 export function CommandPalette() {
   const { open, setOpen } = useCommandPalette()
   const [query, setQuery] = useState('')
   const navigate = useNavigate()
   const location = useLocation()
-  const theme = useTheme()
-  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
+  const fullScreen = useMediaQuery(downSm)
   const jumpHint =
     typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
       ? '⌘K'
@@ -94,91 +86,95 @@ export function CommandPalette() {
   }
 
   return (
-    <Dialog
-      open={open}
-      onClose={() => setOpen(false)}
-      fullWidth
-      maxWidth="sm"
-      fullScreen={fullScreen}
-      aria-labelledby="command-palette-title"
-      PaperProps={{
-        sx: {
-          mt: { xs: 0, sm: 8 },
-          borderRadius: { xs: 0, sm: 2 },
-        },
-      }}
-    >
-      <Box sx={{ px: 2, pt: 2, pb: 0 }} id="command-palette-title">
-        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-          Quick navigation
-        </Typography>
-        <TextField
-          fullWidth
-          autoFocus
-          placeholder="Jump to page…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          size="small"
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" color="action" />
-              </InputAdornment>
-            ),
-            endAdornment: (
-              <InputAdornment position="end">
-                <Chip
-                  size="small"
-                  label={jumpHint}
-                  variant="outlined"
-                  sx={{ height: 22, '& .MuiChip-label': { px: 0.75, fontSize: '0.7rem' } }}
-                />
-              </InputAdornment>
-            ),
-          }}
-        />
-      </Box>
-      <DialogContent sx={{ pt: 1, pb: 2, maxHeight: { xs: '70vh', sm: 420 } }}>
-        {grouped.length === 0 ? (
-          <Typography color="text.secondary" variant="body2" sx={{ py: 2 }}>
-            No matching pages. Try a different search.
-          </Typography>
-        ) : (
-          <List dense disablePadding sx={{ py: 0 }}>
-            {grouped.map(({ group, items }) => (
-              <Box key={group}>
-                <ListSubheader
-                  sx={{
-                    py: 1,
-                    lineHeight: 1.2,
-                    typography: 'caption',
-                    fontWeight: 700,
-                    letterSpacing: '0.06em',
-                    color: 'text.secondary',
-                  }}
-                >
-                  {group}
-                </ListSubheader>
-                {items.map((item) => (
-                  <ListItemButton
-                    key={`${item.group}-${item.path}`}
-                    onClick={() => handleSelect(item.path)}
-                    selected={location.pathname === item.path}
-                    sx={{ borderRadius: 1, mb: 0.25 }}
-                  >
-                    <JumpIcon sx={{ mr: 1.5, fontSize: 18, color: 'text.secondary', opacity: 0.8 }} />
-                    <ListItemText
-                      primary={item.label}
-                      secondary={item.path}
-                      primaryTypographyProps={{ variant: 'body2', fontWeight: 500 }}
-                      secondaryTypographyProps={{ variant: 'caption', sx: { fontFamily: 'monospace' } }}
-                    />
-                  </ListItemButton>
-                ))}
-              </Box>
-            ))}
-          </List>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent
+        aria-labelledby="command-palette-title"
+        className={cn(
+          'flex w-full max-w-lg flex-col gap-0 overflow-hidden p-0',
+          'max-h-[min(70vh,420px)]',
+          fullScreen
+            ? 'h-[100dvh] max-h-[100dvh] max-w-full translate-x-0 translate-y-0 rounded-none border-0 left-0 top-0 sm:left-1/2 sm:top-1/2 sm:mt-8 sm:max-h-[min(70vh,420px)] sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg sm:border sm:shadow-lg'
+            : 'sm:mt-8'
         )}
+      >
+        <div className="shrink-0 space-y-2 px-4 pt-4 sm:px-6 sm:pt-6">
+          <DialogTitle
+            id="command-palette-title"
+            className="text-left text-sm font-normal text-muted-foreground"
+          >
+            Quick navigation
+          </DialogTitle>
+          <div className="relative">
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+              strokeWidth={2}
+              aria-hidden
+            />
+            <Input
+              className="h-9 pl-9 pr-24"
+              autoFocus
+              placeholder="Jump to page…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Search pages"
+            />
+            <div className="absolute right-2 top-1/2 flex -translate-y-1/2">
+              <Badge
+                variant="outline"
+                className="h-[22px] border px-1.5 py-0 text-[0.7rem] font-normal"
+              >
+                {jumpHint}
+              </Badge>
+            </div>
+          </div>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-4 sm:px-4">
+          {grouped.length === 0 ? (
+            <p className="px-1 py-4 text-sm text-muted-foreground">No matching pages. Try a different search.</p>
+          ) : (
+            <ul className="m-0 list-none p-0">
+              {grouped.map(({ group, items }) => (
+                <li key={group}>
+                  <div
+                    className="px-2 py-1 text-xs font-bold uppercase leading-snug tracking-wider text-muted-foreground"
+                    id={`group-${group}`}
+                  >
+                    {group}
+                  </div>
+                  <ul className="m-0 list-none p-0" aria-labelledby={`group-${group}`}>
+                    {items.map((item) => {
+                      const selected = location.pathname === item.path
+                      return (
+                        <li key={`${item.group}-${item.path}`}>
+                          <button
+                            type="button"
+                            onClick={() => handleSelect(item.path)}
+                            className={cn(
+                              'mb-0.5 flex w-full min-w-0 items-start rounded-md px-2 py-2 text-left',
+                              'hover:bg-accent hover:text-accent-foreground',
+                              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                              selected && 'bg-muted'
+                            )}
+                          >
+                            <CornerDownRight
+                              className="mr-2 mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/80"
+                              strokeWidth={2}
+                              aria-hidden
+                            />
+                            <span className="min-w-0">
+                              <span className="block text-sm font-medium leading-snug">{item.label}</span>
+                              <span className="block font-mono text-xs text-muted-foreground">{item.path}</span>
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   )

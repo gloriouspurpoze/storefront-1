@@ -12,7 +12,9 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { Box, Button, Chip, Paper, Stack, Typography } from '@mui/material'
+import { Button } from '../ui/button'
+import { Badge } from '../ui/badge'
+import { cn } from '../../lib/utils'
 import type { CrmDeal, CrmDealStage } from '../../types/crm.types'
 
 const dealDragId = (id: string) => `deal-${id}`
@@ -54,40 +56,49 @@ function DealCard({
   const a11yLabel = `${deal.name}, ${formatMoney(deal.amount, deal.currency)}, ${deal.probability} percent probability`
 
   return (
-    <Paper
+    <div
       ref={setNodeRef}
-      variant="outlined"
       style={style}
       {...(canDrag ? listeners : {})}
       {...(canDrag ? attributes : {})}
       aria-label={canDrag ? a11yLabel : undefined}
-      sx={{
-        p: 1.5,
-        cursor: canDrag ? 'grab' : 'default',
-        '&:active': canDrag ? { cursor: 'grabbing' } : undefined,
-        transition: 'box-shadow 0.15s ease',
-        boxShadow: isDragging ? 4 : undefined,
-      }}
+      className={cn(
+        'rounded-md border border-border p-1.5 transition-shadow',
+        canDrag && 'cursor-grab active:cursor-grabbing',
+        isDragging && 'shadow-md'
+      )}
     >
-      <Typography variant="body2" fontWeight={600} component="span" display="block">
-        {deal.name}
-      </Typography>
-      <Typography variant="caption" color="text.secondary" component="span" display="block">
+      <span className="block text-sm font-semibold leading-snug">{deal.name}</span>
+      <span className="mb-0 block text-xs text-muted-foreground">
         {formatMoney(deal.amount, deal.currency)} · {deal.probability}%
-      </Typography>
-      <Stack direction="row" spacing={0.5} sx={{ mt: 1 }} flexWrap="wrap" useFlexGap>
+      </span>
+      <div className="mt-1 flex flex-row flex-wrap gap-0.5">
         {onViewDeal ? (
-          <Button size="small" onPointerDown={(e) => e.stopPropagation()} onClick={() => onViewDeal(deal)}>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-8"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={() => onViewDeal(deal)}
+          >
             Details
           </Button>
         ) : null}
         {canDrag ? (
-          <Button size="small" onPointerDown={(e) => e.stopPropagation()} onClick={() => onEdit(deal)}>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-8"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={() => onEdit(deal)}
+          >
             Edit
           </Button>
         ) : null}
-      </Stack>
-    </Paper>
+      </div>
+    </div>
   )
 }
 
@@ -104,31 +115,23 @@ function StageColumn({
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: columnDropId(stage) })
   return (
-    <Paper
+    <div
       ref={setNodeRef}
-      variant="outlined"
       role="group"
       aria-label={`${label} stage column`}
-      sx={{
-        minWidth: 260,
-        maxWidth: 320,
-        flex: '0 0 auto',
-        bgcolor: isOver ? 'action.selected' : 'action.hover',
-        p: 1,
-        outline: isOver ? '2px solid' : 'none',
-        outlineColor: 'primary.main',
-        outlineOffset: 2,
-        transition: 'background-color 0.15s ease',
-      }}
+      className={cn(
+        'min-w-[260px] max-w-[320px] flex-none rounded-md border border-border p-1 transition-colors',
+        isOver ? 'bg-accent outline outline-2 outline-primary outline-offset-2' : 'bg-muted/50'
+      )}
     >
-      <Typography variant="subtitle2" fontWeight={700} sx={{ px: 1, py: 1 }} component="h3">
-        {label}
-        <Chip size="small" label={count} sx={{ ml: 1 }} />
-      </Typography>
-      <Stack spacing={1} sx={{ minHeight: 120 }}>
-        {children}
-      </Stack>
-    </Paper>
+      <h3 className="flex items-baseline px-1 py-1 text-sm font-bold leading-none">
+        <span className="truncate">{label}</span>
+        <Badge variant="secondary" className="ml-1 h-5 min-w-5 justify-center px-1.5 text-xs">
+          {count}
+        </Badge>
+      </h3>
+      <div className="flex min-h-[120px] flex-col gap-1">{children}</div>
+    </div>
   )
 }
 
@@ -193,16 +196,10 @@ export function CrmDealPipelineBoard({
     : undefined
 
   const body = (
-    <Box
+    <div
       role="region"
       aria-label="Deal pipeline board. Drag deals between stages to update."
-      sx={{
-        display: 'flex',
-        gap: 2,
-        overflowX: 'auto',
-        pb: 1,
-        alignItems: 'flex-start',
-      }}
+      className="flex min-w-0 items-start gap-2 overflow-x-auto pb-1"
     >
       {stages.map((stage) => {
         const inStage = deals.filter((d) => d.stage === stage)
@@ -221,11 +218,11 @@ export function CrmDealPipelineBoard({
           </StageColumn>
         )
       })}
-    </Box>
+    </div>
   )
 
   return (
-    <Box sx={{ position: 'relative' }}>
+    <div className="relative">
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
@@ -233,40 +230,27 @@ export function CrmDealPipelineBoard({
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <Box
-          component="div"
+        <div
           aria-live="polite"
           aria-atomic="true"
-          sx={{
-            position: 'absolute',
-            width: 1,
-            height: 1,
-            padding: 0,
-            margin: -1,
-            overflow: 'hidden',
-            clip: 'rect(0,0,0,0)',
-            whiteSpace: 'nowrap',
-            border: 0,
-          }}
+          className="absolute h-px w-px overflow-hidden border-0 p-0 [clip:rect(0,0,0,0)] whitespace-nowrap"
         >
           {a11yMessage}
-        </Box>
+        </div>
         {body}
-      {canManage ? (
-        <DragOverlay dropAnimation={null}>
-          {activeDeal ? (
-            <Paper variant="outlined" sx={{ p: 1.5, width: 260, boxShadow: 6, cursor: 'grabbing' }}>
-              <Typography variant="body2" fontWeight={600}>
-                {activeDeal.name}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {formatMoney(activeDeal.amount, activeDeal.currency)} · {activeDeal.probability}%
-              </Typography>
-            </Paper>
-          ) : null}
-        </DragOverlay>
-      ) : null}
+        {canManage ? (
+          <DragOverlay dropAnimation={null}>
+            {activeDeal ? (
+              <div className="w-[260px] cursor-grabbing rounded-md border border-border p-1.5 shadow-md">
+                <p className="text-sm font-semibold leading-snug">{activeDeal.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {formatMoney(activeDeal.amount, activeDeal.currency)} · {activeDeal.probability}%
+                </p>
+              </div>
+            ) : null}
+          </DragOverlay>
+        ) : null}
       </DndContext>
-    </Box>
+    </div>
   )
 }

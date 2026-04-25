@@ -1,105 +1,75 @@
-import React from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  Stack,
-  alpha,
-  useTheme,
-  Alert,
-  Divider,
-} from '@mui/material';
-import {
-  Campaign as CampaignIcon,
-  Email as EmailIcon,
-  IntegrationInstructions as IntegrationIcon,
-  OpenInNew as OpenInNewIcon,
-} from '@mui/icons-material';
-import { PageHeader } from '../../components/common/PageHeader';
+import React from 'react'
+import { Megaphone, Mail, Puzzle, ExternalLink } from 'lucide-react'
+import { PageHeader } from '../../components/common/PageHeader'
+import { Card, CardContent } from '../../components/ui/card'
+import { Button } from '../../components/ui/button'
+import { Separator } from '../../components/ui/separator'
 
 export default function NewsletterManagement() {
-  const theme = useTheme();
-
   return (
-    <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
+    <div className="p-4 sm:p-6 md:p-8">
       <PageHeader
         title="Newsletter & Email Marketing"
         subtitle="Manage subscribers and email campaigns for your client website"
       />
 
-      <Stack spacing={3}>
-        <Alert severity="info" sx={{ borderRadius: 2 }}>
-          Connect your email service provider (ESP) to collect subscribers and send campaigns. 
-          Common integrations: Mailchimp, Sendinblue, ConvertKit, or your backend API.
-        </Alert>
-
-        <Card
-          sx={{
-            borderRadius: 3,
-            border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-            overflow: 'hidden',
-          }}
+      <div className="space-y-6">
+        <div
+          className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground"
+          role="status"
         >
-          <CardContent sx={{ p: 4 }}>
-            <Stack direction="row" spacing={3} alignItems="flex-start" flexWrap="wrap">
-              <Box
-                sx={{
-                  p: 2,
-                  borderRadius: 2,
-                  bgcolor: alpha(theme.palette.primary.main, 0.08),
-                  color: theme.palette.primary.main,
-                }}
-              >
-                <CampaignIcon sx={{ fontSize: 48 }} />
-              </Box>
-              <Box sx={{ flex: 1, minWidth: 280 }}>
-                <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-                  Market-standard checklist
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Your client site can offer:
-                </Typography>
-                <Box component="ul" sx={{ m: 0, pl: 2.5, '& li': { mb: 0.5 } }}>
+          Connect your email service provider (ESP) to collect subscribers and send campaigns. Common integrations:
+          Mailchimp, Sendinblue, ConvertKit, or your backend API.
+        </div>
+
+        <Card className="overflow-hidden border-primary/20">
+          <CardContent className="p-6 sm:p-8">
+            <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Megaphone className="h-10 w-10" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="mb-2 text-lg font-bold">Market-standard checklist</h2>
+                <p className="mb-3 text-sm text-muted-foreground">Your client site can offer:</p>
+                <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
                   <li>Signup form (footer / pop-up / inline)</li>
                   <li>Double opt-in (confirm email)</li>
                   <li>Segments (e.g. by interest or category)</li>
                   <li>Campaigns (promos, product updates, blog digest)</li>
                   <li>Unsubscribe and preference center</li>
-                </Box>
-              </Box>
-            </Stack>
+                </ul>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        <Card sx={{ borderRadius: 3, overflow: 'hidden' }}>
-          <CardContent sx={{ p: 4 }}>
-            <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
-              <EmailIcon color="action" />
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Integration options
-              </Typography>
-            </Stack>
-            <Divider sx={{ mb: 2 }} />
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Add a backend endpoint (e.g. <code>POST /api/newsletter/subscribe</code>) that forwards to your ESP, 
-              or embed your ESP’s signup form on the client site. Use webhooks from your ESP to keep subscriber counts in sync.
-            </Typography>
-            <Button
-              variant="outlined"
-              href="https://www.mailchimp.com/developers/"
-              target="_blank"
-              rel="noopener noreferrer"
-              startIcon={<IntegrationIcon />}
-              endIcon={<OpenInNewIcon fontSize="small" />}
-              sx={{ alignSelf: 'flex-start' }}
-            >
-              View Mailchimp API docs
+        <Card>
+          <CardContent className="p-6 sm:p-8">
+            <div className="mb-2 flex items-center gap-2">
+              <Mail className="h-5 w-5 text-muted-foreground" />
+              <h2 className="text-lg font-semibold">Integration options</h2>
+            </div>
+            <Separator className="mb-3" />
+            <p className="mb-4 text-sm text-muted-foreground">
+              Add a backend endpoint (e.g. <code className="rounded bg-muted px-0.5">POST /api/newsletter/subscribe</code>
+              ) that forwards to your ESP, or embed your ESP’s signup form on the client site. Use webhooks from your
+              ESP to keep subscriber counts in sync.
+            </p>
+            <Button variant="outline" asChild>
+              <a
+                href="https://www.mailchimp.com/developers/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5"
+              >
+                <Puzzle className="h-4 w-4" />
+                View Mailchimp API docs
+                <ExternalLink className="h-3.5 w-3.5 opacity-70" />
+              </a>
             </Button>
           </CardContent>
         </Card>
-      </Stack>
-    </Box>
-  );
+      </div>
+    </div>
+  )
 }

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import { Navigate, useLocation, Link } from 'react-router-dom'
-import { Box, Container, Typography, Paper, Stack, Button } from '@mui/material'
 import { LoginForm } from '../../components/auth/LoginForm'
 import { useAppSelector, useAppDispatch } from '../../store/hooks'
 import { loginUser } from '../../store/slices/authSlice'
@@ -78,26 +77,9 @@ export function Auth() {
   }
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        p: { xs: 1, sm: 2 },
-      }}
-    >
-      <Container maxWidth="lg" sx={{ px: { xs: 1, sm: 2 } }}>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: { xs: 3, sm: 6 },
-            flexDirection: { xs: 'column', lg: 'row' },
-          }}
-        >
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#667eea] to-[#764ba2] p-2 sm:p-4">
+      <div className="w-full max-w-5xl px-1 sm:px-2">
+        <div className="flex flex-col items-center justify-center gap-6 lg:flex-row lg:gap-10">
           {/* Features Section */}
           {/* <Paper
             sx={{
@@ -212,7 +194,7 @@ export function Auth() {
           </Paper> */}
 
           {/* Login Form */}
-          <Box sx={{ order: { xs: 1, lg: 2 } }}>
+          <div className="order-1 lg:order-2">
             <LoginForm onLogin={handleLogin} isLoading={isLoading} error={error} />
             
             {/* Signup Link */}
@@ -237,10 +219,10 @@ export function Auth() {
               >
                 Create Account
               </Button>
-            </Box> */}
-          </Box>
-        </Box>
-      </Container>
-    </Box>
+            </div> */}
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }

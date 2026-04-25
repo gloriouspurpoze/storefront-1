@@ -1,26 +1,10 @@
 import React, { useCallback, useState } from 'react'
-import {
-  Box,
-  Typography,
-  Card,
-  Button,
-  IconButton,
-  Chip,
-  Alert,
-  LinearProgress,
-  Tooltip,
-  CircularProgress,
-} from '@mui/material'
-import {
-  CloudUpload as UploadIcon,
-  Delete as DeleteIcon,
-  Description as FileIcon,
-  CheckCircle as CheckIcon,
-  Error as ErrorIcon,
-  Info as InfoIcon,
-  Download as DownloadIcon,
-} from '@mui/icons-material'
 import { useDropzone } from 'react-dropzone'
+import { CloudUpload, Download, Loader2, Trash2 } from 'lucide-react'
+import { Label } from '../ui/label'
+import { Button } from '../ui/button'
+import { Card } from '../ui/card'
+import { cn } from '../../lib/utils'
 import UploadService from '../../services/api/upload.service'
 
 export interface DocumentFile {
@@ -29,7 +13,7 @@ export interface DocumentFile {
   name: string
   size: number
   type: string
-  publicId?: string  // Cloudinary public ID for deletion
+  publicId?: string
 }
 
 export interface DocumentUploadFieldProps {
@@ -37,7 +21,7 @@ export interface DocumentUploadFieldProps {
   value: DocumentFile[]
   onChange: (documents: DocumentFile[]) => void
   maxFiles?: number
-  maxSize?: number  // in MB
+  maxSize?: number
   helperText?: string
   error?: string
   required?: boolean
@@ -46,12 +30,19 @@ export interface DocumentUploadFieldProps {
   folder?: string
 }
 
+const fileEmoji = (type: string) => {
+  if (type.includes('pdf')) return '📄'
+  if (type.includes('word')) return '📝'
+  if (type.includes('image')) return '🖼️'
+  return '📎'
+}
+
 export const DocumentUploadField: React.FC<DocumentUploadFieldProps> = ({
   label,
   value,
   onChange,
   maxFiles = 5,
-  maxSize = 10,  // 10MB default
+  maxSize = 10,
   helperText,
   error,
   required = false,
@@ -71,67 +62,58 @@ export const DocumentUploadField: React.FC<DocumentUploadFieldProps> = ({
   const [isUploading, setIsUploading] = useState(false)
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
 
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    if (disabled) return
-
-    setIsUploading(true)
-    setUploadError(null)
-    setUploadProgress(0)
-
-    try {
-      const uploadedDocuments: DocumentFile[] = []
-      
-      for (let i = 0; i < acceptedFiles.length; i++) {
-        const file = acceptedFiles[i]
-        setUploadProgress(Math.round(((i + 0.5) / acceptedFiles.length) * 100))
-        
-        // Upload to Cloudinary
-        const uploadResult = await UploadService.uploadImage(file, folder)
-        
-        uploadedDocuments.push({
-          id: Math.random().toString(36).substr(2, 9),
-          url: uploadResult.url,
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          publicId: uploadResult.publicId,
-        })
-        
-        setUploadProgress(Math.round(((i + 1) / acceptedFiles.length) * 100))
-      }
-
-      onChange([...value, ...uploadedDocuments])
+  const onDrop = useCallback(
+    async (acceptedFiles: File[]) => {
+      if (disabled) return
+      setIsUploading(true)
+      setUploadError(null)
       setUploadProgress(0)
-    } catch (error: any) {
-      console.error('Upload error:', error)
-      setUploadError(error.message || 'Failed to upload documents')
-    } finally {
-      setIsUploading(false)
-    }
-  }, [value, onChange, disabled, folder])
+      try {
+        const uploaded: DocumentFile[] = []
+        for (let i = 0; i < acceptedFiles.length; i++) {
+          const file = acceptedFiles[i]
+          setUploadProgress(Math.round(((i + 0.5) / acceptedFiles.length) * 100))
+          const uploadResult = await UploadService.uploadImage(file, folder)
+          uploaded.push({
+            id: Math.random().toString(36).slice(2, 11),
+            url: uploadResult.url,
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            publicId: uploadResult.publicId,
+          })
+          setUploadProgress(Math.round(((i + 1) / acceptedFiles.length) * 100))
+        }
+        onChange([...value, ...uploaded])
+        setUploadProgress(0)
+      } catch (e: any) {
+        console.error('Upload error:', e)
+        setUploadError(e?.message || 'Failed to upload documents')
+      } finally {
+        setIsUploading(false)
+      }
+    },
+    [value, onChange, disabled, folder],
+  )
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: acceptedTypes.reduce((acc, type) => {
-      acc[type] = []
+    accept: acceptedTypes.reduce<Record<string, string[]>>((acc, t) => {
+      acc[t] = []
       return acc
-    }, {} as Record<string, string[]>),
+    }, {}),
     maxFiles: maxFiles - value.length,
     maxSize: maxSize * 1024 * 1024,
     disabled: disabled || isUploading,
   })
 
   const removeDocument = async (docId: string) => {
-    const docToRemove = value.find(doc => doc.id === docId)
-    
-    // If document has publicId, delete from Cloudinary
+    const docToRemove = value.find((d) => d.id === docId)
     if (docToRemove?.publicId) {
       try {
         setIsDeleting(docId)
         await UploadService.deleteImage(docToRemove.publicId)
-        console.log('Document deleted from Cloudinary:', docToRemove.publicId)
-      } catch (error) {
-        console.error('Failed to delete document from Cloudinary:', error)
+      } catch {
         setUploadError('Failed to delete document from cloud storage')
         setIsDeleting(null)
         return
@@ -139,168 +121,140 @@ export const DocumentUploadField: React.FC<DocumentUploadFieldProps> = ({
         setIsDeleting(null)
       }
     }
-    
-    // Remove from local state
-    const newDocuments = value.filter(doc => doc.id !== docId)
-    onChange(newDocuments)
+    onChange(value.filter((d) => d.id !== docId))
   }
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes'
     const k = 1024
     const sizes = ['Bytes', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1)
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
-  const getFileIcon = (type: string) => {
-    if (type.includes('pdf')) return '📄'
-    if (type.includes('word')) return '📝'
-    if (type.includes('image')) return '🖼️'
-    return '📎'
-  }
-
   return (
-    <Box sx={{ width: '100%' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-        <Typography
-          variant="subtitle2"
-          sx={{
-            fontWeight: 600,
-            color: error ? 'error.main' : 'text.primary',
-          }}
+    <div className="w-full">
+      <div className="mb-2 flex items-center gap-1">
+        <Label
+          className={cn('text-sm font-semibold', error && 'text-destructive')}
         >
           {label}
-          {required && (
-            <Typography component="span" color="error.main" sx={{ ml: 0.5 }}>
-              *
-            </Typography>
-          )}
-        </Typography>
-      </Box>
+          {required && <span className="ml-0.5 text-destructive">*</span>}
+        </Label>
+      </div>
 
-      {/* Upload Area */}
-      <Box
+      <div
         {...getRootProps()}
-        sx={{
-          border: '2px dashed',
-          borderColor: isDragActive ? 'primary.main' : error ? 'error.main' : 'grey.300',
-          borderRadius: 2,
-          p: 3,
-          textAlign: 'center',
-          cursor: disabled ? 'not-allowed' : 'pointer',
-          transition: 'all 0.2s ease-in-out',
-          backgroundColor: isDragActive ? 'action.hover' : 'transparent',
-          opacity: disabled ? 0.6 : 1,
-          '&:hover': {
-            borderColor: disabled ? 'grey.300' : 'primary.main',
-            backgroundColor: disabled ? 'transparent' : 'action.hover',
-          },
-        }}
+        className={cn(
+          'cursor-pointer rounded-md border-2 border-dashed p-6 text-center transition-colors',
+          isDragActive && 'border-primary bg-muted/50',
+          error && 'border-destructive',
+          !isDragActive && !error && 'border-muted-foreground/25',
+          disabled && 'cursor-not-allowed opacity-60',
+        )}
       >
         <input {...getInputProps()} />
-        <UploadIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-        <Typography variant="body1" sx={{ mb: 1 }}>
-          {isDragActive ? 'Drop files here' : 'Drag & drop documents here, or click to select'}
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
+        <CloudUpload className="mx-auto mb-2 h-12 w-12 text-muted-foreground" />
+        <p className="mb-1 text-sm font-medium">
+          {isDragActive
+            ? 'Drop files here'
+            : 'Drag & drop documents here, or click to select'}
+        </p>
+        <p className="text-xs text-muted-foreground">
           Accepted: PDF, DOC, DOCX, JPG, PNG (Max {maxSize}MB per file)
-        </Typography>
+        </p>
         {value.length >= maxFiles && (
-          <Typography variant="caption" color="error" sx={{ display: 'block', mt: 1 }}>
+          <p className="mt-2 text-xs text-destructive">
             Maximum {maxFiles} files ({value.length}/{maxFiles} uploaded)
-          </Typography>
+          </p>
         )}
-      </Box>
+      </div>
 
-      {/* Upload Progress */}
       {(uploadProgress > 0 || isUploading) && (
-        <Box sx={{ mt: 2 }}>
-          <LinearProgress variant="determinate" value={uploadProgress} />
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+        <div className="mt-3">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full bg-primary transition-all"
+              style={{ width: `${uploadProgress}%` }}
+            />
+          </div>
+          <p className="mt-1.5 text-xs text-muted-foreground">
             Uploading to Cloudinary... {uploadProgress}%
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
 
-      {/* Upload Error */}
       {uploadError && (
-        <Alert severity="error" sx={{ mt: 2 }} onClose={() => setUploadError(null)}>
-          {uploadError}
-        </Alert>
+        <div
+          className="mt-3 flex items-center justify-between gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-2 text-sm text-destructive"
+          role="alert"
+        >
+          <span className="min-w-0 flex-1">{uploadError}</span>
+          <Button type="button" variant="ghost" size="sm" onClick={() => setUploadError(null)}>
+            Dismiss
+          </Button>
+        </div>
       )}
 
-      {/* Error Message */}
       {error && !uploadError && (
-        <Alert severity="error" sx={{ mt: 2 }}>
+        <div
+          className="mt-3 rounded-md border border-destructive/50 bg-destructive/10 p-2 text-sm text-destructive"
+          role="alert"
+        >
           {error}
-        </Alert>
+        </div>
       )}
 
-      {/* Helper Text */}
       {helperText && !error && (
-        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-          {helperText}
-        </Typography>
+        <p className="mt-2 text-sm text-muted-foreground">{helperText}</p>
       )}
 
-      {/* Document List */}
       {value.length > 0 && (
-        <Box sx={{ mt: 3 }}>
-          <Typography variant="subtitle2" sx={{ mb: 2 }}>
-            Uploaded Documents ({value.length})
-          </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div className="mt-6">
+          <p className="mb-2 text-sm font-medium">Uploaded Documents ({value.length})</p>
+          <div className="flex flex-col gap-2">
             {value.map((doc) => (
-              <Card key={doc.id} variant="outlined" sx={{ p: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Typography sx={{ fontSize: 24 }}>
-                    {getFileIcon(doc.type)}
-                  </Typography>
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {doc.name}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {formatFileSize(doc.size)}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Tooltip title="Download">
-                      <IconButton
-                        size="small"
-                        component="a"
-                        href={doc.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <DownloadIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Remove">
-                      <IconButton
-                        size="small"
-                        onClick={() => removeDocument(doc.id)}
-                        disabled={isDeleting === doc.id}
-                        color="error"
-                      >
-                        {isDeleting === doc.id ? (
-                          <CircularProgress size={16} />
-                        ) : (
-                          <DeleteIcon fontSize="small" />
-                        )}
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                </Box>
+              <Card key={doc.id} className="p-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">{fileEmoji(doc.type)}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">{doc.name}</p>
+                    <p className="text-xs text-muted-foreground">{formatFileSize(doc.size)}</p>
+                  </div>
+                  <div className="flex items-center gap-0.5">
+                    <a
+                      href={doc.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted"
+                      title="Download"
+                    >
+                      <Download className="h-4 w-4" />
+                    </a>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive"
+                      onClick={() => void removeDocument(doc.id)}
+                      disabled={isDeleting === doc.id}
+                      title="Remove"
+                    >
+                      {isDeleting === doc.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
               </Card>
             ))}
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
-    </Box>
+    </div>
   )
 }
 
 export default DocumentUploadField
-

@@ -156,7 +156,7 @@ export default function EnhancedCategoryManagement() {
 
   // Handle category actions
   const handleCreateCategory = () => {
-    navigate('/categories/create')
+    navigate('/categories')
   }
 
   const handleEditCategory = (category: Category) => {

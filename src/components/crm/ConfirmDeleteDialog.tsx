@@ -1,12 +1,13 @@
 import React from 'react'
+import { Button } from '../ui/button'
 import {
-  Button,
   Dialog,
-  DialogActions,
   DialogContent,
-  DialogContentText,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-} from '@mui/material'
+} from '../ui/dialog'
 
 type Props = {
   open: boolean
@@ -28,26 +29,39 @@ export function ConfirmDeleteDialog({
   onConfirm,
 }: Props) {
   return (
-    <Dialog open={open} onClose={loading ? undefined : onClose} maxWidth="xs" fullWidth>
-      <DialogTitle>{title}</DialogTitle>
-      <DialogContent>
-        <DialogContentText>{description}</DialogContentText>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (next) return
+        if (!loading) onClose()
+      }}
+    >
+      <DialogContent
+        className="max-w-xs"
+        onPointerDownOutside={(e) => loading && e.preventDefault()}
+        onEscapeKeyDown={(e) => loading && e.preventDefault()}
+        aria-describedby="confirm-delete-description"
+      >
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription id="confirm-delete-description">{description}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            disabled={loading}
+            onClick={() => {
+              void onConfirm()
+            }}
+          >
+            {confirmLabel}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} disabled={loading}>
-          Cancel
-        </Button>
-        <Button
-          color="error"
-          variant="contained"
-          disabled={loading}
-          onClick={() => {
-            void onConfirm()
-          }}
-        >
-          {confirmLabel}
-        </Button>
-      </DialogActions>
     </Dialog>
   )
 }

@@ -1,21 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  TextField,
-  Snackbar,
-  Alert,
-  Stack,
-  Typography,
-} from '@mui/material'
-import { DataGrid, GridColDef, GridActionsCellItem, GridRowSelectionModel } from '@mui/x-data-grid'
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Download as DownloadIcon } from '@mui/icons-material'
+import { Download, Pencil, Plus, Trash2 } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { CrmSubnav } from '../../components/crm/CrmSubnav'
 import { ConfirmDeleteDialog } from '../../components/crm/ConfirmDeleteDialog'
@@ -23,11 +7,30 @@ import { CrmListToolbar } from '../../components/crm/CrmListToolbar'
 import { CrmListShell } from '../../components/crm/CrmListShell'
 import { CrmEmptyState } from '../../components/crm/CrmEmptyState'
 import { CrmDataGridSkeleton } from '../../components/crm/CrmDataGridSkeleton'
+import {
+  DataGrid,
+  GridActionsCellItem,
+  type GridColDef,
+  type GridRowSelectionModel,
+} from '../../components/crm/CrmDataTable'
 import { crmService } from '../../services/api/crm.service'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useCrmSearchParam } from '../../hooks/useCrmUrlFilters'
 import { filterCompanies } from '../../utils/crmFilters'
 import type { CrmCompany } from '../../types/crm.types'
+import { Card, CardContent } from '../../components/ui/card'
+import { Button } from '../../components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
+import { Textarea } from '../../components/ui/textarea'
+import { cn } from '../../lib/utils'
 
 const emptySelection: GridRowSelectionModel = { type: 'include', ids: new Set() }
 
@@ -68,6 +71,12 @@ export function CrmCompanies() {
       c = false
     }
   }, [tick])
+
+  useEffect(() => {
+    if (!snackbar.open) return undefined
+    const t = window.setTimeout(() => setSnackbar((s) => ({ ...s, open: false })), 4000)
+    return () => window.clearTimeout(t)
+  }, [snackbar.open, snackbar.message])
 
   const filteredRows = useMemo(() => filterCompanies(rows, qInput), [rows, qInput])
 
@@ -147,10 +156,10 @@ export function CrmCompanies() {
     headerName: '',
     width: 100,
     getActions: ({ row }) => [
-      <GridActionsCellItem key="edit" icon={<EditIcon />} label="Edit" onClick={() => openEdit(row)} />,
+      <GridActionsCellItem key="edit" icon={<Pencil className="h-4 w-4" />} label="Edit" onClick={() => openEdit(row)} />,
       <GridActionsCellItem
         key="del"
-        icon={<DeleteIcon />}
+        icon={<Trash2 className="h-4 w-4" />}
         label="Delete"
         onClick={() => {
           setCompanyToDeleteId(row.id)
@@ -170,21 +179,23 @@ export function CrmCompanies() {
   const isEmpty = !loading && !loadError && rows.length === 0
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }}>
+    <div className="p-4 md:p-6">
       <PageHeader
         title="Companies"
         subtitle="Accounts and organizations — linked from contacts and deals."
         action={
-          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            <Button variant="outlined" startIcon={<DownloadIcon />} onClick={() => crmService.downloadExport('companies')}>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" className="gap-1" onClick={() => crmService.downloadExport('companies')}>
+              <Download className="h-4 w-4" />
               Export CSV
             </Button>
             {canManage ? (
-              <Button startIcon={<AddIcon />} variant="contained" onClick={openCreate}>
+              <Button size="sm" className="gap-1" onClick={openCreate}>
+                <Plus className="h-4 w-4" />
                 Add company
               </Button>
             ) : null}
-          </Stack>
+          </div>
         }
       />
       <CrmSubnav />
@@ -192,12 +203,12 @@ export function CrmCompanies() {
       <CrmListToolbar qInput={qInput} onQChange={setQInput} searchPlaceholder="Search companies…" />
 
       {canManage && selectedIds.length > 0 ? (
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-          <Typography variant="body2">{selectedIds.length} selected</Typography>
-          <Button size="small" color="error" variant="outlined" onClick={() => setDeleteTarget('bulk')}>
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <p className="text-sm text-muted-foreground">{selectedIds.length} selected</p>
+          <Button size="sm" variant="outline" className="text-destructive" onClick={() => setDeleteTarget('bulk')}>
             Delete selected
           </Button>
-        </Stack>
+        </div>
       ) : null}
 
       <CrmListShell
@@ -206,7 +217,7 @@ export function CrmCompanies() {
         onRetry={refresh}
         isEmpty={isEmpty}
         empty={
-          <Card variant="outlined">
+          <Card>
             <CrmEmptyState
               title="No companies yet"
               description="Add accounts you work with so contacts and deals can link to them."
@@ -217,8 +228,8 @@ export function CrmCompanies() {
         }
         skeleton={<CrmDataGridSkeleton />}
       >
-        <Card variant="outlined">
-          <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
+        <Card>
+          <CardContent className="p-0">
             {filteredRows.length === 0 && rows.length > 0 ? (
               <CrmEmptyState title="No matching companies" description="Try a different search term." />
             ) : (
@@ -227,13 +238,12 @@ export function CrmCompanies() {
                 columns={columns}
                 getRowId={(r) => r.id}
                 pageSizeOptions={[10, 25, 50]}
-                initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
+                initialPageSize={10}
                 checkboxSelection={canManage}
                 rowSelectionModel={selectionModel}
                 onRowSelectionModelChange={setSelectionModel}
-                disableRowSelectionOnClick
-                autoHeight
-                sx={{ border: 'none', minHeight: 360 }}
+                minHeight={360}
+                className="border-0"
               />
             )}
           </CardContent>
@@ -269,80 +279,109 @@ export function CrmCompanies() {
         }}
       />
 
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>{editing ? 'Edit company' : 'New company'}</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
-          <TextField
-            label="Name"
-            required
-            value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-          />
-          <TextField label="Industry" value={form.industry} onChange={(e) => setForm((f) => ({ ...f, industry: e.target.value }))} />
-          <TextField label="Website" value={form.website} onChange={(e) => setForm((f) => ({ ...f, website: e.target.value }))} />
-          <TextField label="Phone" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
-          <TextField label="City" value={form.city} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} />
-          <TextField label="Country" value={form.country} onChange={(e) => setForm((f) => ({ ...f, country: e.target.value }))} />
-          <TextField
-            label="Employees"
-            value={form.employeeCount}
-            onChange={(e) => setForm((f) => ({ ...f, employeeCount: e.target.value }))}
-          />
-          <TextField
-            label="Annual revenue"
-            value={form.annualRevenue}
-            onChange={(e) => setForm((f) => ({ ...f, annualRevenue: e.target.value }))}
-          />
-          <TextField
-            label="Notes"
-            multiline
-            minRows={2}
-            value={form.notes}
-            onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
-          <Button
-            variant="contained"
-            onClick={() => {
-              if (!form.name.trim()) {
-                setSnackbar({ open: true, message: 'Name is required', severity: 'error' })
-                return
-              }
-              void (async () => {
-                try {
-                  await crmService.upsertCompany({
-                    id: editing?.id,
-                    name: form.name.trim(),
-                    industry: form.industry || undefined,
-                    website: form.website || undefined,
-                    phone: form.phone || undefined,
-                    city: form.city || undefined,
-                    country: form.country || undefined,
-                    employeeCount: form.employeeCount || undefined,
-                    annualRevenue: form.annualRevenue || undefined,
-                    notes: form.notes || undefined,
-                  })
-                  setOpen(false)
-                  refresh()
-                  setSnackbar({ open: true, message: 'Company saved', severity: 'success' })
-                } catch {
-                  setSnackbar({ open: true, message: 'Save failed', severity: 'error' })
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editing ? 'Edit company' : 'New company'}</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 py-1">
+            <div className="space-y-1.5">
+              <Label htmlFor="co-name">Name *</Label>
+              <Input
+                id="co-name"
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              />
+            </div>
+            {(['industry', 'website', 'phone', 'city', 'country'] as const).map((key) => (
+              <div key={key} className="space-y-1.5">
+                <Label className="capitalize" htmlFor={`co-${key}`}>
+                  {key}
+                </Label>
+                <Input
+                  id={`co-${key}`}
+                  value={form[key]}
+                  onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+                />
+              </div>
+            ))}
+            <div className="space-y-1.5">
+              <Label htmlFor="co-emp">Employees</Label>
+              <Input
+                id="co-emp"
+                value={form.employeeCount}
+                onChange={(e) => setForm((f) => ({ ...f, employeeCount: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="co-rev">Annual revenue</Label>
+              <Input
+                id="co-rev"
+                value={form.annualRevenue}
+                onChange={(e) => setForm((f) => ({ ...f, annualRevenue: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="co-notes">Notes</Label>
+              <Textarea
+                id="co-notes"
+                rows={3}
+                value={form.notes}
+                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                if (!form.name.trim()) {
+                  setSnackbar({ open: true, message: 'Name is required', severity: 'error' })
+                  return
                 }
-              })()
-            }}
-          >
-            Save
-          </Button>
-        </DialogActions>
+                void (async () => {
+                  try {
+                    await crmService.upsertCompany({
+                      id: editing?.id,
+                      name: form.name.trim(),
+                      industry: form.industry || undefined,
+                      website: form.website || undefined,
+                      phone: form.phone || undefined,
+                      city: form.city || undefined,
+                      country: form.country || undefined,
+                      employeeCount: form.employeeCount || undefined,
+                      annualRevenue: form.annualRevenue || undefined,
+                      notes: form.notes || undefined,
+                    })
+                    setOpen(false)
+                    refresh()
+                    setSnackbar({ open: true, message: 'Company saved', severity: 'success' })
+                  } catch {
+                    setSnackbar({ open: true, message: 'Save failed', severity: 'error' })
+                  }
+                })()
+              }}
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
 
-      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar((s) => ({ ...s, open: false }))}>
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar((s) => ({ ...s, open: false }))} sx={{ width: '100%' }}>
+      {snackbar.open ? (
+        <div
+          role="status"
+          className={cn(
+            'fixed bottom-4 left-1/2 z-[200] w-[min(100%,20rem)] -translate-x-1/2 rounded-md border px-4 py-2 text-sm shadow-md',
+            snackbar.severity === 'error' ? 'border-destructive bg-destructive text-destructive-foreground' : 'border-emerald-600 bg-emerald-600 text-white',
+          )}
+        >
           {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+        </div>
+      ) : null}
+    </div>
   )
 }

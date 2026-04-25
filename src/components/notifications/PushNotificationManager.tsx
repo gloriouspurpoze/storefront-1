@@ -1,223 +1,226 @@
-import React, { useEffect, useState } from 'react';
-import { Box, Alert, Button, Typography, Card, CardContent, Stack } from '@mui/material';
-import { Notifications as NotificationsIcon, CheckCircle as CheckIcon } from '@mui/icons-material';
-import { useNotifications } from '../../hooks/useNotifications';
-import { useAppDispatch } from '../../store/hooks';
-import { addToast } from '../../store/slices/uiSlice';
+import React, { useEffect, useState } from 'react'
+import { Bell, CheckCircle2 } from 'lucide-react'
+import { useNotifications } from '../../hooks/useNotifications'
+import { useAppDispatch } from '../../store/hooks'
+import { addToast } from '../../store/slices/uiSlice'
+import { Card, CardContent } from '../ui/card'
+import { Button } from '../ui/button'
 
 interface PushNotificationManagerProps {
-  onPermissionGranted?: () => void;
-  onPermissionDenied?: () => void;
+  onPermissionGranted?: () => void
+  onPermissionDenied?: () => void
 }
 
-export function PushNotificationManager({ 
-  onPermissionGranted, 
-  onPermissionDenied 
+function AlertBox({
+  variant,
+  children,
+}: {
+  variant: 'warning' | 'info' | 'success' | 'error'
+  children: React.ReactNode
+}) {
+  const cls =
+    variant === 'warning'
+      ? 'border-amber-500/40 bg-amber-500/10 text-amber-950 dark:text-amber-100'
+      : variant === 'info'
+        ? 'border-border bg-muted/50 text-foreground'
+        : variant === 'success'
+          ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-950 dark:text-emerald-50'
+          : 'border-destructive/40 bg-destructive/10 text-destructive'
+
+  return (
+    <div className={['rounded-md border px-3 py-2 text-sm', cls].join(' ')} role="alert">
+      {children}
+    </div>
+  )
+}
+
+export function PushNotificationManager({
+  onPermissionGranted,
+  onPermissionDenied,
 }: PushNotificationManagerProps) {
-  const [permission, setPermission] = useState<NotificationPermission>('default');
-  const [isSupported, setIsSupported] = useState(false);
-  const [isRegistered, setIsRegistered] = useState(false);
-  const { registerDevice, unregisterDevice } = useNotifications();
-  const dispatch = useAppDispatch();
+  const [permission, setPermission] = useState<NotificationPermission>('default')
+  const [isSupported, setIsSupported] = useState(false)
+  const [isRegistered, setIsRegistered] = useState(false)
+  const { registerDevice, unregisterDevice } = useNotifications()
+  const dispatch = useAppDispatch()
 
   useEffect(() => {
-    // Check if push notifications are supported
-    const supported = 'serviceWorker' in navigator && 'PushManager' in window;
-    setIsSupported(supported);
+    const supported = 'serviceWorker' in navigator && 'PushManager' in window
+    setIsSupported(supported)
 
     if (supported) {
-      setPermission(Notification.permission);
-      checkRegistrationStatus();
+      setPermission(Notification.permission)
+      void checkRegistrationStatus()
     }
-  }, []);
+  }, [])
 
   const checkRegistrationStatus = async () => {
     try {
       if ('serviceWorker' in navigator) {
-        const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.getSubscription();
-        setIsRegistered(!!subscription);
+        const registration = await navigator.serviceWorker.ready
+        const subscription = await registration.pushManager.getSubscription()
+        setIsRegistered(!!subscription)
       }
     } catch (error) {
-      console.error('Error checking registration status:', error);
+      console.error('Error checking registration status:', error)
     }
-  };
+  }
 
   const requestPermission = async () => {
     try {
-      const permission = await Notification.requestPermission();
-      setPermission(permission);
+      const next = await Notification.requestPermission()
+      setPermission(next)
 
-      if (permission === 'granted') {
-        await enablePushNotifications();
-        onPermissionGranted?.();
+      if (next === 'granted') {
+        await enablePushNotifications()
+        onPermissionGranted?.()
       } else {
-        onPermissionDenied?.();
-        dispatch(addToast({
-          message: 'Push notifications permission denied',
-          severity: 'warning'
-        }));
+        onPermissionDenied?.()
+        dispatch(
+          addToast({
+            message: 'Push notifications permission denied',
+            severity: 'warning',
+          }),
+        )
       }
     } catch (error) {
-      console.error('Error requesting permission:', error);
-      dispatch(addToast({
-        message: 'Failed to request notification permission',
-        severity: 'error'
-      }));
+      console.error('Error requesting permission:', error)
+      dispatch(
+        addToast({
+          message: 'Failed to request notification permission',
+          severity: 'error',
+        }),
+      )
     }
-  };
+  }
 
   const enablePushNotifications = async () => {
     try {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
 
       try {
-        await navigator.serviceWorker.register('/sw.js');
-        await navigator.serviceWorker.ready;
+        await navigator.serviceWorker.register('/sw.js')
+        await navigator.serviceWorker.ready
       } catch (swError) {
-        console.error('Service worker registration failed:', swError);
+        console.error('Service worker registration failed:', swError)
         dispatch(
           addToast({
             message: 'Could not register the app worker for push. Check that /sw.js is served.',
             severity: 'error',
-          })
-        );
-        return;
+          }),
+        )
+        return
       }
 
-      await registerDevice();
-      setIsRegistered(true);
+      await registerDevice()
+      setIsRegistered(true)
     } catch (error) {
-      console.error('Error enabling push notifications:', error);
-      // `registerDevice` already shows an error toast
+      console.error('Error enabling push notifications:', error)
     }
-  };
+  }
 
   const disablePushNotifications = async () => {
     try {
       if ('serviceWorker' in navigator && 'PushManager' in window) {
-        const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.getSubscription();
-        
+        const registration = await navigator.serviceWorker.ready
+        const subscription = await registration.pushManager.getSubscription()
+
         if (subscription) {
-          await subscription.unsubscribe();
-          await unregisterDevice();
+          await subscription.unsubscribe()
+          await unregisterDevice()
         }
 
-        setIsRegistered(false);
-        dispatch(addToast({
-          message: 'Push notifications disabled',
-          severity: 'info'
-        }));
+        setIsRegistered(false)
+        dispatch(
+          addToast({
+            message: 'Push notifications disabled',
+            severity: 'info',
+          }),
+        )
       }
     } catch (error) {
-      console.error('Error disabling push notifications:', error);
-      dispatch(addToast({
-        message: 'Failed to disable push notifications',
-        severity: 'error'
-      }));
+      console.error('Error disabling push notifications:', error)
+      dispatch(
+        addToast({
+          message: 'Failed to disable push notifications',
+          severity: 'error',
+        }),
+      )
     }
-  };
+  }
 
   if (!isSupported) {
     return (
-      <Alert severity="warning">
-        Push notifications are not supported in this browser.
-      </Alert>
-    );
+      <AlertBox variant="warning">Push notifications are not supported in this browser.</AlertBox>
+    )
   }
 
   return (
     <Card>
-      <CardContent>
-        <Stack spacing={3}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <NotificationsIcon color="primary" />
-            <Typography variant="h6">
-              Push Notifications
-            </Typography>
-            {isRegistered && (
-              <CheckIcon color="success" />
+      <CardContent className="space-y-6 pt-6">
+        <div className="flex items-center gap-2">
+          <Bell className="h-6 w-6 text-primary" aria-hidden />
+          <h3 className="text-lg font-semibold">Push Notifications</h3>
+          {isRegistered && <CheckCircle2 className="h-5 w-5 text-emerald-600" aria-hidden />}
+        </div>
+
+        <p className="text-sm text-muted-foreground">
+          Receive real-time notifications about orders, messages, and important updates.
+        </p>
+
+        {permission === 'default' && (
+          <AlertBox variant="info">
+            <p className="mb-2 text-sm">
+              Click the button below to enable push notifications for this application.
+            </p>
+            <Button type="button" onClick={() => void requestPermission()}>
+              Enable Push Notifications
+            </Button>
+          </AlertBox>
+        )}
+
+        {permission === 'denied' && (
+          <AlertBox variant="warning">
+            <p className="mb-2 text-sm">
+              Push notifications are blocked. Please enable them in your browser settings.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Go to your browser settings → Privacy and security → Site settings → Notifications
+            </p>
+          </AlertBox>
+        )}
+
+        {permission === 'granted' && (
+          <div>
+            {isRegistered ? (
+              <AlertBox variant="success">
+                <p className="mb-2 text-sm">Push notifications are enabled and working.</p>
+                <Button type="button" variant="outline" onClick={() => void disablePushNotifications()}>
+                  Disable Push Notifications
+                </Button>
+              </AlertBox>
+            ) : (
+              <AlertBox variant="info">
+                <p className="mb-2 text-sm">Permission granted. Setting up push notifications...</p>
+                <Button type="button" onClick={() => void enablePushNotifications()}>
+                  Complete Setup
+                </Button>
+              </AlertBox>
             )}
-          </Box>
+          </div>
+        )}
 
-          <Typography variant="body2" color="text.secondary">
-            Receive real-time notifications about orders, messages, and important updates.
-          </Typography>
-
-          {permission === 'default' && (
-            <Alert severity="info">
-              <Typography variant="body2" gutterBottom>
-                Click the button below to enable push notifications for this application.
-              </Typography>
-              <Button
-                variant="contained"
-                onClick={requestPermission}
-                sx={{ mt: 1 }}
-              >
-                Enable Push Notifications
-              </Button>
-            </Alert>
-          )}
-
-          {permission === 'denied' && (
-            <Alert severity="warning">
-              <Typography variant="body2" gutterBottom>
-                Push notifications are blocked. Please enable them in your browser settings.
-              </Typography>
-              <Typography variant="caption" display="block">
-                Go to your browser settings → Privacy and security → Site settings → Notifications
-              </Typography>
-            </Alert>
-          )}
-
-          {permission === 'granted' && (
-            <Box>
-              {isRegistered ? (
-                <Alert severity="success">
-                  <Typography variant="body2" gutterBottom>
-                    Push notifications are enabled and working.
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    onClick={disablePushNotifications}
-                    sx={{ mt: 1 }}
-                  >
-                    Disable Push Notifications
-                  </Button>
-                </Alert>
-              ) : (
-                <Alert severity="info">
-                  <Typography variant="body2" gutterBottom>
-                    Permission granted. Setting up push notifications...
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    onClick={enablePushNotifications}
-                    sx={{ mt: 1 }}
-                  >
-                    Complete Setup
-                  </Button>
-                </Alert>
-              )}
-            </Box>
-          )}
-
-          <Box>
-            <Typography variant="subtitle2" gutterBottom>
-              What you'll receive:
-            </Typography>
-            <Typography variant="body2" component="ul" sx={{ pl: 2, m: 0 }}>
-              <li>New order notifications</li>
-              <li>Message alerts</li>
-              <li>Service updates</li>
-              <li>System announcements</li>
-              <li>Payment confirmations</li>
-            </Typography>
-          </Box>
-        </Stack>
+        <div>
+          <p className="mb-2 text-sm font-medium">What you&apos;ll receive:</p>
+          <ul className="m-0 list-disc pl-5 text-sm text-muted-foreground">
+            <li>New order notifications</li>
+            <li>Message alerts</li>
+            <li>Service updates</li>
+            <li>System announcements</li>
+            <li>Payment confirmations</li>
+          </ul>
+        </div>
       </CardContent>
     </Card>
-  );
+  )
 }

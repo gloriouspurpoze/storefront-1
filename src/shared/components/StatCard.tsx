@@ -1,14 +1,7 @@
 import React from 'react'
-import {
-  Card,
-  CardContent,
-  Box,
-  Typography,
-} from '@mui/material'
-import {
-  TrendingUp as TrendingUpIcon,
-  TrendingDown as TrendingDownIcon,
-} from '@mui/icons-material'
+import { TrendingDown, TrendingUp } from 'lucide-react'
+import { Card, CardContent } from '../../components/ui/card'
+import { cn } from '../../lib/utils'
 
 export interface StatCardProps {
   title: string
@@ -19,55 +12,48 @@ export interface StatCardProps {
   subtitle?: string
 }
 
-export function StatCard({ 
-  title, 
-  value, 
-  change, 
-  icon: Icon, 
-  color = 'primary', 
-  subtitle 
-}: StatCardProps) {
+const colorClass: Record<NonNullable<StatCardProps['color']>, string> = {
+  primary: 'text-primary',
+  secondary: 'text-secondary-foreground',
+  success: 'text-green-600 dark:text-green-500',
+  error: 'text-destructive',
+  info: 'text-sky-600 dark:text-sky-400',
+  warning: 'text-amber-600 dark:text-amber-500',
+}
+
+export function StatCard({ title, value, change, icon, color = 'primary', subtitle }: StatCardProps) {
   const isPositive = change !== undefined ? change > 0 : null
 
   return (
-    <Card sx={{ height: '100%' }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Typography variant="h6" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
-            {title}
-          </Typography>
-          <Box sx={{ color: `${color}.main`, fontSize: 24 }}>
-            {Icon}
-          </Box>
-        </Box>
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-          {value}
-        </Typography>
-        {subtitle && (
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            {subtitle}
-          </Typography>
-        )}
+    <Card className="h-full">
+      <CardContent className="p-6">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+          <div className={cn('text-2xl', colorClass[color])} aria-hidden>
+            {icon}
+          </div>
+        </div>
+        <p className="mb-1 text-3xl font-bold tracking-tight">{value}</p>
+        {subtitle && <p className="mb-1 text-sm text-muted-foreground">{subtitle}</p>}
         {change !== undefined && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <div className="flex items-center gap-0.5 text-sm">
             {isPositive ? (
-              <TrendingUpIcon sx={{ color: 'success.main', fontSize: 16 }} />
+              <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-500" aria-hidden />
             ) : (
-              <TrendingDownIcon sx={{ color: 'error.main', fontSize: 16 }} />
+              <TrendingDown className="h-4 w-4 text-destructive" aria-hidden />
             )}
-            <Typography
-              variant="body2"
-              sx={{
-                color: isPositive ? 'success.main' : 'error.main',
-                fontWeight: 600,
-              }}
+            <span
+              className={cn(
+                'font-semibold',
+                isPositive ? 'text-green-600 dark:text-green-500' : 'text-destructive'
+              )}
             >
-              {isPositive ? '+' : ''}{change}% from last month
-            </Typography>
-          </Box>
+              {isPositive ? '+' : ''}
+              {change}% from last month
+            </span>
+          </div>
         )}
       </CardContent>
     </Card>
   )
 }
-

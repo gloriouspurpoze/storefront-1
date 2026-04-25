@@ -60,11 +60,11 @@ export function Settings() {
     general: {
       businessName: 'Fixer Admin',
       businessEmail: 'admin@fixer.com',
-      businessPhone: '+1-555-0123',
-      businessAddress: '123 Business St, City, State 12345',
-      timezone: 'America/New_York',
-      currency: 'USD',
-      language: 'en',
+      businessPhone: '+91-98765-43210',
+      businessAddress: 'Example address, City, State — India',
+      timezone: 'Asia/Kolkata',
+      currency: 'INR',
+      language: 'en-IN',
     },
     security: {
       twoFactorAuth: true,

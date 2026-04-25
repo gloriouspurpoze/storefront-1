@@ -1,35 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import {
-  Box,
-  Typography,
-  Button,
-  Grid,
-  Card,
-  CardContent,
-  Menu,
-  Divider,
-  MenuItem,
-  Snackbar,
-  Alert,
-  CircularProgress,
-  Chip,
-  Paper,
-} from '@mui/material'
-import {
-  Add as AddIcon,
-  MoreVert as MoreVertIcon,
-  Edit as EditIcon,
-  Visibility as ViewIcon,
-  Delete as DeleteIcon,
-  Business as BusinessIcon,
-  People as PeopleIcon,
-  Star as StarIcon,
-  CheckCircle as VerifiedIcon,
-} from '@mui/icons-material'
+import { Plus } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
-import { 
-  ProviderTable, 
-  ProviderFilters, 
+import { FixedMessage } from '../../components/common/FixedMessage'
+import {
+  ProviderTable,
+  ProviderFilters,
   ProviderDetailsDialog,
   VerificationStatusDialog,
   DeleteProviderDialog,
@@ -39,13 +14,7 @@ import {
 import { ProvidersService } from '../../services/api/providers.service'
 import { ServiceProvider } from '../../types'
 import { useNavigate } from 'react-router-dom'
-
-interface ProviderStats {
-  total_providers: number
-  verified_providers: number
-  pending_providers: number
-  average_rating: number
-}
+import { Button } from '../../components/ui/button'
 
 export function ProvidersManagement() {
   const navigate = useNavigate()
@@ -54,27 +23,19 @@ export function ProvidersManagement() {
   const [refreshKey, setRefreshKey] = useState(Date.now())
   const [selectedProviderIds, setSelectedProviderIds] = useState<string[]>([])
 
-  // Filters
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [experienceFilter, setExperienceFilter] = useState('all')
 
-  // Pagination
   const [page, setPage] = useState(0)
   const [limit] = useState(10)
   const [total, setTotal] = useState(0)
 
-  // Dialogs
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false)
   const [verificationDialogOpen, setVerificationDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedProvider, setSelectedProvider] = useState<ServiceProvider | null>(null)
 
-  // Menu
-  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
-  const [menuProvider, setMenuProvider] = useState<ServiceProvider | null>(null)
-
-  // Notifications
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
@@ -82,8 +43,14 @@ export function ProvidersManagement() {
   })
 
   useEffect(() => {
-    fetchProviders()
+    void fetchProviders()
   }, [page, limit, searchTerm, statusFilter, experienceFilter])
+
+  useEffect(() => {
+    if (!snackbar.open) return undefined
+    const t = window.setTimeout(() => setSnackbar((s) => ({ ...s, open: false })), 6000)
+    return () => window.clearTimeout(t)
+  }, [snackbar.open, snackbar.message])
 
   const fetchProviders = async () => {
     try {
@@ -97,38 +64,34 @@ export function ProvidersManagement() {
       }
 
       const response = await ProvidersService.getProviders(query)
-      
+
       if (response.data?.serviceProviders || response.data?.providers) {
-        // Handle both API formats
         const providersList = response.data?.serviceProviders || response.data?.providers || []
-        
-        // Transform the data to match expected format
-        const transformedProviders = providersList.map((provider: any) => ({
+
+        const transformedProviders = (providersList as unknown[]).map((provider: any) => ({
           ...provider,
-          // Map snake_case to camelCase if needed
           businessName: provider.business_name || provider.businessName,
           businessLicense: provider.business_license || provider.businessLicense,
-          servicesOffered: provider.services_offered || provider.servicesOffered || [],
-          serviceAreas: provider.service_areas || provider.serviceAreas || [],
+          servicesOffered: (provider.services_offered || provider.servicesOffered || []) as string[],
+          serviceAreas: (provider.service_areas || provider.serviceAreas || []) as string[],
           verificationStatus: provider.verification_status || provider.verificationStatus,
           yearsExperience: provider.years_experience || provider.yearsExperience,
-          // Keep original fields
           business_name: provider.business_name || provider.businessName,
-          services_offered: provider.services_offered || provider.servicesOffered || [],
-          service_areas: provider.service_areas || provider.serviceAreas || [],
+          services_offered: (provider.services_offered || provider.servicesOffered || []) as string[],
+          service_areas: (provider.service_areas || provider.serviceAreas || []) as string[],
           verification_status: provider.verification_status || provider.verificationStatus,
           years_experience: provider.years_experience || provider.yearsExperience,
-        }))
-        
+        })) as unknown as ServiceProvider[]
+
         setProviders(transformedProviders)
         setTotal(response.data.pagination?.total || 0)
       } else {
         setProviders([])
         setTotal(0)
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching providers:', error)
-      showSnackbar(error.message || 'Failed to fetch providers', 'error')
+      showSnackbar(error instanceof Error ? error.message : 'Failed to fetch providers', 'error')
       setProviders([])
     } finally {
       setLoading(false)
@@ -136,59 +99,36 @@ export function ProvidersManagement() {
   }
 
   const handleSuccess = () => {
-    fetchProviders()
+    void fetchProviders()
     setRefreshKey(Date.now())
-    setSelectedProviderIds([]) // Clear selection after action
+    setSelectedProviderIds([])
   }
 
   const handleCreate = () => {
-    // Navigate to full-page create form
     navigate('/providers/create')
   }
 
   const handleEdit = (provider: ServiceProvider) => {
-    // Navigate to full-page edit form (future)
-    // For now, keep edit in dialog or navigate to edit page
     navigate(`/providers/edit/${provider.id}`)
-    handleMenuClose()
   }
 
   const handleView = (provider: ServiceProvider) => {
     setSelectedProvider(provider)
     setDetailsDialogOpen(true)
-    handleMenuClose()
   }
 
   const handleDelete = (provider: ServiceProvider) => {
     setSelectedProvider(provider)
     setDeleteDialogOpen(true)
-    handleMenuClose()
   }
 
   const handleVerificationStatus = (provider: ServiceProvider) => {
     setSelectedProvider(provider)
     setVerificationDialogOpen(true)
-    handleMenuClose()
   }
-
-  const handleMenuClick = (event: React.MouseEvent<HTMLElement>, provider: ServiceProvider) => {
-    setMenuAnchor(event.currentTarget)
-    setMenuProvider(provider)
-  }
-
-  const handleMenuClose = () => {
-    setMenuAnchor(null)
-    setMenuProvider(null)
-  }
-
-  // Form submit handler removed - now using full-page navigation
 
   const showSnackbar = (message: string, severity: 'success' | 'error') => {
     setSnackbar({ open: true, message, severity })
-  }
-
-  const handleSnackbarClose = () => {
-    setSnackbar({ ...snackbar, open: false })
   }
 
   const handleClearFilters = () => {
@@ -200,37 +140,31 @@ export function ProvidersManagement() {
 
   const handleApplyFilters = () => {
     setPage(0)
-    fetchProviders()
+    void fetchProviders()
   }
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title="Service Providers"
         subtitle="Manage service providers and their verification status"
         action={
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
             <BulkActions
               selectedIds={selectedProviderIds}
               onSuccess={handleSuccess}
               onClearSelection={() => setSelectedProviderIds([])}
             />
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleCreate}
-              sx={{ borderRadius: 2 }}
-            >
-              Add Provider
+            <Button type="button" className="gap-1.5 rounded-lg" onClick={handleCreate}>
+              <Plus className="h-4 w-4" />
+              Add provider
             </Button>
-          </Box>
+          </div>
         }
       />
 
-      {/* Stats Cards */}
       <ProviderStatsWidget onRefresh={refreshKey} />
 
-      {/* Filters */}
       <ProviderFilters
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
@@ -242,52 +176,21 @@ export function ProvidersManagement() {
         onApplyFilters={handleApplyFilters}
       />
 
-      {/* Providers Table */}
       <ProviderTable
         providers={providers}
         loading={loading}
-        onMenuClick={handleMenuClick}
+        onView={handleView}
+        onEdit={handleEdit}
+        onVerification={handleVerificationStatus}
+        onDelete={handleDelete}
       />
 
-      {/* Action Menu */}
-      <Menu
-        anchorEl={menuAnchor}
-        open={Boolean(menuAnchor)}
-        onClose={handleMenuClose}
-        PaperProps={{
-          sx: { borderRadius: 2, minWidth: 200 }
-        }}
-      >
-        <MenuItem onClick={() => menuProvider && handleView(menuProvider)}>
-          <ViewIcon sx={{ mr: 1 }} fontSize="small" />
-          View Details
-        </MenuItem>
-        <MenuItem onClick={() => menuProvider && handleEdit(menuProvider)}>
-          <EditIcon sx={{ mr: 1 }} fontSize="small" />
-          Edit
-        </MenuItem>
-        <MenuItem onClick={() => menuProvider && handleVerificationStatus(menuProvider)}>
-          <VerifiedIcon sx={{ mr: 1 }} fontSize="small" />
-          Update Verification
-        </MenuItem>
-        <Divider />
-        <MenuItem 
-          onClick={() => menuProvider && handleDelete(menuProvider)}
-          sx={{ color: 'error.main' }}
-        >
-          <DeleteIcon sx={{ mr: 1 }} fontSize="small" />
-          Delete
-        </MenuItem>
-      </Menu>
-
-      {/* Details Dialog - Only for viewing provider details */}
       <ProviderDetailsDialog
         open={detailsDialogOpen}
         onClose={() => setDetailsDialogOpen(false)}
         provider={selectedProvider}
       />
 
-      {/* Verification Status Dialog */}
       <VerificationStatusDialog
         open={verificationDialogOpen}
         onClose={() => setVerificationDialogOpen(false)}
@@ -295,7 +198,6 @@ export function ProvidersManagement() {
         onSuccess={handleSuccess}
       />
 
-      {/* Delete Confirmation Dialog */}
       <DeleteProviderDialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
@@ -303,21 +205,11 @@ export function ProvidersManagement() {
         onSuccess={handleSuccess}
       />
 
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={handleSnackbarClose}
-          severity={snackbar.severity}
-          sx={{ borderRadius: 2 }}
-        >
+      {snackbar.open && (
+        <FixedMessage variant={snackbar.severity === 'error' ? 'error' : 'default'}>
           {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+        </FixedMessage>
+      )}
+    </div>
   )
 }

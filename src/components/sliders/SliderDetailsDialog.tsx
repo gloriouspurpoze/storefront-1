@@ -1,30 +1,24 @@
 import React from 'react'
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Typography,
-  Box,
-  Chip,
-  Avatar,
-  Divider,
-  Paper,
-  IconButton,
-  Card,
-  CardContent,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
-import {
-  Close as CloseIcon,
   Image as ImageIcon,
-  Public as PublicIcon,
-  Group as GroupIcon,
-  Schedule as ScheduleIcon,
+  Globe,
+  Users,
+  CalendarClock,
   Link as LinkIcon,
-  Visibility as VisibilityIcon,
-} from '@mui/icons-material'
+  Clock,
+} from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog'
+import { Button } from '../ui/button'
+import { Badge } from '../ui/badge'
+import { Separator } from '../ui/separator'
+import { Card, CardContent } from '../ui/card'
+import { Avatar, AvatarFallback } from '../ui/avatar'
 import { Slider } from '../../types'
 
 interface SliderDetailsDialogProps {
@@ -33,40 +27,30 @@ interface SliderDetailsDialogProps {
   slider: Slider | null
 }
 
+const audienceBadge = (audience: string) => {
+  switch (audience) {
+    case 'all':
+      return { variant: 'default' as const, Icon: Globe }
+    case 'customers':
+      return { variant: 'success' as const, Icon: Users }
+    case 'providers':
+      return { variant: 'secondary' as const, Icon: Users }
+    default:
+      return { variant: 'secondary' as const, Icon: Globe }
+  }
+}
+
 export function SliderDetailsDialog({ open, onClose, slider }: SliderDetailsDialogProps) {
   if (!slider) return null
 
-  const getAudienceColor = (audience: string) => {
-    switch (audience) {
-      case 'all':
-        return 'primary'
-      case 'customers':
-        return 'success'
-      case 'providers':
-        return 'info'
-      default:
-        return 'default'
-    }
-  }
-
-  const getAudienceIcon = (audience: string) => {
-    switch (audience) {
-      case 'all':
-        return <PublicIcon />
-      case 'customers':
-        return <GroupIcon />
-      case 'providers':
-        return <GroupIcon />
-      default:
-        return <PublicIcon />
-    }
-  }
+  const aud = audienceBadge(slider.target_audience || 'all')
+  const AudIcon = aud.Icon
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     })
   }
 
@@ -81,281 +65,155 @@ export function SliderDetailsDialog({ open, onClose, slider }: SliderDetailsDial
   }
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{
-        sx: { borderRadius: 2 }
-      }}
-    >
-      <DialogTitle sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between',
-        pb: 1,
-        borderBottom: 1,
-        borderColor: 'divider'
-      }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Avatar sx={{ bgcolor: 'primary.main', width: 48, height: 48 }}>
-            <ImageIcon />
-          </Avatar>
-          <Box>
-            <Typography variant="h6" fontWeight="600">
-              {slider.title}
-            </Typography>
-            {slider.subtitle && (
-              <Typography variant="body2" color="text.secondary">
-                {slider.subtitle}
-              </Typography>
-            )}
-          </Box>
-        </Box>
-        <IconButton onClick={onClose} size="small">
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto sm:max-w-2xl">
+        <DialogHeader className="border-b border-border pb-2">
+          <DialogTitle className="flex items-center gap-3 pr-8 text-left">
+            <Avatar className="h-12 w-12 bg-primary text-primary-foreground">
+              <AvatarFallback>
+                <ImageIcon className="h-6 w-6" />
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <span className="text-lg font-semibold">{slider.title}</span>
+              {slider.subtitle && <p className="text-sm font-normal text-muted-foreground">{slider.subtitle}</p>}
+            </div>
+          </DialogTitle>
+        </DialogHeader>
 
-      <DialogContent sx={{ pt: 3 }}>
-        <Grid container spacing={3}>
-          {/* Status and Audience */}
-          <Grid item xs={12}>
-            <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
-              <Chip
-                label={slider.is_active ? 'Active' : 'Inactive'}
-                color={slider.is_active ? 'success' : 'default'}
-                sx={{ fontWeight: 500 }}
-              />
-              <Chip
-                icon={getAudienceIcon(slider.target_audience || 'all')}
-                label={
-                  slider.target_audience
-                    ? slider.target_audience.charAt(0).toUpperCase() + slider.target_audience.slice(1)
-                    : 'All Users'
-                }
-                color={getAudienceColor(slider.target_audience || 'all') as any}
-                sx={{ fontWeight: 500 }}
-              />
-              <Chip
-                label={`Position ${slider.position}`}
-                variant="outlined"
-                sx={{ fontWeight: 500 }}
-              />
-            </Box>
-          </Grid>
+        <div className="grid gap-4 py-2">
+          <div className="flex flex-wrap gap-2">
+            <Badge variant={slider.is_active ? 'success' : 'secondary'}>{slider.is_active ? 'Active' : 'Inactive'}</Badge>
+            <Badge variant={aud.variant} className="inline-flex items-center gap-1">
+              <AudIcon className="h-3.5 w-3.5" />
+              {slider.target_audience
+                ? slider.target_audience.charAt(0).toUpperCase() + slider.target_audience.slice(1)
+                : 'All Users'}
+            </Badge>
+            <Badge variant="outline">Position {slider.position}</Badge>
+          </div>
 
-          {/* Image Preview */}
-          <Grid item xs={12}>
-            <Typography variant="h6" color="primary" gutterBottom>
-              Image Preview
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-          </Grid>
-
-          <Grid item xs={12}>
-            <Card sx={{ borderRadius: 2, overflow: 'hidden' }}>
-              <Box
-                sx={{
-                  width: '100%',
-                  height: 300,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  bgcolor: 'grey.100',
-                  position: 'relative'
-                }}
-              >
+          <div>
+            <h3 className="mb-1 text-sm font-semibold text-primary">Image Preview</h3>
+            <Separator className="mb-2" />
+            <Card className="overflow-hidden">
+              <div className="relative flex h-[300px] w-full items-center justify-center bg-muted/50">
                 {slider.image_url ? (
                   <img
                     src={slider.image_url}
                     alt={slider.image_alt || slider.title}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover'
-                    }}
+                    className="h-full w-full object-cover"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none'
+                      ;(e.target as HTMLImageElement).style.display = 'none'
                     }}
                   />
                 ) : (
-                  <Box sx={{ textAlign: 'center' }}>
-                    <ImageIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
-                    <Typography color="text.secondary">No image available</Typography>
-                  </Box>
+                  <div className="text-center">
+                    <ImageIcon className="mx-auto mb-1 h-12 w-12 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">No image available</p>
+                  </div>
                 )}
-              </Box>
-              <CardContent>
-                <Typography variant="body2" color="text.secondary">
-                  {slider.image_alt || 'No alt text provided'}
-                </Typography>
+              </div>
+              <CardContent className="p-3">
+                <p className="text-sm text-muted-foreground">{slider.image_alt || 'No alt text provided'}</p>
               </CardContent>
             </Card>
-          </Grid>
+          </div>
 
-          {/* Content Information */}
-          <Grid item xs={12}>
-            <Typography variant="h6" color="primary" gutterBottom sx={{ mt: 2 }}>
-              Content Information
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-          </Grid>
+          <div>
+            <h3 className="mb-1 text-sm font-semibold text-primary">Content Information</h3>
+            <Separator className="mb-2" />
+            <div className="rounded-lg border bg-card p-3">
+              <p className="mb-1 text-sm font-medium">Description</p>
+              <p className="text-sm text-muted-foreground">{slider.description || 'No description provided'}</p>
+            </div>
+          </div>
 
-          <Grid item xs={12}>
-            <Paper sx={{ p: 2, borderRadius: 2 }}>
-              <Typography variant="body2" fontWeight="500" gutterBottom>
-                Description:
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {slider.description || 'No description provided'}
-              </Typography>
-            </Paper>
-          </Grid>
-
-          {/* Call to Action */}
           {slider.button_text && (
-            <>
-              <Grid item xs={12}>
-                <Typography variant="h6" color="primary" gutterBottom sx={{ mt: 2 }}>
-                  Call to Action
-                </Typography>
-                <Divider sx={{ mb: 2 }} />
-              </Grid>
-
-              <Grid item xs={12}>
-                <Paper sx={{ p: 2, borderRadius: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    {slider.button_url ? (
-                      <Button
-                        variant="contained"
-                        startIcon={<LinkIcon />}
-                        component="a"
-                        href={slider.button_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        sx={{ borderRadius: 2 }}
-                      >
+            <div>
+              <h3 className="mb-1 text-sm font-semibold text-primary">Call to Action</h3>
+              <Separator className="mb-2" />
+              <div className="rounded-lg border bg-card p-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  {slider.button_url ? (
+                    <Button asChild>
+                      <a href={slider.button_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2">
+                        <LinkIcon className="h-4 w-4" />
                         {slider.button_text}
-                      </Button>
-                    ) : (
-                      <Button variant="contained" startIcon={<LinkIcon />} disabled sx={{ borderRadius: 2 }}>
-                        {slider.button_text}
-                      </Button>
-                    )}
-                    <Box>
-                      <Typography variant="body2" fontWeight="500">
-                        Button Text: {slider.button_text}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        URL: {slider.button_url}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Paper>
-              </Grid>
-            </>
+                      </a>
+                    </Button>
+                  ) : (
+                    <Button disabled className="inline-flex items-center gap-2">
+                      <LinkIcon className="h-4 w-4" />
+                      {slider.button_text}
+                    </Button>
+                  )}
+                  <div className="text-sm">
+                    <p className="font-medium">Button Text: {slider.button_text}</p>
+                    <p className="text-muted-foreground">URL: {slider.button_url}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
 
-          {/* Schedule Information */}
-          <Grid item xs={12}>
-            <Typography variant="h6" color="primary" gutterBottom sx={{ mt: 2 }}>
-              Schedule Information
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2, borderRadius: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <ScheduleIcon color="action" />
-                <Typography variant="body2" fontWeight="500">
+          <div>
+            <h3 className="mb-1 text-sm font-semibold text-primary">Schedule Information</h3>
+            <Separator className="mb-2" />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-lg border bg-card p-3">
+                <div className="mb-1 flex items-center gap-1 text-sm font-medium">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
                   Start Date
-                </Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary">
-                {slider.start_date ? formatDate(slider.start_date) : 'No start date set'}
-              </Typography>
-              {slider.start_date && isScheduled(slider.start_date) && (
-                <Chip
-                  label="Scheduled"
-                  color="info"
-                  size="small"
-                  sx={{ mt: 1 }}
-                />
-              )}
-            </Paper>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2, borderRadius: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <ScheduleIcon color="action" />
-                <Typography variant="body2" fontWeight="500">
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {slider.start_date ? formatDate(slider.start_date) : 'No start date set'}
+                </p>
+                {slider.start_date && isScheduled(slider.start_date) && (
+                  <Badge className="mt-1" variant="secondary">
+                    Scheduled
+                  </Badge>
+                )}
+              </div>
+              <div className="rounded-lg border bg-card p-3">
+                <div className="mb-1 flex items-center gap-1 text-sm font-medium">
+                  <CalendarClock className="h-4 w-4 text-muted-foreground" />
                   End Date
-                </Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary">
-                {slider.end_date ? formatDate(slider.end_date) : 'No end date set'}
-              </Typography>
-              {slider.end_date && isExpired(slider.end_date) && (
-                <Chip
-                  label="Expired"
-                  color="error"
-                  size="small"
-                  sx={{ mt: 1 }}
-                />
-              )}
-            </Paper>
-          </Grid>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {slider.end_date ? formatDate(slider.end_date) : 'No end date set'}
+                </p>
+                {slider.end_date && isExpired(slider.end_date) && (
+                  <Badge className="mt-1" variant="destructive">
+                    Expired
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
 
-          {/* Timestamps */}
-          <Grid item xs={12}>
-            <Typography variant="h6" color="primary" gutterBottom sx={{ mt: 2 }}>
-              Account Information
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-          </Grid>
+          <div>
+            <h3 className="mb-1 text-sm font-semibold text-primary">Account Information</h3>
+            <Separator className="mb-2" />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-lg border bg-card p-3">
+                <p className="mb-1 text-sm font-medium">Created</p>
+                <p className="text-sm text-muted-foreground">{formatDate(slider.created_at)}</p>
+              </div>
+              <div className="rounded-lg border bg-card p-3">
+                <p className="mb-1 text-sm font-medium">Last Updated</p>
+                <p className="text-sm text-muted-foreground">{formatDate(slider.updated_at)}</p>
+              </div>
+            </div>
+          </div>
+        </div>
 
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2, borderRadius: 2 }}>
-              <Typography variant="body2" fontWeight="500" gutterBottom>
-                Created
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {formatDate(slider.created_at)}
-              </Typography>
-            </Paper>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2, borderRadius: 2 }}>
-              <Typography variant="body2" fontWeight="500" gutterBottom>
-                Last Updated
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {formatDate(slider.updated_at)}
-              </Typography>
-            </Paper>
-          </Grid>
-        </Grid>
+        <DialogFooter className="border-t border-border bg-muted/20">
+          <Button type="button" onClick={onClose}>
+            Close
+          </Button>
+        </DialogFooter>
       </DialogContent>
-
-      <DialogActions sx={{ 
-        p: 3, 
-        bgcolor: 'grey.50',
-        borderTop: 1,
-        borderColor: 'divider'
-      }}>
-        <Button
-          onClick={onClose}
-          variant="contained"
-          sx={{ borderRadius: 2 }}
-        >
-          Close
-        </Button>
-      </DialogActions>
     </Dialog>
   )
 }

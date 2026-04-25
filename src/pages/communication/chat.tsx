@@ -1,6 +1,8 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { Box, Paper, Alert, Snackbar, Dialog, DialogContent, Button } from '@mui/material';
-import { Business as BusinessIcon, Person as PersonIcon } from '@mui/icons-material';
+import React, { useEffect, useState, useMemo } from 'react'
+import { Building2, User } from 'lucide-react'
+import { Button } from '../../components/ui/button'
+import { Dialog, DialogContent } from '../../components/ui/dialog'
+import { cn } from '../../lib/utils'
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import { useSocket } from '../../hooks/useSocket';
@@ -31,6 +33,12 @@ const ChatPage: React.FC = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const [showProviderList, setShowProviderList] = useState(false);
   const [showUserList, setShowUserList] = useState(false);
+
+  useEffect(() => {
+    if (!snackbar.open) return undefined;
+    const t = window.setTimeout(() => setSnackbar((s) => ({ ...s, open: false })), 3000);
+    return () => window.clearTimeout(t);
+  }, [snackbar.open, snackbar.message]);
   
   const authUser = useSelector((s: RootState) => s.auth.user);
   const currentUserId = useMemo(() => {
@@ -308,43 +316,28 @@ const ChatPage: React.FC = () => {
   };
 
   return (
-    <Box sx={{ height: 'calc(100vh - 100px)', display: 'flex', gap: 0 }}>
+    <div className="flex h-[calc(100vh-100px)] gap-0">
       {/* Conversations List */}
-      <Paper
-        elevation={2}
-        sx={{
-          width: 350,
-          height: '100%',
-          borderRadius: 0,
-          borderRight: 1,
-          borderColor: 'divider',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        {/* New Chat Buttons */}
-        <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', display: 'flex', gap: 1 }}>
+      <div className="flex h-full w-[350px] flex-col border-r bg-card shadow-sm">
+        <div className="flex gap-1 border-b p-2">
           <Button
-            variant="contained"
-            size="small"
-            fullWidth
-            startIcon={<BusinessIcon />}
+            size="sm"
+            className="h-8 flex-1 gap-1.5 text-xs font-normal"
             onClick={() => setShowProviderList(true)}
-            sx={{ textTransform: 'none' }}
           >
+            <Building2 className="h-3.5 w-3.5 shrink-0" />
             Chat with Provider
           </Button>
           <Button
-            variant="outlined"
-            size="small"
-            fullWidth
-            startIcon={<PersonIcon />}
+            size="sm"
+            variant="outline"
+            className="h-8 flex-1 gap-1.5 text-xs font-normal"
             onClick={() => setShowUserList(true)}
-            sx={{ textTransform: 'none' }}
           >
+            <User className="h-3.5 w-3.5 shrink-0" />
             Chat with Customer
           </Button>
-        </Box>
+        </div>
         
         <ConversationList
           conversations={conversations}
@@ -353,7 +346,7 @@ const ChatPage: React.FC = () => {
           loading={loading}
           currentUserId={currentUserId}
         />
-      </Paper>
+      </div>
 
       {/* Message Thread */}
       <MessageThread
@@ -370,39 +363,29 @@ const ChatPage: React.FC = () => {
 
       {/* Connection Status */}
       {!isConnected && (
-        <Alert
-          severity="warning"
-          sx={{
-            position: 'fixed',
-            bottom: 16,
-            right: 16,
-            zIndex: 9999,
-          }}
+        <div
+          className="fixed bottom-4 right-4 z-[9999] max-w-sm rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 shadow-md dark:border-amber-800 dark:bg-amber-950/90 dark:text-amber-100"
+          role="status"
         >
           Connecting to chat server...
-        </Alert>
+        </div>
       )}
 
-      {/* Snackbar for notifications */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      >
-        <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
-      </Snackbar>
+      {snackbar.open && (
+        <div
+          className={cn(
+            'fixed bottom-4 left-1/2 z-[9999] max-w-md -translate-x-1/2 rounded-md border px-4 py-2 text-sm shadow-md sm:left-auto sm:right-4 sm:translate-x-0',
+            snackbar.severity === 'error'
+              ? 'border-destructive/30 bg-destructive/10 text-destructive'
+              : 'border-border bg-card text-foreground',
+          )}
+        >
+          {snackbar.message}
+        </div>
+      )}
 
-      {/* Provider List Modal */}
-      <Dialog
-        open={showProviderList}
-        onClose={() => setShowProviderList(false)}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          sx: { height: '80vh' }
-        }}
-      >
-        <DialogContent sx={{ p: 0 }}>
+      <Dialog open={showProviderList} onOpenChange={setShowProviderList}>
+        <DialogContent className="h-[80vh] max-w-3xl gap-0 overflow-hidden p-0 sm:max-w-3xl">
           <ProviderListForChat
             onProviderSelect={handleProviderSelect}
             onClose={() => setShowProviderList(false)}
@@ -410,26 +393,17 @@ const ChatPage: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* User List Modal */}
-      <Dialog
-        open={showUserList}
-        onClose={() => setShowUserList(false)}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          sx: { height: '80vh' }
-        }}
-      >
-        <DialogContent sx={{ p: 0 }}>
+      <Dialog open={showUserList} onOpenChange={setShowUserList}>
+        <DialogContent className="h-[80vh] max-w-3xl gap-0 overflow-hidden p-0 sm:max-w-3xl">
           <UserListForChat
             onUserSelect={handleUserSelect}
             onClose={() => setShowUserList(false)}
           />
         </DialogContent>
       </Dialog>
-    </Box>
-  );
-};
+    </div>
+  )
+}
 
-export default ChatPage;
+export default ChatPage
 

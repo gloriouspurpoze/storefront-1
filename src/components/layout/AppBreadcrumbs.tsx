@@ -1,9 +1,8 @@
 import React from 'react'
-import { Link as RouterLink } from 'react-router-dom'
-import { Breadcrumbs, Link, Typography, Box } from '@mui/material'
-import { NavigateNext as SeparatorIcon } from '@mui/icons-material'
-import { useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
+import { ChevronRight } from 'lucide-react'
 import { getBreadcrumbItems } from '../../config/app-routes'
+import { cn } from '../../lib/utils'
 
 export function AppBreadcrumbs() {
   const location = useLocation()
@@ -12,49 +11,39 @@ export function AppBreadcrumbs() {
   if (items.length === 0) return null
 
   return (
-    <Box
-      component="nav"
-      aria-label="breadcrumb"
-      sx={{
-        mb: { xs: 2, sm: 2.5 },
-        px: { xs: 0, sm: 0 },
-      }}
-    >
-      <Breadcrumbs
-        separator={<SeparatorIcon sx={{ fontSize: 16, color: 'text.disabled' }} />}
-        sx={{
-          '& .MuiBreadcrumbs-li': { display: 'inline-flex', alignItems: 'center' },
-        }}
+    <nav aria-label="breadcrumb" className="mb-1">
+      <ol
+        className={cn(
+          'flex flex-wrap items-center gap-1 text-sm',
+          'text-muted-foreground'
+        )}
       >
         {items.map((crumb, index) => {
           const isLast = index === items.length - 1
           if (isLast) {
             return (
-              <Typography
-                key={crumb.to}
-                color="text.primary"
-                variant="body2"
-                sx={{ fontWeight: 600 }}
-              >
+              <li key={crumb.to} className="font-semibold text-foreground">
                 {crumb.label}
-              </Typography>
+              </li>
             )
           }
           return (
-            <Link
-              key={crumb.to}
-              component={RouterLink}
-              to={crumb.to}
-              underline="hover"
-              color="text.secondary"
-              variant="body2"
-              sx={{ fontWeight: 500 }}
-            >
-              {crumb.label}
-            </Link>
+            <li key={crumb.to} className="inline-flex min-w-0 max-w-full items-center gap-1">
+              <Link
+                to={crumb.to}
+                className="min-w-0 max-w-full truncate font-medium text-muted-foreground hover:text-foreground hover:underline"
+              >
+                {crumb.label}
+              </Link>
+              <ChevronRight
+                className="h-4 w-4 shrink-0 text-muted-foreground/70"
+                aria-hidden
+                strokeWidth={1.5}
+              />
+            </li>
           )
         })}
-      </Breadcrumbs>
-    </Box>
+      </ol>
+    </nav>
   )
 }

@@ -1,6 +1,7 @@
 import React from 'react'
-import { Box, Typography, Card, useTheme } from '@mui/material'
-import { TrendingUp, TrendingDown, TrendingFlat } from '@mui/icons-material'
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { Card, CardContent } from '../ui/card'
+import { cn } from '../../lib/utils'
 
 interface OrderStatsCardProps {
   title: string
@@ -21,94 +22,62 @@ export const OrderStatsCard: React.FC<OrderStatsCardProps> = ({
   subtitle,
   trend,
   icon,
-  color = 'primary'
+  color = 'primary',
 }) => {
-  const theme = useTheme()
+  const colorClass =
+    color === 'primary'
+      ? 'text-primary'
+      : color === 'secondary'
+        ? 'text-secondary-foreground'
+        : color === 'success'
+          ? 'text-emerald-600'
+          : color === 'error'
+            ? 'text-destructive'
+            : color === 'warning'
+              ? 'text-amber-600'
+              : 'text-sky-600'
 
   const getTrendIcon = () => {
     if (!trend) return null
-    
     if (trend.isNeutral) {
-      return <TrendingFlat sx={{ fontSize: 16, color: theme.palette.warning.main }} />
+      return <Minus className="h-4 w-4 text-amber-600" aria-hidden />
     }
-    
-    return trend.isPositive 
-      ? <TrendingUp sx={{ fontSize: 16, color: theme.palette.success.main }} />
-      : <TrendingDown sx={{ fontSize: 16, color: theme.palette.error.main }} />
+    return trend.isPositive ? (
+      <TrendingUp className="h-4 w-4 text-emerald-600" aria-hidden />
+    ) : (
+      <TrendingDown className="h-4 w-4 text-destructive" aria-hidden />
+    )
   }
 
-  const getTrendColor = () => {
-    if (!trend) return theme.palette.text.secondary
-    
-    if (trend.isNeutral) return theme.palette.warning.main
-    
-    return trend.isPositive 
-      ? theme.palette.success.main 
-      : theme.palette.error.main
+  const getTrendTextClass = () => {
+    if (!trend) return 'text-muted-foreground'
+    if (trend.isNeutral) return 'text-amber-600'
+    return trend.isPositive ? 'text-emerald-600' : 'text-destructive'
   }
 
   return (
-    <Card sx={{ height: '100%' }}>
-      <Box sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Box>
-            <Typography 
-              variant="body2" 
-              color="text.secondary" 
-              sx={{ fontWeight: 500, mb: 0.5 }}
-            >
-              {title}
-            </Typography>
-            <Typography 
-              variant="h4" 
-              sx={{ 
-                fontWeight: 700, 
-                color: 'text.primary',
-                fontSize: { xs: '1.5rem', sm: '2rem' }
-              }}
-            >
-              {value}
-            </Typography>
-            {subtitle && (
-              <Typography 
-                variant="caption" 
-                color="text.secondary"
-                sx={{ fontSize: '0.75rem' }}
-              >
-                {subtitle}
-              </Typography>
-            )}
-          </Box>
-          {icon && (
-            <Box sx={{ color: `${color}.main`, opacity: 0.8 }}>
-              {icon}
-            </Box>
-          )}
-        </Box>
-        
+    <Card className="h-full">
+      <CardContent className="p-6">
+        <div className="mb-2 flex items-center justify-between">
+          <div>
+            <p className="mb-0.5 text-sm font-medium text-muted-foreground">{title}</p>
+            <p className="text-2xl font-bold sm:text-3xl">{value}</p>
+            {subtitle && <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>}
+          </div>
+          {icon && <div className={cn('opacity-80', colorClass)}>{icon}</div>}
+        </div>
+
         {trend && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <div className="flex items-center gap-0.5">
             {getTrendIcon()}
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                color: getTrendColor(),
-                fontWeight: 600,
-                fontSize: '0.875rem'
-              }}
-            >
-              {trend.isPositive ? '+' : ''}{trend.value}%
-            </Typography>
-            <Typography 
-              variant="caption" 
-              color="text.secondary"
-              sx={{ fontSize: '0.75rem' }}
-            >
-              from last month
-            </Typography>
-          </Box>
+            <span className={cn('text-sm font-semibold', getTrendTextClass())}>
+              {trend.isPositive ? '+' : ''}
+              {trend.value}%
+            </span>
+            <span className="text-xs text-muted-foreground">from last month</span>
+          </div>
         )}
-      </Box>
+      </CardContent>
     </Card>
   )
 }

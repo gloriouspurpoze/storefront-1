@@ -1,17 +1,8 @@
 import React from 'react'
-import {
-  Box,
-  Typography,
-  FormControlLabel,
-  Switch,
-  Tooltip,
-  Stack,
-} from '@mui/material'
-import {
-  Info as InfoIcon,
-  Error as ErrorIcon,
-  CheckCircle as CheckIcon,
-} from '@mui/icons-material'
+import { Info, CheckCircle2, AlertCircle, AlertTriangle } from 'lucide-react'
+import { Label } from '../ui/label'
+import { Switch } from '../ui/switch'
+import { cn } from '../../lib/utils'
 
 export interface SwitchFieldProps {
   label: string
@@ -27,6 +18,23 @@ export interface SwitchFieldProps {
   required?: boolean
 }
 
+const StatusIcon = ({ status }: { status?: SwitchFieldProps['status'] }) => {
+  if (!status) return null
+  const cls = 'h-4 w-4 shrink-0'
+  switch (status) {
+    case 'success':
+      return <CheckCircle2 className={cn(cls, 'text-green-600')} aria-hidden />
+    case 'error':
+      return <AlertCircle className={cn(cls, 'text-destructive')} aria-hidden />
+    case 'warning':
+      return <AlertTriangle className={cn(cls, 'text-amber-600')} aria-hidden />
+    case 'info':
+      return <Info className={cn(cls, 'text-muted-foreground')} aria-hidden />
+    default:
+      return null
+  }
+}
+
 export const SwitchField: React.FC<SwitchFieldProps> = ({
   label,
   value,
@@ -36,98 +44,54 @@ export const SwitchField: React.FC<SwitchFieldProps> = ({
   disabled = false,
   tooltip,
   status,
-  color = 'primary',
-  size = 'medium',
+  size: _size = 'medium',
   required = false,
 }) => {
-  const getStatusIcon = () => {
-    switch (status) {
-      case 'success':
-        return <CheckIcon color="success" fontSize="small" />
-      case 'error':
-        return <ErrorIcon color="error" fontSize="small" />
-      case 'warning':
-        return <ErrorIcon color="warning" fontSize="small" />
-      case 'info':
-        return <InfoIcon color="info" fontSize="small" />
-      default:
-        return null
-    }
-  }
-
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    onChange(event.target.checked)
-  }
-
   return (
-    <Box sx={{ width: '100%' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <Typography
-          variant="subtitle2"
-          sx={{
-            fontWeight: 600,
-            color: error ? 'error.main' : 'text.primary',
-          }}
+    <div className="w-full space-y-1">
+      <div className="mb-1 flex items-center gap-1">
+        <Label
+          className={cn('text-sm font-semibold', error && 'text-destructive')}
         >
           {label}
-          {required && (
-            <Typography component="span" color="error.main" sx={{ ml: 0.5 }}>
-              *
-            </Typography>
-          )}
-        </Typography>
+          {required && <span className="ml-0.5 text-destructive">*</span>}
+        </Label>
         {tooltip && (
-          <Tooltip title={tooltip} arrow>
-            <InfoIcon fontSize="small" color="action" />
-          </Tooltip>
+          <span title={tooltip} className="inline-flex cursor-default text-muted-foreground">
+            <Info className="h-4 w-4" />
+          </span>
         )}
-        {getStatusIcon()}
-      </Box>
+        <StatusIcon status={status} />
+      </div>
 
-      <FormControlLabel
-        control={
-          <Switch
-            checked={value}
-            onChange={handleChange}
-            disabled={disabled}
-            color={color}
-            size={size}
-          />
-        }
-        label={
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <Typography
-              variant="body2"
-              color={error ? 'error.main' : value ? 'text.primary' : 'text.secondary'}
-            >
-              {value ? 'Enabled' : 'Disabled'}
-            </Typography>
-            {status && (
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                {getStatusIcon()}
-              </Box>
-            )}
-          </Stack>
-        }
-        sx={{
-          margin: 0,
-          '& .MuiFormControlLabel-label': {
-            marginLeft: 1,
-          },
-        }}
-      />
+      <div className="flex items-center gap-3">
+        <Switch
+          checked={value}
+          onCheckedChange={onChange}
+          disabled={disabled}
+        />
+        <span
+          className={cn(
+            'text-sm',
+            error ? 'text-destructive' : value ? 'text-foreground' : 'text-muted-foreground',
+          )}
+        >
+          {value ? 'Enabled' : 'Disabled'}
+        </span>
+        {status && <StatusIcon status={status} />}
+      </div>
 
-      {/* Helper Text */}
       {(helperText || error) && (
-        <Typography
-          variant="caption"
-          color={error ? 'error.main' : 'text.secondary'}
-          sx={{ mt: 0.5, display: 'block' }}
+        <p
+          className={cn(
+            'text-sm',
+            error ? 'text-destructive' : 'text-muted-foreground',
+          )}
         >
           {error || helperText}
-        </Typography>
+        </p>
       )}
-    </Box>
+    </div>
   )
 }
 

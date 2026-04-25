@@ -19,6 +19,16 @@ function categoryName(categories: ProductGridProps['categories'], categoryId?: n
   return c?.name ?? '—'
 }
 
+function productUpdatedLabel(product: Product) {
+  const raw = product.updated_at || product.updatedAt
+  if (!raw) return null
+  try {
+    return new Date(raw).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+  } catch {
+    return null
+  }
+}
+
 export function ProductGrid({
   products,
   categories,
@@ -34,6 +44,7 @@ export function ProductGrid({
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {products.map((product) => {
+          const updated = productUpdatedLabel(product)
           const img =
             Array.isArray(product.images) && product.images.length > 0
               ? typeof product.images[0] === 'string'
@@ -60,11 +71,17 @@ export function ProductGrid({
               </div>
               <div className="p-4 flex-1 flex flex-col">
                 <h3 className="font-semibold line-clamp-2 min-h-[2.5rem]">{product.name}</h3>
+                {product.short_description && (
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{product.short_description}</p>
+                )}
                 <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
                   SKU: {product.sku || '—'} · {categoryName(categories, product.category_id)}
                 </p>
                 <p className="text-lg font-bold mt-2">{formatCurrency(Number(product.price || 0))}</p>
                 <p className="text-sm text-muted-foreground">Stock: {product.stock_quantity ?? 0}</p>
+                {updated && (
+                  <p className="text-xs text-muted-foreground mt-0.5">Updated {updated}</p>
+                )}
                 <HStack spacing={2} className="mt-auto pt-4 flex-wrap">
                   <Button variant="outline" size="sm" onClick={() => onView(product)}>
                     <Eye className="h-4 w-4 mr-1" />

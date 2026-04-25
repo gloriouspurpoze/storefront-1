@@ -1,5 +1,4 @@
 import React, { useState } from 'react'
-import { Box, useTheme } from '@mui/material'
 import { Sidebar } from './sidebar'
 import { Header } from './header'
 import { AppBreadcrumbs } from './AppBreadcrumbs'
@@ -16,7 +15,6 @@ interface MainLayoutProps {
 
 export function MainLayout({ children }: MainLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
-  const theme = useTheme()
   const { isOpen: sidebarExpanded } = useSidebar()
   const drawerOffsetPx = sidebarExpanded ? DRAWER_WIDTH_EXPANDED_PX : DRAWER_WIDTH_COLLAPSED_PX
 
@@ -25,37 +23,22 @@ export function MainLayout({ children }: MainLayoutProps) {
   }
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Header */}
+    <div className="flex min-h-screen w-full">
       <Header onMenuClick={handleDrawerToggle} />
-
-      {/* Sidebar */}
       <Sidebar open={mobileOpen} onClose={handleDrawerToggle} />
-
-      {/* Main content */}
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          p: { xs: 2, sm: 3 },
-          width: {
-            md: `calc(100% - ${drawerOffsetPx}px)`,
-          },
-          ml: {
-            md: `${drawerOffsetPx}px`,
-          },
-          mt: `${APP_BAR_HEIGHT_PX}px`,
-          backgroundColor: 'background.default',
-          minHeight: `calc(100vh - ${APP_BAR_HEIGHT_PX}px)`,
-          transition: theme.transitions.create(['margin', 'width'], {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.leavingScreen,
-          }),
-        }}
+      <main
+        className="flex-1 w-full min-h-[calc(100vh-48px)] bg-background p-3 transition-[margin,width] duration-200 ease-out sm:p-4 md:ml-[var(--drawer-w)] md:w-[calc(100%-var(--drawer-w))]"
+        style={
+          {
+            marginTop: APP_BAR_HEIGHT_PX,
+            ['--drawer-w' as string]: `${drawerOffsetPx}px`,
+          } as React.CSSProperties
+        }
+        aria-label="Main"
       >
         <AppBreadcrumbs />
         {children}
-      </Box>
-    </Box>
+      </main>
+    </div>
   )
 }

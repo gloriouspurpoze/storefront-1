@@ -1,29 +1,27 @@
 import React, { useState, useEffect } from 'react'
+import { X, Plus, Building2 } from 'lucide-react'
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  TextField,
-  Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Chip,
-  Box,
-  Typography,
-  IconButton,
-  Switch,
-  FormControlLabel,
-  Divider,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
+import { Label } from '../ui/label'
+import { Textarea } from '../ui/textarea'
+import { Switch } from '../ui/switch'
+import { Badge } from '../ui/badge'
+import { Separator } from '../ui/separator'
 import {
-  Close as CloseIcon,
-  Add as AddIcon,
-  Business as BusinessIcon,
-} from '@mui/icons-material'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select'
+import { cn } from '../../lib/utils'
 
 interface ServiceProvider {
   id: string
@@ -47,7 +45,7 @@ interface ServiceProvider {
 interface ProviderFormDialogProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: any) => void
+  onSubmit: (data: Record<string, unknown>) => void
   mode: 'create' | 'edit'
   provider?: ServiceProvider | null
   loading?: boolean
@@ -102,10 +100,10 @@ export function ProviderFormDialog({
     }
   }, [mode, provider])
 
-  const handleChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+  const handleChange = (field: string, value: unknown) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }))
+      setErrors((prev) => ({ ...prev, [field]: '' }))
     }
   }
 
@@ -117,7 +115,10 @@ export function ProviderFormDialog({
   }
 
   const removeService = (service: string) => {
-    handleChange('services_offered', formData.services_offered.filter(s => s !== service))
+    handleChange(
+      'services_offered',
+      formData.services_offered.filter((s) => s !== service),
+    )
   }
 
   const addArea = () => {
@@ -128,24 +129,23 @@ export function ProviderFormDialog({
   }
 
   const removeArea = (area: string) => {
-    handleChange('service_areas', formData.service_areas.filter(a => a !== area))
+    handleChange(
+      'service_areas',
+      formData.service_areas.filter((a) => a !== area),
+    )
   }
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
-
     if (!formData.business_name.trim()) {
       newErrors.business_name = 'Business name is required'
     }
-
     if (formData.services_offered.length === 0) {
       newErrors.services_offered = 'At least one service is required'
     }
-
     if (formData.service_areas.length === 0) {
       newErrors.service_areas = 'At least one service area is required'
     }
-
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -174,251 +174,171 @@ export function ProviderFormDialog({
   }
 
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{
-        sx: { borderRadius: 2 }
-      }}
-    >
-      <DialogTitle sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between',
-        pb: 1,
-        borderBottom: 1,
-        borderColor: 'divider'
-      }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <BusinessIcon color="primary" />
-          <Typography variant="h6" fontWeight="600">
+    <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
+      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto sm:max-w-lg [&>button]:hidden">
+        <DialogHeader className="flex flex-row items-center justify-between space-y-0 border-b pb-2">
+          <DialogTitle className="flex items-center gap-2 text-lg">
+            <Building2 className="h-5 w-5 text-primary" />
             {mode === 'create' ? 'Create New Provider' : 'Edit Provider'}
-          </Typography>
-        </Box>
-        <IconButton onClick={handleClose} size="small">
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+          </DialogTitle>
+          <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={handleClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </DialogHeader>
 
-      <DialogContent sx={{ pt: 3 }}>
-        <Grid container spacing={3}>
-          {/* Basic Information */}
-          <Grid item xs={12}>
-            <Typography variant="h6" color="primary" gutterBottom>
-              Basic Information
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Business Name"
-              value={formData.business_name}
-              onChange={(e) => handleChange('business_name', e.target.value)}
-              error={!!errors.business_name}
-              helperText={errors.business_name}
-              sx={{ borderRadius: 2 }}
-            />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Business License"
-              value={formData.business_license}
-              onChange={(e) => handleChange('business_license', e.target.value)}
-              sx={{ borderRadius: 2 }}
-            />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Years of Experience"
-              type="number"
-              value={formData.years_experience}
-              onChange={(e) => handleChange('years_experience', parseInt(e.target.value) || 0)}
-              sx={{ borderRadius: 2 }}
-            />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
-              <InputLabel>Verification Status</InputLabel>
+        <div className="grid gap-4 py-2">
+          <div>
+            <h3 className="text-sm font-semibold text-primary">Basic Information</h3>
+            <Separator className="my-2" />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="pf-name">Business Name</Label>
+              <Input
+                id="pf-name"
+                value={formData.business_name}
+                onChange={(e) => handleChange('business_name', e.target.value)}
+                className={cn(errors.business_name && 'border-destructive')}
+              />
+              {errors.business_name && <p className="text-xs text-destructive">{errors.business_name}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="pf-lic">Business License</Label>
+              <Input
+                id="pf-lic"
+                value={formData.business_license}
+                onChange={(e) => handleChange('business_license', e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="pf-yrs">Years of Experience</Label>
+              <Input
+                id="pf-yrs"
+                type="number"
+                value={formData.years_experience}
+                onChange={(e) => handleChange('years_experience', parseInt(e.target.value, 10) || 0)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Verification Status</Label>
               <Select
                 value={formData.verification_status}
-                onChange={(e) => handleChange('verification_status', e.target.value)}
-                label="Verification Status"
-                sx={{ borderRadius: 2 }}
+                onValueChange={(v) =>
+                  handleChange('verification_status', v as typeof formData.verification_status)
+                }
               >
-                <MenuItem value="pending">Pending</MenuItem>
-                <MenuItem value="verified">Verified</MenuItem>
-                <MenuItem value="rejected">Rejected</MenuItem>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="verified">Verified</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
               </Select>
-            </FormControl>
-          </Grid>
+            </div>
+          </div>
 
-          {/* Services Offered */}
-          <Grid item xs={12}>
-            <Typography variant="h6" color="primary" gutterBottom sx={{ mt: 2 }}>
-              Services Offered
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-          </Grid>
-
-          <Grid item xs={12}>
-            <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-              <TextField
-                fullWidth
-                label="Add Service"
-                value={newService}
-                onChange={(e) => setNewService(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && addService()}
-                sx={{ borderRadius: 2 }}
-              />
-              <Button
-                variant="contained"
-                onClick={addService}
-                startIcon={<AddIcon />}
-                sx={{ borderRadius: 2, minWidth: 'auto', px: 2 }}
-              >
-                Add
-              </Button>
-            </Box>
-            {errors.services_offered && (
-              <Typography color="error" variant="caption" sx={{ mb: 1, display: 'block' }}>
-                {errors.services_offered}
-              </Typography>
-            )}
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {formData.services_offered.map((service, index) => (
-                <Chip
-                  key={index}
-                  label={service}
-                  onDelete={() => removeService(service)}
-                  color="primary"
-                  variant="outlined"
-                  sx={{ borderRadius: 2 }}
-                />
-              ))}
-            </Box>
-          </Grid>
-
-          {/* Service Areas */}
-          <Grid item xs={12}>
-            <Typography variant="h6" color="primary" gutterBottom sx={{ mt: 2 }}>
-              Service Areas
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-          </Grid>
-
-          <Grid item xs={12}>
-            <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-              <TextField
-                fullWidth
-                label="Add Service Area"
-                value={newArea}
-                onChange={(e) => setNewArea(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && addArea()}
-                sx={{ borderRadius: 2 }}
-              />
-              <Button
-                variant="contained"
-                onClick={addArea}
-                startIcon={<AddIcon />}
-                sx={{ borderRadius: 2, minWidth: 'auto', px: 2 }}
-              >
-                Add
-              </Button>
-            </Box>
-            {errors.service_areas && (
-              <Typography color="error" variant="caption" sx={{ mb: 1, display: 'block' }}>
-                {errors.service_areas}
-              </Typography>
-            )}
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {formData.service_areas.map((area, index) => (
-                <Chip
-                  key={index}
-                  label={area}
-                  onDelete={() => removeArea(area)}
-                  color="secondary"
-                  variant="outlined"
-                  sx={{ borderRadius: 2 }}
-                />
-              ))}
-            </Box>
-          </Grid>
-
-          {/* Bio */}
-          <Grid item xs={12}>
-            <Typography variant="h6" color="primary" gutterBottom sx={{ mt: 2 }}>
-              Additional Information
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-          </Grid>
-
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Bio"
-              multiline
-              rows={4}
-              value={formData.bio}
-              onChange={(e) => handleChange('bio', e.target.value)}
-              placeholder="Tell us about your business and experience..."
-              sx={{ borderRadius: 2 }}
+          <div>
+            <h3 className="mt-2 text-sm font-semibold text-primary">Services Offered</h3>
+            <Separator className="my-2" />
+          </div>
+          <div className="flex gap-2">
+            <Input
+              placeholder="Add service"
+              value={newService}
+              onChange={(e) => setNewService(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addService())}
             />
-          </Grid>
+            <Button type="button" onClick={addService}>
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+          {errors.services_offered && (
+            <p className="text-xs text-destructive">{errors.services_offered}</p>
+          )}
+          <div className="flex flex-wrap gap-1">
+            {formData.services_offered.map((service) => (
+              <Badge key={service} variant="outline" className="cursor-default gap-1 pr-0.5">
+                {service}
+                <button
+                  type="button"
+                  className="rounded p-0.5 hover:bg-muted"
+                  onClick={() => removeService(service)}
+                  aria-label={`Remove ${service}`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+          </div>
 
-          {/* Settings */}
-          <Grid item xs={12}>
-            <Typography variant="h6" color="primary" gutterBottom sx={{ mt: 2 }}>
-              Settings
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-          </Grid>
-
-          <Grid item xs={12}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={formData.is_active}
-                  onChange={(e) => handleChange('is_active', e.target.checked)}
-                  color="primary"
-                />
-              }
-              label="Active Provider"
+          <div>
+            <h3 className="mt-2 text-sm font-semibold text-primary">Service Areas</h3>
+            <Separator className="my-2" />
+          </div>
+          <div className="flex gap-2">
+            <Input
+              placeholder="Add service area"
+              value={newArea}
+              onChange={(e) => setNewArea(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addArea())}
             />
-          </Grid>
-        </Grid>
+            <Button type="button" onClick={addArea}>
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+          {errors.service_areas && <p className="text-xs text-destructive">{errors.service_areas}</p>}
+          <div className="flex flex-wrap gap-1">
+            {formData.service_areas.map((area) => (
+              <Badge key={area} variant="secondary" className="cursor-default gap-1 pr-0.5">
+                {area}
+                <button
+                  type="button"
+                  className="rounded p-0.5 hover:bg-muted"
+                  onClick={() => removeArea(area)}
+                  aria-label={`Remove ${area}`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+
+          <div>
+            <h3 className="mt-2 text-sm font-semibold text-primary">Additional Information</h3>
+            <Separator className="my-2" />
+          </div>
+          <Textarea
+            rows={4}
+            value={formData.bio}
+            onChange={(e) => handleChange('bio', e.target.value)}
+            placeholder="Tell us about your business and experience..."
+          />
+
+          <div>
+            <h3 className="mt-2 text-sm font-semibold text-primary">Settings</h3>
+            <Separator className="my-2" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch
+              id="pf-active"
+              checked={formData.is_active}
+              onCheckedChange={(c) => handleChange('is_active', c === true)}
+            />
+            <Label htmlFor="pf-active">Active Provider</Label>
+          </div>
+        </div>
+
+        <DialogFooter className="gap-2 border-t bg-muted/20 sm:justify-end">
+          <Button type="button" variant="outline" onClick={handleClose}>
+            Cancel
+          </Button>
+          <Button type="button" onClick={handleSubmit} disabled={loading}>
+            {loading ? 'Saving...' : mode === 'create' ? 'Create Provider' : 'Update Provider'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-
-      <DialogActions sx={{ 
-        p: 3, 
-        bgcolor: 'grey.50',
-        borderTop: 1,
-        borderColor: 'divider'
-      }}>
-        <Button
-          onClick={handleClose}
-          variant="outlined"
-          sx={{ borderRadius: 2 }}
-        >
-          Cancel
-        </Button>
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
-          disabled={loading}
-          sx={{ borderRadius: 2 }}
-        >
-          {loading ? 'Saving...' : mode === 'create' ? 'Create Provider' : 'Update Provider'}
-        </Button>
-      </DialogActions>
     </Dialog>
   )
 }

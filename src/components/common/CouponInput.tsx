@@ -3,29 +3,21 @@
  * Allows users to enter and apply coupon codes
  */
 
-import React, { useState } from 'react';
-import {
-  Box,
-  TextField,
-  Button,
-  Chip,
-  Alert,
-  CircularProgress,
-  Stack,
-} from '@mui/material';
-import {
-  CardGiftcard as CouponIcon,
-  Close as CloseIcon,
-  Check as CheckIcon,
-} from '@mui/icons-material';
-import { CouponsService } from '../../services/api/coupons.service';
+import React, { useState } from 'react'
+import { Gift, X, Check, Loader2 } from 'lucide-react'
+import { CouponsService } from '../../services/api/coupons.service'
+import { Input } from '../ui/input'
+import { Button } from '../ui/button'
+import { Badge } from '../ui/badge'
+import { Label } from '../ui/label'
+import { cn } from '../../lib/utils'
 
 export interface CouponInputProps {
-  subtotal: number;
-  onCouponApplied: (coupon: { code: string; discount: number; couponId: string }) => void;
-  onCouponRemoved: () => void;
-  disabled?: boolean;
-  appliedCouponCode?: string;
+  subtotal: number
+  onCouponApplied: (coupon: { code: string; discount: number; couponId: string }) => void
+  onCouponRemoved: () => void
+  disabled?: boolean
+  appliedCouponCode?: string
 }
 
 export function CouponInput({
@@ -35,107 +27,122 @@ export function CouponInput({
   disabled = false,
   appliedCouponCode,
 }: CouponInputProps) {
-  const [code, setCode] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [applied, setApplied] = useState(!!appliedCouponCode);
+  const [code, setCode] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [applied, setApplied] = useState(!!appliedCouponCode)
 
   const handleApply = async () => {
     if (!code.trim()) {
-      setError('Please enter a coupon code');
-      return;
+      setError('Please enter a coupon code')
+      return
     }
 
-    setLoading(true);
-    setError(null);
+    setLoading(true)
+    setError(null)
 
     try {
-      // Validate coupon
-      const response = await CouponsService.validateCoupon(code.toUpperCase(), {
+      const response = (await CouponsService.validateCoupon(code.toUpperCase(), {
         subtotal,
         type: 'order',
-      });
+      })) as { success?: boolean; data?: { valid?: boolean; message?: string; coupon?: { code: string; id: string }; discount?: number } }
 
-      if ((response as any).success && (response as any).data.valid) {
-        const { coupon, discount } = (response as any).data;
+      if (response.success && response.data?.valid && response.data.coupon) {
         onCouponApplied({
-          code: coupon.code,
-          discount,
-          couponId: coupon.id,
-        });
-        setApplied(true);
-        setError(null);
+          code: response.data.coupon.code,
+          discount: response.data.discount ?? 0,
+          couponId: response.data.coupon.id,
+        })
+        setApplied(true)
+        setError(null)
       } else {
-        setError((response as any).data.message || 'Invalid coupon code');
+        setError(response.data?.message || 'Invalid coupon code')
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to validate coupon');
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string } } }
+      setError(ax.response?.data?.message || 'Failed to validate coupon')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleRemove = () => {
-    setCode('');
-    setApplied(false);
-    setError(null);
-    onCouponRemoved();
-  };
+    setCode('')
+    setApplied(false)
+    setError(null)
+    onCouponRemoved()
+  }
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      handleApply();
+      void handleApply()
     }
-  };
+  }
 
   if (applied) {
     return (
-      <Box>
-        <Chip
-          icon={<CheckIcon />}
-          label={`Coupon Applied: ${appliedCouponCode || code}`}
-          onDelete={disabled ? undefined : handleRemove}
-          deleteIcon={<CloseIcon />}
-          color="success"
-          sx={{ mb: 1 }}
-        />
-      </Box>
-    );
+      <div>
+        <Badge
+          variant="default"
+          className="h-8 gap-1.5 border-emerald-600/30 bg-emerald-600/15 pl-2 pr-1 text-emerald-900 dark:text-emerald-100"
+        >
+          <Check className="h-3.5 w-3.5" />
+          Coupon Applied: {appliedCouponCode || code}
+          {!disabled && (
+            <button
+              type="button"
+              onClick={handleRemove}
+              className="ml-1 rounded p-0.5 hover:bg-emerald-900/10"
+              aria-label="Remove coupon"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </Badge>
+      </div>
+    )
   }
 
   return (
-    <Box>
-      <Stack direction="row" spacing={1} alignItems="flex-start">
-        <TextField
-          fullWidth
-          size="small"
-          label="Coupon Code"
-          placeholder="Enter coupon code"
-          value={code}
-          onChange={(e) => setCode(e.target.value.toUpperCase())}
-          onKeyPress={handleKeyPress}
-          disabled={disabled || loading}
-          error={!!error}
-          InputProps={{
-            startAdornment: <CouponIcon sx={{ mr: 1, color: 'action.active' }} />,
-          }}
-        />
+    <div>
+      <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-start">
+        <div className="relative min-w-0 flex-1">
+          <Label htmlFor="coupon-code" className="sr-only">
+            Coupon Code
+          </Label>
+          <Gift
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
+          />
+          <Input
+            id="coupon-code"
+            className="pl-9"
+            placeholder="Enter coupon code"
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            onKeyDown={handleKeyDown}
+            disabled={disabled || loading}
+            aria-invalid={!!error}
+          />
+        </div>
         <Button
-          variant="contained"
-          onClick={handleApply}
+          type="button"
+          onClick={() => void handleApply()}
           disabled={disabled || loading || !code.trim()}
-          sx={{ minWidth: 100 }}
+          className="min-w-[100px] shrink-0"
         >
-          {loading ? <CircularProgress size={24} /> : 'Apply'}
+          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Apply'}
         </Button>
-      </Stack>
+      </div>
 
       {error && (
-        <Alert severity="error" sx={{ mt: 1 }}>
+        <div
+          className={cn('mt-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive')}
+          role="alert"
+        >
           {error}
-        </Alert>
+        </div>
       )}
-    </Box>
-  );
+    </div>
+  )
 }
-

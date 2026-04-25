@@ -1,32 +1,27 @@
 import React, { useState, useEffect } from 'react'
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Box,
-  Typography,
-  IconButton,
-  Chip,
-  InputAdornment,
-  Alert,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
-import {
-  Close as CloseIcon,
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Edit as EditIcon,
-  CloudUpload as UploadIcon,
-} from '@mui/icons-material'
+import { X, Plus, Pencil, IndianRupee } from 'lucide-react'
 import { ServiceRequest, CreateServiceRequest, UpdateServiceRequest } from '../../services/api/services.service'
 import { useAppPrompt } from '../providers/AppDialogsProvider'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
+import { Label } from '../ui/label'
+import { Textarea } from '../ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select'
+import { Badge } from '../ui/badge'
+import { cn } from '../../lib/utils'
 
 interface ServiceRequestFormDialogProps {
   open: boolean
@@ -53,10 +48,10 @@ const SERVICE_TYPES = [
 ]
 
 const URGENCY_LEVELS = [
-  { value: 'low', label: 'Low - Can wait a few days', color: 'success' },
-  { value: 'medium', label: 'Medium - Within a week', color: 'warning' },
-  { value: 'high', label: 'High - Urgent, ASAP', color: 'error' },
-]
+  { value: 'low', label: 'Low - Can wait a few days' },
+  { value: 'medium', label: 'Medium - Within a week' },
+  { value: 'high', label: 'High - Urgent, ASAP' },
+] as const
 
 export function ServiceRequestFormDialog({
   open,
@@ -67,7 +62,7 @@ export function ServiceRequestFormDialog({
   loading = false,
 }: ServiceRequestFormDialogProps) {
   const prompt = useAppPrompt()
-  const [formData, setFormData] = useState<any>({
+  const [formData, setFormData] = useState({
     service_type: '',
     title: '',
     description: '',
@@ -81,14 +76,14 @@ export function ServiceRequestFormDialog({
         lng: '',
       },
     },
-    urgency: 'medium',
+    urgency: 'medium' as 'low' | 'medium' | 'high',
     budget_min: '',
     budget_max: '',
     preferred_date: '',
-    images: [],
+    images: [] as string[],
   })
 
-  const [errors, setErrors] = useState<any>({})
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
     if (mode === 'edit' && service) {
@@ -102,18 +97,17 @@ export function ServiceRequestFormDialog({
           state: service.location.state,
           zip_code: service.location.zip_code,
           coordinates: {
-            lat: service.location.coordinates?.lat || '',
-            lng: service.location.coordinates?.lng || '',
+            lat: String(service.location.coordinates?.lat ?? ''),
+            lng: String(service.location.coordinates?.lng ?? ''),
           },
         },
         urgency: service.urgency,
-        budget_min: parseFloat(service.budget_min),
-        budget_max: parseFloat(service.budget_max),
+        budget_min: String(parseFloat(String(service.budget_min))),
+        budget_max: String(parseFloat(String(service.budget_max))),
         preferred_date: service.preferred_date ? service.preferred_date.split('T')[0] : '',
         images: service.images || [],
       })
     } else {
-      // Reset form for create mode
       setFormData({
         service_type: '',
         title: '',
@@ -123,10 +117,7 @@ export function ServiceRequestFormDialog({
           city: '',
           state: '',
           zip_code: '',
-          coordinates: {
-            lat: '',
-            lng: '',
-          },
+          coordinates: { lat: '', lng: '' },
         },
         urgency: 'medium',
         budget_min: '',
@@ -138,24 +129,17 @@ export function ServiceRequestFormDialog({
     setErrors({})
   }, [mode, service, open])
 
-  const handleChange = (field: string, value: any) => {
-    setFormData((prev: any) => ({
-      ...prev,
-      [field]: value,
-    }))
-    // Clear error when user starts typing
+  const handleChange = (field: string, value: unknown) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
     if (errors[field]) {
-      setErrors((prev: any) => ({ ...prev, [field]: '' }))
+      setErrors((prev) => ({ ...prev, [field]: '' }))
     }
   }
 
-  const handleLocationChange = (field: string, value: any) => {
-    setFormData((prev: any) => ({
+  const handleLocationChange = (field: string, value: string) => {
+    setFormData((prev) => ({
       ...prev,
-      location: {
-        ...prev.location,
-        [field]: value,
-      },
+      location: { ...prev.location, [field]: value },
     }))
   }
 
@@ -167,23 +151,16 @@ export function ServiceRequestFormDialog({
       confirmLabel: 'Add',
     })
     if (imageUrl && imageUrl.trim()) {
-      setFormData((prev: any) => ({
-        ...prev,
-        images: [...prev.images, imageUrl.trim()],
-      }))
+      setFormData((prev) => ({ ...prev, images: [...prev.images, imageUrl.trim()] }))
     }
   }
 
   const handleRemoveImage = (index: number) => {
-    setFormData((prev: any) => ({
-      ...prev,
-      images: prev.images.filter((_: any, i: number) => i !== index),
-    }))
+    setFormData((prev) => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }))
   }
 
   const validateForm = () => {
-    const newErrors: any = {}
-
+    const newErrors: Record<string, string> = {}
     if (!formData.service_type) newErrors.service_type = 'Service type is required'
     if (!formData.title || formData.title.trim().length < 5) {
       newErrors.title = 'Title must be at least 5 characters'
@@ -211,17 +188,13 @@ export function ServiceRequestFormDialog({
     ) {
       newErrors.budget_max = 'Maximum budget must be greater than minimum budget'
     }
-
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = () => {
-    if (!validateForm()) {
-      return
-    }
-
-    const submitData: any = {
+    if (!validateForm()) return
+    const submitData: CreateServiceRequest & { preferred_date?: string } = {
       service_type: formData.service_type,
       title: formData.title.trim(),
       description: formData.description.trim(),
@@ -240,315 +213,293 @@ export function ServiceRequestFormDialog({
       budget_max: parseFloat(formData.budget_max),
       images: formData.images,
     }
-
     if (formData.preferred_date) {
       submitData.preferred_date = new Date(formData.preferred_date).toISOString()
     }
-
-    onSubmit(submitData)
+    onSubmit(submitData as CreateServiceRequest | UpdateServiceRequest)
   }
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>
-        <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="h6">
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto sm:max-w-2xl [&>button]:hidden">
+        <DialogHeader className="flex flex-row items-center justify-between">
+          <DialogTitle>
             {mode === 'create' ? 'Create New Service Request' : 'Edit Service Request'}
-          </Typography>
-          <IconButton onClick={onClose} size="small">
-            <CloseIcon />
-          </IconButton>
-        </Box>
-      </DialogTitle>
+          </DialogTitle>
+          <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </DialogHeader>
 
-      <DialogContent dividers>
-        <Grid container spacing={3}>
-          {/* Service Type & Title */}
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth error={!!errors.service_type}>
-              <InputLabel>Service Type *</InputLabel>
+        <div className="grid gap-4 py-2">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>Service Type *</Label>
               <Select
                 value={formData.service_type}
-                label="Service Type *"
-                onChange={(e) => handleChange('service_type', e.target.value)}
+                onValueChange={(v) => handleChange('service_type', v)}
               >
-                {SERVICE_TYPES.map((type) => (
-                  <MenuItem key={type} value={type}>
-                    {type
-                      .split('_')
-                      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                      .join(' ')}
-                  </MenuItem>
-                ))}
+                <SelectTrigger className={cn(errors.service_type && 'border-destructive')}>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SERVICE_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type
+                        .split('_')
+                        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                        .join(' ')}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
-              {errors.service_type && (
-                <Typography variant="caption" color="error">
-                  {errors.service_type}
-                </Typography>
-              )}
-            </FormControl>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
-              <InputLabel>Urgency *</InputLabel>
+              {errors.service_type && <p className="text-xs text-destructive">{errors.service_type}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Urgency *</Label>
               <Select
                 value={formData.urgency}
-                label="Urgency *"
-                onChange={(e) => handleChange('urgency', e.target.value)}
+                onValueChange={(v) => handleChange('urgency', v)}
               >
-                {URGENCY_LEVELS.map((level) => (
-                  <MenuItem key={level.value} value={level.value}>
-                    <Chip
-                      label={level.label}
-                      color={level.color as any}
-                      size="small"
-                      sx={{ mr: 1 }}
-                    />
-                  </MenuItem>
-                ))}
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {URGENCY_LEVELS.map((level) => (
+                    <SelectItem key={level.value} value={level.value}>
+                      {level.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
-            </FormControl>
-          </Grid>
+            </div>
+          </div>
 
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Title *"
+          <div className="space-y-1.5">
+            <Label htmlFor="srf-title">Title *</Label>
+            <Input
+              id="srf-title"
               value={formData.title}
               onChange={(e) => handleChange('title', e.target.value)}
-              error={!!errors.title}
-              helperText={errors.title || 'Brief description of what you need (min 5 characters)'}
+              className={cn(errors.title && 'border-destructive')}
               placeholder="e.g., Fix leaking kitchen faucet"
             />
-          </Grid>
+            {errors.title ? (
+              <p className="text-xs text-destructive">{errors.title}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">Min 5 characters</p>
+            )}
+          </div>
 
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              multiline
+          <div className="space-y-1.5">
+            <Label htmlFor="srf-desc">Description *</Label>
+            <Textarea
+              id="srf-desc"
               rows={4}
-              label="Description *"
               value={formData.description}
               onChange={(e) => handleChange('description', e.target.value)}
-              error={!!errors.description}
-              helperText={
-                errors.description || 'Detailed description of the issue (min 20 characters)'
-              }
-              placeholder="Describe the problem in detail, including any relevant information..."
+              className={cn(errors.description && 'border-destructive')}
+              placeholder="Describe the problem in detail..."
             />
-          </Grid>
+            {errors.description ? (
+              <p className="text-xs text-destructive">{errors.description}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">Min 20 characters</p>
+            )}
+          </div>
 
-          {/* Location Section */}
-          <Grid item xs={12}>
-            <Typography variant="subtitle2" gutterBottom sx={{ mt: 2, mb: 1 }}>
-              Location
-            </Typography>
-          </Grid>
+          <p className="text-sm font-medium">Location</p>
 
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Address *"
+          <div className="space-y-1.5">
+            <Label htmlFor="srf-addr">Address *</Label>
+            <Input
+              id="srf-addr"
               value={formData.location.address}
               onChange={(e) => handleLocationChange('address', e.target.value)}
-              error={!!errors.address}
-              helperText={errors.address}
-              placeholder="123 Main St, Apt 4B"
+              className={cn(errors.address && 'border-destructive')}
             />
-          </Grid>
+            {errors.address && <p className="text-xs text-destructive">{errors.address}</p>}
+          </div>
 
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="City *"
-              value={formData.location.city}
-              onChange={(e) => handleLocationChange('city', e.target.value)}
-              error={!!errors.city}
-              helperText={errors.city}
-              placeholder="New York"
-            />
-          </Grid>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="srf-city">City *</Label>
+              <Input
+                id="srf-city"
+                value={formData.location.city}
+                onChange={(e) => handleLocationChange('city', e.target.value)}
+                className={cn(errors.city && 'border-destructive')}
+              />
+              {errors.city && <p className="text-xs text-destructive">{errors.city}</p>}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="srf-state">State *</Label>
+                <Input
+                  id="srf-state"
+                  value={formData.location.state}
+                  onChange={(e) => handleLocationChange('state', e.target.value.toUpperCase())}
+                  maxLength={2}
+                  className={cn(errors.state && 'border-destructive')}
+                />
+                {errors.state && <p className="text-xs text-destructive">{errors.state}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="srf-zip">ZIP *</Label>
+                <Input
+                  id="srf-zip"
+                  value={formData.location.zip_code}
+                  onChange={(e) => handleLocationChange('zip_code', e.target.value)}
+                  maxLength={5}
+                  className={cn(errors.zip_code && 'border-destructive')}
+                />
+                {errors.zip_code && <p className="text-xs text-destructive">{errors.zip_code}</p>}
+              </div>
+            </div>
+          </div>
 
-          <Grid item xs={12} md={3}>
-            <TextField
-              fullWidth
-              label="State *"
-              value={formData.location.state}
-              onChange={(e) => handleLocationChange('state', e.target.value)}
-              error={!!errors.state}
-              helperText={errors.state}
-              placeholder="NY"
-              inputProps={{ maxLength: 2, style: { textTransform: 'uppercase' } }}
-            />
-          </Grid>
+          <p className="text-xs text-muted-foreground">
+            Coordinates * (from{' '}
+            <a href="https://www.google.com/maps" className="text-primary underline" target="_blank" rel="noreferrer">
+              Google Maps
+            </a>
+            )
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="srf-lat">Latitude *</Label>
+              <Input
+                id="srf-lat"
+                type="number"
+                step="any"
+                value={formData.location.coordinates.lat}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    location: {
+                      ...prev.location,
+                      coordinates: { ...prev.location.coordinates, lat: e.target.value },
+                    },
+                  }))
+                }
+                className={cn(errors.coordinates && 'border-destructive')}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="srf-lng">Longitude *</Label>
+              <Input
+                id="srf-lng"
+                type="number"
+                step="any"
+                value={formData.location.coordinates.lng}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    location: {
+                      ...prev.location,
+                      coordinates: { ...prev.location.coordinates, lng: e.target.value },
+                    },
+                  }))
+                }
+                className={cn(errors.coordinates && 'border-destructive')}
+              />
+            </div>
+          </div>
+          {errors.coordinates && <p className="text-xs text-destructive">{errors.coordinates}</p>}
 
-          <Grid item xs={12} md={3}>
-            <TextField
-              fullWidth
-              label="ZIP Code *"
-              value={formData.location.zip_code}
-              onChange={(e) => handleLocationChange('zip_code', e.target.value)}
-              error={!!errors.zip_code}
-              helperText={errors.zip_code}
-              placeholder="10001"
-              inputProps={{ maxLength: 5 }}
-            />
-          </Grid>
+          <p className="text-sm font-medium">Budget</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="srf-bmin">Minimum Budget *</Label>
+              <div className="relative">
+                <IndianRupee className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="srf-bmin"
+                  type="number"
+                  className={cn('pl-9', errors.budget_min && 'border-destructive')}
+                  value={formData.budget_min}
+                  onChange={(e) => handleChange('budget_min', e.target.value)}
+                  min={0}
+                />
+              </div>
+              {errors.budget_min && <p className="text-xs text-destructive">{errors.budget_min}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="srf-bmax">Maximum Budget *</Label>
+              <div className="relative">
+                <IndianRupee className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="srf-bmax"
+                  type="number"
+                  className={cn('pl-9', errors.budget_max && 'border-destructive')}
+                  value={formData.budget_max}
+                  onChange={(e) => handleChange('budget_max', e.target.value)}
+                  min={0}
+                />
+              </div>
+              {errors.budget_max && <p className="text-xs text-destructive">{errors.budget_max}</p>}
+            </div>
+          </div>
 
-          <Grid item xs={12}>
-            <Typography variant="caption" color="textSecondary" sx={{ mb: 1, display: 'block' }}>
-              Coordinates * (Get coordinates from{' '}
-              <a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer">
-                Google Maps
-              </a>
-              )
-            </Typography>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              type="number"
-              label="Latitude *"
-              value={formData.location.coordinates.lat}
-              onChange={(e) =>
-                setFormData((prev: any) => ({
-                  ...prev,
-                  location: {
-                    ...prev.location,
-                    coordinates: { ...prev.location.coordinates, lat: e.target.value },
-                  },
-                }))
-              }
-              error={!!errors.coordinates}
-              helperText={errors.coordinates}
-              placeholder="40.7128"
-              inputProps={{ step: 'any' }}
-            />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              type="number"
-              label="Longitude *"
-              value={formData.location.coordinates.lng}
-              onChange={(e) =>
-                setFormData((prev: any) => ({
-                  ...prev,
-                  location: {
-                    ...prev.location,
-                    coordinates: { ...prev.location.coordinates, lng: e.target.value },
-                  },
-                }))
-              }
-              error={!!errors.coordinates}
-              placeholder="-74.0060"
-              inputProps={{ step: 'any' }}
-            />
-          </Grid>
-
-          {/* Budget Section */}
-          <Grid item xs={12}>
-            <Typography variant="subtitle2" gutterBottom sx={{ mt: 2, mb: 1 }}>
-              Budget
-            </Typography>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              type="number"
-              label="Minimum Budget *"
-              value={formData.budget_min}
-              onChange={(e) => handleChange('budget_min', e.target.value)}
-              error={!!errors.budget_min}
-              helperText={errors.budget_min}
-              InputProps={{
-                startAdornment: <InputAdornment position="start">$</InputAdornment>,
-              }}
-              inputProps={{ min: 0, step: 10 }}
-            />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              type="number"
-              label="Maximum Budget *"
-              value={formData.budget_max}
-              onChange={(e) => handleChange('budget_max', e.target.value)}
-              error={!!errors.budget_max}
-              helperText={errors.budget_max}
-              InputProps={{
-                startAdornment: <InputAdornment position="start">$</InputAdornment>,
-              }}
-              inputProps={{ min: 0, step: 10 }}
-            />
-          </Grid>
-
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
+          <div className="space-y-1.5">
+            <Label htmlFor="srf-date">Preferred Date</Label>
+            <Input
+              id="srf-date"
               type="date"
-              label="Preferred Date"
               value={formData.preferred_date}
               onChange={(e) => handleChange('preferred_date', e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              helperText="When would you like the service completed?"
-              inputProps={{
-                min: new Date().toISOString().split('T')[0],
-              }}
+              min={new Date().toISOString().split('T')[0]}
             />
-          </Grid>
+            <p className="text-xs text-muted-foreground">When would you like the service completed?</p>
+          </div>
 
-          {/* Images Section */}
-          <Grid item xs={12}>
-            <Box sx={{ mt: 2 }}>
-              <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                <Typography variant="subtitle2">Images (Optional)</Typography>
-                <Button startIcon={<AddIcon />} size="small" onClick={handleAddImage}>
-                  Add Image URL
-                </Button>
-              </Box>
-              {formData.images.length > 0 ? (
-                <Box display="flex" flexWrap="wrap" gap={1}>
-                  {formData.images.map((image: string, index: number) => (
-                    <Chip
-                      key={index}
-                      label={image.substring(0, 30) + '...'}
-                      onDelete={() => handleRemoveImage(index)}
-                      color="primary"
-                      variant="outlined"
-                    />
-                  ))}
-                </Box>
-              ) : (
-                <Alert severity="info" sx={{ mt: 1 }}>
-                  No images added. You can add image URLs to help service providers understand the
-                  issue.
-                </Alert>
-              )}
-            </Box>
-          </Grid>
-        </Grid>
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-sm font-medium">Images (optional)</span>
+              <Button type="button" size="sm" variant="outline" onClick={handleAddImage}>
+                <Plus className="mr-1 h-4 w-4" />
+                Add Image URL
+              </Button>
+            </div>
+            {formData.images.length > 0 ? (
+              <div className="flex flex-wrap gap-1">
+                {formData.images.map((image: string, index: number) => (
+                  <Badge key={index} variant="outline" className="max-w-full gap-1 pr-0.5 font-normal">
+                    <span className="truncate">{image.length > 40 ? `${image.slice(0, 40)}…` : image}</span>
+                    <button
+                      type="button"
+                      className="rounded p-0.5 hover:bg-muted"
+                      onClick={() => handleRemoveImage(index)}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900 dark:border-blue-900 dark:bg-blue-950/40">
+                No images added. You can add image URLs to help providers understand the issue.
+              </p>
+            )}
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+            Cancel
+          </Button>
+          <Button type="button" onClick={handleSubmit} disabled={loading}>
+            {loading ? (
+              'Saving...'
+            ) : (
+              <>
+                {mode === 'create' ? <Plus className="mr-2 h-4 w-4" /> : <Pencil className="mr-2 h-4 w-4" />}
+                {mode === 'create' ? 'Create Request' : 'Update Request'}
+              </>
+            )}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} disabled={loading}>
-          Cancel
-        </Button>
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
-          disabled={loading}
-          startIcon={loading ? null : mode === 'create' ? <AddIcon /> : <EditIcon />}
-        >
-          {loading ? 'Saving...' : mode === 'create' ? 'Create Request' : 'Update Request'}
-        </Button>
-      </DialogActions>
     </Dialog>
   )
 }
-

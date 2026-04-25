@@ -1,23 +1,17 @@
 import React from 'react'
+import { Search, Filter, X } from 'lucide-react'
+import { Card, CardContent } from '../ui/card'
+import { Input } from '../ui/input'
+import { Label } from '../ui/label'
+import { Button } from '../ui/button'
+import { Badge } from '../ui/badge'
 import {
-  Box,
-  TextField,
-  FormControl,
-  InputLabel,
   Select,
-  MenuItem,
-  Button,
-  Chip,
-  Paper,
-  Typography,
-  IconButton,
-} from '@mui/material'
-import {
-  Search as SearchIcon,
-  FilterList as FilterIcon,
-  Clear as ClearIcon,
-} from '@mui/icons-material'
-import Grid from '@mui/material/GridLegacy'
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select'
 
 interface ProviderFiltersProps {
   searchTerm: string
@@ -58,102 +52,88 @@ export function ProviderFilters({
   const hasActiveFilters = searchTerm || statusFilter !== 'all' || experienceFilter !== 'all'
 
   return (
-    <Paper sx={{ p: 3, mb: 3, borderRadius: 2 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-        <FilterIcon color="primary" />
-        <Typography variant="h6" fontWeight="600">
-          Filters
-        </Typography>
-        {hasActiveFilters && (
-          <Chip
-            label="Active"
-            color="primary"
-            size="small"
-            sx={{ ml: 'auto' }}
-          />
-        )}
-      </Box>
+    <Card className="mb-6">
+      <CardContent className="p-6">
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <Filter className="h-5 w-5 text-primary" aria-hidden />
+          <h3 className="text-lg font-semibold">Filters</h3>
+          {hasActiveFilters && (
+            <Badge className="ml-auto sm:ml-0" variant="default">
+              Active
+            </Badge>
+          )}
+        </div>
 
-      <Grid container spacing={2} alignItems="center">
-        <Grid item xs={12} md={4}>
-          <TextField
-            fullWidth
-            placeholder="Search providers..."
-            value={searchTerm}
-            onChange={(e) => onSearchChange(e.target.value)}
-            InputProps={{
-              startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
-            }}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 2,
-              },
-            }}
-          />
-        </Grid>
+        <div className="grid grid-cols-1 items-end gap-4 md:grid-cols-12">
+          <div className="md:col-span-4">
+            <Label htmlFor="provider-search" className="sr-only">
+              Search
+            </Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="provider-search"
+                className="rounded-md pl-9"
+                placeholder="Search providers..."
+                value={searchTerm}
+                onChange={(e) => onSearchChange(e.target.value)}
+              />
+            </div>
+          </div>
 
-        <Grid item xs={12} md={3}>
-          <FormControl fullWidth>
-            <InputLabel>Status</InputLabel>
-            <Select
-              value={statusFilter}
-              onChange={(e) => onStatusChange(e.target.value)}
-              label="Status"
-              sx={{ borderRadius: 2 }}
-            >
-              {statusOptions.map((option) => (
-                <MenuItem key={option.value} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
+          <div className="md:col-span-3">
+            <Label className="mb-1.5 block text-xs text-muted-foreground">Status</Label>
+            <Select value={statusFilter} onValueChange={onStatusChange}>
+              <SelectTrigger className="rounded-md">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                {statusOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
-          </FormControl>
-        </Grid>
+          </div>
 
-        <Grid item xs={12} md={3}>
-          <FormControl fullWidth>
-            <InputLabel>Experience</InputLabel>
-            <Select
-              value={experienceFilter}
-              onChange={(e) => onExperienceChange(e.target.value)}
-              label="Experience"
-              sx={{ borderRadius: 2 }}
-            >
-              {experienceOptions.map((option) => (
-                <MenuItem key={option.value} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
+          <div className="md:col-span-3">
+            <Label className="mb-1.5 block text-xs text-muted-foreground">Experience</Label>
+            <Select value={experienceFilter} onValueChange={onExperienceChange}>
+              <SelectTrigger className="rounded-md">
+                <SelectValue placeholder="Experience" />
+              </SelectTrigger>
+              <SelectContent>
+                {experienceOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
-          </FormControl>
-        </Grid>
+          </div>
 
-        <Grid item xs={12} md={2}>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              variant="contained"
-              onClick={onApplyFilters}
-              startIcon={<FilterIcon />}
-              sx={{ borderRadius: 2, flex: 1 }}
-            >
+          <div className="flex gap-2 md:col-span-2">
+            <Button type="button" className="min-w-0 flex-1 rounded-md" onClick={onApplyFilters}>
+              <Filter className="mr-1.5 h-4 w-4" />
               Apply
             </Button>
             {hasActiveFilters && (
-              <IconButton
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
                 onClick={onClearFilters}
-                color="error"
-                sx={{
-                  '&:hover': {
-                    bgcolor: 'error.100',
-                  },
-                }}
+                className="shrink-0 text-destructive hover:bg-destructive/10"
+                title="Clear filters"
+                aria-label="Clear filters"
               >
-                <ClearIcon />
-              </IconButton>
+                <X className="h-4 w-4" />
+              </Button>
             )}
-          </Box>
-        </Grid>
-      </Grid>
-    </Paper>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

@@ -163,6 +163,85 @@ interface ProductFormData {
   instructionManual: string
 }
 
+function isRichTextEmpty(html: string): boolean {
+  const raw = String(html ?? '')
+  if (!raw.trim()) return true
+  const text = raw
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;|&#160;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return text.length === 0
+}
+
+const ADD_PRODUCT_STEP_ERROR_KEYS: Record<number, string[]> = {
+  0: ['name', 'shortDescription', 'description', 'categoryId'],
+  1: ['price', 'originalPrice', 'costPrice', 'sku', 'stockQuantity', 'lowStockThreshold'],
+  2: ['images', 'seoTitle', 'seoDescription'],
+  3: ['weight', 'dimensions', 'handlingTime'],
+  4: ['password', 'expiryDate'],
+}
+
+function getAddProductStepErrors(step: number, data: ProductFormData): Record<string, string> {
+  const e: Record<string, string> = {}
+  switch (step) {
+    case 0:
+      if (!data.name.trim()) e.name = 'Product name is required'
+      if (!data.shortDescription.trim()) e.shortDescription = 'Short description is required'
+      if (isRichTextEmpty(data.description)) e.description = 'Product description is required'
+      if (!String(data.categoryId ?? '').trim()) e.categoryId = 'Category is required'
+      break
+    case 1:
+      if (data.price <= 0) e.price = 'Price must be greater than 0'
+      if (data.originalPrice < 0) e.originalPrice = 'Original price cannot be negative'
+      if (data.costPrice < 0) e.costPrice = 'Cost price cannot be negative'
+      if (!data.sku.trim()) e.sku = 'SKU is required'
+      if (data.stockQuantity < 0) e.stockQuantity = 'Stock quantity cannot be negative'
+      if (data.lowStockThreshold < 0) e.lowStockThreshold = 'Low stock threshold cannot be negative'
+      if (data.originalPrice > 0 && data.price > 0 && data.originalPrice < data.price) {
+        e.originalPrice = 'Original price must be greater than or equal to the selling price'
+      }
+      break
+    case 2:
+      if (!data.images || data.images.length < 1) {
+        e.images = 'At least one product image is required'
+      }
+      if (data.seoTitle && data.seoTitle.length > 60) {
+        e.seoTitle = 'SEO title should be 60 characters or less'
+      }
+      if (data.seoDescription && data.seoDescription.length > 160) {
+        e.seoDescription = 'SEO description should be 160 characters or less'
+      }
+      break
+    case 3: {
+      if (data.weight < 0) {
+        e.weight = 'Weight cannot be negative'
+      } else if (data.requiresShipping && data.weight <= 0) {
+        e.weight = 'Enter a weight greater than 0 for products that require shipping'
+      }
+      const { length: dLen, width: dWid, height: dHgt } = data.dimensions
+      if (dLen < 0 || dWid < 0 || dHgt < 0) e.dimensions = 'Dimensions cannot be negative'
+      if (data.handlingTime < 0) e.handlingTime = 'Handling time cannot be negative'
+      break
+    }
+    case 4:
+      if (data.visibility === 'password' && !String(data.password || '').trim()) {
+        e.password = 'Password is required for password-protected products'
+      }
+      if (data.expiryDate && data.publishDate) {
+        const exp = new Date(data.expiryDate)
+        const pub = new Date(data.publishDate)
+        if (!Number.isNaN(exp.getTime()) && !Number.isNaN(pub.getTime()) && exp < pub) {
+          e.expiryDate = 'Expiry date must be on or after the publish date'
+        }
+      }
+      break
+    default:
+      break
+  }
+  return e
+}
+
 const initialFormData: ProductFormData = {
   // Basic Information
   name: '',
@@ -296,16 +375,16 @@ export function AddProduct() {
       setIsLoadingData(true)
       
       // Fetch product, categories, and providers in parallel
-      const [productResponse, categoriesRes, providersRes] = await Promise.all([
+      const [productResponse, categoryList, providersRes] = await Promise.all([
         ProductsService.getProduct(productId),
-        CategoriesService.getCategories(),
+        CategoriesService.getCategoriesForProductUIs({ page: 1, limit: 200 }),
         ProvidersService.getProviders()
       ])
       
-      // Set categories and providers first
-      if (categoriesRes.success && categoriesRes.data) {
-        const cats = Array.isArray(categoriesRes.data) ? categoriesRes.data : categoriesRes.data.categories || []
-        setCategories(cats)
+      if (Array.isArray(categoryList) && categoryList.length > 0) {
+        setCategories(categoryList)
+      } else {
+        setCategories([])
       }
       
       if (providersRes.success && providersRes.data) {
@@ -412,15 +491,14 @@ export function AddProduct() {
     try {
       setIsLoadingData(true)
       
-      // Fetch categories
-      const categoriesResponse = await CategoriesService.getCategories({ 
-        page: 1, 
-        limit: 100,
-        category_type: 'product' // Only fetch product categories
+      const list = await CategoriesService.getCategoriesForProductUIs({
+        page: 1,
+        limit: 200,
       })
-      
-      if (categoriesResponse.success && categoriesResponse.data) {
-        setCategories(categoriesResponse.data.categories || [])
+      if (list.length > 0) {
+        setCategories(list)
+      } else {
+        setCategories([])
       }
 
       // Fetch providers
@@ -481,6 +559,12 @@ export function AddProduct() {
       ...prev,
       description: value
     }))
+    if (errors.description) {
+      setErrors((prev: any) => ({
+        ...prev,
+        description: undefined,
+      }))
+    }
   }
 
   const handleNestedInputChange = (parentField: keyof ProductFormData, childField: string) => (
@@ -494,65 +578,94 @@ export function AddProduct() {
         [childField]: value,
       },
     }))
+    if (parentField === 'dimensions' && errors.dimensions) {
+      setErrors((prev: any) => ({ ...prev, dimensions: undefined }))
+    }
   }
 
-  const validateForm = (): boolean => {
-    const newErrors: any = {}
+  const validateStep = (step: number): boolean => {
+    const stepErrs = getAddProductStepErrors(step, formData)
+    setErrors((prev: any) => {
+      const keys = ADD_PRODUCT_STEP_ERROR_KEYS[step] || []
+      const next = { ...prev }
+      keys.forEach((k) => {
+        delete next[k]
+      })
+      return { ...next, ...stepErrs }
+    })
+    return Object.keys(stepErrs).length === 0
+  }
 
-    // Basic validation
-    if (!formData.name.trim()) {
-      newErrors.name = 'Product name is required'
+  const validateForm = (options?: { focusFirstInvalid?: boolean }): boolean => {
+    const merged: Record<string, string> = {}
+    let firstInvalid: number | null = null
+    for (let s = 0; s <= 4; s++) {
+      const e = getAddProductStepErrors(s, formData)
+      Object.assign(merged, e)
+      if (firstInvalid === null && Object.keys(e).length > 0) {
+        firstInvalid = s
+      }
     }
-
-    if (!formData.shortDescription.trim()) {
-      newErrors.shortDescription = 'Short description is required'
+    setErrors(merged)
+    if (options?.focusFirstInvalid && Object.keys(merged).length > 0 && firstInvalid !== null) {
+      setActiveStep(firstInvalid)
     }
+    return Object.keys(merged).length === 0
+  }
 
-    if (!formData.description.trim()) {
-      newErrors.description = 'Product description is required'
+  const goToStep = (index: number) => {
+    if (isViewMode) {
+      setActiveStep(index)
+      return
     }
-
-    if (formData.price <= 0) {
-      newErrors.price = 'Price must be greater than 0'
+    if (index === activeStep) {
+      return
     }
-
-    if (formData.originalPrice < 0) {
-      newErrors.originalPrice = 'Original price cannot be negative'
+    if (index < activeStep) {
+      setActiveStep(index)
+      return
     }
-
-    if (!formData.sku.trim()) {
-      newErrors.sku = 'SKU is required'
+    for (let s = activeStep; s < index; s++) {
+      if (!validateStep(s)) {
+        setActiveStep(s)
+        dispatch(
+          addToast({
+            message: 'Complete the required fields in this step before continuing.',
+            severity: 'error',
+            duration: 4000,
+          })
+        )
+        return
+      }
     }
+    setActiveStep(index)
+  }
 
-    if (formData.stockQuantity < 0) {
-      newErrors.stockQuantity = 'Stock quantity cannot be negative'
+  const handleNext = () => {
+    if (isViewMode) {
+      setActiveStep((s) => Math.min(steps.length - 1, s + 1))
+      return
     }
-
-    if (formData.weight < 0) {
-      newErrors.weight = 'Weight cannot be negative'
+    if (activeStep >= steps.length - 1) {
+      return
     }
-
-    if (formData.dimensions.length < 0 || formData.dimensions.width < 0 || formData.dimensions.height < 0) {
-      newErrors.dimensions = 'Dimensions cannot be negative'
+    if (!validateStep(activeStep)) {
+      dispatch(
+        addToast({
+          message: 'Please fix the errors in this step before continuing.',
+          severity: 'error',
+          duration: 4000,
+        })
+      )
+      return
     }
-
-    // SEO validation
-    if (formData.seoTitle && formData.seoTitle.length > 60) {
-      newErrors.seoTitle = 'SEO title should be under 60 characters'
-    }
-
-    if (formData.seoDescription && formData.seoDescription.length > 160) {
-      newErrors.seoDescription = 'SEO description should be under 160 characters'
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    setActiveStep((s) => Math.min(steps.length - 1, s + 1))
   }
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     
-    if (!validateForm()) {
+    if (!validateForm({ focusFirstInvalid: true })) {
       dispatch(addToast({
         message: 'Please fix the validation errors before submitting.',
         severity: 'error',
@@ -569,6 +682,7 @@ export function AddProduct() {
         category_id: formData.categoryId.toString(),
         name: formData.name,
         description: formData.description,
+        short_description: formData.shortDescription.trim() || undefined,
         price: formData.price,
         original_price: formData.originalPrice || undefined,
         sku: formData.sku,
@@ -634,6 +748,22 @@ export function AddProduct() {
   }
 
   const handleSaveDraft = async () => {
+    if (!String(formData.categoryId ?? '').trim()) {
+      setErrors((prev: any) => ({
+        ...prev,
+        categoryId: 'Select a category to save a draft',
+      }))
+      dispatch(
+        addToast({
+          message: 'Select a category before saving a draft.',
+          severity: 'error',
+          duration: 4000,
+        })
+      )
+      setActiveStep(0)
+      return
+    }
+
     setIsLoading(true)
     
     try {
@@ -642,6 +772,7 @@ export function AddProduct() {
         category_id: formData.categoryId.toString(),
         name: formData.name || 'Draft Product',
         description: formData.description || '',
+        short_description: formData.shortDescription.trim() || undefined,
         price: formData.price || 0,
         original_price: formData.originalPrice || undefined,
         sku: formData.sku || `DRAFT-${Date.now()}`,
@@ -771,8 +902,8 @@ export function AddProduct() {
               {steps.map((label, index) => (
                 <Step key={label}>
                   <StepLabel
-                    onClick={() => setActiveStep(index)}
-                    sx={{ cursor: 'pointer' }}
+                    onClick={() => goToStep(index)}
+                    sx={{ cursor: isViewMode || !isLoadingData ? 'pointer' : 'default' }}
                   >
                     {label}
                   </StepLabel>
@@ -921,7 +1052,7 @@ export function AddProduct() {
                               error={errors.price}
                               helperText="Customer-facing price"
                               type="number"
-                              startAdornment="$"
+                              startAdornment="₹"
                               required
                             />
                           </Box>
@@ -933,17 +1064,18 @@ export function AddProduct() {
                               error={errors.originalPrice}
                               helperText="MSRP or regular price"
                               type="number"
-                              startAdornment="$"
+                              startAdornment="₹"
                             />
                           </Box>
                           <Box sx={{ flex: 1 }}>
                             <FormField
-                              label="Cost Price"
-                              value={formData.costPrice}
-                              onChange={handleInputChange('costPrice')}
+                      label="Cost Price"
+                      value={formData.costPrice}
+                      onChange={handleInputChange('costPrice')}
+                              error={errors.costPrice}
                               helperText="Your cost for profit calculation"
                               type="number"
-                              startAdornment="$"
+                              startAdornment="₹"
                             />
                           </Box>
                         </Box>
@@ -975,12 +1107,13 @@ export function AddProduct() {
                         <Box sx={{ display: 'flex', gap: 2 }}>
                           <Box sx={{ flex: 1 }}>
                             <FormField
-                              label="Low Stock Threshold"
-                              value={formData.lowStockThreshold}
-                              onChange={handleInputChange('lowStockThreshold')}
-                              helperText="Alert when stock falls below this number"
-                              type="number"
-                            />
+                      label="Low Stock Threshold"
+                      value={formData.lowStockThreshold}
+                      onChange={handleInputChange('lowStockThreshold')}
+                      error={errors.lowStockThreshold}
+                      helperText="Alert when stock falls below this number"
+                      type="number"
+                    />
                           </Box>
                           <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
                             <SwitchField
@@ -1010,10 +1143,16 @@ export function AddProduct() {
                     <ImageUploadField
                       label="Product Images"
                       value={formData.images}
-                      onChange={(images) => setFormData(prev => ({ ...prev, images }))}
+                      onChange={(images) => {
+                        setFormData((prev) => ({ ...prev, images }))
+                        if (errors.images) {
+                          setErrors((prev: any) => ({ ...prev, images: undefined }))
+                        }
+                      }}
+                      error={errors.images}
                       maxFiles={10}
                       maxSize={10}
-                      helperText="Upload high-quality product images"
+                      helperText="Upload high-quality product images (at least one required to publish)"
                     />
 
             <Card>
@@ -1188,6 +1327,7 @@ export function AddProduct() {
                                 label="Handling Time (days)"
                                 value={formData.handlingTime}
                                 onChange={handleInputChange('handlingTime')}
+                                error={errors.handlingTime}
                                 helperText="Days to prepare for shipment"
                                 type="number"
                               />
@@ -1286,6 +1426,7 @@ export function AddProduct() {
                                   type="password"
                                   value={formData.password}
                                   onChange={handleInputChange('password')}
+                                  error={errors.password}
                                   helperText="Password to access this product"
                                 />
                               </Box>
@@ -1306,6 +1447,7 @@ export function AddProduct() {
                                 label="Expiry Date"
                                 value={formData.expiryDate}
                                 onChange={handleInputChange('expiryDate')}
+                                error={errors.expiryDate}
                                 helperText="When to remove product (optional)"
                               />
                             </Box>
@@ -1331,19 +1473,33 @@ export function AddProduct() {
                         Review all information before publishing your product. You can always edit these details later.
                       </Alert>
                       
-                      <Box sx={{ display: 'flex', gap: 3 }}>
+                      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
                         <Box sx={{ flex: 1 }}>
                           <Typography variant="h6" sx={{ mb: 2 }}>Product Summary</Typography>
                           <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
                             <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
                               {formData.name || 'Untitled Product'}
-                  </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                              {formData.shortDescription || 'No description provided'}
                             </Typography>
-                            <Typography variant="h6" color="primary">
-                              ${formData.price || 0}
-                  </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                              Category: {categories.find((c) => String(c.id) === String(formData.categoryId))?.name || '—'}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                              SKU: {formData.sku || '—'} · Stock: {formData.stockQuantity ?? 0}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                              Images: {formData.images?.length ?? 0} · Tags: {formData.tags?.length ?? 0}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                              {formData.shortDescription || 'No short description'}
+                            </Typography>
+                            <Typography variant="h6" color="primary" sx={{ fontWeight: 700 }}>
+                              {formatCurrency(formData.price || 0)}
+                            </Typography>
+                            {formData.originalPrice > 0 && formData.originalPrice > (formData.price || 0) && (
+                              <Typography variant="body2" color="text.secondary" sx={{ textDecoration: 'line-through' }}>
+                                {formatCurrency(formData.originalPrice)}
+                              </Typography>
+                            )}
                           </Box>
                         </Box>
                         
@@ -1362,9 +1518,17 @@ export function AddProduct() {
                                 {formData.isFeatured ? 'Featured' : 'Not Featured'}
                               </Typography>
                             </Box>
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography variant="body2" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
                               Visibility: {formData.visibility}
                             </Typography>
+                            {formData.providerId && (
+                              <Typography variant="body2" color="text.secondary">
+                                Provider:{' '}
+                                {providers.find((p) => String(p.id) === String(formData.providerId))?.business_name ||
+                                  providers.find((p) => String(p.id) === String(formData.providerId))?.businessName ||
+                                  '—'}
+                              </Typography>
+                            )}
                           </Box>
                         </Box>
                 </Box>
@@ -1384,7 +1548,7 @@ export function AddProduct() {
                 </Button>
                   <Button
                     variant="contained"
-                  onClick={() => setActiveStep(Math.min(steps.length - 1, activeStep + 1))}
+                  onClick={handleNext}
                   disabled={activeStep === steps.length - 1}
                 >
                   Next

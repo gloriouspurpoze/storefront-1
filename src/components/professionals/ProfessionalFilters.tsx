@@ -3,29 +3,24 @@
  * PROFESSIONAL FILTERS
  * ============================================================================
  * Filter and search component for professionals
- * 
+ *
  * @author CTO Team
  * @date November 7, 2025
  */
 
 import React from 'react'
+import { Search, Filter, X } from 'lucide-react'
+import { Card, CardContent } from '../ui/card'
+import { Input } from '../ui/input'
+import { Label } from '../ui/label'
+import { Button } from '../ui/button'
 import {
-  Box,
-  TextField,
-  FormControl,
-  InputLabel,
   Select,
-  MenuItem,
-  Button,
-  Paper,
-  InputAdornment,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
-import {
-  Search as SearchIcon,
-  FilterAlt as FilterIcon,
-  Clear as ClearIcon,
-} from '@mui/icons-material'
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select'
 
 interface ProfessionalFiltersProps {
   searchTerm: string
@@ -51,121 +46,93 @@ export function ProfessionalFilters({
   onExpertiseChange,
   verificationFilter,
   onVerificationChange,
-  categoryFilter,
-  onCategoryChange,
+  categoryFilter: _categoryFilter,
+  onCategoryChange: _onCategoryChange,
   onClearFilters,
   onApplyFilters,
 }: ProfessionalFiltersProps) {
   return (
-    <Paper sx={{ p: 3, mb: 3, borderRadius: 2, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-      <Grid container spacing={2} alignItems="center">
-        {/* Search */}
-        <Grid item xs={12} md={4}>
-          <TextField
-            fullWidth
-            placeholder="Search by name, email, phone..."
-            value={searchTerm}
-            onChange={(e) => onSearchChange(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon sx={{ color: 'text.secondary' }} />
-                </InputAdornment>
-              ),
-            }}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 2,
-              },
-            }}
-          />
-        </Grid>
+    <Card className="mb-6 shadow-sm">
+      <CardContent className="p-6">
+        <div className="grid grid-cols-1 items-end gap-4 md:grid-cols-12">
+          <div className="md:col-span-4">
+            <Label htmlFor="prof-search" className="sr-only">
+              Search
+            </Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="prof-search"
+                className="rounded-md pl-9"
+                placeholder="Search by name, email, phone..."
+                value={searchTerm}
+                onChange={(e) => onSearchChange(e.target.value)}
+              />
+            </div>
+          </div>
 
-        {/* Availability Filter */}
-        <Grid item xs={12} sm={6} md={2}>
-          <FormControl fullWidth>
-            <InputLabel>Availability</InputLabel>
-            <Select
-              value={availabilityFilter}
-              onChange={(e) => onAvailabilityChange(e.target.value)}
-              label="Availability"
-              sx={{ borderRadius: 2 }}
-            >
-              <MenuItem value="all">All</MenuItem>
-              <MenuItem value="available">Available</MenuItem>
-              <MenuItem value="busy">Busy</MenuItem>
-              <MenuItem value="offline">Offline</MenuItem>
+          <div className="md:col-span-2">
+            <Label className="mb-1.5 block text-xs text-muted-foreground">Availability</Label>
+            <Select value={availabilityFilter} onValueChange={onAvailabilityChange}>
+              <SelectTrigger className="rounded-md">
+                <SelectValue placeholder="Availability" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="available">Available</SelectItem>
+                <SelectItem value="busy">Busy</SelectItem>
+                <SelectItem value="offline">Offline</SelectItem>
+              </SelectContent>
             </Select>
-          </FormControl>
-        </Grid>
+          </div>
 
-        {/* Expertise Filter */}
-        <Grid item xs={12} sm={6} md={2}>
-          <FormControl fullWidth>
-            <InputLabel>Expertise</InputLabel>
-            <Select
-              value={expertiseFilter}
-              onChange={(e) => onExpertiseChange(e.target.value)}
-              label="Expertise"
-              sx={{ borderRadius: 2 }}
-            >
-              <MenuItem value="all">All Levels</MenuItem>
-              <MenuItem value="beginner">Beginner</MenuItem>
-              <MenuItem value="intermediate">Intermediate</MenuItem>
-              <MenuItem value="expert">Expert</MenuItem>
+          <div className="md:col-span-2">
+            <Label className="mb-1.5 block text-xs text-muted-foreground">Expertise</Label>
+            <Select value={expertiseFilter} onValueChange={onExpertiseChange}>
+              <SelectTrigger className="rounded-md">
+                <SelectValue placeholder="Expertise" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Levels</SelectItem>
+                <SelectItem value="beginner">Beginner</SelectItem>
+                <SelectItem value="intermediate">Intermediate</SelectItem>
+                <SelectItem value="expert">Expert</SelectItem>
+              </SelectContent>
             </Select>
-          </FormControl>
-        </Grid>
+          </div>
 
-        {/* Verification Filter */}
-        <Grid item xs={12} sm={6} md={2}>
-          <FormControl fullWidth>
-            <InputLabel>Verification</InputLabel>
-            <Select
-              value={verificationFilter}
-              onChange={(e) => onVerificationChange(e.target.value)}
-              label="Verification"
-              sx={{ borderRadius: 2 }}
-            >
-              <MenuItem value="all">All</MenuItem>
-              <MenuItem value="verified">Verified</MenuItem>
-              <MenuItem value="pending">Pending</MenuItem>
-              <MenuItem value="rejected">Rejected</MenuItem>
+          <div className="md:col-span-2">
+            <Label className="mb-1.5 block text-xs text-muted-foreground">Verification</Label>
+            <Select value={verificationFilter} onValueChange={onVerificationChange}>
+              <SelectTrigger className="rounded-md">
+                <SelectValue placeholder="Verification" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="verified">Verified</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+              </SelectContent>
             </Select>
-          </FormControl>
-        </Grid>
+          </div>
 
-        {/* Action Buttons */}
-        <Grid item xs={12} md={2}>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <div className="flex flex-col gap-2 md:col-span-2 sm:flex-row">
             <Button
-              variant="outlined"
+              type="button"
+              variant="outline"
+              className="min-w-0 flex-1 rounded-md"
               onClick={onClearFilters}
-              startIcon={<ClearIcon />}
-              sx={{
-                borderRadius: 2,
-                borderColor: 'divider',
-                color: 'text.secondary',
-                '&:hover': {
-                  borderColor: 'primary.main',
-                  bgcolor: 'action.hover',
-                },
-              }}
             >
+              <X className="mr-1.5 h-4 w-4" />
               Clear
             </Button>
-            <Button
-              variant="contained"
-              onClick={onApplyFilters}
-              startIcon={<FilterIcon />}
-              sx={{ borderRadius: 2 }}
-            >
+            <Button type="button" className="min-w-0 flex-1 rounded-md" onClick={onApplyFilters}>
+              <Filter className="mr-1.5 h-4 w-4" />
               Apply
             </Button>
-          </Box>
-        </Grid>
-      </Grid>
-    </Paper>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
-

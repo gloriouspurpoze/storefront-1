@@ -1,32 +1,22 @@
-import React, { useEffect, useRef, useState } from 'react';
-import {
-  Box,
-  Typography,
-  CircularProgress,
-  IconButton,
-  Chip,
-  Avatar,
-  Paper,
-} from '@mui/material';
-import {
-  MoreVert as MoreIcon,
-  Archive as ArchiveIcon,
-  VolumeOff as MuteIcon,
-} from '@mui/icons-material';
-import MessageBubble from './MessageBubble';
-import MessageInput from './MessageInput';
-import { ChatMessage, ChatConversation } from '../../services/api/chat.service';
+import React, { useEffect, useRef, useState } from 'react'
+import { Archive, VolumeX, MoreVertical, Loader2 } from 'lucide-react'
+import MessageBubble from './MessageBubble'
+import MessageInput from './MessageInput'
+import { ChatMessage, ChatConversation } from '../../services/api/chat.service'
+import { Avatar, AvatarFallback } from '../ui/avatar'
+import { Badge } from '../ui/badge'
+import { Button } from '../ui/button'
 
 interface MessageThreadProps {
-  conversation: ChatConversation | null;
-  messages: ChatMessage[];
-  loading: boolean;
-  currentUserId: string;
-  onSendMessage: (content: string, attachments?: any[]) => Promise<void>;
-  onUploadFile: (file: File) => Promise<any>;
-  onEditMessage?: (message: ChatMessage) => void;
-  onDeleteMessage?: (message: ChatMessage) => void;
-  onReactToMessage?: (message: ChatMessage) => void;
+  conversation: ChatConversation | null
+  messages: ChatMessage[]
+  loading: boolean
+  currentUserId: string
+  onSendMessage: (content: string, attachments?: unknown[]) => Promise<void>
+  onUploadFile: (file: File) => Promise<unknown>
+  onEditMessage?: (message: ChatMessage) => void
+  onDeleteMessage?: (message: ChatMessage) => void
+  onReactToMessage?: (message: ChatMessage) => void
 }
 
 const MessageThread: React.FC<MessageThreadProps> = ({
@@ -40,146 +30,109 @@ const MessageThread: React.FC<MessageThreadProps> = ({
   onDeleteMessage,
   onReactToMessage,
 }) => {
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null)
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    scrollToBottom()
+  }, [messages])
 
   if (!conversation) {
     return (
-      <Box
-        sx={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          bgcolor: 'background.default',
-        }}
-      >
-        <Box sx={{ textAlign: 'center' }}>
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            No conversation selected
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Select a conversation from the list to start chatting
-          </Typography>
-        </Box>
-      </Box>
-    );
+      <div className="flex flex-1 items-center justify-center bg-background">
+        <div className="text-center">
+          <h2 className="text-lg font-semibold text-muted-foreground">No conversation selected</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Select a conversation from the list to start chatting</p>
+        </div>
+      </div>
+    )
   }
 
   const getConversationTitle = (): string => {
     if (conversation.title) {
-      return conversation.title;
+      return conversation.title
     }
 
     const otherParticipants = conversation.participants.filter(
-      (p) => p.userId._id !== currentUserId
-    );
+      (p) => p.userId._id !== currentUserId,
+    )
 
     if (otherParticipants.length > 0) {
       return otherParticipants
         .map((p) => `${p.userId.firstName || ''} ${p.userId.lastName || ''}`.trim() || 'User')
-        .join(', ');
+        .join(', ')
     }
 
-    return 'Conversation';
-  };
+    return 'Conversation'
+  }
 
   const getParticipantRole = (role: string): string => {
-    if (!role) return '';
-    return role.charAt(0).toUpperCase() + role.slice(1);
-  };
+    if (!role) return ''
+    return role.charAt(0).toUpperCase() + role.slice(1)
+  }
 
-  const handleSendWithReply = async (content: string, attachments?: any[]) => {
-    // If there's a reply, add it to metadata
+  const handleSendWithReply = async (content: string, attachments?: unknown[]) => {
     if (replyTo) {
-      await onSendMessage(content, attachments);
-      // TODO: Add replyTo to the message metadata
-      setReplyTo(null);
+      await onSendMessage(content, attachments)
+      setReplyTo(null)
     } else {
-      await onSendMessage(content, attachments);
+      await onSendMessage(content, attachments)
     }
-  };
+  }
+
+  const title = getConversationTitle()
 
   return (
-    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Header */}
-      <Paper
-        elevation={1}
-        sx={{
-          p: 2,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderRadius: 0,
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
-          <Avatar sx={{ bgcolor: 'primary.main' }}>
-            {(getConversationTitle() || 'C').charAt(0)}
+    <div className="flex h-full min-h-0 flex-1 flex-col">
+      <div className="flex items-center justify-between border-b border-border p-4 shadow-sm">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <Avatar className="h-10 w-10 bg-primary text-primary-foreground">
+            <AvatarFallback>{(title || 'C').charAt(0)}</AvatarFallback>
           </Avatar>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="h6">{getConversationTitle()}</Typography>
-            <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate text-lg font-semibold">{title}</h2>
+            <div className="mt-1 flex flex-wrap gap-1">
               {conversation.participants.map((participant, index) => (
-                <Chip
-                  key={index}
-                  label={`${participant.userId.firstName} (${getParticipantRole(participant.role)})`}
-                  size="small"
-                  variant="outlined"
-                />
+                <Badge key={index} variant="outline" className="text-xs font-normal">
+                  {participant.userId.firstName} ({getParticipantRole(participant.role)})
+                </Badge>
               ))}
-            </Box>
-          </Box>
-        </Box>
-        
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          {conversation.metadata?.status && (
-            <Chip
-              label={conversation.metadata.status}
-              size="small"
-              color={conversation.metadata.status === 'open' ? 'success' : 'default'}
-            />
-          )}
-          <IconButton size="small">
-            <ArchiveIcon />
-          </IconButton>
-          <IconButton size="small">
-            <MuteIcon />
-          </IconButton>
-          <IconButton size="small">
-            <MoreIcon />
-          </IconButton>
-        </Box>
-      </Paper>
+            </div>
+          </div>
+        </div>
 
-      {/* Messages Area */}
-      <Box
-        sx={{
-          flex: 1,
-          overflow: 'auto',
-          p: 2,
-          bgcolor: 'grey.50',
-        }}
-      >
+        <div className="ml-2 flex shrink-0 items-center gap-1">
+          {conversation.metadata?.status && (
+            <Badge variant={conversation.metadata.status === 'open' ? 'default' : 'secondary'}>
+              {conversation.metadata.status}
+            </Badge>
+          )}
+          <Button type="button" variant="ghost" size="icon" aria-label="Archive">
+            <Archive className="h-4 w-4" />
+          </Button>
+          <Button type="button" variant="ghost" size="icon" aria-label="Mute">
+            <VolumeX className="h-4 w-4" />
+          </Button>
+          <Button type="button" variant="ghost" size="icon" aria-label="More">
+            <MoreVertical className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto bg-muted/40 p-4">
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-            <CircularProgress />
-          </Box>
+          <div className="flex justify-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
         ) : messages.length === 0 ? (
-          <Box sx={{ textAlign: 'center', p: 4 }}>
-            <Typography color="text.secondary">No messages yet</Typography>
-            <Typography variant="body2" color="text.secondary">
-              Start the conversation by sending a message
-            </Typography>
-          </Box>
+          <div className="p-8 text-center">
+            <p className="text-muted-foreground">No messages yet</p>
+            <p className="mt-1 text-sm text-muted-foreground">Start the conversation by sending a message</p>
+          </div>
         ) : (
           <>
             {messages.map((message) => (
@@ -196,18 +149,16 @@ const MessageThread: React.FC<MessageThreadProps> = ({
             <div ref={messagesEndRef} />
           </>
         )}
-      </Box>
+      </div>
 
-      {/* Input Area */}
       <MessageInput
         onSendMessage={handleSendWithReply}
         onUploadFile={onUploadFile}
         replyTo={replyTo}
         onCancelReply={() => setReplyTo(null)}
       />
-    </Box>
-  );
-};
+    </div>
+  )
+}
 
-export default MessageThread;
-
+export default MessageThread

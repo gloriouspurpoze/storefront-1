@@ -570,6 +570,7 @@ export interface CreateProductRequest {
   category_id: string
   name: string
   description: string
+  short_description?: string
   price: number
   original_price?: number
   sku: string
@@ -590,6 +591,7 @@ export interface CreateProductRequest {
 export interface UpdateProductRequest {
   name?: string
   description?: string
+  short_description?: string
   price?: number
   original_price?: number
   sku?: string

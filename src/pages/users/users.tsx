@@ -1,24 +1,16 @@
 import React, { useState, useEffect } from 'react'
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  Stack,
-  Alert,
-  Snackbar,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
-import {
-  Add as AddIcon,
-  People as PeopleIcon,
-  Security as AdminIcon,
-  Build as ProviderIcon,
-  ShoppingCart as CustomerIcon,
-  CheckCircle as VerifiedIcon,
-  Cancel as UnverifiedIcon,
-} from '@mui/icons-material'
+  Plus,
+  Users as UsersIcon,
+  Shield,
+  Wrench,
+  ShoppingCart,
+  CheckCircle,
+  XCircle,
+  type LucideIcon,
+} from 'lucide-react'
+import { Card, CardContent } from '../../components/ui/card'
+import { Button } from '../../components/ui/button'
 import { UserTable } from '../../components/users/UserTable'
 import { UserFilters } from '../../components/users/UserFilters'
 import { UserFormDialog } from '../../components/users/UserFormDialog'
@@ -26,6 +18,7 @@ import { UserDetailsDialog } from '../../components/users/UserDetailsDialog'
 import { ConfirmDialog } from '../../components/common/ConfirmDialog'
 import { usersService } from '../../services/api/users.service'
 import type { User } from '../../services/api/users.service'
+import { cn } from '../../lib/utils'
 
 interface UserStats {
   total: number
@@ -36,6 +29,14 @@ interface UserStats {
   unverified: number
 }
 
+const iconColor: Record<string, string> = {
+  primary: 'text-primary',
+  error: 'text-destructive',
+  info: 'text-sky-600',
+  success: 'text-emerald-600',
+  warning: 'text-amber-600',
+}
+
 export function Users() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
@@ -43,15 +44,13 @@ export function Users() {
   const [selectedType, setSelectedType] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all')
   const [selectedVerification, setSelectedVerification] = useState('all')
-  
-  // Dialogs
+
   const [formDialogOpen, setFormDialogOpen] = useState(false)
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
 
-  // Notifications
   const [snackbar, setSnackbar] = useState<{
     open: boolean
     message: string
@@ -71,22 +70,27 @@ export function Users() {
     unverified: 0,
   })
 
-  // Fetch users
   useEffect(() => {
     let isMounted = true
-    
+
     const loadUsers = async () => {
       if (isMounted) {
         await fetchUsers()
       }
     }
-    
+
     loadUsers()
-    
+
     return () => {
       isMounted = false
     }
   }, [])
+
+  useEffect(() => {
+    if (!snackbar.open) return undefined
+    const t = window.setTimeout(() => setSnackbar((s) => ({ ...s, open: false })), 6000)
+    return () => window.clearTimeout(t)
+  }, [snackbar.open, snackbar.message])
 
   const fetchUsers = async () => {
     try {
@@ -105,33 +109,33 @@ export function Users() {
   const calculateStats = (userList: User[]) => {
     setStats({
       total: userList.length,
-      admins: userList.filter(u => u.userType === 'admin').length,
-      providers: userList.filter(u => u.userType === 'provider').length,
-      customers: userList.filter(u => u.userType === 'customer').length,
-      verified: userList.filter(u => u.isVerified).length,
-      unverified: userList.filter(u => !u.isVerified).length,
+      admins: userList.filter((u) => u.userType === 'admin').length,
+      providers: userList.filter((u) => u.userType === 'provider').length,
+      customers: userList.filter((u) => u.userType === 'customer').length,
+      verified: userList.filter((u) => u.isVerified).length,
+      unverified: userList.filter((u) => !u.isVerified).length,
     })
   }
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = 
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch =
       (user.firstName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (user.lastName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (user.phone && user.phone.includes(searchTerm))
-    
+
     const matchesType = selectedType === 'all' || user.userType === selectedType
-    
-    const matchesStatus = 
-      selectedStatus === 'all' || 
+
+    const matchesStatus =
+      selectedStatus === 'all' ||
       (selectedStatus === 'active' && user.isActive !== false) ||
       (selectedStatus === 'inactive' && user.isActive === false)
-    
-    const matchesVerification = 
-      selectedVerification === 'all' || 
+
+    const matchesVerification =
+      selectedVerification === 'all' ||
       (selectedVerification === 'verified' && user.isVerified) ||
       (selectedVerification === 'unverified' && !user.isVerified)
-    
+
     return matchesSearch && matchesType && matchesStatus && matchesVerification
   })
 
@@ -150,7 +154,6 @@ export function Users() {
     setSelectedVerification('all')
   }
 
-  // User Actions
   const handleCreateUser = () => {
     setFormMode('create')
     setSelectedUser(null)
@@ -232,71 +235,54 @@ export function Users() {
     }
   }
 
-  const StatCard = ({ title, value, icon: Icon, color = 'primary' }: any) => (
+  const StatCard = ({
+    title,
+    value,
+    icon: Icon,
+    color = 'primary',
+  }: {
+    title: string
+    value: number
+    icon: LucideIcon
+    color?: 'primary' | 'error' | 'info' | 'success' | 'warning'
+  }) => (
     <Card>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Icon sx={{ color: `${color}.main`, fontSize: 32 }} />
-          <Box>
-            <Typography variant="h4" sx={{ fontWeight: 700 }}>
-              {value}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {title}
-            </Typography>
-          </Box>
-        </Box>
+      <CardContent className="pt-6">
+        <div className="flex items-center gap-3">
+          <Icon className={cn('h-8 w-8 shrink-0', iconColor[color])} />
+          <div>
+            <p className="text-2xl font-bold tracking-tight">{value}</p>
+            <p className="text-sm text-muted-foreground">{title}</p>
+          </div>
+        </div>
       </CardContent>
     </Card>
   )
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 4 }}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-            User Management
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Manage user accounts, permissions, and status
-          </Typography>
-        </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleCreateUser}
-          sx={{ minWidth: 140 }}
-        >
+    <div className="min-h-0 flex-1">
+      <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="mb-1 text-2xl font-bold">User Management</h1>
+          <p className="text-muted-foreground">Manage user accounts, permissions, and status</p>
+        </div>
+        <Button className="min-w-[140px]" onClick={handleCreateUser}>
+          <Plus className="mr-2 h-4 w-4" />
           Add User
         </Button>
-      </Box>
+      </div>
 
-      {/* Stats */}
-      <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid item xs={6} sm={4} md={2}>
-          <StatCard title="Total Users" value={stats.total} icon={PeopleIcon} color="primary" />
-        </Grid>
-        <Grid item xs={6} sm={4} md={2}>
-          <StatCard title="Admins" value={stats.admins} icon={AdminIcon} color="error" />
-        </Grid>
-        <Grid item xs={6} sm={4} md={2}>
-          <StatCard title="Providers" value={stats.providers} icon={ProviderIcon} color="info" />
-        </Grid>
-        <Grid item xs={6} sm={4} md={2}>
-          <StatCard title="Customers" value={stats.customers} icon={CustomerIcon} color="success" />
-        </Grid>
-        <Grid item xs={6} sm={4} md={2}>
-          <StatCard title="Verified" value={stats.verified} icon={VerifiedIcon} color="success" />
-        </Grid>
-        <Grid item xs={6} sm={4} md={2}>
-          <StatCard title="Unverified" value={stats.unverified} icon={UnverifiedIcon} color="warning" />
-        </Grid>
-      </Grid>
+      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-6">
+        <StatCard title="Total Users" value={stats.total} icon={UsersIcon} color="primary" />
+        <StatCard title="Admins" value={stats.admins} icon={Shield} color="error" />
+        <StatCard title="Providers" value={stats.providers} icon={Wrench} color="info" />
+        <StatCard title="Customers" value={stats.customers} icon={ShoppingCart} color="success" />
+        <StatCard title="Verified" value={stats.verified} icon={CheckCircle} color="success" />
+        <StatCard title="Unverified" value={stats.unverified} icon={XCircle} color="warning" />
+      </div>
 
-      {/* Filters */}
-      <Card sx={{ mb: 4 }}>
-        <CardContent>
+      <Card className="mb-4">
+        <CardContent className="pt-6">
           <UserFilters
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
@@ -311,16 +297,14 @@ export function Users() {
         </CardContent>
       </Card>
 
-      {/* Results Summary */}
       {(searchTerm || selectedType !== 'all' || selectedStatus !== 'all' || selectedVerification !== 'all') && (
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="body2" color="text.secondary">
+        <div className="mb-2">
+          <p className="text-sm text-muted-foreground">
             Showing {filteredUsers.length} of {users.length} users
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
 
-      {/* Users Table */}
       <UserTable
         users={filteredUsers}
         loading={loading}
@@ -331,7 +315,6 @@ export function Users() {
         onVerify={handleVerifyUser}
       />
 
-      {/* User Form Dialog */}
       <UserFormDialog
         open={formDialogOpen}
         onClose={() => {
@@ -343,7 +326,6 @@ export function Users() {
         mode={formMode}
       />
 
-      {/* User Details Dialog */}
       <UserDetailsDialog
         open={detailsDialogOpen}
         onClose={() => {
@@ -354,7 +336,6 @@ export function Users() {
         onEdit={handleEditFromDetails}
       />
 
-      {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         open={deleteDialogOpen}
         title="Delete User"
@@ -368,23 +349,23 @@ export function Users() {
         }}
       />
 
-      {/* Snackbar Notifications */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert 
-          onClose={handleCloseSnackbar} 
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+      {snackbar.open && (
+        <div className="fixed bottom-4 right-4 z-50 max-w-md rounded-md border bg-background p-4 shadow-lg">
+          <div
+            className={cn(
+              'flex items-start justify-between gap-2 text-sm',
+              snackbar.severity === 'error' && 'text-destructive',
+              snackbar.severity === 'success' && 'text-emerald-700 dark:text-emerald-400',
+              (snackbar.severity === 'info' || snackbar.severity === 'warning') && 'text-foreground'
+            )}
+          >
+            <p>{snackbar.message}</p>
+            <Button type="button" variant="ghost" size="sm" className="shrink-0" onClick={handleCloseSnackbar}>
+              Dismiss
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
-

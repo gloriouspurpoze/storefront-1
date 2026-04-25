@@ -1,34 +1,38 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Pagination,
-  Paper,
-  Select,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
-  Typography,
-} from '@mui/material'
+import { Loader2 } from 'lucide-react'
 import { BazaarGuidanceAccordion } from './BazaarGuidanceAccordion'
 import { PageHeader } from '../../components/common/PageHeader'
 import { BazaarMarketplaceService } from '../../services/api/bazaarMarketplace.service'
 import type { BazaarAdminListingRow } from '../../services/api/bazaarMarketplace.service'
+import { Button } from '../../components/ui/button'
+import { Card, CardContent } from '../../components/ui/card'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
+import { Textarea } from '../../components/ui/textarea'
+import { Badge } from '../../components/ui/badge'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/table'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog'
+import { cn } from '../../lib/utils'
 
 function formatUser(u: unknown): string {
   if (!u || typeof u !== 'object') return '—'
@@ -37,11 +41,11 @@ function formatUser(u: unknown): string {
   return name || o.email || o.userId || '—'
 }
 
-function statusColor(status: string): 'default' | 'success' | 'warning' | 'error' {
-  if (status === 'published') return 'success'
-  if (status === 'pending_review') return 'warning'
-  if (status === 'rejected') return 'error'
-  return 'default'
+function statusBadgeClass(status: string) {
+  if (status === 'published') return 'border-emerald-200 bg-emerald-500/10 text-emerald-800'
+  if (status === 'pending_review') return 'border-amber-200 bg-amber-500/10 text-amber-800'
+  if (status === 'rejected') return 'border-red-200 bg-red-500/10 text-red-800'
+  return 'border-border bg-muted/50'
 }
 
 /**
@@ -63,15 +67,14 @@ export default function BazaarListingModeration() {
     setLoading(true)
     setError(null)
     try {
+      const statusParam =
+        statusFilter === 'all'
+          ? undefined
+          : (statusFilter as 'pending_review' | 'published' | 'rejected')
       const res = await BazaarMarketplaceService.adminListListings({
         page,
         limit: 20,
-        status:
-          statusFilter === 'pending_review' ||
-          statusFilter === 'published' ||
-          statusFilter === 'rejected'
-            ? statusFilter
-            : undefined,
+        status: statusParam,
       })
       const data = (res.data as BazaarAdminListingRow[]) || []
       setRows(data)
@@ -110,7 +113,7 @@ export default function BazaarListingModeration() {
   }
 
   return (
-    <Box>
+    <div className="p-4">
       <PageHeader
         title="Bazaar — listing review"
         subtitle="Approve new peer-to-peer listings before they appear site-wide"
@@ -118,88 +121,99 @@ export default function BazaarListingModeration() {
 
       <BazaarGuidanceAccordion />
 
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, maxWidth: 800 }}>
-        New marketplace posts enter as <strong>Pending review</strong>. Approve to publish them to
-        the public feed, or reject with an internal reason (shown to the seller when applicable).
-      </Typography>
+      <p className="mb-3 max-w-3xl text-sm text-muted-foreground">
+        New marketplace posts enter as <strong>Pending review</strong>. Approve to publish them to the public feed, or
+        reject with an internal reason (shown to the seller when applicable).
+      </p>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+        <div
+          className="mb-3 flex items-center justify-between gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          role="alert"
+        >
           {error}
-        </Alert>
+          <Button type="button" variant="ghost" size="sm" onClick={() => setError(null)}>
+            Dismiss
+          </Button>
+        </div>
       )}
 
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
-          <FormControl size="small" sx={{ minWidth: 220 }}>
-            <InputLabel id="mod-status-label">Moderation status</InputLabel>
+      <Card className="mb-3">
+        <CardContent className="flex flex-col gap-3 p-3 sm:flex-row sm:items-end">
+          <div className="w-full min-w-0 sm:max-w-xs">
+            <Label>Moderation status</Label>
             <Select
-              labelId="mod-status-label"
-              label="Moderation status"
               value={statusFilter}
-              onChange={(e) => {
+              onValueChange={(v) => {
                 setPage(1)
-                setStatusFilter(e.target.value)
+                setStatusFilter(v)
               }}
             >
-              <MenuItem value="">All</MenuItem>
-              <MenuItem value="pending_review">Pending review</MenuItem>
-              <MenuItem value="published">Published</MenuItem>
-              <MenuItem value="rejected">Rejected</MenuItem>
+              <SelectTrigger className="mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="pending_review">Pending review</SelectItem>
+                <SelectItem value="published">Published</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+              </SelectContent>
             </Select>
-          </FormControl>
-          <Button variant="outlined" onClick={() => void load()} disabled={loading}>
+          </div>
+          <Button type="button" variant="outline" onClick={() => void load()} disabled={loading} className="shrink-0">
             Refresh
           </Button>
-        </Stack>
-      </Paper>
+        </CardContent>
+      </Card>
 
-      <TableContainer component={Paper}>
-        <Table size="small">
-          <TableHead>
+      <div className="overflow-x-auto rounded-md border">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell>Status</TableCell>
-              <TableCell>Title</TableCell>
-              <TableCell>Price (₹)</TableCell>
-              <TableCell>Seller</TableCell>
-              <TableCell>Created</TableCell>
-              <TableCell align="right">Actions</TableCell>
+              <TableHead>Status</TableHead>
+              <TableHead>Title</TableHead>
+              <TableHead>Price (₹)</TableHead>
+              <TableHead>Seller</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
-          </TableHead>
+          </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
-                  <CircularProgress size={32} />
+                <TableCell colSpan={6} className="h-32 text-center">
+                  <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
                 </TableCell>
               </TableRow>
             ) : rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={6} className="h-24 text-center text-sm text-muted-foreground">
                   No listings in this filter.
                 </TableCell>
               </TableRow>
             ) : (
               rows.map((row) => (
-                <TableRow key={row.id} hover>
+                <TableRow key={row.id}>
                   <TableCell>
-                    <Chip
-                      size="small"
-                      label={row.moderationStatus}
-                      color={statusColor(row.moderationStatus)}
-                    />
+                    <Badge
+                      variant="outline"
+                      className={cn('text-xs', statusBadgeClass(row.moderationStatus))}
+                    >
+                      {row.moderationStatus}
+                    </Badge>
                   </TableCell>
-                  <TableCell sx={{ maxWidth: 280 }}>{row.title}</TableCell>
+                  <TableCell className="max-w-[280px]">{row.title}</TableCell>
                   <TableCell>{row.priceInr?.toLocaleString('en-IN')}</TableCell>
                   <TableCell>{formatUser(row.seller)}</TableCell>
-                  <TableCell>{row.createdAt ? new Date(row.createdAt).toLocaleString() : '—'}</TableCell>
-                  <TableCell align="right">
+                  <TableCell className="whitespace-nowrap text-sm">
+                    {row.createdAt ? new Date(row.createdAt).toLocaleString() : '—'}
+                  </TableCell>
+                  <TableCell className="text-right">
                     {row.moderationStatus === 'pending_review' ? (
-                      <Stack direction="row" spacing={1} justifyContent="flex-end">
+                      <div className="flex flex-wrap justify-end gap-1">
                         <Button
-                          size="small"
-                          color="success"
-                          variant="contained"
+                          size="sm"
+                          className="bg-emerald-600 text-white hover:bg-emerald-600/90"
                           onClick={() => {
                             setActionRow(row)
                             setModerateAction('approve')
@@ -208,9 +222,9 @@ export default function BazaarListingModeration() {
                           Approve
                         </Button>
                         <Button
-                          size="small"
-                          color="error"
-                          variant="outlined"
+                          size="sm"
+                          variant="outline"
+                          className="border-destructive text-destructive hover:bg-destructive/10"
                           onClick={() => {
                             setActionRow(row)
                             setModerateAction('reject')
@@ -218,11 +232,9 @@ export default function BazaarListingModeration() {
                         >
                           Reject
                         </Button>
-                      </Stack>
+                      </div>
                     ) : (
-                      <Typography variant="caption" color="text.secondary">
-                        —
-                      </Typography>
+                      <span className="text-xs text-muted-foreground">—</span>
                     )}
                   </TableCell>
                 </TableRow>
@@ -230,73 +242,82 @@ export default function BazaarListingModeration() {
             )}
           </TableBody>
         </Table>
-      </TableContainer>
+      </div>
 
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-        <Pagination
-          count={totalPages}
-          page={page}
-          onChange={(_, p) => setPage(p)}
-          color="primary"
-        />
-      </Box>
+      <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+        <Button type="button" variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+          Previous
+        </Button>
+        <span className="text-sm text-muted-foreground">
+          Page {page} of {totalPages}
+        </span>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={page >= totalPages}
+          onClick={() => setPage((p) => p + 1)}
+        >
+          Next
+        </Button>
+      </div>
 
       <Dialog
         open={Boolean(actionRow && moderateAction)}
-        onClose={() => {
-          if (!busy) {
+        onOpenChange={(o) => {
+          if (!o && !busy) {
             setActionRow(null)
             setModerateAction(null)
           }
         }}
-        maxWidth="sm"
-        fullWidth
       >
-        <DialogTitle>
-          {moderateAction === 'reject' ? 'Reject listing' : 'Publish listing'}
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            {actionRow?.title}
-          </Typography>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{moderateAction === 'reject' ? 'Reject listing' : 'Publish listing'}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">{actionRow?.title}</p>
           {moderateAction === 'reject' && (
-            <TextField
-              label="Reason (optional)"
-              fullWidth
-              multiline
-              minRows={2}
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              placeholder="Stored with the listing for audit"
-            />
+            <div>
+              <Label>Reason (optional)</Label>
+              <Textarea
+                className="mt-1"
+                rows={2}
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Stored with the listing for audit"
+              />
+            </div>
           )}
           {moderateAction === 'approve' && (
-            <Typography variant="body2" color="text.secondary">
-              This listing will become visible in the public Bazaar feed and support offers/chat per
-              your rules.
-            </Typography>
+            <p className="text-sm text-muted-foreground">
+              This listing will become visible in the public Bazaar feed and support offers/chat per your rules.
+            </p>
           )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setActionRow(null)
+                setModerateAction(null)
+              }}
+              disabled={busy}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant={moderateAction === 'reject' ? 'destructive' : 'default'}
+              className={moderateAction === 'approve' ? 'bg-emerald-600 hover:bg-emerald-600/90' : undefined}
+              disabled={busy || !moderateAction}
+              onClick={() => moderateAction && void onModerate(moderateAction)}
+            >
+              {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {busy ? '…' : 'Confirm'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => {
-              setActionRow(null)
-              setModerateAction(null)
-            }}
-            disabled={busy}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            color={moderateAction === 'reject' ? 'error' : 'success'}
-            disabled={busy || !moderateAction}
-            onClick={() => moderateAction && void onModerate(moderateAction)}
-          >
-            {busy ? <CircularProgress size={22} /> : 'Confirm'}
-          </Button>
-        </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   )
 }

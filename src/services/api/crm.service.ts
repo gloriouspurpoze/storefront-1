@@ -83,9 +83,9 @@ function seedState(): CrmState {
   }
   const d1: CrmDeal = {
     id: uid(),
-    name: 'Enterprise rollout — London',
-    amount: 48000,
-    currency: 'GBP',
+    name: 'Enterprise rollout — tier-1 cities',
+    amount: 4800000,
+    currency: 'INR',
     stage: 'negotiation',
     probability: 70,
     companyId: acme.id,
@@ -97,8 +97,8 @@ function seedState(): CrmState {
   const d2: CrmDeal = {
     id: uid(),
     name: 'Pilot — North region',
-    amount: 12000,
-    currency: 'GBP',
+    amount: 1200000,
+    currency: 'INR',
     stage: 'proposal',
     probability: 40,
     companyId: globex.id,

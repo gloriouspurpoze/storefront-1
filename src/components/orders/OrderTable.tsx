@@ -1,31 +1,32 @@
 import React from 'react'
 import {
+  MoreVertical,
+  Eye,
+  Pencil,
+  Trash2,
+  Printer,
+} from 'lucide-react'
+import { formatCurrency, cn } from '../../lib/utils'
+import { useMediaQuery, muiMdUp } from '../../hooks/useMediaQuery'
+import { Order, OrderStatus } from '../../types'
+import { StatusBadge } from '../common/StatusBadge'
+import { Card, CardContent } from '../ui/card'
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
+import { Button } from '../ui/button'
+import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  Paper,
-  Avatar,
-  Typography,
-  Box,
-  IconButton,
-  Menu,
-  MenuItem,
-  Chip,
-  useTheme,
-  useMediaQuery
-} from '@mui/material'
+} from '../ui/table'
 import {
-  MoreVert as MoreVertIcon,
-  Visibility as VisibilityIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Print as PrintIcon
-} from '@mui/icons-material'
-import { Order, OrderStatus } from '../../types'
-import { StatusBadge } from '../common/StatusBadge'
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu'
 
 interface OrderTableProps {
   orders: Order[]
@@ -36,264 +37,198 @@ interface OrderTableProps {
   loading?: boolean
 }
 
+function getCustomerTypeClass(type: string) {
+  switch (type) {
+    case 'Pro Customer':
+      return 'text-emerald-600'
+    case 'VIP Customer':
+      return 'text-amber-600'
+    default:
+      return 'text-muted-foreground'
+  }
+}
+
+function OrderRowMenu({ order, onViewOrder, onEditOrder, onDeleteOrder, onPrintOrder }: {
+  order: Order
+  onViewOrder: (order: Order) => void
+  onEditOrder: (order: Order) => void
+  onDeleteOrder: (order: Order) => void
+  onPrintOrder: (order: Order) => void
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button type="button" variant="ghost" size="icon" className="h-8 w-8" aria-label="Actions">
+          <MoreVertical className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => onViewOrder(order)}>
+          <Eye className="mr-2 h-4 w-4" />
+          View Details
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onEditOrder(order)}>
+          <Pencil className="mr-2 h-4 w-4" />
+          Edit Order
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onPrintOrder(order)}>
+          <Printer className="mr-2 h-4 w-4" />
+          Print Order
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => onDeleteOrder(order)}
+          className="text-destructive focus:text-destructive"
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          Delete Order
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
 export const OrderTable: React.FC<OrderTableProps> = ({
   orders,
   onViewOrder,
   onEditOrder,
   onDeleteOrder,
   onPrintOrder,
-  loading = false
+  loading: _loading = false,
 }) => {
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null)
-  const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null)
-
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, order: Order) => {
-    setAnchorEl(event.currentTarget)
-    setSelectedOrder(order)
-  }
-
-  const handleMenuClose = () => {
-    setAnchorEl(null)
-    setSelectedOrder(null)
-  }
-
-  const handleAction = (action: (order: Order) => void) => {
-    if (selectedOrder) {
-      action(selectedOrder)
-    }
-    handleMenuClose()
-  }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2
-    }).format(amount)
-  }
+  void _loading
+  const isMobile = !useMediaQuery(muiMdUp)
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString('en-IN', {
       month: 'short',
       day: '2-digit',
-      year: 'numeric'
+      year: 'numeric',
     })
-  }
-
-  const getCustomerTypeColor = (type: string) => {
-    switch (type) {
-      case 'Pro Customer':
-        return theme.palette.success.main
-      case 'VIP Customer':
-        return theme.palette.warning.main
-      default:
-        return theme.palette.text.secondary
-    }
   }
 
   if (isMobile) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <div className="flex flex-col gap-4">
         {orders.map((order) => (
-          <Paper key={order.id} sx={{ p: 2, borderRadius: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Avatar
-                  src={order.product.image}
-                  alt={order.product.name}
-                  sx={{ width: 40, height: 40 }}
+          <Card key={order.id} className="rounded-lg">
+            <CardContent className="p-4">
+              <div className="mb-3 flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-10 w-10">
+                    {order.product.image && <AvatarImage src={order.product.image} alt="" />}
+                    <AvatarFallback>P</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="text-sm font-semibold">{order.product.name}</p>
+                    <p className="text-xs text-muted-foreground">{order.product.type}</p>
+                  </div>
+                </div>
+                <StatusBadge status={order.status as OrderStatus} />
+              </div>
+              <div className="mb-3 flex justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Order ID</p>
+                  <p className="text-sm font-semibold">{order.order_id}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground">Amount</p>
+                  <p className="text-sm font-semibold">{formatCurrency(order.amount)}</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-6 w-6">
+                    {order.customer.avatar && <AvatarImage src={order.customer.avatar} alt="" />}
+                    <AvatarFallback>C</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="text-sm font-medium">{order.customer.name}</p>
+                    <p className={cn('text-xs', getCustomerTypeClass(order.customer.type))}>
+                      {order.customer.type}
+                    </p>
+                  </div>
+                </div>
+                <OrderRowMenu
+                  order={order}
+                  onViewOrder={onViewOrder}
+                  onEditOrder={onEditOrder}
+                  onDeleteOrder={onDeleteOrder}
+                  onPrintOrder={onPrintOrder}
                 />
-                <Box>
-                  <Typography variant="subtitle2" fontWeight={600}>
-                    {order.product.name}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {order.product.type}
-                  </Typography>
-                </Box>
-              </Box>
-              <StatusBadge status={order.status} />
-            </Box>
-
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Box>
-                <Typography variant="body2" color="text.secondary">
-                  Order ID
-                </Typography>
-                <Typography variant="subtitle2" fontWeight={600}>
-                  {order.order_id}
-                </Typography>
-              </Box>
-              <Box sx={{ textAlign: 'right' }}>
-                <Typography variant="body2" color="text.secondary">
-                  Amount
-                </Typography>
-                <Typography variant="subtitle2" fontWeight={600}>
-                  {formatCurrency(order.amount)}
-                </Typography>
-              </Box>
-            </Box>
-
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Avatar
-                  src={order.customer.avatar}
-                  alt={order.customer.name}
-                  sx={{ width: 24, height: 24 }}
-                />
-                <Box>
-                  <Typography variant="body2" fontWeight={500}>
-                    {order.customer.name}
-                  </Typography>
-                  <Typography 
-                    variant="caption" 
-                    sx={{ color: getCustomerTypeColor(order.customer.type) }}
-                  >
-                    {order.customer.type}
-                  </Typography>
-                </Box>
-              </Box>
-              <IconButton
-                size="small"
-                onClick={(e) => handleMenuOpen(e, order)}
-              >
-                <MoreVertIcon />
-              </IconButton>
-            </Box>
-          </Paper>
+              </div>
+            </CardContent>
+          </Card>
         ))}
-      </Box>
+      </div>
     )
   }
 
   return (
-    <>
-      <TableContainer component={Paper} sx={{ borderRadius: 2, overflow: 'hidden' }}>
-        <Table>
-          <TableHead>
-            <TableRow sx={{ backgroundColor: theme.palette.grey[50] }}>
-              <TableCell sx={{ fontWeight: 600 }}>Product Name</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Customer Name</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Order Id</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Amount</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-              <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Action</TableCell>
+    <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-muted/50 hover:bg-muted/50">
+            <TableHead className="font-semibold">Product Name</TableHead>
+            <TableHead className="font-semibold">Customer Name</TableHead>
+            <TableHead className="font-semibold">Order Id</TableHead>
+            <TableHead className="font-semibold">Amount</TableHead>
+            <TableHead className="font-semibold">Status</TableHead>
+            <TableHead className="text-center font-semibold">Action</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {orders.map((order) => (
+            <TableRow key={order.id}>
+              <TableCell>
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-12 w-12">
+                    {order.product.image && <AvatarImage src={order.product.image} alt="" />}
+                    <AvatarFallback>P</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="text-sm font-semibold">{order.product.name}</p>
+                    <p className="text-xs text-muted-foreground">{order.product.type}</p>
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-10 w-10">
+                    {order.customer.avatar && <AvatarImage src={order.customer.avatar} alt="" />}
+                    <AvatarFallback>C</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="text-sm font-medium">{order.customer.name}</p>
+                    <p className={cn('text-xs', getCustomerTypeClass(order.customer.type))}>
+                      {order.customer.type}
+                    </p>
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell>
+                <p className="text-sm font-semibold">{order.order_id}</p>
+                <p className="text-xs text-muted-foreground">{formatDate(order.order_date)}</p>
+              </TableCell>
+              <TableCell>
+                <p className="text-sm font-semibold">{formatCurrency(order.amount)}</p>
+                <p className="text-xs text-muted-foreground">{order.payment_method}</p>
+              </TableCell>
+              <TableCell>
+                <StatusBadge status={order.status as OrderStatus} />
+              </TableCell>
+              <TableCell className="text-center">
+                <OrderRowMenu
+                  order={order}
+                  onViewOrder={onViewOrder}
+                  onEditOrder={onEditOrder}
+                  onDeleteOrder={onDeleteOrder}
+                  onPrintOrder={onPrintOrder}
+                />
+              </TableCell>
             </TableRow>
-          </TableHead>
-          <TableBody>
-            {orders.map((order) => (
-              <TableRow key={order.id} hover>
-                <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar
-                      src={order.product.image}
-                      alt={order.product.name}
-                      sx={{ width: 48, height: 48 }}
-                    />
-                    <Box>
-                      <Typography variant="subtitle2" fontWeight={600}>
-                        {order.product.name}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {order.product.type}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </TableCell>
-
-                <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar
-                      src={order.customer.avatar}
-                      alt={order.customer.name}
-                      sx={{ width: 40, height: 40 }}
-                    />
-                    <Box>
-                      <Typography variant="subtitle2" fontWeight={500}>
-                        {order.customer.name}
-                      </Typography>
-                      <Typography 
-                        variant="caption" 
-                        sx={{ color: getCustomerTypeColor(order.customer.type) }}
-                      >
-                        {order.customer.type}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </TableCell>
-
-                <TableCell>
-                  <Box>
-                    <Typography variant="subtitle2" fontWeight={600}>
-                      {order.order_id}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {formatDate(order.order_date)}
-                    </Typography>
-                  </Box>
-                </TableCell>
-
-                <TableCell>
-                  <Box>
-                    <Typography variant="subtitle2" fontWeight={600}>
-                      {formatCurrency(order.amount)}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {order.payment_method}
-                    </Typography>
-                  </Box>
-                </TableCell>
-
-                <TableCell>
-                  <StatusBadge status={order.status} />
-                </TableCell>
-
-                <TableCell sx={{ textAlign: 'center' }}>
-                  <IconButton
-                    size="small"
-                    onClick={(e) => handleMenuOpen(e, order)}
-                  >
-                    <MoreVertIcon />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'right',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
-        }}
-      >
-        <MenuItem onClick={() => handleAction(onViewOrder)}>
-          <VisibilityIcon sx={{ mr: 1 }} fontSize="small" />
-          View Details
-        </MenuItem>
-        <MenuItem onClick={() => handleAction(onEditOrder)}>
-          <EditIcon sx={{ mr: 1 }} fontSize="small" />
-          Edit Order
-        </MenuItem>
-        <MenuItem onClick={() => handleAction(onPrintOrder)}>
-          <PrintIcon sx={{ mr: 1 }} fontSize="small" />
-          Print Order
-        </MenuItem>
-        <MenuItem onClick={() => handleAction(onDeleteOrder)} sx={{ color: 'error.main' }}>
-          <DeleteIcon sx={{ mr: 1 }} fontSize="small" />
-          Delete Order
-        </MenuItem>
-      </Menu>
-    </>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   )
 }

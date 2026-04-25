@@ -84,6 +84,45 @@ export class CategoriesService {
   }
 
   /**
+   * Merge multiple category_type queries in parallel, dedupe by id, sort by name.
+   * Use for UIs that must not mix product-only and service-only trees but still
+   * include `both` (shared) categories in each context.
+   */
+  private static async mergeCategoryTypes(
+    types: Array<'product' | 'service' | 'both'>,
+    base: Omit<CategoriesQuery, 'category_type'>,
+  ): Promise<Category[]> {
+    const limit = base.limit ?? 500
+    const results = await Promise.all(
+      types.map((category_type) =>
+        this.getCategories({ ...base, page: 1, limit, category_type }),
+      ),
+    )
+    const seen = new Set<string>()
+    const out: Category[] = []
+    for (const res of results) {
+      if (!res?.success || !res.data) continue
+      const cats = res.data.categories ?? []
+      for (const c of cats) {
+        if (!c?.id || seen.has(c.id)) continue
+        seen.add(c.id)
+        out.push(c)
+      }
+    }
+    return out.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+  }
+
+  /** Product catalog & product forms: `product` + `both` (never service-only). */
+  static async getCategoriesForProductUIs(base: Omit<CategoriesQuery, 'category_type'> = {}) {
+    return this.mergeCategoryTypes(['product', 'both'], base)
+  }
+
+  /** Service catalog & service forms: `service` + `both` (never product-only). */
+  static async getCategoriesForServiceUIs(base: Omit<CategoriesQuery, 'category_type'> = {}) {
+    return this.mergeCategoryTypes(['service', 'both'], base)
+  }
+
+  /**
    * Get service categories only
    */
   static async getServiceCategories() {

@@ -1,20 +1,10 @@
-import React, { useState } from 'react'
-import {
-  Box,
-  Typography,
-  TextField,
-  Button,
-  Chip,
-  Stack,
-  Autocomplete,
-  Tooltip,
-} from '@mui/material'
-import {
-  Add as AddIcon,
-  Info as InfoIcon,
-  Error as ErrorIcon,
-  CheckCircle as CheckIcon,
-} from '@mui/icons-material'
+import React, { useState, useMemo } from 'react'
+import { Plus, X, Info, CheckCircle2, AlertCircle, AlertTriangle } from 'lucide-react'
+import { Input } from '../ui/input'
+import { Label } from '../ui/label'
+import { Button } from '../ui/button'
+import { Badge } from '../ui/badge'
+import { cn } from '../../lib/utils'
 
 export interface TagFieldProps {
   label: string
@@ -33,6 +23,42 @@ export interface TagFieldProps {
   freeSolo?: boolean
   size?: 'small' | 'medium'
 }
+
+const StatusIcon = ({ status }: { status?: TagFieldProps['status'] }) => {
+  if (!status) return null
+  const cls = 'h-4 w-4 shrink-0'
+  switch (status) {
+    case 'success':
+      return <CheckCircle2 className={cn(cls, 'text-green-600')} aria-hidden />
+    case 'error':
+      return <AlertCircle className={cn(cls, 'text-destructive')} aria-hidden />
+    case 'warning':
+      return <AlertTriangle className={cn(cls, 'text-amber-600')} aria-hidden />
+    case 'info':
+      return <Info className={cn(cls, 'text-muted-foreground')} aria-hidden />
+    default:
+      return null
+  }
+}
+
+const TagPill: React.FC<{
+  tag: string
+  onRemove: () => void
+  disabled?: boolean
+}> = ({ tag, onRemove, disabled }) => (
+  <Badge variant="outline" className="max-w-full gap-1 pl-2 pr-1 font-normal">
+    <span className="truncate">{tag}</span>
+    <button
+      type="button"
+      className="shrink-0 rounded-sm p-0.5 hover:bg-muted disabled:pointer-events-none"
+      onClick={onRemove}
+      disabled={disabled}
+      aria-label={`Remove ${tag}`}
+    >
+      <X className="h-3 w-3" />
+    </button>
+  </Badge>
+)
 
 export const TagField: React.FC<TagFieldProps> = ({
   label,
@@ -53,219 +79,178 @@ export const TagField: React.FC<TagFieldProps> = ({
 }) => {
   const [inputValue, setInputValue] = useState('')
 
-  const getStatusIcon = () => {
-    switch (status) {
-      case 'success':
-        return <CheckIcon color="success" fontSize="small" />
-      case 'error':
-        return <ErrorIcon color="error" fontSize="small" />
-      case 'warning':
-        return <ErrorIcon color="warning" fontSize="small" />
-      case 'info':
-        return <InfoIcon color="info" fontSize="small" />
-      default:
-        return null
-    }
-  }
+  const inputSize = size === 'small' ? 'h-8 text-sm' : 'h-10'
 
   const handleAddTag = (tag: string) => {
-    const trimmedTag = tag.trim()
-    if (!trimmedTag) return
-
-    if (value.length >= maxTags) {
-      return
-    }
-
-    if (!allowDuplicates && value.includes(trimmedTag)) {
-      return
-    }
-
-    onChange([...value, trimmedTag])
+    const trimmed = tag.trim()
+    if (!trimmed) return
+    if (value.length >= maxTags) return
+    if (!allowDuplicates && value.includes(trimmed)) return
+    onChange([...value, trimmed])
     setInputValue('')
   }
 
-  const handleRemoveTag = (tagToRemove: string) => {
-    onChange(value.filter(tag => tag !== tagToRemove))
+  const handleRemove = (t: string) => {
+    onChange(value.filter((x) => x !== t))
   }
 
-  const handleKeyPress = (event: React.KeyboardEvent) => {
-    if (event.key === 'Enter') {
-      event.preventDefault()
-      handleAddTag(inputValue)
-    }
-  }
-
-  const handleAutocompleteChange = (event: any, newValue: string[]) => {
-    onChange(newValue)
-  }
+  const filteredSuggestions = useMemo(() => {
+    if (!suggestions.length) return []
+    const q = inputValue.toLowerCase()
+    return suggestions.filter(
+      (s) =>
+        s.toLowerCase().includes(q) && (allowDuplicates || !value.includes(s)),
+    )
+  }, [suggestions, inputValue, value, allowDuplicates])
 
   const canAddMore = value.length < maxTags
+  const showSolo = freeSolo
 
-  if (freeSolo) {
+  const labelRow = (
+    <div className="mb-1 flex items-center gap-1">
+      <Label
+        className={cn('text-sm font-semibold', error && 'text-destructive')}
+      >
+        {label}
+        {required && <span className="ml-0.5 text-destructive">*</span>}
+      </Label>
+      {tooltip && (
+        <span title={tooltip} className="inline-flex cursor-default text-muted-foreground">
+          <Info className="h-4 w-4" />
+        </span>
+      )}
+      <StatusIcon status={status} />
+    </div>
+  )
+
+  if (showSolo) {
     return (
-      <Box sx={{ width: '100%' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <Typography
-            variant="subtitle2"
-            sx={{
-              fontWeight: 600,
-              color: error ? 'error.main' : 'text.primary',
-            }}
-          >
-            {label}
-            {required && (
-              <Typography component="span" color="error.main" sx={{ ml: 0.5 }}>
-                *
-              </Typography>
-            )}
-          </Typography>
-          {tooltip && (
-            <Tooltip title={tooltip} arrow>
-              <InfoIcon fontSize="small" color="action" />
-            </Tooltip>
-          )}
-          {getStatusIcon()}
-        </Box>
-
-        <Autocomplete
-          multiple
-          freeSolo
-          options={suggestions}
-          value={value}
-          onChange={handleAutocompleteChange}
-          inputValue={inputValue}
-          onInputChange={(event, newInputValue) => {
-            setInputValue(newInputValue)
-          }}
-          disabled={disabled}
-          size={size}
-          renderTags={(tagValue, getTagProps) =>
-            tagValue.map((option, index) => (
-              <Chip
-                variant="outlined"
-                label={option}
-                {...getTagProps({ index })}
-                onDelete={disabled ? undefined : () => handleRemoveTag(option)}
-                color="primary"
-                size="small"
+      <div className="w-full space-y-1">
+        {labelRow}
+        {value.length > 0 && (
+          <div className="mb-2 flex flex-wrap gap-1">
+            {value.map((tag) => (
+              <TagPill
+                key={tag}
+                tag={tag}
+                disabled={disabled}
+                onRemove={() => handleRemove(tag)}
               />
-            ))
-          }
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              placeholder={canAddMore ? placeholder : `Maximum ${maxTags} tags reached`}
-              variant="outlined"
-              error={!!error}
-              helperText={error || helperText}
-              onKeyPress={handleKeyPress}
-            />
-          )}
-          getOptionLabel={(option) => option}
-          isOptionEqualToValue={(option, value) => option === value}
-          noOptionsText="No suggestions available"
-          sx={{
-            '& .MuiOutlinedInput-root': {
-              padding: '4px 8px',
-            },
-          }}
-        />
-
-        {/* Tag Count */}
-        {maxTags && (
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-            {value.length}/{maxTags} tags
-          </Typography>
+            ))}
+          </div>
         )}
-      </Box>
+        <div className="space-y-1">
+          <Input
+            className={cn('w-full', inputSize, error && 'border-destructive', disabled && 'bg-muted')}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                handleAddTag(inputValue)
+              }
+            }}
+            disabled={disabled}
+            placeholder={canAddMore ? placeholder : `Maximum ${maxTags} tags reached`}
+          />
+          {filteredSuggestions.length > 0 && canAddMore && !disabled && inputValue && (
+            <ul className="z-10 max-h-32 overflow-y-auto rounded-md border bg-popover p-1 text-sm text-popover-foreground shadow">
+              {filteredSuggestions.slice(0, 8).map((s) => (
+                <li key={s} className="m-0 list-none p-0">
+                  <button
+                    type="button"
+                    className="w-full rounded-sm px-2 py-1.5 text-left hover:bg-accent"
+                    onClick={() => handleAddTag(s)}
+                  >
+                    {s}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        {(error || helperText) && (
+          <p
+            className={cn(
+              'text-sm',
+              error ? 'text-destructive' : 'text-muted-foreground',
+            )}
+          >
+            {error || helperText}
+          </p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          {value.length}/{maxTags} tags
+        </p>
+      </div>
     )
   }
 
   return (
-    <Box sx={{ width: '100%' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <Typography
-          variant="subtitle2"
-          sx={{
-            fontWeight: 600,
-            color: error ? 'error.main' : 'text.primary',
-          }}
-        >
-          {label}
-          {required && (
-            <Typography component="span" color="error.main" sx={{ ml: 0.5 }}>
-              *
-            </Typography>
-          )}
-        </Typography>
-        {tooltip && (
-          <Tooltip title={tooltip} arrow>
-            <InfoIcon fontSize="small" color="action" />
-          </Tooltip>
-        )}
-        {getStatusIcon()}
-      </Box>
-
-      {/* Tags Display */}
+    <div className="w-full space-y-1">
+      {labelRow}
       {value.length > 0 && (
-        <Box sx={{ mb: 2 }}>
-          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-            {value.map((tag, index) => (
-              <Chip
-                key={index}
-                label={tag}
-                onDelete={disabled ? undefined : () => handleRemoveTag(tag)}
-                color="primary"
-                variant="outlined"
-                size="small"
-              />
-            ))}
-          </Stack>
-        </Box>
+        <div className="mb-2 flex flex-wrap gap-1">
+          {value.map((tag) => (
+            <TagPill
+              key={tag}
+              tag={tag}
+              disabled={disabled}
+              onRemove={() => handleRemove(tag)}
+            />
+          ))}
+        </div>
       )}
 
-      {/* Add Tag Input */}
       {canAddMore && (
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-          <TextField
-            fullWidth
-            placeholder={placeholder}
+        <div className="flex items-start gap-1">
+          <Input
+            className={cn('w-full', inputSize, error && 'border-destructive', disabled && 'bg-muted')}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                handleAddTag(inputValue)
+              }
+            }}
             disabled={disabled}
-            size={size}
-            variant="outlined"
-            error={!!error}
-            helperText={error || helperText}
+            placeholder={placeholder}
           />
           <Button
-            variant="outlined"
+            type="button"
+            variant="outline"
+            size="sm"
+            className="shrink-0 px-3"
             onClick={() => handleAddTag(inputValue)}
             disabled={!inputValue.trim() || disabled}
-            startIcon={<AddIcon />}
-            size={size}
-            sx={{ minWidth: 'auto', px: 2 }}
+            leftIcon={<Plus className="h-4 w-4" />}
           >
             Add
           </Button>
-        </Box>
+        </div>
       )}
 
-      {/* Max Tags Warning */}
+      {canAddMore && (error || helperText) && (
+        <p
+          className={cn('text-sm', error ? 'text-destructive' : 'text-muted-foreground')}
+        >
+          {error || helperText}
+        </p>
+      )}
+
       {!canAddMore && (
-        <Typography variant="caption" color="warning.main" sx={{ mt: 1, display: 'block' }}>
+        <p className="text-sm text-amber-600">
           Maximum {maxTags} tags reached. Remove some to add more.
-        </Typography>
+        </p>
       )}
 
-      {/* Tag Count */}
-      {maxTags && (
-        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+      {maxTags !== undefined && (
+        <p className="text-xs text-muted-foreground">
           {value.length}/{maxTags} tags
-        </Typography>
+        </p>
       )}
-    </Box>
+    </div>
   )
 }
 

@@ -1,89 +1,76 @@
 import React, { useState, useMemo } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
-  Drawer,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Box,
-  Typography,
-  Divider,
-  useTheme,
-  useMediaQuery,
-  Collapse,
-  Avatar,
-  IconButton,
-  Menu,
-  MenuItem,
-  Tooltip,
-  TextField,
-  InputAdornment,
-  Badge,
-  alpha,
-  Fade,
-} from '@mui/material'
-import {
-  Dashboard as DashboardIcon,
-  Inventory as PackageIcon,
-  Inventory2 as InventoryIcon,
-  Build as WrenchIcon,
-  Assignment as FileTextIcon,
-  AssignmentInd as AssignmentIndIcon,
-  AttachMoney as DollarSignIcon,
-  Event as CalendarIcon,
-  People as UsersIcon,
-  Security as ShieldIcon,
-  Analytics as BarChartIcon,
-  Assessment as AssessmentIcon,
+  LayoutDashboard as DashboardIcon,
+  Package as PackageIcon,
+  Package2 as InventoryIcon,
+  Wrench as WrenchIcon,
+  ClipboardList as FileTextIcon,
+  IdCard as AssignmentIndIcon,
+  DollarSign as DollarSignIcon,
+  Calendar as CalendarIcon,
+  Users as UsersIcon,
+  BarChart2 as BarChartIcon,
+  LineChart as AssessmentIcon,
   Cloud as CloudIcon,
-  Message as MessageIcon,
-  Chat as ChatIcon,
+  MessageSquare as MessageIcon,
+  MessageCircle as ChatIcon,
   ShoppingCart as ShoppingCartIcon,
   Settings as SettingsIcon,
-  Tune as TuneIcon,
+  SlidersHorizontal as TuneIcon,
   Home as HomeIcon,
-  ExpandLess,
-  ExpandMore,
-  Business as BusinessIcon,
-  Support as SupportIcon,
-  Notifications as NotificationsIcon,
-  AccountCircle as AccountCircleIcon,
-  Logout as LogoutIcon,
-  Person as PersonIcon,
-  Category as CategoryIcon,
-  Slideshow as SlideshowIcon,
-  LocalOffer as CouponIcon,
-  LocalOffer as LocalOfferIcon,
-  Share as ReferralIcon,
-  Web as WebIcon,
+  ChevronUp as ExpandLess,
+  ChevronDown as ExpandMore,
+  Building2 as BusinessIcon,
+  LifeBuoy as SupportIcon,
+  Bell as NotificationsIcon,
+  UserCircle as AccountCircleIcon,
+  LogOut as LogoutIcon,
+  User as PersonIcon,
+  Tag as CategoryIcon,
+  Images as SlideshowIcon,
+  Tag as CouponIcon,
+  Tag as LocalOfferIcon,
+  Share2 as ReferralIcon,
+  Globe as WebIcon,
   Image as ImageIcon,
   Star as StarIcon,
-  HelpOutline as HelpIcon,
+  HelpCircle as HelpIcon,
   Search as SearchIcon,
-  Description as DescriptionIcon,
-  Article as ArticleIcon,
-  PermMedia as MediaIcon,
+  FileText as DescriptionIcon,
+  BookOpen as ArticleIcon,
+  Image as MediaIcon,
   Menu as MenusIcon,
   Receipt as ReceiptIcon,
   CreditCard as CreditCardIcon,
-  AccountBalance as AccountBalanceIcon,
+  Landmark as AccountBalanceIcon,
   TrendingUp as TrendingUpIcon,
-  Link as LinkIcon,
-  Campaign as CampaignIcon,
-  Storefront as StorefrontIcon,
+  Link2 as LinkIcon,
+  Megaphone as CampaignIcon,
+  Store as StorefrontIcon,
   ShoppingBag as ShoppingBagIcon,
-  BusinessCenter as BusinessCenterIcon,
-  PersonSearch as PersonSearchIcon,
+  Briefcase as BusinessCenterIcon,
+  UserSearch as PersonSearchIcon,
   Handshake as HandshakeIcon,
-  Assignment as AssignmentIcon,
-  RateReview as RateReviewIcon,
-  VerifiedUser as VerifiedUserIcon,
-} from '@mui/icons-material'
+  ListTodo as AssignmentIcon,
+  ListChecks as RateReviewIcon,
+  BadgeCheck as VerifiedUserIcon,
+} from 'lucide-react'
+import { useAppDispatch, useAppSelector } from '../../store/hooks'
+import { logout } from '../../store/slices/authSlice'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
+import { Input } from '../ui/input'
+import { Button } from '../ui/button'
+import { Avatar, AvatarFallback } from '../ui/avatar'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu'
 import { useSidebar } from '../../contexts/sidebar-context'
-import { useAppSelector } from '../../store/hooks'
-import { getInitials } from '../../lib/utils'
+import { getInitials, cn } from '../../lib/utils'
 import { SaasTenantIndicator } from './SaasTenantIndicator'
 import { FixerLogoMark } from './FixerLogoMark'
 import {
@@ -194,7 +181,8 @@ const navigationGroups = [
     title: 'Catalog',
     icon: PackageIcon,
     items: [
-      { name: 'Categories', href: '/categories', icon: CategoryIcon, permissions: ['view_categories', 'manage_categories'], badge: null },
+      { name: 'Product categories', href: '/categories/products', icon: InventoryIcon, permissions: ['view_categories', 'manage_categories'], badge: null },
+      { name: 'Service categories', href: '/categories/services', icon: WrenchIcon, permissions: ['view_categories', 'manage_categories'], badge: null },
       { name: 'Platform services', href: '/platform-services', icon: HomeIcon, permissions: ['view_services', 'manage_services'], badge: null },
       {
         name: 'Marketplace',
@@ -409,13 +397,12 @@ interface SidebarProps {
 export function Sidebar({ open, onClose }: SidebarProps) {
   const location = useLocation()
   const navigate = useNavigate()
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
-  const { isOpen: sidebarOpen, toggleSidebar } = useSidebar()
+  const dispatch = useAppDispatch()
+  const isMobile = useMediaQuery('(max-width: 899px)')
+  const { isOpen: sidebarOpen } = useSidebar()
   const authState = useAppSelector((state) => state.auth)
   const user = authState?.user || null
   const [openSubmenus, setOpenSubmenus] = useState<{ [key: string]: boolean }>({})
-  const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null)
   const [searchQuery, setSearchQuery] = useState('')
 
   /**
@@ -518,18 +505,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     }))
   }
 
-  const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setUserMenuAnchor(event.currentTarget)
-  }
-
-  const handleUserMenuClose = () => {
-    setUserMenuAnchor(null)
-  }
-
   const handleLogout = () => {
-    handleUserMenuClose()
-    // Add logout logic here
-    navigate('/auth')
+    dispatch(logout())
+    void navigate('/auth')
   }
 
   const getUserDisplayName = () => {
@@ -549,418 +527,283 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     return 'Member'
   }
 
+  const railW = sidebarOpen ? drawerWidth : collapsedDrawerWidth
+
+  const linkBase = (isActive: boolean) =>
+    cn(
+      'group flex min-h-[38px] w-full items-center gap-2 rounded-md border-l-[3px] text-left text-sm transition-colors',
+      isActive
+        ? 'border-primary bg-primary/10 text-primary'
+        : 'border-transparent text-foreground hover:border-muted-foreground/30 hover:bg-muted/50',
+      sidebarOpen ? 'mx-0.5 px-2' : 'mx-0.5 justify-center px-0',
+    )
+
+  const subLinkBase = (isSubActive: boolean) =>
+    cn(
+      'mb-0.5 flex min-h-[34px] w-full items-center gap-2 rounded-md px-2 text-sm transition-colors',
+      isSubActive ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-muted/50',
+    )
+
+  const renderNavIcon = (
+    Icon: React.ElementType,
+    isActive: boolean,
+    small?: boolean,
+  ) => <Icon className={cn(small ? 'h-3.5 w-3.5' : 'h-4 w-4', isActive ? 'text-primary' : 'text-muted-foreground')} />
+
   const drawerContent = (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.paper' }}>
-      {/* Enhanced Logo Section */}
-      <Box
-        sx={{
-          p: sidebarOpen ? 2.5 : 2,
-          display: 'flex',
-          alignItems: 'center',
-          gap: sidebarOpen ? 2 : 0,
-          borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-          justifyContent: sidebarOpen ? 'flex-start' : 'center',
-          bgcolor: alpha(theme.palette.primary.main, 0.05),
-        }}
+    <div
+      className="flex h-full w-full min-w-0 flex-col border-r border-border/80 bg-card"
+      style={{ width: railW }}
+    >
+      <div
+        className={cn(
+          'flex items-center border-b border-border/60 bg-primary/[0.04]',
+          sidebarOpen ? 'gap-2 p-2' : 'justify-center p-1.5',
+        )}
       >
         <FixerLogoMark
-          size={44}
-          sx={{
-            boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.35)}`,
-            transition: 'transform 0.2s',
-            '&:hover': { transform: 'scale(1.04)' },
-          }}
+          size={36}
+          className="shadow-md shadow-primary/25 transition-transform hover:scale-105"
         />
         {sidebarOpen && (
-          <Fade in={sidebarOpen}>
-            <Box>
-              <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary', fontSize: '1.05rem', letterSpacing: '-0.02em' }}>
-                Fixer Admin
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem', fontWeight: 500 }}>
-                Operations console
-              </Typography>
-            </Box>
-          </Fade>
+          <div className="min-w-0">
+            <p className="text-[0.95rem] font-bold leading-tight tracking-tight">Fixer Admin</p>
+            <p className="text-[0.65rem] font-medium text-muted-foreground">Operations console</p>
+          </div>
         )}
-      </Box>
+      </div>
 
-      {/* Search Bar */}
       {sidebarOpen && (
-        <Box sx={{ p: 2, borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
-          <TextField
-            fullWidth
-            size="small"
-            placeholder="Filter navigation…"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-                </InputAdornment>
-              ),
-            }}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 2,
-                bgcolor: alpha(theme.palette.action.hover, 0.3),
-                '&:hover': {
-                  bgcolor: alpha(theme.palette.action.hover, 0.5),
-                },
-                '&.Mui-focused': {
-                  bgcolor: 'background.paper',
-                },
-              },
-            }}
-          />
-        </Box>
+        <div className="border-b border-border/60 p-2">
+          <div className="relative">
+            <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="h-9 pl-8 text-sm"
+              placeholder="Filter navigation…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
       )}
 
-      {/* Navigation Groups */}
-      <Box sx={{ flex: 1, overflow: 'auto', py: 1 }}>
+      <nav className="flex-1 space-y-2 overflow-y-auto overflow-x-hidden py-1" aria-label="Main">
         {activeNavigationGroups.map((group, groupIndex) => (
-          <Box key={group.title} sx={{ mb: groupIndex < activeNavigationGroups.length - 1 ? 2 : 0 }}>
-            {/* Group Header */}
-            {sidebarOpen && (
-              <Box sx={{ px: 2.5, py: 1 }}>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: 'text.secondary',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '1px',
-                    fontSize: '0.7rem',
-                  }}
-                >
-                  {group.title}
-                </Typography>
-              </Box>
+          <div
+            key={group.title}
+            className={cn(
+              'space-y-0.5',
+              groupIndex < activeNavigationGroups.length - 1 && 'mb-1.5',
             )}
-
-            {/* Group Items */}
-            <List sx={{ px: 1 }}>
+          >
+            {sidebarOpen && (
+              <p className="px-2 py-1 text-[0.65rem] font-bold uppercase tracking-wider text-muted-foreground">
+                {group.title}
+              </p>
+            )}
+            <ul className="px-0.5">
               {group.items.map((item: SidebarItem) => {
-                const isActive = location.pathname === item.href || 
-                  (item.hasSubmenu && item.subItems?.some(sub => sub.href === location.pathname))
+                const isActive = Boolean(
+                  (!!item.href && location.pathname === item.href) ||
+                    (!!item.hasSubmenu &&
+                      item.subItems?.some((sub) => sub.href === location.pathname)),
+                )
                 const hasSubmenu = item.hasSubmenu
                 const isSubmenuOpen = openSubmenus[item.name] || false
+                const Icon = item.icon
 
-                const listItemButton = (
-                  <ListItemButton
-                    onClick={hasSubmenu ? () => handleSubmenuToggle(item.name) : undefined}
-                    component={hasSubmenu ? 'div' : Link}
-                    to={hasSubmenu ? undefined : item.href}
-                    sx={{
-                      borderRadius: 2,
-                      mb: 0.5,
-                      mx: 0.5,
-                      minHeight: 44,
-                      backgroundColor: isActive 
-                        ? alpha(theme.palette.primary.main, 0.12)
-                        : 'transparent',
-                      color: isActive ? 'primary.main' : 'text.primary',
-                      borderLeft: isActive ? `3px solid ${theme.palette.primary.main}` : '3px solid transparent',
-                      '&:hover': {
-                        backgroundColor: isActive 
-                          ? alpha(theme.palette.primary.main, 0.16)
-                          : alpha(theme.palette.action.hover, 0.5),
-                        borderLeft: `3px solid ${isActive ? theme.palette.primary.main : theme.palette.action.hover}`,
-                      },
-                      transition: 'all 0.2s ease',
-                      justifyContent: sidebarOpen ? 'flex-start' : 'center',
-                      px: sidebarOpen ? 2 : 1,
-                    }}
+                const mainCell = hasSubmenu ? (
+                  <button
+                    type="button"
+                    className={linkBase(isActive)}
+                    onClick={() => handleSubmenuToggle(item.name)}
+                    title={!sidebarOpen ? item.name : undefined}
                   >
-                    <ListItemIcon
-                      sx={{
-                        color: isActive ? 'primary.main' : 'text.secondary',
-                        minWidth: sidebarOpen ? 40 : 'auto',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      {item.badge ? (
-                        <Badge badgeContent={item.badge} color="error" max={99}>
-                          {React.createElement(item.icon, { fontSize: 'small' })}
-                        </Badge>
-                      ) : (
-                        React.createElement(item.icon, { fontSize: 'small' })
+                    <span className="relative flex w-8 shrink-0 items-center justify-center">
+                      {item.badge != null && item.badge !== '' && (
+                        <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-0.5 text-[9px] font-bold leading-none text-destructive-foreground">
+                          {String(item.badge).length > 2 ? '99' : item.badge}
+                        </span>
                       )}
-                    </ListItemIcon>
+                      {renderNavIcon(Icon, isActive)}
+                    </span>
                     {sidebarOpen && (
-                      <>
-                        <ListItemText
-                          primary={item.name}
-                          primaryTypographyProps={{
-                            fontWeight: isActive ? 600 : 500,
-                            fontSize: '0.875rem',
-                          }}
-                        />
-                        {hasSubmenu && (
-                          <Box sx={{ ml: 1 }}>
-                            {isSubmenuOpen ? <ExpandLess fontSize="small" /> : <ExpandMore fontSize="small" />}
-                          </Box>
+                      <span className="flex min-w-0 flex-1 items-center justify-between gap-1">
+                        <span className={cn('truncate', isActive ? 'font-semibold' : 'font-medium')}>
+                          {item.name}
+                        </span>
+                        {isSubmenuOpen ? (
+                          <ExpandLess className="h-4 w-4 shrink-0" />
+                        ) : (
+                          <ExpandMore className="h-4 w-4 shrink-0" />
                         )}
-                      </>
+                      </span>
                     )}
-                  </ListItemButton>
+                  </button>
+                ) : (
+                  <Link
+                    to={item.href!}
+                    onClick={isMobile ? onClose : undefined}
+                    className={linkBase(isActive)}
+                    title={!sidebarOpen ? item.name : undefined}
+                  >
+                    <span className="relative flex w-8 shrink-0 items-center justify-center">
+                      {item.badge != null && item.badge !== '' && (
+                        <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-0.5 text-[9px] font-bold leading-none text-destructive-foreground">
+                          {String(item.badge).length > 2 ? '99' : item.badge}
+                        </span>
+                      )}
+                      {renderNavIcon(Icon, isActive)}
+                    </span>
+                    {sidebarOpen && (
+                      <span
+                        className={cn('min-w-0 flex-1 truncate', isActive ? 'font-semibold' : 'font-medium')}
+                      >
+                        {item.name}
+                      </span>
+                    )}
+                  </Link>
                 )
 
                 return (
-                  <Box key={item.name}>
-                    <ListItem disablePadding>
-                      {sidebarOpen ? (
-                        listItemButton
-                      ) : (
-                        <Tooltip title={item.name} placement="right" arrow>
-                          {listItemButton}
-                        </Tooltip>
-                      )}
-                    </ListItem>
-
-                    {/* Submenu Items */}
-                    {hasSubmenu && sidebarOpen && (
-                      <Collapse in={isSubmenuOpen} timeout="auto" unmountOnExit>
-                        <List component="div" disablePadding sx={{ pl: 3, pr: 1 }}>
-                          {item.subItems?.map((subItem: SidebarSubItem) => {
-                            const isSubActive = location.pathname === subItem.href
-                            return (
-                              <ListItem key={subItem.name} disablePadding>
-                                <ListItemButton
-                                  component={Link}
-                                  to={subItem.href}
-                                  onClick={isMobile ? onClose : undefined}
-                                  sx={{
-                                    borderRadius: 2,
-                                    mb: 0.5,
-                                    minHeight: 40,
-                                    backgroundColor: isSubActive 
-                                      ? alpha(theme.palette.primary.main, 0.1)
-                                      : 'transparent',
-                                    color: isSubActive ? 'primary.main' : 'text.primary',
-                                    '&:hover': {
-                                      backgroundColor: isSubActive 
-                                        ? alpha(theme.palette.primary.main, 0.15)
-                                        : alpha(theme.palette.action.hover, 0.3),
-                                    },
-                                    transition: 'all 0.2s ease',
-                                  }}
+                  <li key={item.name} className="list-none">
+                    {mainCell}
+                    {hasSubmenu && isSubmenuOpen && sidebarOpen && item.subItems && (
+                      <ul className="mt-0.5 space-y-0.5 pl-2.5 pr-0.5">
+                        {item.subItems.map((subItem: SidebarSubItem) => {
+                          const isSubActive = location.pathname === subItem.href
+                          const SIcon = subItem.icon
+                          return (
+                            <li key={subItem.name} className="list-none">
+                              <Link
+                                to={subItem.href}
+                                onClick={isMobile ? onClose : undefined}
+                                className={subLinkBase(isSubActive)}
+                              >
+                                {renderNavIcon(SIcon, isSubActive, true)}
+                                <span
+                                  className={cn('flex-1 truncate', isSubActive ? 'font-semibold' : 'font-normal')}
                                 >
-                                  <ListItemIcon
-                                    sx={{
-                                      color: isSubActive ? 'primary.main' : 'text.secondary',
-                                      minWidth: 32,
-                                    }}
-                                  >
-                                    {React.createElement(subItem.icon, { fontSize: 'small' })}
-                                  </ListItemIcon>
-                                  <ListItemText
-                                    primary={subItem.name}
-                                    primaryTypographyProps={{
-                                      fontWeight: isSubActive ? 600 : 400,
-                                      fontSize: '0.8rem',
-                                    }}
-                                  />
-                                </ListItemButton>
-                              </ListItem>
-                            )
-                          })}
-                        </List>
-                      </Collapse>
+                                  {subItem.name}
+                                </span>
+                              </Link>
+                            </li>
+                          )
+                        })}
+                      </ul>
                     )}
-                  </Box>
+                  </li>
                 )
               })}
-            </List>
-          </Box>
+            </ul>
+          </div>
         ))}
-      </Box>
+      </nav>
 
       <SaasTenantIndicator variant="sidebar" sidebarOpen={sidebarOpen} />
 
-      <Divider sx={{ borderColor: alpha(theme.palette.divider, 0.1) }} />
-      
-      {/* Enhanced User Profile Section */}
-      <Box sx={{ p: sidebarOpen ? 2 : 1.5 }}>
-        {sidebarOpen ? (
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 2,
-              p: 1.5,
-              borderRadius: 2,
-              cursor: 'pointer',
-              bgcolor: alpha(theme.palette.action.hover, 0.3),
-              '&:hover': {
-                bgcolor: alpha(theme.palette.action.hover, 0.5),
-              },
-              transition: 'all 0.2s ease',
-            }}
-            onClick={handleUserMenuOpen}
-          >
-            <Avatar
-              sx={{
-                width: 40,
-                height: 40,
-                bgcolor: 'primary.main',
-                fontSize: '0.875rem',
-                fontWeight: 600,
-                boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.3)}`,
-              }}
-            >
-              {getInitials(getUserDisplayName())}
-            </Avatar>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography
-                variant="subtitle2"
-                sx={{
-                  fontWeight: 600,
-                  fontSize: '0.875rem',
-                  color: 'text.primary',
-                  lineHeight: 1.2,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {getUserDisplayName()}
-              </Typography>
-              <Typography
-                variant="caption"
-                sx={{
-                  color: 'text.secondary',
-                  fontSize: '0.75rem',
-                  lineHeight: 1.2,
-                  display: 'block',
-                }}
-              >
-                {getUserRole()}
-              </Typography>
-            </Box>
-            <IconButton size="small" sx={{ color: 'text.secondary' }}>
-              <ExpandMore fontSize="small" />
-            </IconButton>
-          </Box>
-        ) : (
-          <Tooltip title={getUserDisplayName()} placement="right" arrow>
-            <IconButton
-              onClick={handleUserMenuOpen}
-              sx={{
-                width: '100%',
-                height: 48,
-                borderRadius: 2,
-                '&:hover': {
-                  backgroundColor: alpha(theme.palette.action.hover, 0.5),
-                },
-              }}
-            >
-              <Avatar
-                sx={{
-                  width: 36,
-                  height: 36,
-                  bgcolor: 'primary.main',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                }}
-              >
-                {getInitials(getUserDisplayName())}
-              </Avatar>
-            </IconButton>
-          </Tooltip>
-        )}
+      <div className="h-px shrink-0 border-t border-border/60" />
 
-        {/* User Menu */}
-        <Menu
-          anchorEl={userMenuAnchor}
-          open={Boolean(userMenuAnchor)}
-          onClose={handleUserMenuClose}
-          anchorOrigin={{
-            vertical: 'top',
-            horizontal: 'right',
-          }}
-          transformOrigin={{
-            vertical: 'bottom',
-            horizontal: 'right',
-          }}
-          PaperProps={{
-            sx: {
-              mt: 1,
-              minWidth: 200,
-              borderRadius: 2,
-              boxShadow: theme.shadows[8],
-            },
-          }}
-        >
-          <MenuItem onClick={() => { handleUserMenuClose(); navigate('/settings') }}>
-            <ListItemIcon>
-              <AccountCircleIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Profile</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={() => { handleUserMenuClose(); navigate('/settings') }}>
-            <ListItemIcon>
-              <SettingsIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Settings</ListItemText>
-          </MenuItem>
-          <Divider />
-          <MenuItem onClick={handleLogout}>
-            <ListItemIcon>
-              <LogoutIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Logout</ListItemText>
-          </MenuItem>
-        </Menu>
-      </Box>
-    </Box>
+      <div className={cn('p-1.5', !sidebarOpen && 'flex justify-center')}>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            {sidebarOpen ? (
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 rounded-md bg-muted/40 p-1.5 text-left transition hover:bg-muted/60"
+              >
+                <Avatar className="h-9 w-9 text-xs">
+                  <AvatarFallback>{getInitials(getUserDisplayName())}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold leading-tight">
+                    {getUserDisplayName()}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{getUserRole()}</p>
+                </div>
+                <ExpandMore className="h-4 w-4 shrink-0 text-muted-foreground" />
+              </button>
+            ) : (
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-12 w-full rounded-md"
+                title={getUserDisplayName()}
+              >
+                <Avatar className="h-9 w-9 text-xs">
+                  <AvatarFallback>{getInitials(getUserDisplayName())}</AvatarFallback>
+                </Avatar>
+              </Button>
+            )}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="right" align="end" className="w-48">
+            <DropdownMenuItem
+              onClick={() => {
+                void navigate('/settings')
+              }}
+              className="cursor-pointer"
+            >
+              <AccountCircleIcon className="mr-2 h-4 w-4" />
+              Profile
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                void navigate('/settings')
+              }}
+              className="cursor-pointer"
+            >
+              <SettingsIcon className="mr-2 h-4 w-4" />
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={handleLogout}
+              className="cursor-pointer text-destructive focus:text-destructive"
+            >
+              <LogoutIcon className="mr-2 h-4 w-4" />
+              Logout
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
   )
 
   if (isMobile) {
     return (
-      <Drawer
-        variant="temporary"
-        open={open}
-        onClose={onClose}
-        ModalProps={{
-          keepMounted: true,
-        }}
-        sx={{
-          display: { xs: 'block', md: 'none' },
-          '& .MuiDrawer-paper': {
-            boxSizing: 'border-box',
-            width: drawerWidth,
-            borderRight: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-          },
-        }}
-      >
-        {drawerContent}
-      </Drawer>
+      <>
+        {open && (
+          <div
+            className="fixed inset-0 z-[60] bg-black/50 md:hidden"
+            role="button"
+            tabIndex={-1}
+            onClick={onClose}
+            onKeyDown={(e) => e.key === 'Escape' && onClose()}
+            aria-label="Close menu"
+          />
+        )}
+        <aside
+          className={cn(
+            'fixed left-0 top-0 z-[70] h-full w-[min(100%,var(--sw))] max-w-full transform border-r border-border bg-card shadow-xl transition-transform duration-200 ease-out md:hidden',
+            open ? 'translate-x-0' : '-translate-x-full',
+          )}
+          style={{ ['--sw' as string]: `${drawerWidth}px` } as React.CSSProperties}
+        >
+          {drawerContent}
+        </aside>
+      </>
     )
   }
 
   return (
-    <Drawer
-      variant="permanent"
-      sx={{
-        display: { xs: 'none', md: 'block' },
-        '& .MuiDrawer-paper': {
-          boxSizing: 'border-box',
-          width: sidebarOpen ? drawerWidth : collapsedDrawerWidth,
-          borderRight: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-          top: APP_BAR_HEIGHT_PX,
-          height: `calc(100vh - ${APP_BAR_HEIGHT_PX}px)`,
-          transition: theme.transitions.create('width', {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.enteringScreen,
-          }),
-          overflowX: 'hidden',
-        },
+    <aside
+      className="fixed z-30 hidden h-[calc(100vh-48px)] min-h-0 overflow-y-auto overflow-x-hidden border-r border-border bg-card transition-[width] duration-200 ease-in-out md:left-0 md:top-12 md:block"
+      style={{
+        width: railW,
+        top: APP_BAR_HEIGHT_PX,
       }}
-      open
     >
       {drawerContent}
-    </Drawer>
+    </aside>
   )
 }

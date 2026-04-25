@@ -5,49 +5,47 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  TextField,
-  InputAdornment,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Button,
-  Chip,
-  Drawer,
-  IconButton,
-  Snackbar,
-  Alert,
-  CircularProgress,
-  alpha,
-  Divider,
-} from '@mui/material'
-import {
-  DataGrid,
-  GridColDef,
-  GridRenderCellParams,
-  GridToolbarContainer,
-} from '@mui/x-data-grid'
-import {
-  Search as SearchIcon,
-  Refresh as RefreshIcon,
-  Close as CloseIcon,
-  Person as PersonIcon,
-  Phone as PhoneIcon,
-  LocationOn as LocationIcon,
-  Work as WorkIcon,
-  AccessTime as TimeIcon,
-  Notes as NotesIcon,
-} from '@mui/icons-material'
+  Search,
+  RefreshCw,
+  X,
+  User,
+  Phone,
+  MapPin,
+  Briefcase,
+  Clock,
+  StickyNote,
+  Loader2,
+} from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
+import { Pagination } from '../../components/common/Pagination'
 import {
   ProfessionalApplicationsService,
   ProfessionalApplication,
   ProfessionalApplicationStatus,
 } from '../../services/api/professionalApplications.service'
+import { Card, CardContent } from '../../components/ui/card'
+import { Button } from '../../components/ui/button'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
+import { Textarea } from '../../components/ui/textarea'
+import { Badge } from '../../components/ui/badge'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/table'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select'
+import { Separator } from '../../components/ui/separator'
+import { cn } from '../../lib/utils'
 
 const STATUS_OPTIONS: { value: ProfessionalApplicationStatus | 'all'; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -58,12 +56,12 @@ const STATUS_OPTIONS: { value: ProfessionalApplicationStatus | 'all'; label: str
   { value: 'archived', label: 'Archived' },
 ]
 
-const statusColors: Record<ProfessionalApplicationStatus, string> = {
-  new: '#2196F3',
-  contacted: '#FF9800',
-  approved: '#4CAF50',
-  rejected: '#F44336',
-  archived: '#9E9E9E',
+const statusClass: Record<ProfessionalApplicationStatus, string> = {
+  new: 'border-blue-200 bg-blue-500/10 text-blue-800',
+  contacted: 'border-amber-200 bg-amber-500/10 text-amber-800',
+  approved: 'border-emerald-200 bg-emerald-500/10 text-emerald-800',
+  rejected: 'border-red-200 bg-red-500/10 text-red-800',
+  archived: 'border-border bg-muted text-muted-foreground',
 }
 
 function formatDate(value: string | undefined) {
@@ -76,14 +74,6 @@ function formatDate(value: string | undefined) {
   } catch {
     return value
   }
-}
-
-function Toolbar() {
-  return (
-    <GridToolbarContainer sx={{ p: 2, gap: 1, flexWrap: 'wrap' }}>
-      {/* Filters are rendered in the page, not in the grid toolbar */}
-    </GridToolbarContainer>
-  )
 }
 
 export function ProviderApplications() {
@@ -101,6 +91,12 @@ export function ProviderApplications() {
   const [statusValue, setStatusValue] = useState<ProfessionalApplicationStatus | ''>('')
   const [adminNotes, setAdminNotes] = useState('')
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' })
+
+  useEffect(() => {
+    if (!snackbar.open) return undefined
+    const t = window.setTimeout(() => setSnackbar((s) => ({ ...s, open: false })), 5000)
+    return () => window.clearTimeout(t)
+  }, [snackbar.open, snackbar.message])
 
   const fetchList = useCallback(async () => {
     try {
@@ -131,16 +127,18 @@ export function ProviderApplications() {
   const handleRefresh = () => {
     fetchList()
     if (selectedApp) {
-      ProfessionalApplicationsService.getById(selectedApp._id).then((res) => {
-        if (res.data) setSelectedApp(res.data as ProfessionalApplication)
-      }).catch(() => {})
+      ProfessionalApplicationsService.getById(selectedApp._id)
+        .then((res) => {
+          if (res.data) setSelectedApp(res.data as ProfessionalApplication)
+        })
+        .catch(() => {})
     }
   }
 
-  const handleRowClick = (params: { row: ProfessionalApplication }) => {
-    setSelectedApp(params.row)
-    setStatusValue(params.row.status)
-    setAdminNotes(params.row.adminNotes ?? '')
+  const handleRowClick = (row: ProfessionalApplication) => {
+    setSelectedApp(row)
+    setStatusValue(row.status)
+    setAdminNotes(row.adminNotes ?? '')
     setDetailOpen(true)
   }
 
@@ -170,267 +168,266 @@ export function ProviderApplications() {
     }
   }
 
-  const columns: GridColDef[] = [
-    { field: 'applicationId', headerName: 'ID', width: 110 },
-    { field: 'fullName', headerName: 'Name', flex: 1, minWidth: 140 },
-    { field: 'phone', headerName: 'Phone', width: 120 },
-    { field: 'city', headerName: 'City', width: 120 },
-    {
-      field: 'servicesInterested',
-      headerName: 'Services',
-      width: 160,
-      renderCell: (params: GridRenderCellParams) => {
-        const arr = params.value as string[] | undefined
-        if (!arr?.length) return '—'
-        return (
-          <Typography variant="body2" noWrap title={arr.join(', ')}>
-            {arr.join(', ')}
-          </Typography>
-        )
-      },
-    },
-    { field: 'experienceYears', headerName: 'Exp (y)', width: 80, type: 'number' },
-    {
-      field: 'status',
-      headerName: 'Status',
-      width: 110,
-      renderCell: (params: GridRenderCellParams) => {
-        const s = params.value as ProfessionalApplicationStatus
-        return (
-          <Chip
-            size="small"
-            label={s ?? '—'}
-            sx={{
-              bgcolor: alpha(statusColors[s] || '#9E9E9E', 0.2),
-              color: statusColors[s] || '#616161',
-              fontWeight: 600,
-            }}
-          />
-        )
-      },
-    },
-    {
-      field: 'createdAt',
-      headerName: 'Applied',
-      width: 150,
-      valueFormatter: (value) => formatDate(value as string),
-    },
-  ]
+  const totalPages = Math.max(1, Math.ceil((total || 0) / pageSize))
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }}>
+    <div className="p-4 md:p-6">
       <PageHeader
         title="Provider Applications"
         subtitle="Onboarding applications from the Become a Provider form"
         action={
-          <Button startIcon={<RefreshIcon />} onClick={handleRefresh} variant="outlined" size="medium">
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={handleRefresh}>
+            <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
         }
       />
 
-      <Card sx={{ borderRadius: 2, mb: 2 }}>
-        <CardContent sx={{ p: 2 }}>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', mb: 2 }}>
-            <TextField
-              size="small"
-              placeholder="Search name, phone, city..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && fetchList()}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon color="action" />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{ minWidth: 220 }}
-            />
-            <FormControl size="small" sx={{ minWidth: 140 }}>
-              <InputLabel>Status</InputLabel>
+      <Card className="mb-4 rounded-xl">
+        <CardContent className="p-4">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <div className="relative min-w-[200px] flex-1 sm:min-w-[220px]">
+              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                className="pl-9"
+                placeholder="Search name, phone, city..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && fetchList()}
+              />
+            </div>
+            <div className="w-full min-w-[140px] sm:w-40">
+              <Label className="sr-only">Status</Label>
               <Select
                 value={statusFilter}
-                label="Status"
-                onChange={(e) => setStatusFilter(e.target.value as ProfessionalApplicationStatus | 'all')}
+                onValueChange={(v) => setStatusFilter(v as ProfessionalApplicationStatus | 'all')}
               >
-                {STATUS_OPTIONS.map((o) => (
-                  <MenuItem key={o.value} value={o.value}>
-                    {o.label}
-                  </MenuItem>
-                ))}
+                <SelectTrigger>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
-            </FormControl>
-            <TextField
-              size="small"
+            </div>
+            <Input
+              className="w-full min-w-[120px] sm:w-36"
               placeholder="City"
               value={cityFilter}
               onChange={(e) => setCityFilter(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && fetchList()}
-              sx={{ minWidth: 140 }}
             />
-            <Button variant="contained" onClick={() => fetchList()}>
-              Apply filters
-            </Button>
-          </Box>
+            <Button onClick={() => fetchList()}>Apply filters</Button>
+          </div>
 
-          <Box sx={{ height: 560, width: '100%' }}>
-            <DataGrid
-              rows={applications}
-              columns={columns}
-              getRowId={(row) => row._id}
-              loading={loading}
-              disableRowSelectionOnClick
-              onRowClick={({ row }) => handleRowClick({ row })}
-              slots={{ toolbar: Toolbar }}
-              paginationMode="server"
-              rowCount={total}
-              paginationModel={{ page: page - 1, pageSize }}
-              onPaginationModelChange={(model) => {
-                setPage(model.page + 1)
-                if (model.pageSize !== pageSize) {
-                  setPageSize(model.pageSize)
-                  setPage(1)
-                }
-              }}
-              pageSizeOptions={[10, 20, 50]}
-              sx={{
-                border: 'none',
-                '& .MuiDataGrid-columnHeaders': {
-                  bgcolor: alpha('#667eea', 0.06),
-                  borderBottom: '1px solid',
-                  borderBottomColor: alpha('#000', 0.06),
-                },
-                '& .MuiDataGrid-row:hover': { bgcolor: alpha('#2196F3', 0.04), cursor: 'pointer' },
-              }}
-              localeText={{ noRowsLabel: 'No applications match your filters.' }}
-            />
-          </Box>
+          <div className="relative min-h-[360px] w-full overflow-x-auto">
+            {loading && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            )}
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>City</TableHead>
+                  <TableHead>Services</TableHead>
+                  <TableHead className="text-right">Exp (y)</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Applied</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {applications.length === 0 && !loading ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="h-24 text-center text-sm text-muted-foreground">
+                      No applications match your filters.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  applications.map((row) => (
+                    <TableRow
+                      key={row._id}
+                      className="cursor-pointer"
+                      onClick={() => handleRowClick(row)}
+                    >
+                      <TableCell className="font-mono text-xs">{row.applicationId}</TableCell>
+                      <TableCell className="max-w-[180px] truncate font-medium" title={row.fullName}>
+                        {row.fullName}
+                      </TableCell>
+                      <TableCell>{row.phone}</TableCell>
+                      <TableCell>{row.city}</TableCell>
+                      <TableCell className="max-w-[200px] truncate" title={row.servicesInterested?.join(', ')}>
+                        {row.servicesInterested?.length ? row.servicesInterested.join(', ') : '—'}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">{row.experienceYears ?? '—'}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={cn('font-semibold', statusClass[row.status] ?? 'border-border')}
+                        >
+                          {row.status ?? '—'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-sm">{formatDate(row.createdAt)}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+            {total > 0 && (
+              <div className="mt-2">
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  totalItems={total}
+                  itemsPerPage={pageSize}
+                  onPageChange={setPage}
+                  onItemsPerPageChange={(n) => {
+                    setPageSize(n)
+                    setPage(1)
+                  }}
+                />
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
-      <Drawer
-        anchor="right"
-        open={detailOpen}
-        onClose={handleCloseDetail}
-        PaperProps={{ sx: { width: { xs: '100%', sm: 420 } } }}
-      >
-        <Box sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6">Application details</Typography>
-            <IconButton onClick={handleCloseDetail} size="small">
-              <CloseIcon />
-            </IconButton>
-          </Box>
-          <Divider sx={{ mb: 2 }} />
-          {selectedApp && (
-            <>
-              <Box sx={{ flex: 1, overflow: 'auto' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <PersonIcon fontSize="small" color="action" />
-                  <Typography variant="body2" color="text.secondary">Name</Typography>
-                </Box>
-                <Typography variant="body1" sx={{ mb: 2 }}>{selectedApp.fullName}</Typography>
+      {snackbar.open && (
+        <div
+          className={cn(
+            'fixed bottom-4 right-4 z-50 max-w-sm rounded-md border px-3 py-2 text-sm shadow-md',
+            snackbar.severity === 'error'
+              ? 'border-destructive/30 bg-destructive/10 text-destructive'
+              : 'border-border bg-card',
+          )}
+        >
+          {snackbar.message}
+        </div>
+      )}
 
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <PhoneIcon fontSize="small" color="action" />
-                  <Typography variant="body2" color="text.secondary">Phone</Typography>
-                </Box>
-                <Typography variant="body1" sx={{ mb: 2 }}>{selectedApp.phone}</Typography>
+      {detailOpen && (
+        <div
+          className="fixed inset-0 z-40 flex justify-end"
+          role="dialog"
+          aria-modal="true"
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/40"
+            aria-label="Close panel"
+            onClick={handleCloseDetail}
+          />
+          <div className="relative z-50 flex h-full w-full max-w-md flex-col border-l bg-background shadow-lg sm:max-w-md">
+            <div className="flex items-center justify-between border-b p-3">
+              <h2 className="text-base font-semibold">Application details</h2>
+              <Button type="button" variant="ghost" size="icon" onClick={handleCloseDetail} aria-label="Close">
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <Separator />
+            {selectedApp && (
+              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-3">
+                <div className="mb-1 flex items-center gap-1.5 text-muted-foreground">
+                  <User className="h-4 w-4" />
+                  <span className="text-xs">Name</span>
+                </div>
+                <p className="mb-3 text-sm font-medium">{selectedApp.fullName}</p>
+
+                <div className="mb-1 flex items-center gap-1.5 text-muted-foreground">
+                  <Phone className="h-4 w-4" />
+                  <span className="text-xs">Phone</span>
+                </div>
+                <p className="mb-3 text-sm">{selectedApp.phone}</p>
 
                 {selectedApp.email && (
                   <>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Email</Typography>
-                    <Typography variant="body1" sx={{ mb: 2 }}>{selectedApp.email}</Typography>
+                    <p className="mb-0.5 text-xs text-muted-foreground">Email</p>
+                    <p className="mb-3 text-sm">{selectedApp.email}</p>
                   </>
                 )}
 
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <LocationIcon fontSize="small" color="action" />
-                  <Typography variant="body2" color="text.secondary">City</Typography>
-                </Box>
-                <Typography variant="body1" sx={{ mb: 2 }}>{selectedApp.city}</Typography>
-                {selectedApp.state && <Typography variant="body2" sx={{ mb: 2 }}>State: {selectedApp.state}</Typography>}
+                <div className="mb-1 flex items-center gap-1.5 text-muted-foreground">
+                  <MapPin className="h-4 w-4" />
+                  <span className="text-xs">City</span>
+                </div>
+                <p className="mb-2 text-sm">{selectedApp.city}</p>
+                {selectedApp.state && <p className="mb-3 text-sm text-muted-foreground">State: {selectedApp.state}</p>}
 
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <WorkIcon fontSize="small" color="action" />
-                  <Typography variant="body2" color="text.secondary">Services</Typography>
-                </Box>
-                <Typography variant="body1" sx={{ mb: 2 }}>
+                <div className="mb-1 flex items-center gap-1.5 text-muted-foreground">
+                  <Briefcase className="h-4 w-4" />
+                  <span className="text-xs">Services</span>
+                </div>
+                <p className="mb-3 text-sm">
                   {selectedApp.servicesInterested?.length ? selectedApp.servicesInterested.join(', ') : '—'}
-                </Typography>
+                </p>
 
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Experience (years)</Typography>
-                <Typography variant="body1" sx={{ mb: 2 }}>{selectedApp.experienceYears ?? '—'}</Typography>
+                <p className="mb-0.5 text-xs text-muted-foreground">Experience (years)</p>
+                <p className="mb-3 text-sm">{selectedApp.experienceYears ?? '—'}</p>
 
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <TimeIcon fontSize="small" color="action" />
-                  <Typography variant="body2" color="text.secondary">Applied</Typography>
-                </Box>
-                <Typography variant="body1" sx={{ mb: 2 }}>{formatDate(selectedApp.createdAt)}</Typography>
+                <div className="mb-1 flex items-center gap-1.5 text-muted-foreground">
+                  <Clock className="h-4 w-4" />
+                  <span className="text-xs">Applied</span>
+                </div>
+                <p className="mb-3 text-sm">{formatDate(selectedApp.createdAt)}</p>
 
                 {selectedApp.message && (
                   <>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Message</Typography>
-                    <Typography variant="body2" sx={{ mb: 2 }}>{selectedApp.message}</Typography>
+                    <p className="mb-0.5 text-xs text-muted-foreground">Message</p>
+                    <p className="mb-3 text-sm">{selectedApp.message}</p>
                   </>
                 )}
 
-                <Divider sx={{ my: 2 }} />
-                <Typography variant="subtitle2" sx={{ mb: 1 }}>Update status</Typography>
-                <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-                  <InputLabel>Status</InputLabel>
+                <Separator className="my-2" />
+                <h3 className="mb-2 text-sm font-semibold">Update status</h3>
+                <div className="mb-3">
+                  <Label className="text-xs">Status</Label>
                   <Select
-                    value={statusValue}
-                    label="Status"
-                    onChange={(e) => setStatusValue(e.target.value as ProfessionalApplicationStatus)}
+                    value={statusValue || undefined}
+                    onValueChange={(v) => setStatusValue(v as ProfessionalApplicationStatus)}
                   >
-                    {STATUS_OPTIONS.filter((o) => o.value !== 'all').map((o) => (
-                      <MenuItem key={o.value} value={o.value}>
-                        {o.label}
-                      </MenuItem>
-                    ))}
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUS_OPTIONS.filter((o) => o.value !== 'all').map((o) => (
+                        <SelectItem key={o.value} value={o.value}>
+                          {o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
-                </FormControl>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <NotesIcon fontSize="small" color="action" />
-                  <Typography variant="body2" color="text.secondary">Admin notes</Typography>
-                </Box>
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={3}
+                </div>
+                <div className="mb-1 flex items-center gap-1.5 text-muted-foreground">
+                  <StickyNote className="h-4 w-4" />
+                  <span className="text-xs">Admin notes</span>
+                </div>
+                <Textarea
+                  className="mb-3 min-h-[80px] text-sm"
                   value={adminNotes}
                   onChange={(e) => setAdminNotes(e.target.value)}
                   placeholder="Internal notes..."
-                  size="small"
-                  sx={{ mb: 2 }}
                 />
                 <Button
-                  fullWidth
-                  variant="contained"
+                  className="w-full"
                   onClick={handleUpdateStatus}
                   disabled={detailLoading}
-                  startIcon={detailLoading ? <CircularProgress size={16} color="inherit" /> : null}
                 >
+                  {detailLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {detailLoading ? 'Saving...' : 'Save status & notes'}
                 </Button>
-              </Box>
-            </>
-          )}
-        </Box>
-      </Drawer>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar((s) => ({ ...s, open: false }))}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   )
 }

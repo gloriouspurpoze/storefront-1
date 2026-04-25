@@ -1,27 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  List,
-  ListItem,
-  ListItemText,
-  Chip,
-  Stack,
-  CircularProgress,
-  Alert,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
-import {
-  TrendingUp as PipelineIcon,
-  AccountBalance as WeightedIcon,
-  Handshake as DealsIcon,
-  EmojiEvents as WonIcon,
-  PersonSearch as LeadsIcon,
-  AssignmentLate as OverdueIcon,
-} from '@mui/icons-material'
+  AlarmClock,
+  Handshake,
+  Landmark,
+  Loader2,
+  TrendingUp,
+  Trophy,
+  UserSearch,
+} from 'lucide-react'
 import {
   ResponsiveContainer,
   BarChart,
@@ -36,6 +22,10 @@ import { CrmSubnav } from '../../components/crm/CrmSubnav'
 import { crmService } from '../../services/api/crm.service'
 import { usePermissions } from '../../hooks/usePermissions'
 import type { CrmActivity, CrmDealStage, CrmMetrics } from '../../types/crm.types'
+import { formatMoneyAmount, APP_CURRENCY } from '../../lib/utils'
+import { Card, CardContent } from '../../components/ui/card'
+import { Button } from '../../components/ui/button'
+import { Badge } from '../../components/ui/badge'
 
 const STAGE_LABELS: Record<CrmDealStage, string> = {
   lead: 'Lead',
@@ -61,14 +51,6 @@ const EMPTY_METRICS: CrmMetrics = {
     won: 0,
     lost: 0,
   },
-}
-
-function formatMoney(amount: number, currency = 'GBP') {
-  try {
-    return new Intl.NumberFormat('en-GB', { style: 'currency', currency }).format(amount)
-  } catch {
-    return `${currency} ${amount.toFixed(0)}`
-  }
 }
 
 export function CrmDashboard() {
@@ -117,14 +99,15 @@ export function CrmDashboard() {
   }, [metrics])
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }}>
+    <div className="p-4 md:p-6">
       <PageHeader
         title="CRM"
         subtitle="Pipeline, accounts, and activities — use local demo data or connect fixer-backend (REACT_APP_CRM_USE_API)."
         action={
           canManage ? (
             <Button
-              variant="outlined"
+              variant="outline"
+              size="sm"
               onClick={async () => {
                 await crmService.resetDemoData()
                 setTick((x) => x + 1)
@@ -138,167 +121,121 @@ export function CrmDashboard() {
       <CrmSubnav />
 
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-          <CircularProgress />
-        </Box>
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-label="Loading" />
+        </div>
       ) : loadError ? (
-        <Alert
-          severity="error"
-          action={
-            <Button color="inherit" size="small" onClick={() => setTick((x) => x + 1)}>
-              Retry
-            </Button>
-          }
+        <div
+          role="alert"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive"
         >
-          {loadError}
-        </Alert>
+          <span>{loadError}</span>
+          <Button type="button" variant="outline" size="sm" className="shrink-0 border-destructive/50" onClick={() => setTick((x) => x + 1)}>
+            Retry
+          </Button>
+        </div>
       ) : (
         <>
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={4}>
-          <Card variant="outlined" sx={{ height: '100%' }}>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                <PipelineIcon color="primary" />
-                <Typography color="text.secondary" variant="body2">
-                  Open pipeline
-                </Typography>
-              </Stack>
-              <Typography variant="h5" fontWeight={700}>
-                {formatMoney(metrics.pipelineValue)}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <Card variant="outlined" sx={{ height: '100%' }}>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                <WeightedIcon color="action" />
-                <Typography color="text.secondary" variant="body2">
-                  Weighted pipeline
-                </Typography>
-              </Stack>
-              <Typography variant="h5" fontWeight={700}>
-                {formatMoney(metrics.weightedPipeline)}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <Card variant="outlined" sx={{ height: '100%' }}>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                <DealsIcon color="action" />
-                <Typography color="text.secondary" variant="body2">
-                  Open deals
-                </Typography>
-              </Stack>
-              <Typography variant="h5" fontWeight={700}>
-                {metrics.openDeals}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <Card variant="outlined" sx={{ height: '100%' }}>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                <WonIcon sx={{ color: 'success.main' }} />
-                <Typography color="text.secondary" variant="body2">
-                  Won (this month)
-                </Typography>
-              </Stack>
-              <Typography variant="h5" fontWeight={700}>
-                {metrics.wonThisMonth}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <Card variant="outlined" sx={{ height: '100%' }}>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                <LeadsIcon color="action" />
-                <Typography color="text.secondary" variant="body2">
-                  Active funnel contacts
-                </Typography>
-              </Stack>
-              <Typography variant="h5" fontWeight={700}>
-                {metrics.activeLeads}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <Card variant="outlined" sx={{ height: '100%' }}>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                <OverdueIcon color="warning" />
-                <Typography color="text.secondary" variant="body2">
-                  Overdue tasks
-                </Typography>
-              </Stack>
-              <Typography variant="h5" fontWeight={700}>
-                {metrics.overdueTasks}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="mb-1 flex items-center gap-2 text-muted-foreground">
+                  <TrendingUp className="h-4 w-4 text-primary" aria-hidden />
+                  <span className="text-sm">Open pipeline</span>
+                </div>
+                <p className="text-2xl font-bold tracking-tight">{formatMoneyAmount(metrics.pipelineValue, APP_CURRENCY)}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="mb-1 flex items-center gap-2 text-muted-foreground">
+                  <Landmark className="h-4 w-4" aria-hidden />
+                  <span className="text-sm">Weighted pipeline</span>
+                </div>
+                <p className="text-2xl font-bold tracking-tight">{formatMoneyAmount(metrics.weightedPipeline, APP_CURRENCY)}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="mb-1 flex items-center gap-2 text-muted-foreground">
+                  <Handshake className="h-4 w-4" aria-hidden />
+                  <span className="text-sm">Open deals</span>
+                </div>
+                <p className="text-2xl font-bold tracking-tight">{metrics.openDeals}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="mb-1 flex items-center gap-2 text-muted-foreground">
+                  <Trophy className="h-4 w-4 text-emerald-600" aria-hidden />
+                  <span className="text-sm">Won (this month)</span>
+                </div>
+                <p className="text-2xl font-bold tracking-tight">{metrics.wonThisMonth}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="mb-1 flex items-center gap-2 text-muted-foreground">
+                  <UserSearch className="h-4 w-4" aria-hidden />
+                  <span className="text-sm">Active funnel contacts</span>
+                </div>
+                <p className="text-2xl font-bold tracking-tight">{metrics.activeLeads}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="mb-1 flex items-center gap-2 text-muted-foreground">
+                  <AlarmClock className="h-4 w-4 text-amber-600" aria-hidden />
+                  <span className="text-sm">Overdue tasks</span>
+                </div>
+                <p className="text-2xl font-bold tracking-tight">{metrics.overdueTasks}</p>
+              </CardContent>
+            </Card>
+          </div>
 
-      <Grid container spacing={2}>
-        <Grid item xs={12} lg={7}>
-          <Card variant="outlined">
-            <CardContent>
-              <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
-                Deals by stage
-              </Typography>
-              <Box sx={{ width: '100%', height: 320 }}>
-                <ResponsiveContainer>
-                  <BarChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.4} />
-                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                    <Tooltip />
-                    <Bar dataKey="deals" fill="#2563eb" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} lg={5}>
-          <Card variant="outlined" sx={{ height: '100%' }}>
-            <CardContent>
-              <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>
-                Recent activity
-              </Typography>
-              <List dense disablePadding>
-                {recent.map((a) => (
-                  <ListItem key={a.id} disableGutters sx={{ py: 0.75 }}>
-                    <ListItemText
-                      primary={a.subject}
-                      secondary={
-                        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-                          <Chip size="small" label={a.type} variant="outlined" />
-                          <Chip
-                            size="small"
-                            label={a.status}
-                            color={a.status === 'done' ? 'success' : a.status === 'open' ? 'primary' : 'default'}
-                          />
-                        </Stack>
-                      }
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+            <Card className="lg:col-span-7">
+              <CardContent className="pt-6">
+                <h2 className="mb-4 text-lg font-semibold">Deals by stage</h2>
+                <div className="h-80 w-full min-h-[240px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" opacity={0.4} />
+                      <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                      <Tooltip />
+                      <Bar dataKey="deals" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="lg:col-span-5">
+              <CardContent className="pt-6">
+                <h2 className="mb-2 text-lg font-semibold">Recent activity</h2>
+                <ul className="space-y-3 text-sm">
+                  {recent.map((a) => (
+                    <li key={a.id} className="border-b border-border pb-3 last:border-0 last:pb-0">
+                      <p className="font-medium leading-snug">{a.subject}</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        <Badge variant="outline" className="text-xs font-normal">
+                          {a.type}
+                        </Badge>
+                        <Badge
+                          variant={a.status === 'done' ? 'success' : a.status === 'open' ? 'default' : 'secondary'}
+                          className="text-xs font-normal capitalize"
+                        >
+                          {a.status}
+                        </Badge>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
         </>
       )}
-    </Box>
+    </div>
   )
 }

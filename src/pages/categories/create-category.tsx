@@ -3,6 +3,7 @@ import {
   Box,
   Container,
   Typography,
+  Alert,
   Button,
   TextField,
   FormControl,
@@ -46,8 +47,14 @@ export function CreateCategory() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const location = useLocation()
-  const { id } = useParams<{ id: string }>()
-  
+  const { scope: pathScope, id } = useParams<{ scope?: string; id: string }>()
+
+  const listScope =
+    pathScope === 'products' || pathScope === 'services' ? pathScope : null
+  const backPath = listScope ? `/categories/${listScope}` : '/categories'
+  const catalogLabel =
+    listScope === 'products' ? 'product catalog' : listScope === 'services' ? 'service catalog' : 'catalogs'
+
   const [loading, setLoading] = useState(false)
   const [loadingData, setLoadingData] = useState(false)
   const [formData, setFormData] = useState<CategoryFormData>({
@@ -63,6 +70,15 @@ export function CreateCategory() {
   const isEditMode = location.pathname.includes('/edit/')
   const isViewMode = location.pathname.includes('/view/')
   const isCreateMode = !isEditMode && !isViewMode
+
+  // Default type when creating from a scoped URL (store vs service)
+  useEffect(() => {
+    if (!isCreateMode || !listScope) return
+    setFormData((prev) => ({
+      ...prev,
+      categoryType: listScope === 'products' ? 'product' : 'service',
+    }))
+  }, [isCreateMode, listScope])
 
   useEffect(() => {
     if ((isEditMode || isViewMode) && id) {
@@ -157,8 +173,7 @@ export function CreateCategory() {
           duration: 4000,
         }))
         
-        // Navigate back to categories list
-        navigate('/categories')
+        navigate(backPath)
       }
     } catch (error) {
       console.error(`Error ${isEditMode ? 'updating' : 'creating'} category:`, error)
@@ -186,16 +201,32 @@ export function CreateCategory() {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <IconButton 
               sx={{ color: 'white' }}
-              onClick={() => navigate('/categories')}
+              onClick={() => navigate(backPath)}
             >
               <ArrowBackIcon />
             </IconButton>
             <Box sx={{ flex: 1 }}>
               <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                {isViewMode ? 'View Category' : isEditMode ? 'Edit Category' : 'Create New Category'}
+                {isViewMode
+                  ? 'View category'
+                  : isEditMode
+                    ? 'Edit category'
+                    : listScope === 'products'
+                      ? 'New product category'
+                      : listScope === 'services'
+                        ? 'New service category'
+                        : 'New category'}
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                {isViewMode ? 'Category details and information' : isEditMode ? 'Update category information' : 'Add a new category with image for better organization'}
+                {listScope
+                  ? (isViewMode || isEditMode
+                    ? `Changes apply to the ${catalogLabel} list.`
+                    : `This category is created under the ${catalogLabel} screen. You can set whether it is product-only, service-only, or both.`)
+                  : isViewMode
+                    ? 'Category details and information'
+                    : isEditMode
+                      ? 'Update category information'
+                      : 'Add a category to organize the catalog'}
               </Typography>
             </Box>
             <CategoryIcon sx={{ fontSize: 48, opacity: 0.2 }} />
@@ -213,6 +244,13 @@ export function CreateCategory() {
             <CardContent sx={{ p: 4 }}>
               <Box component="form" onSubmit={handleSubmit}>
                 <Stack spacing={3}>
+                {listScope && !isViewMode && (
+                  <Alert severity="info" variant="outlined">
+                    {listScope === 'products'
+                      ? 'You are on the product categories flow. “Both” is available if a category should also be used for services.'
+                      : 'You are on the service categories flow. “Both” is available if a category should also be used in the product store.'}
+                  </Alert>
+                )}
                 {/* Basic Information */}
                 <Box>
                   <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main' }}>
@@ -244,16 +282,30 @@ export function CreateCategory() {
                     />
 
                     <FormControl fullWidth required>
-                      <InputLabel>Category Type</InputLabel>
+                      <InputLabel>Applies to</InputLabel>
                       <Select
                         value={formData.categoryType}
-                        onChange={(e) => setFormData({ ...formData, categoryType: e.target.value as any })}
-                        label="Category Type"
+                        onChange={(e) => setFormData({ ...formData, categoryType: e.target.value as 'service' | 'product' | 'both' })}
+                        label="Applies to"
                         disabled={isViewMode}
                       >
-                        <MenuItem value="product">Product</MenuItem>
-                        <MenuItem value="service">Service</MenuItem>
-                        <MenuItem value="both">Both (Product & Service)</MenuItem>
+                        {!listScope ? (
+                          <>
+                            <MenuItem value="product">Store products only</MenuItem>
+                            <MenuItem value="service">Services only</MenuItem>
+                            <MenuItem value="both">Both (products & services)</MenuItem>
+                          </>
+                        ) : listScope === 'products' ? (
+                          <>
+                            <MenuItem value="product">Store products only</MenuItem>
+                            <MenuItem value="both">Both (also show under services)</MenuItem>
+                          </>
+                        ) : (
+                          <>
+                            <MenuItem value="service">Services only</MenuItem>
+                            <MenuItem value="both">Both (also show in the product store)</MenuItem>
+                          </>
+                        )}
                       </Select>
                     </FormControl>
                   </Stack>
@@ -323,7 +375,7 @@ export function CreateCategory() {
                 <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', pt: 2 }}>
                   <Button
                     variant="outlined"
-                    onClick={() => navigate('/categories')}
+                    onClick={() => navigate(backPath)}
                     disabled={loading}
                   >
                     {isViewMode ? 'Back' : 'Cancel'}

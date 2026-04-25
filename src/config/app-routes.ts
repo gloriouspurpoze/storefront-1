@@ -36,7 +36,9 @@ export const QUICK_NAV_ITEMS: QuickNavItem[] = [
   { label: 'Activities', path: '/crm/activities', group: 'CRM' },
   { label: 'CRM settings', path: '/crm/settings', group: 'CRM' },
 
-  { label: 'Categories', path: '/categories', group: 'Catalog' },
+  { label: 'Category management', path: '/categories', group: 'Catalog' },
+  { label: 'Product categories', path: '/categories/products', group: 'Catalog' },
+  { label: 'Service categories', path: '/categories/services', group: 'Catalog' },
   { label: 'Platform services', path: '/platform-services', group: 'Catalog' },
   { label: 'Marketplace', path: '/marketplace', group: 'Catalog' },
   { label: 'Professionals', path: '/professionals', group: 'Catalog' },
@@ -54,6 +56,7 @@ export const QUICK_NAV_ITEMS: QuickNavItem[] = [
   { label: 'Bookings', path: '/bookings', group: 'Operations' },
   { label: 'Payments', path: '/payments', group: 'Operations' },
   { label: 'Invoices', path: '/invoices', group: 'Operations' },
+  { label: 'Create invoice', path: '/invoices/create', group: 'Operations', keywords: 'manual pdf gst' },
   { label: 'Earnings & payouts', path: '/payouts', group: 'Operations' },
   { label: 'Chat', path: '/chat', group: 'Operations' },
 
@@ -114,6 +117,9 @@ const SEGMENT_TITLE_RULES: { test: RegExp; title: string }[] = [
   { test: /^\/products\/edit\/[^/]+$/, title: 'Edit product' },
   { test: /^\/products\/edit$/, title: 'Edit product' },
   { test: /^\/products\/view\/[^/]+$/, title: 'View product' },
+  { test: /^\/categories\/(products|services)\/create$/, title: 'Create category' },
+  { test: /^\/categories\/(products|services)\/edit\/[^/]+$/, title: 'Edit category' },
+  { test: /^\/categories\/(products|services)\/view\/[^/]+$/, title: 'View category' },
   { test: /^\/categories\/create$/, title: 'Create category' },
   { test: /^\/categories\/edit\/[^/]+$/, title: 'Edit category' },
   { test: /^\/categories\/edit$/, title: 'Edit category' },

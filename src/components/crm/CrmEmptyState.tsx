@@ -1,6 +1,6 @@
 import React from 'react'
-import { Box, Button, Typography } from '@mui/material'
-import { Inbox as InboxIcon } from '@mui/icons-material'
+import { Inbox } from 'lucide-react'
+import { Button } from '../ui/button'
 
 type Props = {
   title: string
@@ -11,32 +11,17 @@ type Props = {
 
 export function CrmEmptyState({ title, description, actionLabel, onAction }: Props) {
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        py: 6,
-        px: 2,
-        textAlign: 'center',
-        minHeight: 280,
-      }}
-    >
-      <InboxIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
-      <Typography variant="h6" color="text.secondary" gutterBottom>
-        {title}
-      </Typography>
+    <div className="flex min-h-[280px] flex-col items-center justify-center px-2 py-12 text-center">
+      <Inbox className="mb-2 h-12 w-12 text-muted-foreground" aria-hidden />
+      <h2 className="mb-2 text-lg font-semibold text-muted-foreground">{title}</h2>
       {description ? (
-        <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 420, mb: 2 }}>
-          {description}
-        </Typography>
+        <p className="mb-2 max-w-[420px] text-sm text-muted-foreground">{description}</p>
       ) : null}
       {actionLabel && onAction ? (
-        <Button variant="contained" onClick={onAction}>
+        <Button type="button" onClick={onAction}>
           {actionLabel}
         </Button>
       ) : null}
-    </Box>
+    </div>
   )
 }

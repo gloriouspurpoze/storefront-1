@@ -68,6 +68,7 @@ import { PageHeader } from '../../components/common/PageHeader'
 import { StandardTable, type StandardTableColumn } from '../../components/common'
 import { InvoicesService } from '../../services/api/invoices.service'
 import type { Invoice } from '../../services/api/invoices.service'
+import { appToast } from '../../lib/appToast'
 
 export function Invoices() {
   const navigate = useNavigate()
@@ -87,6 +88,11 @@ export function Invoices() {
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false)
   const [bookingIdForGenerate, setBookingIdForGenerate] = useState('')
   const [generateSubmitting, setGenerateSubmitting] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [bulkDownloading, setBulkDownloading] = useState(false)
+  const [bulkBookingsOpen, setBulkBookingsOpen] = useState(false)
+  const [bulkBookingsText, setBulkBookingsText] = useState('')
+  const [bulkBookingsRunning, setBulkBookingsRunning] = useState(false)
 
   // Statistics
   const [stats, setStats] = useState({
@@ -220,10 +226,81 @@ export function Invoices() {
     
     handleMenuClose()
     try {
-      await InvoicesService.downloadInvoicePDF(selectedInvoice._id)
+      const r = await InvoicesService.downloadInvoicePDF(
+        selectedInvoice._id,
+        (selectedInvoice as any).invoiceNumber
+      )
+      if (!r?.success) {
+        appToast((r as any)?.error || 'Download failed', 'error')
+      } else {
+        appToast('Invoice downloaded', 'success')
+      }
     } catch (error: any) {
       console.error('Failed to download invoice:', error)
+      appToast(error?.message || 'Download failed', 'error')
     }
+  }
+
+  const handleDownloadSelectedPdfs = async () => {
+    if (selectedIds.length === 0) return
+    setBulkDownloading(true)
+    try {
+      const byId = new Map(filteredInvoices.map((i) => [i._id, i]))
+      const entries = selectedIds
+        .map((id) => {
+          const inv = byId.get(id)
+          return inv
+            ? { id, fileNameBase: (inv as any).invoiceNumber || id }
+            : { id, fileNameBase: id }
+        })
+      const r = await InvoicesService.downloadInvoicePDFsBatch(entries, { delayMs: 500 })
+      if (r.fail === 0) {
+        appToast(`Downloaded ${r.ok} PDF(s).`, 'success')
+      } else {
+        appToast(
+          `Downloaded ${r.ok}, failed ${r.fail}. ${r.errors.slice(0, 3).join('; ')}`,
+          r.ok > 0 ? 'warning' : 'error'
+        )
+      }
+    } catch (e: any) {
+      appToast(e?.message || 'Batch download failed', 'error')
+    } finally {
+      setBulkDownloading(false)
+    }
+  }
+
+  const handleBulkGenerateFromBookings = async () => {
+    const idRe = /^[a-f0-9]{24}$/i
+    const raw = bulkBookingsText
+      .split(/[\r\n,;\s]+/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+    const unique = Array.from(new Set(raw)).filter((id) => idRe.test(id))
+    if (unique.length === 0) {
+      appToast('Add at least one valid 24-character booking ID (one per line).', 'warning')
+      return
+    }
+    setBulkBookingsRunning(true)
+    let ok = 0
+    let fail = 0
+    for (const bookingId of unique) {
+      try {
+        const res = await InvoicesService.generateInvoiceForBooking(bookingId, {
+          showSuccessToast: false,
+          showLoading: false,
+          loadingMessage: '',
+        })
+        if (res?.success) ok++
+        else fail++
+      } catch {
+        fail++
+      }
+    }
+    setBulkBookingsRunning(false)
+    setBulkBookingsOpen(false)
+    setBulkBookingsText('')
+    await loadInvoices()
+    appToast(`Bulk generate: ${ok} OK, ${fail} failed (${unique.length} booking IDs).`, fail ? 'warning' : 'success')
   }
 
   const handleEmailInvoice = async () => {
@@ -461,16 +538,30 @@ export function Invoices() {
         subtitle="Manage and track all billing documents"
         icon={<ReceiptIcon />}
         action={
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setGenerateDialogOpen(true)}
-            sx={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            }}
-          >
-            Generate from booking
-          </Button>
+          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" justifyContent="flex-end">
+            <Button
+              variant="outlined"
+              onClick={() => {
+                setSelectedIds([])
+                navigate('/invoices/create')
+              }}
+            >
+              Create manual invoice
+            </Button>
+            <Button variant="outlined" onClick={() => setBulkBookingsOpen(true)}>
+              Multiple from bookings
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setGenerateDialogOpen(true)}
+              sx={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              }}
+            >
+              One from booking
+            </Button>
+          </Stack>
         }
       />
 
@@ -594,6 +685,14 @@ export function Invoices() {
             </Button>
             <Button
               variant="outlined"
+              startIcon={<DownloadIcon />}
+              disabled={selectedIds.length === 0 || bulkDownloading}
+              onClick={handleDownloadSelectedPdfs}
+            >
+              {bulkDownloading ? 'Downloading…' : `Download PDFs (${selectedIds.length})`}
+            </Button>
+            <Button
+              variant="outlined"
               startIcon={<FilterIcon />}
             >
               Advanced Filters
@@ -626,6 +725,11 @@ export function Invoices() {
               data={filteredInvoices}
               getRowId={(row) => row._id ?? ''}
               loading={loading}
+              selectable
+              selectedIds={selectedIds}
+              onSelectionChange={setSelectedIds}
+              rowsPerPage={100}
+              rowsPerPageOptions={[25, 50, 100, 200, 500]}
               emptyMessage="No invoices found"
               emptyDescription={
                 searchQuery || activeTab !== 0
@@ -840,6 +944,38 @@ export function Invoices() {
             disabled={generateSubmitting || !bookingIdForGenerate.trim()}
           >
             {generateSubmitting ? 'Generating…' : 'Generate'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={bulkBookingsOpen}
+        onClose={() => !bulkBookingsRunning && setBulkBookingsOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Generate multiple invoices from bookings</DialogTitle>
+        <DialogContent>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Paste one booking Mongo ID per line (or separate with spaces/commas). The server runs the same
+            flow as &quot;One from booking&quot; for each ID. Skips invalid lines.
+          </Alert>
+          <TextField
+            fullWidth
+            multiline
+            minRows={8}
+            value={bulkBookingsText}
+            onChange={(e) => setBulkBookingsText(e.target.value)}
+            disabled={bulkBookingsRunning}
+            placeholder="507f1f77bcf86cd799439011&#10;507f191e810c19729de860ea"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setBulkBookingsOpen(false)} disabled={bulkBookingsRunning}>
+            Cancel
+          </Button>
+          <Button variant="contained" onClick={handleBulkGenerateFromBookings} disabled={bulkBookingsRunning}>
+            {bulkBookingsRunning ? 'Running…' : 'Generate all'}
           </Button>
         </DialogActions>
       </Dialog>

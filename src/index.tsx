@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { PersistGate } from 'redux-persist/integration/react';
-import { Box, CircularProgress, Typography } from '@mui/material';
+import { Loader2 } from 'lucide-react';
 import { persistor } from './store';
 import { ErrorBoundary } from './components/common';
 import './index.css';
@@ -13,10 +13,10 @@ const root = ReactDOM.createRoot(
 );
 
 const PersistGateLoading = (
-  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: 2 }}>
-    <CircularProgress size={48} />
-    <Typography variant="body2" color="text.secondary">Loading...</Typography>
-  </Box>
+  <div className="flex min-h-screen flex-col items-center justify-center gap-2 bg-background text-muted-foreground">
+    <Loader2 className="h-10 w-10 animate-spin text-primary" aria-hidden />
+    <p className="text-sm">Loading…</p>
+  </div>
 );
 
 root.render(

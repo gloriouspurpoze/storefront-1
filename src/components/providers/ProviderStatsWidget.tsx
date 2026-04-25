@@ -1,84 +1,56 @@
 import React, { useEffect, useState } from 'react'
-import {
-  Card,
-  CardContent,
-  Typography,
-  Box,
-  CircularProgress,
-  Alert,
-  Skeleton,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
-import {
-  People as PeopleIcon,
-  CheckCircle as VerifiedIcon,
-  Pending as PendingIcon,
-  Star as StarIcon,
-  Work as WorkIcon,
-  TrendingUp as TrendingUpIcon,
-} from '@mui/icons-material'
+import { Users, CheckCircle, Clock, Star } from 'lucide-react'
+import { Card, CardContent } from '../ui/card'
 import { ProvidersService, ProviderStats } from '../../services/api/providers.service'
+import { cn } from '../../lib/utils'
 
 interface ProviderStatsWidgetProps {
-  onRefresh?: number // timestamp to trigger refresh
+  onRefresh?: number
 }
 
 interface StatCardProps {
   title: string
   value: string | number
   icon: React.ReactNode
-  color: string
+  accentClass: string
+  iconBg: string
   subtitle?: string
 }
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, icon, color, subtitle }) => (
-  <Card sx={{ borderRadius: 2, height: '100%' }}>
-    <CardContent>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Box
-          sx={{
-            p: 1.5,
-            borderRadius: 2,
-            bgcolor: `${color}.100`,
-            color: `${color}.main`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+const StatCard: React.FC<StatCardProps> = ({ title, value, icon, accentClass, iconBg, subtitle }) => (
+  <Card className="h-full rounded-lg">
+    <CardContent className="pt-6">
+      <div className="flex items-center gap-3">
+        <div
+          className={cn('flex h-12 w-12 items-center justify-center rounded-lg', iconBg, accentClass)}
         >
           {icon}
-        </Box>
-        <Box sx={{ flex: 1 }}>
-          <Typography variant="h4" fontWeight="600" sx={{ mb: 0.5 }}>
-            {value}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {title}
-          </Typography>
-          {subtitle && (
-            <Typography variant="caption" color="text.secondary">
-              {subtitle}
-            </Typography>
-          )}
-        </Box>
-      </Box>
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-2xl font-semibold leading-tight">{value}</p>
+          <p className="text-sm text-muted-foreground">{title}</p>
+          {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+        </div>
+      </div>
     </CardContent>
   </Card>
 )
 
-const StatCardSkeleton: React.FC = () => (
-  <Card sx={{ borderRadius: 2, height: '100%' }}>
-    <CardContent>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Skeleton variant="rectangular" width={56} height={56} sx={{ borderRadius: 2 }} />
-        <Box sx={{ flex: 1 }}>
-          <Skeleton variant="text" width={80} height={40} />
-          <Skeleton variant="text" width={120} height={24} />
-        </Box>
-      </Box>
-    </CardContent>
-  </Card>
-)
+function StatCardSkeleton() {
+  return (
+    <Card className="h-full rounded-lg">
+      <CardContent className="pt-6">
+        <div className="flex animate-pulse items-center gap-3">
+          <div className="h-12 w-12 rounded-lg bg-muted" />
+          <div className="flex-1 space-y-2">
+            <div className="h-8 w-20 rounded bg-muted" />
+            <div className="h-4 w-28 rounded bg-muted" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
 
 export function ProviderStatsWidget({ onRefresh }: ProviderStatsWidgetProps) {
   const [loading, setLoading] = useState(true)
@@ -94,7 +66,7 @@ export function ProviderStatsWidget({ onRefresh }: ProviderStatsWidgetProps) {
   })
 
   useEffect(() => {
-    fetchStats()
+    void fetchStats()
   }, [onRefresh])
 
   const fetchStats = async () => {
@@ -103,7 +75,7 @@ export function ProviderStatsWidget({ onRefresh }: ProviderStatsWidgetProps) {
       setError(null)
 
       const response = await ProvidersService.getProviderStats()
-      
+
       if (response.data) {
         const d = response.data as ProviderStats
         setStats({
@@ -116,20 +88,24 @@ export function ProviderStatsWidget({ onRefresh }: ProviderStatsWidgetProps) {
           total_bookings: d.total_bookings ?? 0,
         })
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching provider stats:', err)
-      setError(err.message || 'Failed to fetch provider statistics')
-      
-      // Try fallback approach
+      setError((err as { message?: string }).message || 'Failed to fetch provider statistics')
+
       try {
         const response = await ProvidersService.getProviders({ limit: 100 })
-        
-        if (response.data?.providers || response.data?.serviceProviders) {
-          const allProviders = response.data?.providers || response.data?.serviceProviders || []
-          const verified = allProviders.filter(p => p.verification_status === 'verified').length
-          const pending = allProviders.filter(p => p.verification_status === 'pending').length
-          const rejected = allProviders.filter(p => p.verification_status === 'rejected').length
-          const avgRating = allProviders.reduce((sum, p) => sum + (p.rating || 0), 0) / allProviders.length || 0
+
+        const r = response.data as { providers?: unknown[]; serviceProviders?: unknown[] } | undefined
+        if (r?.providers || r?.serviceProviders) {
+          const allProviders = (r.providers || r.serviceProviders || []) as {
+            verification_status?: string
+            rating?: number
+          }[]
+          const verified = allProviders.filter((p) => p.verification_status === 'verified').length
+          const pending = allProviders.filter((p) => p.verification_status === 'pending').length
+          const rejected = allProviders.filter((p) => p.verification_status === 'rejected').length
+          const avgRating =
+            allProviders.reduce((sum, p) => sum + (p.rating || 0), 0) / (allProviders.length || 1) || 0
 
           setStats({
             total_providers: allProviders.length,
@@ -142,7 +118,7 @@ export function ProviderStatsWidget({ onRefresh }: ProviderStatsWidgetProps) {
           })
           setError(null)
         }
-      } catch (fallbackError: any) {
+      } catch (fallbackError: unknown) {
         console.error('Fallback also failed:', fallbackError)
       }
     } finally {
@@ -152,90 +128,73 @@ export function ProviderStatsWidget({ onRefresh }: ProviderStatsWidgetProps) {
 
   if (error) {
     return (
-      <Alert severity="warning" sx={{ mb: 3, borderRadius: 2 }}>
+      <div
+        className="mb-6 rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100"
+        role="status"
+      >
         {error}. Showing fallback data.
-      </Alert>
+      </div>
     )
   }
 
   if (loading) {
     return (
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCardSkeleton />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCardSkeleton />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCardSkeleton />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCardSkeleton />
-        </Grid>
-      </Grid>
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+        <StatCardSkeleton />
+        <StatCardSkeleton />
+        <StatCardSkeleton />
+        <StatCardSkeleton />
+      </div>
     )
   }
 
-  // Coerce statistics to numbers and guard against undefined/null to avoid runtime errors
   const totalProviders = Number(stats.total_providers || 0)
   const verifiedProviders = Number(stats.verified_providers || 0)
   const pendingProviders = Number(stats.pending_providers || 0)
 
-  const verificationRate = totalProviders > 0
-    ? Math.round((verifiedProviders / totalProviders) * 100)
-    : 0
+  const verificationRate = totalProviders > 0 ? Math.round((verifiedProviders / totalProviders) * 100) : 0
 
-  const pendingRate = totalProviders > 0
-    ? Math.round((pendingProviders / totalProviders) * 100)
-    : 0
+  const pendingRate = totalProviders > 0 ? Math.round((pendingProviders / totalProviders) * 100) : 0
 
-  const averageRatingRaw = stats.average_rating != null && !Number.isNaN(Number(stats.average_rating))
-    ? Number(stats.average_rating)
-    : null
+  const averageRatingRaw =
+    stats.average_rating != null && !Number.isNaN(Number(stats.average_rating))
+      ? Number(stats.average_rating)
+      : null
 
   return (
-    <Grid container spacing={3} sx={{ mb: 3 }}>
-      <Grid item xs={12} sm={6} md={3}>
-        <StatCard
-          title="Total Providers"
-          value={stats.total_providers}
-          icon={<PeopleIcon />}
-          color="primary"
-          subtitle="All registered providers"
-        />
-      </Grid>
-
-      <Grid item xs={12} sm={6} md={3}>
-        <StatCard
-          title="Verified Providers"
-          value={stats.verified_providers}
-          icon={<VerifiedIcon />}
-          color="success"
-          subtitle={`${verificationRate}% of total`}
-        />
-      </Grid>
-
-      <Grid item xs={12} sm={6} md={3}>
-        <StatCard
-          title="Pending Verification"
-          value={stats.pending_providers}
-          icon={<PendingIcon />}
-          color="warning"
-          subtitle={`${pendingRate}% awaiting review`}
-        />
-      </Grid>
-
-      <Grid item xs={12} sm={6} md={3}>
-        <StatCard
-          title="Average Rating"
-          value={averageRatingRaw !== null ? averageRatingRaw.toFixed(1) : '—'}
-          icon={<StarIcon />}
-          color="info"
-          subtitle="Provider rating"
-        />
-      </Grid>
-    </Grid>
+    <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+      <StatCard
+        title="Total Providers"
+        value={stats.total_providers}
+        icon={<Users className="h-6 w-6" />}
+        accentClass="text-blue-600"
+        iconBg="bg-blue-100 dark:bg-blue-950/50"
+        subtitle="All registered providers"
+      />
+      <StatCard
+        title="Verified Providers"
+        value={stats.verified_providers}
+        icon={<CheckCircle className="h-6 w-6" />}
+        accentClass="text-emerald-600"
+        iconBg="bg-emerald-100 dark:bg-emerald-950/50"
+        subtitle={`${verificationRate}% of total`}
+      />
+      <StatCard
+        title="Pending Verification"
+        value={stats.pending_providers}
+        icon={<Clock className="h-6 w-6" />}
+        accentClass="text-amber-600"
+        iconBg="bg-amber-100 dark:bg-amber-950/50"
+        subtitle={`${pendingRate}% awaiting review`}
+      />
+      <StatCard
+        title="Average Rating"
+        value={averageRatingRaw !== null ? averageRatingRaw.toFixed(1) : '—'}
+        icon={<Star className="h-6 w-6" />}
+        accentClass="text-sky-600"
+        iconBg="bg-sky-100 dark:bg-sky-950/50"
+        subtitle="Provider rating"
+      />
+    </div>
   )
 }
-

@@ -18,7 +18,6 @@ src/pages/
 │   ├── dashboard.tsx
 │   ├── smart-dashboard.tsx
 │   ├── analytics.tsx
-│   ├── admin-earnings-overview.tsx
 │   └── index.ts
 │
 ├── users/                   # User management
@@ -70,15 +69,20 @@ src/pages/
 │   ├── professional-bookings.tsx
 │   └── index.ts
 │
-├── orders/                  # Order management
+├── orders/                  # Product / e-commerce orders
 │   ├── orders.tsx
+│   └── index.ts
+│
+├── operations/              # Quotes & service requests (pre-order / dispatch)
 │   ├── quotes.tsx
 │   ├── service-requests.tsx
 │   └── index.ts
 │
-├── payments/                # Payment management
+├── payments/                # Payments, invoicing, earnings & payouts
 │   ├── payments.tsx
 │   ├── invoices.tsx
+│   ├── invoice-create.tsx
+│   ├── admin-earnings-overview.tsx
 │   └── index.ts
 │
 ├── communication/           # Messaging & notifications

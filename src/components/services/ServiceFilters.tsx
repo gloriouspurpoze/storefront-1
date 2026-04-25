@@ -1,23 +1,18 @@
 import React from 'react'
+import { Search, Filter, X } from 'lucide-react'
+import { useMediaQuery, muiMdUp } from '../../hooks/useMediaQuery'
+import { Input } from '../ui/input'
+import { Label } from '../ui/label'
+import { Button } from '../ui/button'
+import { Badge } from '../ui/badge'
 import {
-  Box,
-  TextField,
   Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Button,
-  IconButton,
-  useTheme,
-  useMediaQuery,
-  Stack,
-  Chip
-} from '@mui/material'
-import {
-  Search as SearchIcon,
-  FilterList as FilterIcon,
-  Clear as ClearIcon
-} from '@mui/icons-material'
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select'
+import { cn } from '../../lib/utils'
 
 interface ServiceFiltersProps {
   searchQuery: string
@@ -35,7 +30,7 @@ const statusOptions = [
   { value: 'all', label: 'All Status' },
   { value: 'active', label: 'Active' },
   { value: 'inactive', label: 'Inactive' },
-  { value: 'featured', label: 'Featured' }
+  { value: 'featured', label: 'Featured' },
 ]
 
 export const ServiceFilters: React.FC<ServiceFiltersProps> = ({
@@ -47,145 +42,135 @@ export const ServiceFilters: React.FC<ServiceFiltersProps> = ({
   onStatusChange,
   categories,
   onClearFilters,
-  onMoreFilters
+  onMoreFilters,
 }) => {
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
-
+  const isDesktop = useMediaQuery(muiMdUp)
   const hasActiveFilters = searchQuery || categoryFilter !== 'all' || statusFilter !== 'all'
 
   return (
-    <Box sx={{ mb: 3 }}>
-      <Stack 
-        direction={{ xs: 'column', md: 'row' }} 
-        spacing={2} 
-        alignItems={{ xs: 'stretch', md: 'center' }}
+    <div className="mb-6">
+      <div
+        className={cn(
+          'flex flex-col gap-3',
+          isDesktop && 'md:flex-row md:flex-wrap md:items-center',
+        )}
       >
-        {/* Search Field */}
-        <TextField
-          fullWidth={isMobile}
-          placeholder="Search services by name..."
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          InputProps={{
-            startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />,
-            endAdornment: searchQuery && (
-              <IconButton
-                size="small"
-                onClick={() => onSearchChange('')}
-                sx={{ mr: -1 }}
-              >
-                <ClearIcon fontSize="small" />
-              </IconButton>
-            )
-          }}
-          sx={{ 
-            minWidth: { xs: '100%', md: 300 },
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 2
-            }
-          }}
-        />
+        <div className={cn('relative min-w-0', isDesktop && 'md:min-w-[300px] md:max-w-md')}>
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="rounded-md pl-9 pr-9"
+            placeholder="Search services by name..."
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            aria-label="Search services"
+          />
+          {searchQuery ? (
+            <button
+              type="button"
+              onClick={() => onSearchChange('')}
+              className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-1.5 text-muted-foreground hover:bg-muted"
+              aria-label="Clear search"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
 
-        {/* Category Filter */}
-        <FormControl sx={{ minWidth: { xs: '100%', md: 180 } }}>
-          <InputLabel>Category</InputLabel>
-          <Select
-            value={categoryFilter}
-            onChange={(e) => onCategoryChange(e.target.value)}
-            label="Category"
-            sx={{ borderRadius: 2 }}
-          >
-            <MenuItem value="all">All Categories</MenuItem>
-            {categories.map((category) => (
-              <MenuItem key={category.id} value={category.id}>
-                {category.name}
-              </MenuItem>
-            ))}
+        <div className={cn('w-full', isDesktop && 'md:w-[180px]')}>
+          <Label htmlFor="svc-category" className="sr-only">
+            Category
+          </Label>
+          <Select value={categoryFilter} onValueChange={onCategoryChange}>
+            <SelectTrigger id="svc-category" className="rounded-md">
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.map((category) => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
-        </FormControl>
+        </div>
 
-        {/* Status Filter */}
-        <FormControl sx={{ minWidth: { xs: '100%', md: 150 } }}>
-          <InputLabel>Status</InputLabel>
-          <Select
-            value={statusFilter}
-            onChange={(e) => onStatusChange(e.target.value)}
-            label="Status"
-            sx={{ borderRadius: 2 }}
-          >
-            {statusOptions.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
-              </MenuItem>
-            ))}
+        <div className={cn('w-full', isDesktop && 'md:w-[150px]')}>
+          <Label htmlFor="svc-status" className="sr-only">
+            Status
+          </Label>
+          <Select value={statusFilter} onValueChange={onStatusChange}>
+            <SelectTrigger id="svc-status" className="rounded-md">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              {statusOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
-        </FormControl>
+        </div>
 
-        {/* Action Buttons */}
-        <Stack direction="row" spacing={1}>
-          <Button
-            variant="outlined"
-            startIcon={<FilterIcon />}
-            onClick={onMoreFilters}
-            sx={{ 
-              borderRadius: 2,
-              px: 2,
-              whiteSpace: 'nowrap'
-            }}
-          >
+        <div className="flex flex-row flex-wrap gap-2">
+          <Button type="button" variant="outline" className="rounded-md px-4" onClick={onMoreFilters}>
+            <Filter className="mr-1.5 h-4 w-4" />
             More Filter
           </Button>
-          
+
           {hasActiveFilters && (
-            <Button
-              variant="text"
-              startIcon={<ClearIcon />}
-              onClick={onClearFilters}
-              sx={{ 
-                borderRadius: 2,
-                px: 2,
-                whiteSpace: 'nowrap'
-              }}
-            >
+            <Button type="button" variant="ghost" className="rounded-md px-4" onClick={onClearFilters}>
+              <X className="mr-1.5 h-4 w-4" />
               Clear
             </Button>
           )}
-        </Stack>
-      </Stack>
+        </div>
+      </div>
 
-      {/* Active Filters Display */}
       {hasActiveFilters && (
-        <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+        <div className="mt-3 flex flex-wrap gap-2">
           {searchQuery && (
-            <Chip
-              label={`Search: "${searchQuery}"`}
-              onDelete={() => onSearchChange('')}
-              size="small"
-              color="primary"
-              variant="outlined"
-            />
+            <Badge variant="outline" className="gap-1">
+              Search: &quot;{searchQuery}&quot;
+              <button
+                type="button"
+                className="ml-1 rounded-sm hover:bg-muted"
+                onClick={() => onSearchChange('')}
+                aria-label="Remove search filter"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
           )}
           {categoryFilter !== 'all' && (
-            <Chip
-              label={`Category: ${categories.find(cat => cat.id === categoryFilter)?.name || categoryFilter}`}
-              onDelete={() => onCategoryChange('all')}
-              size="small"
-              color="secondary"
-              variant="outlined"
-            />
+            <Badge variant="secondary" className="gap-1">
+              Category: {categories.find((c) => c.id === categoryFilter)?.name || categoryFilter}
+              <button
+                type="button"
+                className="ml-1 rounded-sm hover:bg-muted"
+                onClick={() => onCategoryChange('all')}
+                aria-label="Remove category filter"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
           )}
           {statusFilter !== 'all' && (
-            <Chip
-              label={`Status: ${statusOptions.find(opt => opt.value === statusFilter)?.label}`}
-              onDelete={() => onStatusChange('all')}
-              size="small"
-              color="info"
-              variant="outlined"
-            />
+            <Badge variant="outline" className="gap-1">
+              Status: {statusOptions.find((o) => o.value === statusFilter)?.label}
+              <button
+                type="button"
+                className="ml-1 rounded-sm hover:bg-muted"
+                onClick={() => onStatusChange('all')}
+                aria-label="Remove status filter"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
           )}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   )
 }

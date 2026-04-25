@@ -1,30 +1,23 @@
 import React from 'react'
-import { Backdrop, CircularProgress, Box, Typography } from '@mui/material'
+import { Loader2 } from 'lucide-react'
 import { useAppSelector } from '../../store/hooks'
 
 export function LoadingProvider() {
   const { isLoading, loadingMessage } = useAppSelector((state) => state.ui)
 
+  if (!isLoading) {
+    return null
+  }
+
   return (
-    <Backdrop
-      sx={{ 
-        color: '#fff', 
-        zIndex: (theme) => theme.zIndex.drawer + 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)'
-      }}
-      open={isLoading}
+    <div
+      className="fixed inset-0 z-[150] flex flex-col items-center justify-center gap-3 bg-black/50 text-white"
+      role="alert"
+      aria-busy
+      aria-live="polite"
     >
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center',
-        gap: 2
-      }}>
-        <CircularProgress color="inherit" size={60} />
-        <Typography variant="h6" sx={{ color: 'white' }}>
-          {loadingMessage}
-        </Typography>
-      </Box>
-    </Backdrop>
+      <Loader2 className="h-14 w-14 animate-spin" aria-hidden />
+      <p className="text-center text-base font-medium">{loadingMessage}</p>
+    </div>
   )
 }

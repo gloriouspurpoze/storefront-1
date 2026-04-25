@@ -1,8 +1,9 @@
 import React from 'react'
-import { Box, Chip, Tooltip, Typography, alpha, useTheme } from '@mui/material'
-import { Business as BusinessIcon } from '@mui/icons-material'
+import { Building2 } from 'lucide-react'
 import { useAppSelector } from '../../store/hooks'
 import { SAAS_MODE } from '../../lib/saasEnv'
+import { Badge } from '../ui/badge'
+import { cn } from '../../lib/utils'
 
 function formatTenantLabel(
   tenantId: string | null,
@@ -14,11 +15,7 @@ function formatTenantLabel(
   }
   const primary = name?.trim() || slug?.trim() || (tenantId ? `Tenant ${tenantId.slice(0, 8)}…` : 'Organization')
   const hint =
-    tenantId && (name || slug)
-      ? tenantId
-      : tenantId && !name && !slug
-        ? tenantId
-        : null
+    tenantId && (name || slug) ? tenantId : tenantId && !name && !slug ? tenantId : null
   return { primary, hint }
 }
 
@@ -28,89 +25,58 @@ export function SaasTenantIndicator(props: {
   sidebarOpen?: boolean
 }) {
   const { variant, sidebarOpen = true } = props
-  const theme = useTheme()
   const tenant = useAppSelector((s) => s.tenant)
   const { tenantId, name, slug } = tenant ?? {}
 
   if (!SAAS_MODE) return null
 
   const { primary, hint } = formatTenantLabel(tenantId, name, slug)
+  const titleAttr = hint ? `Tenant id: ${hint}` : primary
 
   if (variant === 'header') {
     return (
-      <Tooltip title={hint ? `Tenant id: ${hint}` : primary}>
-        <Chip
-          icon={<BusinessIcon sx={{ fontSize: '1rem !important' }} />}
-          label={primary}
-          size="small"
-          variant="outlined"
-          sx={{
-            maxWidth: { xs: 140, sm: 220 },
-            borderColor: alpha(theme.palette.primary.main, 0.35),
-            '& .MuiChip-label': {
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            },
-          }}
-        />
-      </Tooltip>
+      <span title={titleAttr} className="inline-block max-w-[140px] sm:max-w-[220px]">
+        <Badge variant="outline" className="w-full max-w-full gap-1 border-primary/30 py-0.5 pl-1 pr-2 text-xs">
+          <Building2 className="h-3.5 w-3.5 shrink-0 text-primary" />
+          <span className="truncate font-normal">{primary}</span>
+        </Badge>
+      </span>
     )
   }
 
-  // sidebar
   const inner = (
-    <Box
-      sx={{
-        mx: 1.5,
-        mb: 1,
-        px: sidebarOpen ? 1.5 : 0,
-        py: 1,
-        borderRadius: 2,
-        border: `1px solid ${alpha(theme.palette.divider, 0.15)}`,
-        bgcolor: alpha(theme.palette.primary.main, 0.04),
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1,
-        justifyContent: sidebarOpen ? 'flex-start' : 'center',
-      }}
+    <div
+      className={cn(
+        'mb-1 flex items-center gap-1 rounded-md border border-border/40 bg-primary/[0.04] py-2',
+        sidebarOpen ? 'mx-1.5 px-2' : 'mx-1.5 justify-center px-0'
+      )}
     >
-      <BusinessIcon sx={{ fontSize: 20, color: 'primary.main', flexShrink: 0 }} />
+      <Building2 className="h-5 w-5 shrink-0 text-primary" />
       {sidebarOpen && (
-        <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Typography
-            variant="caption"
-            sx={{
-              display: 'block',
-              color: 'text.secondary',
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '0.04em',
-              fontSize: '0.65rem',
-            }}
+        <div className="min-w-0 flex-1 text-left">
+          <span
+            className="block text-[0.65rem] font-semibold uppercase tracking-wider text-muted-foreground"
           >
             Organization
-          </Typography>
-          <Typography
-            variant="body2"
-            sx={{ fontWeight: 600, lineHeight: 1.25, wordBreak: 'break-word' }}
-          >
+          </span>
+          <span className="line-clamp-2 break-words text-sm font-semibold leading-tight">
             {primary}
-          </Typography>
+          </span>
           {hint && hint !== primary && (
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontFamily: 'ui-monospace, monospace' }}>
+            <span className="mt-0.5 block max-w-full truncate font-mono text-[0.7rem] text-muted-foreground">
               {hint.length > 36 ? `${hint.slice(0, 8)}…${hint.slice(-6)}` : hint}
-            </Typography>
+            </span>
           )}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   )
 
   if (!sidebarOpen) {
     return (
-      <Tooltip title={`${primary}${hint ? ` — ${hint}` : ''}`} placement="right" arrow>
+      <div title={hint ? `${primary} — ${hint}` : primary} className="mx-1.5">
         {inner}
-      </Tooltip>
+      </div>
     )
   }
 

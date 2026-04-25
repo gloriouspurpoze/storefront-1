@@ -4,5 +4,5 @@
  */
 
 // Re-export from lib/utils for convenience
-export { formatCurrency, formatDate, getInitials, cn } from '../../lib/utils'
+export { formatCurrency, formatMoneyAmount, APP_CURRENCY, CURRENCY_SYMBOL, formatDate, getInitials, cn } from '../../lib/utils'
 

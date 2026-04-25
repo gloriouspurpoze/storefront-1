@@ -1,213 +1,210 @@
 import React from 'react'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  IconButton,
-  Box,
-  Typography,
-  Avatar,
-  Rating,
-  Tooltip,
-} from '@mui/material'
-import {
-  MoreVert as MoreVertIcon,
-  Business as BusinessIcon,
-  LocationOn as LocationIcon,
-  Phone as PhoneIcon,
-  Email as EmailIcon,
-  Star as StarIcon,
-  CheckCircle as VerifiedIcon,
-  Pending as PendingIcon,
-  Cancel as RejectedIcon,
-} from '@mui/icons-material'
+  MoreVertical,
+  Building2,
+  MapPin,
+  Star,
+  CheckCircle,
+  Clock,
+  XCircle,
+} from 'lucide-react'
 import { ServiceProvider } from '../../types'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
+import { Avatar, AvatarFallback } from '../ui/avatar'
+import { Badge } from '../ui/badge'
+import { Button } from '../ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu'
+import { Eye, Pencil, ShieldCheck, Trash2 } from 'lucide-react'
 
 interface ProviderTableProps {
   providers: ServiceProvider[]
   loading?: boolean
-  onMenuClick: (event: React.MouseEvent<HTMLElement>, provider: ServiceProvider) => void
+  onView: (provider: ServiceProvider) => void
+  onEdit: (provider: ServiceProvider) => void
+  onVerification: (provider: ServiceProvider) => void
+  onDelete: (provider: ServiceProvider) => void
 }
 
-export function ProviderTable({ providers, loading, onMenuClick }: ProviderTableProps) {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'verified':
-        return 'success'
-      case 'pending':
-        return 'warning'
-      case 'rejected':
-        return 'error'
-      default:
-        return 'default'
-    }
+function statusBadge(verification: string) {
+  const v = (verification || '').toLowerCase()
+  if (v === 'verified') {
+    return (
+      <Badge className="gap-1" variant="default">
+        <CheckCircle className="h-3.5 w-3.5" />
+        Verified
+      </Badge>
+    )
   }
-
-  const getStatusIcon = (status: string): React.ReactElement | undefined => {
-    switch (status) {
-      case 'verified':
-        return <VerifiedIcon fontSize="small" />
-      case 'pending':
-        return <PendingIcon fontSize="small" />
-      case 'rejected':
-        return <RejectedIcon fontSize="small" />
-      default:
-        return undefined
-    }
+  if (v === 'pending') {
+    return (
+      <Badge className="gap-1" variant="secondary">
+        <Clock className="h-3.5 w-3.5" />
+        Pending
+      </Badge>
+    )
   }
+  if (v === 'rejected') {
+    return (
+      <Badge className="gap-1" variant="destructive">
+        <XCircle className="h-3.5 w-3.5" />
+        Rejected
+      </Badge>
+    )
+  }
+  return <Badge variant="outline">Unknown</Badge>
+}
 
+export function ProviderTable({
+  providers,
+  loading,
+  onView,
+  onEdit,
+  onVerification,
+  onDelete,
+}: ProviderTableProps) {
   if (loading) {
     return (
-      <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
+      <div className="overflow-hidden rounded-lg border">
         <Table>
           <TableBody>
             <TableRow>
-              <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
-                <Typography color="text.secondary">Loading providers...</Typography>
+              <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
+                Loading providers...
               </TableCell>
             </TableRow>
           </TableBody>
         </Table>
-      </TableContainer>
+      </div>
     )
   }
 
   return (
-    <TableContainer component={Paper} sx={{ borderRadius: 2, overflow: 'hidden' }}>
+    <div className="overflow-hidden rounded-lg border border-border bg-card">
       <Table>
-        <TableHead>
-          <TableRow sx={{ bgcolor: 'grey.50' }}>
-            <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Provider</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Business</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Services</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Rating</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Status</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Experience</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Location</TableCell>
-            <TableCell align="right" sx={{ fontWeight: 600, color: 'text.primary' }}>Actions</TableCell>
+        <TableHeader>
+          <TableRow className="bg-muted/50">
+            <TableHead className="font-semibold">Provider</TableHead>
+            <TableHead className="font-semibold">Business</TableHead>
+            <TableHead className="font-semibold">Services</TableHead>
+            <TableHead className="font-semibold">Rating</TableHead>
+            <TableHead className="font-semibold">Status</TableHead>
+            <TableHead className="font-semibold">Experience</TableHead>
+            <TableHead className="font-semibold">Location</TableHead>
+            <TableHead className="text-right font-semibold">Actions</TableHead>
           </TableRow>
-        </TableHead>
+        </TableHeader>
         <TableBody>
           {providers.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
-                <Typography color="text.secondary">No providers found</Typography>
+              <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
+                No providers found
               </TableCell>
             </TableRow>
           ) : (
             providers.map((provider) => (
-              <TableRow key={provider.id} hover>
-                <TableCell sx={{ py: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar sx={{ bgcolor: 'primary.main' }}>
-                      <BusinessIcon />
+              <TableRow key={provider.id}>
+                <TableCell className="py-3">
+                  <div className="flex items-center gap-2">
+                    <Avatar className="h-9 w-9 bg-primary text-primary-foreground">
+                      <AvatarFallback>
+                        <Building2 className="h-4 w-4" />
+                      </AvatarFallback>
                     </Avatar>
-                    <Box>
-                      <Typography variant="body2" fontWeight="600">
-                        {provider.business_name || 'N/A'}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        ID: {provider.user_id}
-                      </Typography>
-                    </Box>
-                  </Box>
+                    <div>
+                      <p className="text-sm font-semibold">{provider.business_name || 'N/A'}</p>
+                      <p className="text-xs text-muted-foreground">ID: {provider.user_id}</p>
+                    </div>
+                  </div>
                 </TableCell>
-                
-                <TableCell sx={{ py: 2 }}>
-                  <Typography variant="body2" fontWeight="500">
-                    {provider.business_name || 'N/A'}
-                  </Typography>
+                <TableCell className="py-3">
+                  <p className="text-sm font-medium">{provider.business_name || 'N/A'}</p>
                   {provider.business_license && (
-                    <Typography variant="caption" color="text.secondary">
-                      License: {provider.business_license}
-                    </Typography>
+                    <p className="text-xs text-muted-foreground">License: {provider.business_license}</p>
                   )}
                 </TableCell>
-                
-                <TableCell sx={{ py: 2 }}>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                <TableCell className="py-3">
+                  <div className="flex flex-wrap gap-1">
                     {provider.services_offered?.slice(0, 2).map((service, index) => (
-                      <Chip
-                        key={index}
-                        label={service}
-                        size="small"
-                        sx={{ borderRadius: 2, fontSize: '0.75rem' }}
-                      />
+                      <Badge key={index} variant="secondary" className="text-xs">
+                        {service}
+                      </Badge>
                     ))}
                     {provider.services_offered && provider.services_offered.length > 2 && (
-                      <Chip
-                        label={`+${provider.services_offered.length - 2}`}
-                        size="small"
-                        variant="outlined"
-                        sx={{ borderRadius: 2, fontSize: '0.75rem' }}
-                      />
+                      <Badge variant="outline" className="text-xs">
+                        +{provider.services_offered.length - 2}
+                      </Badge>
                     )}
-                  </Box>
+                  </div>
                 </TableCell>
-                
-                <TableCell sx={{ py: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Rating
-                      value={provider.rating || 0}
-                      readOnly
-                      size="small"
-                      precision={0.1}
-                    />
-                    <Typography variant="body2" color="text.secondary">
+                <TableCell className="py-3">
+                  <div className="flex items-center gap-1">
+                    <Star className="h-4 w-4 text-amber-500" aria-hidden />
+                    <span className="text-sm tabular-nums">{(provider.rating ?? 0).toFixed(1)}</span>
+                    <span className="text-xs text-muted-foreground">
                       ({provider.total_reviews || 0})
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
                 </TableCell>
-                
-                <TableCell sx={{ py: 2 }}>
-                  <Chip
-                    icon={getStatusIcon(provider.verification_status)}
-                    label={provider.verification_status?.charAt(0).toUpperCase() + provider.verification_status?.slice(1) || 'Unknown'}
-                    color={getStatusColor(provider.verification_status) as any}
-                    size="small"
-                    sx={{ borderRadius: 2, fontWeight: 500 }}
-                  />
+                <TableCell className="py-3">
+                  {statusBadge(provider.verification_status)}
                 </TableCell>
-                
-                <TableCell sx={{ py: 2 }}>
-                  <Typography variant="body2">
-                    {provider.years_experience || 0} years
-                  </Typography>
+                <TableCell className="py-3">
+                  <p className="text-sm">{provider.years_experience || 0} years</p>
                 </TableCell>
-                
-                <TableCell sx={{ py: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <LocationIcon fontSize="small" color="action" />
-                    <Typography variant="body2" color="text.secondary">
-                      {provider.service_areas?.join(', ') || 'N/A'}
-                    </Typography>
-                  </Box>
+                <TableCell className="py-3">
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <MapPin className="h-4 w-4 shrink-0" />
+                    <span className="line-clamp-2">{provider.service_areas?.join(', ') || 'N/A'}</span>
+                  </div>
                 </TableCell>
-                
-                <TableCell align="right" sx={{ py: 2 }}>
-                  <IconButton
-                    size="small"
-                    onClick={(e) => onMenuClick(e, provider)}
-                    sx={{
-                      '&:hover': {
-                        bgcolor: 'primary.100',
-                        color: 'primary.main'
-                      }
-                    }}
-                  >
-                    <MoreVertIcon />
-                  </IconButton>
+                <TableCell className="py-3 text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        aria-label="Open row actions"
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem onClick={() => onView(provider)} className="cursor-pointer">
+                        <Eye className="mr-2 h-4 w-4" />
+                        View details
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onEdit(provider)} className="cursor-pointer">
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onVerification(provider)} className="cursor-pointer">
+                        <ShieldCheck className="mr-2 h-4 w-4" />
+                        Update verification
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => onDelete(provider)}
+                        className="cursor-pointer text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
             ))
           )}
         </TableBody>
       </Table>
-    </TableContainer>
+    </div>
   )
 }

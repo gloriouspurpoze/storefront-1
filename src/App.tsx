@@ -1,7 +1,7 @@
 import React, { lazy, Suspense } from 'react'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Provider } from 'react-redux'
-import { Box, CircularProgress } from '@mui/material'
+import { Loader2 } from 'lucide-react'
 import { ThemeProvider } from './contexts/theme-context'
 import { CommandPaletteProvider } from './contexts/command-palette-context'
 import { AppMuiThemeProvider } from './components/providers/AppMuiThemeProvider'
@@ -26,7 +26,7 @@ const NotFound = lazy(() => import('./pages/NotFound').then((m) => ({ default: m
 const SmartDashboard = lazy(() => import('./pages/dashboard/smart-dashboard').then((m) => ({ default: m.SmartDashboard })))
 const Dashboard = lazy(() => import('./pages/dashboard/dashboard').then((m) => ({ default: m.Dashboard })))
 const Analytics = lazy(() => import('./pages/dashboard/analytics').then((m) => ({ default: m.Analytics })))
-const AdminEarningsOverview = lazy(() => import('./pages/dashboard/admin-earnings-overview').then((m) => ({ default: m.AdminEarningsOverview })))
+const AdminEarningsOverview = lazy(() => import('./pages/payments/admin-earnings-overview').then((m) => ({ default: m.AdminEarningsOverview })))
 
 const CrmDashboard = lazy(() => import('./pages/crm/crm-dashboard').then((m) => ({ default: m.CrmDashboard })))
 const CrmLeads = lazy(() => import('./pages/crm/crm-leads').then((m) => ({ default: m.CrmLeads })))
@@ -39,6 +39,7 @@ const CrmSettings = lazy(() => import('./pages/crm/crm-settings').then((m) => ({
 const Users = lazy(() => import('./pages/users/users').then((m) => ({ default: m.Users })))
 const Products = lazy(() => import('./pages/products/products').then((m) => ({ default: m.Products })))
 const AddProduct = lazy(() => import('./pages/products/add-product').then((m) => ({ default: m.AddProduct })))
+const CategoryHub = lazy(() => import('./pages/categories/category-hub'))
 const CategoriesList = lazy(() => import('./pages/categories/categories-list'))
 const CreateCategory = lazy(() => import('./pages/categories/create-category'))
 
@@ -75,11 +76,14 @@ const ProviderApplications = lazy(() => import('./pages/professionals/provider-a
 const Bookings = lazy(() => import('./pages/bookings/bookings').then((m) => ({ default: m.Bookings })))
 const BookingDetails = lazy(() => import('./pages/bookings/booking-details').then((m) => ({ default: m.BookingDetails })))
 const Orders = lazy(() => import('./pages/orders/orders').then((m) => ({ default: m.Orders })))
-const Quotes = lazy(() => import('./pages/orders/quotes').then((m) => ({ default: m.Quotes })))
-const ServiceRequests = lazy(() => import('./pages/orders/service-requests').then((m) => ({ default: m.ServiceRequests })))
+const Quotes = lazy(() => import('./pages/operations/quotes').then((m) => ({ default: m.Quotes })))
+const ServiceRequests = lazy(() => import('./pages/operations/service-requests').then((m) => ({ default: m.ServiceRequests })))
 
 const Payments = lazy(() => import('./pages/payments/payments').then((m) => ({ default: m.Payments })))
 const Invoices = lazy(() => import('./pages/payments/invoices').then((m) => ({ default: m.Invoices })))
+const InvoiceCreate = lazy(() =>
+  import('./pages/payments/invoice-create').then((m) => ({ default: m.InvoiceCreate }))
+)
 
 const Messages = lazy(() => import('./pages/communication/messages').then((m) => ({ default: m.Messages })))
 const ChatPage = lazy(() => import('./pages/communication/chat'))
@@ -115,9 +119,9 @@ const CategoryMarketingManagement = lazy(() => import('./pages/cms/CategoryMarke
 const CrossLinkingManagement = lazy(() => import('./pages/cms/CrossLinkingManagement'))
 
 const RouteFallback = (
-  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 280, width: '100%' }}>
-    <CircularProgress size={40} />
-  </Box>
+  <div className="flex min-h-[280px] w-full items-center justify-center">
+    <Loader2 className="h-10 w-10 animate-spin text-primary" aria-hidden />
+  </div>
 )
 
 function App() {
@@ -186,38 +190,66 @@ function App() {
                         } 
                       />
                       
-                      {/* Categories */}
-                      <Route 
-                        path="/categories" 
+                      {/* Categories — hub + separate product / service lists and forms */}
+                      <Route
+                        path="/categories"
                         element={
                           <RoleBasedRoute permissions={['view_categories']}>
-                            <CategoriesList />
+                            <CategoryHub />
                           </RoleBasedRoute>
-                        } 
+                        }
                       />
-                      <Route 
-                        path="/categories/create" 
+                      <Route
+                        path="/categories/create"
+                        element={<Navigate to="/categories/products/create" replace />}
+                      />
+                      <Route
+                        path="/categories/:scope/create"
                         element={
                           <RoleBasedRoute permissions={['create_categories']}>
                             <CreateCategory />
                           </RoleBasedRoute>
-                        } 
+                        }
                       />
-                      <Route 
-                        path="/categories/edit/:id" 
+                      <Route
+                        path="/categories/:scope/edit/:id"
                         element={
                           <RoleBasedRoute permissions={['edit_categories']}>
                             <CreateCategory />
                           </RoleBasedRoute>
-                        } 
+                        }
                       />
-                      <Route 
-                        path="/categories/view/:id" 
+                      <Route
+                        path="/categories/:scope/view/:id"
                         element={
                           <RoleBasedRoute permissions={['view_categories']}>
                             <CreateCategory />
                           </RoleBasedRoute>
-                        } 
+                        }
+                      />
+                      <Route
+                        path="/categories/edit/:id"
+                        element={
+                          <RoleBasedRoute permissions={['edit_categories']}>
+                            <CreateCategory />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/categories/view/:id"
+                        element={
+                          <RoleBasedRoute permissions={['view_categories']}>
+                            <CreateCategory />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/categories/:scope"
+                        element={
+                          <RoleBasedRoute permissions={['view_categories']}>
+                            <CategoriesList />
+                          </RoleBasedRoute>
+                        }
                       />
                       
                       {/* Services */}
@@ -405,6 +437,14 @@ function App() {
                       />
 
                       {/* Invoices */}
+                      <Route 
+                        path="/invoices/create" 
+                        element={
+                          <RoleBasedRoute permissions={['view_payments']}>
+                            <InvoiceCreate />
+                          </RoleBasedRoute>
+                        } 
+                      />
                       <Route 
                         path="/invoices" 
                         element={

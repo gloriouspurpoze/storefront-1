@@ -1,16 +1,8 @@
 import React, { useRef } from 'react'
-import {
-  Box,
-  Typography,
-  FormHelperText,
-  Tooltip,
-} from '@mui/material'
-import {
-  Info as InfoIcon,
-  Error as ErrorIcon,
-  CheckCircle as CheckIcon,
-} from '@mui/icons-material'
+import { Info, CheckCircle2, AlertCircle, AlertTriangle } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
+import { Label } from '../ui/label'
+import { cn } from '../../lib/utils'
 import 'react-quill-new/dist/quill.snow.css'
 
 export interface RichTextFieldProps {
@@ -30,6 +22,23 @@ export interface RichTextFieldProps {
   formats?: string[]
   showCharCount?: boolean
   maxLength?: number
+}
+
+const StatusIcon = ({ status }: { status?: RichTextFieldProps['status'] }) => {
+  if (!status) return null
+  const cls = 'h-4 w-4 shrink-0'
+  switch (status) {
+    case 'success':
+      return <CheckCircle2 className={cn(cls, 'text-green-600')} aria-hidden />
+    case 'error':
+      return <AlertCircle className={cn(cls, 'text-destructive')} aria-hidden />
+    case 'warning':
+      return <AlertTriangle className={cn(cls, 'text-amber-600')} aria-hidden />
+    case 'info':
+      return <Info className={cn(cls, 'text-muted-foreground')} aria-hidden />
+    default:
+      return null
+  }
 }
 
 export const RichTextField: React.FC<RichTextFieldProps> = ({
@@ -52,31 +61,16 @@ export const RichTextField: React.FC<RichTextFieldProps> = ({
 }) => {
   const quillRef = useRef<ReactQuill>(null)
 
-  const getStatusIcon = () => {
-    switch (status) {
-      case 'success':
-        return <CheckIcon color="success" fontSize="small" />
-      case 'error':
-        return <ErrorIcon color="error" fontSize="small" />
-      case 'warning':
-        return <ErrorIcon color="warning" fontSize="small" />
-      case 'info':
-        return <InfoIcon color="info" fontSize="small" />
-      default:
-        return null
-    }
-  }
-
   const defaultModules = {
     toolbar: [
-      [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+      [{ header: [1, 2, 3, 4, 5, 6, false] }],
       ['bold', 'italic', 'underline', 'strike'],
-      [{ 'color': [] }, { 'background': [] }],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      [{ 'indent': '-1'}, { 'indent': '+1' }],
-      [{ 'align': [] }],
+      [{ color: [] }, { background: [] }],
+      [{ list: 'ordered' }, { list: 'bullet' }],
+      [{ indent: '-1' }, { indent: '+1' }],
+      [{ align: [] }],
       ['link', 'image', 'video'],
-      ['clean']
+      ['clean'],
     ],
     clipboard: {
       matchVisual: false,
@@ -84,9 +78,20 @@ export const RichTextField: React.FC<RichTextFieldProps> = ({
   }
 
   const defaultFormats = [
-    'header', 'bold', 'italic', 'underline', 'strike',
-    'color', 'background', 'list', 'bullet', 'indent',
-    'align', 'link', 'image', 'video'
+    'header',
+    'bold',
+    'italic',
+    'underline',
+    'strike',
+    'color',
+    'background',
+    'list',
+    'bullet',
+    'indent',
+    'align',
+    'link',
+    'image',
+    'video',
   ]
 
   const handleChange = (content: string) => {
@@ -99,69 +104,36 @@ export const RichTextField: React.FC<RichTextFieldProps> = ({
   const charCount = value ? value.replace(/<[^>]*>/g, '').length : 0
 
   return (
-    <Box sx={{ width: fullWidth ? '100%' : 'auto' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <Typography
-          variant="subtitle2"
-          sx={{
-            fontWeight: 600,
-            color: error ? 'error.main' : 'text.primary',
-          }}
+    <div className={cn(fullWidth ? 'w-full' : 'w-auto')}>
+      <div className="mb-1 flex items-center gap-1">
+        <Label
+          className={cn('text-sm font-semibold', error && 'text-destructive')}
         >
           {label}
-          {required && (
-            <Typography component="span" color="error.main" sx={{ ml: 0.5 }}>
-              *
-            </Typography>
-          )}
-        </Typography>
+          {required && <span className="ml-0.5 text-destructive">*</span>}
+        </Label>
         {tooltip && (
-          <Tooltip title={tooltip} arrow>
-            <InfoIcon fontSize="small" color="action" />
-          </Tooltip>
+          <span title={tooltip} className="inline-flex cursor-default text-muted-foreground">
+            <Info className="h-4 w-4" />
+          </span>
         )}
-        {getStatusIcon()}
-      </Box>
+        <StatusIcon status={status} />
+      </div>
 
-      <Box
-        sx={{
-          '& .ql-toolbar': {
-            borderTop: '1px solid #ccc',
-            borderLeft: '1px solid #ccc',
-            borderRight: '1px solid #ccc',
-            borderTopLeftRadius: '4px',
-            borderTopRightRadius: '4px',
-          },
-          '& .ql-container': {
-            height: height,
-            fontSize: '14px',
-            borderBottom: '1px solid #ccc',
-            borderLeft: '1px solid #ccc',
-            borderRight: '1px solid #ccc',
-            borderBottomLeftRadius: '4px',
-            borderBottomRightRadius: '4px',
-          },
-          '& .ql-editor': {
-            minHeight: height - 42, // Account for toolbar height
-            padding: '12px 15px',
-          },
-          '& .ql-editor.ql-blank::before': {
-            fontStyle: 'normal',
-            color: 'text.secondary',
-          },
-          ...(error && {
-            '& .ql-toolbar, & .ql-container': {
-              borderColor: 'error.main',
-            },
-          }),
-          ...(disabled && {
-            '& .ql-toolbar, & .ql-container': {
-              backgroundColor: 'action.disabledBackground',
-              opacity: 0.6,
-            },
-          }),
-        }}
+      <div
+        className={cn(
+          'rich-text-field',
+          '[&_.ql-toolbar]:rounded-t-md [&_.ql-toolbar]:border [&_.ql-toolbar]:border-b-0 [&_.ql-toolbar]:border-input',
+          '[&_.ql-container]:rounded-b-md [&_.ql-container]:border [&_.ql-container]:border-input',
+          '[&_.ql-container]:text-sm',
+          error && '[&_.ql-toolbar]:border-destructive [&_.ql-container]:border-destructive',
+          disabled && '[&_.ql-toolbar]:bg-muted [&_.ql-container]:bg-muted opacity-60',
+        )}
       >
+        <style>{`
+          .rich-text-field .ql-container { min-height: ${height}px; }
+          .rich-text-field .ql-editor { min-height: ${Math.max(0, height - 42)}px; padding: 12px 15px; }
+        `}</style>
         <ReactQuill
           ref={quillRef}
           theme="snow"
@@ -172,22 +144,24 @@ export const RichTextField: React.FC<RichTextFieldProps> = ({
           placeholder={placeholder}
           readOnly={disabled}
         />
-      </Box>
+      </div>
 
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 0.5 }}>
-        <FormHelperText error={!!error} sx={{ m: 0 }}>
+      <div className="mt-1.5 flex items-center justify-between gap-2">
+        <p className={cn('m-0 text-sm', error ? 'text-destructive' : 'text-muted-foreground')}>
           {error || helperText}
-        </FormHelperText>
+        </p>
         {showCharCount && maxLength && (
-          <Typography
-            variant="caption"
-            color={charCount > maxLength * 0.9 ? 'warning.main' : 'text.secondary'}
+          <span
+            className={cn(
+              'shrink-0 text-xs',
+              charCount > maxLength * 0.9 ? 'text-amber-600' : 'text-muted-foreground',
+            )}
           >
             {charCount}/{maxLength}
-          </Typography>
+          </span>
         )}
-      </Box>
-    </Box>
+      </div>
+    </div>
   )
 }
 

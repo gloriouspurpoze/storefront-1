@@ -3,42 +3,30 @@
  * Shows all applied discounts and savings
  */
 
-import React from 'react';
-import {
-  Card,
-  CardContent,
-  Typography,
-  Box,
-  Divider,
-  Chip,
-  Alert,
-  Stack,
-} from '@mui/material';
-import {
-  LocalOffer as OfferIcon,
-  CardGiftcard as CouponIcon,
-  People as ReferralIcon,
-  Savings as SavingsIcon,
-} from '@mui/icons-material';
-import { formatCurrency } from '../../lib/utils';
+import React from 'react'
+import { Tag, Gift, Users, PiggyBank } from 'lucide-react'
+import { formatCurrency } from '../../lib/utils'
+import { Card, CardContent } from '../ui/card'
+import { Badge } from '../ui/badge'
+import { Separator } from '../ui/separator'
 
 export interface DiscountBreakdownProps {
-  subtotal: number;
+  subtotal: number
   offer?: {
-    amount: number;
-    name?: string;
-  };
+    amount: number
+    name?: string
+  }
   coupon?: {
-    amount: number;
-    code?: string;
-  };
+    amount: number
+    code?: string
+  }
   referral?: {
-    amount: number;
-    code?: string;
-  };
-  shipping?: number;
-  tax?: number;
-  finalTotal: number;
+    amount: number
+    code?: string
+  }
+  shipping?: number
+  tax?: number
+  finalTotal: number
 }
 
 export function DiscountBreakdown({
@@ -50,144 +38,116 @@ export function DiscountBreakdown({
   tax = 0,
   finalTotal,
 }: DiscountBreakdownProps) {
-  const totalDiscount = (offer?.amount || 0) + (coupon?.amount || 0) + (referral?.amount || 0);
-  const totalSavings = totalDiscount;
+  const totalDiscount = (offer?.amount || 0) + (coupon?.amount || 0) + (referral?.amount || 0)
+  const totalSavings = totalDiscount
 
   return (
-    <Card elevation={2}>
-      <CardContent>
-        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-          Price Breakdown
-        </Typography>
+    <Card className="shadow-sm">
+      <CardContent className="pt-6">
+        <h3 className="mb-4 text-lg font-semibold">Price Breakdown</h3>
 
-        {/* Subtotal */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-          <Typography>Subtotal:</Typography>
-          <Typography sx={{ fontWeight: 500 }}>
-            {formatCurrency(subtotal)}
-          </Typography>
-        </Box>
+        <div className="mb-2 flex justify-between text-sm">
+          <span>Subtotal:</span>
+          <span className="font-medium">{formatCurrency(subtotal)}</span>
+        </div>
 
-        {/* Discounts Section */}
         {totalDiscount > 0 && (
           <>
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: 'success.main' }}>
+            <Separator className="my-4" />
+            <p className="mb-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
               Discounts Applied
-            </Typography>
+            </p>
 
-            {/* Auto-Applied Offer */}
             {offer && offer.amount > 0 && (
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <OfferIcon fontSize="small" color="primary" />
-                  <Typography variant="body2">
-                    {offer.name || 'Special Offer'}
-                  </Typography>
-                  <Chip label="Auto-applied" size="small" color="primary" variant="outlined" />
-                </Box>
-                <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 600 }}>
-                  -{formatCurrency(offer.amount)}
-                </Typography>
-              </Box>
+              <div className="mb-2 flex items-center justify-between text-sm">
+                <div className="flex min-w-0 items-center gap-2">
+                  <Tag className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                  <span className="truncate">{offer.name || 'Special Offer'}</span>
+                  <Badge variant="outline" className="shrink-0 text-xs">
+                    Auto-applied
+                  </Badge>
+                </div>
+                <span className="shrink-0 font-semibold text-emerald-600">-{formatCurrency(offer.amount)}</span>
+              </div>
             )}
 
-            {/* Coupon Code */}
             {coupon && coupon.amount > 0 && (
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <CouponIcon fontSize="small" color="success" />
-                  <Typography variant="body2">
-                    Coupon: {coupon.code}
-                  </Typography>
-                </Box>
-                <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 600 }}>
-                  -{formatCurrency(coupon.amount)}
-                </Typography>
-              </Box>
+              <div className="mb-2 flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  <Gift className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
+                  <span>Coupon: {coupon.code}</span>
+                </div>
+                <span className="font-semibold text-emerald-600">-{formatCurrency(coupon.amount)}</span>
+              </div>
             )}
 
-            {/* Referral Bonus */}
             {referral && referral.amount > 0 && (
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <ReferralIcon fontSize="small" color="info" />
-                  <Typography variant="body2">
-                    Referral Bonus
-                  </Typography>
+              <div className="mb-2 flex items-center justify-between text-sm">
+                <div className="flex min-w-0 items-center gap-2">
+                  <Users className="h-4 w-4 shrink-0 text-sky-600" aria-hidden />
+                  <span>Referral Bonus</span>
                   {referral.code && (
-                    <Chip label={referral.code} size="small" variant="outlined" />
+                    <Badge variant="outline" className="text-xs">
+                      {referral.code}
+                    </Badge>
                   )}
-                </Box>
-                <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 600 }}>
+                </div>
+                <span className="shrink-0 font-semibold text-emerald-600">
                   -{formatCurrency(referral.amount)}
-                </Typography>
-              </Box>
+                </span>
+              </div>
             )}
           </>
         )}
 
-        <Divider sx={{ my: 2 }} />
+        <Separator className="my-4" />
 
-        {/* Shipping */}
         {shipping > 0 && (
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-            <Typography>Shipping:</Typography>
-            <Typography>{formatCurrency(shipping)}</Typography>
-          </Box>
+          <div className="mb-2 flex justify-between text-sm">
+            <span>Shipping:</span>
+            <span>{formatCurrency(shipping)}</span>
+          </div>
         )}
 
-        {/* Tax */}
         {tax > 0 && (
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-            <Typography>Tax (10%):</Typography>
-            <Typography>{formatCurrency(tax)}</Typography>
-          </Box>
+          <div className="mb-2 flex justify-between text-sm">
+            <span>Tax (10%):</span>
+            <span>{formatCurrency(tax)}</span>
+          </div>
         )}
 
-        <Divider sx={{ my: 2 }} />
+        <Separator className="my-4" />
 
-        {/* Final Total */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-          <Typography variant="h6" sx={{ fontWeight: 700 }}>
-            Total:
-          </Typography>
-          <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
-            {formatCurrency(finalTotal)}
-          </Typography>
-        </Box>
+        <div className="mb-2 flex justify-between">
+          <span className="text-lg font-bold">Total:</span>
+          <span className="text-lg font-bold text-primary">{formatCurrency(finalTotal)}</span>
+        </div>
 
-        {/* Savings Alert */}
         {totalSavings > 0 && (
-          <Alert 
-            severity="success" 
-            icon={<SavingsIcon />}
-            sx={{ mt: 2 }}
+          <div
+            className="mt-3 flex gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-950 dark:text-emerald-50"
+            role="status"
           >
-            <Stack>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                You saved {formatCurrency(totalSavings)}!
-              </Typography>
+            <PiggyBank className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
+            <div className="space-y-1">
+              <p className="font-semibold">You saved {formatCurrency(totalSavings)}!</p>
               {offer && offer.amount > 0 && (
-                <Typography variant="caption">
+                <p className="text-xs opacity-90">
                   • {formatCurrency(offer.amount)} from {offer.name || 'offer'}
-                </Typography>
+                </p>
               )}
               {coupon && coupon.amount > 0 && (
-                <Typography variant="caption">
+                <p className="text-xs opacity-90">
                   • {formatCurrency(coupon.amount)} from coupon {coupon.code}
-                </Typography>
+                </p>
               )}
               {referral && referral.amount > 0 && (
-                <Typography variant="caption">
-                  • {formatCurrency(referral.amount)} from referral bonus
-                </Typography>
+                <p className="text-xs opacity-90">• {formatCurrency(referral.amount)} from referral bonus</p>
               )}
-            </Stack>
-          </Alert>
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>
-  );
+  )
 }
-

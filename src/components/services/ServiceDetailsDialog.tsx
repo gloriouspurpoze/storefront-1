@@ -1,32 +1,26 @@
 import React from 'react'
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Box,
-  Typography,
-  Chip,
-  Divider,
-  IconButton,
-  Stack,
-  Card,
-  CardContent,
-  Rating,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
+  Building2,
+  MapPin,
+  Star,
+  Briefcase,
+  BadgeCheck,
+  User,
+  Mail,
+  Phone,
+  Clock,
+} from 'lucide-react'
 import {
-  Close as CloseIcon,
-  Business as BusinessIcon,
-  LocationOn as LocationIcon,
-  Star as StarIcon,
-  Work as WorkIcon,
-  VerifiedUser as VerifiedIcon,
-  Person as PersonIcon,
-  Email as EmailIcon,
-  Phone as PhoneIcon,
-} from '@mui/icons-material'
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog'
+import { Button } from '../ui/button'
+import { Badge } from '../ui/badge'
+import { Separator } from '../ui/separator'
+import { Card, CardContent } from '../ui/card'
 import { formatDate } from '../../lib/utils'
 
 interface ServiceProvider {
@@ -58,6 +52,19 @@ interface ServiceDetailsDialogProps {
   onEdit?: () => void
 }
 
+const statusVariant = (status: string): React.ComponentProps<typeof Badge>['variant'] => {
+  switch (status) {
+    case 'verified':
+      return 'success'
+    case 'pending':
+      return 'warning'
+    case 'rejected':
+      return 'destructive'
+    default:
+      return 'secondary'
+  }
+}
+
 export const ServiceDetailsDialog: React.FC<ServiceDetailsDialogProps> = ({
   open,
   onClose,
@@ -66,257 +73,160 @@ export const ServiceDetailsDialog: React.FC<ServiceDetailsDialogProps> = ({
 }) => {
   if (!service) return null
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'verified':
-        return 'success'
-      case 'pending':
-        return 'warning'
-      case 'rejected':
-        return 'error'
-      default:
-        return 'default'
-    }
-  }
-
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth="md" 
-      fullWidth
-      PaperProps={{
-        sx: { borderRadius: 2 }
-      }}
-    >
-      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          Service Provider Details
-        </Typography>
-        <IconButton onClick={onClose} size="small">
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto sm:max-w-2xl [&>button]:hidden">
+        <DialogHeader>
+          <DialogTitle className="text-lg">Service Provider Details</DialogTitle>
+        </DialogHeader>
 
-      <DialogContent dividers>
-        {/* Business Header */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 4 }}>
-          <BusinessIcon sx={{ fontSize: 60, color: 'primary.main', mb: 2 }} />
-          <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
-            {service.businessName}
-          </Typography>
-          <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
-            <Chip
-              icon={<VerifiedIcon />}
-              label={service.verificationStatus}
-              color={getStatusColor(service.verificationStatus) as any}
-              sx={{ textTransform: 'capitalize' }}
-            />
-            {service.businessLicense && (
-              <Chip
-                label={`License: ${service.businessLicense}`}
-                variant="outlined"
-              />
-            )}
-          </Stack>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Rating value={service.rating} readOnly precision={0.1} />
-            <Typography variant="body2" color="text.secondary">
+        <div className="space-y-4 py-2">
+          <div className="flex flex-col items-center text-center">
+            <Building2 className="mb-2 h-14 w-14 text-primary" />
+            <h2 className="text-xl font-semibold">{service.businessName}</h2>
+            <div className="mt-2 flex flex-wrap justify-center gap-2">
+              <Badge variant={statusVariant(service.verificationStatus)} className="capitalize">
+                <BadgeCheck className="mr-1 h-3.5 w-3.5" />
+                {service.verificationStatus}
+              </Badge>
+              {service.businessLicense && (
+                <Badge variant="outline">License: {service.businessLicense}</Badge>
+              )}
+            </div>
+            <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+              <Star className="h-4 w-4 text-amber-500" />
               {service.rating.toFixed(1)} ({service.totalReviews} reviews)
-            </Typography>
-          </Box>
-        </Box>
+            </div>
+          </div>
 
-        <Divider sx={{ mb: 3 }} />
+          <Separator />
 
-        {/* Services Offered */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-            <WorkIcon color="primary" />
-            Services Offered
-          </Typography>
-          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-            {service.servicesOffered.map((serv) => (
-              <Chip
-                key={serv}
-                label={serv}
-                color="primary"
-              />
-            ))}
-          </Stack>
-        </Box>
+          <div>
+            <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-primary">
+              <Briefcase className="h-4 w-4" />
+              Services Offered
+            </h3>
+            <div className="flex flex-wrap gap-1">
+              {service.servicesOffered.map((serv) => (
+                <Badge key={serv}>{serv}</Badge>
+              ))}
+            </div>
+          </div>
 
-        <Divider sx={{ mb: 3 }} />
+          <Separator />
 
-        {/* Service Areas */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-            <LocationIcon color="primary" />
-            Service Areas
-          </Typography>
-          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-            {service.serviceAreas.map((area) => (
-              <Chip
-                key={area}
-                label={area}
-                color="secondary"
-                variant="outlined"
-              />
-            ))}
-          </Stack>
-        </Box>
+          <div>
+            <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-primary">
+              <MapPin className="h-4 w-4" />
+              Service Areas
+            </h3>
+            <div className="flex flex-wrap gap-1">
+              {service.serviceAreas.map((area) => (
+                <Badge key={area} variant="outline">
+                  {area}
+                </Badge>
+              ))}
+            </div>
+          </div>
 
-        <Divider sx={{ mb: 3 }} />
+          <Separator />
 
-        {/* Business Information */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-            Business Information
-          </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <Card variant="outlined">
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <WorkIcon color="primary" />
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        Years of Experience
-                      </Typography>
-                      <Typography variant="h6">
-                        {service.yearsExperience} years
-                      </Typography>
-                    </Box>
-                  </Box>
+          <div>
+            <h3 className="mb-2 text-sm font-semibold">Business Information</h3>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Card>
+                <CardContent className="flex items-center gap-3 p-4">
+                  <Briefcase className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Years of Experience</p>
+                    <p className="text-lg font-semibold">{service.yearsExperience} years</p>
+                  </div>
                 </CardContent>
               </Card>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Card variant="outlined">
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <StarIcon color="primary" />
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        Total Reviews
-                      </Typography>
-                      <Typography variant="h6">
-                        {service.totalReviews}
-                      </Typography>
-                    </Box>
-                  </Box>
+              <Card>
+                <CardContent className="flex items-center gap-3 p-4">
+                  <Star className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Total Reviews</p>
+                    <p className="text-lg font-semibold">{service.totalReviews}</p>
+                  </div>
                 </CardContent>
               </Card>
-            </Grid>
-          </Grid>
-        </Box>
+            </div>
+          </div>
 
-        {/* Bio/Description */}
-        {service.bio && (
-          <>
-            <Divider sx={{ mb: 3 }} />
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                About
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                {service.bio}
-              </Typography>
-            </Box>
-          </>
-        )}
+          {service.bio && (
+            <>
+              <Separator />
+              <div>
+                <h3 className="mb-2 text-sm font-semibold">About</h3>
+                <p className="text-sm text-muted-foreground">{service.bio}</p>
+              </div>
+            </>
+          )}
 
-        {/* Provider Information */}
-        {service.user && (
-          <>
-            <Divider sx={{ mb: 3 }} />
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Provider Information
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                        <PersonIcon color="primary" />
-                        <Box>
-                          <Typography variant="caption" color="text.secondary">
-                            Provider Name
-                          </Typography>
-                          <Typography variant="body1">
-                            {service.user.firstName} {service.user.lastName}
-                          </Typography>
-                        </Box>
-                      </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                        <EmailIcon color="primary" />
-                        <Box>
-                          <Typography variant="caption" color="text.secondary">
-                            Email
-                          </Typography>
-                          <Typography variant="body1">
-                            {service.user.email}
-                          </Typography>
-                        </Box>
-                      </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <PhoneIcon color="primary" />
-                        <Box>
-                          <Typography variant="caption" color="text.secondary">
-                            Phone
-                          </Typography>
-                          <Typography variant="body1">
-                            {service.user.phone}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
-            </Box>
-          </>
-        )}
+          {service.user && (
+            <>
+              <Separator />
+              <div>
+                <h3 className="mb-2 text-sm font-semibold">Provider Information</h3>
+                <Card>
+                  <CardContent className="space-y-3 p-4">
+                    <div className="flex items-start gap-2">
+                      <User className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Provider Name</p>
+                        <p className="text-sm font-medium">
+                          {service.user.firstName} {service.user.lastName}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Mail className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Email</p>
+                        <p className="text-sm">{service.user.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Phone className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Phone</p>
+                        <p className="text-sm">{service.user.phone}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </>
+          )}
 
-        <Divider sx={{ mb: 3 }} />
+          <Separator />
 
-        {/* Timestamps */}
-        <Box>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="caption" color="text.secondary">
-                Created At
-              </Typography>
-              <Typography variant="body2">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div>
+              <p className="text-xs text-muted-foreground">Created At</p>
+              <p className="flex items-center gap-1 text-sm">
+                <Clock className="h-3.5 w-3.5" />
                 {formatDate(service.createdAt)}
-              </Typography>
-            </Grid>
+              </p>
+            </div>
             {service.updatedAt && (
-              <Grid item xs={12} sm={6}>
-                <Typography variant="caption" color="text.secondary">
-                  Last Updated
-                </Typography>
-                <Typography variant="body2">
-                  {formatDate(service.updatedAt)}
-                </Typography>
-              </Grid>
+              <div>
+                <p className="text-xs text-muted-foreground">Last Updated</p>
+                <p className="text-sm">{formatDate(service.updatedAt)}</p>
+              </div>
             )}
-          </Grid>
-        </Box>
-      </DialogContent>
+          </div>
+        </div>
 
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} variant="outlined">
-          Close
-        </Button>
-        {onEdit && (
-          <Button onClick={onEdit} variant="contained">
-            Edit Service
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose}>
+            Close
           </Button>
-        )}
-      </DialogActions>
+          {onEdit && <Button onClick={onEdit}>Edit Service</Button>}
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   )
 }
-

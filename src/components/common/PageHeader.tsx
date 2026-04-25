@@ -1,5 +1,5 @@
 import React from 'react'
-import { Box, Typography } from '@mui/material'
+import { cn } from '../../lib/utils'
 
 interface PageHeaderProps {
   title: string
@@ -10,55 +10,46 @@ interface PageHeaderProps {
 }
 
 export function PageHeader({ title, subtitle, icon, action, children }: PageHeaderProps) {
-
   return (
-    <Box sx={{ 
-      mb: { xs: 2, sm: 3, md: 4 },
-      display: 'flex',
-      flexDirection: { xs: 'column', sm: 'row' },
-      justifyContent: 'space-between',
-      alignItems: { xs: 'flex-start', sm: 'center' },
-      gap: 2
-    }}>
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, minWidth: 0 }}>
-        {icon && <Box sx={{ pt: 0.25, color: 'primary.main', display: 'flex' }}>{icon}</Box>}
-        <Box sx={{ minWidth: 0 }}>
-        <Typography
-          variant="h5"
-          component="h1"
-          sx={{
-            fontWeight: 600,
-            mb: subtitle ? 0.5 : 0,
-            fontSize: { xs: '1.25rem', sm: '1.375rem', md: '1.5rem' },
-            letterSpacing: '-0.02em',
-            lineHeight: 1.3,
-          }}
-        >
-          {title}
-        </Typography>
-        {subtitle && (
-          <Typography variant="body2" color="text.secondary" sx={{
-            fontSize: { xs: '0.8125rem', sm: '0.875rem' },
-            maxWidth: 'min(52rem, 100%)',
-          }}>
-            {subtitle}
-          </Typography>
-        )}
-        </Box>
-      </Box>
-      
-      {action && (
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 1,
-          width: { xs: '100%', sm: 'auto' }
-        }}>
-          {action}
-        </Box>
+    <div
+      className={cn(
+        'mb-6 flex flex-col gap-2 sm:mb-8 md:mb-10',
+        'items-start sm:flex-row sm:items-center sm:justify-between'
       )}
-      
+    >
+      <div className="flex min-w-0 items-start gap-1.5">
+        {icon && (
+          <div className="flex shrink-0 pt-0.5 text-primary">
+            {icon}
+          </div>
+        )}
+        <div className="min-w-0">
+          <h1
+            className={cn(
+              'font-semibold tracking-tight text-foreground',
+              'text-xl sm:text-[1.375rem] md:text-2xl',
+              subtitle && 'mb-0.5',
+              'leading-tight'
+            )}
+          >
+            {title}
+          </h1>
+          {subtitle && (
+            <p
+              className={cn(
+                'max-w-[min(52rem,100%)] text-sm text-muted-foreground',
+                'text-[0.8125rem] sm:text-sm'
+              )}
+            >
+              {subtitle}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {action && <div className="flex w-full items-center gap-1 sm:w-auto">{action}</div>}
+
       {children}
-    </Box>
+    </div>
   )
 }

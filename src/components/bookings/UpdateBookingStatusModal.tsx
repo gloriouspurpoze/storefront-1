@@ -1,40 +1,30 @@
 /**
  * Update Booking Status Modal
  * Modal component for admin to update booking status with notifications
- * 
- * Features:
- * - Update booking status with status-specific options
- * - Add notes for the status change
- * - Option to notify customer and provider
- * - Beautiful UX with status colors and icons
  */
 
 import React, { useState } from 'react'
+import { Calendar, Play, CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  TextField,
-  FormControlLabel,
-  Checkbox,
-  Box,
-  Typography,
-  CircularProgress,
-  Alert,
-  Chip,
-} from '@mui/material'
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog'
+import { Button } from '../ui/button'
+import { Label } from '../ui/label'
+import { Textarea } from '../ui/textarea'
+import { Checkbox } from '../ui/checkbox'
+import { Badge } from '../ui/badge'
 import {
-  Schedule as ScheduleIcon,
-  PlayArrow as PlayArrowIcon,
-  CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
-} from '@mui/icons-material'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select'
+import { cn } from '../../lib/utils'
 
 type BookingStatus = 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled'
 
@@ -49,7 +39,7 @@ interface UpdateBookingStatusModalProps {
       notes?: string
       notifyCustomer: boolean
       notifyProvider: boolean
-    }
+    },
   ) => Promise<void>
 }
 
@@ -57,51 +47,67 @@ const statusConfig: Record<
   BookingStatus,
   {
     label: string
-    color: 'primary' | 'secondary' | 'success' | 'warning' | 'error'
-    icon: React.ReactNode
+    Icon: typeof Calendar
     description: string
+    boxClass: string
   }
 > = {
   pending: {
     label: 'Pending',
-    color: 'warning',
-    icon: <ScheduleIcon />,
+    Icon: Calendar,
     description: 'Booking is waiting for provider assignment',
+    boxClass: 'border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/30',
   },
   confirmed: {
     label: 'Confirmed',
-    color: 'primary',
-    icon: <CheckCircleIcon />,
+    Icon: CheckCircle,
     description: 'Booking is confirmed and scheduled',
+    boxClass: 'border-primary/30 bg-primary/5',
   },
   in_progress: {
     label: 'In Progress',
-    color: 'secondary',
-    icon: <PlayArrowIcon />,
+    Icon: Play,
     description: 'Service is currently being performed',
+    boxClass: 'border-violet-200 bg-violet-50 dark:border-violet-900/40 dark:bg-violet-950/30',
   },
   completed: {
     label: 'Completed',
-    color: 'success',
-    icon: <CheckCircleIcon />,
+    Icon: CheckCircle,
     description: 'Service has been completed',
+    boxClass: 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-950/30',
   },
   cancelled: {
     label: 'Cancelled',
-    color: 'error',
-    icon: <CancelIcon />,
+    Icon: XCircle,
     description: 'Booking has been cancelled',
+    boxClass: 'border-destructive/30 bg-destructive/5',
   },
 }
 
 export function UpdateBookingStatusModal({
   open,
   onClose,
-  bookingId,
+  bookingId: _bookingId,
   currentStatus,
   onUpdate,
 }: UpdateBookingStatusModalProps) {
-  const [selectedStatus, setSelectedStatus] = useState<BookingStatus>(currentStatus)
+  void _bookingId
+  const availableStatuses = React.useMemo(
+    () =>
+      (['pending', 'confirmed', 'in_progress', 'completed', 'cancelled'] as BookingStatus[]).filter(
+        (s) => s !== currentStatus,
+      ),
+    [currentStatus],
+  )
+  const [selectedStatus, setSelectedStatus] = useState<BookingStatus>(
+    () => availableStatuses[0] ?? currentStatus,
+  )
+
+  React.useEffect(() => {
+    if (open && availableStatuses.length) {
+      setSelectedStatus(availableStatuses[0])
+    }
+  }, [open, currentStatus, availableStatuses])
   const [notes, setNotes] = useState('')
   const [notifyCustomer, setNotifyCustomer] = useState(true)
   const [notifyProvider, setNotifyProvider] = useState(true)
@@ -124,11 +130,10 @@ export function UpdateBookingStatusModal({
         notifyProvider,
       })
 
-      // Reset and close
       setNotes('')
       onClose()
-    } catch (err: any) {
-      setError(err.message || 'Failed to update booking status')
+    } catch (err: unknown) {
+      setError((err as { message?: string }).message || 'Failed to update booking status')
     } finally {
       setLoading(false)
     }
@@ -142,149 +147,123 @@ export function UpdateBookingStatusModal({
     }
   }
 
-  // Get available status transitions
-  const getAvailableStatuses = (): BookingStatus[] => {
-    const statuses: BookingStatus[] = ['pending', 'confirmed', 'in_progress', 'completed', 'cancelled']
-    
-    // Remove current status from options
-    return statuses.filter(status => status !== currentStatus)
-  }
-
-  const availableStatuses = getAvailableStatuses()
-
   return (
     <Dialog
       open={open}
-      onClose={handleClose}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 2,
-        },
+      onOpenChange={(o) => {
+        if (!o) handleClose()
       }}
     >
-      <DialogTitle>
-        <Typography variant="h5" component="div" fontWeight={600}>
-          Update Booking Status
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-          Change the status of this booking
-        </Typography>
-      </DialogTitle>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Update Booking Status</DialogTitle>
+          <p className="text-sm text-muted-foreground">Change the status of this booking</p>
+        </DialogHeader>
 
-      <DialogContent dividers>
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-            {error}
-          </Alert>
-        )}
+        <div className="space-y-4 py-2">
+          {error && (
+            <div
+              className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              role="alert"
+            >
+              {error}
+            </div>
+          )}
 
-        {/* Current Status */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-            Current Status
-          </Typography>
-          <Chip
-            icon={statusConfig[currentStatus].icon as React.ReactElement}
-            label={statusConfig[currentStatus].label}
-            color={statusConfig[currentStatus].color}
-            size="medium"
-          />
-        </Box>
+          <div>
+            <p className="mb-1.5 text-sm text-muted-foreground">Current Status</p>
+            <Badge variant="outline" className="gap-1">
+              {React.createElement(statusConfig[currentStatus].Icon, { className: 'h-3.5 w-3.5' })}
+              {statusConfig[currentStatus].label}
+            </Badge>
+          </div>
 
-        {/* New Status Selection */}
-        <FormControl fullWidth sx={{ mb: 3 }}>
-          <InputLabel>New Status</InputLabel>
-          <Select
-            value={selectedStatus}
-            label="New Status"
-            onChange={(e) => setSelectedStatus(e.target.value as BookingStatus)}
-          >
-            {availableStatuses.map((status) => (
-              <MenuItem key={status} value={status}>
-                <Box display="flex" alignItems="center" gap={1}>
-                  {statusConfig[status].icon}
-                  <Typography>{statusConfig[status].label}</Typography>
-                </Box>
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+          <div className="space-y-2">
+            <Label>New Status</Label>
+            <Select
+              value={selectedStatus}
+              onValueChange={(v) => setSelectedStatus(v as BookingStatus)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {availableStatuses.map((status) => {
+                  const s = statusConfig[status]
+                  return (
+                    <SelectItem key={status} value={status}>
+                      <span className="flex items-center gap-2">
+                        <s.Icon className="h-4 w-4" />
+                        {s.label}
+                      </span>
+                    </SelectItem>
+                  )
+                })}
+              </SelectContent>
+            </Select>
+          </div>
 
-        {/* Status Description */}
-        {selectedStatus && (
-          <Box
-            sx={{
-              p: 2,
-              mb: 3,
-              bgcolor: `${statusConfig[selectedStatus].color}.50`,
-              borderRadius: 1,
-              border: '1px solid',
-              borderColor: `${statusConfig[selectedStatus].color}.200`,
-            }}
-          >
-            <Typography variant="body2" color="text.secondary">
+          {selectedStatus && (
+            <div
+              className={cn('rounded-md border p-3 text-sm text-muted-foreground', statusConfig[selectedStatus].boxClass)}
+            >
               {statusConfig[selectedStatus].description}
-            </Typography>
-          </Box>
-        )}
+            </div>
+          )}
 
-        {/* Notes */}
-        <TextField
-          fullWidth
-          multiline
-          rows={3}
-          label="Notes (Optional)"
-          placeholder="Add any notes about this status change..."
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          sx={{ mb: 3 }}
-        />
+          <div>
+            <Label htmlFor="status-notes">Notes (Optional)</Label>
+            <Textarea
+              id="status-notes"
+              className="mt-1.5"
+              rows={3}
+              placeholder="Add any notes about this status change..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </div>
 
-        {/* Notification Options */}
-        <Box>
-          <Typography variant="subtitle2" gutterBottom>
-            Notification Options
-          </Typography>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={notifyCustomer}
-                onChange={(e) => setNotifyCustomer(e.target.checked)}
-                color="primary"
-              />
-            }
-            label="Notify customer about status change"
-          />
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={notifyProvider}
-                onChange={(e) => setNotifyProvider(e.target.checked)}
-                color="primary"
-              />
-            }
-            label="Notify provider about status change"
-          />
-        </Box>
+          <div>
+            <p className="mb-2 text-sm font-medium">Notification Options</p>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="notify-cust"
+                  checked={notifyCustomer}
+                  onCheckedChange={(c) => setNotifyCustomer(c === true)}
+                />
+                <Label htmlFor="notify-cust" className="font-normal">
+                  Notify customer about status change
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="notify-prov"
+                  checked={notifyProvider}
+                  onCheckedChange={(c) => setNotifyProvider(c === true)}
+                />
+                <Label htmlFor="notify-prov" className="font-normal">
+                  Notify provider about status change
+                </Label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button type="button" variant="ghost" onClick={handleClose} disabled={loading}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            onClick={() => void handleUpdate()}
+            disabled={selectedStatus === currentStatus || loading}
+          >
+            {loading && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+            {loading ? 'Updating...' : 'Update Status'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={handleClose} disabled={loading} color="inherit">
-          Cancel
-        </Button>
-        <Button
-          onClick={handleUpdate}
-          disabled={selectedStatus === currentStatus || loading}
-          variant="contained"
-          color={statusConfig[selectedStatus]?.color || 'primary'}
-          startIcon={loading ? <CircularProgress size={20} /> : null}
-        >
-          {loading ? 'Updating...' : 'Update Status'}
-        </Button>
-      </DialogActions>
     </Dialog>
   )
 }
-

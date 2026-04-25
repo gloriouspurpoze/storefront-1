@@ -7,6 +7,42 @@ import { api } from './base'
 import { store } from '../../store'
 import type { PaginationResponse } from '../../types'
 
+/** Same base URL as `api` (used for PDF blob fetch — fetch() does not go through ApiBase). */
+export function getInvoiceApiBaseUrl(): string {
+  const base = process.env.REACT_APP_API_URL || 'http://localhost:5000/api'
+  return base.replace(/\/$/, '')
+}
+
+export interface ManualInvoiceLineItem {
+  description: string
+  quantity: number
+  unitPrice: number
+  category?: string
+}
+
+export interface ManualInvoicePayload {
+  type: 'service' | 'product' | 'subscription' | 'provider_payout'
+  customerId: string
+  billingTo: {
+    name: string
+    phone: string
+    email?: string
+    addressLine1: string
+    addressLine2?: string
+    city: string
+    state: string
+    pincode: string
+    gstin?: string
+  }
+  items: ManualInvoiceLineItem[]
+  discount?: number
+  creditsUsed?: number
+  paymentMethod?: string
+  orderId?: string
+  bookingId?: string
+  notes?: string
+}
+
 export interface Invoice {
   _id: string
   invoiceNumber: string
@@ -232,15 +268,24 @@ export class InvoicesService {
   /**
    * Generate invoice for an existing booking (admin / ops)
    */
-  static async generateInvoiceForBooking(bookingId: string) {
-    return api.post<InvoiceResponse>(`/invoices/generate-for-booking/${encodeURIComponent(bookingId)}`, {}, {
-      loadingMessage: 'Generating invoice…',
-      successMessage: 'Invoice generated successfully.',
-    })
+  static async generateInvoiceForBooking(
+    bookingId: string,
+    options?: { showSuccessToast?: boolean; showLoading?: boolean; loadingMessage?: string }
+  ) {
+    return api.post<InvoiceResponse>(
+      `/invoices/generate-for-booking/${encodeURIComponent(bookingId)}`,
+      {},
+      {
+        loadingMessage: options?.loadingMessage ?? 'Generating invoice…',
+        showSuccessToast: options?.showSuccessToast !== false,
+        showLoading: options?.showLoading !== false,
+        successMessage: 'Invoice generated successfully.',
+      }
+    )
   }
 
   /**
-   * Generate invoice
+   * Generate invoice (legacy shape)
    */
   static async generateInvoice(data: {
     bookingId?: string
@@ -260,12 +305,22 @@ export class InvoicesService {
   }
 
   /**
+   * Admin: full manual invoice (matches fixer-backend InvoiceService.generateInvoice body).
+   */
+  static async generateInvoiceManual(payload: ManualInvoicePayload) {
+    return api.post<Invoice>('/invoices/generate', payload, {
+      loadingMessage: 'Creating invoice…',
+      showSuccessToast: false,
+      showErrorToast: true,
+    })
+  }
+
+  /**
    * Download invoice PDF
    */
-  static async downloadInvoicePDF(invoiceId: string) {
+  static async downloadInvoicePDF(invoiceId: string, fileName?: string) {
     try {
-      const base =
-        process.env.REACT_APP_API_URL || 'http://localhost:5000/api'
+      const base = getInvoiceApiBaseUrl()
       const token =
         store.getState().auth?.token ||
         (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null)
@@ -274,7 +329,7 @@ export class InvoicesService {
       }
 
       const response = await fetch(
-        `${base.replace(/\/$/, '')}/invoices/${encodeURIComponent(invoiceId)}/download`,
+        `${base}/invoices/${encodeURIComponent(invoiceId)}/download`,
         {
           method: 'GET',
           headers: {
@@ -299,7 +354,7 @@ export class InvoicesService {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `invoice-${invoiceId}.pdf`
+      a.download = (fileName || `invoice-${invoiceId}`).replace(/\.pdf$/i, '') + '.pdf'
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
@@ -309,6 +364,37 @@ export class InvoicesService {
     } catch (error: any) {
       return { success: false, error: error.message }
     }
+  }
+
+  /**
+   * Download several invoice PDFs sequentially (browser may block many parallel downloads).
+   * @param delayMs wait between each download to avoid rate limits / pop-up blockers
+   */
+  static async downloadInvoicePDFsBatch(
+    entries: { id: string; fileNameBase?: string }[],
+    options?: { delayMs?: number; onEach?: (index: number, id: string, ok: boolean, err?: string) => void }
+  ): Promise<{ ok: number; fail: number; errors: string[] }> {
+    const delayMs = options?.delayMs ?? 450
+    let ok = 0
+    let fail = 0
+    const errors: string[] = []
+    for (let i = 0; i < entries.length; i++) {
+      const { id, fileNameBase } = entries[i]
+      const r = await this.downloadInvoicePDF(id, fileNameBase)
+      if (r.success) {
+        ok++
+        options?.onEach?.(i, id, true)
+      } else {
+        fail++
+        const msg = (r as { error?: string }).error || 'Download failed'
+        errors.push(`${id}: ${msg}`)
+        options?.onEach?.(i, id, false, msg)
+      }
+      if (i < entries.length - 1) {
+        await new Promise((res) => setTimeout(res, delayMs))
+      }
+    }
+    return { ok, fail, errors }
   }
 
   /**

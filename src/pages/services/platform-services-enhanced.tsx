@@ -70,6 +70,7 @@ import { platformServicesService, PlatformService } from '../../services/api/pla
 import { CategoriesService } from '../../services/api/categories.service'
 import { ConfirmDialog } from '../../components/common/ConfirmDialog'
 import { useNavigate } from 'react-router-dom'
+import { formatCurrency } from '../../lib/utils'
 
 const CATEGORIES = [
   'home_repair',
@@ -79,6 +80,19 @@ const CATEGORIES = [
   'maintenance',
   'installation',
 ]
+
+/** API may return number or (legacy) string; keeps TS happy vs `!== ''` on number. */
+function hasDisplayableBasePrice(v: number | string | undefined | null): boolean {
+  if (v == null) return false
+  if (typeof v === 'string' && v.trim() === '') return false
+  const n = Number(v)
+  return !Number.isNaN(n)
+}
+
+function displayBasePrice(v: number | string | undefined | null): string {
+  if (!hasDisplayableBasePrice(v)) return 'N/A'
+  return formatCurrency(Number(v))
+}
 
 export function PlatformServicesEnhanced() {
   const navigate = useNavigate()
@@ -122,12 +136,14 @@ export function PlatformServicesEnhanced() {
     let isMounted = true
     const loadLookups = async () => {
       try {
-        const catRes = await CategoriesService.getCategories({ page: 1, limit: 500, is_active: true }).catch(() => null)
+        const cats = await CategoriesService.getCategoriesForServiceUIs({
+          page: 1,
+          limit: 500,
+          is_active: true,
+        }).catch(() => [] as { id: string; name: string }[])
         if (!isMounted) return
         const byId: Record<string, string> = {}
-        const list = (catRes as any)?.data?.categories ?? (catRes as any)?.data ?? (Array.isArray(catRes) ? catRes : [])
-        const cats = Array.isArray(list) ? list : []
-        cats.forEach((c: any) => {
+        ;(Array.isArray(cats) ? cats : []).forEach((c: any) => {
           const id = (c?.id ?? c?._id ?? '').toString().toLowerCase()
           const name = (c?.name ?? c?.title ?? '').toString().trim()
           if (id) byId[id] = name || id
@@ -649,7 +665,7 @@ export function PlatformServicesEnhanced() {
                       </TableCell>
                       <TableCell sx={{ py: 2 }}>
                         <Typography variant="body2" fontWeight="500">
-                          {service.base_price ? `$${Number(service.base_price).toFixed(2)}` : 'N/A'}
+                          {displayBasePrice(service.base_price)}
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ py: 2 }}>
@@ -772,7 +788,7 @@ export function PlatformServicesEnhanced() {
 
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                     <Typography variant="h6" color="primary.main" fontWeight="600">
-                      {service.base_price ? `$${Number(service.base_price).toFixed(2)}` : 'N/A'}
+                      {displayBasePrice(service.base_price)}
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       <StarIcon fontSize="small" color="warning" />
@@ -963,7 +979,7 @@ export function PlatformServicesEnhanced() {
                             Pricing
                           </Typography>
                           <Typography variant="h4" sx={{ fontWeight: 700, color: 'success.main', mb: 1 }}>
-                            ₹{selectedService.base_price ? Number(selectedService.base_price).toFixed(2) : 'N/A'}
+                            {displayBasePrice(selectedService.base_price)}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
                             GST: {selectedService.gst_percentage}% {selectedService.tax_included ? '(included)' : '(extra)'}
@@ -1072,10 +1088,12 @@ export function PlatformServicesEnhanced() {
                             Pricing Details
                           </Typography>
                           <Stack spacing={1.5}>
-                            {selectedService.base_price && (
+                            {hasDisplayableBasePrice(selectedService.base_price) && (
                               <Box>
                                 <Typography variant="caption" color="text.secondary">Base Price</Typography>
-                                <Typography variant="body2" fontWeight={500}>₹{Number(selectedService.base_price).toFixed(2)}</Typography>
+                                <Typography variant="body2" fontWeight={500}>
+                                  {displayBasePrice(selectedService.base_price)}
+                                </Typography>
                               </Box>
                             )}
                             {selectedService.hourly_rate && (
@@ -1256,7 +1274,7 @@ export function PlatformServicesEnhanced() {
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1 }}>
                                   <Typography variant="subtitle2" fontWeight={600}>{product.name}</Typography>
                                   {product.price && (
-                                    <Chip label={`₹${product.price}`} size="small" color="success" />
+                                    <Chip label={formatCurrency(Number(product.price))} size="small" color="success" />
                                   )}
                                 </Box>
                                 <Grid container spacing={1}>

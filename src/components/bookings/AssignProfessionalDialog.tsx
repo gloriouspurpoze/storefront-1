@@ -1,51 +1,30 @@
 /**
- * ============================================================================
- * ASSIGN PROFESSIONAL TO BOOKING DIALOG
- * ============================================================================
  * Dialog for admins to assign a professional to a booking
- * 
- * Features:
- * - Search professionals by name, category, location
- * - Filter by availability, rating, expertise
- * - Show professional details and stats
- * - Assign with one click
- * 
- * @author CTO Team
- * @date November 7, 2025
  */
 
 import React, { useState, useEffect } from 'react'
+import { Search, User, Star, MapPin, CheckCircle, Loader2 } from 'lucide-react'
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Card,
-  CardContent,
-  CardActions,
-  Typography,
-  Chip,
-  Avatar,
-  Box,
-  CircularProgress,
-  Alert,
-  Rating,
-  InputAdornment,
-  Grid,
-} from '@mui/material'
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
+import { Label } from '../ui/label'
+import { Card, CardContent, CardFooter } from '../ui/card'
+import { Badge } from '../ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import {
-  Search as SearchIcon,
-  Person as PersonIcon,
-  Star as StarIcon,
-  LocationOn as LocationIcon,
-  CheckCircle as CheckCircleIcon,
-} from '@mui/icons-material'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select'
+import { cn } from '../../lib/utils'
 import { ProfessionalsService } from '../../services/api/professionals.service'
 import { BookingsService } from '../../services/api/bookings.service'
 import type { Professional } from '../../types/professional.types'
@@ -54,17 +33,41 @@ interface AssignProfessionalDialogProps {
   open: boolean
   onClose: () => void
   bookingId: string
-  bookingService?: string // Service name/category to filter
-  bookingLocation?: string // Location to filter
+  bookingService?: string
+  bookingLocation?: string
   onAssigned?: () => void
+}
+
+function availabilityClass(a?: string) {
+  switch (a) {
+    case 'available':
+      return 'border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200'
+    case 'busy':
+      return 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200'
+    case 'offline':
+      return 'border-destructive/40 bg-destructive/10 text-destructive'
+    default:
+      return ''
+  }
+}
+
+function expertiseClass(e?: string) {
+  switch (e) {
+    case 'expert':
+      return 'border-red-500/40 bg-red-500/10 text-red-800 dark:text-red-200'
+    case 'intermediate':
+      return 'border-amber-500/40 bg-amber-500/10'
+    case 'beginner':
+      return 'border-sky-500/40 bg-sky-500/10'
+    default:
+      return ''
+  }
 }
 
 export function AssignProfessionalDialog({
   open,
   onClose,
   bookingId,
-  bookingService,
-  bookingLocation,
   onAssigned,
 }: AssignProfessionalDialogProps) {
   const [professionals, setProfessionals] = useState<Professional[]>([])
@@ -74,20 +77,17 @@ export function AssignProfessionalDialog({
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
-  // Filters
   const [searchQuery, setSearchQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [availabilityFilter, setAvailabilityFilter] = useState<string>('all')
   const [expertiseFilter, setExpertiseFilter] = useState<string>('all')
 
-  // Load professionals when dialog opens
   useEffect(() => {
     if (open) {
-      loadProfessionals()
+      void loadProfessionals()
     }
   }, [open])
 
-  // Apply filters
   useEffect(() => {
     applyFilters()
   }, [professionals, searchQuery, categoryFilter, availabilityFilter, expertiseFilter])
@@ -98,12 +98,12 @@ export function AssignProfessionalDialog({
     try {
       const response = await ProfessionalsService.getProfessionals({
         page: 1,
-        limit: 100, // Load all available professionals
-        isVerified: true, // Only verified professionals
+        limit: 100,
+        isVerified: true,
       })
       setProfessionals(response.data.professionals || [])
-    } catch (err: any) {
-      setError(err.message || 'Failed to load professionals')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load professionals')
     } finally {
       setLoading(false)
     }
@@ -112,7 +112,6 @@ export function AssignProfessionalDialog({
   const applyFilters = () => {
     let filtered = [...professionals]
 
-    // Search by name or email
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(
@@ -122,24 +121,19 @@ export function AssignProfessionalDialog({
       )
     }
 
-    // Filter by category
     if (categoryFilter && categoryFilter !== 'all') {
       filtered = filtered.filter((prof) => prof.categories?.includes(categoryFilter))
     }
 
-    // Filter by availability
     if (availabilityFilter && availabilityFilter !== 'all') {
       filtered = filtered.filter((prof) => prof.availability === availabilityFilter)
     }
 
-    // Filter by expertise
     if (expertiseFilter && expertiseFilter !== 'all') {
       filtered = filtered.filter((prof) => prof.expertiseLevel === expertiseFilter)
     }
 
-    // Sort by rating (highest first)
     filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0))
-
     setFilteredProfessionals(filtered)
   }
 
@@ -147,269 +141,213 @@ export function AssignProfessionalDialog({
     setAssigning(true)
     setError(null)
     setSuccess(null)
-
     try {
-      // Call API using BookingsService (proper pattern)
       const response = await BookingsService.assignProfessional(bookingId, professionalId, {
         notifyProfessional: true,
         notifyCustomer: true,
       })
-
       if (!response.success) {
         throw new Error(response.message || 'Assignment failed')
       }
-
       setSuccess('Professional assigned successfully!')
-      
-      // Call onAssigned callback after short delay
       setTimeout(() => {
         onAssigned?.()
         onClose()
       }, 1500)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error assigning professional:', err)
-      setError(err.message || 'Failed to assign professional')
+      setError(err instanceof Error ? err.message : 'Failed to assign professional')
     } finally {
       setAssigning(false)
     }
   }
 
-  const getAvailabilityColor = (availability?: string) => {
-    switch (availability) {
-      case 'available':
-        return 'success'
-      case 'busy':
-        return 'warning'
-      case 'offline':
-        return 'error'
-      default:
-        return 'default'
-    }
-  }
-
-  const getExpertiseColor = (expertise?: string) => {
-    switch (expertise) {
-      case 'expert':
-        return 'error'
-      case 'intermediate':
-        return 'warning'
-      case 'beginner':
-        return 'info'
-      default:
-        return 'default'
-    }
-  }
-
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-      <DialogTitle>
-        <Box display="flex" alignItems="center" gap={1}>
-          <PersonIcon />
-          <span>Assign Professional to Booking</span>
-        </Box>
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(o) => !o && !assigning && onClose()}>
+      <DialogContent className="max-h-[min(90vh,900px)] max-w-4xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Assign professional to booking
+          </DialogTitle>
+        </DialogHeader>
 
-      <DialogContent dividers>
-        {/* Success/Error Messages */}
         {success && (
-          <Alert severity="success" sx={{ mb: 2 }}>
+          <div className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-800 dark:text-emerald-200">
             {success}
-          </Alert>
+          </div>
         )}
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {error}
-          </Alert>
+          </div>
         )}
 
-        {/* TEMPORARY: Quick assign Zillur — backend resolves "zillur" to professional by firstName. Remove when no longer needed. */}
-        <Alert severity="info" sx={{ mb: 2 }}>
-          <strong>Quick assign:</strong>{' '}
+        <div className="rounded-md border border-sky-500/30 bg-sky-500/5 px-3 py-2 text-sm">
+          <strong className="text-foreground">Quick assign:</strong>{' '}
           <Button
-            size="small"
-            variant="contained"
-            color="primary"
-            onClick={() => handleAssign('zillur')}
+            type="button"
+            size="sm"
+            className="ml-2"
+            onClick={() => void handleAssign('zillur')}
             disabled={assigning}
           >
             Auto-assign Zillur
           </Button>
-        </Alert>
+        </div>
 
-        {/* Filters */}
-        <Box mb={3}>
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <TextField
-                fullWidth
+        <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-12">
+          <div className="md:col-span-6">
+            <Label className="sr-only" htmlFor="ap-search">
+              Search
+            </Label>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="ap-search"
+                className="pl-8"
                 placeholder="Search by name or email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
-                }}
               />
-            </Grid>
-            <Grid size={{ xs: 12, md: 2 }}>
-              <FormControl fullWidth>
-                <InputLabel>Category</InputLabel>
-                <Select
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  label="Category"
-                >
-                  <MenuItem value="all">All</MenuItem>
-                  <MenuItem value="electrician">Electrician</MenuItem>
-                  <MenuItem value="plumber">Plumber</MenuItem>
-                  <MenuItem value="carpenter">Carpenter</MenuItem>
-                  <MenuItem value="painter">Painter</MenuItem>
-                  <MenuItem value="cleaner">Cleaner</MenuItem>
-                  <MenuItem value="ac_technician">AC Technician</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid size={{ xs: 12, md: 2 }}>
-              <FormControl fullWidth>
-                <InputLabel>Availability</InputLabel>
-                <Select
-                  value={availabilityFilter}
-                  onChange={(e) => setAvailabilityFilter(e.target.value)}
-                  label="Availability"
-                >
-                  <MenuItem value="all">All</MenuItem>
-                  <MenuItem value="available">Available</MenuItem>
-                  <MenuItem value="busy">Busy</MenuItem>
-                  <MenuItem value="offline">Offline</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid size={{ xs: 12, md: 2 }}>
-              <FormControl fullWidth>
-                <InputLabel>Expertise</InputLabel>
-                <Select
-                  value={expertiseFilter}
-                  onChange={(e) => setExpertiseFilter(e.target.value)}
-                  label="Expertise"
-                >
-                  <MenuItem value="all">All</MenuItem>
-                  <MenuItem value="expert">Expert</MenuItem>
-                  <MenuItem value="intermediate">Intermediate</MenuItem>
-                  <MenuItem value="beginner">Beginner</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
-        </Box>
+            </div>
+          </div>
+          <div className="md:col-span-2">
+            <Label className="text-xs">Category</Label>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="electrician">Electrician</SelectItem>
+                <SelectItem value="plumber">Plumber</SelectItem>
+                <SelectItem value="carpenter">Carpenter</SelectItem>
+                <SelectItem value="painter">Painter</SelectItem>
+                <SelectItem value="cleaner">Cleaner</SelectItem>
+                <SelectItem value="ac_technician">AC Technician</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="md:col-span-2">
+            <Label className="text-xs">Availability</Label>
+            <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="available">Available</SelectItem>
+                <SelectItem value="busy">Busy</SelectItem>
+                <SelectItem value="offline">Offline</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="md:col-span-2">
+            <Label className="text-xs">Expertise</Label>
+            <Select value={expertiseFilter} onValueChange={setExpertiseFilter}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="expert">Expert</SelectItem>
+                <SelectItem value="intermediate">Intermediate</SelectItem>
+                <SelectItem value="beginner">Beginner</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-        {/* Loading State */}
         {loading && (
-          <Box display="flex" justifyContent="center" p={4}>
-            <CircularProgress />
-          </Box>
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          </div>
         )}
 
-        {/* Professionals Grid */}
         {!loading && filteredProfessionals.length === 0 && (
-          <Alert severity="info">
-            No professionals found matching your filters. Try adjusting your search criteria.
-          </Alert>
+          <div className="rounded-md border px-3 py-2 text-sm text-muted-foreground">
+            No professionals match your filters. Try adjusting search.
+          </div>
         )}
 
         {!loading && filteredProfessionals.length > 0 && (
-          <Grid container spacing={2}>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {filteredProfessionals.map((professional) => (
-              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={professional._id}>
-                <Card variant="outlined">
-                  <CardContent>
-                    {/* Avatar & Name */}
-                    <Box display="flex" alignItems="center" mb={2}>
-                      <Avatar
-                        src={professional.profileImage}
-                        sx={{ width: 56, height: 56, mr: 2 }}
-                      >
+              <Card key={professional._id} className="flex flex-col">
+                <CardContent className="flex-1 space-y-2 pt-4">
+                  <div className="flex items-center gap-2">
+                    <Avatar className="h-14 w-14">
+                      {professional.profileImage ? (
+                        <AvatarImage src={professional.profileImage} alt="" />
+                      ) : null}
+                      <AvatarFallback>
                         {professional.firstName[0]}
                         {professional.lastName[0]}
-                      </Avatar>
-                      <Box flex={1}>
-                        <Typography variant="h6" gutterBottom>
-                          {professional.firstName} {professional.lastName}
-                        </Typography>
-                        <Box display="flex" alignItems="center" gap={0.5}>
-                          <Rating value={professional.rating || 0} size="small" readOnly precision={0.1} />
-                          <Typography variant="caption" color="text.secondary">
-                            ({professional.totalReviews || 0})
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </Box>
-
-                    {/* Categories */}
-                    <Box display="flex" flexWrap="wrap" gap={0.5} mb={1}>
-                      {professional.categories?.slice(0, 2).map((cat) => (
-                        <Chip key={cat} label={cat} size="small" />
-                      ))}
-                      {(professional.categories?.length || 0) > 2 && (
-                        <Chip label={`+${professional.categories!.length - 2}`} size="small" />
-                      )}
-                    </Box>
-
-                    {/* Stats */}
-                    <Box display="flex" gap={1} mb={1}>
-                      <Chip
-                        label={professional.availability || 'unknown'}
-                        size="small"
-                        color={getAvailabilityColor(professional.availability)}
-                      />
-                      <Chip
-                        label={professional.expertiseLevel || 'unknown'}
-                        size="small"
-                        color={getExpertiseColor(professional.expertiseLevel)}
-                      />
-                    </Box>
-
-                    {/* Location */}
-                    {professional.address && (
-                      <Typography variant="caption" color="text.secondary" display="flex" alignItems="center" gap={0.5}>
-                        <LocationIcon fontSize="small" />
-                        {professional.address.area}, {professional.address.city}
-                      </Typography>
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold leading-tight">
+                        {professional.firstName} {professional.lastName}
+                      </p>
+                      <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                        <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
+                        {(professional.rating || 0).toFixed(1)} ({professional.totalReviews || 0})
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {professional.categories?.slice(0, 2).map((cat) => (
+                      <Badge key={cat} variant="secondary" className="text-xs">
+                        {cat}
+                      </Badge>
+                    ))}
+                    {(professional.categories?.length || 0) > 2 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{professional.categories!.length - 2}
+                      </Badge>
                     )}
-
-                    {/* Experience */}
-                    <Typography variant="caption" color="text.secondary" display="block" mt={0.5}>
-                      {professional.experience} years experience • {professional.completedJobs || 0} jobs completed
-                    </Typography>
-                  </CardContent>
-
-                  <CardActions>
-                    <Button
-                      fullWidth
-                      variant="contained"
-                      color="primary"
-                      startIcon={<CheckCircleIcon />}
-                      onClick={() => handleAssign(professional._id)}
-                      disabled={assigning || professional.availability === 'offline'}
-                    >
-                      {assigning ? 'Assigning...' : 'Assign'}
-                    </Button>
-                  </CardActions>
-                </Card>
-              </Grid>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    <Badge variant="outline" className={cn('text-xs capitalize', availabilityClass(professional.availability))}>
+                      {professional.availability || 'unknown'}
+                    </Badge>
+                    <Badge variant="outline" className={cn('text-xs capitalize', expertiseClass(professional.expertiseLevel))}>
+                      {professional.expertiseLevel || 'unknown'}
+                    </Badge>
+                  </div>
+                  {professional.address && (
+                    <p className="flex items-start gap-1 text-xs text-muted-foreground">
+                      <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      {professional.address.area}, {professional.address.city}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {professional.experience} years experience • {professional.completedJobs || 0} jobs
+                  </p>
+                </CardContent>
+                <CardFooter className="pt-0">
+                  <Button
+                    type="button"
+                    className="w-full gap-1"
+                    onClick={() => void handleAssign(professional._id)}
+                    disabled={assigning || professional.availability === 'offline'}
+                  >
+                    {assigning ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                    Assign
+                  </Button>
+                </CardFooter>
+              </Card>
             ))}
-          </Grid>
+          </div>
         )}
-      </DialogContent>
 
-      <DialogActions>
-        <Button onClick={onClose} disabled={assigning}>
-          Cancel
-        </Button>
-      </DialogActions>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose} disabled={assigning}>
+            Cancel
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   )
 }
-

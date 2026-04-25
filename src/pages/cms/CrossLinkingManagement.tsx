@@ -1,174 +1,172 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  Stack,
-  TextField,
-  Typography,
-  alpha,
-  useTheme,
-  CircularProgress,
-  IconButton,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
-} from '@mui/material';
-import { Add as AddIcon, Delete as DeleteIcon, Link as LinkIcon } from '@mui/icons-material';
-import { CMSService } from '../../services/api';
-import { PageHeader } from '../../components/common/PageHeader';
-import { CMS_CATALOG_CATEGORIES } from '../../constants/cmsCatalogCategories';
-import { appToast } from '../../lib/appToast';
+import React, { useState, useEffect } from 'react'
+import { Link2, Plus, Trash2, Loader2 } from 'lucide-react'
+import { Card, CardContent } from '../../components/ui/card'
+import { Button } from '../../components/ui/button'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select'
+import { PageHeader } from '../../components/common/PageHeader'
+import { CMSService } from '../../services/api'
+import { CMS_CATALOG_CATEGORIES } from '../../constants/cmsCatalogCategories'
+import { appToast } from '../../lib/appToast'
+import { cn } from '../../lib/utils'
 
 export default function CrossLinkingManagement() {
-  const theme = useTheme();
-  const [data, setData] = useState<Record<string, string[]>>({});
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>('ac');
-  const [newProblem, setNewProblem] = useState('');
+  const [data, setData] = useState<Record<string, string[]>>({})
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState<string>('ac')
+  const [newProblem, setNewProblem] = useState('')
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    fetchData()
+  }, [])
 
   const fetchData = async () => {
     try {
-      setLoading(true);
-      const result = await CMSService.getCrossLinking();
-      setData(typeof result === 'object' && result !== null ? result : {});
+      setLoading(true)
+      const result = await CMSService.getCrossLinking()
+      setData(typeof result === 'object' && result !== null ? result : {})
     } catch (error: any) {
-      console.error('Error fetching cross-linking:', error);
-      const msg = error.response?.data?.error || error.message || 'Failed to load';
-      appToast('Error: ' + msg, 'error');
-      setData({});
+      console.error('Error fetching cross-linking:', error)
+      const msg = error.response?.data?.error || error.message || 'Failed to load'
+      appToast('Error: ' + msg, 'error')
+      setData({})
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  const problems = data[selectedCategory] ?? [];
+  const problems = data[selectedCategory] ?? []
 
   const handleSave = async () => {
     try {
-      setSaving(true);
-      await CMSService.updateCrossLinking(data);
-      appToast('Cross-linking saved.', 'success');
-      fetchData();
+      setSaving(true)
+      await CMSService.updateCrossLinking(data)
+      appToast('Cross-linking saved.', 'success')
+      fetchData()
     } catch (error: any) {
-      appToast('Error: ' + (error.response?.data?.error || 'Failed to save'), 'error');
+      appToast('Error: ' + (error.response?.data?.error || 'Failed to save'), 'error')
     } finally {
-      setSaving(false);
+      setSaving(false)
     }
-  };
+  }
 
   const addProblem = () => {
-    const text = newProblem.trim();
-    if (!text) return;
-    const next = [...problems, text];
-    setData((prev) => ({ ...prev, [selectedCategory]: next }));
-    setNewProblem('');
-  };
+    const text = newProblem.trim()
+    if (!text) return
+    const next = [...problems, text]
+    setData((prev) => ({ ...prev, [selectedCategory]: next }))
+    setNewProblem('')
+  }
 
   const removeProblem = (index: number) => {
-    const next = problems.filter((_, i) => i !== index);
-    setData((prev) => ({ ...prev, [selectedCategory]: next }));
-  };
+    const next = problems.filter((_, i) => i !== index)
+    setData((prev) => ({ ...prev, [selectedCategory]: next }))
+  }
 
   return (
-    <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
+    <div className="p-4 sm:p-6 md:p-8">
       <PageHeader
         title="Cross-Linking (Common Problems)"
         subtitle="Common problems per category for SEO and catalog cross-linking block"
         action={
-          <Button
-            variant="contained"
-            startIcon={saving ? <CircularProgress size={18} /> : <LinkIcon />}
-            onClick={handleSave}
-            disabled={saving}
-            sx={{ borderRadius: 2 }}
-          >
+          <Button onClick={handleSave} disabled={saving} className="rounded-md">
+            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Link2 className="mr-2 h-4 w-4" />}
             {saving ? 'Saving…' : 'Save'}
           </Button>
         }
       />
 
-      <Card sx={{ mb: 3, borderRadius: 2 }}>
-        <CardContent>
-          <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel>Category</InputLabel>
-              <Select
-                value={selectedCategory}
-                label="Category"
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                sx={{ borderRadius: 2 }}
-              >
-                {CMS_CATALOG_CATEGORIES.map((opt) => (
-                  <MenuItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </MenuItem>
-                ))}
+      <Card className="mb-4 rounded-md">
+        <CardContent className="p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="space-y-2">
+              <Label htmlFor="cat-select">Category</Label>
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger id="cat-select" className="w-[200px] rounded-md">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CMS_CATALOG_CATEGORIES.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
-            </FormControl>
-          </Stack>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
       {loading ? (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="280px">
-          <CircularProgress />
-        </Box>
+        <div className="flex min-h-[280px] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
       ) : (
-        <Card sx={{ borderRadius: 2 }}>
-          <CardContent>
-            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
-              Common problems we fix — “{CMS_CATALOG_CATEGORIES.find((c) => c.value === selectedCategory)?.label ?? selectedCategory}”
-            </Typography>
-            <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
-              <TextField
-                fullWidth
-                size="small"
-                label="New problem"
-                value={newProblem}
-                onChange={(e) => setNewProblem(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addProblem())}
-                placeholder="e.g. AC Not Cooling properly"
-              />
-              <Button variant="contained" startIcon={<AddIcon />} onClick={addProblem} disabled={!newProblem.trim()}>
+        <Card className="rounded-md">
+          <CardContent className="p-4">
+            <p className="mb-4 text-sm text-muted-foreground">
+              Common problems we fix — “
+              {CMS_CATALOG_CATEGORIES.find((c) => c.value === selectedCategory)?.label ?? selectedCategory}”
+            </p>
+            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end">
+              <div className="min-w-0 flex-1 space-y-2">
+                <Label htmlFor="new-problem">New problem</Label>
+                <Input
+                  id="new-problem"
+                  value={newProblem}
+                  onChange={(e) => setNewProblem(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      addProblem()
+                    }
+                  }}
+                  placeholder="e.g. AC Not Cooling properly"
+                />
+              </div>
+              <Button onClick={addProblem} disabled={!newProblem.trim()} className="shrink-0 sm:mb-0.5">
+                <Plus className="mr-2 h-4 w-4" />
                 Add
               </Button>
-            </Stack>
-            <List dense sx={{ bgcolor: alpha(theme.palette.background.paper, 0.5), borderRadius: 2 }}>
+            </div>
+            <ul
+              className={cn(
+                'divide-y rounded-md border border-border bg-muted/30',
+                problems.length === 0 && 'p-3'
+              )}
+            >
               {problems.length === 0 ? (
-                <ListItem>
-                  <ListItemText primary="No problems added. Add items to show in catalog cross-linking block." primaryTypographyProps={{ color: 'text.secondary' }} />
-                </ListItem>
+                <li className="text-sm text-muted-foreground">
+                  No problems added. Add items to show in catalog cross-linking block.
+                </li>
               ) : (
                 problems.map((text, index) => (
-                  <ListItem key={index} divider={index < problems.length - 1}>
-                    <ListItemText primary={text} />
-                    <ListItemSecondaryAction>
-                      <IconButton size="small" color="error" onClick={() => removeProblem(index)}>
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </ListItemSecondaryAction>
-                  </ListItem>
+                  <li key={index} className="flex items-center justify-between gap-2 px-3 py-2">
+                    <span className="text-sm">{text}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0 text-destructive"
+                      title="Remove"
+                      onClick={() => removeProblem(index)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </li>
                 ))
               )}
-            </List>
-            <Button variant="outlined" startIcon={saving ? <CircularProgress size={18} /> : <LinkIcon />} onClick={handleSave} disabled={saving} sx={{ mt: 2 }}>
+            </ul>
+            <Button variant="outline" onClick={handleSave} disabled={saving} className="mt-4">
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Link2 className="mr-2 h-4 w-4" />}
               Save
             </Button>
           </CardContent>
         </Card>
       )}
-    </Box>
-  );
+    </div>
+  )
 }

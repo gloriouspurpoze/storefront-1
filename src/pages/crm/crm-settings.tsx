@@ -1,36 +1,22 @@
 import React, { useEffect, useState } from 'react'
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Typography,
-  Stack,
-  Alert,
-  TextField,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Paper,
-  Snackbar,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-} from '@mui/material'
-import {
-  CloudSync as SyncIcon,
-  Link as LinkIcon,
-  Security as SecurityIcon,
-  ExpandMore as ExpandMoreIcon,
-  Checklist as ChecklistIcon,
-} from '@mui/icons-material'
+import { ChevronDown, Cloud, Link2, ListChecks, RefreshCw, Shield } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { CrmSubnav } from '../../components/crm/CrmSubnav'
 import { crmApi } from '../../services/api/crm.api'
 import { crmService } from '../../services/api/crm.service'
 import { usePermissions } from '../../hooks/usePermissions'
+import { Card, CardContent } from '../../components/ui/card'
+import { Button } from '../../components/ui/button'
+import { Textarea } from '../../components/ui/textarea'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/table'
+import { cn } from '../../lib/utils'
 
 const ENTITY_OPTIONS = ['contact', 'company', 'deal', 'activity'] as const
 
@@ -72,6 +58,12 @@ export function CrmSettings() {
       .then((r) => setRulesJson(JSON.stringify(r.rules, null, 2)))
       .catch(() => {})
   }, [isApi, canManage])
+
+  useEffect(() => {
+    if (!snackbar.open) return undefined
+    const t = window.setTimeout(() => setSnackbar((s) => ({ ...s, open: false })), 5000)
+    return () => window.clearTimeout(t)
+  }, [snackbar.open, snackbar.message])
 
   const connectGoogle = async () => {
     try {
@@ -134,162 +126,168 @@ export function CrmSettings() {
   }, [])
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }}>
+    <div className="p-4 md:p-6">
       <PageHeader
         title="CRM settings"
         subtitle="Google Calendar & Gmail sync, and server-side field policies (API mode)."
       />
       <CrmSubnav />
 
-      <Accordion variant="outlined" disableGutters sx={{ mb: 2, '&:before': { display: 'none' } }}>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 2 }}>
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <ChecklistIcon color="action" fontSize="small" />
-            <Typography fontWeight={600}>Production launch checklist (internal)</Typography>
-          </Stack>
-        </AccordionSummary>
-        <AccordionDetails sx={{ pt: 0, px: 2, pb: 2 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-            Use before go-live. Full env notes live in <code>.env.example</code> (CRM section).
-          </Typography>
-          <Box component="ul" sx={{ m: 0, pl: 2.5 }}>
+      <details className="mb-4 rounded-md border group">
+        <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-3 text-sm font-semibold [&::-webkit-details-marker]:hidden">
+          <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+          <ListChecks className="h-4 w-4 text-muted-foreground" />
+          Production launch checklist (internal)
+        </summary>
+        <div className="border-t px-3 pb-4 pt-0">
+          <p className="mb-3 text-sm text-muted-foreground">
+            Use before go-live. Full env notes live in <code className="rounded bg-muted px-1 py-0.5 text-xs">.env.example</code> (CRM section).
+          </p>
+          <ul className="list-inside list-disc space-y-2 pl-0.5 text-sm text-muted-foreground">
             {PRODUCTION_LAUNCH_CHECKLIST.map((line) => (
-              <Typography key={line.slice(0, 48)} component="li" variant="body2" color="text.secondary" sx={{ mb: 0.75 }}>
-                {line}
-              </Typography>
+              <li key={line.slice(0, 48)}>{line}</li>
             ))}
-          </Box>
-        </AccordionDetails>
-      </Accordion>
+          </ul>
+        </div>
+      </details>
 
       {!isApi && (
-        <Alert severity="info" sx={{ mb: 2 }}>
-          Set <code>REACT_APP_CRM_USE_API=true</code> and point <code>REACT_APP_API_URL</code> at your fixer-backend
-          <code>/api</code> to enable integrations and field-level permissions from MongoDB.
-        </Alert>
+        <div
+          role="status"
+          className="mb-4 rounded-md border border-sky-500/40 bg-sky-500/10 px-4 py-3 text-sm text-sky-900 dark:text-sky-100"
+        >
+          Set <code className="rounded bg-background/60 px-1">REACT_APP_CRM_USE_API=true</code> and point{' '}
+          <code className="rounded bg-background/60 px-1">REACT_APP_API_URL</code> at your fixer-backend
+          <code className="rounded bg-background/60 px-1">/api</code> to enable integrations and field-level permissions from MongoDB.
+        </div>
       )}
 
       {isApi && (
         <>
-          <Card variant="outlined" sx={{ mb: 3 }}>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-                <LinkIcon color="primary" />
-                <Typography variant="h6" fontWeight={600}>
-                  Email &amp; calendar sync (Google)
-                </Typography>
-              </Stack>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Connect a Google workspace account with Calendar + Gmail read-only. Sync creates CRM activities
-                (meetings from calendar; email subjects as notes). Configure OAuth in the backend env:{' '}
-                <code>CRM_GOOGLE_CLIENT_ID</code>, <code>CRM_GOOGLE_CLIENT_SECRET</code>,{' '}
-                <code>CRM_GOOGLE_REDIRECT_URI</code>.
-              </Typography>
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <div className="mb-2 flex items-center gap-2">
+                <Link2 className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-semibold">Email &amp; calendar sync (Google)</h2>
+              </div>
+              <p className="mb-4 text-sm text-muted-foreground">
+                Connect a Google workspace account with Calendar + Gmail read-only. Sync creates CRM activities (meetings from calendar; email
+                subjects as notes). Configure OAuth in the backend env: <code className="rounded bg-muted px-1 text-xs">CRM_GOOGLE_CLIENT_ID</code>
+                , <code className="rounded bg-muted px-1 text-xs">CRM_GOOGLE_CLIENT_SECRET</code>,{' '}
+                <code className="rounded bg-muted px-1 text-xs">CRM_GOOGLE_REDIRECT_URI</code>.
+              </p>
               {status && (
-                <Typography variant="body2" sx={{ mb: 2 }}>
+                <p className="mb-4 text-sm">
                   Status: {status.googleConnected ? 'Connected' : 'Not connected'}
                   {status.lastCalendarSyncAt && (
                     <> · Last calendar sync: {new Date(status.lastCalendarSyncAt).toLocaleString()}</>
                   )}
-                  {status.lastEmailSyncAt && (
-                    <> · Last email sync: {new Date(status.lastEmailSyncAt).toLocaleString()}</>
-                  )}
-                </Typography>
+                  {status.lastEmailSyncAt && <> · Last email sync: {new Date(status.lastEmailSyncAt).toLocaleString()}</>}
+                </p>
               )}
               {syncMsg && (
-                <Alert severity="info" sx={{ mb: 2 }}>
+                <div
+                  role="status"
+                  className="mb-4 rounded-md border border-sky-500/40 bg-sky-500/10 px-4 py-2 text-sm text-sky-900 dark:text-sky-100"
+                >
                   {syncMsg}
-                </Alert>
+                </div>
               )}
               {canManage ? (
-                <Stack direction="row" flexWrap="wrap" gap={1}>
-                  <Button variant="contained" startIcon={<LinkIcon />} onClick={connectGoogle}>
+                <div className="flex flex-wrap gap-2">
+                  <Button className="gap-1" onClick={connectGoogle}>
+                    <Link2 className="h-4 w-4" />
                     Connect Google
                   </Button>
-                  <Button variant="outlined" startIcon={<SyncIcon />} onClick={runCalendar}>
+                  <Button variant="outline" className="gap-1" onClick={runCalendar}>
+                    <Cloud className="h-4 w-4" />
                     Sync calendar
                   </Button>
-                  <Button variant="outlined" startIcon={<SyncIcon />} onClick={runEmail}>
+                  <Button variant="outline" className="gap-1" onClick={runEmail}>
+                    <RefreshCw className="h-4 w-4" />
                     Sync email
                   </Button>
-                </Stack>
+                </div>
               ) : (
-                <Typography variant="body2" color="text.secondary">
-                  Manage CRM permission required to connect and sync.
-                </Typography>
+                <p className="text-sm text-muted-foreground">Manage CRM permission required to connect and sync.</p>
               )}
             </CardContent>
           </Card>
 
-          <Card variant="outlined" sx={{ mb: 3 }}>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-                <SecurityIcon color="primary" />
-                <Typography variant="h6" fontWeight={600}>
-                  Field-level permissions
-                </Typography>
-              </Stack>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Rules match <code>roleKey</code> to the user&apos;s MongoDB Role name (or <code>userType</code> if no
-                role). Users with <code>manage_crm</code> bypass all field restrictions. Default for others: read all,
-                write none — add rules to open specific fields per role.
-              </Typography>
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <div className="mb-2 flex items-center gap-2">
+                <Shield className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-semibold">Field-level permissions</h2>
+              </div>
+              <p className="mb-4 text-sm text-muted-foreground">
+                Rules match <code className="rounded bg-muted px-1 text-xs">roleKey</code> to the user&apos;s MongoDB Role name (or{' '}
+                <code className="rounded bg-muted px-1 text-xs">userType</code> if no role). Users with{' '}
+                <code className="rounded bg-muted px-1 text-xs">manage_crm</code> bypass all field restrictions. Default for others: read all, write
+                none — add rules to open specific fields per role.
+              </p>
+              <p className="mb-2 text-xs text-muted-foreground">
                 Entities: {ENTITY_OPTIONS.join(', ')} · Example field keys: email, phone, notes, amount…
-              </Typography>
+              </p>
               {canManage ? (
                 <>
-                  <TextField
-                    fullWidth
-                    multiline
-                    minRows={12}
+                  <Textarea
                     value={rulesJson}
                     onChange={(e) => setRulesJson(e.target.value)}
-                    sx={{ fontFamily: 'monospace', fontSize: 13 }}
+                    rows={14}
+                    className="font-mono text-[13px]"
                   />
-                  <Button variant="contained" sx={{ mt: 2 }} onClick={savePolicies}>
+                  <Button className="mt-4" onClick={savePolicies}>
                     Save policies
                   </Button>
                 </>
               ) : (
-                <Typography variant="body2">View-only — field policy editing requires manage_crm.</Typography>
+                <p className="text-sm">View-only — field policy editing requires manage_crm.</p>
               )}
             </CardContent>
           </Card>
 
-          <Paper variant="outlined" sx={{ p: 2 }}>
-            <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
-              Rule shape
-            </Typography>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>roleKey</TableCell>
-                  <TableCell>entity</TableCell>
-                  <TableCell>field</TableCell>
-                  <TableCell>read</TableCell>
-                  <TableCell>write</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                <TableRow>
-                  <TableCell>moderator</TableCell>
-                  <TableCell>contact</TableCell>
-                  <TableCell>email</TableCell>
-                  <TableCell>true</TableCell>
-                  <TableCell>false</TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </Paper>
+          <div className="rounded-md border p-4">
+            <h3 className="mb-3 text-sm font-semibold">Rule shape</h3>
+            <div className="w-full overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>roleKey</TableHead>
+                    <TableHead>entity</TableHead>
+                    <TableHead>field</TableHead>
+                    <TableHead>read</TableHead>
+                    <TableHead>write</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell>moderator</TableCell>
+                    <TableCell>contact</TableCell>
+                    <TableCell>email</TableCell>
+                    <TableCell>true</TableCell>
+                    <TableCell>false</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          </div>
         </>
       )}
 
-      <Snackbar open={snackbar.open} autoHideDuration={5000} onClose={() => setSnackbar((s) => ({ ...s, open: false }))}>
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar((s) => ({ ...s, open: false }))}>
+      {snackbar.open ? (
+        <div
+          role="status"
+          className={cn(
+            'fixed bottom-4 left-1/2 z-[200] w-[min(100%,20rem)] -translate-x-1/2 rounded-md border px-4 py-2 text-sm shadow-md',
+            snackbar.severity === 'error'
+              ? 'border-destructive bg-destructive text-destructive-foreground'
+              : 'border-emerald-600 bg-emerald-600 text-white',
+          )}
+        >
           {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+        </div>
+      ) : null}
+    </div>
   )
 }

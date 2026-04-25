@@ -1,5 +1,6 @@
 import React from 'react'
-import { Alert, Box, Button } from '@mui/material'
+import { Button } from '../ui/button'
+import { cn } from '../../lib/utils'
 
 type Props = {
   loading: boolean
@@ -15,18 +16,19 @@ export function CrmListShell({ loading, error, onRetry, isEmpty, empty, skeleton
   if (loading) return <>{skeleton}</>
   if (error) {
     return (
-      <Alert
-        severity="error"
-        action={
-          <Button color="inherit" size="small" onClick={onRetry}>
-            Retry
-          </Button>
-        }
+      <div
+        role="alert"
+        className={cn(
+          'flex flex-wrap items-center justify-between gap-3 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive'
+        )}
       >
-        {error}
-      </Alert>
+        <span className="min-w-0 flex-1">{error}</span>
+        <Button type="button" variant="outline" size="sm" onClick={onRetry} className="shrink-0 border-destructive/50 text-destructive hover:bg-destructive/10">
+          Retry
+        </Button>
+      </div>
     )
   }
-  if (isEmpty) return <Box>{empty}</Box>
+  if (isEmpty) return <div>{empty}</div>
   return <>{children}</>
 }

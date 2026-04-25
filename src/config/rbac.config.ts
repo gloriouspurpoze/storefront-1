@@ -424,9 +424,19 @@ export const routePermissions: RoutePermission[] = [
     allowedRoles: ['super_admin', 'admin', 'manager', 'staff', 'provider']
   },
   
-  // Categories
+  // Categories (hub, scoped lists, and create/edit under /categories/...)
   {
     path: '/categories',
+    requiredPermissions: ['view_categories'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+  {
+    path: '/categories/products',
+    requiredPermissions: ['view_categories'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+  {
+    path: '/categories/services',
     requiredPermissions: ['view_categories'],
     allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
   },

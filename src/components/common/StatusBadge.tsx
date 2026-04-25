@@ -1,66 +1,42 @@
 import React from 'react'
-import { Chip, ChipProps } from '@mui/material'
-import { styled } from '@mui/material/styles'
+import { cn } from '../../lib/utils'
 import { OrderStatus } from '../../types'
+import { Badge, type BadgeProps } from '../ui/badge'
 
-interface StatusBadgeProps extends Omit<ChipProps, 'color'> {
+interface StatusBadgeProps extends Omit<BadgeProps, 'variant' | 'children'> {
   status: OrderStatus
   size?: 'small' | 'medium'
 }
 
-const StyledChip = styled(Chip)<{ status: OrderStatus }>(({ theme, status }) => {
-  const getStatusColor = (status: OrderStatus) => {
-    switch (status) {
-      case 'accepted':
-        return {
-          backgroundColor: theme.palette.success.light,
-          color: theme.palette.success.contrastText,
-        }
-      case 'pending':
-        return {
-          backgroundColor: theme.palette.warning.light,
-          color: theme.palette.warning.contrastText,
-        }
-      case 'completed':
-        return {
-          backgroundColor: theme.palette.info.light,
-          color: theme.palette.info.contrastText,
-        }
-      case 'rejected':
-      case 'cancelled':
-        return {
-          backgroundColor: theme.palette.error.light,
-          color: theme.palette.error.contrastText,
-        }
-      default:
-        return {
-          backgroundColor: theme.palette.grey[300],
-          color: theme.palette.grey[700],
-        }
-    }
+function statusClass(status: OrderStatus): string {
+  switch (status) {
+    case 'accepted':
+      return 'border-transparent bg-green-200 text-green-900 dark:bg-green-900/40 dark:text-green-100'
+    case 'pending':
+      return 'border-transparent bg-yellow-200 text-yellow-900 dark:bg-yellow-900/40 dark:text-yellow-100'
+    case 'completed':
+      return 'border-transparent bg-sky-200 text-sky-900 dark:bg-sky-900/40 dark:text-sky-100'
+    case 'rejected':
+    case 'cancelled':
+      return 'border-transparent bg-red-200 text-red-900 dark:bg-red-900/40 dark:text-red-100'
+    default:
+      return 'border-transparent bg-muted text-muted-foreground'
   }
+}
 
-  return {
-    ...getStatusColor(status),
-    fontWeight: 600,
-    textTransform: 'capitalize',
-    '& .MuiChip-label': {
-      px: 1.5,
-    },
-  }
-})
-
-export const StatusBadge: React.FC<StatusBadgeProps> = ({ 
-  status, 
-  size = 'small',
-  ...props 
-}) => {
+export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'small', className, ...props }) => {
   return (
-    <StyledChip
-      label={status}
-      status={status}
-      size={size}
+    <Badge
+      variant="outline"
+      className={cn(
+        'max-w-full font-semibold capitalize',
+        size === 'small' ? 'px-1.5 py-0 text-xs' : 'px-2 py-0.5 text-sm',
+        statusClass(status),
+        className
+      )}
       {...props}
-    />
+    >
+      {status}
+    </Badge>
   )
 }

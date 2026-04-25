@@ -1,29 +1,20 @@
 /**
- * StandardTable – Single reusable data table for the project.
- * Features: sorting (client or server), search, pagination, selection, loading, empty state.
- * Use this component everywhere for consistent UX.
+ * StandardTable – Single reusable data table (shadcn + Tailwind, no MUI).
  */
 import React, { useState, useMemo } from 'react'
+import { Search, X, ChevronUp, ChevronDown } from 'lucide-react'
+import { Input } from '../ui/input'
+import { Checkbox } from '../ui/checkbox'
+import { Button } from '../ui/button'
 import {
-  Box,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  Paper,
-  TablePagination,
-  TableSortLabel,
-  Checkbox,
-  TextField,
-  InputAdornment,
-  Typography,
-  Skeleton,
-  alpha,
-  useTheme,
-} from '@mui/material'
-import { Search as SearchIcon, Clear as ClearIcon } from '@mui/icons-material'
+} from '../ui/table'
+import { cn } from '../../lib/utils'
 import { EmptyState } from './EmptyState'
 
 export interface StandardTableColumn<T = any> {
@@ -33,73 +24,45 @@ export interface StandardTableColumn<T = any> {
   width?: number | string
   align?: 'left' | 'right' | 'center'
   sortable?: boolean
-  /** Value used for sorting when column is sortable. Defaults to row[column.id]. */
   valueGetter?: (row: T) => string | number | null | undefined
-  /** Custom cell render. Receives (value, row). */
   render?: (value: any, row: T) => React.ReactNode
 }
 
 export type SortOrder = 'asc' | 'desc'
 
 export interface StandardTableProps<T = any> {
-  /** Column definitions */
   columns: StandardTableColumn<T>[]
-  /** Data rows */
   data: T[]
-  /** Unique row id. Default: row => row.id ?? row._id ?? index */
   getRowId?: (row: T, index: number) => string
-  /** Table title (optional, shown above toolbar) */
   title?: string
-
-  // —— Search ——
   searchPlaceholder?: string
   searchValue?: string
   onSearchChange?: (value: string) => void
-  /** When true, search is controlled by parent (searchValue + onSearchChange). Otherwise internal state. */
   searchControlled?: boolean
-
-  // —— Sort ——
   sortBy?: string
   sortOrder?: SortOrder
   onSortChange?: (sortBy: string, sortOrder: SortOrder) => void
-  /** When true, sort is controlled by parent. When false and columns have sortable, client-side sort. */
   sortControlled?: boolean
-
-  // —— Pagination ——
   page?: number
   rowsPerPage?: number
   totalCount?: number
   onPageChange?: (page: number) => void
   onRowsPerPageChange?: (rowsPerPage: number) => void
   rowsPerPageOptions?: number[]
-
-  // —— Selection ——
   selectable?: boolean
   selectedIds?: string[]
   onSelectionChange?: (selectedIds: string[]) => void
-
-  // —— State ——
   loading?: boolean
   emptyMessage?: string
   emptyDescription?: string
   error?: string | null
-
-  // —— UI ——
-  /** Toolbar left content (e.g. "Add" button). Search sits next to it. */
   toolbarLeft?: React.ReactNode
-  /** Toolbar right content */
   toolbarRight?: React.ReactNode
-  /** Render extra column for row actions (e.g. IconButton menu) */
   renderActions?: (row: T, index: number) => React.ReactNode
-  /** Table size */
   size?: 'small' | 'medium'
-  /** Sticky table header */
   stickyHeader?: boolean
-  /** Hide table border / paper */
   elevation?: number
-  /** Min height for table body (avoids layout shift when empty) */
   minHeight?: number
-  /** Show search bar */
   showSearch?: boolean
 }
 
@@ -110,45 +73,36 @@ export function StandardTable<T = any>({
   data,
   getRowId = (row: any, index: number) => row?.id ?? row?._id ?? String(index),
   title,
-
   searchPlaceholder = 'Search…',
   searchValue: searchValueProp,
   onSearchChange,
   searchControlled = false,
-
   sortBy: sortByProp,
   sortOrder: sortOrderProp,
   onSortChange,
   sortControlled = false,
-
   page: pageProp = 0,
   rowsPerPage: rowsPerPageProp = 10,
   totalCount: totalCountProp,
   onPageChange,
   onRowsPerPageChange,
   rowsPerPageOptions = defaultRowsPerPageOptions,
-
   selectable = false,
   selectedIds: selectedIdsProp = [],
   onSelectionChange,
-
   loading = false,
   emptyMessage = 'No data',
   emptyDescription,
   error = null,
-
   toolbarLeft,
   toolbarRight,
   renderActions,
-  size = 'medium',
+  size: _size = 'medium',
   stickyHeader = false,
-  elevation = 0,
+  elevation: _elevation = 0,
   minHeight = 280,
   showSearch = true,
 }: StandardTableProps<T>) {
-  const theme = useTheme()
-
-  // Uncontrolled search
   const [searchInternal, setSearchInternal] = useState('')
   const searchValue = searchControlled ? (searchValueProp ?? '') : searchInternal
   const setSearchValue = searchControlled ? (onSearchChange ?? (() => {})) : setSearchInternal
@@ -162,7 +116,6 @@ export function StandardTable<T = any>({
     if (searchControlled && onSearchChange) onSearchChange('')
   }
 
-  // Uncontrolled sort (client-side)
   const [sortByInternal, setSortByInternal] = useState('')
   const [sortOrderInternal, setSortOrderInternal] = useState<SortOrder>('asc')
   const sortBy = sortControlled ? (sortByProp ?? '') : sortByInternal
@@ -171,8 +124,7 @@ export function StandardTable<T = any>({
   const handleSortClick = (columnId: string) => {
     const col = columns.find((c) => c.id === columnId)
     if (!col?.sortable) return
-    const nextOrder: SortOrder =
-      sortBy === columnId && sortOrder === 'asc' ? 'desc' : 'asc'
+    const nextOrder: SortOrder = sortBy === columnId && sortOrder === 'asc' ? 'desc' : 'asc'
     if (sortControlled && onSortChange) {
       onSortChange(columnId, nextOrder)
     } else {
@@ -181,7 +133,6 @@ export function StandardTable<T = any>({
     }
   }
 
-  // Client-side sorted data when sort not controlled
   const sortedData = useMemo(() => {
     if (sortControlled || !sortBy) return data
     const col = columns.find((c) => c.id === sortBy)
@@ -198,7 +149,6 @@ export function StandardTable<T = any>({
     })
   }, [data, sortBy, sortOrder, sortControlled, columns])
 
-  // Pagination: when uncontrolled, use client-side slice
   const [pageInternal, setPageInternal] = useState(0)
   const [rowsPerPageInternal, setRowsPerPageInternal] = useState(rowsPerPageProp)
   const page = pageProp ?? pageInternal
@@ -212,11 +162,12 @@ export function StandardTable<T = any>({
     return sortedData.slice(start, start + rowsPerPage)
   }, [sortedData, page, rowsPerPage, isPaginationControlled])
 
-  const handlePageChange = (_: unknown, newPage: number) => {
+  const goToPage = (newPage: number) => {
     if (isPaginationControlled && onPageChange) onPageChange(newPage)
     else setPageInternal(newPage)
   }
-  const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+  const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const v = parseInt(e.target.value, 10)
     if (isPaginationControlled && onRowsPerPageChange) onRowsPerPageChange(v)
     else setRowsPerPageInternal(v)
@@ -224,211 +175,249 @@ export function StandardTable<T = any>({
     if (onPageChange && isPaginationControlled) onPageChange(0)
   }
 
-  // Selection
   const selectedIds = selectedIdsProp ?? []
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
-  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSelectAll = (value: boolean | 'indeterminate') => {
     if (!onSelectionChange) return
-    if (e.target.checked) {
+    if (value === true) {
       onSelectionChange(paginatedData.map((row, i) => getRowId(row, i)))
     } else {
       onSelectionChange([])
     }
   }
+
   const handleSelectRow = (row: T, index: number) => {
     if (!onSelectionChange) return
     const id = getRowId(row, index)
-    if (selectedSet.has(id)) {
-      onSelectionChange(selectedIds.filter((x) => x !== id))
-    } else {
-      onSelectionChange([...selectedIds, id])
-    }
+    if (selectedSet.has(id)) onSelectionChange(selectedIds.filter((x) => x !== id))
+    else onSelectionChange([...selectedIds, id])
   }
+
   const allSelected =
     paginatedData.length > 0 &&
     paginatedData.every((row, i) => selectedSet.has(getRowId(row, i)))
   const someSelected = selectedIds.length > 0
-
   const colCount = columns.length + (selectable ? 1 : 0) + (renderActions ? 1 : 0)
+  const lastPage = Math.max(0, Math.ceil(totalCount / rowsPerPage) - 1)
+  const from = totalCount === 0 ? 0 : page * rowsPerPage + 1
+  const to = Math.min((page + 1) * rowsPerPage, totalCount)
+
+  const headerClass = cn(stickyHeader && 'sticky top-0 z-20 bg-card shadow-sm')
 
   return (
-    <Box sx={{ width: '100%' }}>
-      {/* Toolbar: left content + search + right content */}
+    <div className="w-full">
+      {title && <h2 className="mb-2 text-lg font-semibold leading-none tracking-tight">{title}</h2>}
       {(toolbarLeft || showSearch || toolbarRight) && (
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 2,
-            flexWrap: 'wrap',
-            mb: 2,
-          }}
-        >
+        <div className="mb-3 flex flex-wrap items-center gap-2">
           {toolbarLeft}
           {showSearch && (
-            <TextField
-              size="small"
-              placeholder={searchPlaceholder}
-              value={searchValue}
-              onChange={handleSearchChange}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" color="action" />
-                  </InputAdornment>
-                ),
-                endAdornment: searchValue ? (
-                  <InputAdornment position="end">
-                    <ClearIcon
-                      fontSize="small"
-                      sx={{ cursor: 'pointer' }}
-                      onClick={clearSearch}
-                    />
-                  </InputAdornment>
-                ) : null,
-              }}
-              sx={{ minWidth: 220 }}
-            />
+            <div className="relative min-w-[220px] max-w-sm flex-1">
+              <Search
+                className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden
+              />
+              <Input
+                className="h-9 pl-8 pr-8"
+                placeholder={searchPlaceholder}
+                value={searchValue}
+                onChange={handleSearchChange}
+              />
+              {searchValue ? (
+                <button
+                  type="button"
+                  onClick={clearSearch}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label="Clear search"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              ) : null}
+            </div>
           )}
-          <Box sx={{ flex: 1, minWidth: 0 }} />
+          <div className="min-w-0 flex-1" />
           {toolbarRight}
-        </Box>
+        </div>
       )}
 
-      {error && (
-        <Typography color="error" sx={{ mb: 2 }}>
-          {error}
-        </Typography>
-      )}
+      {error && <p className="mb-2 text-sm text-destructive">{error}</p>}
 
-      <TableContainer
-        component={Paper}
-        elevation={elevation}
-        sx={{
-          overflow: 'auto',
-          minHeight: loading || paginatedData.length === 0 ? minHeight : undefined,
-        }}
+      <div
+        className="overflow-x-auto rounded-md border border-border bg-card"
+        style={{ minHeight: loading || paginatedData.length === 0 ? minHeight : undefined }}
       >
-        <Table size={size} stickyHeader={stickyHeader}>
-          <TableHead>
-            <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.08) }}>
+        <Table>
+          <TableHeader className={headerClass}>
+            <TableRow className="hover:bg-transparent">
               {selectable && (
-                <TableCell padding="checkbox">
+                <TableHead className="w-10 p-2">
                   <Checkbox
-                    indeterminate={someSelected && !allSelected}
-                    checked={allSelected}
-                    onChange={handleSelectAll}
+                    checked={allSelected ? true : !someSelected ? false : 'indeterminate'}
+                    onCheckedChange={handleSelectAll}
                     disabled={loading || paginatedData.length === 0}
+                    aria-label="Select all on page"
                   />
-                </TableCell>
+                </TableHead>
               )}
               {columns.map((col) => (
-                <TableCell
+                <TableHead
                   key={col.id}
-                  align={col.align}
-                  style={{
-                    minWidth: col.minWidth,
-                    width: col.width,
-                    fontWeight: 600,
-                  }}
+                  className={cn(
+                    'p-2 font-semibold',
+                    col.align === 'right' && 'text-right',
+                    col.align === 'center' && 'text-center',
+                    col.minWidth != null && `min-w-[${col.minWidth}px]`,
+                    typeof col.width === 'number' && `w-[${col.width}px]`,
+                    typeof col.width === 'string' && col.width,
+                  )}
                 >
                   {col.sortable ? (
-                    <TableSortLabel
-                      active={sortBy === col.id}
-                      direction={sortBy === col.id ? sortOrder : 'asc'}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="h-8 -ml-2 gap-0.5 font-semibold text-foreground hover:bg-transparent"
                       onClick={() => handleSortClick(col.id)}
                     >
                       {col.label}
-                    </TableSortLabel>
+                      {sortBy === col.id ? (
+                        sortOrder === 'asc' ? (
+                          <ChevronUp className="h-4 w-4 shrink-0" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 shrink-0" />
+                        )
+                      ) : null}
+                    </Button>
                   ) : (
                     col.label
                   )}
-                </TableCell>
+                </TableHead>
               ))}
-              {renderActions && <TableCell align="right" sx={{ fontWeight: 600 }}>Actions</TableCell>}
+              {renderActions && <TableHead className="p-2 text-right">Actions</TableHead>}
             </TableRow>
-          </TableHead>
+          </TableHeader>
           <TableBody>
-            {loading ? (
-              Array.from({ length: Math.min(5, rowsPerPage) }).map((_, i) => (
-                <TableRow key={`skeleton-${i}`}>
-                  {selectable && <TableCell padding="checkbox" />}
-                  {columns.map((col) => (
-                    <TableCell key={col.id}>
-                      <Skeleton variant="text" width="80%" />
-                    </TableCell>
-                  ))}
-                  {renderActions && <TableCell />}
-                </TableRow>
-              ))
-            ) : paginatedData.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={colCount} sx={{ border: 0, py: 0, verticalAlign: 'top' }}>
-                  <EmptyState
-                    title={emptyMessage}
-                    description={emptyDescription ?? (searchValue ? 'Try a different search' : '')}
-                    size="small"
-                  />
-                </TableCell>
-              </TableRow>
-            ) : (
-              paginatedData.map((row, index) => {
-                const id = getRowId(row, index)
-                const isSelected = selectedSet.has(id)
-                return (
-                  <TableRow
-                    key={id}
-                    hover
-                    selected={isSelected}
-                    sx={{ '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.04) } }}
-                  >
+            {loading
+              ? Array.from({ length: Math.min(5, rowsPerPage) }).map((_, i) => (
+                  <TableRow key={`skeleton-${i}`}>
                     {selectable && (
-                      <TableCell padding="checkbox">
-                        <Checkbox
-                          checked={isSelected}
-                          onChange={() => handleSelectRow(row, index)}
-                        />
+                      <TableCell className="p-2">
+                        <div className="h-4 w-4 animate-pulse rounded bg-muted" />
                       </TableCell>
                     )}
-                    {columns.map((col) => {
-                      const value = (row as any)[col.id]
-                      const cellContent = col.render
-                        ? col.render(value, row)
-                        : value != null
-                          ? String(value)
-                          : '—'
-                      return (
-                        <TableCell key={col.id} align={col.align}>
-                          {cellContent}
-                        </TableCell>
-                      )
-                    })}
-                    {renderActions && (
-                      <TableCell align="right" onClick={(e) => e.stopPropagation()}>
-                        {renderActions(row, index)}
+                    {columns.map((col) => (
+                      <TableCell key={col.id} className="p-2">
+                        <div className="h-4 max-w-[200px] w-[80%] animate-pulse rounded bg-muted" />
                       </TableCell>
-                    )}
+                    ))}
+                    {renderActions && <TableCell className="p-2">&nbsp;</TableCell>}
                   </TableRow>
-                )
-              })
-            )}
+                ))
+              : paginatedData.length === 0
+                ? [
+                    <TableRow key="empty">
+                      <TableCell colSpan={colCount} className="p-0 align-top">
+                        <div className="p-2">
+                          <EmptyState
+                            title={emptyMessage}
+                            description={emptyDescription ?? (searchValue ? 'Try a different search' : '')}
+                            size="small"
+                          />
+                        </div>
+                      </TableCell>
+                    </TableRow>,
+                  ]
+                : paginatedData.map((row, index) => {
+                    const id = getRowId(row, index)
+                    const isSelected = selectedSet.has(id)
+                    return (
+                      <TableRow
+                        key={id}
+                        className={cn(isSelected && 'bg-muted/50')}
+                        data-state={isSelected ? 'selected' : undefined}
+                      >
+                        {selectable && (
+                          <TableCell className="p-2">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => handleSelectRow(row, index)}
+                              aria-label="Select row"
+                            />
+                          </TableCell>
+                        )}
+                        {columns.map((col) => {
+                          const value = (row as any)[col.id]
+                          const cellContent = col.render
+                            ? col.render(value, row)
+                            : value != null
+                              ? String(value)
+                              : '—'
+                          return (
+                            <TableCell
+                              key={col.id}
+                              className={cn(
+                                'p-2',
+                                col.align === 'right' && 'text-right',
+                                col.align === 'center' && 'text-center',
+                              )}
+                            >
+                              {cellContent}
+                            </TableCell>
+                          )
+                        })}
+                        {renderActions && (
+                          <TableCell
+                            className="p-2 text-right"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {renderActions(row, index)}
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    )
+                  })}
           </TableBody>
         </Table>
-      </TableContainer>
+      </div>
 
       {!loading && paginatedData.length > 0 && (
-        <TablePagination
-          component="div"
-          count={totalCount}
-          page={page}
-          onPageChange={handlePageChange}
-          rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={handleRowsPerPageChange}
-          rowsPerPageOptions={rowsPerPageOptions}
-          labelRowsPerPage="Rows:"
-          sx={{ borderTop: 1, borderColor: 'divider' }}
-        />
+        <div className="mt-0 flex flex-wrap items-center justify-end gap-2 border-t border-border px-1 py-2 text-sm text-muted-foreground sm:gap-4">
+          <span>Rows</span>
+          <select
+            className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+            value={rowsPerPage}
+            onChange={handleRowsPerPageChange}
+            aria-label="Rows per page"
+          >
+            {rowsPerPageOptions.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+          <span>
+            {from}–{to} of {totalCount}
+          </span>
+          <div className="flex gap-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={page <= 0}
+              onClick={() => goToPage(page - 1)}
+            >
+              Previous
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={page >= lastPage}
+              onClick={() => goToPage(page + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
       )}
-    </Box>
+    </div>
   )
 }

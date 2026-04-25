@@ -1,271 +1,275 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'
+import { Loader2, RefreshCw, Star } from 'lucide-react'
+import { Card, CardContent } from '../../components/ui/card'
+import { Button } from '../../components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs'
 import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  CircularProgress,
-  Pagination,
-  Paper,
-  Rating,
-  Tab,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  Tabs,
-  Typography,
-} from '@mui/material';
-import { Refresh as RefreshIcon, Star as StarIcon } from '@mui/icons-material';
-import { PageHeader } from '../../components/common/PageHeader';
-import {
-  ReviewsService,
-  type BookingReview,
-  type CategoryFeedbackItem,
-} from '../../services/api/reviews.service';
-import { format } from 'date-fns';
+} from '../../components/ui/table'
+import { PageHeader } from '../../components/common/PageHeader'
+import { ReviewsService, type BookingReview, type CategoryFeedbackItem } from '../../services/api/reviews.service'
+import { format } from 'date-fns'
+import { cn } from '../../lib/utils'
 
-type TabValue = 'booking' | 'category';
+type TabValue = 'booking' | 'category'
+
+function StarRating({ value }: { value: number }) {
+  const v = Math.max(0, Math.min(5, Math.round(value)))
+  return (
+    <div className="inline-flex text-amber-500" role="img" aria-label={`${v} of 5 stars`}>
+      {Array.from({ length: 5 }, (_, i) => (
+        <Star key={i} className={cn('h-3.5 w-3.5', i < v ? 'fill-current' : 'opacity-20')} />
+      ))}
+    </div>
+  )
+}
 
 export default function ReviewsManagement() {
-  const [tab, setTab] = useState<TabValue>('booking');
-  const [bookingReviews, setBookingReviews] = useState<BookingReview[]>([]);
+  const [tab, setTab] = useState<TabValue>('booking')
+  const [bookingReviews, setBookingReviews] = useState<BookingReview[]>([])
   const [bookingPagination, setBookingPagination] = useState({
     page: 1,
     limit: 20,
     total: 0,
     totalPages: 1,
-  });
-  const [categoryFeedback, setCategoryFeedback] = useState<CategoryFeedbackItem[]>([]);
+  })
+  const [categoryFeedback, setCategoryFeedback] = useState<CategoryFeedbackItem[]>([])
   const [categoryPagination, setCategoryPagination] = useState({
     page: 1,
     limit: 20,
     total: 0,
     totalPages: 1,
-  });
-  const [loadingBooking, setLoadingBooking] = useState(true);
-  const [loadingCategory, setLoadingCategory] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  })
+  const [loadingBooking, setLoadingBooking] = useState(true)
+  const [loadingCategory, setLoadingCategory] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const loadBookingReviews = async (page: number = 1) => {
-    setLoadingBooking(true);
-    setError(null);
+    setLoadingBooking(true)
+    setError(null)
     try {
       const res = await ReviewsService.getBookingReviews({
         page,
         limit: bookingPagination.limit,
-      });
-      setBookingReviews(res.reviews ?? []);
-      setBookingPagination(prev => ({
+      })
+      setBookingReviews(res.reviews ?? [])
+      setBookingPagination((prev) => ({
         ...prev,
         ...(res.pagination || {}),
         page,
-      }));
+      }))
     } catch (e: any) {
-      setError(e?.response?.data?.message || e?.message || 'Failed to load booking reviews');
-      setBookingReviews([]);
+      setError(e?.response?.data?.message || e?.message || 'Failed to load booking reviews')
+      setBookingReviews([])
     } finally {
-      setLoadingBooking(false);
+      setLoadingBooking(false)
     }
-  };
+  }
 
   const loadCategoryFeedback = async (page: number = 1) => {
-    setLoadingCategory(true);
-    setError(null);
+    setLoadingCategory(true)
+    setError(null)
     try {
       const res = await ReviewsService.getCategoryFeedback({
         page,
         limit: categoryPagination.limit,
-      });
-      setCategoryFeedback(res.feedback ?? []);
-      setCategoryPagination(prev => ({
+      })
+      setCategoryFeedback(res.feedback ?? [])
+      setCategoryPagination((prev) => ({
         ...prev,
         ...(res.pagination || {}),
         page,
-      }));
+      }))
     } catch (e: any) {
-      setError(e?.response?.data?.message || e?.message || 'Failed to load category feedback');
-      setCategoryFeedback([]);
+      setError(e?.response?.data?.message || e?.message || 'Failed to load category feedback')
+      setCategoryFeedback([])
     } finally {
-      setLoadingCategory(false);
+      setLoadingCategory(false)
     }
-  };
+  }
 
   useEffect(() => {
-    loadBookingReviews(bookingPagination.page);
-  }, []);
+    loadBookingReviews(bookingPagination.page)
+  }, [])
 
   useEffect(() => {
     if (tab === 'category') {
-      loadCategoryFeedback(categoryPagination.page);
+      loadCategoryFeedback(categoryPagination.page)
     }
-  }, [tab]);
+  }, [tab])
 
   const handleRefresh = () => {
-    if (tab === 'booking') loadBookingReviews(bookingPagination.page);
-    else loadCategoryFeedback(categoryPagination.page);
-  };
+    if (tab === 'booking') loadBookingReviews(bookingPagination.page)
+    else loadCategoryFeedback(categoryPagination.page)
+  }
 
-  const loading = tab === 'booking' ? loadingBooking : loadingCategory;
+  const loading = tab === 'booking' ? loadingBooking : loadingCategory
 
   return (
-    <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
+    <div className="p-4 sm:p-6 md:p-8">
       <PageHeader
         title="Reviews"
         subtitle="View all booking reviews and category feedback"
         action={
-          <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={handleRefresh}
-            disabled={loading}
-          >
+          <Button variant="outline" onClick={handleRefresh} disabled={loading}>
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
             Refresh
           </Button>
         }
       />
 
-      <Tabs
-        value={tab}
-        onChange={(_, v: TabValue) => setTab(v)}
-        sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}
-      >
-        <Tab label="Booking reviews" value="booking" />
-        <Tab label="Category feedback" value="category" />
-      </Tabs>
-
-      {error && (
-        <Typography color="error" sx={{ mb: 2 }}>
-          {error}
-        </Typography>
-      )}
-
-      {tab === 'booking' && (
-        <>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as TabValue)} className="mb-4">
+        <TabsList>
+          <TabsTrigger value="booking">Booking reviews</TabsTrigger>
+          <TabsTrigger value="category">Category feedback</TabsTrigger>
+        </TabsList>
+        <TabsContent value="booking" className="mt-4">
+          {error && <p className="mb-2 text-sm text-destructive">{error}</p>}
           {loadingBooking ? (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="280px">
-              <CircularProgress />
-            </Box>
+            <div className="flex min-h-[280px] items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
           ) : bookingReviews.length === 0 ? (
             <Card>
-              <CardContent sx={{ textAlign: 'center', py: 6 }}>
-                <StarIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
-                <Typography color="text.secondary">No booking reviews yet.</Typography>
+              <CardContent className="py-12 text-center">
+                <Star className="mx-auto mb-2 h-12 w-12 text-muted-foreground" />
+                <p className="text-muted-foreground">No booking reviews yet.</p>
               </CardContent>
             </Card>
           ) : (
-            <TableContainer component={Paper} variant="outlined">
-              <Table size="small">
-                <TableHead>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell>Date</TableCell>
-                    <TableCell>Customer / Booking</TableCell>
-                    <TableCell>Rating</TableCell>
-                    <TableCell>Comment</TableCell>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Customer / Booking</TableHead>
+                    <TableHead>Rating</TableHead>
+                    <TableHead className="max-w-[20rem]">Comment</TableHead>
                   </TableRow>
-                </TableHead>
+                </TableHeader>
                 <TableBody>
                   {bookingReviews.map((r) => (
                     <TableRow key={r._id}>
                       <TableCell>
-                        {r.createdAt
-                          ? format(new Date(r.createdAt), 'dd MMM yyyy, HH:mm')
-                          : '—'}
+                        {r.createdAt ? format(new Date(r.createdAt), 'dd MMM yyyy, HH:mm') : '—'}
                       </TableCell>
                       <TableCell>
                         {r.customer
-                          ? [r.customer.firstName, r.customer.lastName].filter(Boolean).join(' ') || r.customer.email || '—'
+                          ? [r.customer.firstName, r.customer.lastName].filter(Boolean).join(' ') ||
+                            r.customer.email ||
+                            '—'
                           : r.booking?.bookingNumber || '—'}
                         {r.booking?.service?.name && (
-                          <Typography variant="caption" display="block" color="text.secondary">
-                            {r.booking.service.name}
-                          </Typography>
+                          <span className="mt-0.5 block text-xs text-muted-foreground">{r.booking.service.name}</span>
                         )}
                       </TableCell>
                       <TableCell>
-                        <Rating value={r.rating ?? 0} readOnly size="small" />
+                        <StarRating value={r.rating ?? 0} />
                       </TableCell>
-                      <TableCell sx={{ maxWidth: 320 }}>{r.comment || '—'}</TableCell>
+                      <TableCell className="max-w-[20rem] align-top text-sm">{r.comment || '—'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
               {bookingPagination.totalPages > 1 && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-                  <Pagination
-                    count={bookingPagination.totalPages}
-                    page={bookingPagination.page}
-                    onChange={(_, p) => loadBookingReviews(p)}
-                    color="primary"
-                  />
-                </Box>
+                <div className="flex items-center justify-center gap-2 border-t py-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={bookingPagination.page <= 1}
+                    onClick={() => loadBookingReviews(bookingPagination.page - 1)}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Page {bookingPagination.page} of {bookingPagination.totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={bookingPagination.page >= bookingPagination.totalPages}
+                    onClick={() => loadBookingReviews(bookingPagination.page + 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
               )}
-            </TableContainer>
+            </div>
           )}
-        </>
-      )}
-
-      {tab === 'category' && (
-        <>
+        </TabsContent>
+        <TabsContent value="category" className="mt-4">
+          {error && <p className="mb-2 text-sm text-destructive">{error}</p>}
           {loadingCategory ? (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="280px">
-              <CircularProgress />
-            </Box>
+            <div className="flex min-h-[280px] items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
           ) : categoryFeedback.length === 0 ? (
             <Card>
-              <CardContent sx={{ textAlign: 'center', py: 6 }}>
-                <StarIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
-                <Typography color="text.secondary">No category feedback yet.</Typography>
+              <CardContent className="py-12 text-center">
+                <Star className="mx-auto mb-2 h-12 w-12 text-muted-foreground" />
+                <p className="text-muted-foreground">No category feedback yet.</p>
               </CardContent>
             </Card>
           ) : (
-            <TableContainer component={Paper} variant="outlined">
-              <Table size="small">
-                <TableHead>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell>Date</TableCell>
-                    <TableCell>Category</TableCell>
-                    <TableCell>Name</TableCell>
-                    <TableCell>Rating</TableCell>
-                    <TableCell>Comment</TableCell>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Rating</TableHead>
+                    <TableHead className="max-w-[20rem]">Comment</TableHead>
                   </TableRow>
-                </TableHead>
+                </TableHeader>
                 <TableBody>
                   {categoryFeedback.map((f) => (
                     <TableRow key={f.id}>
                       <TableCell>
-                        {f.createdAt
-                          ? format(new Date(f.createdAt), 'dd MMM yyyy, HH:mm')
-                          : '—'}
+                        {f.createdAt ? format(new Date(f.createdAt), 'dd MMM yyyy, HH:mm') : '—'}
                       </TableCell>
-                      <TableCell>
-                        {f.categoryName || f.categorySlug || '—'}
-                      </TableCell>
+                      <TableCell>{f.categoryName || f.categorySlug || '—'}</TableCell>
                       <TableCell>{f.customerName || '—'}</TableCell>
                       <TableCell>
-                        <Rating value={f.rating ?? 0} readOnly size="small" />
+                        <StarRating value={f.rating ?? 0} />
                       </TableCell>
-                      <TableCell sx={{ maxWidth: 320 }}>{f.comment || '—'}</TableCell>
+                      <TableCell className="max-w-[20rem] align-top text-sm">{f.comment || '—'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
               {categoryPagination.totalPages > 1 && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-                  <Pagination
-                    count={categoryPagination.totalPages}
-                    page={categoryPagination.page}
-                    onChange={(_, p) => loadCategoryFeedback(p)}
-                    color="primary"
-                  />
-                </Box>
+                <div className="flex items-center justify-center gap-2 border-t py-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={categoryPagination.page <= 1}
+                    onClick={() => loadCategoryFeedback(categoryPagination.page - 1)}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Page {categoryPagination.page} of {categoryPagination.totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={categoryPagination.page >= categoryPagination.totalPages}
+                    onClick={() => loadCategoryFeedback(categoryPagination.page + 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
               )}
-            </TableContainer>
+            </div>
           )}
-        </>
-      )}
-    </Box>
-  );
+        </TabsContent>
+      </Tabs>
+    </div>
+  )
 }

@@ -1,49 +1,41 @@
 import React, { useState } from 'react'
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  TextField,
-  Button,
-  InputAdornment,
-  IconButton,
-  Divider,
-  Link,
-  Alert,
-  useTheme,
-  useMediaQuery,
-  Stack,
-  Container,
-  Paper,
-  Checkbox,
-  FormControlLabel,
-  CircularProgress,
-  Snackbar,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-} from '@mui/material'
+  Building2,
+  Mail,
+  Lock,
+  LogIn,
+  Shield,
+  UserCog,
+  Wrench,
+  Zap,
+  Eye,
+  EyeOff,
+} from 'lucide-react'
+import { Card, CardContent } from '../ui/card'
+import { Input } from '../ui/input'
+import { Label } from '../ui/label'
+import { Button } from '../ui/button'
+import { Checkbox } from '../ui/checkbox'
 import {
-  Visibility as VisibilityIcon,
-  VisibilityOff as VisibilityOffIcon,
-  Email as EmailIcon,
-  Lock as LockIcon,
-  Login as LoginIcon,
-  Security as SecurityIcon,
-  Business as BusinessIcon,
-  SupervisorAccount as SuperAdminIcon,
-  AdminPanelSettings as AdminIcon,
-  Build as ProviderIcon,
-  FlashOn as QuickLoginIcon,
-} from '@mui/icons-material'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog'
+import { Separator } from '../ui/separator'
+import { Badge } from '../ui/badge'
+import { useAppDispatch } from '../../store/hooks'
+import { addToast } from '../../store/slices/uiSlice'
 import { AuthService } from '../../services/api/auth.service'
+import { cn } from '../../lib/utils'
 
 interface LoginFormProps {
   onLogin: (credentials: { email: string; password: string; rememberMe: boolean }) => void
@@ -51,53 +43,60 @@ interface LoginFormProps {
   error?: string
 }
 
-// Quick Login Test Accounts (Dev Mode)
-const TEST_ACCOUNTS = [
+const TEST_ACCOUNTS: {
+  id: string
+  label: string
+  email: string
+  password: string
+  role: string
+  color: string
+  icon: React.ReactNode
+}[] = [
   {
     id: 'superadmin',
-    label: '🔐 Super Admin',
+    label: 'Super Admin',
     email: 'superadmin@profixer.in',
     password: 'SuperAdmin@123',
     role: 'Super Admin',
-    icon: <SuperAdminIcon />,
     color: '#d32f2f',
+    icon: <Shield className="h-5 w-5" />,
   },
   {
     id: 'admin',
-    label: '👨‍💼 Admin',
+    label: 'Admin',
     email: 'admin@fixer.com',
     password: 'Admin@123',
     role: 'Admin',
-    icon: <AdminIcon />,
     color: '#1976d2',
+    icon: <UserCog className="h-5 w-5" />,
   },
   {
     id: 'Professional',
-    label: '🔧 Professional',
+    label: 'Professional',
     email: 'zillur.rahman@professional.com',
     password: 'SecurePass123!',
     role: 'Professional',
+    color: '#6b21a8',
+    icon: <Wrench className="h-5 w-5" />,
   },
 ]
 
 export function LoginForm({ onLogin, isLoading = false, error }: LoginFormProps) {
+  const dispatch = useAppDispatch()
   const [formData, setFormData] = useState({
     email: 'admin@fixer.com',
     password: 'Admin@123',
     rememberMe: true,
   })
   const [showPassword, setShowPassword] = useState(false)
-  const [errors, setErrors] = useState<{ [key: string]: string }>({})
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'error' as 'success' | 'error' | 'warning' | 'info' })
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const [quickLoginValue, setQuickLoginValue] = useState('admin')
   const [forgotOpen, setForgotOpen] = useState(false)
   const [forgotEmail, setForgotEmail] = useState('')
   const [forgotSubmitting, setForgotSubmitting] = useState(false)
 
-  const theme = useTheme()
-
   const validateForm = (): boolean => {
-    const newErrors: { [key: string]: string } = {}
+    const newErrors: Record<string, string> = {}
 
     if (!formData.email) {
       newErrors.email = 'Email is required'
@@ -117,21 +116,20 @@ export function LoginForm({ onLogin, isLoading = false, error }: LoginFormProps)
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault()
-    
+
     if (validateForm()) {
       onLogin(formData)
     }
   }
 
   const handleInputChange = (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [field]: event.target.value,
     }))
-    
-    // Clear error when user starts typing
+
     if (errors[field]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
         [field]: '',
       }))
@@ -146,30 +144,37 @@ export function LoginForm({ onLogin, isLoading = false, error }: LoginFormProps)
   const handleForgotSubmit = async () => {
     const email = forgotEmail.trim()
     if (!email || !/\S+@\S+\.\S+/.test(email)) {
-      setSnackbar({ open: true, message: 'Please enter a valid email address.', severity: 'warning' })
+      dispatch(
+        addToast({
+          message: 'Please enter a valid email address.',
+          severity: 'warning',
+        }),
+      )
       return
     }
     setForgotSubmitting(true)
     try {
-      const res = await AuthService.forgotPassword({ email })
-      if ((res as any)?.success !== false) {
-        setSnackbar({
-          open: true,
-          message: 'If an account exists for this email, you will receive reset instructions shortly.',
-          severity: 'success',
-        })
+      const res = (await AuthService.forgotPassword({ email })) as { success?: boolean }
+      if (res?.success !== false) {
+        dispatch(
+          addToast({
+            message:
+              'If an account exists for this email, you will receive reset instructions shortly.',
+            severity: 'success',
+          }),
+        )
         setForgotOpen(false)
       }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Could not send reset email. Try again later.'
-      setSnackbar({ open: true, message: msg, severity: 'error' })
+      dispatch(addToast({ message: msg, severity: 'error' }))
     } finally {
       setForgotSubmitting(false)
     }
   }
 
   const handleQuickLogin = (accountId: string) => {
-    const account = TEST_ACCOUNTS.find(acc => acc.id === accountId)
+    const account = TEST_ACCOUNTS.find((acc) => acc.id === accountId)
     if (account) {
       setQuickLoginValue(accountId)
       setFormData({
@@ -177,390 +182,225 @@ export function LoginForm({ onLogin, isLoading = false, error }: LoginFormProps)
         password: account.password,
         rememberMe: true,
       })
-      setSnackbar({ 
-        open: true, 
-        message: `Credentials loaded for ${account.role}. Click Sign In to proceed.`, 
-        severity: 'success' 
-      })
+      dispatch(
+        addToast({
+          message: `Credentials loaded for ${account.role}. Click Sign In to proceed.`,
+          severity: 'success',
+        }),
+      )
     }
   }
 
   return (
-    <Container maxWidth="sm" sx={{ px: { xs: 1, sm: 2 } }}>
-      <Box
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          py: { xs: 2, sm: 4 },
-        }}
-      >
-        <Card sx={{ 
-          width: '100%', 
-          maxWidth: 480, 
-          boxShadow: 3,
-          borderRadius: { xs: 2, sm: 3 }
-        }}>
-          <CardContent sx={{ p: { xs: 2, sm: 4 } }}>
-            {/* Header */}
-            <Box sx={{ textAlign: 'center', mb: { xs: 3, sm: 4 } }}>
-              <Box
-                sx={{
-                  width: { xs: 48, sm: 64 },
-                  height: { xs: 48, sm: 64 },
-                  borderRadius: 2,
-                  backgroundColor: 'primary.main',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  mx: 'auto',
-                  mb: 2,
-                }}
+    <div className="mx-auto min-h-screen w-full max-w-md px-2 py-4 sm:px-4 sm:py-8">
+      <div className="flex min-h-screen items-center justify-center">
+        <Card className="w-full max-w-[480px] shadow-md">
+          <CardContent className="p-4 sm:p-8">
+            <div className="mb-6 text-center sm:mb-8">
+              <div
+                className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-primary sm:h-16 sm:w-16"
               >
-                <BusinessIcon sx={{ color: 'white', fontSize: { xs: 24, sm: 32 } }} />
-              </Box>
-              <Typography variant="h4" sx={{ 
-                fontWeight: 700, 
-                mb: 1,
-                fontSize: { xs: '1.5rem', sm: '2rem' }
-              }}>
-                Welcome Back
-              </Typography>
-              <Typography variant="body1" color="text.secondary" sx={{
-                fontSize: { xs: '0.875rem', sm: '1rem' }
-              }}>
+                <Building2 className="h-6 w-6 text-primary-foreground sm:h-8 sm:w-8" />
+              </div>
+              <h1 className="text-xl font-bold sm:text-3xl">Welcome Back</h1>
+              <p className="mt-1 text-sm text-muted-foreground sm:text-base">
                 Sign in to your Fixer Admin account
-              </Typography>
-            </Box>
+              </p>
+            </div>
 
-            {/* Error Alert */}
             {error && (
-              <Alert severity="error" sx={{ mb: 3 }}>
+              <div
+                className="mb-4 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                role="alert"
+              >
                 {error}
-              </Alert>
+              </div>
             )}
 
-            {/* Login Form */}
-            <Box component="form" onSubmit={handleSubmit}>
-              <Stack spacing={{ xs: 2, sm: 3 }}>
-                {/* Quick Login Dropdown - Dev Mode */}
-                <Paper
-                  sx={{
-                    p: 2,
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    borderRadius: 2,
-                  }}
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+              <div
+                className="rounded-lg p-4 text-white"
+                style={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                }}
+              >
+                <div className="mb-2 flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-white" />
+                  <span className="text-sm font-semibold sm:text-base">Quick Login (Dev Mode)</span>
+                </div>
+                <Select
+                  value={quickLoginValue}
+                  onValueChange={(v) => handleQuickLogin(v)}
+                  disabled={isLoading}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                    <QuickLoginIcon sx={{ color: 'white', fontSize: 20 }} />
-                    <Typography 
-                      variant="subtitle2" 
-                      sx={{ 
-                        color: 'white',
-                        fontWeight: 600,
-                        fontSize: { xs: '0.875rem', sm: '1rem' }
-                      }}
-                    >
-                      🚀 Quick Login (Dev Mode)
-                    </Typography>
-                  </Box>
-                  
-                  <FormControl fullWidth size="small">
-                    <InputLabel 
-                      sx={{ 
-                        color: 'rgba(255,255,255,0.8)',
-                        '&.Mui-focused': { color: 'white' }
-                      }}
-                    >
-                      Select Account Type
-                    </InputLabel>
-                    <Select
-                      value={quickLoginValue}
-                      onChange={(e) => handleQuickLogin(e.target.value)}
-                      disabled={isLoading}
-                      sx={{
-                        backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                        color: 'white',
-                        '& .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'rgba(255, 255, 255, 0.3)',
-                        },
-                        '&:hover .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'rgba(255, 255, 255, 0.5)',
-                        },
-                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'white',
-                        },
-                        '& .MuiSvgIcon-root': {
-                          color: 'white',
-                        },
-                      }}
-                      label="Select Account Type"
-                    >
-                      {TEST_ACCOUNTS.map((account) => (
-                        <MenuItem key={account.id} value={account.id}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
-                            <Box sx={{ color: account.color }}>
-                              {account.icon}
-                            </Box>
-                            <Box sx={{ flex: 1 }}>
-                              <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                                {account.label}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {account.email}
-                              </Typography>
-                            </Box>
-                            <Chip
-                              label={account.role}
-                              size="small"
-                              sx={{
-                                backgroundColor: account.color,
-                                color: 'white',
-                                fontWeight: 600,
-                                fontSize: '0.7rem',
-                              }}
-                            />
-                          </Box>
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                  
-                  <Typography 
-                    variant="caption" 
-                    sx={{ 
-                      color: 'rgba(255,255,255,0.8)',
-                      display: 'block',
-                      mt: 1,
-                      fontSize: { xs: '0.7rem', sm: '0.75rem' }
-                    }}
-                  >
-                    💡 Select a test account to auto-fill credentials
-                  </Typography>
-                </Paper>
+                  <SelectTrigger className="border-white/30 bg-white/15 text-white [&_svg]:text-white">
+                    <SelectValue placeholder="Select account type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TEST_ACCOUNTS.map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        <div className="flex w-full items-center gap-2 py-0.5">
+                          <span style={{ color: account.color }}>{account.icon}</span>
+                          <div className="min-w-0 flex-1 text-left">
+                            <div className="font-semibold">{account.label}</div>
+                            <div className="text-xs text-muted-foreground">{account.email}</div>
+                          </div>
+                          <Badge
+                            className="shrink-0 text-[0.7rem] text-white"
+                            style={{ backgroundColor: account.color }}
+                          >
+                            {account.role}
+                          </Badge>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="mt-2 text-[0.7rem] text-white/80 sm:text-xs">
+                  Select a test account to auto-fill credentials
+                </p>
+              </div>
 
-                <Divider>
-                  <Typography variant="body2" color="text.secondary" sx={{
-                    fontSize: { xs: '0.75rem', sm: '0.875rem' }
-                  }}>
-                    OR ENTER MANUALLY
-                  </Typography>
-                </Divider>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <Separator />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase text-muted-foreground">
+                  <span className="bg-card px-2">Or enter manually</span>
+                </div>
+              </div>
 
-                <TextField
-                  fullWidth
-                  label="Email Address"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleInputChange('email')}
-                  error={!!errors.email}
-                  helperText={errors.email}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <EmailIcon color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                  disabled={isLoading}
-                />
-
-                <TextField
-                  fullWidth
-                  label="Password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.password}
-                  onChange={handleInputChange('password')}
-                  error={!!errors.password}
-                  helperText={errors.password}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LockIcon color="action" />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          onClick={() => setShowPassword(!showPassword)}
-                          edge="end"
-                          disabled={isLoading}
-                        >
-                          {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                  disabled={isLoading}
-                />
-
-                <Box sx={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
-                  flexDirection: { xs: 'column', sm: 'row' },
-                  gap: { xs: 1, sm: 0 }
-                }}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={formData.rememberMe}
-                        onChange={(e) => setFormData(prev => ({ ...prev, rememberMe: e.target.checked }))}
-                        disabled={isLoading}
-                      />
-                    }
-                    label="Remember me"
-                    sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
+              <div className="space-y-1.5">
+                <Label htmlFor="login-email">Email Address</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="login-email"
+                    type="email"
+                    className={cn('pl-9', errors.email && 'border-destructive')}
+                    value={formData.email}
+                    onChange={handleInputChange('email')}
+                    disabled={isLoading}
+                    autoComplete="email"
                   />
-                  <Link
-                    component="button"
-                    variant="body2"
-                    onClick={handleForgotPassword}
-                    sx={{ 
-                      textDecoration: 'none',
-                      fontSize: { xs: '0.875rem', sm: '1rem' }
-                    }}
-                    disabled={isLoading}
-                  >
-                    Forgot password?
-                  </Link>
-                </Box>
+                </div>
+                {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+              </div>
 
-                <Button
-                  type="submit"
-                  fullWidth
-                  variant="contained"
-                  size="large"
+              <div className="space-y-1.5">
+                <Label htmlFor="login-password">Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="login-password"
+                    type={showPassword ? 'text' : 'password'}
+                    className={cn('pl-9 pr-10', errors.password && 'border-destructive')}
+                    value={formData.password}
+                    onChange={handleInputChange('password')}
+                    disabled={isLoading}
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-1.5 text-muted-foreground hover:bg-muted"
+                    onClick={() => setShowPassword(!showPassword)}
+                    disabled={isLoading}
+                    tabIndex={-1}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
+              </div>
+
+              <div className="flex flex-col items-stretch justify-between gap-2 sm:flex-row sm:items-center">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="remember"
+                    checked={formData.rememberMe}
+                    onCheckedChange={(c) =>
+                      setFormData((prev) => ({ ...prev, rememberMe: c === true }))
+                    }
+                    disabled={isLoading}
+                  />
+                  <Label htmlFor="remember" className="text-sm font-normal">
+                    Remember me
+                  </Label>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
                   disabled={isLoading}
-                  startIcon={isLoading ? <CircularProgress size={20} /> : <LoginIcon />}
-                  sx={{ 
-                    py: { xs: 1.25, sm: 1.5 },
-                    fontSize: { xs: '0.875rem', sm: '1rem' }
-                  }}
+                  className="text-left text-sm text-primary underline-offset-4 hover:underline sm:text-right"
                 >
-                  {isLoading ? 'Signing in...' : 'Sign In'}
-                </Button>
+                  Forgot password?
+                </button>
+              </div>
 
-                <Divider sx={{ my: { xs: 1.5, sm: 2 } }}>
-                  <Typography variant="body2" color="text.secondary" sx={{
-                    fontSize: { xs: '0.75rem', sm: '0.875rem' }
-                  }}>
-                    OR
-                  </Typography>
-                </Divider>
+              <Button type="submit" className="w-full py-5 text-sm sm:py-6 sm:text-base" disabled={isLoading}>
+                {isLoading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                    Signing in...
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    <LogIn className="h-4 w-4" />
+                    Sign In
+                  </span>
+                )}
+              </Button>
 
-                {/* Social Login Buttons */}
-                {/* <Stack spacing={{ xs: 1.5, sm: 2 }}>
-                  <Button
-                    variant="outlined"
-                    fullWidth
-                    startIcon={<GoogleIcon />}
-                    onClick={() => handleSocialLogin('Google')}
-                    disabled={isLoading}
-                    sx={{ 
-                      py: { xs: 1.25, sm: 1.5 },
-                      fontSize: { xs: '0.875rem', sm: '1rem' }
-                    }}
-                  >
-                    Continue with Google
-                  </Button>
-                  
-                  <Button
-                    variant="outlined"
-                    fullWidth
-                    startIcon={<AppleIcon />}
-                    onClick={() => handleSocialLogin('Apple')}
-                    disabled={isLoading}
-                    sx={{ 
-                      py: { xs: 1.25, sm: 1.5 },
-                      fontSize: { xs: '0.875rem', sm: '1rem' }
-                    }}
-                  >
-                    Continue with Apple
-                  </Button>
-                  
-                  <Button
-                    variant="outlined"
-                    fullWidth
-                    startIcon={<FacebookIcon />}
-                    onClick={() => handleSocialLogin('Facebook')}
-                    disabled={isLoading}
-                    sx={{ 
-                      py: { xs: 1.25, sm: 1.5 },
-                      fontSize: { xs: '0.875rem', sm: '1rem' }
-                    }}
-                  >
-                    Continue with Facebook
-                  </Button>
-                </Stack> */}
+              <div className="relative my-2">
+                <div className="absolute inset-0 flex items-center">
+                  <Separator />
+                </div>
+                <div className="relative flex justify-center text-xs text-muted-foreground">
+                  <span className="bg-card px-2">Or</span>
+                </div>
+              </div>
 
-                {/* Security Notice */}
-                <Paper
-                  sx={{
-                    p: { xs: 1.5, sm: 2 },
-                    backgroundColor: 'grey.50',
-                    border: '1px solid',
-                    borderColor: 'grey.200',
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                    <SecurityIcon color="primary" fontSize="small" />
-                    <Typography variant="subtitle2" sx={{ 
-                      fontWeight: 600,
-                      fontSize: { xs: '0.75rem', sm: '0.875rem' }
-                    }}>
-                      Secure Login
-                    </Typography>
-                  </Box>
-                  <Typography variant="body2" color="text.secondary" sx={{
-                    fontSize: { xs: '0.75rem', sm: '0.875rem' }
-                  }}>
-                    Your data is protected with enterprise-grade security and encryption.
-                  </Typography>
-                </Paper>
-              </Stack>
-            </Box>
+              <div className="rounded-md border border-border bg-muted/40 p-3 sm:p-4">
+                <div className="mb-1 flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-semibold sm:text-sm">Secure Login</span>
+                </div>
+                <p className="text-xs text-muted-foreground sm:text-sm">
+                  Your data is protected with enterprise-grade security and encryption.
+                </p>
+              </div>
+            </form>
           </CardContent>
         </Card>
-      </Box>
+      </div>
 
-      {/* Snackbar for notifications */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      >
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-
-      <Dialog open={forgotOpen} onClose={() => !forgotSubmitting && setForgotOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle>Reset password</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      <Dialog open={forgotOpen} onOpenChange={(o) => !forgotSubmitting && !o && setForgotOpen(false)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Reset password</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
             Enter your account email. We will send a link to reset your password if the account exists.
-          </Typography>
-          <TextField
+          </p>
+          <Input
             autoFocus
-            fullWidth
-            label="Email"
             type="email"
+            placeholder="Email"
             value={forgotEmail}
             onChange={(e) => setForgotEmail(e.target.value)}
             disabled={forgotSubmitting}
           />
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setForgotOpen(false)} disabled={forgotSubmitting}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={() => void handleForgotSubmit()} disabled={forgotSubmitting}>
+              {forgotSubmitting ? 'Sending…' : 'Send link'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setForgotOpen(false)} disabled={forgotSubmitting}>
-            Cancel
-          </Button>
-          <Button variant="contained" onClick={handleForgotSubmit} disabled={forgotSubmitting}>
-            {forgotSubmitting ? 'Sending…' : 'Send link'}
-          </Button>
-        </DialogActions>
       </Dialog>
-    </Container>
+    </div>
   )
 }

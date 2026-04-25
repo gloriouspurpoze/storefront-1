@@ -1,6 +1,8 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react'
-import { Box, Button, Typography, Paper } from '@mui/material'
-import { Refresh as RefreshIcon, Home as HomeIcon } from '@mui/icons-material'
+import { Home, RefreshCw } from 'lucide-react'
+import { Button } from '../ui/button'
+import { Card, CardContent } from '../ui/card'
+import { cn } from '../../lib/utils'
 
 interface Props {
   children: ReactNode
@@ -47,35 +49,40 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError && this.state.error) {
       if (this.props.fallback) return this.props.fallback
       return (
-        <Box
-          sx={{
-            minHeight: '100vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            p: 3,
-            bgcolor: 'grey.50',
-          }}
+        <div
+          className={cn(
+            'flex min-h-screen items-center justify-center',
+            'bg-zinc-50 p-3 dark:bg-zinc-950'
+          )}
         >
-          <Paper elevation={2} sx={{ maxWidth: 480, p: 4, textAlign: 'center' }}>
-            <Typography variant="h5" gutterBottom color="error">
-              Something went wrong
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              {process.env.NODE_ENV === 'development'
-                ? this.state.error.message
-                : 'An unexpected error occurred. Please try again.'}
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Button variant="contained" startIcon={<RefreshIcon />} onClick={this.handleRetry}>
-                Try again
-              </Button>
-              <Button variant="outlined" startIcon={<HomeIcon />} onClick={this.handleGoHome}>
-                Go to dashboard
-              </Button>
-            </Box>
-          </Paper>
-        </Box>
+          <Card className="max-w-md text-center shadow-md">
+            <CardContent className="p-8">
+              <h1 className="mb-2 text-xl font-semibold text-destructive">Something went wrong</h1>
+              <p className="mb-6 text-sm text-muted-foreground">
+                {process.env.NODE_ENV === 'development'
+                  ? this.state.error.message
+                  : 'An unexpected error occurred. Please try again.'}
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <Button
+                  type="button"
+                  onClick={this.handleRetry}
+                  leftIcon={<RefreshCw className="h-4 w-4" aria-hidden />}
+                >
+                  Try again
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={this.handleGoHome}
+                  leftIcon={<Home className="h-4 w-4" aria-hidden />}
+                >
+                  Go to dashboard
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )
     }
     return this.props.children

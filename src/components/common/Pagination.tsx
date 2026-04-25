@@ -1,19 +1,15 @@
 import React from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
+import { Button } from '../ui/button'
 import {
-  Box,
-  Button,
-  Typography,
   Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  useTheme,
-  useMediaQuery
-} from '@mui/material'
-import {
-  ChevronLeft as ChevronLeftIcon,
-  ChevronRight as ChevronRightIcon
-} from '@mui/icons-material'
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select'
+import { cn } from '../../lib/utils'
 
 interface PaginationProps {
   currentPage: number
@@ -32,15 +28,14 @@ export const Pagination: React.FC<PaginationProps> = ({
   itemsPerPage,
   onPageChange,
   onItemsPerPageChange,
-  itemsPerPageOptions = [10, 25, 50, 100]
+  itemsPerPageOptions = [10, 25, 50, 100],
 }) => {
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+  const isNarrow = useMediaQuery('(max-width: 639px)')
 
   const getPageNumbers = () => {
-    const pages = []
-    const maxVisiblePages = isMobile ? 3 : 5
-    
+    const pages: (number | '...')[] = []
+    const maxVisiblePages = isNarrow ? 3 : 5
+
     if (totalPages <= maxVisiblePages) {
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i)
@@ -48,18 +43,18 @@ export const Pagination: React.FC<PaginationProps> = ({
     } else {
       const startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2))
       const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1)
-      
+
       if (startPage > 1) {
         pages.push(1)
         if (startPage > 2) {
           pages.push('...')
         }
       }
-      
+
       for (let i = startPage; i <= endPage; i++) {
         pages.push(i)
       }
-      
+
       if (endPage < totalPages) {
         if (endPage < totalPages - 1) {
           pages.push('...')
@@ -67,7 +62,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         pages.push(totalPages)
       }
     }
-    
+
     return pages
   }
 
@@ -75,83 +70,72 @@ export const Pagination: React.FC<PaginationProps> = ({
   const endItem = Math.min(currentPage * itemsPerPage, totalItems)
 
   return (
-    <Box sx={{ 
-      display: 'flex', 
-      flexDirection: { xs: 'column', sm: 'row' },
-      justifyContent: 'space-between', 
-      alignItems: 'center',
-      gap: 2,
-      p: 2,
-      borderTop: `1px solid ${theme.palette.divider}`
-    }}>
-      {/* Items per page selector */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Typography variant="body2" color="text.secondary">
-          Rows per page:
-        </Typography>
-        <FormControl size="small" sx={{ minWidth: 80 }}>
-          <Select
-            value={itemsPerPage}
-            onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
-            sx={{ height: 32 }}
-          >
+    <div
+      className={cn(
+        'flex flex-col items-stretch gap-3 border-t p-2 sm:flex-row sm:items-center sm:justify-between',
+      )}
+    >
+      <div className="flex flex-wrap items-center gap-2 sm:gap-1">
+        <span className="whitespace-nowrap text-sm text-muted-foreground">Rows per page</span>
+        <Select
+          value={String(itemsPerPage)}
+          onValueChange={(v) => onItemsPerPageChange(Number(v))}
+        >
+          <SelectTrigger className="h-8 w-[4.5rem]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
             {itemsPerPageOptions.map((option) => (
-              <MenuItem key={option} value={option}>
+              <SelectItem key={option} value={String(option)}>
                 {option}
-              </MenuItem>
+              </SelectItem>
             ))}
-          </Select>
-        </FormControl>
-      </Box>
+          </SelectContent>
+        </Select>
+      </div>
 
-      {/* Page info */}
-      <Typography variant="body2" color="text.secondary">
-        {startItem}-{endItem} of {totalItems} items
-      </Typography>
+      <p className="whitespace-nowrap text-center text-sm text-muted-foreground sm:text-left">
+        {startItem}–{endItem} of {totalItems} items
+      </p>
 
-      {/* Pagination controls */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <div className="flex flex-wrap items-center justify-center gap-1 sm:justify-end">
         <Button
-          variant="outlined"
-          startIcon={<ChevronLeftIcon />}
+          variant="outline"
+          size="sm"
+          className="h-8 px-2"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          size="small"
-          sx={{ minWidth: 'auto', px: 1 }}
         >
-          Previous
+          <ChevronLeft className="h-4 w-4" />
+          <span className="ml-0.5">Previous</span>
         </Button>
 
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
+        <div className="flex items-center gap-0.5">
           {getPageNumbers().map((page, index) => (
             <Button
               key={index}
-              variant={page === currentPage ? 'contained' : 'outlined'}
+              variant={page === currentPage ? 'default' : 'outline'}
+              size="sm"
+              className="h-8 min-w-8 px-0"
               onClick={() => typeof page === 'number' && onPageChange(page)}
               disabled={page === '...'}
-              size="small"
-              sx={{ 
-                minWidth: 32, 
-                height: 32,
-                px: 1
-              }}
             >
               {page}
             </Button>
           ))}
-        </Box>
+        </div>
 
         <Button
-          variant="outlined"
-          endIcon={<ChevronRightIcon />}
+          variant="outline"
+          size="sm"
+          className="h-8 px-2"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          size="small"
-          sx={{ minWidth: 'auto', px: 1 }}
         >
-          Next
+          <span className="mr-0.5">Next</span>
+          <ChevronRight className="h-4 w-4" />
         </Button>
-      </Box>
-    </Box>
+      </div>
+    </div>
   )
 }

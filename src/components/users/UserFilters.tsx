@@ -1,22 +1,16 @@
 import React from 'react'
+import { Search, X } from 'lucide-react'
+import { Input } from '../ui/input'
+import { Label } from '../ui/label'
+import { Button } from '../ui/button'
+import { Badge } from '../ui/badge'
 import {
-  Box,
-  TextField,
-  InputAdornment,
-  FormControl,
-  InputLabel,
   Select,
-  MenuItem,
-  Button,
-  Chip,
-  Stack,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
-import {
-  Search as SearchIcon,
-  FilterList as FilterIcon,
-  Clear as ClearIcon,
-} from '@mui/icons-material'
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select'
 
 interface UserFiltersProps {
   searchTerm: string
@@ -48,120 +42,137 @@ export const UserFilters: React.FC<UserFiltersProps> = ({
     selectedVerification !== 'all'
 
   return (
-    <Box>
-      <Grid container spacing={2} alignItems="center">
-        <Grid item xs={12} md={4}>
-          <TextField
-            fullWidth
-            placeholder="Search by name, email, or phone..."
-            value={searchTerm}
-            onChange={(e) => onSearchChange(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            }}
-          />
-        </Grid>
+    <div>
+      <div className="grid grid-cols-1 items-end gap-4 md:grid-cols-12">
+        <div className="md:col-span-4">
+          <Label htmlFor="user-search" className="sr-only">
+            Search users
+          </Label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="user-search"
+              className="pl-9"
+              placeholder="Search by name, email, or phone..."
+              value={searchTerm}
+              onChange={(e) => onSearchChange(e.target.value)}
+            />
+          </div>
+        </div>
 
-        <Grid item xs={12} sm={6} md={2}>
-          <FormControl fullWidth>
-            <InputLabel>User Type</InputLabel>
-            <Select
-              value={selectedType}
-              label="User Type"
-              onChange={(e) => onTypeChange(e.target.value)}
-            >
-              <MenuItem value="all">All Types</MenuItem>
-              <MenuItem value="admin">Admin</MenuItem>
-              <MenuItem value="provider">Provider</MenuItem>
-              <MenuItem value="customer">Customer</MenuItem>
-            </Select>
-          </FormControl>
-        </Grid>
+        <div className="md:col-span-2">
+          <Label className="mb-1.5 block text-xs text-muted-foreground">User Type</Label>
+          <Select value={selectedType} onValueChange={onTypeChange}>
+            <SelectTrigger>
+              <SelectValue placeholder="User Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
+              <SelectItem value="provider">Provider</SelectItem>
+              <SelectItem value="customer">Customer</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-        <Grid item xs={12} sm={6} md={2}>
-          <FormControl fullWidth>
-            <InputLabel>Status</InputLabel>
-            <Select
-              value={selectedStatus}
-              label="Status"
-              onChange={(e) => onStatusChange(e.target.value)}
-            >
-              <MenuItem value="all">All Status</MenuItem>
-              <MenuItem value="active">Active</MenuItem>
-              <MenuItem value="inactive">Inactive</MenuItem>
-            </Select>
-          </FormControl>
-        </Grid>
+        <div className="md:col-span-2">
+          <Label className="mb-1.5 block text-xs text-muted-foreground">Status</Label>
+          <Select value={selectedStatus} onValueChange={onStatusChange}>
+            <SelectTrigger>
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-        <Grid item xs={12} sm={6} md={2}>
-          <FormControl fullWidth>
-            <InputLabel>Verification</InputLabel>
-            <Select
-              value={selectedVerification}
-              label="Verification"
-              onChange={(e) => onVerificationChange(e.target.value)}
-            >
-              <MenuItem value="all">All</MenuItem>
-              <MenuItem value="verified">Verified</MenuItem>
-              <MenuItem value="unverified">Unverified</MenuItem>
-            </Select>
-          </FormControl>
-        </Grid>
+        <div className="md:col-span-2">
+          <Label className="mb-1.5 block text-xs text-muted-foreground">Verification</Label>
+          <Select value={selectedVerification} onValueChange={onVerificationChange}>
+            <SelectTrigger>
+              <SelectValue placeholder="Verification" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="verified">Verified</SelectItem>
+              <SelectItem value="unverified">Unverified</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-        <Grid item xs={12} sm={6} md={2}>
+        <div className="md:col-span-2">
           <Button
-            variant="outlined"
-            startIcon={<ClearIcon />}
-            fullWidth
+            type="button"
+            variant="outline"
+            className="h-10 w-full"
             disabled={!hasActiveFilters}
             onClick={onClearFilters}
-            sx={{ height: 56 }}
           >
+            <X className="mr-1.5 h-4 w-4" />
             Clear Filters
           </Button>
-        </Grid>
-      </Grid>
+        </div>
+      </div>
 
       {hasActiveFilters && (
-        <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: 'wrap', gap: 1 }}>
+        <div className="mt-3 flex flex-wrap gap-2">
           {searchTerm && (
-            <Chip
-              label={`Search: ${searchTerm}`}
-              onDelete={() => onSearchChange('')}
-              size="small"
-            />
+            <Badge variant="secondary" className="gap-1 pr-1">
+              Search: {searchTerm}
+              <button
+                type="button"
+                className="ml-0.5 rounded p-0.5 hover:bg-muted-foreground/20"
+                onClick={() => onSearchChange('')}
+                aria-label="Remove"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
           )}
           {selectedType !== 'all' && (
-            <Chip
-              label={`Type: ${selectedType}`}
-              onDelete={() => onTypeChange('all')}
-              size="small"
-              color="primary"
-            />
+            <Badge className="gap-1 pr-1" variant="default">
+              Type: {selectedType}
+              <button
+                type="button"
+                className="ml-0.5 rounded p-0.5 hover:bg-primary/20"
+                onClick={() => onTypeChange('all')}
+                aria-label="Remove"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
           )}
           {selectedStatus !== 'all' && (
-            <Chip
-              label={`Status: ${selectedStatus}`}
-              onDelete={() => onStatusChange('all')}
-              size="small"
-              color="secondary"
-            />
+            <Badge variant="outline" className="gap-1 pr-1">
+              Status: {selectedStatus}
+              <button
+                type="button"
+                className="ml-0.5 rounded p-0.5 hover:bg-muted"
+                onClick={() => onStatusChange('all')}
+                aria-label="Remove"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
           )}
           {selectedVerification !== 'all' && (
-            <Chip
-              label={`Verification: ${selectedVerification}`}
-              onDelete={() => onVerificationChange('all')}
-              size="small"
-              color="info"
-            />
+            <Badge variant="outline" className="gap-1 pr-1">
+              Verification: {selectedVerification}
+              <button
+                type="button"
+                className="ml-0.5 rounded p-0.5 hover:bg-muted"
+                onClick={() => onVerificationChange('all')}
+                aria-label="Remove"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
           )}
-        </Stack>
+        </div>
       )}
-    </Box>
+    </div>
   )
 }
-

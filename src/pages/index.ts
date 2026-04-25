@@ -31,8 +31,11 @@ export * from './professionals'
 // Bookings
 export * from './bookings'
 
-// Orders
+// Orders (product orders)
 export * from './orders'
+
+// Operations (quotes, service requests)
+export * from './operations'
 
 // Payments
 export * from './payments'

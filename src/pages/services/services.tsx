@@ -39,6 +39,7 @@ import { StandardTable, type StandardTableColumn } from '../../components/common
 import { servicesService, ServiceRequest, CreateServiceRequest, UpdateServiceRequest } from '../../services/api/services.service'
 import { ServiceRequestFormDialog } from '../../components/services/ServiceRequestFormDialog'
 import { ServiceRequestDetailsDialog } from '../../components/services/ServiceRequestDetailsDialog'
+import { formatCurrency } from '../../lib/utils'
 
 interface ServiceStats {
   total: number
@@ -267,9 +268,6 @@ export function Services() {
     }
   }
 
-  const formatCurrency = (value: string) => {
-    return `$${parseFloat(value).toFixed(2)}`
-  }
 
   const filteredServices = services
 
@@ -324,7 +322,7 @@ export function Services() {
       label: 'Budget',
       render: (_, s) => (
         <Typography variant="body2">
-          {formatCurrency(s.budget_min ?? '0')} - {formatCurrency(s.budget_max ?? '0')}
+          {formatCurrency(Number(s.budget_min ?? 0))} - {formatCurrency(Number(s.budget_max ?? 0))}
         </Typography>
       ),
     },

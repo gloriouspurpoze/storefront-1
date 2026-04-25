@@ -1,45 +1,44 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  Drawer,
-  IconButton,
-  MenuItem,
-  Pagination,
-  Paper,
-  Select,
-  Stack,
-  Tab,
+  Store,
+  X,
+  Download,
+  ListFilter,
+  Loader2,
+} from 'lucide-react'
+import { Button } from '../../components/ui/button'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
+import { Badge } from '../../components/ui/badge'
+import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  Tabs,
-  TextField,
-  Tooltip,
-  Typography,
-  FormControl,
-  InputLabel,
-} from '@mui/material'
+} from '../../components/ui/table'
+import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs'
 import {
-  Storefront as StorefrontIcon,
-  Close as CloseIcon,
-  Download as DownloadIcon,
-  FilterList as FilterListIcon,
-} from '@mui/icons-material'
-import { Link as RouterLink } from 'react-router-dom'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog'
+import { Card } from '../../components/ui/card'
 import { PageHeader } from '../../components/common/PageHeader'
 import { BazaarGuidanceAccordion } from './BazaarGuidanceAccordion'
 import { BazaarMarketplaceService } from '../../services/api/bazaarMarketplace.service'
-import type {
-  BazaarAdminConversationRow,
-  BazaarAdminOfferRow,
-} from '../../services/api/bazaarMarketplace.service'
+import type { BazaarAdminConversationRow, BazaarAdminOfferRow } from '../../services/api/bazaarMarketplace.service'
+import { cn } from '../../lib/utils'
 
 function formatUser(u?: { firstName?: string; lastName?: string; email?: string; userId?: string }) {
   if (!u) return '—'
@@ -47,8 +46,9 @@ function formatUser(u?: { firstName?: string; lastName?: string; email?: string;
   return name || u.email || u.userId || '—'
 }
 
+/** Radix Select does not allow `value=""` on SelectItem — use `all` and map to no query param. */
 const OFFER_STATUS_FILTERS: { value: string; label: string }[] = [
-  { value: '', label: 'All statuses' },
+  { value: 'all', label: 'All statuses' },
   { value: 'pending', label: 'Pending' },
   { value: 'countered', label: 'Countered' },
   { value: 'accepted', label: 'Accepted' },
@@ -57,18 +57,36 @@ const OFFER_STATUS_FILTERS: { value: string; label: string }[] = [
   { value: 'expired', label: 'Expired' },
 ]
 
-function offerStatusColor(status: string): 'default' | 'success' | 'warning' | 'error' | 'info' {
+function offerStatusBadgeClass(status: string) {
   const s = (status || '').toLowerCase()
-  if (s.includes('accept')) return 'success'
-  if (s.includes('declin') || s.includes('withdraw')) return 'error'
-  if (s.includes('expir')) return 'default'
-  if (s.includes('counter') || s.includes('pending')) return 'warning'
-  return 'info'
+  if (s.includes('accept')) return 'border-emerald-500/50 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200'
+  if (s.includes('declin') || s.includes('withdraw')) {
+    return 'border-destructive/50 bg-destructive/10 text-destructive'
+  }
+  if (s.includes('expir')) return 'border-border bg-muted text-muted-foreground'
+  if (s.includes('counter') || s.includes('pending')) {
+    return 'border-amber-500/50 bg-amber-50 text-amber-900 dark:bg-amber-950/50 dark:text-amber-200'
+  }
+  return 'border-sky-500/50 bg-sky-50 text-sky-900 dark:bg-sky-950/50 dark:text-sky-200'
 }
 
 function csvEscape(cell: string) {
   if (/[",\n\r]/.test(cell)) return `"${cell.replace(/"/g, '""')}"`
   return cell
+}
+
+/** API may return a bare array or `{ offers: [] }` / `{ data: [] }` style payloads */
+function normalizeList<T>(data: unknown, nestedKeys: string[] = []): T[] {
+  if (Array.isArray(data)) return data as T[]
+  if (data && typeof data === 'object') {
+    const o = data as Record<string, unknown>
+    for (const key of nestedKeys) {
+      const v = o[key]
+      if (Array.isArray(v)) return v as T[]
+    }
+    if (Array.isArray(o.data)) return o.data as T[]
+  }
+  return []
 }
 
 function downloadCsv(filename: string, header: string[], rows: string[][]) {
@@ -84,12 +102,10 @@ function downloadCsv(filename: string, header: string[], rows: string[][]) {
 
 function DetailBlock({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <Box sx={{ mb: 1.5 }}>
-      <Typography variant="caption" color="text.secondary" display="block">
-        {label}
-      </Typography>
-      <Box sx={{ wordBreak: 'break-word', mt: 0.25, typography: 'body2' }}>{children}</Box>
-    </Box>
+    <div className="mb-3">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <div className="mt-0.5 break-words text-sm">{children}</div>
+    </div>
   )
 }
 
@@ -98,7 +114,7 @@ function DetailBlock({ label, children }: { label: string; children: React.React
  * and listing-scoped chat threads (distinct from promotional /offers).
  */
 export default function BazaarMarketplaceHub() {
-  const [tab, setTab] = useState(0)
+  const [tab, setTab] = useState<'offers' | 'chats'>('offers')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [offers, setOffers] = useState<BazaarAdminOfferRow[]>([])
@@ -107,7 +123,7 @@ export default function BazaarMarketplaceHub() {
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState<number | null>(null)
 
-  const [statusFilter, setStatusFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [listingDraft, setListingDraft] = useState('')
   const [appliedListingId, setAppliedListingId] = useState('')
 
@@ -118,14 +134,14 @@ export default function BazaarMarketplaceHub() {
     setLoading(true)
     setError(null)
     try {
-      if (tab === 0) {
+      if (tab === 'offers') {
         const res = await BazaarMarketplaceService.adminListOffers({
           page,
           limit: 20,
-          ...(statusFilter ? { status: statusFilter } : {}),
+          ...(statusFilter && statusFilter !== 'all' ? { status: statusFilter } : {}),
           ...(appliedListingId ? { listingId: appliedListingId } : {}),
         })
-        setOffers((res.data as BazaarAdminOfferRow[]) || [])
+        setOffers(normalizeList<BazaarAdminOfferRow>(res.data, ['offers']))
         setTotalPages(res.meta?.pagination?.totalPages ?? 1)
         const t = res.meta?.pagination?.total
         setTotalItems(typeof t === 'number' ? t : null)
@@ -135,14 +151,15 @@ export default function BazaarMarketplaceHub() {
           limit: 20,
           ...(appliedListingId ? { listingId: appliedListingId } : {}),
         })
-        setConversations((res.data as BazaarAdminConversationRow[]) || [])
+        setConversations(
+          normalizeList<BazaarAdminConversationRow>(res.data, ['conversations', 'threads']),
+        )
         setTotalPages(res.meta?.pagination?.totalPages ?? 1)
         const t = res.meta?.pagination?.total
         setTotalItems(typeof t === 'number' ? t : null)
       }
     } catch (e: unknown) {
-      const msg =
-        e && typeof e === 'object' && 'message' in e ? String((e as { message: string }).message) : 'Failed to load'
+      const msg = e && typeof e === 'object' && 'message' in e ? String((e as { message: string }).message) : 'Failed to load'
       setError(msg)
     } finally {
       setLoading(false)
@@ -155,7 +172,7 @@ export default function BazaarMarketplaceHub() {
 
   useEffect(() => {
     setPage(1)
-    setStatusFilter('')
+    setStatusFilter('all')
     setListingDraft('')
     setAppliedListingId('')
     setDrawerOffer(null)
@@ -227,72 +244,96 @@ export default function BazaarMarketplaceHub() {
     downloadCsv(`bazaar-listing-chats-${new Date().toISOString().slice(0, 10)}.csv`, header, rows)
   }
 
+  const detailOpen = Boolean(drawerOffer || drawerConv)
+
   return (
-    <Box>
+    <div>
       <PageHeader
         title="Bazaar marketplace"
         subtitle="Peer listing offers and per-listing buyer–seller threads (separate from discount offers under /offers)."
-        icon={<StorefrontIcon color="primary" />}
+        icon={<Store className="h-9 w-9 text-primary" aria-hidden />}
       />
 
       <BazaarGuidanceAccordion />
 
-      <Alert severity="warning" sx={{ mb: 2 }}>
-        <strong>Peer-to-peer disclaimer:</strong> Payments and handoffs may occur outside this admin app. Ensure
-        customer-facing terms, liability, and regional rules (consumer protection, second-hand goods, etc.) are
-        documented in your mobile/web product.
-      </Alert>
+      <div className="mb-4 rounded-md border border-amber-200 bg-amber-50/80 p-3 text-sm dark:border-amber-900 dark:bg-amber-950/30">
+        <p>
+          <strong>Peer-to-peer disclaimer:</strong> Payments and handoffs may occur outside this admin app. Ensure
+          customer-facing terms, liability, and regional rules (consumer protection, second-hand goods, etc.) are
+          documented in your mobile/web product.
+        </p>
+      </div>
 
-      <Alert severity="info" sx={{ mb: 2 }}>
-        This page loads read-only data from <strong>GET /api/bazaar/admin/offers</strong> and{' '}
-        <strong>GET /api/bazaar/admin/conversations</strong>. Audit trails and enforcement belong in your API and app
-        tier.
-      </Alert>
+      <div className="mb-4 rounded-md border border-sky-200 bg-sky-50/80 p-3 text-sm dark:border-sky-900 dark:bg-sky-950/30">
+        <p>
+          This page loads read-only data from <strong>GET /api/bazaar/admin/offers</strong> and{' '}
+          <strong>GET /api/bazaar/admin/conversations</strong>. Audit trails and enforcement belong in your API and app
+          tier.
+        </p>
+      </div>
 
-      <Paper sx={{ mb: 2 }}>
-        <Tabs value={tab} onChange={(_, v) => setTab(v)}>
-          <Tab label="Listing offers" />
-          <Tab label="Listing chats" />
-        </Tabs>
-      </Paper>
+      <Tabs
+        value={tab}
+        onValueChange={(v) => setTab(v as 'offers' | 'chats')}
+        className="mb-4"
+      >
+        <Card className="overflow-hidden p-0">
+          <TabsList className="h-auto w-full justify-start rounded-none border-b bg-transparent p-0">
+            <TabsTrigger value="offers" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
+              Listing offers
+            </TabsTrigger>
+            <TabsTrigger value="chats" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
+              Listing chats
+            </TabsTrigger>
+          </TabsList>
+        </Card>
+      </Tabs>
 
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'center' }} flexWrap="wrap">
-          <Stack direction="row" spacing={1} alignItems="center">
-            <FilterListIcon color="action" fontSize="small" />
-            <Typography variant="subtitle2">Filters</Typography>
-          </Stack>
-          {tab === 0 && (
-            <FormControl size="small" sx={{ minWidth: 180 }}>
-              <InputLabel id="bazaar-status-label">Offer status</InputLabel>
+      <Card className="mb-4 p-4">
+        <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center">
+          <div className="flex items-center gap-2">
+            <ListFilter className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Filters</span>
+          </div>
+          {tab === 'offers' && (
+            <div className="space-y-1.5">
+              <Label htmlFor="bazaar-status" className="sr-only">
+                Offer status
+              </Label>
               <Select
-                labelId="bazaar-status-label"
-                label="Offer status"
                 value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value)
+                onValueChange={(v) => {
+                  setStatusFilter(v)
                   setPage(1)
                 }}
               >
-                {OFFER_STATUS_FILTERS.map((o) => (
-                  <MenuItem key={o.value || 'all'} value={o.value}>
-                    {o.label}
-                  </MenuItem>
-                ))}
+                <SelectTrigger id="bazaar-status" className="h-8 w-[180px]">
+                  <SelectValue placeholder="Offer status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {OFFER_STATUS_FILTERS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
-            </FormControl>
+            </div>
           )}
-          <TextField
-            size="small"
-            label="Listing ID"
-            placeholder="Exact listing id"
-            value={listingDraft}
-            onChange={(e) => setListingDraft(e.target.value)}
-            sx={{ minWidth: 220 }}
-          />
+          <div className="space-y-1.5">
+            <Label htmlFor="listing-id" className="text-xs text-muted-foreground">
+              Listing ID
+            </Label>
+            <Input
+              id="listing-id"
+              className="h-8 min-w-[220px]"
+              placeholder="Exact listing id"
+              value={listingDraft}
+              onChange={(e) => setListingDraft(e.target.value)}
+            />
+          </div>
           <Button
-            variant="contained"
-            size="small"
+            size="sm"
             onClick={() => {
               setAppliedListingId(listingDraft.trim())
               setPage(1)
@@ -301,8 +342,8 @@ export default function BazaarMarketplaceHub() {
             Apply
           </Button>
           <Button
-            variant="outlined"
-            size="small"
+            size="sm"
+            variant="outline"
             onClick={() => {
               setListingDraft('')
               setAppliedListingId('')
@@ -311,95 +352,87 @@ export default function BazaarMarketplaceHub() {
           >
             Clear listing filter
           </Button>
-          {tab === 0 && (
+          {tab === 'offers' && (
             <Button
-              variant="outlined"
-              size="small"
+              size="sm"
+              variant="outline"
               onClick={() => {
-                setStatusFilter('')
+                setStatusFilter('all')
                 setPage(1)
               }}
             >
               Clear status
             </Button>
           )}
-          <Box sx={{ flex: 1 }} />
-          <Tooltip title="Exports the current page of rows only (adjust filters & pagination as needed).">
-            <span>
-              <Button
-                size="small"
-                startIcon={<DownloadIcon />}
-                variant="outlined"
-                disabled={tab === 0 ? offers.length === 0 : conversations.length === 0}
-                onClick={tab === 0 ? exportOffersCsv : exportConversationsCsv}
-              >
-                Export CSV (this page)
-              </Button>
-            </span>
-          </Tooltip>
-        </Stack>
-        {rangeLabel && (
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-            {rangeLabel}
-          </Typography>
-        )}
-      </Paper>
+          <div className="flex-1" />
+          <Button
+            size="sm"
+            variant="outline"
+            title="Exports the current page of rows only (adjust filters & pagination as needed)."
+            disabled={tab === 'offers' ? offers.length === 0 : conversations.length === 0}
+            onClick={tab === 'offers' ? exportOffersCsv : exportConversationsCsv}
+          >
+            <Download className="mr-1.5 h-3.5 w-3.5" />
+            Export CSV (this page)
+          </Button>
+        </div>
+        {rangeLabel && <p className="mt-2 text-xs text-muted-foreground">{rangeLabel}</p>}
+      </Card>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <div className="mb-4 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
           {error}
-        </Alert>
+        </div>
       )}
 
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-          <CircularProgress />
-        </Box>
-      ) : tab === 0 ? (
-        <TableContainer component={Paper}>
-          <Table size="small">
-            <TableHead>
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : tab === 'offers' ? (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell>Listing</TableCell>
-                <TableCell align="right">Amount (₹)</TableCell>
-                <TableCell align="right">Counter (₹)</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Buyer</TableCell>
-                <TableCell>Seller</TableCell>
-                <TableCell>Expires</TableCell>
+                <TableHead>Listing</TableHead>
+                <TableHead className="text-right">Amount (₹)</TableHead>
+                <TableHead className="text-right">Counter (₹)</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Buyer</TableHead>
+                <TableHead>Seller</TableHead>
+                <TableHead>Expires</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {offers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7}>
-                    <Typography color="text.secondary">No marketplace offers match your filters.</Typography>
+                  <TableCell colSpan={7} className="text-muted-foreground">
+                    No marketplace offers match your filters.
                   </TableCell>
                 </TableRow>
               ) : (
                 offers.map((row) => (
                   <TableRow
                     key={row._id}
-                    hover
-                    sx={{ cursor: 'pointer' }}
+                    className="cursor-pointer"
                     onClick={() => {
                       setDrawerConv(null)
                       setDrawerOffer(row)
                     }}
                   >
                     <TableCell>
-                      <Tooltip title={row.listingId}>
-                        <Typography variant="body2" fontFamily="monospace" noWrap sx={{ maxWidth: 200 }}>
-                          {row.listingId}
-                        </Typography>
-                      </Tooltip>
+                      <p className="max-w-[200px] truncate font-mono text-sm" title={row.listingId}>
+                        {row.listingId}
+                      </p>
                     </TableCell>
-                    <TableCell align="right">{row.amountInr?.toLocaleString('en-IN')}</TableCell>
-                    <TableCell align="right">
+                    <TableCell className="text-right">{row.amountInr?.toLocaleString('en-IN')}</TableCell>
+                    <TableCell className="text-right">
                       {row.counterAmountInr != null ? row.counterAmountInr.toLocaleString('en-IN') : '—'}
                     </TableCell>
                     <TableCell>
-                      <Chip size="small" label={row.status} color={offerStatusColor(row.status)} variant="outlined" />
+                      <Badge variant="outline" className={cn('text-xs', offerStatusBadgeClass(row.status))}>
+                        {row.status}
+                      </Badge>
                     </TableCell>
                     <TableCell>{formatUser(row.buyerId)}</TableCell>
                     <TableCell>{formatUser(row.sellerId)}</TableCell>
@@ -409,62 +442,54 @@ export default function BazaarMarketplaceHub() {
               )}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
       ) : (
-        <TableContainer component={Paper}>
-          <Table size="small">
-            <TableHead>
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell>Conversation</TableCell>
-                <TableCell>Listing ID</TableCell>
-                <TableCell>Participants</TableCell>
-                <TableCell>Last message</TableCell>
-                <TableCell>Last activity</TableCell>
+                <TableHead>Conversation</TableHead>
+                <TableHead>Listing ID</TableHead>
+                <TableHead>Participants</TableHead>
+                <TableHead>Last message</TableHead>
+                <TableHead>Last activity</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {conversations.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5}>
-                    <Typography color="text.secondary">No listing threads match your filters.</Typography>
+                  <TableCell colSpan={5} className="text-muted-foreground">
+                    No listing threads match your filters.
                   </TableCell>
                 </TableRow>
               ) : (
                 conversations.map((row) => (
                   <TableRow
                     key={row._id}
-                    hover
-                    sx={{ cursor: 'pointer' }}
+                    className="cursor-pointer"
                     onClick={() => {
                       setDrawerOffer(null)
                       setDrawerConv(row)
                     }}
                   >
                     <TableCell>
-                      <Typography variant="body2" fontFamily="monospace">
-                        {row._id}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" display="block">
-                        {row.title || '—'}
-                      </Typography>
+                      <p className="font-mono text-sm">{row._id}</p>
+                      <p className="text-xs text-muted-foreground">{row.title || '—'}</p>
                     </TableCell>
                     <TableCell>{row.metadata?.listingId ?? '—'}</TableCell>
                     <TableCell>
-                      <Stack direction="row" gap={0.5} flexWrap="wrap" useFlexGap>
+                      <div className="flex flex-wrap gap-1">
                         {row.participants?.map((p) => (
-                          <Chip
-                            key={`${row._id}-${p.role}-${formatUser(p.userId)}`}
-                            size="small"
-                            label={`${formatUser(p.userId)} · ${p.role}`}
-                            variant="outlined"
-                          />
+                          <Badge key={`${row._id}-${p.role}-${formatUser(p.userId)}`} variant="outline" className="text-xs">
+                            {formatUser(p.userId)} · {p.role}
+                          </Badge>
                         ))}
-                      </Stack>
+                      </div>
                     </TableCell>
-                    <TableCell sx={{ maxWidth: 260 }}>
-                      <Typography variant="body2" noWrap title={row.lastMessage?.text}>
+                    <TableCell className="max-w-[16rem]">
+                      <p className="truncate text-sm" title={row.lastMessage?.text}>
                         {row.lastMessage?.text || '—'}
-                      </Typography>
+                      </p>
                     </TableCell>
                     <TableCell>
                       {row.lastMessage?.sentAt
@@ -476,106 +501,132 @@ export default function BazaarMarketplaceHub() {
               )}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
       )}
 
       {totalPages > 1 && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-          <Pagination count={totalPages} page={page} onChange={(_, p) => setPage(p)} color="primary" />
-        </Box>
+        <div className="mt-4 flex justify-center gap-2">
+          <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+            Previous
+          </Button>
+          <span className="flex items-center text-sm text-muted-foreground">
+            Page {page} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          >
+            Next
+          </Button>
+        </div>
       )}
 
-      <Drawer
-        anchor="right"
-        open={Boolean(drawerOffer || drawerConv)}
-        onClose={() => {
-          setDrawerOffer(null)
-          setDrawerConv(null)
+      <Dialog
+        open={detailOpen}
+        onOpenChange={(o) => {
+          if (!o) {
+            setDrawerOffer(null)
+            setDrawerConv(null)
+          }
         }}
-        PaperProps={{ sx: { width: { xs: '100%', sm: 440 }, p: 0 } }}
       >
-        <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center' }}>
-          <Typography variant="h6" sx={{ flex: 1 }}>
-            {drawerOffer ? 'Offer detail' : 'Thread detail'}
-          </Typography>
-          <IconButton
-            aria-label="Close"
-            onClick={() => {
-              setDrawerOffer(null)
-              setDrawerConv(null)
-            }}
-          >
-            <CloseIcon />
-          </IconButton>
-        </Box>
-        <Box sx={{ p: 2, overflow: 'auto' }}>
-          {drawerOffer && (
-            <>
-              <DetailBlock label="Offer ID">{drawerOffer._id}</DetailBlock>
-              <DetailBlock label="Listing ID">{drawerOffer.listingId}</DetailBlock>
-              <DetailBlock label="Amount (₹)">{drawerOffer.amountInr?.toLocaleString('en-IN')}</DetailBlock>
-              {drawerOffer.counterAmountInr != null && (
-                <DetailBlock label="Counter (₹)">{drawerOffer.counterAmountInr.toLocaleString('en-IN')}</DetailBlock>
-              )}
-              <DetailBlock label="Status">
-                <Chip size="small" label={drawerOffer.status} color={offerStatusColor(drawerOffer.status)} />
-              </DetailBlock>
-              <DetailBlock label="Buyer">{formatUser(drawerOffer.buyerId)}</DetailBlock>
-              {drawerOffer.buyerId?.email && (
-                <DetailBlock label="Buyer email">{drawerOffer.buyerId.email}</DetailBlock>
-              )}
-              <DetailBlock label="Seller">{formatUser(drawerOffer.sellerId)}</DetailBlock>
-              {drawerOffer.sellerId?.email && (
-                <DetailBlock label="Seller email">{drawerOffer.sellerId.email}</DetailBlock>
-              )}
-              <DetailBlock label="Expires">{drawerOffer.expiresAt ? new Date(drawerOffer.expiresAt).toLocaleString() : '—'}</DetailBlock>
-              <DetailBlock label="Created">{drawerOffer.createdAt ? new Date(drawerOffer.createdAt).toLocaleString() : '—'}</DetailBlock>
-              {drawerOffer.updatedAt && (
-                <DetailBlock label="Updated">{new Date(drawerOffer.updatedAt).toLocaleString()}</DetailBlock>
-              )}
-            </>
+        <DialogContent
+          className={cn(
+            '[&>button.absolute]:hidden',
+            'fixed right-0 top-0 left-auto z-50 h-full max-h-screen w-full max-w-md !translate-x-0 !translate-y-0',
+            'rounded-none border-l p-0 sm:max-w-md sm:rounded-l-lg',
+            'gap-0 overflow-hidden p-0'
           )}
-          {drawerConv && (
-            <>
-              <DetailBlock label="Conversation ID">{drawerConv._id}</DetailBlock>
-              <DetailBlock label="Type">{drawerConv.type}</DetailBlock>
-              {drawerConv.title && <DetailBlock label="Title">{drawerConv.title}</DetailBlock>}
-              <DetailBlock label="Listing ID">{drawerConv.metadata?.listingId ?? '—'}</DetailBlock>
-              <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
-                Participants
-              </Typography>
-              <Stack spacing={1}>
-                {drawerConv.participants?.map((p) => (
-                  <Paper key={`${drawerConv._id}-${p.role}-${p.userId?.email}`} variant="outlined" sx={{ p: 1 }}>
-                    <Typography variant="body2">{formatUser(p.userId)}</Typography>
-                    <Chip size="small" label={p.role} sx={{ mt: 0.5 }} />
-                    {p.userId?.email && (
-                      <Typography variant="caption" display="block" color="text.secondary">
-                        {p.userId.email}
-                      </Typography>
-                    )}
-                  </Paper>
-                ))}
-              </Stack>
-              {drawerConv.lastMessage && (
-                <Box sx={{ mt: 2 }}>
-                  <DetailBlock label="Last message at">
-                    {new Date(drawerConv.lastMessage.sentAt).toLocaleString()}
-                  </DetailBlock>
-                  <DetailBlock label="Preview">{drawerConv.lastMessage.text}</DetailBlock>
-                </Box>
-              )}
-              <DetailBlock label="Updated">{new Date(drawerConv.updatedAt).toLocaleString()}</DetailBlock>
-              <Button component={RouterLink} to="/chat" size="small" variant="outlined" sx={{ mt: 2 }}>
-                Open messages hub
-              </Button>
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
-                Find the same thread in the main chat UI if it is wired to the same conversation store.
-              </Typography>
-            </>
-          )}
-        </Box>
-      </Drawer>
-    </Box>
+        >
+          <div className="flex items-center border-b px-4 py-3">
+            <DialogHeader className="flex-1 space-y-0 p-0 text-left">
+              <DialogTitle className="text-base">{drawerOffer ? 'Offer detail' : 'Thread detail'}</DialogTitle>
+            </DialogHeader>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="shrink-0"
+              aria-label="Close"
+              onClick={() => {
+                setDrawerOffer(null)
+                setDrawerConv(null)
+              }}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="max-h-[calc(100vh-3.5rem)] overflow-y-auto p-4">
+            {drawerOffer && (
+              <>
+                <DetailBlock label="Offer ID">{drawerOffer._id}</DetailBlock>
+                <DetailBlock label="Listing ID">{drawerOffer.listingId}</DetailBlock>
+                <DetailBlock label="Amount (₹)">{drawerOffer.amountInr?.toLocaleString('en-IN')}</DetailBlock>
+                {drawerOffer.counterAmountInr != null && (
+                  <DetailBlock label="Counter (₹)">{drawerOffer.counterAmountInr.toLocaleString('en-IN')}</DetailBlock>
+                )}
+                <DetailBlock label="Status">
+                  <Badge variant="outline" className={cn(offerStatusBadgeClass(drawerOffer.status))}>
+                    {drawerOffer.status}
+                  </Badge>
+                </DetailBlock>
+                <DetailBlock label="Buyer">{formatUser(drawerOffer.buyerId)}</DetailBlock>
+                {drawerOffer.buyerId?.email && <DetailBlock label="Buyer email">{drawerOffer.buyerId.email}</DetailBlock>}
+                <DetailBlock label="Seller">{formatUser(drawerOffer.sellerId)}</DetailBlock>
+                {drawerOffer.sellerId?.email && (
+                  <DetailBlock label="Seller email">{drawerOffer.sellerId.email}</DetailBlock>
+                )}
+                <DetailBlock label="Expires">
+                  {drawerOffer.expiresAt ? new Date(drawerOffer.expiresAt).toLocaleString() : '—'}
+                </DetailBlock>
+                <DetailBlock label="Created">
+                  {drawerOffer.createdAt ? new Date(drawerOffer.createdAt).toLocaleString() : '—'}
+                </DetailBlock>
+                {drawerOffer.updatedAt && (
+                  <DetailBlock label="Updated">{new Date(drawerOffer.updatedAt).toLocaleString()}</DetailBlock>
+                )}
+              </>
+            )}
+            {drawerConv && (
+              <>
+                <DetailBlock label="Conversation ID">{drawerConv._id}</DetailBlock>
+                <DetailBlock label="Type">{drawerConv.type}</DetailBlock>
+                {drawerConv.title && <DetailBlock label="Title">{drawerConv.title}</DetailBlock>}
+                <DetailBlock label="Listing ID">{drawerConv.metadata?.listingId ?? '—'}</DetailBlock>
+                <p className="mb-2 mt-4 text-sm font-semibold">Participants</p>
+                <div className="space-y-2">
+                  {drawerConv.participants?.map((p) => (
+                    <div key={`${drawerConv._id}-${p.role}-${p.userId?.email}`} className="rounded-md border p-2 text-sm">
+                      <p>{formatUser(p.userId)}</p>
+                      <Badge className="mt-1" variant="secondary">
+                        {p.role}
+                      </Badge>
+                      {p.userId?.email && <p className="mt-1 text-xs text-muted-foreground">{p.userId.email}</p>}
+                    </div>
+                  ))}
+                </div>
+                {drawerConv.lastMessage && (
+                  <div className="mt-4">
+                    <DetailBlock label="Last message at">
+                      {new Date(drawerConv.lastMessage.sentAt).toLocaleString()}
+                    </DetailBlock>
+                    <DetailBlock label="Preview">{drawerConv.lastMessage.text}</DetailBlock>
+                  </div>
+                )}
+                <DetailBlock label="Updated">{new Date(drawerConv.updatedAt).toLocaleString()}</DetailBlock>
+                <Button asChild variant="outline" size="sm" className="mt-4">
+                  <Link to="/chat">Open messages hub</Link>
+                </Button>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Find the same thread in the main chat UI if it is wired to the same conversation store.
+                </p>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   )
 }

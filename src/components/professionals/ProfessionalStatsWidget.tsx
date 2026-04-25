@@ -3,20 +3,14 @@
  * PROFESSIONAL STATS WIDGET
  * ============================================================================
  * Displays professional statistics cards
- * 
+ *
  * @author CTO Team
  * @date November 7, 2025
  */
 
 import React, { useState, useEffect } from 'react'
-import { Box, Card, CardContent, Typography, CircularProgress } from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
-import {
-  People as PeopleIcon,
-  CheckCircle as VerifiedIcon,
-  AccessTime as AvailableIcon,
-  Star as RatingIcon,
-} from '@mui/icons-material'
+import { Users, CheckCircle, Clock, Star, Loader2 } from 'lucide-react'
+import { Card, CardContent } from '../ui/card'
 import { ProfessionalsService } from '../../services/api/professionals.service'
 import { ProfessionalStats } from '../../types/professional.types'
 
@@ -29,7 +23,7 @@ export function ProfessionalStatsWidget({ onRefresh }: ProfessionalStatsWidgetPr
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchStats()
+    void fetchStats()
   }, [onRefresh])
 
   const fetchStats = async () => {
@@ -48,107 +42,81 @@ export function ProfessionalStatsWidget({ onRefresh }: ProfessionalStatsWidgetPr
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
     )
   }
 
   if (!stats) return null
 
-  const statCards = [
+  const statCards: {
+    title: string
+    value: string | number
+    icon: typeof Users
+    color: string
+    bgColor: string
+  }[] = [
     {
       title: 'Total Professionals',
       value: stats.totalProfessionals,
-      icon: PeopleIcon,
+      icon: Users,
       color: '#2563eb',
       bgColor: '#eff6ff',
     },
     {
       title: 'Verified',
       value: stats.verifiedProfessionals,
-      icon: VerifiedIcon,
+      icon: CheckCircle,
       color: '#16a34a',
       bgColor: '#f0fdf4',
     },
     {
       title: 'Available',
       value: stats.availableProfessionals,
-      icon: AvailableIcon,
+      icon: Clock,
       color: '#ea580c',
       bgColor: '#fff7ed',
     },
     {
       title: 'Average Rating',
       value: stats.averageRating.toFixed(1),
-      icon: RatingIcon,
+      icon: Star,
       color: '#eab308',
       bgColor: '#fef9e7',
     },
   ]
 
   return (
-    <Box sx={{ mb: 3 }}>
-      <Grid container spacing={3}>
+    <div className="mb-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
         {statCards.map((stat, index) => {
           const Icon = stat.icon
           return (
-            <Grid item xs={12} sm={6} md={3} key={index}>
-              <Card
-                sx={{
-                  borderRadius: 2,
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                  },
-                }}
-              >
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Box>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: 'text.secondary',
-                          fontWeight: 500,
-                          mb: 1,
-                        }}
-                      >
-                        {stat.title}
-                      </Typography>
-                      <Typography
-                        variant="h4"
-                        sx={{
-                          fontWeight: 700,
-                          color: stat.color,
-                        }}
-                      >
-                        {stat.value}
-                      </Typography>
-                    </Box>
-                    <Box
-                      sx={{
-                        width: 56,
-                        height: 56,
-                        borderRadius: 2,
-                        bgcolor: stat.bgColor,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Icon sx={{ fontSize: 28, color: stat.color }} />
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
+            <Card
+              key={index}
+              className="transition-shadow duration-300 hover:-translate-y-1 hover:shadow-md"
+            >
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="mb-1 text-sm font-medium text-muted-foreground">{stat.title}</p>
+                    <p className="text-3xl font-bold" style={{ color: stat.color }}>
+                      {stat.value}
+                    </p>
+                  </div>
+                  <div
+                    className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md"
+                    style={{ backgroundColor: stat.bgColor }}
+                  >
+                    <Icon className="h-7 w-7" style={{ color: stat.color }} aria-hidden />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           )
         })}
-      </Grid>
-    </Box>
+      </div>
+    </div>
   )
 }
-

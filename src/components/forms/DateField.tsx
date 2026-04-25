@@ -1,15 +1,8 @@
 import React from 'react'
-import {
-  TextField,
-  Box,
-  Typography,
-  Tooltip,
-} from '@mui/material'
-import {
-  Info as InfoIcon,
-  Error as ErrorIcon,
-  CheckCircle as CheckIcon,
-} from '@mui/icons-material'
+import { Info, CheckCircle2, AlertCircle, AlertTriangle } from 'lucide-react'
+import { Input } from '../ui/input'
+import { Label } from '../ui/label'
+import { cn } from '../../lib/utils'
 
 export interface DateFieldProps {
   label: string
@@ -31,6 +24,23 @@ export interface DateFieldProps {
   maxLength?: number
 }
 
+const StatusIcon = ({ status }: { status?: DateFieldProps['status'] }) => {
+  if (!status) return null
+  const cls = 'h-4 w-4 shrink-0'
+  switch (status) {
+    case 'success':
+      return <CheckCircle2 className={cn(cls, 'text-green-600')} aria-hidden />
+    case 'error':
+      return <AlertCircle className={cn(cls, 'text-destructive')} aria-hidden />
+    case 'warning':
+      return <AlertTriangle className={cn(cls, 'text-amber-600')} aria-hidden />
+    case 'info':
+      return <Info className={cn(cls, 'text-muted-foreground')} aria-hidden />
+    default:
+      return null
+  }
+}
+
 export const DateField: React.FC<DateFieldProps> = ({
   label,
   value,
@@ -42,7 +52,6 @@ export const DateField: React.FC<DateFieldProps> = ({
   placeholder,
   fullWidth = true,
   size = 'medium',
-  variant = 'outlined',
   tooltip,
   status,
   min,
@@ -50,95 +59,63 @@ export const DateField: React.FC<DateFieldProps> = ({
   showCharCount = false,
   maxLength,
 }) => {
-  const getStatusIcon = () => {
-    switch (status) {
-      case 'success':
-        return <CheckIcon color="success" fontSize="small" />
-      case 'error':
-        return <ErrorIcon color="error" fontSize="small" />
-      case 'warning':
-        return <ErrorIcon color="warning" fontSize="small" />
-      case 'info':
-        return <InfoIcon color="info" fontSize="small" />
-      default:
-        return null
-    }
-  }
-
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     onChange(event.target.value)
   }
 
   const displayValue = value || ''
   const charCount = typeof displayValue === 'string' ? displayValue.length : 0
+  const inputSize = size === 'small' ? 'h-8 text-sm' : 'h-10'
 
   return (
-    <Box sx={{ width: fullWidth ? '100%' : 'auto' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <Typography
-          variant="subtitle2"
-          sx={{
-            fontWeight: 600,
-            color: error ? 'error.main' : 'text.primary',
-          }}
+    <div className={cn(fullWidth ? 'w-full' : 'w-auto')}>
+      <div className="mb-1 flex items-center gap-1">
+        <Label
+          className={cn('text-sm font-semibold', error && 'text-destructive')}
         >
           {label}
-          {required && (
-            <Typography component="span" color="error.main" sx={{ ml: 0.5 }}>
-              *
-            </Typography>
-          )}
-        </Typography>
+          {required && <span className="ml-0.5 text-destructive">*</span>}
+        </Label>
         {tooltip && (
-          <Tooltip title={tooltip} arrow>
-            <InfoIcon fontSize="small" color="action" />
-          </Tooltip>
+          <span title={tooltip} className="inline-flex cursor-default text-muted-foreground">
+            <Info className="h-4 w-4" />
+          </span>
         )}
-        {getStatusIcon()}
-      </Box>
-      
-      <TextField
-        fullWidth={fullWidth}
+        <StatusIcon status={status} />
+      </div>
+
+      <Input
         type="date"
+        className={cn('w-full', inputSize, error && 'border-destructive', disabled && 'bg-muted')}
         value={displayValue}
         onChange={handleChange}
-        error={!!error}
         disabled={disabled}
         placeholder={placeholder}
-        size={size}
-        variant={variant}
-        inputProps={{
-          min,
-          max,
-        }}
-        InputLabelProps={{
-          shrink: true,
-        }}
-        sx={{
-          '& .MuiOutlinedInput-root': {
-            backgroundColor: disabled ? 'action.disabledBackground' : 'background.paper',
-          },
-        }}
+        min={min}
+        max={max}
       />
-      
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 0.5 }}>
-        <Typography
-          variant="caption"
-          color={error ? 'error.main' : 'text.secondary'}
-          sx={{ m: 0 }}
+
+      <div className="mt-1.5 flex items-center justify-between gap-2">
+        <p
+          className={cn(
+            'm-0 text-sm',
+            error ? 'text-destructive' : 'text-muted-foreground',
+          )}
         >
           {error || helperText}
-        </Typography>
+        </p>
         {showCharCount && maxLength && (
-          <Typography
-            variant="caption"
-            color={charCount > maxLength * 0.9 ? 'warning.main' : 'text.secondary'}
+          <span
+            className={cn(
+              'shrink-0 text-xs',
+              charCount > maxLength * 0.9 ? 'text-amber-600' : 'text-muted-foreground',
+            )}
           >
             {charCount}/{maxLength}
-          </Typography>
+          </span>
         )}
-      </Box>
-    </Box>
+      </div>
+    </div>
   )
 }
 

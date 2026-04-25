@@ -1,48 +1,25 @@
 /**
- * Assign Provider Modal
- * Modal component for admin to assign a provider to a booking
- * 
- * Features:
- * - Search and select provider
- * - View provider details
- * - Option to notify provider and customer
- * - Beautiful UX with loading states
+ * Assign Provider Modal — assign a provider to a booking (admin).
  */
 
 import React, { useState, useEffect } from 'react'
+import { Search, CheckCircle2, Star, Phone, Mail, Loader2 } from 'lucide-react'
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormControlLabel,
-  Checkbox,
-  Box,
-  Typography,
-  CircularProgress,
-  Alert,
-  Chip,
-  Avatar,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  InputAdornment,
-} from '@mui/material'
-import {
-  Search as SearchIcon,
-  CheckCircle as CheckCircleIcon,
-  Star as StarIcon,
-  Phone as PhoneIcon,
-  Email as EmailIcon,
-} from '@mui/icons-material'
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '../ui/dialog'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
+import { Checkbox } from '../ui/checkbox'
+import { Label } from '../ui/label'
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
+import { Badge } from '../ui/badge'
 import { ProvidersService } from '../../services/api/providers.service'
+import { cn } from '../../lib/utils'
 
 interface Provider {
   id: string
@@ -79,10 +56,9 @@ export function AssignProviderModal({
   const [fetchingProviders, setFetchingProviders] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Fetch providers if not provided via props
   useEffect(() => {
     if (open && (!propProviders || propProviders.length === 0)) {
-      fetchProviders()
+      void fetchProviders()
     } else if (propProviders) {
       setProviders(propProviders)
     }
@@ -95,25 +71,26 @@ export function AssignProviderModal({
         page: 1,
         limit: 100,
       })
-      
+
       if (response.data?.serviceProviders || response.data?.providers) {
         const providersList = response.data?.serviceProviders || response.data?.providers || []
-        
-        // Transform to expected format
-        const transformedProviders: Provider[] = providersList.map((p: any) => ({
-          id: p.id,
-          businessName: p.business_name || p.businessName || 'Unknown Business',
-          email: p.user?.email || 'N/A',
-          phone: p.user?.phone || 'N/A',
-          rating: p.rating || 0,
-          totalJobs: p.totalBookings || p.completed_bookings || 0,
-          verificationStatus: p.verification_status || p.verificationStatus || 'pending',
-          avatar: p.user?.avatar || p.avatar,
-        }))
-        
+        const transformedProviders: Provider[] = (providersList as unknown[]).map((raw) => {
+          const p = raw as Record<string, unknown>
+          const user = p.user as { email?: string; phone?: string; avatar?: string } | undefined
+          return {
+            id: String(p.id ?? ''),
+            businessName: (p.business_name as string) || (p.businessName as string) || 'Unknown Business',
+            email: user?.email || 'N/A',
+            phone: user?.phone || 'N/A',
+            rating: (p.rating as number) || 0,
+            totalJobs: (p.totalBookings as number) || (p.completed_bookings as number) || 0,
+            verificationStatus: (p.verification_status as string) || (p.verificationStatus as string) || 'pending',
+            avatar: user?.avatar || (p.avatar as string | undefined),
+          }
+        })
         setProviders(transformedProviders)
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching providers:', err)
       setError('Failed to load providers. Please try again.')
     } finally {
@@ -121,7 +98,6 @@ export function AssignProviderModal({
     }
   }
 
-  // Filter providers based on search
   const filteredProviders = providers.filter((provider) => {
     const searchLower = searchTerm.toLowerCase()
     return (
@@ -131,31 +107,22 @@ export function AssignProviderModal({
     )
   })
 
-  const selectedProviderData = providers.find(
-    (p) => p.id === selectedProvider
-  )
+  const selectedProviderData = providers.find((p) => p.id === selectedProvider)
 
   const handleAssign = async () => {
     if (!selectedProvider) {
       setError('Please select a provider')
       return
     }
-
     try {
       setLoading(true)
       setError(null)
-      
-      await onAssign(selectedProvider, {
-        notifyProvider,
-        notifyCustomer,
-      })
-
-      // Reset and close
+      await onAssign(selectedProvider, { notifyProvider, notifyCustomer })
       setSelectedProvider('')
       setSearchTerm('')
       onClose()
-    } catch (err: any) {
-      setError(err.message || 'Failed to assign provider')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to assign provider')
     } finally {
       setLoading(false)
     }
@@ -173,210 +140,153 @@ export function AssignProviderModal({
   return (
     <Dialog
       open={open}
-      onClose={handleClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 2,
-          maxHeight: '90vh',
-        },
+      onOpenChange={(o) => {
+        if (!o) handleClose()
       }}
     >
-      <DialogTitle>
-        <Typography variant="h5" component="div" fontWeight={600}>
-          Assign Provider to Booking
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-          Select a provider to handle this booking
-        </Typography>
-      </DialogTitle>
+      <DialogContent className="max-h-[90vh] max-w-lg gap-0 overflow-hidden sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Assign provider to booking</DialogTitle>
+          <DialogDescription>Select a provider to handle booking {bookingId}.</DialogDescription>
+        </DialogHeader>
 
-      <DialogContent dividers>
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-            {error}
-          </Alert>
-        )}
+        <div className="space-y-4 py-2">
+          {error && (
+            <div
+              className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              role="alert"
+            >
+              <div className="flex items-center justify-between gap-2">
+                {error}
+                <Button type="button" variant="ghost" size="sm" onClick={() => setError(null)}>
+                  Dismiss
+                </Button>
+              </div>
+            </div>
+          )}
 
-        {/* Search */}
-        <TextField
-          fullWidth
-          placeholder="Search providers by name, email, or phone..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon color="action" />
-              </InputAdornment>
-            ),
-          }}
-          sx={{ mb: 2 }}
-        />
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-8"
+              placeholder="Search by name, email, or phone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
 
-        {/* Provider List */}
-        {fetchingProviders ? (
-          <Box sx={{ py: 4, textAlign: 'center' }}>
-            <CircularProgress size={40} />
-            <Typography sx={{ mt: 2 }}>Loading providers...</Typography>
-          </Box>
-        ) : filteredProviders.length === 0 ? (
-          <Box
-            sx={{
-              py: 4,
-              textAlign: 'center',
-              color: 'text.secondary',
-            }}
-          >
-            <Typography>
-              {searchTerm ? 'No providers found matching your search' : 'No providers available'}
-            </Typography>
-          </Box>
-        ) : (
-          <List sx={{ maxHeight: 300, overflow: 'auto' }}>
-            {filteredProviders.map((provider) => (
-              <ListItem
-                key={provider.id}
-                component="button"
-                onClick={() => setSelectedProvider(provider.id)}
-                sx={{
-                  borderRadius: 1,
-                  mb: 1,
-                  border: '1px solid',
-                  borderColor:
-                    selectedProvider === provider.id
-                      ? 'primary.main'
-                      : 'divider',
-                  bgcolor:
-                    selectedProvider === provider.id
-                      ? 'primary.50'
-                      : 'transparent',
-                  '&:hover': {
-                    bgcolor:
-                      selectedProvider === provider.id
-                        ? 'primary.100'
-                        : 'action.hover',
-                  },
-                  '&:focus': {
-                    outline: 'none',
-                  },
-                }}
-              >
-                <ListItemAvatar>
-                  <Avatar src={provider.avatar} sx={{ bgcolor: 'primary.main' }}>
-                    {provider.businessName.charAt(0)}
-                  </Avatar>
-                </ListItemAvatar>
-                <ListItemText
-                  primary={
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <Typography variant="subtitle1" fontWeight={500}>
-                        {provider.businessName}
-                      </Typography>
-                      {provider.verificationStatus === 'verified' && (
-                        <Chip
-                          icon={<CheckCircleIcon />}
-                          label="Verified"
-                          size="small"
-                          color="success"
-                          sx={{ height: 20 }}
-                        />
-                      )}
-                    </Box>
-                  }
-                  secondary={
-                    <Box sx={{ mt: 0.5 }}>
-                      <Box display="flex" alignItems="center" gap={0.5}>
-                        <EmailIcon sx={{ fontSize: 14 }} />
-                        <Typography variant="caption">{provider.email}</Typography>
-                      </Box>
-                      <Box display="flex" alignItems="center" gap={0.5} mt={0.25}>
-                        <PhoneIcon sx={{ fontSize: 14 }} />
-                        <Typography variant="caption">{provider.phone}</Typography>
-                      </Box>
-                      {provider.rating && (
-                        <Box display="flex" alignItems="center" gap={0.5} mt={0.25}>
-                          <StarIcon sx={{ fontSize: 14, color: 'warning.main' }} />
-                          <Typography variant="caption">
-                            {provider.rating} ({provider.totalJobs || 0} jobs)
-                          </Typography>
-                        </Box>
-                      )}
-                    </Box>
-                  }
-                />
-              </ListItem>
-            ))}
-          </List>
-        )}
+          {fetchingProviders ? (
+            <div className="flex flex-col items-center py-8">
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+              <p className="mt-2 text-sm text-muted-foreground">Loading providers...</p>
+            </div>
+          ) : filteredProviders.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              {searchTerm ? 'No providers match your search' : 'No providers available'}
+            </p>
+          ) : (
+            <div className="max-h-[min(300px,40vh)] overflow-y-auto pr-1">
+              <ul className="space-y-2">
+                {filteredProviders.map((provider) => {
+                  const sel = selectedProvider === provider.id
+                  return (
+                    <li key={provider.id}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedProvider(provider.id)}
+                        className={cn(
+                          'flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors',
+                          sel
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border hover:bg-muted/50',
+                        )}
+                      >
+                        <Avatar className="h-10 w-10">
+                          {provider.avatar ? <AvatarImage src={provider.avatar} alt="" /> : null}
+                          <AvatarFallback>{provider.businessName.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-1">
+                            <span className="font-medium">{provider.businessName}</span>
+                            {provider.verificationStatus === 'verified' && (
+                              <Badge variant="secondary" className="h-5 gap-0.5 text-[10px]">
+                                <CheckCircle2 className="h-3 w-3" />
+                                Verified
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                            <Mail className="h-3 w-3 shrink-0" />
+                            {provider.email}
+                          </div>
+                          <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                            <Phone className="h-3 w-3 shrink-0" />
+                            {provider.phone}
+                          </div>
+                          {!!provider.rating && (
+                            <div className="mt-0.5 flex items-center gap-0.5 text-xs text-muted-foreground">
+                              <Star className="h-3 w-3 text-amber-500" />
+                              {provider.rating} ({provider.totalJobs || 0} jobs)
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          )}
 
-        {/* Selected Provider Info */}
-        {selectedProviderData && (
-          <Box
-            sx={{
-              mt: 2,
-              p: 2,
-              bgcolor: 'primary.50',
-              borderRadius: 1,
-              border: '1px solid',
-              borderColor: 'primary.200',
-            }}
-          >
-            <Typography variant="subtitle2" color="primary" gutterBottom>
-              Selected Provider
-            </Typography>
-            <Typography variant="body1" fontWeight={500}>
-              {selectedProviderData.businessName}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {selectedProviderData.email}
-            </Typography>
-          </Box>
-        )}
+          {selectedProviderData && (
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+              <p className="text-xs font-medium text-primary">Selected provider</p>
+              <p className="font-medium">{selectedProviderData.businessName}</p>
+              <p className="text-sm text-muted-foreground">{selectedProviderData.email}</p>
+            </div>
+          )}
 
-        {/* Notification Options */}
-        <Box sx={{ mt: 3 }}>
-          <Typography variant="subtitle2" gutterBottom>
-            Notification Options
-          </Typography>
-          <FormControlLabel
-            control={
+          <div className="space-y-3">
+            <p className="text-sm font-medium">Notification options</p>
+            <div className="flex items-center space-x-2">
               <Checkbox
+                id="notify-p"
                 checked={notifyProvider}
-                onChange={(e) => setNotifyProvider(e.target.checked)}
-                color="primary"
+                onCheckedChange={(c) => setNotifyProvider(c === true)}
               />
-            }
-            label="Notify provider about this assignment"
-          />
-          <FormControlLabel
-            control={
+              <Label htmlFor="notify-p" className="text-sm font-normal leading-snug">
+                Notify provider about this assignment
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
               <Checkbox
+                id="notify-c"
                 checked={notifyCustomer}
-                onChange={(e) => setNotifyCustomer(e.target.checked)}
-                color="primary"
+                onCheckedChange={(c) => setNotifyCustomer(c === true)}
               />
-            }
-            label="Notify customer about provider assignment"
-          />
-        </Box>
-      </DialogContent>
+              <Label htmlFor="notify-c" className="text-sm font-normal leading-snug">
+                Notify customer about provider assignment
+              </Label>
+            </div>
+          </div>
+        </div>
 
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={handleClose} disabled={loading} color="inherit">
-          Cancel
-        </Button>
-        <Button
-          onClick={handleAssign}
-          disabled={!selectedProvider || loading}
-          variant="contained"
-          startIcon={loading ? <CircularProgress size={20} /> : null}
-        >
-          {loading ? 'Assigning...' : 'Assign Provider'}
-        </Button>
-      </DialogActions>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
+            Cancel
+          </Button>
+          <Button type="button" onClick={handleAssign} disabled={!selectedProvider || loading}>
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Assigning…
+              </>
+            ) : (
+              'Assign provider'
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   )
 }
-

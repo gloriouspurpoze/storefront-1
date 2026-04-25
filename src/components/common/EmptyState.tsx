@@ -1,5 +1,7 @@
 import React from 'react'
-import { Box, Typography, Button, Paper } from '@mui/material'
+import { Card, CardContent } from '../ui/card'
+import { Button } from '../ui/button'
+import { cn } from '../../lib/utils'
 
 interface EmptyStateProps {
   icon?: React.ReactNode
@@ -12,80 +14,42 @@ interface EmptyStateProps {
   size?: 'small' | 'medium' | 'large'
 }
 
-export function EmptyState({ 
-  icon, 
-  title, 
-  description, 
-  action, 
-  size = 'medium' 
-}: EmptyStateProps) {
-  const getIconSize = () => {
-    switch (size) {
-      case 'small':
-        return 48
-      case 'large':
-        return 96
-      default:
-        return 64
-    }
-  }
+type EmptySize = 'small' | 'medium' | 'large'
 
-  const getPadding = () => {
-    switch (size) {
-      case 'small':
-        return 3
-      case 'large':
-        return 8
-      default:
-        return 6
-    }
-  }
+const padding: Record<EmptySize, string> = {
+  small: 'p-4',
+  medium: 'p-6',
+  large: 'p-8',
+}
+
+const titleClass: Record<EmptySize, string> = {
+  small: 'text-base sm:text-lg',
+  medium: 'text-lg sm:text-xl',
+  large: 'text-xl sm:text-2xl',
+}
+
+export function EmptyState({ icon, title, description, action, size = 'medium' }: EmptyStateProps) {
+  const getIconTextSize = () => (size === 'small' ? 'text-4xl' : size === 'large' ? 'text-8xl' : 'text-6xl')
 
   return (
-    <Paper sx={{ 
-      p: getPadding(), 
-      textAlign: 'center',
-      backgroundColor: 'background.default'
-    }}>
-      {icon && (
-        <Box sx={{ 
-          mb: 2,
-          display: 'flex',
-          justifyContent: 'center'
-        }}>
-          <Box sx={{ 
-            fontSize: getIconSize(),
-            color: 'text.secondary'
-          }}>
+    <Card>
+      <CardContent className={cn('text-center', padding[size || 'medium'])}>
+        {icon && (
+          <div className={cn('mb-2 flex justify-center text-muted-foreground', getIconTextSize())}>
             {icon}
-          </Box>
-        </Box>
-      )}
-      
-      <Typography variant="h6" sx={{ 
-        mb: 1,
-        fontWeight: 600,
-        fontSize: { xs: '1rem', sm: '1.25rem' }
-      }}>
-        {title}
-      </Typography>
-      
-      <Typography variant="body2" color="text.secondary" sx={{ 
-        mb: 3,
-        fontSize: { xs: '0.875rem', sm: '1rem' }
-      }}>
-        {description}
-      </Typography>
-      
-      {action && (
-        <Button
-          variant="contained"
-          onClick={action.onClick}
-          size="large"
-        >
-          {action.label}
-        </Button>
-      )}
-    </Paper>
+          </div>
+        )}
+
+        <h3 className={cn('mb-1 font-semibold', titleClass[size || 'medium'])}>{title}</h3>
+
+        <p className="mb-3 text-sm text-muted-foreground sm:text-base">{description}</p>
+
+        {action && (
+          <Button size="lg" onClick={action.onClick}>
+            {action.label}
+          </Button>
+        )}
+      </CardContent>
+    </Card>
   )
 }

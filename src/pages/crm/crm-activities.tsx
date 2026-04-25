@@ -1,32 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  TextField,
-  Typography,
-  Chip,
-  Snackbar,
-  Alert,
-  Stack,
-} from '@mui/material'
-import { DataGrid, GridColDef, GridActionsCellItem, GridRowSelectionModel } from '@mui/x-data-grid'
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  CheckCircle as DoneIcon,
-  Download as DownloadIcon,
-} from '@mui/icons-material'
+import { CircleCheck, Download, Pencil, Plus, Trash2 } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { CrmSubnav } from '../../components/crm/CrmSubnav'
 import { ConfirmDeleteDialog } from '../../components/crm/ConfirmDeleteDialog'
@@ -34,6 +7,12 @@ import { CrmListToolbar } from '../../components/crm/CrmListToolbar'
 import { CrmListShell } from '../../components/crm/CrmListShell'
 import { CrmEmptyState } from '../../components/crm/CrmEmptyState'
 import { CrmDataGridSkeleton } from '../../components/crm/CrmDataGridSkeleton'
+import {
+  DataGrid,
+  GridActionsCellItem,
+  type GridColDef,
+  type GridRowSelectionModel,
+} from '../../components/crm/CrmDataTable'
 import { crmService } from '../../services/api/crm.service'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useCrmSearchParam } from '../../hooks/useCrmUrlFilters'
@@ -47,6 +26,27 @@ import type {
   CrmDeal,
   CrmRelatedType,
 } from '../../types/crm.types'
+import { Card, CardContent } from '../../components/ui/card'
+import { Button } from '../../components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
+import { Textarea } from '../../components/ui/textarea'
+import { Badge } from '../../components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select'
+import { cn } from '../../lib/utils'
 
 const TYPES: CrmActivityType[] = ['call', 'email', 'meeting', 'task', 'note']
 const STATUS_OPTS: CrmActivityStatus[] = ['open', 'done', 'cancelled']
@@ -110,6 +110,12 @@ export function CrmActivities() {
     }
   }, [tick])
 
+  useEffect(() => {
+    if (!snackbar.open) return undefined
+    const t = window.setTimeout(() => setSnackbar((s) => ({ ...s, open: false })), 4000)
+    return () => window.clearTimeout(t)
+  }, [snackbar.open, snackbar.message])
+
   const filteredRows = useMemo(
     () => filterActivities(rows, qInput, typeFilter, statusFilter),
     [rows, qInput, typeFilter, statusFilter]
@@ -158,16 +164,19 @@ export function CrmActivities() {
 
   const refresh = useCallback(() => setTick((x) => x + 1), [])
 
-  const relatedLabel = (t?: CrmRelatedType, id?: string) => {
-    if (!t || !id) return '—'
-    if (t === 'deal') return deals.find((d) => d.id === id)?.name ?? id
-    if (t === 'contact') {
-      const c = contacts.find((x) => x.id === id)
-      return c ? `${c.firstName} ${c.lastName}` : id
-    }
-    if (t === 'company') return companies.find((c) => c.id === id)?.name ?? id
-    return '—'
-  }
+  const relatedLabel = useCallback(
+    (t?: CrmRelatedType, id?: string) => {
+      if (!t || !id) return '—'
+      if (t === 'deal') return deals.find((d) => d.id === id)?.name ?? id
+      if (t === 'contact') {
+        const c = contacts.find((x) => x.id === id)
+        return c ? `${c.firstName} ${c.lastName}` : id
+      }
+      if (t === 'company') return companies.find((c) => c.id === id)?.name ?? id
+      return '—'
+    },
+    [deals, contacts, companies]
+  )
 
   const runDeleteIds = async (ids: string[]) => {
     setDeleteLoading(true)
@@ -185,96 +194,107 @@ export function CrmActivities() {
     }
   }
 
-  const baseColumns: GridColDef<CrmActivity>[] = useMemo(() => [
-    { field: 'subject', headerName: 'Subject', flex: 1.2, minWidth: 180 },
-    {
-      field: 'type',
-      headerName: 'Type',
-      width: 100,
-      renderCell: (p) => <Chip size="small" label={p.value} variant="outlined" />,
-    },
-    {
-      field: 'status',
-      headerName: 'Status',
-      width: 100,
-      renderCell: (p) => (
-        <Chip
-          size="small"
-          label={p.value}
-          color={p.value === 'done' ? 'success' : p.value === 'open' ? 'primary' : 'default'}
-        />
-      ),
-    },
-    { field: 'priority', headerName: 'Priority', width: 90 },
-    {
-      field: 'dueAt',
-      headerName: 'Due',
-      width: 160,
-      renderCell: (p) =>
-        p.row.dueAt
-          ? new Date(p.row.dueAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
-          : '—',
-    },
-    {
-      field: 'related',
-      headerName: 'Related',
-      flex: 1,
-      minWidth: 140,
-      sortable: false,
-      renderCell: (p) => relatedLabel(p.row.relatedType, p.row.relatedId),
-    },
-  ], [deals, contacts, companies])
+  const baseColumns: GridColDef<CrmActivity>[] = useMemo(
+    () => [
+      { field: 'subject', headerName: 'Subject', flex: 1.2, minWidth: 180 },
+      {
+        field: 'type',
+        headerName: 'Type',
+        width: 100,
+        renderCell: (p) => (
+          <Badge variant="outline" className="font-normal">
+            {String(p.value ?? '—')}
+          </Badge>
+        ),
+      },
+      {
+        field: 'status',
+        headerName: 'Status',
+        width: 100,
+        renderCell: (p) => {
+          const v = p.value as string
+          return (
+            <Badge
+              variant={v === 'done' ? 'success' : v === 'open' ? 'default' : 'secondary'}
+              className="font-normal capitalize"
+            >
+              {v}
+            </Badge>
+          )
+        },
+      },
+      { field: 'priority', headerName: 'Priority', width: 90 },
+      {
+        field: 'dueAt',
+        headerName: 'Due',
+        width: 160,
+        renderCell: (p) =>
+          p.row.dueAt
+            ? new Date(p.row.dueAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
+            : '—',
+      },
+      {
+        field: 'related',
+        headerName: 'Related',
+        flex: 1,
+        minWidth: 140,
+        sortable: false,
+        renderCell: (p) => relatedLabel(p.row.relatedType, p.row.relatedId),
+      },
+    ],
+    [relatedLabel]
+  )
 
-  const actionColumn: GridColDef<CrmActivity> = useMemo(() => ({
-    field: 'actions',
-    type: 'actions',
-    headerName: '',
-    width: canManage ? 140 : 0,
-    getActions: ({ row }) => {
-      if (!canManage) return []
-      const actions = [
-        <GridActionsCellItem key="edit" icon={<EditIcon />} label="Edit" onClick={() => openEdit(row)} />,
-      ]
-      if (row.status === 'open') {
+  const actionColumn: GridColDef<CrmActivity> = useMemo(
+    () => ({
+      field: 'actions',
+      type: 'actions',
+      headerName: '',
+      width: 140,
+      getActions: ({ row }) => {
+        const actions = [<GridActionsCellItem key="edit" icon={<Pencil className="h-4 w-4" />} label="Edit" onClick={() => openEdit(row)} />]
+        if (row.status === 'open') {
+          actions.push(
+            <GridActionsCellItem
+              key="done"
+              icon={<CircleCheck className="h-4 w-4" />}
+              label="Complete"
+              onClick={() => {
+                void (async () => {
+                  try {
+                    await crmService.upsertActivity({
+                      ...row,
+                      subject: row.subject,
+                      type: row.type,
+                      status: 'done',
+                      completedAt: new Date().toISOString(),
+                    })
+                    refresh()
+                    setSnackbar({ open: true, message: 'Marked complete', severity: 'success' })
+                  } catch {
+                    setSnackbar({ open: true, message: 'Update failed', severity: 'error' })
+                  }
+                })()
+              }}
+            />
+          )
+        }
         actions.push(
           <GridActionsCellItem
-            key="done"
-            icon={<DoneIcon />}
-            label="Complete"
+            key="del"
+            icon={<Trash2 className="h-4 w-4" />}
+            label="Delete"
             onClick={() => {
-              void (async () => {
-                try {
-                  await crmService.upsertActivity({
-                    ...row,
-                    subject: row.subject,
-                    type: row.type,
-                    status: 'done',
-                    completedAt: new Date().toISOString(),
-                  })
-                  refresh()
-                  setSnackbar({ open: true, message: 'Marked complete', severity: 'success' })
-                } catch {
-                  setSnackbar({ open: true, message: 'Update failed', severity: 'error' })
-                }
-              })()
+              setActivityToDeleteId(row.id)
+              setDeleteTarget('single')
             }}
           />
         )
-      }
-      actions.push(
-        <GridActionsCellItem
-          key="del"
-          icon={<DeleteIcon />}
-          label="Delete"
-          onClick={() => {
-            setActivityToDeleteId(row.id)
-            setDeleteTarget('single')
-          }}
-        />
-      )
-      return actions
-    },
-  }), [canManage, openEdit, refresh])
+        return actions
+      },
+    }),
+    [canManage, openEdit, refresh]
+  )
 
   const columns = canManage ? [...baseColumns, actionColumn] : baseColumns
 
@@ -286,61 +306,73 @@ export function CrmActivities() {
   const isEmpty = !loading && !loadError && rows.length === 0
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }}>
+    <div className="p-4 md:p-6">
       <PageHeader
         title="Activities"
         subtitle="Calls, tasks, and meetings — tied to deals and contacts."
         action={
-          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            <Button variant="outlined" startIcon={<DownloadIcon />} onClick={() => crmService.downloadExport('activities')}>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" className="gap-1" onClick={() => crmService.downloadExport('activities')}>
+              <Download className="h-4 w-4" />
               Export CSV
             </Button>
             {canManage ? (
-              <Button startIcon={<AddIcon />} variant="contained" onClick={openCreate}>
+              <Button size="sm" className="gap-1" onClick={openCreate}>
+                <Plus className="h-4 w-4" />
                 Log activity
               </Button>
             ) : null}
-          </Stack>
+          </div>
         }
       />
       <CrmSubnav />
 
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      <p className="mb-4 text-sm text-muted-foreground">
         Tasks past due are highlighted on the CRM overview as overdue work.
-      </Typography>
+      </p>
 
       <CrmListToolbar qInput={qInput} onQChange={setQInput} searchPlaceholder="Search activities…">
-        <FormControl size="small" sx={{ minWidth: 130 }}>
-          <InputLabel>Type</InputLabel>
-          <Select label="Type" value={typeFilter} onChange={(e) => setParam('type', e.target.value)}>
-            <MenuItem value="all">All types</MenuItem>
-            {TYPES.map((t) => (
-              <MenuItem key={t} value={t}>
-                {t}
-              </MenuItem>
-            ))}
+        <div className="space-y-1.5">
+          <Label className="sr-only">Type</Label>
+          <Select value={typeFilter} onValueChange={(v) => setParam('type', v)}>
+            <SelectTrigger className="h-9 w-[min(100%,8rem)] sm:w-32" aria-label="Type">
+              <SelectValue placeholder="Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All types</SelectItem>
+              {TYPES.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {t}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
-        </FormControl>
-        <FormControl size="small" sx={{ minWidth: 130 }}>
-          <InputLabel>Status</InputLabel>
-          <Select label="Status" value={statusFilter} onChange={(e) => setParam('status', e.target.value)}>
-            <MenuItem value="all">All</MenuItem>
-            {STATUS_OPTS.map((s) => (
-              <MenuItem key={s} value={s}>
-                {s}
-              </MenuItem>
-            ))}
+        </div>
+        <div className="space-y-1.5">
+          <Label className="sr-only">Status</Label>
+          <Select value={statusFilter} onValueChange={(v) => setParam('status', v)}>
+            <SelectTrigger className="h-9 w-[min(100%,8rem)] sm:w-32" aria-label="Status">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              {STATUS_OPTS.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
-        </FormControl>
+        </div>
       </CrmListToolbar>
 
       {canManage && selectedIds.length > 0 ? (
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-          <Typography variant="body2">{selectedIds.length} selected</Typography>
-          <Button size="small" color="error" variant="outlined" onClick={() => setDeleteTarget('bulk')}>
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <p className="text-sm text-muted-foreground">{selectedIds.length} selected</p>
+          <Button size="sm" variant="outline" className="text-destructive" onClick={() => setDeleteTarget('bulk')}>
             Delete selected
           </Button>
-        </Stack>
+        </div>
       ) : null}
 
       <CrmListShell
@@ -349,7 +381,7 @@ export function CrmActivities() {
         onRetry={refresh}
         isEmpty={isEmpty}
         empty={
-          <Card variant="outlined">
+          <Card>
             <CrmEmptyState
               title="No activities yet"
               description="Log calls, meetings, and tasks so your team keeps context in one place."
@@ -360,8 +392,8 @@ export function CrmActivities() {
         }
         skeleton={<CrmDataGridSkeleton />}
       >
-        <Card variant="outlined">
-          <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
+        <Card>
+          <CardContent className="p-0">
             {filteredRows.length === 0 && rows.length > 0 ? (
               <CrmEmptyState title="No matching activities" description="Try adjusting search or filters." />
             ) : (
@@ -370,13 +402,12 @@ export function CrmActivities() {
                 columns={columns}
                 getRowId={(r) => r.id}
                 pageSizeOptions={[10, 25, 50]}
-                initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
+                initialPageSize={10}
                 checkboxSelection={canManage}
                 rowSelectionModel={selectionModel}
                 onRowSelectionModelChange={setSelectionModel}
-                disableRowSelectionOnClick
-                autoHeight
-                sx={{ border: 'none', minHeight: 360 }}
+                minHeight={360}
+                className="border-0"
               />
             )}
           </CardContent>
@@ -412,184 +443,218 @@ export function CrmActivities() {
         }}
       />
 
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>{editing ? 'Edit activity' : 'Log activity'}</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
-          <TextField
-            label="Subject"
-            required
-            value={form.subject}
-            onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
-          />
-          <FormControl fullWidth>
-            <InputLabel>Type</InputLabel>
-            <Select
-              label="Type"
-              value={form.type}
-              onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as CrmActivityType }))}
-            >
-              {TYPES.map((t) => (
-                <MenuItem key={t} value={t}>
-                  {t}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl fullWidth>
-            <InputLabel>Status</InputLabel>
-            <Select
-              label="Status"
-              value={form.status}
-              onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as CrmActivityStatus }))}
-            >
-              {STATUS_OPTS.map((t) => (
-                <MenuItem key={t} value={t}>
-                  {t}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl fullWidth>
-            <InputLabel>Priority</InputLabel>
-            <Select
-              label="Priority"
-              value={form.priority}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, priority: e.target.value as 'low' | 'normal' | 'high' }))
-              }
-            >
-              <MenuItem value="low">low</MenuItem>
-              <MenuItem value="normal">normal</MenuItem>
-              <MenuItem value="high">high</MenuItem>
-            </Select>
-          </FormControl>
-          <TextField
-            label="Due"
-            type="datetime-local"
-            InputLabelProps={{ shrink: true }}
-            value={form.dueAt}
-            onChange={(e) => setForm((f) => ({ ...f, dueAt: e.target.value }))}
-          />
-          <FormControl fullWidth>
-            <InputLabel>Related type</InputLabel>
-            <Select
-              label="Related type"
-              value={form.relatedType}
-              onChange={(e) =>
-                setForm((f) => ({
-                  ...f,
-                  relatedType: (e.target.value || '') as '' | CrmRelatedType,
-                  relatedId: '',
-                }))
-              }
-            >
-              <MenuItem value="">None</MenuItem>
-              <MenuItem value="deal">Deal</MenuItem>
-              <MenuItem value="contact">Contact</MenuItem>
-              <MenuItem value="company">Company</MenuItem>
-            </Select>
-          </FormControl>
-          {form.relatedType === 'deal' ? (
-            <FormControl fullWidth>
-              <InputLabel>Deal</InputLabel>
-              <Select
-                label="Deal"
-                value={form.relatedId}
-                onChange={(e) => setForm((f) => ({ ...f, relatedId: String(e.target.value) }))}
-              >
-                {deals.map((d) => (
-                  <MenuItem key={d.id} value={d.id}>
-                    {d.name}
-                  </MenuItem>
-                ))}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editing ? 'Edit activity' : 'Log activity'}</DialogTitle>
+          </DialogHeader>
+          <div className="flex max-h-[75vh] flex-col gap-3 overflow-y-auto py-1 pr-1">
+            <div className="space-y-1.5">
+              <Label htmlFor="act-subj">Subject *</Label>
+              <Input
+                id="act-subj"
+                value={form.subject}
+                onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Type</Label>
+              <Select value={form.type} onValueChange={(v) => setForm((f) => ({ ...f, type: v as CrmActivityType }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TYPES.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
-            </FormControl>
-          ) : null}
-          {form.relatedType === 'contact' ? (
-            <FormControl fullWidth>
-              <InputLabel>Contact</InputLabel>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Status</Label>
               <Select
-                label="Contact"
-                value={form.relatedId}
-                onChange={(e) => setForm((f) => ({ ...f, relatedId: String(e.target.value) }))}
+                value={form.status}
+                onValueChange={(v) => setForm((f) => ({ ...f, status: v as CrmActivityStatus }))}
               >
-                {contacts.map((c) => (
-                  <MenuItem key={c.id} value={c.id}>
-                    {c.firstName} {c.lastName}
-                  </MenuItem>
-                ))}
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTS.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
-            </FormControl>
-          ) : null}
-          {form.relatedType === 'company' ? (
-            <FormControl fullWidth>
-              <InputLabel>Company</InputLabel>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Priority</Label>
               <Select
-                label="Company"
-                value={form.relatedId}
-                onChange={(e) => setForm((f) => ({ ...f, relatedId: String(e.target.value) }))}
+                value={form.priority}
+                onValueChange={(v) => setForm((f) => ({ ...f, priority: v as 'low' | 'normal' | 'high' }))}
               >
-                {companies.map((c) => (
-                  <MenuItem key={c.id} value={c.id}>
-                    {c.name}
-                  </MenuItem>
-                ))}
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">low</SelectItem>
+                  <SelectItem value="normal">normal</SelectItem>
+                  <SelectItem value="high">high</SelectItem>
+                </SelectContent>
               </Select>
-            </FormControl>
-          ) : null}
-          <TextField
-            label="Details"
-            multiline
-            minRows={2}
-            value={form.body}
-            onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
-          <Button
-            variant="contained"
-            onClick={() => {
-              if (!form.subject.trim()) {
-                setSnackbar({ open: true, message: 'Subject is required', severity: 'error' })
-                return
-              }
-              const relType = form.relatedType || undefined
-              const relId = form.relatedId || undefined
-              void (async () => {
-                try {
-                  await crmService.upsertActivity({
-                    id: editing?.id,
-                    subject: form.subject.trim(),
-                    type: form.type,
-                    status: form.status,
-                    priority: form.priority,
-                    dueAt: form.dueAt ? new Date(form.dueAt).toISOString() : undefined,
-                    relatedType: relType,
-                    relatedId: relType ? relId : undefined,
-                    body: form.body || undefined,
-                    completedAt:
-                      form.status === 'done' ? editing?.completedAt ?? new Date().toISOString() : undefined,
-                  })
-                  setOpen(false)
-                  refresh()
-                  setSnackbar({ open: true, message: 'Activity saved', severity: 'success' })
-                } catch {
-                  setSnackbar({ open: true, message: 'Save failed', severity: 'error' })
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="act-due">Due</Label>
+              <Input
+                id="act-due"
+                type="datetime-local"
+                value={form.dueAt}
+                onChange={(e) => setForm((f) => ({ ...f, dueAt: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Related type</Label>
+              <Select
+                value={form.relatedType || 'none'}
+                onValueChange={(v) =>
+                  setForm((f) => ({
+                    ...f,
+                    relatedType: (v === 'none' ? '' : v) as '' | CrmRelatedType,
+                    relatedId: '',
+                  }))
                 }
-              })()
-            }}
-          >
-            Save
-          </Button>
-        </DialogActions>
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="deal">Deal</SelectItem>
+                  <SelectItem value="contact">Contact</SelectItem>
+                  <SelectItem value="company">Company</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {form.relatedType === 'deal' ? (
+              <div className="space-y-1.5">
+                <Label>Deal</Label>
+                <Select value={form.relatedId} onValueChange={(v) => setForm((f) => ({ ...f, relatedId: v }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select deal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {deals.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>
+                        {d.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
+            {form.relatedType === 'contact' ? (
+              <div className="space-y-1.5">
+                <Label>Contact</Label>
+                <Select value={form.relatedId} onValueChange={(v) => setForm((f) => ({ ...f, relatedId: v }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select contact" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {contacts.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.firstName} {c.lastName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
+            {form.relatedType === 'company' ? (
+              <div className="space-y-1.5">
+                <Label>Company</Label>
+                <Select value={form.relatedId} onValueChange={(v) => setForm((f) => ({ ...f, relatedId: v }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select company" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companies.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
+            <div className="space-y-1.5">
+              <Label htmlFor="act-body">Details</Label>
+              <Textarea
+                id="act-body"
+                rows={3}
+                value={form.body}
+                onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                if (!form.subject.trim()) {
+                  setSnackbar({ open: true, message: 'Subject is required', severity: 'error' })
+                  return
+                }
+                const relType = form.relatedType || undefined
+                const relId = form.relatedId || undefined
+                void (async () => {
+                  try {
+                    await crmService.upsertActivity({
+                      id: editing?.id,
+                      subject: form.subject.trim(),
+                      type: form.type,
+                      status: form.status,
+                      priority: form.priority,
+                      dueAt: form.dueAt ? new Date(form.dueAt).toISOString() : undefined,
+                      relatedType: relType,
+                      relatedId: relType ? relId : undefined,
+                      body: form.body || undefined,
+                      completedAt:
+                        form.status === 'done' ? editing?.completedAt ?? new Date().toISOString() : undefined,
+                    })
+                    setOpen(false)
+                    refresh()
+                    setSnackbar({ open: true, message: 'Activity saved', severity: 'success' })
+                  } catch {
+                    setSnackbar({ open: true, message: 'Save failed', severity: 'error' })
+                  }
+                })()
+              }}
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
 
-      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar((s) => ({ ...s, open: false }))}>
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar((s) => ({ ...s, open: false }))} sx={{ width: '100%' }}>
+      {snackbar.open ? (
+        <div
+          role="status"
+          className={cn(
+            'fixed bottom-4 left-1/2 z-[200] w-[min(100%,20rem)] -translate-x-1/2 rounded-md border px-4 py-2 text-sm shadow-md',
+            snackbar.severity === 'error'
+              ? 'border-destructive bg-destructive text-destructive-foreground'
+              : 'border-emerald-600 bg-emerald-600 text-white',
+          )}
+        >
           {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+        </div>
+      ) : null}
+    </div>
   )
 }

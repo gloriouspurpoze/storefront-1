@@ -1,221 +1,205 @@
 import React from 'react'
 import {
-  AppBar,
-  Toolbar,
-  IconButton,
-  Typography,
-  Box,
-  TextField,
-  InputAdornment,
-  Avatar,
   Menu,
-  MenuItem,
-  useTheme,
-  useMediaQuery,
-  Divider,
-} from '@mui/material'
-import {
-  Menu as MenuIcon,
-  Search as SearchIcon,
-  DarkMode as DarkModeIcon,
-  LightMode as LightModeIcon,
-  Settings as SettingsIcon,
-  Logout as LogoutIcon,
-  Person as PersonIcon,
-} from '@mui/icons-material'
+  Search,
+  Moon,
+  Sun,
+  Settings,
+  LogOut,
+  User,
+} from 'lucide-react'
 import { useTheme as useCustomTheme } from '../../contexts/theme-context'
 import { useCommandPalette } from '../../contexts/command-palette-context'
 import { useAppSelector, useAppDispatch } from '../../store/hooks'
 import { logout } from '../../store/slices/authSlice'
+import { useNavigate } from 'react-router-dom'
 import { NotificationBell } from '../notifications/NotificationBell'
 import { useSidebar } from '../../contexts/sidebar-context'
 import { SaasTenantIndicator } from './SaasTenantIndicator'
+import { APP_BAR_HEIGHT_PX } from './layout-constants'
+import { useMediaQuery, muiMdUp } from '../../hooks/useMediaQuery'
+import { Input } from '../ui/input'
+import { Button } from '../ui/button'
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu'
 
 interface HeaderProps {
   onMenuClick: () => void
 }
 
 export function Header({ onMenuClick }: HeaderProps) {
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+  const isDesktop = useMediaQuery(muiMdUp)
   const { isDarkMode, toggleTheme } = useCustomTheme()
   const authState = useAppSelector((state) => state.auth)
   const user = authState?.user || null
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
   const { toggleSidebar } = useSidebar()
   const { openPalette } = useCommandPalette()
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null)
-  const jumpHint = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
-    ? '⌘K'
-    : 'Ctrl+K'
-
-  const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget)
-  }
-
-  const handleMenuClose = () => {
-    setAnchorEl(null)
-  }
+  const jumpHint =
+    typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
+      ? '⌘K'
+      : 'Ctrl+K'
 
   const handleLogout = () => {
     dispatch(logout())
-    handleMenuClose()
   }
 
   return (
-    <AppBar
-      position="fixed"
-      sx={{
-        zIndex: theme.zIndex.drawer + 1,
-        backgroundColor: 'background.paper',
-        color: 'text.primary',
-        boxShadow: 1,
-      }}
+    <header
+      className="fixed left-0 right-0 top-0 z-50 border-b border-border bg-card text-foreground shadow-sm"
+      style={{ height: APP_BAR_HEIGHT_PX }}
     >
-      <Toolbar>
-        {/* Mobile menu button */}
-        <IconButton
-          color="inherit"
-          aria-label="open drawer"
-          edge="start"
+      <div
+        className="mx-auto flex h-full max-w-full items-center px-2 sm:px-3"
+        style={{ minHeight: APP_BAR_HEIGHT_PX }}
+      >
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="mr-2 text-foreground md:hidden"
           onClick={onMenuClick}
-          sx={{ mr: 2, display: { md: 'none' } }}
+          aria-label="Open menu"
         >
-          <MenuIcon />
-        </IconButton>
+          <Menu className="h-5 w-5" />
+        </Button>
 
-        {/* Desktop sidebar toggle */}
-        <IconButton
-          color="inherit"
-          aria-label="toggle sidebar"
-          edge="start"
-          onClick={toggleSidebar}
-          sx={{ mr: 2, display: { xs: 'none', md: 'block' } }}
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="mr-2 hidden text-foreground md:inline-flex"
+          onClick={() => toggleSidebar()}
+          aria-label="Toggle sidebar"
         >
-          <MenuIcon />
-        </IconButton>
+          <Menu className="h-5 w-5" />
+        </Button>
 
-        {/* Quick open (same as ⌘K palette) */}
-        <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
-          {!isMobile && (
-            <TextField
-              placeholder={`Jump to page… (${jumpHint})`}
-              size="small"
-              onFocus={openPalette}
-              onClick={openPalette}
-              inputProps={{ readOnly: true, 'aria-label': 'Open quick navigation' }}
-              sx={{
-                minWidth: 280,
-                maxWidth: 420,
-                '& .MuiOutlinedInput-root': {
-                  backgroundColor: 'action.hover',
-                  cursor: 'pointer',
-                },
-              }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon color="action" fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
-            />
+        <div className="flex min-w-0 flex-1 items-center">
+          {isDesktop && (
+            <div className="min-w-0 max-w-sm flex-1 pr-2">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  readOnly
+                  placeholder={`Jump to page… (${jumpHint})`}
+                  className="h-8 cursor-pointer bg-muted/50 pl-8 text-xs"
+                  onFocus={openPalette}
+                  onClick={openPalette}
+                  aria-label="Open quick navigation"
+                />
+              </div>
+            </div>
           )}
-        </Box>
+        </div>
 
-        <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', mr: 1 }}>
+        <div className="mr-1 hidden items-center md:flex">
           <SaasTenantIndicator variant="header" />
-        </Box>
+        </div>
 
-        {/* Right side actions */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {/* Theme toggle */}
-          <IconButton onClick={toggleTheme} color="inherit">
-            {isDarkMode ? <LightModeIcon /> : <DarkModeIcon />}
-          </IconButton>
+        <div className="flex items-center gap-1 sm:gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            aria-label="Toggle dark mode"
+            className="text-foreground"
+          >
+            {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </Button>
 
-          {/* Notifications */}
           <NotificationBell />
 
-          {isMobile && (
-            <IconButton color="inherit" aria-label="Open quick navigation" onClick={openPalette}>
-              <SearchIcon />
-            </IconButton>
+          {!isDesktop && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={openPalette}
+              aria-label="Open quick navigation"
+            >
+              <Search className="h-5 w-5" />
+            </Button>
           )}
 
-          {/* Profile menu */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 1 }}>
-            <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+          <div className="ml-1 flex items-center gap-2 sm:ml-2">
+            <div className="hidden min-w-0 text-right sm:block">
+              <p className="truncate text-sm font-semibold leading-tight">
                 {user?.firstName} {user?.lastName}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {user?.email}
-              </Typography>
-            </Box>
-            <IconButton
-              size="large"
-              edge="end"
-              aria-label="account of current user"
-              aria-controls="primary-search-account-menu"
-              aria-haspopup="true"
-              onClick={handleProfileMenuOpen}
-              color="inherit"
-            >
-              <Avatar
-                src={user?.profilePicture}
-                sx={{ width: 32, height: 32 }}
-              >
-                {user?.firstName?.[0]}{user?.lastName?.[0]}
-              </Avatar>
-            </IconButton>
-          </Box>
-        </Box>
-      </Toolbar>
+              </p>
+              <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
+            </div>
 
-      {/* Profile menu */}
-      <Menu
-        anchorEl={anchorEl}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'right',
-        }}
-        keepMounted
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
-        }}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-        PaperProps={{
-          sx: { minWidth: 200 }
-        }}
-      >
-        <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-            {user?.firstName} {user?.lastName}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {user?.email}
-          </Typography>
-          <Typography variant="caption" color="primary">
-            {user?.userType?.toUpperCase()}
-          </Typography>
-        </Box>
-        <MenuItem onClick={handleMenuClose}>
-          <PersonIcon sx={{ mr: 2 }} />
-          Profile
-        </MenuItem>
-        <MenuItem onClick={handleMenuClose}>
-          <SettingsIcon sx={{ mr: 2 }} />
-          Settings
-        </MenuItem>
-        <Divider />
-        <MenuItem onClick={handleLogout}>
-          <LogoutIcon sx={{ mr: 2 }} />
-          <Typography color="error">Logout</Typography>
-        </MenuItem>
-      </Menu>
-    </AppBar>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="relative h-9 w-9 rounded-full p-0"
+                  aria-label="Account menu"
+                >
+                  <Avatar className="h-7 w-7 text-xs">
+                    {user?.profilePicture && <AvatarImage src={user.profilePicture} alt="" />}
+                    <AvatarFallback>
+                      {[user?.firstName?.[0], user?.lastName?.[0]]
+                        .filter(Boolean)
+                        .join('') || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="space-y-1 p-0 font-normal">
+                  <div className="border-b border-border p-2">
+                    <p className="text-sm font-semibold">
+                      {user?.firstName} {user?.lastName}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{user?.email}</p>
+                    {user?.userType && (
+                      <p className="text-xs font-medium text-primary">{user.userType.toUpperCase()}</p>
+                    )}
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => {
+                    void navigate('/settings')
+                  }}
+                  className="cursor-pointer"
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    void navigate('/settings')
+                  }}
+                  className="cursor-pointer"
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="cursor-pointer text-destructive focus:text-destructive"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </div>
+    </header>
   )
 }

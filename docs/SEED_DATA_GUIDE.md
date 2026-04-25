@@ -51,6 +51,19 @@ See `BLOG_SEEDS.md`. From **fixer-admin**:
 SEED_AUTH_TOKEN="your_jwt" npm run seed:blogs
 ```
 
+### Product catalog (industry sample)
+Product seeds live in **fixer-backend** (MongoDB, same data the API serves):
+
+```bash
+cd /path/to/fixer-backend
+npm run seed:products
+```
+
+- Data: `src/scripts/seeds-data/industryProductSeedData.ts`
+- Runner: `src/scripts/seed-industry-products.ts`
+- Legacy seed (CPVC/LED demo): `npm run seed:products-legacy`
+- Documented in `src/app.ts` (REST block comment) next to the `/api` map.
+
 ---
 
 ## ✅ After Running

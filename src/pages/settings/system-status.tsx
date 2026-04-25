@@ -1,38 +1,11 @@
-import React, { useState, useEffect } from 'react'
-import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  Grid,
-  Chip,
-  LinearProgress,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Divider,
-  Alert,
-  Button,
-  useTheme,
-  alpha,
-} from '@mui/material'
-import {
-  CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
-  Warning as WarningIcon,
-  Info as InfoIcon,
-  Refresh as RefreshIcon,
-  Cloud as CloudIcon,
-  Storage as DatabaseIcon,
-  Security as SecurityIcon,
-  Speed as SpeedIcon,
-  Storage as StorageIcon,
-  NetworkCheck as NetworkIcon,
-  Memory as MemoryIcon,
-  Memory as CpuIcon,
-} from '@mui/icons-material'
+import React, { useState } from 'react'
+import { Cloud, RefreshCw, CheckCircle2, AlertTriangle, XCircle, Info } from 'lucide-react'
+import { Card, CardContent } from '../../components/ui/card'
+import { Button } from '../../components/ui/button'
+import { Badge } from '../../components/ui/badge'
+import { Separator } from '../../components/ui/separator'
 import { PageHeader } from '../../components/common/PageHeader'
+import { cn } from '../../lib/utils'
 
 interface SystemComponent {
   id: string
@@ -52,8 +25,37 @@ interface SystemMetric {
   trend: 'up' | 'down' | 'stable'
 }
 
+const statusConfig: Record<
+  string,
+  { className: string; icon: React.ElementType<{ className?: string }> }
+> = {
+  operational: { className: 'text-emerald-600', icon: CheckCircle2 },
+  degraded: { className: 'text-amber-600', icon: AlertTriangle },
+  outage: { className: 'text-destructive', icon: XCircle },
+  maintenance: { className: 'text-sky-600', icon: Info },
+}
+
+const metricBarClass: Record<string, string> = {
+  good: 'bg-emerald-500',
+  warning: 'bg-amber-500',
+  critical: 'bg-destructive',
+}
+
+const metricTextClass: Record<string, string> = {
+  good: 'text-emerald-600',
+  warning: 'text-amber-600',
+  critical: 'text-destructive',
+}
+
+function metricBarWidth(metric: SystemMetric): number {
+  if (metric.name === 'Error Rate') return Math.min(100, metric.value * 100)
+  if (metric.unit === '%') return Math.min(100, metric.value)
+  if (metric.unit === 'connections') return Math.min(100, (metric.value / 2000) * 100)
+  if (metric.unit === 'ms') return Math.min(100, (metric.value / 100) * 100)
+  return Math.min(100, metric.value)
+}
+
 export function SystemStatus() {
-  const theme = useTheme()
   const [lastUpdated, setLastUpdated] = useState(new Date())
   const [isRefreshing, setIsRefreshing] = useState(false)
 
@@ -115,48 +117,12 @@ export function SystemStatus() {
   ]
 
   const systemMetrics: SystemMetric[] = [
-    {
-      name: 'CPU Usage',
-      value: 45,
-      unit: '%',
-      status: 'good',
-      trend: 'stable',
-    },
-    {
-      name: 'Memory Usage',
-      value: 72,
-      unit: '%',
-      status: 'warning',
-      trend: 'up',
-    },
-    {
-      name: 'Disk Usage',
-      value: 38,
-      unit: '%',
-      status: 'good',
-      trend: 'stable',
-    },
-    {
-      name: 'Network Latency',
-      value: 23,
-      unit: 'ms',
-      status: 'good',
-      trend: 'down',
-    },
-    {
-      name: 'Active Connections',
-      value: 1247,
-      unit: 'connections',
-      status: 'good',
-      trend: 'up',
-    },
-    {
-      name: 'Error Rate',
-      value: 0.02,
-      unit: '%',
-      status: 'good',
-      trend: 'down',
-    },
+    { name: 'CPU Usage', value: 45, unit: '%', status: 'good', trend: 'stable' },
+    { name: 'Memory Usage', value: 72, unit: '%', status: 'warning', trend: 'up' },
+    { name: 'Disk Usage', value: 38, unit: '%', status: 'good', trend: 'stable' },
+    { name: 'Network Latency', value: 23, unit: 'ms', status: 'good', trend: 'down' },
+    { name: 'Active Connections', value: 1247, unit: 'connections', status: 'good', trend: 'up' },
+    { name: 'Error Rate', value: 0.02, unit: '%', status: 'good', trend: 'down' },
   ]
 
   const incidents = [
@@ -180,271 +146,175 @@ export function SystemStatus() {
     },
   ]
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'operational':
-        return theme.palette.success.main
-      case 'degraded':
-        return theme.palette.warning.main
-      case 'outage':
-        return theme.palette.error.main
-      case 'maintenance':
-        return theme.palette.info.main
-      default:
-        return theme.palette.grey[500]
-    }
-  }
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'operational':
-        return <CheckCircleIcon />
-      case 'degraded':
-        return <WarningIcon />
-      case 'outage':
-        return <ErrorIcon />
-      case 'maintenance':
-        return <InfoIcon />
-      default:
-        return <InfoIcon />
-    }
-  }
-
-  const getMetricColor = (status: string) => {
-    switch (status) {
-      case 'good':
-        return theme.palette.success.main
-      case 'warning':
-        return theme.palette.warning.main
-      case 'critical':
-        return theme.palette.error.main
-      default:
-        return theme.palette.grey[500]
-    }
-  }
-
   const handleRefresh = async () => {
     setIsRefreshing(true)
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    await new Promise((resolve) => setTimeout(resolve, 2000))
     setLastUpdated(new Date())
     setIsRefreshing(false)
   }
 
-  const overallStatus = systemComponents.every(c => c.status === 'operational') 
-    ? 'operational' 
-    : systemComponents.some(c => c.status === 'outage') 
-    ? 'outage' 
-    : 'degraded'
+  const overallStatus = systemComponents.every((c) => c.status === 'operational')
+    ? 'operational'
+    : systemComponents.some((c) => c.status === 'outage')
+      ? 'outage'
+      : 'degraded'
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
+    <div className="min-h-0 flex-1">
       <PageHeader
         title="System Status"
         subtitle="Monitor system health and performance"
-        icon={<CloudIcon />}
+        icon={<Cloud className="h-8 w-8" aria-hidden />}
         action={
-          <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-          >
+          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+            <RefreshCw className={cn('mr-2 h-4 w-4', isRefreshing && 'animate-spin')} />
             {isRefreshing ? 'Refreshing...' : 'Refresh'}
           </Button>
         }
       />
 
-      {/* Overall Status Alert */}
-      <Alert 
-        severity={overallStatus === 'operational' ? 'success' : overallStatus === 'outage' ? 'error' : 'warning'}
-        sx={{ mb: 3 }}
+      <div
+        className={cn(
+          'mb-6 rounded-md border p-4',
+          overallStatus === 'operational' && 'border-emerald-200 bg-emerald-50/80 dark:border-emerald-900 dark:bg-emerald-950/30',
+          overallStatus === 'outage' && 'border-destructive/50 bg-destructive/10',
+          overallStatus === 'degraded' && 'border-amber-200 bg-amber-50/80 dark:border-amber-900 dark:bg-amber-950/30'
+        )}
       >
-        <Typography variant="h6">
-          All systems {overallStatus === 'operational' ? 'operational' : overallStatus === 'outage' ? 'experiencing outages' : 'experiencing issues'}
-        </Typography>
-        <Typography variant="body2">
-          Last updated: {lastUpdated.toLocaleString()}
-        </Typography>
-      </Alert>
+        <h2 className="text-lg font-semibold">
+          All systems{' '}
+          {overallStatus === 'operational'
+            ? 'operational'
+            : overallStatus === 'outage'
+              ? 'experiencing outages'
+              : 'experiencing issues'}
+        </h2>
+        <p className="text-sm text-muted-foreground">Last updated: {lastUpdated.toLocaleString()}</p>
+      </div>
 
-      <Grid container spacing={3}>
-        {/* System Components */}
-        <Grid size={{ xs: 12, md: 8 }}>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="lg:col-span-8">
           <Card>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 3 }}>
-                System Components
-              </Typography>
-              <List>
-                {systemComponents.map((component, index) => (
-                  <React.Fragment key={component.id}>
-                    <ListItem>
-                      <ListItemIcon>
-                        <Box
-                          sx={{
-                            color: getStatusColor(component.status),
-                            display: 'flex',
-                            alignItems: 'center',
-                          }}
-                        >
-                          {getStatusIcon(component.status)}
-                        </Box>
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                              {component.name}
-                            </Typography>
-                            <Chip
-                              label={component.status}
-                              size="small"
-                              sx={{
-                                backgroundColor: alpha(getStatusColor(component.status), 0.1),
-                                color: getStatusColor(component.status),
-                                textTransform: 'capitalize',
-                              }}
-                            />
-                          </Box>
-                        }
-                        secondary={
-                          <Box>
-                            <Typography variant="body2" color="text.secondary">
-                              {component.description}
-                            </Typography>
-                            <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
-                              <Typography variant="caption" color="text.secondary">
-                                Uptime: {component.uptime}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                Response: {component.responseTime}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                Last checked: {component.lastChecked}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        }
-                      />
-                    </ListItem>
-                    {index < systemComponents.length - 1 && <Divider />}
-                  </React.Fragment>
-                ))}
-              </List>
+            <CardContent className="pt-6">
+              <h2 className="mb-4 text-lg font-semibold">System Components</h2>
+              <ul className="space-y-0">
+                {systemComponents.map((component, index) => {
+                  const sc = statusConfig[component.status] ?? statusConfig.maintenance
+                  const StatusIcon = sc.icon
+                  return (
+                    <li key={component.id}>
+                      {index > 0 && <Separator className="my-3" />}
+                      <div className="flex gap-3">
+                        <div className={cn('mt-0.5 flex h-6 w-6 items-center justify-center', sc.className)}>
+                          <StatusIcon className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-0.5 flex flex-wrap items-center gap-2">
+                            <p className="font-semibold">{component.name}</p>
+                            <Badge
+                              variant="outline"
+                              className="capitalize text-foreground"
+                              style={{ borderColor: 'currentColor' }}
+                            >
+                              {component.status}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">{component.description}</p>
+                          <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
+                            <span>Uptime: {component.uptime}</span>
+                            <span>Response: {component.responseTime}</span>
+                            <span>Last checked: {component.lastChecked}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
-        {/* System Metrics */}
-        <Grid size={{ xs: 12, md: 4 }}>
+        <div className="lg:col-span-4">
           <Card>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 3 }}>
-                System Metrics
-              </Typography>
-              <List>
+            <CardContent className="pt-6">
+              <h2 className="mb-4 text-lg font-semibold">System Metrics</h2>
+              <ul className="space-y-4">
                 {systemMetrics.map((metric) => (
-                  <ListItem key={metric.name} sx={{ flexDirection: 'column', alignItems: 'stretch' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {metric.name}
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: getMetricColor(metric.status) }}>
-                        {metric.value}{metric.unit}
-                      </Typography>
-                    </Box>
-                    <LinearProgress
-                      variant="determinate"
-                      value={metric.name === 'Error Rate' ? metric.value * 100 : metric.value}
-                      sx={{
-                        height: 6,
-                        borderRadius: 3,
-                        backgroundColor: alpha(getMetricColor(metric.status), 0.1),
-                        '& .MuiLinearProgress-bar': {
-                          backgroundColor: getMetricColor(metric.status),
-                        },
-                      }}
-                    />
-                  </ListItem>
+                  <li key={metric.name}>
+                    <div className="mb-1 flex justify-between text-sm">
+                      <span className="font-medium">{metric.name}</span>
+                      <span className={cn('font-medium', metricTextClass[metric.status] ?? 'text-foreground')}>
+                        {metric.value}
+                        {metric.unit}
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={cn('h-full rounded-full transition-all', metricBarClass[metric.status] ?? 'bg-primary')}
+                        style={{ width: `${metricBarWidth(metric)}%` }}
+                      />
+                    </div>
+                  </li>
                 ))}
-              </List>
+              </ul>
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
-        {/* Recent Incidents */}
-        <Grid size={{ xs: 12 }}>
+        <div className="lg:col-span-12">
           <Card>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 3 }}>
-                Recent Incidents
-              </Typography>
+            <CardContent className="pt-6">
+              <h2 className="mb-4 text-lg font-semibold">Recent Incidents</h2>
               {incidents.length > 0 ? (
-                <List>
+                <ul>
                   {incidents.map((incident, index) => (
-                    <React.Fragment key={incident.id}>
-                      <ListItem>
-                        <ListItemIcon>
-                          <Box
-                            sx={{
-                              color: incident.status === 'investigating' 
-                                ? theme.palette.warning.main 
-                                : theme.palette.info.main,
-                            }}
-                          >
-                            {incident.status === 'investigating' ? <WarningIcon /> : <InfoIcon />}
-                          </Box>
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                                {incident.title}
-                              </Typography>
-                              <Chip
-                                label={incident.status}
-                                size="small"
-                                color={incident.status === 'investigating' ? 'warning' : 'info'}
-                                variant="outlined"
-                              />
-                              <Chip
-                                label={incident.impact}
-                                size="small"
-                                color={incident.impact === 'major' ? 'error' : 'default'}
-                                variant="outlined"
-                              />
-                            </Box>
-                          }
-                          secondary={
-                            <Box>
-                              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                {incident.description}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                Started: {new Date(incident.started).toLocaleString()}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                                Affected: {incident.affected.join(', ')}
-                              </Typography>
-                            </Box>
-                          }
-                        />
-                      </ListItem>
-                      {index < incidents.length - 1 && <Divider />}
-                    </React.Fragment>
+                    <li key={incident.id}>
+                      {index > 0 && <Separator className="my-3" />}
+                      <div className="flex gap-3">
+                        <div
+                          className={cn(
+                            'mt-0.5 flex h-6 w-6 items-center justify-center',
+                            incident.status === 'investigating' ? 'text-amber-600' : 'text-sky-600'
+                          )}
+                        >
+                          {incident.status === 'investigating' ? (
+                            <AlertTriangle className="h-5 w-5" />
+                          ) : (
+                            <Info className="h-5 w-5" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-0.5 flex flex-wrap items-center gap-2">
+                            <p className="font-semibold">{incident.title}</p>
+                            <Badge variant="outline" className="capitalize">
+                              {incident.status}
+                            </Badge>
+                            <Badge
+                              variant="outline"
+                              className={incident.impact === 'major' ? 'border-destructive text-destructive' : ''}
+                            >
+                              {incident.impact}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">{incident.description}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Started: {new Date(incident.started).toLocaleString()}
+                          </p>
+                          <p className="text-xs text-muted-foreground">Affected: {incident.affected.join(', ')}</p>
+                        </div>
+                      </div>
+                    </li>
                   ))}
-                </List>
+                </ul>
               ) : (
-                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
-                  No recent incidents
-                </Typography>
+                <p className="py-8 text-center text-sm text-muted-foreground">No recent incidents</p>
               )}
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
-    </Box>
+        </div>
+      </div>
+    </div>
   )
 }
 

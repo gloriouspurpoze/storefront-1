@@ -1,32 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  TextField,
-  Chip,
-  Snackbar,
-  Alert,
-  Stack,
-  Typography,
-} from '@mui/material'
-import { DataGrid, GridColDef, GridActionsCellItem, GridRowSelectionModel } from '@mui/x-data-grid'
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Download as DownloadIcon,
-  Visibility as ViewIcon,
-} from '@mui/icons-material'
+import { Download, Eye, Pencil, Plus, Trash2 } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { CrmSubnav } from '../../components/crm/CrmSubnav'
 import { ConfirmDeleteDialog } from '../../components/crm/ConfirmDeleteDialog'
@@ -35,11 +8,38 @@ import { CrmListShell } from '../../components/crm/CrmListShell'
 import { CrmEmptyState } from '../../components/crm/CrmEmptyState'
 import { CrmDataGridSkeleton } from '../../components/crm/CrmDataGridSkeleton'
 import { CrmContactDetailDrawer } from '../../components/crm/CrmRecordDrawers'
+import {
+  DataGrid,
+  GridActionsCellItem,
+  type GridColDef,
+  type GridRowSelectionModel,
+} from '../../components/crm/CrmDataTable'
 import { crmService } from '../../services/api/crm.service'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useCrmSearchParam } from '../../hooks/useCrmUrlFilters'
 import { activitiesForContact, filterContacts } from '../../utils/crmFilters'
 import type { CrmActivity, CrmCompany, CrmContact, CrmContactLifecycle } from '../../types/crm.types'
+import { Card, CardContent } from '../../components/ui/card'
+import { Button } from '../../components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
+import { Textarea } from '../../components/ui/textarea'
+import { Badge } from '../../components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select'
+import { cn } from '../../lib/utils'
 
 const LIFECYCLE_OPTIONS: CrmContactLifecycle[] = [
   'subscriber',
@@ -96,6 +96,12 @@ export function CrmContacts() {
       c = false
     }
   }, [tick])
+
+  useEffect(() => {
+    if (!snackbar.open) return undefined
+    const t = window.setTimeout(() => setSnackbar((s) => ({ ...s, open: false })), 4000)
+    return () => window.clearTimeout(t)
+  }, [snackbar.open, snackbar.message])
 
   const companyName = useCallback(
     (id?: string) => (id ? companies.find((x) => x.id === id)?.name : undefined),
@@ -178,7 +184,11 @@ export function CrmContacts() {
         field: 'lifecycle',
         headerName: 'Lifecycle',
         width: 130,
-        renderCell: (p) => <Chip size="small" label={p.value} variant="outlined" />,
+        renderCell: (p) => (
+          <Badge variant="outline" className="font-normal">
+            {String(p.value ?? '—')}
+          </Badge>
+        ),
       },
       {
         field: 'companyId',
@@ -196,11 +206,13 @@ export function CrmContacts() {
         width: 70,
         sortable: false,
         renderCell: (p) => (
-          <GridActionsCellItem
-            icon={<ViewIcon />}
-            label="Details"
-            onClick={() => setDrawerContact(p.row)}
-          />
+          <div className="inline-flex">
+            <GridActionsCellItem
+              icon={<Eye className="h-4 w-4" />}
+              label="Details"
+              onClick={() => setDrawerContact(p.row)}
+            />
+          </div>
         ),
       },
     ]
@@ -213,10 +225,10 @@ export function CrmContacts() {
         headerName: '',
         width: 100,
         getActions: (p: { row: CrmContact }) => [
-          <GridActionsCellItem key="edit" icon={<EditIcon />} label="Edit" onClick={() => openEdit(p.row)} />,
+          <GridActionsCellItem key="edit" icon={<Pencil className="h-4 w-4" />} label="Edit" onClick={() => openEdit(p.row)} />,
           <GridActionsCellItem
             key="del"
-            icon={<DeleteIcon />}
+            icon={<Trash2 className="h-4 w-4" />}
             label="Delete"
             onClick={() => {
               setContactToDeleteId(p.row.id)
@@ -239,46 +251,53 @@ export function CrmContacts() {
   const isEmpty = !loading && !loadError && rows.length === 0
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }}>
+    <div className="p-4 md:p-6">
       <PageHeader
         title="Contacts"
         subtitle="People you sell and support — linked to companies and deals."
         action={
-          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            <Button startIcon={<DownloadIcon />} variant="outlined" onClick={() => crmService.downloadExport('contacts')}>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" className="gap-1" onClick={() => crmService.downloadExport('contacts')}>
+              <Download className="h-4 w-4" />
               Export CSV
             </Button>
             {canManage ? (
-              <Button startIcon={<AddIcon />} variant="contained" onClick={openCreate}>
+              <Button size="sm" className="gap-1" onClick={openCreate}>
+                <Plus className="h-4 w-4" />
                 Add contact
               </Button>
             ) : null}
-          </Stack>
+          </div>
         }
       />
       <CrmSubnav />
 
       <CrmListToolbar qInput={qInput} onQChange={setQInput} searchPlaceholder="Search contacts…">
-        <FormControl size="small" sx={{ minWidth: 160 }}>
-          <InputLabel>Lifecycle</InputLabel>
-          <Select label="Lifecycle" value={lifecycleFilter} onChange={(e) => setParam('lifecycle', e.target.value)}>
-            <MenuItem value="all">All</MenuItem>
-            {LIFECYCLE_OPTIONS.map((s) => (
-              <MenuItem key={s} value={s}>
-                {s}
-              </MenuItem>
-            ))}
+        <div className="space-y-1.5">
+          <Label className="sr-only">Lifecycle</Label>
+          <Select value={lifecycleFilter} onValueChange={(v) => setParam('lifecycle', v)}>
+            <SelectTrigger className="h-9 w-[min(100%,10rem)] sm:w-40" aria-label="Lifecycle">
+              <SelectValue placeholder="Lifecycle" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              {LIFECYCLE_OPTIONS.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
-        </FormControl>
+        </div>
       </CrmListToolbar>
 
       {canManage && selectedIds.length > 0 ? (
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-          <Typography variant="body2">{selectedIds.length} selected</Typography>
-          <Button size="small" color="error" variant="outlined" onClick={() => setDeleteTarget('bulk')}>
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <p className="text-sm text-muted-foreground">{selectedIds.length} selected</p>
+          <Button size="sm" variant="outline" className="text-destructive" onClick={() => setDeleteTarget('bulk')}>
             Delete selected
           </Button>
-        </Stack>
+        </div>
       ) : null}
 
       <CrmListShell
@@ -287,7 +306,7 @@ export function CrmContacts() {
         onRetry={refresh}
         isEmpty={isEmpty}
         empty={
-          <Card variant="outlined">
+          <Card>
             <CrmEmptyState
               title="No contacts yet"
               description="Add people you work with and link them to companies."
@@ -298,8 +317,8 @@ export function CrmContacts() {
         }
         skeleton={<CrmDataGridSkeleton />}
       >
-        <Card variant="outlined">
-          <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
+        <Card>
+          <CardContent className="p-0">
             {filteredRows.length === 0 && rows.length > 0 ? (
               <CrmEmptyState title="No matching contacts" description="Try adjusting search or lifecycle filter." />
             ) : (
@@ -308,13 +327,12 @@ export function CrmContacts() {
                 columns={columns}
                 getRowId={(r) => r.id}
                 pageSizeOptions={[10, 25, 50]}
-                initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
+                initialPageSize={10}
                 checkboxSelection={canManage}
                 rowSelectionModel={selectionModel}
                 onRowSelectionModelChange={setSelectionModel}
-                disableRowSelectionOnClick
-                autoHeight
-                sx={{ border: 'none', minHeight: 360 }}
+                minHeight={360}
+                className="border-0"
               />
             )}
           </CardContent>
@@ -364,116 +382,161 @@ export function CrmContacts() {
         }}
       />
 
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>{editing ? 'Edit contact' : 'New contact'}</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
-          <TextField
-            label="First name"
-            required
-            value={form.firstName}
-            onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
-          />
-          <TextField
-            label="Last name"
-            required
-            value={form.lastName}
-            onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
-          />
-          <TextField
-            label="Email"
-            type="email"
-            required
-            value={form.email}
-            onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-          />
-          <TextField label="Phone" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
-          <TextField label="Job title" value={form.jobTitle} onChange={(e) => setForm((f) => ({ ...f, jobTitle: e.target.value }))} />
-          <FormControl fullWidth>
-            <InputLabel>Company</InputLabel>
-            <Select
-              label="Company"
-              value={form.companyId ?? ''}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, companyId: e.target.value ? String(e.target.value) : undefined }))
-              }
-            >
-              <MenuItem value="">None</MenuItem>
-              {companies.map((c) => (
-                <MenuItem key={c.id} value={c.id}>
-                  {c.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl fullWidth>
-            <InputLabel>Lifecycle</InputLabel>
-            <Select
-              label="Lifecycle"
-              value={form.lifecycle}
-              onChange={(e) => setForm((f) => ({ ...f, lifecycle: e.target.value as CrmContactLifecycle }))}
-            >
-              {LIFECYCLE_OPTIONS.map((s) => (
-                <MenuItem key={s} value={s}>
-                  {s}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <TextField
-            label="Lead source"
-            value={form.leadSource}
-            onChange={(e) => setForm((f) => ({ ...f, leadSource: e.target.value }))}
-          />
-          <TextField
-            label="Notes"
-            multiline
-            minRows={2}
-            value={form.notes}
-            onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
-          <Button
-            variant="contained"
-            onClick={() => {
-              if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim()) {
-                setSnackbar({ open: true, message: 'Name and email are required', severity: 'error' })
-                return
-              }
-              void (async () => {
-                try {
-                  await crmService.upsertContact({
-                    id: editing?.id,
-                    firstName: form.firstName.trim(),
-                    lastName: form.lastName.trim(),
-                    email: form.email.trim(),
-                    phone: form.phone || undefined,
-                    jobTitle: form.jobTitle || undefined,
-                    companyId: form.companyId,
-                    lifecycle: form.lifecycle,
-                    leadSource: form.leadSource || undefined,
-                    notes: form.notes || undefined,
-                  })
-                  setOpen(false)
-                  refresh()
-                  setSnackbar({ open: true, message: 'Contact saved', severity: 'success' })
-                } catch {
-                  setSnackbar({ open: true, message: 'Save failed', severity: 'error' })
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editing ? 'Edit contact' : 'New contact'}</DialogTitle>
+          </DialogHeader>
+          <div className="flex max-h-[70vh] flex-col gap-3 overflow-y-auto py-1 pr-1">
+            <div className="space-y-1.5">
+              <Label htmlFor="ct-first">First name *</Label>
+              <Input
+                id="ct-first"
+                value={form.firstName}
+                onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ct-last">Last name *</Label>
+              <Input
+                id="ct-last"
+                value={form.lastName}
+                onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ct-email">Email *</Label>
+              <Input
+                id="ct-email"
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ct-phone">Phone</Label>
+              <Input
+                id="ct-phone"
+                value={form.phone}
+                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ct-title">Job title</Label>
+              <Input
+                id="ct-title"
+                value={form.jobTitle}
+                onChange={(e) => setForm((f) => ({ ...f, jobTitle: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Company</Label>
+              <Select
+                value={form.companyId ?? 'none'}
+                onValueChange={(v) => setForm((f) => ({ ...f, companyId: v === 'none' ? undefined : v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Company" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {companies.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Lifecycle</Label>
+              <Select
+                value={form.lifecycle}
+                onValueChange={(v) => setForm((f) => ({ ...f, lifecycle: v as CrmContactLifecycle }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LIFECYCLE_OPTIONS.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ct-src">Lead source</Label>
+              <Input
+                id="ct-src"
+                value={form.leadSource}
+                onChange={(e) => setForm((f) => ({ ...f, leadSource: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ct-notes">Notes</Label>
+              <Textarea
+                id="ct-notes"
+                rows={3}
+                value={form.notes}
+                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim()) {
+                  setSnackbar({ open: true, message: 'Name and email are required', severity: 'error' })
+                  return
                 }
-              })()
-            }}
-          >
-            Save
-          </Button>
-        </DialogActions>
+                void (async () => {
+                  try {
+                    await crmService.upsertContact({
+                      id: editing?.id,
+                      firstName: form.firstName.trim(),
+                      lastName: form.lastName.trim(),
+                      email: form.email.trim(),
+                      phone: form.phone || undefined,
+                      jobTitle: form.jobTitle || undefined,
+                      companyId: form.companyId,
+                      lifecycle: form.lifecycle,
+                      leadSource: form.leadSource || undefined,
+                      notes: form.notes || undefined,
+                    })
+                    setOpen(false)
+                    refresh()
+                    setSnackbar({ open: true, message: 'Contact saved', severity: 'success' })
+                  } catch {
+                    setSnackbar({ open: true, message: 'Save failed', severity: 'error' })
+                  }
+                })()
+              }}
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
 
-      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar((s) => ({ ...s, open: false }))}>
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar((s) => ({ ...s, open: false }))} sx={{ width: '100%' }}>
+      {snackbar.open ? (
+        <div
+          role="status"
+          className={cn(
+            'fixed bottom-4 left-1/2 z-[200] w-[min(100%,20rem)] -translate-x-1/2 rounded-md border px-4 py-2 text-sm shadow-md',
+            snackbar.severity === 'error'
+              ? 'border-destructive bg-destructive text-destructive-foreground'
+              : 'border-emerald-600 bg-emerald-600 text-white',
+          )}
+        >
           {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+        </div>
+      ) : null}
+    </div>
   )
 }

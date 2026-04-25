@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Box, Tab, Tabs } from '@mui/material'
+import { cn } from '../../lib/utils'
 
 const CRM_TABS = [
   { label: 'Overview', path: '/crm' },
@@ -14,30 +14,28 @@ const CRM_TABS = [
 
 export function CrmSubnav() {
   const { pathname } = useLocation()
-  const value = CRM_TABS.findIndex((t) =>
-    t.path === '/crm' ? pathname === '/crm' : pathname.startsWith(t.path)
-  )
-  const safe = value >= 0 ? value : 0
 
   return (
-    <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-      <Tabs
-        value={safe}
-        variant="scrollable"
-        scrollButtons="auto"
-        allowScrollButtonsMobile
-        sx={{ minHeight: 44 }}
-      >
-        {CRM_TABS.map((t) => (
-          <Tab
-            key={t.path}
-            label={t.label}
-            component={Link}
-            to={t.path}
-            sx={{ minHeight: 44, textTransform: 'none', fontWeight: 600 }}
-          />
-        ))}
-      </Tabs>
-    </Box>
+    <nav className="mb-6 border-b" aria-label="CRM sections">
+      <div className="flex min-h-11 flex-nowrap gap-0 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {CRM_TABS.map((t) => {
+          const isActive = t.path === '/crm' ? pathname === '/crm' : pathname.startsWith(t.path)
+          return (
+            <Link
+              key={t.path}
+              to={t.path}
+              className={cn(
+                'inline-flex min-h-11 shrink-0 items-center border-b-2 px-3 text-sm font-semibold no-underline transition-colors',
+                isActive
+                  ? 'border-primary text-foreground'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {t.label}
+            </Link>
+          )
+        })}
+      </div>
+    </nav>
   )
 }

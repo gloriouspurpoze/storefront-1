@@ -1,24 +1,9 @@
 import React from 'react'
-import {
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormHelperText,
-  Box,
-  Typography,
-  InputAdornment,
-  Chip,
-  Stack,
-  IconButton,
-  Tooltip,
-} from '@mui/material'
-import {
-  Info as InfoIcon,
-  Error as ErrorIcon,
-  CheckCircle as CheckIcon,
-} from '@mui/icons-material'
+import { Info, CheckCircle2, AlertCircle, AlertTriangle } from 'lucide-react'
+import { Input } from '../ui/input'
+import { Label } from '../ui/label'
+import { Textarea } from '../ui/textarea'
+import { cn } from '../../lib/utils'
 
 export interface FormFieldProps {
   label: string
@@ -43,6 +28,23 @@ export interface FormFieldProps {
   status?: 'success' | 'error' | 'warning' | 'info'
 }
 
+const StatusIcon = ({ status }: { status?: FormFieldProps['status'] }) => {
+  if (!status) return null
+  const cls = 'h-4 w-4 shrink-0'
+  switch (status) {
+    case 'success':
+      return <CheckCircle2 className={cn(cls, 'text-green-600')} aria-hidden />
+    case 'error':
+      return <AlertCircle className={cn(cls, 'text-destructive')} aria-hidden />
+    case 'warning':
+      return <AlertTriangle className={cn(cls, 'text-amber-600')} aria-hidden />
+    case 'info':
+      return <Info className={cn(cls, 'text-muted-foreground')} aria-hidden />
+    default:
+      return null
+  }
+}
+
 export const FormField: React.FC<FormFieldProps> = ({
   label,
   value,
@@ -59,134 +61,116 @@ export const FormField: React.FC<FormFieldProps> = ({
   endAdornment,
   fullWidth = true,
   size = 'medium',
-  variant = 'outlined',
   maxLength,
   showCharCount = false,
   tooltip,
   status,
 }) => {
-  const getStatusIcon = () => {
-    switch (status) {
-      case 'success':
-        return <CheckIcon color="success" fontSize="small" />
-      case 'error':
-        return <ErrorIcon color="error" fontSize="small" />
-      case 'warning':
-        return <ErrorIcon color="warning" fontSize="small" />
-      case 'info':
-        return <InfoIcon color="info" fontSize="small" />
-      default:
-        return null
-    }
-  }
-
-  const getStatusColor = () => {
-    switch (status) {
-      case 'success':
-        return 'success.main'
-      case 'error':
-        return 'error.main'
-      case 'warning':
-        return 'warning.main'
-      case 'info':
-        return 'info.main'
-      default:
-        return 'text.secondary'
-    }
-  }
-
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     let newValue: string | number = event.target.value
-    
     if (type === 'number') {
       if (event.target.value === '') {
         onChange('')
         return
       }
       const numValue = Number(event.target.value)
-      if (!isNaN(numValue)) {
+      if (!Number.isNaN(numValue)) {
         newValue = numValue
       } else {
         return
       }
     }
-    
     if (maxLength && typeof newValue === 'string' && newValue.length > maxLength) {
       return
     }
-    
     onChange(newValue)
   }
 
-  const displayValue = value || ''
+  const displayValue = value ?? ''
   const charCount = typeof displayValue === 'string' ? displayValue.length : 0
+  const inputSize = size === 'small' ? 'h-8 text-sm' : 'h-10'
+  const fieldClass = cn(
+    error && 'border-destructive focus-visible:ring-destructive',
+    (startAdornment || endAdornment) && 'relative',
+  )
 
   return (
-    <Box sx={{ width: fullWidth ? '100%' : 'auto' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <Typography
-          variant="subtitle2"
-          sx={{
-            fontWeight: 600,
-            color: error ? 'error.main' : 'text.primary',
-          }}
+    <div className={cn(fullWidth ? 'w-full' : 'w-auto')}>
+      <div className="mb-1 flex items-center gap-1">
+        <Label
+          className={cn(
+            'text-sm font-semibold',
+            error && 'text-destructive',
+          )}
         >
           {label}
-          {required && (
-            <Typography component="span" color="error.main" sx={{ ml: 0.5 }}>
-              *
-            </Typography>
-          )}
-        </Typography>
+          {required && <span className="ml-0.5 text-destructive">*</span>}
+        </Label>
         {tooltip && (
-          <Tooltip title={tooltip} arrow>
-            <InfoIcon fontSize="small" color="action" />
-          </Tooltip>
+          <span title={tooltip} className="inline-flex cursor-default text-muted-foreground">
+            <Info className="h-4 w-4" />
+          </span>
         )}
-        {getStatusIcon()}
-      </Box>
-      
-      <TextField
-        fullWidth={fullWidth}
-        value={displayValue}
-        onChange={handleChange}
-        error={!!error}
-        disabled={disabled}
-        placeholder={placeholder}
-        type={type}
-        multiline={multiline}
-        rows={multiline ? rows : undefined}
-        size={size}
-        variant={variant}
-        InputProps={{
-          startAdornment: startAdornment ? (
-            <InputAdornment position="start">{startAdornment}</InputAdornment>
-          ) : undefined,
-          endAdornment: endAdornment ? (
-            <InputAdornment position="end">{endAdornment}</InputAdornment>
-          ) : undefined,
-        }}
-        sx={{
-          '& .MuiOutlinedInput-root': {
-            backgroundColor: disabled ? 'action.disabledBackground' : 'background.paper',
-          },
-        }}
-      />
-      
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 0.5 }}>
-        <FormHelperText error={!!error} sx={{ m: 0 }}>
+        <StatusIcon status={status} />
+      </div>
+
+      {multiline ? (
+        <Textarea
+          value={displayValue}
+          onChange={handleChange}
+          disabled={disabled}
+          placeholder={placeholder}
+          maxLength={maxLength}
+          rows={rows}
+          className={cn('w-full', fieldClass, disabled && 'bg-muted')}
+        />
+      ) : (
+        <div className="relative">
+          {startAdornment && (
+            <span className="absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-muted-foreground [&_svg]:h-4 [&_svg]:w-4">
+              {startAdornment}
+            </span>
+          )}
+          <Input
+            className={cn(
+              'w-full',
+              fieldClass,
+              inputSize,
+              startAdornment && 'pl-9',
+              endAdornment && 'pr-9',
+              disabled && 'bg-muted',
+            )}
+            value={displayValue}
+            onChange={handleChange}
+            disabled={disabled}
+            placeholder={placeholder}
+            type={type}
+            maxLength={maxLength}
+          />
+          {endAdornment && (
+            <span className="absolute right-2.5 top-1/2 z-10 -translate-y-1/2 text-muted-foreground [&_svg]:h-4 [&_svg]:w-4">
+              {endAdornment}
+            </span>
+          )}
+        </div>
+      )}
+
+      <div className="mt-1.5 flex items-center justify-between gap-2">
+        <p className={cn('m-0 text-sm', error ? 'text-destructive' : 'text-muted-foreground')}>
           {error || helperText}
-        </FormHelperText>
+        </p>
         {showCharCount && maxLength && (
-          <Typography
-            variant="caption"
-            color={charCount > maxLength * 0.9 ? 'warning.main' : 'text.secondary'}
+          <span
+            className={cn(
+              'shrink-0 text-xs',
+              charCount > maxLength * 0.9 ? 'text-amber-600' : 'text-muted-foreground',
+            )}
           >
             {charCount}/{maxLength}
-          </Typography>
+          </span>
         )}
-      </Box>
-    </Box>
+      </div>
+    </div>
   )
 }
 

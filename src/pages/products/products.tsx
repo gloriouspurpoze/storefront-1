@@ -65,10 +65,8 @@ export function Products() {
 
   const fetchCategories = async () => {
     try {
-      const response = await CategoriesService.getCategories({ page: 1, limit: 100 })
-      if (response.success && response.data) {
-        setCategories(response.data.categories || [])
-      }
+      const list = await CategoriesService.getCategoriesForProductUIs({ page: 1, limit: 200 })
+      setCategories(list)
     } catch (err) {
       console.error('Error fetching categories:', err)
     }

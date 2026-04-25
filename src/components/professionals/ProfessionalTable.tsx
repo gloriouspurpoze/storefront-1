@@ -3,36 +3,32 @@
  * PROFESSIONAL TABLE
  * ============================================================================
  * Data table component for displaying professionals
- * 
+ *
  * @author CTO Team
  * @date November 7, 2025
  */
 
 import React from 'react'
 import {
+  MoreVertical,
+  CheckCircle2,
+  Clock,
+  CircleSlash2,
+  Circle,
+} from 'lucide-react'
+import { Professional } from '../../types/professional.types'
+import { Button } from '../ui/button'
+import { Badge } from '../ui/badge'
+import { Card, CardContent } from '../ui/card'
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
+import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  Paper,
-  IconButton,
-  Chip,
-  Avatar,
-  Box,
-  Typography,
-  CircularProgress,
-  Tooltip,
-} from '@mui/material'
-import {
-  MoreVert as MoreVertIcon,
-  CheckCircle as VerifiedIcon,
-  AccessTime as PendingIcon,
-  Cancel as RejectedIcon,
-  Circle as CircleIcon,
-} from '@mui/icons-material'
-import { Professional } from '../../types/professional.types'
+} from '../ui/table'
 
 interface ProfessionalTableProps {
   professionals: Professional[]
@@ -40,257 +36,213 @@ interface ProfessionalTableProps {
   onMenuClick: (event: React.MouseEvent<HTMLElement>, professional: Professional) => void
 }
 
-export function ProfessionalTable({ professionals, loading, onMenuClick }: ProfessionalTableProps) {
-  const getVerificationIcon = (status: string) => {
-    switch (status) {
-      case 'verified':
-        return <VerifiedIcon sx={{ fontSize: 16, mr: 0.5 }} />
-      case 'pending':
-        return <PendingIcon sx={{ fontSize: 16, mr: 0.5 }} />
-      case 'rejected':
-        return <RejectedIcon sx={{ fontSize: 16, mr: 0.5 }} />
+const verificationIcon = (status: string) => {
+  switch (status) {
+    case 'verified':
+      return <CheckCircle2 className="mr-0.5 h-4 w-4 shrink-0" />
+    case 'pending':
+      return <Clock className="mr-0.5 h-4 w-4 shrink-0" />
+    case 'rejected':
+      return <CircleSlash2 className="mr-0.5 h-4 w-4 shrink-0" />
     default:
-      return undefined
-    }
+      return null
   }
+}
 
-  const getVerificationColor = (status: string) => {
-    switch (status) {
-      case 'verified':
-        return 'success'
-      case 'pending':
-        return 'warning'
-      case 'rejected':
-        return 'error'
-      default:
-        return 'default'
-    }
+const verificationBadgeVariant = (status: string): React.ComponentProps<typeof Badge>['variant'] => {
+  switch (status) {
+    case 'verified':
+      return 'success'
+    case 'pending':
+      return 'warning'
+    case 'rejected':
+      return 'destructive'
+    default:
+      return 'secondary'
   }
+}
 
-  const getAvailabilityColor = (availability: string) => {
-    switch (availability) {
-      case 'available':
-        return '#16a34a'
-      case 'busy':
-        return '#ea580c'
-      case 'offline':
-        return '#6b7280'
-      default:
-        return '#6b7280'
-    }
+const expertiseBadgeVariant = (level: string): React.ComponentProps<typeof Badge>['variant'] => {
+  switch (level) {
+    case 'expert':
+      return 'destructive'
+    case 'intermediate':
+      return 'default'
+    case 'beginner':
+      return 'secondary'
+    default:
+      return 'secondary'
   }
+}
 
-  const getExpertiseColor = (level: string) => {
-    switch (level) {
-      case 'expert':
-        return 'error'
-      case 'intermediate':
-        return 'primary'
-      case 'beginner':
-        return 'default'
-      default:
-        return 'default'
-    }
+const getAvailabilityColor = (availability: string) => {
+  switch (availability) {
+    case 'available':
+      return '#16a34a'
+    case 'busy':
+      return '#ea580c'
+    case 'offline':
+    default:
+      return '#6b7280'
   }
+}
 
+export function ProfessionalTable({ professionals, loading, onMenuClick }: ProfessionalTableProps) {
   if (loading) {
     return (
-      <Paper sx={{ p: 4, borderRadius: 2, textAlign: 'center' }}>
-        <CircularProgress />
-        <Typography sx={{ mt: 2 }}>Loading professionals...</Typography>
-      </Paper>
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-10 text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="mt-2 text-sm text-muted-foreground">Loading professionals...</p>
+        </CardContent>
+      </Card>
     )
   }
 
   if (professionals.length === 0) {
     return (
-      <Paper sx={{ p: 4, borderRadius: 2, textAlign: 'center' }}>
-        <Typography variant="h6" color="text.secondary">
-          No professionals found
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          Try adjusting your filters or create a new professional
-        </Typography>
-      </Paper>
+      <Card>
+        <CardContent className="py-10 text-center">
+          <p className="text-lg font-medium text-muted-foreground">No professionals found</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Try adjusting your filters or create a new professional
+          </p>
+        </CardContent>
+      </Card>
     )
   }
 
   return (
-    <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+    <div className="overflow-hidden rounded-lg border shadow-sm">
       <Table>
-        <TableHead>
-          <TableRow sx={{ bgcolor: 'grey.50' }}>
-            <TableCell sx={{ fontWeight: 600 }}>Professional</TableCell>
-            <TableCell sx={{ fontWeight: 600 }}>Contact</TableCell>
-            <TableCell sx={{ fontWeight: 600 }}>Company</TableCell>
-            <TableCell sx={{ fontWeight: 600 }}>Skills</TableCell>
-            <TableCell sx={{ fontWeight: 600 }}>Expertise</TableCell>
-            <TableCell sx={{ fontWeight: 600 }}>Experience</TableCell>
-            <TableCell sx={{ fontWeight: 600 }}>Availability</TableCell>
-            <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-            <TableCell sx={{ fontWeight: 600 }}>Rating</TableCell>
-            <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
+        <TableHeader>
+          <TableRow className="bg-muted/50 hover:bg-muted/50">
+            <TableHead>Professional</TableHead>
+            <TableHead>Contact</TableHead>
+            <TableHead>Company</TableHead>
+            <TableHead>Skills</TableHead>
+            <TableHead>Expertise</TableHead>
+            <TableHead>Experience</TableHead>
+            <TableHead>Availability</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Rating</TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
-        </TableHead>
+        </TableHeader>
         <TableBody>
           {professionals.map((professional) => {
-            const ratingValue = professional.rating != null && !Number.isNaN(Number(professional.rating))
-              ? Number(professional.rating).toFixed(1)
-              : '—'
-
+            const ratingValue =
+              professional.rating != null && !Number.isNaN(Number(professional.rating))
+                ? Number(professional.rating).toFixed(1)
+                : '—'
             const totalReviews = professional.totalReviews ?? 0
+            const ac = getAvailabilityColor(professional.availability)
 
             return (
               <TableRow
                 key={professional._id}
-                sx={{
-                  '&:hover': {
-                    bgcolor: 'action.hover',
-                  },
-                }}
+                className="hover:bg-muted/30"
               >
-                {/* Professional */}
                 <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Avatar
-                      src={professional.profileImage}
-                      alt={`${professional.firstName} ${professional.lastName}`}
-                      sx={{ width: 40, height: 40 }}
-                    >
-                      {professional.firstName?.[0]}{professional.lastName?.[0]}
+                  <div className="flex items-center gap-2">
+                    <Avatar className="h-10 w-10">
+                      {professional.profileImage ? (
+                        <AvatarImage
+                          src={professional.profileImage}
+                          alt={`${professional.firstName} ${professional.lastName}`}
+                        />
+                      ) : null}
+                      <AvatarFallback>
+                        {professional.firstName?.[0]}
+                        {professional.lastName?.[0]}
+                      </AvatarFallback>
                     </Avatar>
-                    <Box>
-                      <Typography variant="body2" fontWeight={600}>
+                    <div>
+                      <p className="text-sm font-semibold">
                         {professional.firstName} {professional.lastName}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {professional.professionalId}
-                      </Typography>
-                    </Box>
-                  </Box>
+                      </p>
+                      <p className="text-xs text-muted-foreground">{professional.professionalId}</p>
+                    </div>
+                  </div>
                 </TableCell>
-
-                {/* Contact */}
                 <TableCell>
-                  <Typography variant="body2">{professional.email}</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {professional.phoneNumber}
-                  </Typography>
+                  <p className="text-sm">{professional.email}</p>
+                  <p className="text-xs text-muted-foreground">{professional.phoneNumber}</p>
                 </TableCell>
-
-                {/* Company */}
                 <TableCell>
                   {professional.isIndependent ? (
-                    <Chip label="Independent" size="small" color="info" />
+                    <Badge variant="secondary">Independent</Badge>
                   ) : professional.serviceProviderId ? (
-                    <Typography variant="body2">
-                      {professional.serviceProviderId.businessName}
-                    </Typography>
+                    <span className="text-sm">{professional.serviceProviderId.businessName}</span>
                   ) : (
-                    <Typography variant="body2" color="text.secondary">
-                      -
-                    </Typography>
+                    <span className="text-sm text-muted-foreground">-</span>
                   )}
                 </TableCell>
-
-                {/* Skills */}
                 <TableCell>
-                  <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', maxWidth: 200 }}>
+                  <div className="flex max-w-[200px] flex-wrap gap-0.5">
                     {professional.skills.slice(0, 2).map((skill, index) => (
-                      <Chip key={index} label={skill} size="small" variant="outlined" />
+                      <Badge key={index} variant="outline" className="text-xs font-normal">
+                        {skill}
+                      </Badge>
                     ))}
                     {professional.skills.length > 2 && (
-                      <Chip
-                        label={`+${professional.skills.length - 2}`}
-                        size="small"
-                        variant="outlined"
-                      />
+                      <Badge variant="outline" className="text-xs">
+                        +{professional.skills.length - 2}
+                      </Badge>
                     )}
-                  </Box>
+                  </div>
                 </TableCell>
-
-                {/* Expertise */}
                 <TableCell>
-                  <Chip
-                    label={professional.expertiseLevel}
-                    size="small"
-                    color={getExpertiseColor(professional.expertiseLevel)}
-                    sx={{ textTransform: 'capitalize' }}
-                  />
+                  <Badge variant={expertiseBadgeVariant(professional.expertiseLevel)} className="capitalize">
+                    {professional.expertiseLevel}
+                  </Badge>
                 </TableCell>
-
-                {/* Experience */}
                 <TableCell>
-                  <Typography variant="body2">{professional.experience} years</Typography>
+                  <span className="text-sm">{professional.experience} years</span>
                 </TableCell>
-
-                {/* Availability */}
                 <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <CircleIcon
-                      sx={{
-                        fontSize: 10,
-                        color: getAvailabilityColor(professional.availability),
-                      }}
+                  <div className="flex items-center gap-1">
+                    <Circle
+                      className="h-2.5 w-2.5 shrink-0 fill-current"
+                      style={{ color: ac }}
                     />
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        textTransform: 'capitalize',
-                        color: getAvailabilityColor(professional.availability),
-                        fontWeight: 500,
-                      }}
-                    >
+                    <span className="text-sm font-medium capitalize" style={{ color: ac }}>
                       {professional.availability}
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
                 </TableCell>
-
-                {/* Status */}
                 <TableCell>
-                  <Chip
-                    icon={getVerificationIcon(professional.verificationStatus)}
-                    label={professional.verificationStatus}
-                    size="small"
-                    color={getVerificationColor(professional.verificationStatus) as any}
-                    sx={{ textTransform: 'capitalize' }}
-                  />
+                  <Badge
+                    variant={verificationBadgeVariant(professional.verificationStatus)}
+                    className="inline-flex max-w-full items-center gap-0.5 capitalize"
+                  >
+                    {verificationIcon(professional.verificationStatus)}
+                    {professional.verificationStatus}
+                  </Badge>
                 </TableCell>
-
-                {/* Rating */}
                 <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Typography variant="body2" fontWeight={600}>
-                      ⭐ {ratingValue}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      ({totalReviews})
-                    </Typography>
-                  </Box>
+                  <div className="flex items-center gap-0.5">
+                    <span className="text-sm font-semibold">⭐ {ratingValue}</span>
+                    <span className="text-xs text-muted-foreground">({totalReviews})</span>
+                  </div>
                 </TableCell>
-
-                {/* Actions */}
                 <TableCell>
-                  <Tooltip title="More actions">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => onMenuClick(e, professional)}
-                      sx={{
-                        '&:hover': {
-                          bgcolor: 'action.hover',
-                        },
-                      }}
-                    >
-                      <MoreVertIcon />
-                    </IconButton>
-                  </Tooltip>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    title="More actions"
+                    onClick={(e) => onMenuClick(e, professional)}
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
                 </TableCell>
               </TableRow>
             )
           })}
         </TableBody>
       </Table>
-    </TableContainer>
+    </div>
   )
 }
-

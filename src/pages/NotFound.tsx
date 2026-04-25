@@ -1,7 +1,8 @@
 import React from 'react'
-import { Box, Button, Typography, Paper } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
-import { Home as HomeIcon, ArrowBack as ArrowBackIcon } from '@mui/icons-material'
+import { Home, ChevronLeft } from 'lucide-react'
+import { Button } from '../components/ui/button'
+import { Card, CardContent } from '../components/ui/card'
 
 /**
  * 404 Not Found page for unmatched routes.
@@ -11,35 +12,27 @@ export function NotFound() {
   const navigate = useNavigate()
 
   return (
-    <Box
-      sx={{
-        minHeight: '70vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        p: 3,
-      }}
-    >
-      <Paper elevation={0} sx={{ maxWidth: 420, p: 4, textAlign: 'center' }}>
-        <Typography variant="h3" fontWeight={700} color="text.secondary" sx={{ mb: 1 }}>
-          404
-        </Typography>
-        <Typography variant="h6" gutterBottom>
-          Page not found
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          The page you're looking for doesn't exist or has been moved.
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Button variant="contained" startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)}>
-            Go back
-          </Button>
-          <Button variant="outlined" startIcon={<HomeIcon />} onClick={() => navigate('/')}>
-            Dashboard
-          </Button>
-        </Box>
-      </Paper>
-    </Box>
+    <div className="flex min-h-[70vh] items-center justify-center p-4">
+      <Card className="w-full max-w-md border text-center">
+        <CardContent className="p-6">
+          <h1 className="mb-1 text-3xl font-bold text-muted-foreground">404</h1>
+          <h2 className="mb-1 text-lg font-semibold">Page not found</h2>
+          <p className="mb-6 text-sm text-muted-foreground">
+            The page you're looking for doesn't exist or has been moved.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Button variant="default" onClick={() => navigate(-1)} className="gap-1.5">
+              <ChevronLeft className="h-4 w-4" />
+              Go back
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/')} className="gap-1.5">
+              <Home className="h-4 w-4" />
+              Dashboard
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
 

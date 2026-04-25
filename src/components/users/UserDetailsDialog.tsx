@@ -1,33 +1,26 @@
 import React from 'react'
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Box,
-  Typography,
-  Avatar,
-  Chip,
-  Divider,
-  IconButton,
-  Stack,
-  Card,
-  CardContent,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
+  Mail,
+  Phone,
+  Calendar,
+  Shield,
+  User,
+  Ban,
+  CheckCircle2,
+} from 'lucide-react'
 import {
-  Close as CloseIcon,
-  Email as EmailIcon,
-  Phone as PhoneIcon,
-  CalendarToday as CalendarIcon,
-  VerifiedUser as VerifiedIcon,
-  Security as SecurityIcon,
-  Person as PersonIcon,
-  Block as BlockIcon,
-  CheckCircle as ActiveIcon,
-} from '@mui/icons-material'
-import { formatDate, getInitials } from '../../lib/utils'
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog'
+import { Button } from '../ui/button'
+import { Badge } from '../ui/badge'
+import { Separator } from '../ui/separator'
+import { Card, CardContent } from '../ui/card'
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
+import { formatDate, getInitials, cn } from '../../lib/utils'
 
 interface User {
   id: string
@@ -50,273 +43,184 @@ interface UserDetailsDialogProps {
   onEdit?: () => void
 }
 
-export const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({
-  open,
-  onClose,
-  user,
-  onEdit,
-}) => {
+const userTypeBadge = (type: string) => {
+  switch (type) {
+    case 'admin':
+      return { variant: 'destructive' as const, icon: Shield }
+    case 'provider':
+      return { variant: 'default' as const, icon: User }
+    case 'customer':
+    default:
+      return { variant: 'success' as const, icon: User }
+  }
+}
+
+export const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({ open, onClose, user, onEdit }) => {
   if (!user) return null
 
-  const getUserTypeColor = (type: string) => {
-    switch (type) {
-      case 'admin':
-        return 'error'
-      case 'provider':
-        return 'info'
-      case 'customer':
-        return 'success'
-      default:
-        return 'default'
-    }
-  }
-
-  const getUserTypeIcon = (type: string) => {
-    switch (type) {
-      case 'admin':
-        return <SecurityIcon />
-      case 'provider':
-        return <PersonIcon />
-      case 'customer':
-        return <PersonIcon />
-      default:
-        return <PersonIcon />
-    }
-  }
+  const t = userTypeBadge(user.userType)
+  const TypeIcon = t.icon
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth="md" 
-      fullWidth
-      PaperProps={{
-        sx: { borderRadius: 2 }
-      }}
-    >
-      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          User Details
-        </Typography>
-        <IconButton onClick={onClose} size="small">
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-lg font-semibold">User Details</DialogTitle>
+        </DialogHeader>
 
-      <DialogContent dividers>
-        {/* Profile Header */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 4 }}>
-          <Avatar
-            src={user.profilePicture}
-            sx={{ width: 100, height: 100, mb: 2 }}
-          >
-            {getInitials(`${user.firstName} ${user.lastName}`)}
+        <div className="flex flex-col items-center border-b border-border pb-4">
+          <Avatar className="mb-2 h-24 w-24">
+            {user.profilePicture ? <AvatarImage src={user.profilePicture} alt="" /> : null}
+            <AvatarFallback className="text-lg">{getInitials(`${user.firstName} ${user.lastName}`)}</AvatarFallback>
           </Avatar>
-          <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
+          <h2 className="text-xl font-semibold">
             {user.firstName} {user.lastName}
-          </Typography>
-          <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
-            <Chip
-              icon={getUserTypeIcon(user.userType)}
-              label={user.userType}
-              color={getUserTypeColor(user.userType) as any}
-              sx={{ textTransform: 'capitalize' }}
-            />
+          </h2>
+          <div className="mt-2 flex flex-wrap justify-center gap-1">
+            <Badge variant={t.variant} className="inline-flex items-center gap-1 capitalize">
+              <TypeIcon className="h-3.5 w-3.5" />
+              {user.userType}
+            </Badge>
             {user.isVerified && (
-              <Chip
-                icon={<VerifiedIcon />}
-                label="Verified"
-                color="success"
-              />
+              <Badge variant="success" className="inline-flex items-center gap-1">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Verified
+              </Badge>
             )}
             {user.isActive === false ? (
-              <Chip
-                icon={<BlockIcon />}
-                label="Inactive"
-                color="error"
-              />
+              <Badge variant="destructive" className="inline-flex items-center gap-1">
+                <Ban className="h-3.5 w-3.5" />
+                Inactive
+              </Badge>
             ) : (
-              <Chip
-                icon={<ActiveIcon />}
-                label="Active"
-                color="success"
-                variant="outlined"
-              />
+              <Badge variant="outline" className="inline-flex items-center gap-1 border-green-600/50 text-green-700">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Active
+              </Badge>
             )}
-          </Stack>
-        </Box>
+          </div>
+        </div>
 
-        <Divider sx={{ mb: 3 }} />
-
-        {/* Contact Information */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-            Contact Information
-          </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <Card variant="outlined">
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <EmailIcon color="primary" />
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        Email
-                      </Typography>
-                      <Typography variant="body1">
-                        {user.email}
-                      </Typography>
-                    </Box>
-                  </Box>
+        <div className="space-y-6 py-2">
+          <div>
+            <h3 className="mb-2 text-sm font-semibold">Contact Information</h3>
+            <div className="grid gap-2 sm:grid-cols-1">
+              <Card>
+                <CardContent className="flex items-center gap-3 p-4">
+                  <Mail className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Email</p>
+                    <p className="text-sm font-medium">{user.email}</p>
+                  </div>
                 </CardContent>
               </Card>
-            </Grid>
-            {user.phone && (
-              <Grid item xs={12}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <PhoneIcon color="primary" />
-                      <Box>
-                        <Typography variant="caption" color="text.secondary">
-                          Phone
-                        </Typography>
-                        <Typography variant="body1">
-                          {user.phone}
-                        </Typography>
-                      </Box>
-                    </Box>
+              {user.phone && (
+                <Card>
+                  <CardContent className="flex items-center gap-3 p-4">
+                    <Phone className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Phone</p>
+                      <p className="text-sm font-medium">{user.phone}</p>
+                    </div>
                   </CardContent>
                 </Card>
-              </Grid>
-            )}
-          </Grid>
-        </Box>
+              )}
+            </div>
+          </div>
 
-        <Divider sx={{ mb: 3 }} />
+          <Separator />
 
-        {/* Account Information */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-            Account Information
-          </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <Card variant="outlined">
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <PersonIcon color="primary" />
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        User ID
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                        {user.id}
-                      </Typography>
-                    </Box>
-                  </Box>
+          <div>
+            <h3 className="mb-2 text-sm font-semibold">Account Information</h3>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Card>
+                <CardContent className="flex items-center gap-3 p-4">
+                  <User className="h-5 w-5 text-primary" />
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">User ID</p>
+                    <p className="break-all font-mono text-sm">{user.id}</p>
+                  </div>
                 </CardContent>
               </Card>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Card variant="outlined">
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <SecurityIcon color="primary" />
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        Account Type
-                      </Typography>
-                      <Typography variant="body1" sx={{ textTransform: 'capitalize' }}>
-                        {user.userType}
-                      </Typography>
-                    </Box>
-                  </Box>
+              <Card>
+                <CardContent className="flex items-center gap-3 p-4">
+                  <Shield className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Account Type</p>
+                    <p className="text-sm font-medium capitalize">{user.userType}</p>
+                  </div>
                 </CardContent>
               </Card>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Card variant="outlined">
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <CalendarIcon color="primary" />
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        Joined
-                      </Typography>
-                      <Typography variant="body1">
-                        {formatDate(user.createdAt)}
-                      </Typography>
-                    </Box>
-                  </Box>
+              <Card>
+                <CardContent className="flex items-center gap-3 p-4">
+                  <Calendar className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Joined</p>
+                    <p className="text-sm font-medium">{formatDate(user.createdAt)}</p>
+                  </div>
                 </CardContent>
               </Card>
-            </Grid>
-            {user.updatedAt && (
-              <Grid item xs={12} sm={6}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <CalendarIcon color="primary" />
-                      <Box>
-                        <Typography variant="caption" color="text.secondary">
-                          Last Updated
-                        </Typography>
-                        <Typography variant="body1">
-                          {formatDate(user.updatedAt)}
-                        </Typography>
-                      </Box>
-                    </Box>
+              {user.updatedAt && (
+                <Card>
+                  <CardContent className="flex items-center gap-3 p-4">
+                    <Calendar className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Last Updated</p>
+                      <p className="text-sm font-medium">{formatDate(user.updatedAt)}</p>
+                    </div>
                   </CardContent>
                 </Card>
-              </Grid>
-            )}
-          </Grid>
-        </Box>
+              )}
+            </div>
+          </div>
 
-        <Divider sx={{ mb: 3 }} />
+          <Separator />
 
-        {/* Status Summary */}
-        <Box>
-          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-            Status Summary
-          </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={6}>
-              <Box sx={{ textAlign: 'center', p: 2, bgcolor: user.isVerified ? 'success.lighter' : 'warning.lighter', borderRadius: 1 }}>
-                <Typography variant="h4" sx={{ fontWeight: 700, color: user.isVerified ? 'success.main' : 'warning.main' }}>
+          <div>
+            <h3 className="mb-2 text-sm font-semibold">Status Summary</h3>
+            <div className="grid grid-cols-2 gap-2">
+              <div
+                className={cn(
+                  'rounded-lg p-3 text-center',
+                  user.isVerified ? 'bg-green-500/10' : 'bg-amber-500/10',
+                )}
+              >
+                <p className={cn('text-2xl font-bold', user.isVerified ? 'text-green-600' : 'text-amber-600')}>
                   {user.isVerified ? '✓' : '!'}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Email {user.isVerified ? 'Verified' : 'Not Verified'}
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={6}>
-              <Box sx={{ textAlign: 'center', p: 2, bgcolor: user.isActive !== false ? 'success.lighter' : 'error.lighter', borderRadius: 1 }}>
-                <Typography variant="h4" sx={{ fontWeight: 700, color: user.isActive !== false ? 'success.main' : 'error.main' }}>
+                </p>
+                <p className="text-xs text-muted-foreground">Email {user.isVerified ? 'Verified' : 'Not Verified'}</p>
+              </div>
+              <div
+                className={cn(
+                  'rounded-lg p-3 text-center',
+                  user.isActive !== false ? 'bg-green-500/10' : 'bg-destructive/10',
+                )}
+              >
+                <p
+                  className={cn(
+                    'text-2xl font-bold',
+                    user.isActive !== false ? 'text-green-600' : 'text-destructive',
+                  )}
+                >
                   {user.isActive !== false ? '✓' : '✗'}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Account {user.isActive !== false ? 'Active' : 'Inactive'}
-                </Typography>
-              </Box>
-            </Grid>
-          </Grid>
-        </Box>
-      </DialogContent>
+                </p>
+                <p className="text-xs text-muted-foreground">Account {user.isActive !== false ? 'Active' : 'Inactive'}</p>
+              </div>
+            </div>
+          </div>
+        </div>
 
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} variant="outlined">
-          Close
-        </Button>
-        {onEdit && (
-          <Button onClick={onEdit} variant="contained">
-            Edit User
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose}>
+            Close
           </Button>
-        )}
-      </DialogActions>
+          {onEdit && (
+            <Button type="button" onClick={onEdit}>
+              Edit User
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   )
 }
-

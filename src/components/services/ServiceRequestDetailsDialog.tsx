@@ -1,30 +1,26 @@
 import React from 'react'
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Box,
-  Typography,
-  Chip,
-  Divider,
-  Stack,
-  IconButton,
-  Card,
-  CardContent,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
-import {
-  Close as CloseIcon,
-  LocationOn as LocationIcon,
-  CalendarToday as CalendarIcon,
-  AttachMoney as MoneyIcon,
-  Person as PersonIcon,
-  Phone as PhoneIcon,
-  Email as EmailIcon,
+  MapPin,
+  Calendar,
+  IndianRupee,
+  User,
+  Phone,
+  Mail,
   Image as ImageIcon,
-} from '@mui/icons-material'
+  Clock,
+} from 'lucide-react'
+import { formatCurrency } from '../../lib/utils'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog'
+import { Button } from '../ui/button'
+import { Badge } from '../ui/badge'
+import { Separator } from '../ui/separator'
+import { Card, CardContent } from '../ui/card'
 import { ServiceRequest } from '../../services/api/services.service'
 
 interface ServiceRequestDetailsDialogProps {
@@ -34,6 +30,36 @@ interface ServiceRequestDetailsDialogProps {
   onEdit?: (service: ServiceRequest) => void
 }
 
+const statusVariant = (status: string): React.ComponentProps<typeof Badge>['variant'] => {
+  switch (status) {
+    case 'open':
+      return 'secondary'
+    case 'assigned':
+      return 'warning'
+    case 'in_progress':
+      return 'default'
+    case 'completed':
+      return 'success'
+    case 'cancelled':
+      return 'destructive'
+    default:
+      return 'secondary'
+  }
+}
+
+const urgencyVariant = (urgency: string): React.ComponentProps<typeof Badge>['variant'] => {
+  switch (urgency) {
+    case 'low':
+      return 'success'
+    case 'medium':
+      return 'warning'
+    case 'high':
+      return 'destructive'
+    default:
+      return 'secondary'
+  }
+}
+
 export function ServiceRequestDetailsDialog({
   open,
   service,
@@ -41,40 +67,6 @@ export function ServiceRequestDetailsDialog({
   onEdit,
 }: ServiceRequestDetailsDialogProps) {
   if (!service) return null
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'open':
-        return 'info'
-      case 'assigned':
-        return 'warning'
-      case 'in_progress':
-        return 'primary'
-      case 'completed':
-        return 'success'
-      case 'cancelled':
-        return 'error'
-      default:
-        return 'default'
-    }
-  }
-
-  const getUrgencyColor = (urgency: string) => {
-    switch (urgency) {
-      case 'low':
-        return 'success'
-      case 'medium':
-        return 'warning'
-      case 'high':
-        return 'error'
-      default:
-        return 'default'
-    }
-  }
-
-  const formatCurrency = (value: string) => {
-    return `$${parseFloat(value).toFixed(2)}`
-  }
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('en-US', {
@@ -86,98 +78,69 @@ export function ServiceRequestDetailsDialog({
     })
   }
 
+  const typeLabel = service.service_type
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>
-        <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="h6">Service Request Details</Typography>
-          <IconButton onClick={onClose} size="small">
-            <CloseIcon />
-          </IconButton>
-        </Box>
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto sm:max-w-2xl [&>button]:hidden">
+        <DialogHeader>
+          <DialogTitle>Service Request Details</DialogTitle>
+        </DialogHeader>
 
-      <DialogContent dividers>
-        <Grid container spacing={3}>
-          {/* Header with Status and Urgency */}
-          <Grid item xs={12}>
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Chip
-                label={service.status.replace('_', ' ').toUpperCase()}
-                color={getStatusColor(service.status) as any}
-              />
-              <Chip
-                label={`${service.urgency.toUpperCase()} URGENCY`}
-                color={getUrgencyColor(service.urgency) as any}
-                size="small"
-              />
-              <Chip
-                label={service.service_type
-                  .split('_')
-                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                  .join(' ')}
-                variant="outlined"
-                size="small"
-              />
-            </Stack>
-          </Grid>
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={statusVariant(service.status)} className="uppercase">
+              {service.status.replace('_', ' ')}
+            </Badge>
+            <Badge variant={urgencyVariant(service.urgency)} className="uppercase">
+              {service.urgency} urgency
+            </Badge>
+            <Badge variant="outline">{typeLabel}</Badge>
+          </div>
 
-          {/* Title and Description */}
-          <Grid item xs={12}>
-            <Typography variant="h5" gutterBottom>
-              {service.title}
-            </Typography>
-            <Typography variant="body1" color="textSecondary" paragraph>
-              {service.description}
-            </Typography>
-          </Grid>
+          <div>
+            <h2 className="text-xl font-semibold">{service.title}</h2>
+            <p className="mt-1 text-muted-foreground">{service.description}</p>
+          </div>
 
-          <Grid item xs={12}>
-            <Divider />
-          </Grid>
+          <Separator />
 
-          {/* Location Information */}
-          <Grid item xs={12}>
-            <Card variant="outlined">
-              <CardContent>
-                <Box display="flex" alignItems="center" mb={2}>
-                  <LocationIcon color="primary" sx={{ mr: 1 }} />
-                  <Typography variant="h6">Location</Typography>
-                </Box>
-                <Typography variant="body2" gutterBottom>
-                  {service.location.address}
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
-                  {service.location.city}, {service.location.state} {service.location.zip_code}
-                </Typography>
+          <Card>
+            <CardContent className="p-4">
+              <div className="mb-2 flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold">Location</h3>
+              </div>
+              <p className="text-sm">{service.location.address}</p>
+              <p className="text-sm text-muted-foreground">
+                {service.location.city}, {service.location.state} {service.location.zip_code}
+              </p>
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Card>
+              <CardContent className="p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <IndianRupee className="h-5 w-5 text-primary" />
+                  <h3 className="font-semibold">Budget Range</h3>
+                </div>
+                <p className="text-lg font-bold text-primary">
+                  {formatCurrency(Number(service.budget_min ?? 0))} -{' '}
+                  {formatCurrency(Number(service.budget_max ?? 0))}
+                </p>
               </CardContent>
             </Card>
-          </Grid>
-
-          {/* Budget Information */}
-          <Grid item xs={12} md={6}>
-            <Card variant="outlined">
-              <CardContent>
-                <Box display="flex" alignItems="center" mb={2}>
-                  <MoneyIcon color="primary" sx={{ mr: 1 }} />
-                  <Typography variant="h6">Budget Range</Typography>
-                </Box>
-                <Typography variant="h5" color="primary">
-                  {formatCurrency(service.budget_min)} - {formatCurrency(service.budget_max)}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* Preferred Date */}
-          <Grid item xs={12} md={6}>
-            <Card variant="outlined">
-              <CardContent>
-                <Box display="flex" alignItems="center" mb={2}>
-                  <CalendarIcon color="primary" sx={{ mr: 1 }} />
-                  <Typography variant="h6">Preferred Date</Typography>
-                </Box>
-                <Typography variant="body1">
+            <Card>
+              <CardContent className="p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-primary" />
+                  <h3 className="font-semibold">Preferred Date</h3>
+                </div>
+                <p className="text-sm">
                   {service.preferred_date
                     ? new Date(service.preferred_date).toLocaleDateString('en-US', {
                         year: 'numeric',
@@ -185,125 +148,96 @@ export function ServiceRequestDetailsDialog({
                         day: 'numeric',
                       })
                     : 'Not specified'}
-                </Typography>
+                </p>
               </CardContent>
             </Card>
-          </Grid>
+          </div>
 
-          {/* Customer Information (if available) */}
           {service.customer && (
             <>
-              <Grid item xs={12}>
-                <Divider />
-              </Grid>
-              <Grid item xs={12}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Box display="flex" alignItems="center" mb={2}>
-                      <PersonIcon color="primary" sx={{ mr: 1 }} />
-                      <Typography variant="h6">Customer Information</Typography>
-                    </Box>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12}>
-                        <Typography variant="body2" color="textSecondary">
-                          Name
-                        </Typography>
-                        <Typography variant="body1">
-                          {service.customer.firstName} {service.customer.lastName}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <Box display="flex" alignItems="center">
-                          <EmailIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                          <Typography variant="body2">{service.customer.email}</Typography>
-                        </Box>
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <Box display="flex" alignItems="center">
-                          <PhoneIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                          <Typography variant="body2">{service.customer.phone}</Typography>
-                        </Box>
-                      </Grid>
-                    </Grid>
-                  </CardContent>
-                </Card>
-              </Grid>
+              <Separator />
+              <Card>
+                <CardContent className="p-4">
+                  <div className="mb-2 flex items-center gap-2">
+                    <User className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold">Customer Information</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground">Name</p>
+                  <p className="mb-2 font-medium">
+                    {service.customer.firstName} {service.customer.lastName}
+                  </p>
+                  <div className="flex flex-wrap gap-4 text-sm">
+                    <span className="inline-flex items-center gap-1">
+                      <Mail className="h-3.5 w-3.5" />
+                      {service.customer.email}
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <Phone className="h-3.5 w-3.5" />
+                      {service.customer.phone}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
             </>
           )}
 
-          {/* Images */}
           {service.images && service.images.length > 0 && (
             <>
-              <Grid item xs={12}>
-                <Divider />
-              </Grid>
-              <Grid item xs={12}>
-                <Box display="flex" alignItems="center" mb={2}>
-                  <ImageIcon color="primary" sx={{ mr: 1 }} />
-                  <Typography variant="h6">Images</Typography>
-                </Box>
-                <Box display="flex" flexWrap="wrap" gap={2}>
+              <Separator />
+              <div>
+                <div className="mb-2 flex items-center gap-2">
+                  <ImageIcon className="h-5 w-5 text-primary" />
+                  <h3 className="font-semibold">Images</h3>
+                </div>
+                <div className="flex flex-wrap gap-2">
                   {service.images.map((image, index) => (
-                    <Box
+                    <img
                       key={index}
-                      component="img"
                       src={image}
-                      alt={`Service ${index + 1}`}
-                      sx={{
-                        width: 150,
-                        height: 150,
-                        objectFit: 'cover',
-                        borderRadius: 1,
-                        border: '1px solid',
-                        borderColor: 'divider',
-                      }}
+                      alt=""
+                      className="h-36 w-36 rounded border object-cover"
                     />
                   ))}
-                </Box>
-              </Grid>
+                </div>
+              </div>
             </>
           )}
 
-          {/* Timestamps */}
-          <Grid item xs={12}>
-            <Divider />
-          </Grid>
-          <Grid item xs={12}>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
-                <Typography variant="caption" color="textSecondary">
-                  Created At
-                </Typography>
-                <Typography variant="body2">{formatDate(service.created_at)}</Typography>
-              </Grid>
-              {service.updated_at && service.updated_at !== service.created_at && (
-                <Grid item xs={12} md={6}>
-                  <Typography variant="caption" color="textSecondary">
-                    Last Updated
-                  </Typography>
-                  <Typography variant="body2">{formatDate(service.updated_at)}</Typography>
-                </Grid>
-              )}
-            </Grid>
-          </Grid>
-        </Grid>
-      </DialogContent>
+          <Separator />
 
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose}>Close</Button>
-        {onEdit && (
-          <Button
-            onClick={() => {
-              onEdit(service)
-              onClose()
-            }}
-            variant="contained"
-          >
-            Edit Request
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div>
+              <p className="text-xs text-muted-foreground">Created At</p>
+              <p className="flex items-center gap-1 text-sm">
+                <Clock className="h-3.5 w-3.5" />
+                {formatDate(service.created_at)}
+              </p>
+            </div>
+            {service.updated_at && service.updated_at !== service.created_at && (
+              <div>
+                <p className="text-xs text-muted-foreground">Last Updated</p>
+                <p className="text-sm">{formatDate(service.updated_at)}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose}>
+            Close
           </Button>
-        )}
-      </DialogActions>
+          {onEdit && (
+            <Button
+              onClick={() => {
+                onEdit(service)
+                onClose()
+              }}
+            >
+              Edit Request
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   )
 }
-

@@ -1,16 +1,21 @@
 import React from 'react'
-import { Box, Card, CardContent, Skeleton, Stack } from '@mui/material'
+import { Card, CardContent } from '../ui/card'
+import { cn } from '../../lib/utils'
+
+function RoundedBar({ className }: { className?: string }) {
+  return <div className={cn('animate-pulse rounded-md bg-muted', className)} />
+}
 
 export function CrmDataGridSkeleton({ rows = 8 }: { rows?: number }) {
   return (
-    <Card variant="outlined">
-      <CardContent sx={{ p: 2 }}>
-        <Stack spacing={1}>
-          <Skeleton variant="rounded" height={40} />
+    <Card>
+      <CardContent className="p-2">
+        <div className="flex flex-col gap-1">
+          <RoundedBar className="h-10 w-full" />
           {Array.from({ length: rows }).map((_, i) => (
-            <Skeleton key={i} variant="rounded" height={36} />
+            <RoundedBar key={i} className="h-9 w-full" />
           ))}
-        </Stack>
+        </div>
       </CardContent>
     </Card>
   )
@@ -18,12 +23,12 @@ export function CrmDataGridSkeleton({ rows = 8 }: { rows?: number }) {
 
 export function CrmPipelineSkeleton({ columns = 6 }: { columns?: number }) {
   return (
-    <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 1 }}>
+    <div className="flex gap-2 overflow-x-auto pb-1">
       {Array.from({ length: columns }).map((_, i) => (
-        <Box key={i} sx={{ minWidth: 260, flex: '0 0 auto' }}>
-          <Skeleton variant="rounded" height={420} sx={{ borderRadius: 1 }} />
-        </Box>
+        <div key={i} className="min-w-[260px] flex-none">
+          <RoundedBar className="h-[420px] w-full rounded-sm" />
+        </div>
       ))}
-    </Box>
+    </div>
   )
 }
