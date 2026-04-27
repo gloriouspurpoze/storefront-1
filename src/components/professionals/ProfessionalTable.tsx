@@ -17,6 +17,7 @@ import {
   Circle,
 } from 'lucide-react'
 import { Professional } from '../../types/professional.types'
+import { getProfessionalCategoryLabel } from '../../constants/professionalCategories'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
 import { Card, CardContent } from '../ui/card'
@@ -120,6 +121,7 @@ export function ProfessionalTable({ professionals, loading, onMenuClick }: Profe
             <TableHead>Professional</TableHead>
             <TableHead>Contact</TableHead>
             <TableHead>Company</TableHead>
+            <TableHead>Trades</TableHead>
             <TableHead>Skills</TableHead>
             <TableHead>Expertise</TableHead>
             <TableHead>Experience</TableHead>
@@ -136,6 +138,8 @@ export function ProfessionalTable({ professionals, loading, onMenuClick }: Profe
                 ? Number(professional.rating).toFixed(1)
                 : '—'
             const totalReviews = professional.totalReviews ?? 0
+            const skills = professional.skills ?? []
+            const categories = professional.categories ?? []
             const ac = getAvailabilityColor(professional.availability)
 
             return (
@@ -180,16 +184,32 @@ export function ProfessionalTable({ professionals, loading, onMenuClick }: Profe
                 </TableCell>
                 <TableCell>
                   <div className="flex max-w-[200px] flex-wrap gap-0.5">
-                    {professional.skills.slice(0, 2).map((skill, index) => (
+                    {categories.slice(0, 3).map((cat) => (
+                      <Badge key={cat} variant="secondary" className="text-xs font-normal">
+                        {getProfessionalCategoryLabel(cat)}
+                      </Badge>
+                    ))}
+                    {categories.length > 3 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{categories.length - 3}
+                      </Badge>
+                    )}
+                    {categories.length === 0 && <span className="text-sm text-muted-foreground">—</span>}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex max-w-[200px] flex-wrap gap-0.5">
+                    {skills.slice(0, 2).map((skill, index) => (
                       <Badge key={index} variant="outline" className="text-xs font-normal">
                         {skill}
                       </Badge>
                     ))}
-                    {professional.skills.length > 2 && (
+                    {skills.length > 2 && (
                       <Badge variant="outline" className="text-xs">
-                        +{professional.skills.length - 2}
+                        +{skills.length - 2}
                       </Badge>
                     )}
+                    {skills.length === 0 && <span className="text-sm text-muted-foreground">—</span>}
                   </div>
                 </TableCell>
                 <TableCell>

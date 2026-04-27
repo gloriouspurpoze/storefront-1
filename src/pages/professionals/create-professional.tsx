@@ -52,19 +52,9 @@ import {
   VisibilityOff,
 } from '@mui/icons-material'
 import { ProfessionalsService } from '../../services/api/professionals.service'
+import { PROFESSIONAL_TRADE_CATEGORIES as CATEGORIES } from '../../constants/professionalCategories'
 
 const STEPS = ['Personal Info', 'Professional Details', 'Location & Availability', 'Review']
-
-const CATEGORIES = [
-  { value: 'electrician', label: 'Electrician' },
-  { value: 'plumber', label: 'Plumber' },
-  { value: 'carpenter', label: 'Carpenter' },
-  { value: 'painter', label: 'Painter' },
-  { value: 'cleaner', label: 'Cleaner' },
-  { value: 'ac_technician', label: 'AC Technician' },
-  { value: 'appliance_repair', label: 'Appliance Repair' },
-  { value: 'pest_control', label: 'Pest Control' },
-]
 
 const EXPERTISE_LEVELS = [
   { value: 'beginner', label: 'Beginner' },

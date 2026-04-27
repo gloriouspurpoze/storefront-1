@@ -51,7 +51,8 @@ import {
   ProfessionalStatsWidget,
 } from '../../components/professionals'
 import { ProfessionalsService } from '../../services/api/professionals.service'
-import { Professional, UpdateVerificationData, UpdateAvailabilityData } from '../../types/professional.types'
+import { Professional, UpdateAvailabilityData } from '../../types/professional.types'
+import { getProfessionalCategoryLabel } from '../../constants/professionalCategories'
 import { useNavigate } from 'react-router-dom'
 
 export function ProfessionalsManagement() {
@@ -78,11 +79,13 @@ export function ProfessionalsManagement() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedProfessional, setSelectedProfessional] = useState<Professional | null>(null)
 
-  // Verification form
-  const [verificationData, setVerificationData] = useState<UpdateVerificationData>({
-    isVerified: false,
-    verificationNotes: '',
-  })
+  const [viewDialogOpen, setViewDialogOpen] = useState(false)
+  const [viewingProfessional, setViewingProfessional] = useState<Professional | null>(null)
+
+  const [verificationForm, setVerificationForm] = useState<{
+    status: 'pending' | 'verified' | 'rejected'
+    notes: string
+  }>({ status: 'pending', notes: '' })
 
   // Availability form
   const [availabilityData, setAvailabilityData] = useState<UpdateAvailabilityData>({
@@ -108,20 +111,28 @@ export function ProfessionalsManagement() {
   const fetchProfessionals = async () => {
     try {
       setLoading(true)
-      const query: any = {
+      const query: Record<string, string | number | boolean | undefined> = {
         page: page + 1,
         limit,
         search: searchTerm || undefined,
         availability: availabilityFilter !== 'all' ? availabilityFilter : undefined,
         expertiseLevel: expertiseFilter !== 'all' ? expertiseFilter : undefined,
-        isVerified: verificationFilter === 'verified' ? true : verificationFilter === 'pending' ? false : undefined,
+        category: categoryFilter !== 'all' ? categoryFilter : undefined,
+      }
+      if (verificationFilter === 'verified') {
+        query.isVerified = true
+      } else if (verificationFilter === 'pending') {
+        query.isVerified = false
+        query.verificationStatus = 'pending'
+      } else if (verificationFilter === 'rejected') {
+        query.verificationStatus = 'rejected'
       }
 
-      const response = await ProfessionalsService.getProfessionals(query)
-      
-      if (response.data?.professionals) {
-        setProfessionals(response.data.professionals)
-        setTotal(response.data.pagination?.total || 0)
+      const response = await ProfessionalsService.getProfessionals(query as any)
+      const payload = response.data as { professionals?: Professional[]; pagination?: { total: number } } | undefined
+      if (payload?.professionals) {
+        setProfessionals(payload.professionals)
+        setTotal(payload.pagination?.total || 0)
       } else {
         setProfessionals([])
         setTotal(0)
@@ -150,8 +161,8 @@ export function ProfessionalsManagement() {
   }
 
   const handleView = (professional: Professional) => {
-    // TODO: Open details dialog
-    console.log('View professional:', professional)
+    setViewingProfessional(professional)
+    setViewDialogOpen(true)
     handleMenuClose()
   }
 
@@ -174,7 +185,12 @@ export function ProfessionalsManagement() {
     if (!selectedProfessional) return
 
     try {
-      await ProfessionalsService.updateVerification(selectedProfessional._id, verificationData)
+      const status = verificationForm.status
+      await ProfessionalsService.updateVerification(selectedProfessional._id, {
+        isVerified: status === 'verified',
+        verificationStatus: status,
+        verificationNotes: verificationForm.notes || undefined,
+      })
       showSnackbar('Verification updated successfully', 'success')
       handleSuccess()
     } catch (error: any) {
@@ -182,7 +198,7 @@ export function ProfessionalsManagement() {
     } finally {
       setVerificationDialogOpen(false)
       setSelectedProfessional(null)
-      setVerificationData({ isVerified: false, verificationNotes: '' })
+      setVerificationForm({ status: 'pending', notes: '' })
     }
   }
 
@@ -215,10 +231,14 @@ export function ProfessionalsManagement() {
   const openVerificationDialog = () => {
     if (menuProfessional) {
       setSelectedProfessional(menuProfessional)
-      setVerificationData({
-        isVerified: menuProfessional.isVerified,
-        verificationNotes: '',
-      })
+      const v = menuProfessional.verificationStatus
+      let status: 'pending' | 'verified' | 'rejected' = 'pending'
+      if (v === 'verified' || v === 'rejected' || v === 'pending') {
+        status = v
+      } else if (menuProfessional.isVerified) {
+        status = 'verified'
+      }
+      setVerificationForm({ status, notes: '' })
       setVerificationDialogOpen(true)
     }
     handleMenuClose()
@@ -341,39 +361,87 @@ export function ProfessionalsManagement() {
         </MenuItem>
       </Menu>
 
+      {/* View details */}
+      <Dialog open={viewDialogOpen} onClose={() => setViewDialogOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Professional details</DialogTitle>
+        <DialogContent>
+          {viewingProfessional && (
+            <Box sx={{ pt: 1 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Name and ID
+              </Typography>
+              <Typography sx={{ mb: 2 }}>
+                {viewingProfessional.firstName} {viewingProfessional.lastName} — {viewingProfessional.professionalId}
+              </Typography>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Contact
+              </Typography>
+              <Typography sx={{ mb: 0.5 }}>{viewingProfessional.email}</Typography>
+              <Typography sx={{ mb: 2 }}>{viewingProfessional.phoneNumber}</Typography>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Trades / categories
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2 }}>
+                {(viewingProfessional.categories || []).map((c) => (
+                  <span key={c} style={{ fontSize: 13, padding: '2px 8px', borderRadius: 4, background: 'rgba(0,0,0,0.06)' }}>
+                    {getProfessionalCategoryLabel(c)}
+                  </span>
+                ))}
+                {(viewingProfessional.categories || []).length === 0 && (
+                  <Typography variant="body2" color="text.secondary">—</Typography>
+                )}
+              </Box>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Work
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                Expertise: {viewingProfessional.expertiseLevel} · {viewingProfessional.experience} years experience
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                Availability: {viewingProfessional.availability} · Verification: {viewingProfessional.verificationStatus}
+              </Typography>
+              {viewingProfessional.serviceProviderId && (
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  Company: {viewingProfessional.serviceProviderId.businessName}
+                </Typography>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setViewDialogOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Verification Dialog */}
       <Dialog open={verificationDialogOpen} onClose={() => setVerificationDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Update Verification Status</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2 }}>
             <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Verification Status</InputLabel>
+              <InputLabel>Verification status</InputLabel>
               <Select
-                value={verificationData.isVerified ? 'verified' : 'pending'}
+                value={verificationForm.status}
                 onChange={(e) =>
-                  setVerificationData({
-                    ...verificationData,
-                    isVerified: e.target.value === 'verified',
+                  setVerificationForm({
+                    ...verificationForm,
+                    status: e.target.value as 'pending' | 'verified' | 'rejected',
                   })
                 }
-                label="Verification Status"
+                label="Verification status"
               >
                 <MenuItem value="pending">Pending</MenuItem>
                 <MenuItem value="verified">Verified</MenuItem>
+                <MenuItem value="rejected">Rejected</MenuItem>
               </Select>
             </FormControl>
             <TextField
               fullWidth
               multiline
               rows={3}
-              label="Notes (Optional)"
-              value={verificationData.verificationNotes || ''}
-              onChange={(e) =>
-                setVerificationData({
-                  ...verificationData,
-                  verificationNotes: e.target.value,
-                })
-              }
+              label="Admin notes (optional)"
+              value={verificationForm.notes}
+              onChange={(e) => setVerificationForm({ ...verificationForm, notes: e.target.value })}
             />
           </Box>
         </DialogContent>

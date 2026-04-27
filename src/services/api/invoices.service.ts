@@ -6,6 +6,7 @@
 import { api } from './base'
 import { store } from '../../store'
 import type { PaginationResponse } from '../../types'
+import { normalizePaymentMethodForBackend } from '../../lib/invoicePaymentMethod'
 
 /** Same base URL as `api` (used for PDF blob fetch — fetch() does not go through ApiBase). */
 export function getInvoiceApiBaseUrl(): string {
@@ -13,16 +14,31 @@ export function getInvoiceApiBaseUrl(): string {
   return base.replace(/\/$/, '')
 }
 
+export type ManualInvoiceLineKind = 'product' | 'service'
+
 export interface ManualInvoiceLineItem {
   description: string
   quantity: number
   unitPrice: number
+  /** HSN/SAC map key on the server; lineKind helps pick sensible defaults in the admin UI */
   category?: string
+  /** Distinguish goods (HSN) vs services (SAC) when the API supports it */
+  lineKind?: ManualInvoiceLineKind
 }
 
 export interface ManualInvoicePayload {
   type: 'service' | 'product' | 'subscription' | 'provider_payout'
-  customerId: string
+  /**
+   * Platform user to attach for CRM / portal. Omit for walk-in / offline when the API
+   * accepts `isOfflineCustomer` (or use REACT_APP_INVOICE_OFFLINE_GUEST_USER_ID as fallback).
+   */
+  customerId?: string
+  /**
+   * Walk-in, phone, or B2B counter sale — no app account. Bill To is the legal addressee on the PDF.
+   */
+  isOfflineCustomer?: boolean
+  /** Your reference: LPO, work order, counter ticket, etc. */
+  customerReference?: string
   billingTo: {
     name: string
     phone: string
@@ -128,6 +144,32 @@ export interface MonthlyReportResponse {
     }
   }
   error?: string
+}
+
+/**
+ * Strips UI-only line fields and normalizes `paymentMethod` to fixer-backend
+ * `PaymentMethod` enum (Mongoose rejects free text → 500).
+ */
+function toGenerateInvoiceBody(p: ManualInvoicePayload): object {
+  const items = p.items.map((it) => ({
+    description: it.description,
+    quantity: it.quantity,
+    unitPrice: it.unitPrice,
+    ...(it.category != null && String(it.category).trim() !== '' ? { category: it.category } : {}),
+  }))
+
+  return {
+    type: p.type,
+    billingTo: p.billingTo,
+    items,
+    paymentMethod: normalizePaymentMethodForBackend(p.paymentMethod),
+    ...(p.customerId ? { customerId: p.customerId } : {}),
+    ...(p.discount != null && p.discount > 0 ? { discount: p.discount } : {}),
+    ...(p.creditsUsed != null && p.creditsUsed > 0 ? { creditsUsed: p.creditsUsed } : {}),
+    ...(p.orderId ? { orderId: p.orderId } : {}),
+    ...(p.bookingId ? { bookingId: p.bookingId } : {}),
+    ...(p.notes && String(p.notes).trim() ? { notes: p.notes.trim() } : {}),
+  }
 }
 
 export class InvoicesService {
@@ -308,7 +350,7 @@ export class InvoicesService {
    * Admin: full manual invoice (matches fixer-backend InvoiceService.generateInvoice body).
    */
   static async generateInvoiceManual(payload: ManualInvoicePayload) {
-    return api.post<Invoice>('/invoices/generate', payload, {
+    return api.post<Invoice>('/invoices/generate', toGenerateInvoiceBody(payload), {
       loadingMessage: 'Creating invoice…',
       showSuccessToast: false,
       showErrorToast: true,

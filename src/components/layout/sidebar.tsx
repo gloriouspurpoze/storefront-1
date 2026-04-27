@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard as DashboardIcon,
   Package as PackageIcon,
@@ -24,8 +24,6 @@ import {
   Building2 as BusinessIcon,
   LifeBuoy as SupportIcon,
   Bell as NotificationsIcon,
-  UserCircle as AccountCircleIcon,
-  LogOut as LogoutIcon,
   User as PersonIcon,
   Tag as CategoryIcon,
   Images as SlideshowIcon,
@@ -56,23 +54,12 @@ import {
   ListChecks as RateReviewIcon,
   BadgeCheck as VerifiedUserIcon,
 } from 'lucide-react'
-import { useAppDispatch, useAppSelector } from '../../store/hooks'
-import { logout } from '../../store/slices/authSlice'
+import { useAppSelector } from '../../store/hooks'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
-import { Input } from '../ui/input'
-import { Button } from '../ui/button'
-import { Avatar, AvatarFallback } from '../ui/avatar'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '../ui/dropdown-menu'
 import { useSidebar } from '../../contexts/sidebar-context'
-import { getInitials, cn } from '../../lib/utils'
+import { cn } from '../../lib/utils'
+import { SAAS_MODE } from '../../lib/saasEnv'
 import { SaasTenantIndicator } from './SaasTenantIndicator'
-import { FixerLogoMark } from './FixerLogoMark'
 import {
   APP_BAR_HEIGHT_PX,
   DRAWER_WIDTH_COLLAPSED_PX,
@@ -396,14 +383,11 @@ interface SidebarProps {
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const location = useLocation()
-  const navigate = useNavigate()
-  const dispatch = useAppDispatch()
   const isMobile = useMediaQuery('(max-width: 899px)')
   const { isOpen: sidebarOpen } = useSidebar()
   const authState = useAppSelector((state) => state.auth)
   const user = authState?.user || null
   const [openSubmenus, setOpenSubmenus] = useState<{ [key: string]: boolean }>({})
-  const [searchQuery, setSearchQuery] = useState('')
 
   /**
    * Check if user has permission to view a menu item
@@ -458,29 +442,14 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   
   // Select appropriate navigation
   const activeNavigationGroups = useMemo((): SidebarGroup[] => {
-    const groups: SidebarGroup[] = isProfessional
-      ? professionalNavigationGroups as SidebarGroup[]
-      : isProvider
-      ? providerNavigationGroups as SidebarGroup[]
-      : filterNavigationByPermissions(navigationGroups)
-
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase()
-      return groups.map(group => ({
-        ...group,
-        items: group.items.filter((item: SidebarItem) => {
-          const matchesName = item.name.toLowerCase().includes(query)
-          const matchesSubItems = item.subItems?.some((sub: SidebarSubItem) =>
-            sub.name.toLowerCase().includes(query)
-          )
-          return matchesName || !!matchesSubItems
-        })
-      })).filter(group => group.items.length > 0)
+    if (isProfessional) {
+      return professionalNavigationGroups as SidebarGroup[]
     }
-
-    return groups
-  }, [isProvider, isProfessional, searchQuery, user])
+    if (isProvider) {
+      return providerNavigationGroups as SidebarGroup[]
+    }
+    return filterNavigationByPermissions(navigationGroups)
+  }, [isProvider, isProfessional, user])
 
   // Auto-open submenu if current path matches
   React.useEffect(() => {
@@ -503,28 +472,6 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       ...prev,
       [menuName]: !prev[menuName]
     }))
-  }
-
-  const handleLogout = () => {
-    dispatch(logout())
-    void navigate('/auth')
-  }
-
-  const getUserDisplayName = () => {
-    if (user?.name) return user.name
-    if (user?.firstName && user?.lastName) return `${user.firstName} ${user.lastName}`
-    if (user?.email) return user.email.split('@')[0]
-    return 'User'
-  }
-
-  const getUserRole = () => {
-    if (user?.userType) {
-      return user.userType.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
-    }
-    if (user?.role?.name) {
-      return user.role.name.replace(/\b\w/g, (l: string) => l.toUpperCase())
-    }
-    return 'Member'
   }
 
   const railW = sidebarOpen ? drawerWidth : collapsedDrawerWidth
@@ -555,39 +502,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       className="flex h-full w-full min-w-0 flex-col border-r border-border/80 bg-card"
       style={{ width: railW }}
     >
-      <div
-        className={cn(
-          'flex items-center border-b border-border/60 bg-primary/[0.04]',
-          sidebarOpen ? 'gap-2 p-2' : 'justify-center p-1.5',
-        )}
-      >
-        <FixerLogoMark
-          size={36}
-          className="shadow-md shadow-primary/25 transition-transform hover:scale-105"
-        />
-        {sidebarOpen && (
-          <div className="min-w-0">
-            <p className="text-[0.95rem] font-bold leading-tight tracking-tight">Fixer Admin</p>
-            <p className="text-[0.65rem] font-medium text-muted-foreground">Operations console</p>
-          </div>
-        )}
-      </div>
-
-      {sidebarOpen && (
-        <div className="border-b border-border/60 p-2">
-          <div className="relative">
-            <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className="h-9 pl-8 text-sm"
-              placeholder="Filter navigation…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
-      )}
-
-      <nav className="flex-1 space-y-2 overflow-y-auto overflow-x-hidden py-1" aria-label="Main">
+      <nav className="flex-1 space-y-2 overflow-y-auto overflow-x-hidden py-2" aria-label="Main">
         {activeNavigationGroups.map((group, groupIndex) => (
           <div
             key={group.title}
@@ -700,72 +615,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         ))}
       </nav>
 
-      <SaasTenantIndicator variant="sidebar" sidebarOpen={sidebarOpen} />
-
-      <div className="h-px shrink-0 border-t border-border/60" />
-
-      <div className={cn('p-1.5', !sidebarOpen && 'flex justify-center')}>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            {sidebarOpen ? (
-              <button
-                type="button"
-                className="flex w-full items-center gap-2 rounded-md bg-muted/40 p-1.5 text-left transition hover:bg-muted/60"
-              >
-                <Avatar className="h-9 w-9 text-xs">
-                  <AvatarFallback>{getInitials(getUserDisplayName())}</AvatarFallback>
-                </Avatar>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold leading-tight">
-                    {getUserDisplayName()}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{getUserRole()}</p>
-                </div>
-                <ExpandMore className="h-4 w-4 shrink-0 text-muted-foreground" />
-              </button>
-            ) : (
-              <Button
-                type="button"
-                variant="ghost"
-                className="h-12 w-full rounded-md"
-                title={getUserDisplayName()}
-              >
-                <Avatar className="h-9 w-9 text-xs">
-                  <AvatarFallback>{getInitials(getUserDisplayName())}</AvatarFallback>
-                </Avatar>
-              </Button>
-            )}
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="right" align="end" className="w-48">
-            <DropdownMenuItem
-              onClick={() => {
-                void navigate('/settings')
-              }}
-              className="cursor-pointer"
-            >
-              <AccountCircleIcon className="mr-2 h-4 w-4" />
-              Profile
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                void navigate('/settings')
-              }}
-              className="cursor-pointer"
-            >
-              <SettingsIcon className="mr-2 h-4 w-4" />
-              Settings
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={handleLogout}
-              className="cursor-pointer text-destructive focus:text-destructive"
-            >
-              <LogoutIcon className="mr-2 h-4 w-4" />
-              Logout
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      {SAAS_MODE && (
+        <div className="shrink-0 border-t border-border/60 p-1.5 pb-2">
+          <SaasTenantIndicator variant="sidebar" sidebarOpen={sidebarOpen} />
+        </div>
+      )}
     </div>
   )
 

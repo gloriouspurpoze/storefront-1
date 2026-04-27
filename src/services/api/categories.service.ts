@@ -101,12 +101,19 @@ export class CategoriesService {
     const seen = new Set<string>()
     const out: Category[] = []
     for (const res of results) {
-      if (!res?.success || !res.data) continue
+      // Backend may omit `success` or return categories with `_id` only; still use data when present.
+      if (!res?.data) continue
+      if (res.success === false) continue
       const cats = res.data.categories ?? []
       for (const c of cats) {
-        if (!c?.id || seen.has(c.id)) continue
-        seen.add(c.id)
-        out.push(c)
+        const id = c?.id ?? (c as { _id?: string })._id
+        if (!id || seen.has(String(id))) continue
+        seen.add(String(id))
+        out.push(
+          c.id
+            ? c
+            : ({ ...c, id: String((c as { _id?: string })._id) } as Category)
+        )
       }
     }
     return out.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))

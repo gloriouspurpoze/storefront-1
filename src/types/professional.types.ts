@@ -181,6 +181,8 @@ export interface ProfessionalsQuery {
   availability?: 'available' | 'busy' | 'offline'
   expertiseLevel?: 'beginner' | 'intermediate' | 'expert'
   isVerified?: boolean
+  /** Refine list when API supports it (e.g. rejected vs pending). */
+  verificationStatus?: 'pending' | 'verified' | 'rejected'
   isIndependent?: boolean
   sortBy?: 'name' | 'rating' | 'experience' | 'created_at'
   sortOrder?: 'asc' | 'desc'
@@ -217,6 +219,8 @@ export interface UpdateVerificationData {
   isVerified: boolean
   verificationNotes?: string
   verifiedBy?: string
+  /** When supported by the API, persists pending / verified / rejected. */
+  verificationStatus?: 'pending' | 'verified' | 'rejected'
 }
 
 export interface UpdateAvailabilityData {

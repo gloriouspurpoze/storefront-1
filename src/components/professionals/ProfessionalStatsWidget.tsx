@@ -13,6 +13,7 @@ import { Users, CheckCircle, Clock, Star, Loader2 } from 'lucide-react'
 import { Card, CardContent } from '../ui/card'
 import { ProfessionalsService } from '../../services/api/professionals.service'
 import { ProfessionalStats } from '../../types/professional.types'
+import { getProfessionalCategoryLabel } from '../../constants/professionalCategories'
 
 interface ProfessionalStatsWidgetProps {
   onRefresh?: number
@@ -87,6 +88,11 @@ export function ProfessionalStatsWidget({ onRefresh }: ProfessionalStatsWidgetPr
     },
   ]
 
+  const byCategory = (stats.professionalsByCategory || [])
+    .filter((r) => r && (r.count ?? 0) > 0)
+    .sort((a, b) => (b.count ?? 0) - (a.count ?? 0))
+  const topSkills = (stats.topSkills || []).filter((r) => r && (r.count ?? 0) > 0).slice(0, 8)
+
   return (
     <div className="mb-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
@@ -117,6 +123,46 @@ export function ProfessionalStatsWidget({ onRefresh }: ProfessionalStatsWidgetPr
           )
         })}
       </div>
+
+      {byCategory.length > 0 && (
+        <Card className="mt-4">
+          <CardContent className="p-4">
+            <p className="mb-3 text-sm font-medium text-muted-foreground">Professionals by trade / category</p>
+            <div className="flex flex-wrap gap-2">
+              {byCategory.map((row) => (
+                <div
+                  key={row.category}
+                  className="inline-flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-1.5 text-sm"
+                >
+                  <span className="font-medium">{getProfessionalCategoryLabel(row.category)}</span>
+                  <span className="tabular-nums text-muted-foreground">{row.count}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {topSkills.length > 0 && (
+        <Card className="mt-4">
+          <CardContent className="p-4">
+            <p className="mb-3 text-sm font-medium text-muted-foreground">Top skills (counts)</p>
+            <div className="flex flex-wrap gap-2">
+              {topSkills.map((row) => (
+                <div
+                  key={row.skill}
+                  className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-sm"
+                >
+                  <span className="max-w-[160px] truncate" title={row.skill}>
+                    {row.skill}
+                  </span>
+                  <span className="tabular-nums text-muted-foreground">{row.count}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

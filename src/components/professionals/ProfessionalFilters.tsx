@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select'
+import { PROFESSIONAL_TRADE_CATEGORIES } from '../../constants/professionalCategories'
 
 interface ProfessionalFiltersProps {
   searchTerm: string
@@ -46,8 +47,8 @@ export function ProfessionalFilters({
   onExpertiseChange,
   verificationFilter,
   onVerificationChange,
-  categoryFilter: _categoryFilter,
-  onCategoryChange: _onCategoryChange,
+  categoryFilter,
+  onCategoryChange,
   onClearFilters,
   onApplyFilters,
 }: ProfessionalFiltersProps) {
@@ -55,7 +56,7 @@ export function ProfessionalFilters({
     <Card className="mb-6 shadow-sm">
       <CardContent className="p-6">
         <div className="grid grid-cols-1 items-end gap-4 md:grid-cols-12">
-          <div className="md:col-span-4">
+          <div className="md:col-span-3">
             <Label htmlFor="prof-search" className="sr-only">
               Search
             </Label>
@@ -69,6 +70,23 @@ export function ProfessionalFilters({
                 onChange={(e) => onSearchChange(e.target.value)}
               />
             </div>
+          </div>
+
+          <div className="md:col-span-2">
+            <Label className="mb-1.5 block text-xs text-muted-foreground">Trade / category</Label>
+            <Select value={categoryFilter} onValueChange={onCategoryChange}>
+              <SelectTrigger className="rounded-md">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All trades</SelectItem>
+                {PROFESSIONAL_TRADE_CATEGORIES.map((c) => (
+                  <SelectItem key={c.value} value={c.value}>
+                    {c.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="md:col-span-2">
@@ -116,7 +134,7 @@ export function ProfessionalFilters({
             </Select>
           </div>
 
-          <div className="flex flex-col gap-2 md:col-span-2 sm:flex-row">
+          <div className="flex flex-col gap-2 md:col-span-1 sm:flex-row">
             <Button
               type="button"
               variant="outline"

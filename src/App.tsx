@@ -63,6 +63,7 @@ const ProviderEarnings = lazy(() => import('./pages/providers/provider-earnings'
 
 const Professionals = lazy(() => import('./pages/professionals/professionals').then((m) => ({ default: m.Professionals })))
 const CreateProfessional = lazy(() => import('./pages/professionals/create-professional').then((m) => ({ default: m.CreateProfessional })))
+const EditProfessional = lazy(() => import('./pages/professionals/edit-professional').then((m) => ({ default: m.EditProfessional })))
 const ProfessionalDashboard = lazy(() => import('./pages/professionals/professional-dashboard').then((m) => ({ default: m.ProfessionalDashboard })))
 const ProfessionalBookings = lazy(() => import('./pages/bookings/professional-bookings').then((m) => ({ default: m.ProfessionalBookings })))
 const ProfessionalProfile = lazy(() => import('./pages/professionals/professional-profile').then((m) => ({ default: m.ProfessionalProfile })))
@@ -522,6 +523,14 @@ function App() {
                         element={
                           <RoleBasedRoute permissions={['create_providers']}>
                             <CreateProfessional />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/professionals/edit/:id"
+                        element={
+                          <RoleBasedRoute permissions={['edit_providers']}>
+                            <EditProfessional />
                           </RoleBasedRoute>
                         }
                       />

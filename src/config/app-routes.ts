@@ -131,6 +131,7 @@ const SEGMENT_TITLE_RULES: { test: RegExp; title: string }[] = [
   { test: /^\/providers\/edit\/[^/]+$/, title: 'Edit provider' },
   { test: /^\/providers\/edit$/, title: 'Edit provider' },
   { test: /^\/professionals\/create$/, title: 'Create professional' },
+  { test: /^\/professionals\/edit\//, title: 'Edit professional' },
   { test: /^\/bookings\/[^/]+$/, title: 'Booking details' },
   { test: /^\/cms\/blogs\/new$/, title: 'New blog post' },
   { test: /^\/cms\/blogs\/[^/]+\/edit$/, title: 'Edit blog post' },
