@@ -8,3 +8,6 @@ export { PermissionGate } from './PermissionGate'
 export { LoginForm } from './LoginForm'
 export { SignupForm } from './SignupForm'
 
+/** Web push (OneSignal) — wire `<OneSignalWeb />` once inside Redux `<Provider>` */
+export { OneSignalWeb } from '../push/OneSignalWeb'
+

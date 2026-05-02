@@ -59,7 +59,7 @@ export function Settings() {
   const [settings, setSettings] = useState<Settings>({
     general: {
       businessName: 'Fixer Admin',
-      businessEmail: 'admin@fixer.com',
+      businessEmail: 'admin@profixer.in',
       businessPhone: '+91-98765-43210',
       businessAddress: 'Example address, City, State — India',
       timezone: 'Asia/Kolkata',

@@ -234,12 +234,24 @@ export class CategoriesService {
   }
 
   /**
-   * Delete category
+   * Delete category (or remove from one catalog only when `catalog` is set — see backend).
+   * Optional `catalog`: `products` | `services` from the scoped admin list.
    */
-  static async deleteCategory(id: string) {
+  static async deleteCategory(
+    id: string,
+    options?: { reassignToCategoryId?: string; catalog?: 'products' | 'services' }
+  ) {
+    const params: Record<string, string> = {}
+    if (options?.reassignToCategoryId) {
+      params.reassign_to_category_id = options.reassignToCategoryId
+    }
+    if (options?.catalog) {
+      params.catalog = options.catalog
+    }
     return api.delete(`/categories/delete/${id}`, {
+      params: Object.keys(params).length ? params : undefined,
       loadingMessage: 'Deleting category...',
-      successMessage: 'Category deleted successfully!',
+      showSuccessToast: false,
       errorMessage: 'Failed to delete category.',
     })
   }

@@ -501,7 +501,7 @@
   "users": [
     {
       "id": 1,
-      "email": "admin@fixer.com",
+      "email": "admin@profixer.in",
       "phone": "+1-555-0001",
       "first_name": "Admin",
       "last_name": "User",
@@ -512,7 +512,7 @@
     },
     {
       "id": 2,
-      "email": "customer@fixer.com",
+      "email": "customer@profixer.in",
       "phone": "+1-555-0002",
       "first_name": "John",
       "last_name": "Doe",

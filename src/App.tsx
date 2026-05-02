@@ -12,6 +12,7 @@ import { store } from './store'
 import { MainLayout } from './components/layout/main-layout'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { RoleBasedRoute } from './components/auth/RoleBasedRoute'
+import { OneSignalWeb } from './components/push/OneSignalWeb'
 import { LoadingProvider } from './components/providers/LoadingProvider'
 import { ToastProvider } from './components/providers/ToastProvider'
 import { AppDialogsProvider } from './components/providers/AppDialogsProvider'
@@ -128,6 +129,7 @@ const RouteFallback = (
 function App() {
   return (
     <Provider store={store}>
+      <OneSignalWeb />
       <ThemeProvider>
         <AppMuiThemeProvider>
         <AppDialogsProvider>

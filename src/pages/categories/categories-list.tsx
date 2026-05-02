@@ -121,24 +121,35 @@ export function CategoriesList() {
   }
 
   const handleDelete = async (category: Category) => {
+    if (!scope) return
+    const catType = getCategoryType(category)
+    const confirmMessage =
+      scope === 'products'
+        ? catType === 'both'
+          ? `Remove "${category.name}" from the product catalog only? It will stay under Service categories (service-only). Products in it will move to another category.`
+          : `Delete "${category.name}"? Products in it will move to another category first.`
+        : catType === 'both'
+          ? `Remove "${category.name}" from the service catalog only? It will stay under Product categories (product-only). Services in it will move to another category; service subgroups on this category will be cleared.`
+          : `Delete "${category.name}"? Services in it will move to another category first.`
+
     const ok = await confirm({
-      title: 'Delete category?',
-      message: `Are you sure you want to delete "${category.name}"?`,
+      title: catType === 'both' ? 'Remove from this catalog?' : 'Delete category?',
+      message: confirmMessage,
       danger: true,
-      confirmLabel: 'Delete',
+      confirmLabel: catType === 'both' ? 'Remove' : 'Delete',
     })
     if (!ok) return
 
     try {
       const id = getCategoryId(category)
-      const response = await CategoriesService.deleteCategory(id)
+      const response = await CategoriesService.deleteCategory(id, { catalog: scope })
 
       if (response.success) {
         dispatch(
           addToast({
-            message: 'Category deleted successfully!',
+            message: response.message || 'Done.',
             severity: 'success',
-            duration: 4000,
+            duration: 5000,
           })
         )
         await loadAll()

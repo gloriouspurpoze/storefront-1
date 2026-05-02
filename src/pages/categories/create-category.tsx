@@ -43,6 +43,39 @@ interface CategoryFormData {
   isActive: boolean
 }
 
+function appliesToMenuOptions(
+  listScope: 'products' | 'services' | null
+): { value: CategoryFormData['categoryType']; label: string }[] {
+  if (!listScope) {
+    return [
+      { value: 'product', label: 'Store products only' },
+      { value: 'service', label: 'Services only' },
+      { value: 'both', label: 'Both (products & services)' },
+    ]
+  }
+  if (listScope === 'products') {
+    return [
+      { value: 'product', label: 'Store products only' },
+      { value: 'both', label: 'Both (also show under services)' },
+    ]
+  }
+  return [
+    { value: 'service', label: 'Services only' },
+    { value: 'both', label: 'Both (also show in the product store)' },
+  ]
+}
+
+function normalizeCategoryTypeForScope(
+  value: string,
+  listScope: 'products' | 'services' | null
+): CategoryFormData['categoryType'] {
+  const allowed = appliesToMenuOptions(listScope).map((o) => o.value)
+  if (allowed.includes(value as CategoryFormData['categoryType'])) {
+    return value as CategoryFormData['categoryType']
+  }
+  return allowed[0] ?? 'product'
+}
+
 export function CreateCategory() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
@@ -80,6 +113,15 @@ export function CreateCategory() {
     }))
   }, [isCreateMode, listScope])
 
+  // Keep type valid if scope or loaded data would leave an option selected that is not in the menu
+  useEffect(() => {
+    setFormData((prev) => {
+      const next = normalizeCategoryTypeForScope(prev.categoryType, listScope)
+      if (next === prev.categoryType) return prev
+      return { ...prev, categoryType: next }
+    })
+  }, [listScope])
+
   useEffect(() => {
     if ((isEditMode || isViewMode) && id) {
       fetchCategoryData(id)
@@ -105,7 +147,9 @@ export function CreateCategory() {
               ? Boolean((category as any).is_active)
               : category.status === 'active'
         const sortOrder = category.sortOrder ?? (category as any).sort_order ?? 0
-        const categoryType = (category.type || category.categoryType || (category as any).category_type || 'product') as 'service' | 'product' | 'both'
+        const rawType =
+          category.type || category.categoryType || (category as any).category_type || 'product'
+        const categoryType = normalizeCategoryTypeForScope(String(rawType), listScope)
         const imageUrl = category.image ?? (category as any).icon ?? (category as any).featuredImage
 
         setFormData({
@@ -151,6 +195,7 @@ export function CreateCategory() {
         name: formData.name,
         description: formData.description,
         type: formData.categoryType,
+        category_type: formData.categoryType,
         image: formData.images.length > 0 ? formData.images[0].url : undefined,
         sort_order: formData.sortOrder,
         is_active: formData.isActive,
@@ -285,27 +330,20 @@ export function CreateCategory() {
                       <InputLabel>Applies to</InputLabel>
                       <Select
                         value={formData.categoryType}
-                        onChange={(e) => setFormData({ ...formData, categoryType: e.target.value as 'service' | 'product' | 'both' })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            categoryType: e.target.value as CategoryFormData['categoryType'],
+                          })
+                        }
                         label="Applies to"
                         disabled={isViewMode}
                       >
-                        {!listScope ? (
-                          <>
-                            <MenuItem value="product">Store products only</MenuItem>
-                            <MenuItem value="service">Services only</MenuItem>
-                            <MenuItem value="both">Both (products & services)</MenuItem>
-                          </>
-                        ) : listScope === 'products' ? (
-                          <>
-                            <MenuItem value="product">Store products only</MenuItem>
-                            <MenuItem value="both">Both (also show under services)</MenuItem>
-                          </>
-                        ) : (
-                          <>
-                            <MenuItem value="service">Services only</MenuItem>
-                            <MenuItem value="both">Both (also show in the product store)</MenuItem>
-                          </>
-                        )}
+                        {appliesToMenuOptions(listScope).map((opt) => (
+                          <MenuItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </MenuItem>
+                        ))}
                       </Select>
                     </FormControl>
                   </Stack>

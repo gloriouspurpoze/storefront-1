@@ -52,6 +52,11 @@ import { PageHeader } from '../../components/common/PageHeader'
 
 const ADMIN_EARNINGS = '/earnings/admin'
 
+/** Match backend `PAYOUT_SECOND_APPROVAL_AMOUNT_RUPEES` (default 50000). */
+const PAYOUT_SECOND_APPROVAL_THRESHOLD_RUPEES = Number(
+  process.env.REACT_APP_PAYOUT_SECOND_APPROVAL_AMOUNT_RUPEES ?? 50000
+)
+
 /** fetch() JSON: normalize both `{ success, data }` and nested `{ data: { success, data } }`. */
 function readApiEnvelope(res: unknown): {
   success: boolean
@@ -142,6 +147,21 @@ interface Payout {
   bankDetails?: { accountNumber?: string; ifscCode?: string }
   upiId?: string
   notes?: string
+  firstApprovedBy?: unknown
+  firstApprovedAt?: string
+  secondApprovedBy?: unknown
+  secondApprovedAt?: string
+}
+
+function payoutRequiresDualApproval(p: Payout): boolean {
+  const gross = Number(p.grossAmount ?? p.netAmount ?? 0)
+  return Number.isFinite(gross) && gross >= PAYOUT_SECOND_APPROVAL_THRESHOLD_RUPEES
+}
+
+function payoutAwaitingSecondAdmin(p: Payout): boolean {
+  const st = (p.status || '').toLowerCase()
+  if (st !== 'requested' && st !== 'pending') return false
+  return payoutRequiresDualApproval(p) && !!p.firstApprovedBy && !p.secondApprovedBy
 }
 
 function professionalLabel(p: Payout): { name: string; phone?: string } {
@@ -257,7 +277,14 @@ export function AdminEarningsOverview() {
       )
       const env = readApiEnvelope(res)
       if (env.success) {
-        dispatch(addToast({ message: 'Payout approved successfully', severity: 'success' }))
+        dispatch(
+          addToast({
+            message:
+              env.message ||
+              'Payout approved successfully',
+            severity: 'success',
+          })
+        )
         loadData()
       } else {
         dispatch(
@@ -304,6 +331,34 @@ export function AdminEarningsOverview() {
       const msg = error instanceof Error ? error.message : 'Failed to complete payout'
       dispatch(addToast({ message: msg, severity: 'error' }))
     }
+  }
+
+  const dualApprovalHint = (payout: Payout) => {
+    if (!payoutRequiresDualApproval(payout)) return null
+    const st = (payout.status || '').toLowerCase()
+    if (st !== 'requested' && st !== 'pending') return null
+    if (!payout.firstApprovedBy) {
+      return (
+        <Chip
+          size="small"
+          variant="outlined"
+          color="warning"
+          label={`2 admins · ≥ ₹${PAYOUT_SECOND_APPROVAL_THRESHOLD_RUPEES.toLocaleString('en-IN')}`}
+          sx={{ mt: 0.5, maxWidth: '100%' }}
+        />
+      )
+    }
+    if (!payout.secondApprovedBy) {
+      return (
+        <Chip
+          size="small"
+          color="warning"
+          label="1/2 — needs second admin"
+          sx={{ mt: 0.5 }}
+        />
+      )
+    }
+    return null
   }
 
   const getStatusChip = (status: string) => {
@@ -566,6 +621,15 @@ export function AdminEarningsOverview() {
         </Tabs>
       </Paper>
 
+      {activeTab === 0 && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Payout batches of{' '}
+          <strong>₹{PAYOUT_SECOND_APPROVAL_THRESHOLD_RUPEES.toLocaleString('en-IN')}</strong> or more require{' '}
+          <strong>two different</strong> admin approvals before they appear under Approved. The Approve button stays
+          available until both steps are done.
+        </Alert>
+      )}
+
       <Card>
         <CardContent>
           <Typography variant="h6" gutterBottom>
@@ -645,7 +709,12 @@ export function AdminEarningsOverview() {
                               </Typography>
                             )}
                           </TableCell>
-                          <TableCell>{getStatusChip(payout.status)}</TableCell>
+                          <TableCell>
+                            <Box>
+                              {getStatusChip(payout.status)}
+                              {dualApprovalHint(payout)}
+                            </Box>
+                          </TableCell>
                           <TableCell align="right">
                             <Stack direction="row" spacing={1} justifyContent="flex-end">
                               {activeTab === 0 && canApprove(payout.status) && (
@@ -656,7 +725,7 @@ export function AdminEarningsOverview() {
                                   startIcon={<Check />}
                                   onClick={() => handleApprovePayout(payout._id)}
                                 >
-                                  Approve
+                                  {payoutAwaitingSecondAdmin(payout) ? 'Approve (2 of 2)' : 'Approve'}
                                 </Button>
                               )}
                               {activeTab === 1 && payout.status === 'approved' && (

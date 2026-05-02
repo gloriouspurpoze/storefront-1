@@ -188,12 +188,12 @@ export default function EnhancedCategoryManagement() {
     if (!deletingCategory) return
     
     try {
-      await CategoriesService.deleteCategory(deletingCategory.id)
+      const response = await CategoriesService.deleteCategory(deletingCategory.id)
       setDeletingCategory(null)
       loadData() // Reload data
       setSnackbar({
         open: true,
-        message: 'Category deleted successfully',
+        message: response.message || 'Category deleted successfully',
         severity: 'success'
       })
     } catch (error) {
@@ -374,12 +374,12 @@ export default function EnhancedCategoryManagement() {
           <DialogTitle>Delete Category</DialogTitle>
           <DialogContent>
             <Typography>
-              Are you sure you want to delete "{deletingCategory.name}"? This action cannot be undone.
+              {`Are you sure you want to delete "${deletingCategory.name}"? Products and services in this category will be moved to another category. Nested categories are kept and moved up one level in the tree. This cannot be undone.`}
             </Typography>
             {deletingCategory.childrenCount > 0 && (
               <Alert severity="warning" sx={{ mt: 2 }}>
-                This category has {deletingCategory.childrenCount} subcategories. 
-                Deleting it will also delete all subcategories.
+                This category has {deletingCategory.childrenCount} nested categories. They will be reparented, not
+                removed.
               </Alert>
             )}
           </DialogContent>

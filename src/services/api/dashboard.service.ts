@@ -164,7 +164,10 @@ class DashboardService {
    */
   async getAdminDashboard(): Promise<AdminDashboardData> {
     try {
-      const response = await apiClient.get('/dashboard/admin') as any;
+      const response = await apiClient.get('/dashboard/admin', {
+        showSuccessToast: false,
+        showLoading: false,
+      }) as any;
       return normalizeAdminDashboardPayload(response)
     } catch (error: any) {
       console.error('Error fetching admin dashboard:', error);
@@ -177,7 +180,10 @@ class DashboardService {
    */
   async getDashboardStats(): Promise<DashboardStats> {
     try {
-      const response = await apiClient.get('/dashboard/quick-stats') as any;
+      const response = await apiClient.get('/dashboard/quick-stats', {
+        showSuccessToast: false,
+        showLoading: false,
+      }) as any;
       return response.data || response;
     } catch (error: any) {
       console.error('Error fetching dashboard stats:', error);
@@ -190,7 +196,10 @@ class DashboardService {
    */
   async getRevenueData(months: number = 6): Promise<RevenueDataPoint[]> {
     try {
-      const response = await apiClient.get(`/analytics/revenue?months=${months}`) as any;
+      const response = await apiClient.get(`/analytics/revenue?months=${months}`, {
+        showSuccessToast: false,
+        showLoading: false,
+      }) as any;
       return response.data || response;
     } catch (error: any) {
       console.error('Error fetching revenue data:', error);
@@ -203,7 +212,10 @@ class DashboardService {
    */
   async getCategoryPerformance(): Promise<CategoryPerformance[]> {
     try {
-      const response = await apiClient.get('/analytics/categories') as any;
+      const response = await apiClient.get('/analytics/categories', {
+        showSuccessToast: false,
+        showLoading: false,
+      }) as any;
       return response.data || response;
     } catch (error: any) {
       console.error('Error fetching category performance:', error);
@@ -216,7 +228,10 @@ class DashboardService {
    */
   async getRecentOrders(limit: number = 10): Promise<RecentOrder[]> {
     try {
-      const response = await apiClient.get(`/orders/recent?limit=${limit}`) as any;
+      const response = await apiClient.get(`/orders/recent?limit=${limit}`, {
+        showSuccessToast: false,
+        showLoading: false,
+      }) as any;
       return response.data || response;
     } catch (error: any) {
       console.error('Error fetching recent orders:', error);
@@ -229,7 +244,10 @@ class DashboardService {
    */
   async getTopProviders(limit: number = 5): Promise<TopProvider[]> {
     try {
-      const response = await apiClient.get(`/providers/top?limit=${limit}`) as any;
+      const response = await apiClient.get(`/providers/top?limit=${limit}`, {
+        showSuccessToast: false,
+        showLoading: false,
+      }) as any;
       return response.data || response;
     } catch (error: any) {
       console.error('Error fetching top providers:', error);
@@ -242,7 +260,10 @@ class DashboardService {
    */
   async getActivityFeed(limit: number = 10) {
     try {
-      const response = await apiClient.get(`/dashboard/activity?limit=${limit}`) as any;
+      const response = await apiClient.get(`/dashboard/activity?limit=${limit}`, {
+        showSuccessToast: false,
+        showLoading: false,
+      }) as any;
       return response.data || response;
     } catch (error: any) {
       console.error('Error fetching activity feed:', error);

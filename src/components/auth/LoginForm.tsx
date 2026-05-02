@@ -64,7 +64,7 @@ const TEST_ACCOUNTS: {
   {
     id: 'admin',
     label: 'Admin',
-    email: 'admin@fixer.com',
+    email: 'admin@profixer.in',
     password: 'Admin@123',
     role: 'Admin',
     color: '#1976d2',
@@ -84,7 +84,7 @@ const TEST_ACCOUNTS: {
 export function LoginForm({ onLogin, isLoading = false, error }: LoginFormProps) {
   const dispatch = useAppDispatch()
   const [formData, setFormData] = useState({
-    email: 'admin@fixer.com',
+    email: 'admin@profixer.in',
     password: 'Admin@123',
     rememberMe: true,
   })

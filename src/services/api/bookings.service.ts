@@ -124,6 +124,8 @@ export class BookingsService {
     }
   ) {
     const paymentReceived = options?.paymentReceived ?? 'online'
+    /** Backend requires completion evidence (notes or photos); admin/web may omit—use audit default. */
+    const completionNotes = (notes?.trim() || 'Completion confirmed from admin / web panel.')
     const endpoints = [
       `/bookings/provider/${id}/complete`,
       `/bookings/${id}/complete`,
@@ -132,14 +134,14 @@ export class BookingsService {
     ]
 
     const bodyComplete = {
-      notes: notes ?? '',
+      notes: completionNotes,
       notifyAdmin: options?.notifyAdmin !== false,
       notifyCustomer: options?.notifyCustomer !== false,
       paymentReceived,
     }
     const bodyStatus = {
       status: 'completed',
-      notes: notes ?? '',
+      notes: completionNotes,
       notifyAdmin: options?.notifyAdmin !== false,
       notifyCustomer: options?.notifyCustomer !== false,
     }
@@ -592,6 +594,21 @@ export class BookingsService {
       successMessage: 'Professional unassigned successfully!',
       errorMessage: 'Failed to unassign professional.',
     })
+  }
+
+  /**
+   * Admin: record a partial refund on the booking (ledger / support; no payment gateway).
+   */
+  static async recordAdminPartialRefund(bookingId: string, amount: number, reason: string) {
+    return api.post<{ booking?: Booking; message?: string }>(
+      `/bookings/${bookingId}/admin-partial-refund`,
+      { amount, reason },
+      {
+        loadingMessage: 'Recording partial refund…',
+        successMessage: 'Partial refund recorded.',
+        errorMessage: 'Failed to record partial refund.',
+      }
+    )
   }
 
   /**

@@ -68,6 +68,7 @@ import {
   Receipt,
   History,
   MoreVert,
+  PhotoCamera,
 } from '@mui/icons-material'
 import { AssignProfessionalDialog } from '../../components/bookings/AssignProfessionalDialog'
 import { BookingsService } from '../../services/api/bookings.service'
@@ -158,9 +159,21 @@ interface BookingDetails {
   bookingType?: string
   notes?: string
   customerNotes?: string
+  /** After-job photos from professional (API field or parsed from notes). */
+  completionPhotoUrls?: string[]
+  preStartSelfieUrl?: string | null
+  preStartSitePhotoUrls?: string[]
   cancellationReason?: string | null
   assignedAt?: string | null
   completedDate?: string | null
+  /** ISO — professional must accept before this time when assign SLA is enforced */
+  acceptDeadlineAt?: string | null
+  preJobDamagePhotoUrls?: string[]
+  partialRefundRecords?: Array<{
+    amount: number
+    reason: string
+    recordedAt?: string
+  }>
   invoice?: {
     id: string
     invoiceNumber?: string
@@ -218,6 +231,54 @@ const statusConfig: Record<string, { color: string; bg: string; label: string; g
   },
 }
 
+/** URLs embedded in legacy `notes` when the app merges completion photos into text. */
+function parseCompletionPhotoUrlsFromNotes(notes: string): string[] {
+  const marker = '[After-service photos]'
+  const i = notes.indexOf(marker)
+  if (i === -1) return []
+  const rest = notes.slice(i + marker.length).trim()
+  return rest
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => /^https?:\/\//i.test(l))
+}
+
+function parsePreStartSelfieFromNotes(notes: string): string | null {
+  const m = notes.match(/Pre-start selfie:\s*(https?:\/\/\S+)/i)
+  return m ? m[1].replace(/[,)\]}]+$/, '') : null
+}
+
+function parsePreStartSiteUrlsFromNotes(notes: string): string[] {
+  const marker = 'Pre-start site photos:'
+  const idx = notes.indexOf(marker)
+  if (idx === -1) return []
+  const after = notes.slice(idx + marker.length).trim().split('\n')
+  const urls: string[] = []
+  for (const line of after) {
+    const t = line.trim()
+    if (!t) break
+    if (/^https?:\/\//i.test(t)) urls.push(t.replace(/[,)\]}]+$/, ''))
+    else break
+  }
+  return urls
+}
+
+function normalizeUrlList(raw: unknown): string[] {
+  if (!raw) return []
+  if (Array.isArray(raw)) {
+    return raw.map(String).filter((u) => /^https?:\/\//i.test(u.trim()))
+  }
+  return []
+}
+
+/** Avoid duplicating completion URLs in the text panel when the gallery already shows them. */
+function stripTrailingAfterServicePhotoNoteBlock(notes: string): string {
+  const marker = '\n\n[After-service photos]'
+  const i = notes.indexOf(marker)
+  if (i === -1) return notes
+  return notes.slice(0, i).trimEnd()
+}
+
 export function BookingDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -249,6 +310,11 @@ export function BookingDetails() {
   const [paymentAmount, setPaymentAmount] = useState('')
   const [paymentNotes, setPaymentNotes] = useState('')
   const [earningData, setEarningData] = useState<{ earning: any; payout: any } | null>(null)
+  const [adminRefundAmount, setAdminRefundAmount] = useState('')
+  const [adminRefundReason, setAdminRefundReason] = useState('')
+  const [adminRefundBusy, setAdminRefundBusy] = useState(false)
+  const [disputeReason, setDisputeReason] = useState('')
+  const [disputeBusy, setDisputeBusy] = useState(false)
 
   // Check if current professional is assigned to this booking
   const isAssignedProfessional = booking && isProfessional && booking.professional && (
@@ -397,10 +463,42 @@ export function BookingDetails() {
           paymentMethod: apiBooking.paymentMethod ?? apiBooking.payment_method,
           bookingType: apiBooking.bookingType ?? apiBooking.booking_type,
           notes: apiBooking.notes || '',
-          customerNotes: apiBooking.customerNotes || apiBooking.notes || '',
+          customerNotes:
+            apiBooking.customerNotes ||
+            apiBooking.specialInstructions ||
+            apiBooking.instructions ||
+            apiBooking.customerInstruction ||
+            '',
+          completionPhotoUrls: (() => {
+            const fromApi = normalizeUrlList(apiBooking.completionPhotoUrls)
+            const fromNotes = parseCompletionPhotoUrlsFromNotes(String(apiBooking.notes || ''))
+            return Array.from(new Set([...fromApi, ...fromNotes]))
+          })(),
+          preStartSelfieUrl:
+            apiBooking.preStartAttestation?.photoEvidence?.selfieUrl ||
+            parsePreStartSelfieFromNotes(String(apiBooking.notes || '')) ||
+            null,
+          preStartSitePhotoUrls: (() => {
+            const fromApi = normalizeUrlList(
+              apiBooking.preStartAttestation?.photoEvidence?.preStartSitePhotoUrls
+            )
+            const fromNotes = parsePreStartSiteUrlsFromNotes(String(apiBooking.notes || ''))
+            return Array.from(new Set([...fromApi, ...fromNotes]))
+          })(),
           cancellationReason: apiBooking.cancellationReason ?? apiBooking.cancellation_reason ?? null,
           assignedAt: apiBooking.assignedAt ?? apiBooking.assigned_at ?? null,
           completedDate: apiBooking.completedDate ?? apiBooking.completed_date ?? null,
+          acceptDeadlineAt: apiBooking.acceptDeadlineAt ?? apiBooking.accept_deadline_at ?? null,
+          preJobDamagePhotoUrls: normalizeUrlList(
+            apiBooking.preJobDamagePhotoUrls ?? apiBooking.pre_job_damage_photo_urls
+          ),
+          partialRefundRecords: Array.isArray(apiBooking.partialRefundRecords)
+            ? apiBooking.partialRefundRecords.map((r: any) => ({
+                amount: Number(r?.amount) || 0,
+                reason: String(r?.reason || ''),
+                recordedAt: r?.recordedAt || r?.recorded_at,
+              }))
+            : [],
           invoice: apiBooking.invoice ? {
             id: apiBooking.invoice.id || apiBooking.invoice_id,
             invoiceNumber: apiBooking.invoice.invoiceNumber,
@@ -517,6 +615,92 @@ export function BookingDetails() {
 
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false })
+  }
+
+  const refreshAdminEarningByBooking = async () => {
+    if (!id) return
+    try {
+      const res = await apiClient.get(`/earnings/admin/earning-by-booking/${id}`, {
+        showLoading: false,
+        showSuccessToast: false,
+        showErrorToast: false,
+      }) as any
+      const data = res?.data ?? res
+      if (data?.success && data?.data) {
+        setEarningData(data.data)
+      }
+    } catch {
+      /* keep existing earningData */
+    }
+  }
+
+  const handleRecordAdminPartialRefund = async () => {
+    if (!id || !booking) return
+    const amt = Number(adminRefundAmount)
+    if (!Number.isFinite(amt) || amt <= 0) {
+      setSnackbar({ open: true, message: 'Enter a valid refund amount', severity: 'error' })
+      return
+    }
+    if (!adminRefundReason.trim()) {
+      setSnackbar({ open: true, message: 'Reason is required', severity: 'error' })
+      return
+    }
+    setAdminRefundBusy(true)
+    try {
+      await BookingsService.recordAdminPartialRefund(id, amt, adminRefundReason.trim())
+      setAdminRefundAmount('')
+      setAdminRefundReason('')
+      setSnackbar({ open: true, message: 'Partial refund recorded on booking', severity: 'success' })
+      await loadBooking()
+    } catch (err: any) {
+      setSnackbar({ open: true, message: err?.message || 'Failed to record refund', severity: 'error' })
+    } finally {
+      setAdminRefundBusy(false)
+    }
+  }
+
+  const handleVerifyEarningPayment = async () => {
+    const eid = earningData?.earning?._id || earningData?.earning?.id
+    if (!eid) return
+    try {
+      await apiClient.post(`/earnings/admin/${eid}/verify-payment`, {}, {
+        showLoading: true,
+        loadingMessage: 'Verifying payment…',
+        successMessage: 'Payment marked verified',
+        showErrorToast: true,
+      })
+      await refreshAdminEarningByBooking()
+      await loadBooking()
+    } catch (err: any) {
+      setSnackbar({ open: true, message: err?.message || 'Verify failed', severity: 'error' })
+    }
+  }
+
+  const handleEarningDispute = async (open: boolean) => {
+    const eid = earningData?.earning?._id || earningData?.earning?.id
+    if (!eid) return
+    if (open && !disputeReason.trim()) {
+      setSnackbar({ open: true, message: 'Enter a short reason to open a dispute', severity: 'error' })
+      return
+    }
+    setDisputeBusy(true)
+    try {
+      await apiClient.post(`/earnings/admin/${eid}/dispute`, {
+        open,
+        reason: open ? disputeReason.trim() : undefined,
+      }, {
+        showLoading: true,
+        loadingMessage: open ? 'Opening dispute…' : 'Clearing dispute…',
+        successMessage: open ? 'Dispute opened — earning on hold' : 'Dispute cleared',
+      })
+      if (!open) setDisputeReason('')
+      await refreshAdminEarningByBooking()
+      await loadBooking()
+    } catch (err: any) {
+      setSnackbar({ open: true, message: err?.message || 'Dispute update failed', severity: 'error' })
+    } finally {
+      setDisputeBusy(false)
+    }
   }
 
   // Professional actions
@@ -1672,7 +1856,8 @@ export function BookingDetails() {
           </Card>
 
           {/* Premium Notes Card */}
-          {(booking.notes || booking.customerNotes) && (
+          {(booking.customerNotes ||
+            (booking.notes && stripTrailingAfterServicePhotoNoteBlock(booking.notes))) && (
             <Card 
               sx={{ 
                 borderRadius: 3,
@@ -1706,7 +1891,7 @@ export function BookingDetails() {
                 </Box>
                 <Divider sx={{ mb: 3 }} />
                 
-                {booking.notes && (
+                {booking.notes && stripTrailingAfterServicePhotoNoteBlock(booking.notes) && (
                   <Box 
                     mb={2.5} 
                     p={2.5} 
@@ -1722,11 +1907,11 @@ export function BookingDetails() {
                     <Box display="flex" alignItems="center" gap={1} mb={1}>
                       <Info sx={{ fontSize: 18, color: 'primary.main' }} />
                       <Typography variant="subtitle2" color="primary.main" fontWeight="700" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                        Service Notes
+                        Booking & professional updates
                       </Typography>
                     </Box>
-                    <Typography variant="body1" color="text.primary" sx={{ lineHeight: 1.7 }}>
-                      {booking.notes}
+                    <Typography variant="body1" color="text.primary" sx={{ lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                      {stripTrailingAfterServicePhotoNoteBlock(booking.notes)}
                     </Typography>
                   </Box>
                 )}
@@ -1753,6 +1938,127 @@ export function BookingDetails() {
                     </Typography>
                   </Box>
                 )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Professional-submitted photo evidence (pre-start + completion) — surfaced for admin oversight */}
+          {((booking.completionPhotoUrls?.length ?? 0) > 0 ||
+            Boolean(booking.preStartSelfieUrl) ||
+            (booking.preStartSitePhotoUrls?.length ?? 0) > 0) && (
+            <Card
+              sx={{
+                mt: 3,
+                borderRadius: 3,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                border: '1px solid rgba(0,0,0,0.05)',
+              }}
+            >
+              <CardContent sx={{ p: 3.5 }}>
+                <Box display="flex" alignItems="center" gap={1.5} mb={2}>
+                  <Box
+                    sx={{
+                      p: 1.5,
+                      borderRadius: 2,
+                      bgcolor: '#00897B',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <PhotoCamera sx={{ fontSize: 24 }} />
+                  </Box>
+                  <Box>
+                    <Typography variant="h6" fontWeight="700" color="text.primary">
+                      Professional photo evidence
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Images from start-of-job and completion flows (opens in new tab).
+                    </Typography>
+                  </Box>
+                </Box>
+                <Divider sx={{ mb: 2 }} />
+                {booking.preStartSelfieUrl ? (
+                  <Box mb={2}>
+                    <Typography variant="subtitle2" color="text.secondary" fontWeight="600" mb={1}>
+                      Pre-start — on-site selfie
+                    </Typography>
+                    <Box
+                      component="a"
+                      href={booking.preStartSelfieUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      display="inline-block"
+                      borderRadius={2}
+                      overflow="hidden"
+                      sx={{ border: '1px solid', borderColor: 'divider' }}
+                    >
+                      <Box
+                        component="img"
+                        src={booking.preStartSelfieUrl}
+                        alt="Professional pre-start selfie"
+                        sx={{ width: 160, height: 160, objectFit: 'cover', display: 'block' }}
+                      />
+                    </Box>
+                  </Box>
+                ) : null}
+                {(booking.preStartSitePhotoUrls?.length ?? 0) > 0 ? (
+                  <Box mb={2}>
+                    <Typography variant="subtitle2" color="text.secondary" fontWeight="600" mb={1}>
+                      Pre-start — site photos
+                    </Typography>
+                    <Box display="flex" flexWrap="wrap" gap={1.5}>
+                      {(booking.preStartSitePhotoUrls ?? []).map((url) => (
+                        <Box
+                          key={url}
+                          component="a"
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          borderRadius={2}
+                          overflow="hidden"
+                          sx={{ border: '1px solid', borderColor: 'divider' }}
+                        >
+                          <Box
+                            component="img"
+                            src={url}
+                            alt="Pre-start site"
+                            sx={{ width: 120, height: 120, objectFit: 'cover', display: 'block' }}
+                          />
+                        </Box>
+                      ))}
+                    </Box>
+                  </Box>
+                ) : null}
+                {(booking.completionPhotoUrls?.length ?? 0) > 0 ? (
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary" fontWeight="600" mb={1}>
+                      After-service / completion photos
+                    </Typography>
+                    <Box display="flex" flexWrap="wrap" gap={1.5}>
+                      {(booking.completionPhotoUrls ?? []).map((url) => (
+                        <Box
+                          key={url}
+                          component="a"
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          borderRadius={2}
+                          overflow="hidden"
+                          sx={{ border: '1px solid', borderColor: 'divider' }}
+                        >
+                          <Box
+                            component="img"
+                            src={url}
+                            alt="Completion evidence"
+                            sx={{ width: 120, height: 120, objectFit: 'cover', display: 'block' }}
+                          />
+                        </Box>
+                      ))}
+                    </Box>
+                  </Box>
+                ) : null}
               </CardContent>
             </Card>
           )}
@@ -1986,6 +2292,122 @@ export function BookingDetails() {
               )}
             </CardContent>
           </Card>
+
+          {isAdmin && (
+            <Card
+              sx={{
+                mb: 3,
+                borderRadius: 3,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                border: '1px solid rgba(0,0,0,0.05)',
+              }}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" fontWeight="700" color="text.primary" gutterBottom>
+                  Support and ledger
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Partial refunds are recorded on the booking for accounting; they do not call a payment gateway.
+                </Typography>
+                <Divider sx={{ mb: 2 }} />
+                {booking.status === 'pending' && booking.acceptDeadlineAt && (
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    <strong>Accept-by (assign SLA)</strong>
+                    <br />
+                    {new Date(booking.acceptDeadlineAt).toLocaleString(undefined, {
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
+                    })}
+                  </Alert>
+                )}
+                {booking.preJobDamagePhotoUrls && booking.preJobDamagePhotoUrls.length > 0 && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" fontWeight="600" gutterBottom>
+                      Pre-job condition photos
+                    </Typography>
+                    <Stack direction="row" flexWrap="wrap" gap={1}>
+                      {booking.preJobDamagePhotoUrls.map((u) => (
+                        <Box
+                          key={u}
+                          component="a"
+                          href={u}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          sx={{ display: 'block' }}
+                        >
+                          <Box
+                            component="img"
+                            src={u}
+                            alt=""
+                            sx={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}
+                          />
+                        </Box>
+                      ))}
+                    </Stack>
+                  </Box>
+                )}
+                {booking.partialRefundRecords && booking.partialRefundRecords.length > 0 && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" fontWeight="600" gutterBottom>
+                      Recorded partial refunds
+                    </Typography>
+                    <TableContainer>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Amount</TableCell>
+                            <TableCell>Reason</TableCell>
+                            <TableCell>When</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {booking.partialRefundRecords.map((r, idx) => (
+                            <TableRow key={`${r.recordedAt || idx}-${r.amount}`}>
+                              <TableCell>₹{Number(r.amount).toLocaleString()}</TableCell>
+                              <TableCell>{r.reason}</TableCell>
+                              <TableCell>
+                                {r.recordedAt
+                                  ? new Date(r.recordedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
+                                  : '—'}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </Box>
+                )}
+                <Stack spacing={1.5}>
+                  <TextField
+                    label="Partial refund amount (₹)"
+                    type="number"
+                    size="small"
+                    value={adminRefundAmount}
+                    onChange={(e) => setAdminRefundAmount(e.target.value)}
+                    fullWidth
+                    inputProps={{ min: 0 }}
+                  />
+                  <TextField
+                    label="Reason (required)"
+                    size="small"
+                    value={adminRefundReason}
+                    onChange={(e) => setAdminRefundReason(e.target.value)}
+                    fullWidth
+                    multiline
+                    minRows={2}
+                  />
+                  <Button
+                    variant="contained"
+                    color="warning"
+                    disabled={adminRefundBusy}
+                    onClick={() => void handleRecordAdminPartialRefund()}
+                  >
+                    Record partial refund
+                  </Button>
+                </Stack>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Premium Payment Card */}
           <Card 
@@ -2289,6 +2711,53 @@ export function BookingDetails() {
                         sx={{ textTransform: 'capitalize' }}
                       />
                     </Box>
+                    {earningData.earning.disputeOpen === true && (
+                      <Alert severity="warning" sx={{ mt: 1 }}>
+                        Dispute is open for this earning — professional payout pool should treat it as on hold until
+                        cleared.
+                      </Alert>
+                    )}
+                    <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mt: 1 }}>
+                      {earningData.earning.paymentStatus !== 'verified' &&
+                        earningData.earning.paymentStatus !== 'customer_paid' && (
+                          <Button variant="outlined" size="small" onClick={() => void handleVerifyEarningPayment()}>
+                            Verify payment
+                          </Button>
+                        )}
+                    </Stack>
+                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+                      Disputes freeze payout eligibility until cleared (backend).
+                    </Typography>
+                    <TextField
+                      size="small"
+                      label="Dispute note (required to open)"
+                      value={disputeReason}
+                      onChange={(e) => setDisputeReason(e.target.value)}
+                      fullWidth
+                      sx={{ mt: 1 }}
+                      disabled={disputeBusy}
+                      multiline
+                      minRows={2}
+                    />
+                    <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mt: 1 }}>
+                      <Button
+                        variant="contained"
+                        color="warning"
+                        size="small"
+                        disabled={disputeBusy}
+                        onClick={() => void handleEarningDispute(true)}
+                      >
+                        Open dispute
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        disabled={disputeBusy}
+                        onClick={() => void handleEarningDispute(false)}
+                      >
+                        Clear dispute
+                      </Button>
+                    </Stack>
                     {earningData.payout?.status === 'completed' && earningData.payout.completedAt && (
                       <Alert severity="success" sx={{ mt: 1 }}>
                         Professional received payment on {new Date(earningData.payout.completedAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}.
