@@ -3,6 +3,7 @@ import { persistStore, persistReducer, createTransform } from 'redux-persist'
 import storage from 'redux-persist/lib/storage' // defaults to localStorage
 import { combineReducers } from '@reduxjs/toolkit'
 import authSlice from './slices/authSlice'
+import { mapBackendUserToAppUser } from '../lib/mapBackendUser'
 import tenantSlice from './slices/tenantSlice'
 import uiSlice from './slices/uiSlice'
 import dataSlice from './slices/dataSlice'
@@ -19,22 +20,9 @@ const authTransform = createTransform(
       
       // Check if data is in snake_case format (needs transformation)
       if (user.user_type || user.first_name || user.last_name) {
-        console.log('🔄 Transforming persisted user data from snake_case to camelCase')
-        
         return {
           ...outboundState,
-          user: {
-            id: user.id,
-            email: user.email,
-            firstName: user.first_name || user.firstName,
-            lastName: user.last_name || user.lastName,
-            phone: user.phone,
-            userType: user.user_type || user.userType,
-            isVerified: user.is_verified || user.isVerified,
-            profilePicture: user.profile_picture || user.profilePicture,
-            createdAt: user.created_at || user.createdAt || new Date().toISOString(),
-            updatedAt: user.updated_at || user.updatedAt,
-          }
+          user: mapBackendUserToAppUser(user, null),
         }
       }
     }

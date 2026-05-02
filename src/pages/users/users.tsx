@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   Plus,
   Users as UsersIcon,
@@ -17,8 +17,10 @@ import { UserFormDialog } from '../../components/users/UserFormDialog'
 import { UserDetailsDialog } from '../../components/users/UserDetailsDialog'
 import { ConfirmDialog } from '../../components/common/ConfirmDialog'
 import { usersService } from '../../services/api/users.service'
-import type { User } from '../../services/api/users.service'
+import type { UpdateUserRequest } from '../../services/api/users.service'
+import type { User } from '../../types'
 import { cn } from '../../lib/utils'
+import { useAppSelector } from '../../store/hooks'
 
 interface UserStats {
   total: number
@@ -38,6 +40,7 @@ const iconColor: Record<string, string> = {
 }
 
 export function Users() {
+  const tenantId = useAppSelector((s) => s.auth.user?.tenant?.id ?? null)
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -116,6 +119,15 @@ export function Users() {
       unverified: userList.filter((u) => !u.isVerified).length,
     })
   }
+
+  const dashboardUsersForClone = useMemo(
+    () =>
+      users.filter(
+        (u) =>
+          (u.userType === 'admin' || u.userType === 'super_admin') && u.id !== selectedUser?.id,
+      ),
+    [users, selectedUser?.id],
+  )
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
@@ -217,13 +229,59 @@ export function Users() {
     }
   }
 
-  const handleFormSubmit = async (userData: Partial<User>) => {
+  const handleFormSubmit = async (
+    userData: Partial<User> & { password?: string; clearDashboardRbac?: boolean },
+  ) => {
     try {
       if (formMode === 'create') {
-        await usersService.createUser(userData as any)
+        await usersService.createUser({
+          email: userData.email!,
+          password: userData.password!,
+          firstName: userData.firstName!,
+          lastName: userData.lastName!,
+          phone: userData.phone,
+          userType: (userData.userType || 'customer') as 'customer' | 'provider' | 'admin',
+          isVerified: userData.isVerified,
+          isActive: userData.isActive,
+          profilePicture: userData.profilePicture,
+          ...(userData.userType === 'admin' && !userData.clearDashboardRbac
+            ? {
+                rbacRole: userData.rbacRole,
+                rbacPermissionMode: userData.rbacPermissionMode,
+                permissions: userData.permissions,
+              }
+            : {}),
+        })
         showSnackbar('User created successfully', 'success')
       } else if (selectedUser) {
-        await usersService.updateUser(selectedUser.id, userData)
+        const isDashboardAccount =
+          selectedUser.userType === 'admin' || selectedUser.userType === 'super_admin'
+        const rbacUpdate: Pick<
+          UpdateUserRequest,
+          'rbacRole' | 'rbacPermissionMode' | 'permissions'
+        > = {}
+        if (isDashboardAccount) {
+          if (userData.clearDashboardRbac) {
+            rbacUpdate.rbacRole = null
+            rbacUpdate.rbacPermissionMode = null
+            rbacUpdate.permissions = null
+          } else {
+            if (userData.rbacRole !== undefined) rbacUpdate.rbacRole = userData.rbacRole
+            if (userData.rbacPermissionMode !== undefined) {
+              rbacUpdate.rbacPermissionMode = userData.rbacPermissionMode
+            }
+            if (userData.permissions !== undefined) rbacUpdate.permissions = userData.permissions
+          }
+        }
+        await usersService.updateUser(selectedUser.id, {
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          phone: userData.phone,
+          profilePicture: userData.profilePicture,
+          isVerified: userData.isVerified,
+          isActive: userData.isActive,
+          ...rbacUpdate,
+        })
         showSnackbar('User updated successfully', 'success')
       }
       setFormDialogOpen(false)
@@ -264,7 +322,9 @@ export function Users() {
       <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="mb-1 text-2xl font-bold">User Management</h1>
-          <p className="text-muted-foreground">Manage user accounts, permissions, and status</p>
+          <p className="text-muted-foreground">
+            Accounts, verification, and dashboard RBAC (role, explicit module grants, and navigation visibility).
+          </p>
         </div>
         <Button className="min-w-[140px]" onClick={handleCreateUser}>
           <Plus className="mr-2 h-4 w-4" />
@@ -324,6 +384,8 @@ export function Users() {
         onSubmit={handleFormSubmit}
         user={selectedUser}
         mode={formMode}
+        cloneFromUsers={dashboardUsersForClone}
+        tenantId={tenantId}
       />
 
       <UserDetailsDialog

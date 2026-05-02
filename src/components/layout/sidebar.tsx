@@ -55,6 +55,8 @@ import {
   BadgeCheck as VerifiedUserIcon,
 } from 'lucide-react'
 import { useAppSelector } from '../../store/hooks'
+import { usePermissions } from '../../hooks/usePermissions'
+import { expandNavPermissionTokens } from '../../lib/navPermissionAliases'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useSidebar } from '../../contexts/sidebar-context'
 import { cn } from '../../lib/utils'
@@ -387,24 +389,16 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const { isOpen: sidebarOpen } = useSidebar()
   const authState = useAppSelector((state) => state.auth)
   const user = authState?.user || null
+  const { checkAnyPermission } = usePermissions()
   const [openSubmenus, setOpenSubmenus] = useState<{ [key: string]: boolean }>({})
 
-  /**
-   * Check if user has permission to view a menu item
-   */
-  const hasPermission = (requiredPermissions?: string[]): boolean => {
+  const navigationAccessOk = (requiredPermissions?: string[]): boolean => {
     if (!requiredPermissions || requiredPermissions.length === 0) {
       return true
     }
-
-    if (user?.userType === 'super_admin' || user?.userType === 'admin') {
-      return true
-    }
-
-    const userPermissions = user?.permissions || []
-    return requiredPermissions.some(permission => 
-      userPermissions.includes(permission)
-    )
+    const tokens = expandNavPermissionTokens(requiredPermissions)
+    if (tokens.length === 0) return true
+    return checkAnyPermission(tokens)
   }
 
   /**
@@ -414,13 +408,13 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     return groups.map(group => ({
       ...group,
       items: group.items.filter((item: SidebarItem) => {
-        if (!hasPermission(item.permissions)) {
+        if (!navigationAccessOk(item.permissions)) {
           return false
         }
 
         if (item.hasSubmenu && item.subItems) {
           item.subItems = item.subItems.filter((subItem: SidebarSubItem) => 
-            hasPermission(subItem.permissions)
+            navigationAccessOk(subItem.permissions)
           )
           return item.subItems.length > 0
         }
@@ -449,7 +443,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       return providerNavigationGroups as SidebarGroup[]
     }
     return filterNavigationByPermissions(navigationGroups)
-  }, [isProvider, isProfessional, user])
+  }, [isProvider, isProfessional, user, checkAnyPermission])
 
   // Auto-open submenu if current path matches
   React.useEffect(() => {

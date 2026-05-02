@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { CloudUpload, X } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import { CloudUpload, X, Shield, Copy, BookmarkPlus, Trash2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -19,28 +19,96 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select'
+import { Separator } from '../ui/separator'
+import { Badge } from '../ui/badge'
 import { cn, getInitials } from '../../lib/utils'
+import type { User } from '../../types'
+import type { Permission, RbacPermissionMode, UserRole } from '../../types/rbac.types'
+import { DASHBOARD_ACCESS_MODULES } from '../../config/dashboard-access-modules'
+import { PermissionChipPicker } from './PermissionChipPicker'
+import {
+  deleteRbacTemplate,
+  loadRbacTemplates,
+  upsertRbacTemplate,
+  type RbacAccessTemplate,
+} from '../../lib/rbacTemplatesStorage'
 
-interface User {
-  id?: string
-  email: string
-  firstName: string
-  lastName: string
-  phone?: string
-  userType: 'customer' | 'provider' | 'admin'
-  isVerified: boolean
-  profilePicture?: string
-  isActive?: boolean
-  password?: string
-}
+type AccessPreset = 'full' | 'manager' | 'staff' | 'explicit'
+
+type FormUser = Partial<User> & { password?: string; clearDashboardRbac?: boolean }
 
 interface UserFormDialogProps {
   open: boolean
   onClose: () => void
-  onSubmit: (user: Partial<User>) => Promise<void>
+  onSubmit: (user: FormUser) => Promise<void>
   user?: User | null
   mode: 'create' | 'edit'
+  /** Dashboard users to copy RBAC from (e.g. same list page). */
+  cloneFromUsers?: User[]
+  /** Tenant scope for saved templates in localStorage. */
+  tenantId?: string | null
 }
+
+function inferPreset(u: User | null | undefined): AccessPreset {
+  if (!u || (u.userType !== 'admin' && u.userType !== 'super_admin')) return 'full'
+  if (u.rbacPermissionMode === 'explicit') return 'explicit'
+  if (u.rbacRole === 'manager') return 'manager'
+  if (u.rbacRole === 'staff') return 'staff'
+  return 'full'
+}
+
+function permissionsFromLegacyTemplateKeys(selected: Set<string>): Permission[] {
+  const out: Permission[] = []
+  for (const mod of DASHBOARD_ACCESS_MODULES) {
+    if (selected.has(mod.id)) {
+      out.push(...mod.viewPermissions)
+    }
+    for (const ex of mod.extras || []) {
+      if (selected.has(`${mod.id}:${ex.key}`)) {
+        out.push(...ex.permissions)
+      }
+    }
+  }
+  return Array.from(new Set(out))
+}
+
+function presetToRbac(
+  preset: AccessPreset,
+  chipPerms: Permission[],
+  explicitRouteRole: UserRole,
+): {
+  rbacRole?: UserRole
+  rbacPermissionMode?: RbacPermissionMode
+  permissions?: Permission[]
+} {
+  switch (preset) {
+    case 'full':
+      return {}
+    case 'manager':
+      return {
+        rbacRole: 'manager',
+        rbacPermissionMode: 'role_plus',
+        permissions: chipPerms,
+      }
+    case 'staff':
+      return {
+        rbacRole: 'staff',
+        rbacPermissionMode: 'role_plus',
+        permissions: chipPerms,
+      }
+    case 'explicit':
+      return {
+        rbacRole: explicitRouteRole,
+        rbacPermissionMode: 'explicit',
+        permissions: chipPerms,
+      }
+    default:
+      return {}
+  }
+}
+
+const STRONG_PASSWORD =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/
 
 export const UserFormDialog: React.FC<UserFormDialogProps> = ({
   open,
@@ -48,8 +116,10 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
   onSubmit,
   user,
   mode,
+  cloneFromUsers = [],
+  tenantId,
 }) => {
-  const [formData, setFormData] = useState<Partial<User>>({
+  const [formData, setFormData] = useState<FormUser>({
     email: '',
     firstName: '',
     lastName: '',
@@ -60,9 +130,23 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
     profilePicture: '',
     password: '',
   })
+  const [accessPreset, setAccessPreset] = useState<AccessPreset>('full')
+  const [selectedPermissions, setSelectedPermissions] = useState<Set<Permission>>(() => new Set())
+  const [explicitRouteRole, setExplicitRouteRole] = useState<UserRole>('staff')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [savedTemplates, setSavedTemplates] = useState<RbacAccessTemplate[]>([])
+  const [newTemplateName, setNewTemplateName] = useState('')
+  const photoInputRef = useRef<HTMLInputElement>(null)
+
+  const isDashboardUser = formData.userType === 'admin' || formData.userType === 'super_admin'
+
+  useEffect(() => {
+    if (open) {
+      setSavedTemplates(loadRbacTemplates(tenantId))
+    }
+  }, [open, tenantId])
 
   useEffect(() => {
     if (user && mode === 'edit') {
@@ -71,11 +155,19 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
         firstName: user.firstName,
         lastName: user.lastName,
         phone: user.phone || '',
-        userType: user.userType,
+        userType: user.userType === 'super_admin' ? 'admin' : user.userType,
         isVerified: user.isVerified,
         isActive: user.isActive ?? true,
         profilePicture: user.profilePicture || '',
+        rbacRole: user.rbacRole,
+        rbacPermissionMode: user.rbacPermissionMode,
+        permissions: user.permissions,
       })
+      setAccessPreset(inferPreset(user))
+      setSelectedPermissions(new Set((user.permissions || []) as Permission[]))
+      setExplicitRouteRole(
+        user.rbacPermissionMode === 'explicit' && user.rbacRole ? user.rbacRole : 'staff',
+      )
     } else {
       setFormData({
         email: '',
@@ -88,6 +180,9 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
         profilePicture: '',
         password: '',
       })
+      setAccessPreset('full')
+      setSelectedPermissions(new Set())
+      setExplicitRouteRole('staff')
     }
     setError(null)
     setErrors({})
@@ -110,26 +205,84 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
     if (mode === 'create' && !formData.password?.trim()) {
       newErrors.password = 'Password is required'
     }
-    if (mode === 'create' && formData.password && formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters'
+    if (mode === 'create' && formData.password) {
+      if (formData.password.length < 8) {
+        newErrors.password = 'Password must be at least 8 characters'
+      } else if (!STRONG_PASSWORD.test(formData.password)) {
+        newErrors.password =
+          'Use upper & lowercase, a number, and a special character (@$!%*?&)'
+      }
     }
     if (formData.phone && !/^\+?[\d\s-()]+$/.test(formData.phone)) {
       newErrors.phone = 'Invalid phone format'
+    }
+
+    if (isDashboardUser && accessPreset === 'explicit') {
+      if (!selectedPermissions.has('view_dashboard')) {
+        newErrors.dashboard = 'Custom access must include Dashboard (overview)'
+      }
     }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  const handleChange = (field: keyof User, value: string | boolean) => {
+  const handleChange = (field: keyof FormUser, value: string | boolean | undefined) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
-    if (errors[field]) {
+    if (errors[field as string]) {
       setErrors((prev) => {
         const next = { ...prev }
-        delete next[field]
+        delete next[field as string]
         return next
       })
     }
+  }
+
+  const applyAccessFromUser = (source: User) => {
+    setAccessPreset(inferPreset(source))
+    setSelectedPermissions(new Set((source.permissions || []) as Permission[]))
+    if (source.rbacPermissionMode === 'explicit' && source.rbacRole) {
+      setExplicitRouteRole(source.rbacRole)
+    }
+  }
+
+  const handleCloneFromSelect = (userId: string) => {
+    if (userId === '__none__') return
+    const src = cloneFromUsers.find((u) => u.id === userId)
+    if (src) applyAccessFromUser(src)
+  }
+
+  const handleApplyTemplate = (templateId: string) => {
+    if (templateId === '__none__') return
+    const t = savedTemplates.find((x) => x.id === templateId)
+    if (!t) return
+    setAccessPreset(t.preset as AccessPreset)
+    if (t.permissions && t.permissions.length > 0) {
+      setSelectedPermissions(new Set(t.permissions))
+    } else if (t.explicitKeys?.length) {
+      setSelectedPermissions(new Set(permissionsFromLegacyTemplateKeys(new Set(t.explicitKeys))))
+    } else {
+      setSelectedPermissions(new Set())
+    }
+    if (t.rbacRole) setExplicitRouteRole(t.rbacRole)
+  }
+
+  const handleSaveTemplate = () => {
+    const name = newTemplateName.trim()
+    if (!name) return
+    const next = upsertRbacTemplate(tenantId, {
+      name,
+      preset: accessPreset,
+      explicitKeys: [],
+      permissions: Array.from(selectedPermissions),
+      rbacRole: accessPreset === 'explicit' ? explicitRouteRole : undefined,
+    })
+    setSavedTemplates(next)
+    setNewTemplateName('')
+  }
+
+  const handleDeleteTemplate = (id: string) => {
+    setSavedTemplates(deleteRbacTemplate(tenantId, id))
   }
 
   const handleSubmit = async () => {
@@ -141,7 +294,22 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
     setError(null)
 
     try {
-      await onSubmit(formData)
+      const chipList = Array.from(selectedPermissions)
+      const rbac = isDashboardUser
+        ? presetToRbac(accessPreset, chipList, explicitRouteRole)
+        : {}
+      const payload: FormUser = {
+        ...formData,
+        ...rbac,
+        clearDashboardRbac: Boolean(isDashboardUser && accessPreset === 'full'),
+      }
+      if (payload.clearDashboardRbac) {
+        delete payload.rbacRole
+        delete payload.rbacPermissionMode
+        delete payload.permissions
+      }
+
+      await onSubmit(payload)
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
@@ -168,7 +336,12 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
         if (!o) onClose()
       }}
     >
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto sm:max-w-2xl">
+      <DialogContent
+        className={cn(
+          'max-h-[90vh] overflow-y-auto sm:max-w-2xl',
+          isDashboardUser && 'sm:max-w-3xl',
+        )}
+      >
         <DialogHeader className="flex flex-row items-center justify-between space-y-0 border-b border-border pb-2">
           <DialogTitle className="text-lg font-semibold">
             {mode === 'create' ? 'Create New User' : 'Edit User'}
@@ -184,13 +357,7 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
             className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive"
           >
             {error}
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="ml-2 h-6"
-              onClick={() => setError(null)}
-            >
+            <Button type="button" variant="ghost" size="sm" className="ml-2 h-6" onClick={() => setError(null)}>
               Dismiss
             </Button>
           </div>
@@ -204,12 +371,21 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
                 {getInitials(`${formData.firstName || ''} ${formData.lastName || ''}`)}
               </AvatarFallback>
             </Avatar>
-            <Button type="button" variant="outline" size="sm" asChild>
-              <label className="cursor-pointer">
-                <CloudUpload className="mr-2 h-4 w-4" />
-                Upload Photo
-                <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
-              </label>
+            <input
+              ref={photoInputRef}
+              type="file"
+              className="hidden"
+              accept="image/*"
+              onChange={handleImageUpload}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => photoInputRef.current?.click()}
+            >
+              <CloudUpload className="mr-2 h-4 w-4" />
+              Upload Photo
             </Button>
           </div>
 
@@ -274,7 +450,9 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
               {errors.password ? (
                 <p className="text-xs text-destructive">{errors.password}</p>
               ) : (
-                <p className="text-xs text-muted-foreground">Minimum 8 characters</p>
+                <p className="text-xs text-muted-foreground">
+                  8+ chars with upper, lower, number, and special (@$!%*?&)
+                </p>
               )}
             </div>
           )}
@@ -295,7 +473,7 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
               <SelectContent>
                 <SelectItem value="customer">Customer</SelectItem>
                 <SelectItem value="provider">Provider</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="admin">Admin (dashboard)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -318,6 +496,163 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
               <Label htmlFor="uf-active">Active</Label>
             </div>
           </div>
+
+          {isDashboardUser && (
+            <>
+              <div className="sm:col-span-2">
+                <Separator className="my-1" />
+              </div>
+              <div className="sm:col-span-2">
+                <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold text-primary">
+                  <Shield className="h-4 w-4" />
+                  Dashboard access control
+                </h3>
+                <p className="mb-3 text-xs text-muted-foreground">
+                  Pick a template, then toggle permission chips. Values are sent as{' '}
+                  <span className="font-mono">permissions</span> with{' '}
+                  <span className="font-mono">rbac_role</span> and{' '}
+                  <span className="font-mono">rbac_permission_mode</span> (role_plus adds chips on top of the role;
+                  explicit uses only the chips, with a route baseline role).
+                </p>
+                <div className="space-y-1.5">
+                  <Label>Access template</Label>
+                  <Select value={accessPreset} onValueChange={(v) => setAccessPreset(v as AccessPreset)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="full">Full admin (default)</SelectItem>
+                      <SelectItem value="manager">Manager (operations template)</SelectItem>
+                      <SelectItem value="staff">Staff (read-heavy template)</SelectItem>
+                      <SelectItem value="explicit">Custom modules (explicit only)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label className="flex items-center gap-1.5">
+                      <Copy className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+                      Clone access from user
+                    </Label>
+                    <Select
+                      onValueChange={(id) => {
+                        handleCloneFromSelect(id)
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a dashboard user…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">— Clear picker —</SelectItem>
+                        {cloneFromUsers.map((u) => (
+                          <SelectItem key={u.id} value={u.id}>
+                            {u.firstName} {u.lastName} · {u.email}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {cloneFromUsers.length === 0 && (
+                      <p className="text-xs text-muted-foreground">No other dashboard users in the current list.</p>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="flex items-center gap-1.5">
+                      <BookmarkPlus className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+                      Apply saved template
+                    </Label>
+                    <Select onValueChange={(id) => handleApplyTemplate(id)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose template…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">—</SelectItem>
+                        {savedTemplates.map((t) => (
+                          <SelectItem key={t.id} value={t.id}>
+                            {t.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Templates are stored in this browser per tenant ({tenantId || 'global'}).
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <Label htmlFor="uf-tpl-name">Save current access as template</Label>
+                    <Input
+                      id="uf-tpl-name"
+                      value={newTemplateName}
+                      onChange={(e) => setNewTemplateName(e.target.value)}
+                      placeholder="e.g. Support lead — bookings only"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="shrink-0"
+                    disabled={!newTemplateName.trim()}
+                    onClick={handleSaveTemplate}
+                  >
+                    Save template
+                  </Button>
+                </div>
+
+                {savedTemplates.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {savedTemplates.map((t) => (
+                      <Badge key={t.id} variant="secondary" className="gap-1 pr-1 font-normal">
+                        {t.name}
+                        <button
+                          type="button"
+                          className="rounded p-0.5 hover:bg-muted-foreground/20"
+                          aria-label={`Delete template ${t.name}`}
+                          onClick={() => handleDeleteTemplate(t.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {accessPreset !== 'full' && (
+                <div className="sm:col-span-2 space-y-3 rounded-md border border-border bg-muted/30 p-3">
+                  {accessPreset === 'explicit' && (
+                    <div className="space-y-1.5">
+                      <Label>Route baseline role (explicit)</Label>
+                      <Select
+                        value={explicitRouteRole}
+                        onValueChange={(v) => setExplicitRouteRole(v as UserRole)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="staff">Staff</SelectItem>
+                          <SelectItem value="manager">Manager</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Stored as <span className="font-mono">rbac_role</span>; access is still driven by the chip list.
+                      </p>
+                    </div>
+                  )}
+                  <PermissionChipPicker
+                    selected={selectedPermissions}
+                    onChange={setSelectedPermissions}
+                    disabled={loading}
+                  />
+                  {errors.dashboard && <p className="text-xs text-destructive">{errors.dashboard}</p>}
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">

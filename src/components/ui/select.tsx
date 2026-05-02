@@ -23,7 +23,8 @@ const SelectTrigger = React.forwardRef<
     {...props}
   >
     {children}
-    <SelectPrimitive.Icon asChild>
+    {/* Do not use Icon asChild here: whitespace becomes an extra text child and breaks Slot (React.Children.only). */}
+    <SelectPrimitive.Icon>
       <ChevronDown className="h-4 w-4 opacity-50" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>

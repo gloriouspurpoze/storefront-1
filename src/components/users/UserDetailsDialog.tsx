@@ -4,7 +4,7 @@ import {
   Phone,
   Calendar,
   Shield,
-  User,
+  User as UserIcon,
   Ban,
   CheckCircle2,
 } from 'lucide-react'
@@ -21,20 +21,8 @@ import { Separator } from '../ui/separator'
 import { Card, CardContent } from '../ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { formatDate, getInitials, cn } from '../../lib/utils'
-
-interface User {
-  id: string
-  email: string
-  firstName: string
-  lastName: string
-  phone?: string
-  userType: 'customer' | 'provider' | 'admin'
-  isVerified: boolean
-  profilePicture?: string
-  createdAt: string
-  updatedAt?: string
-  isActive?: boolean
-}
+import type { User } from '../../types'
+import { UserAccessChips } from './UserAccessChips'
 
 interface UserDetailsDialogProps {
   open: boolean
@@ -45,13 +33,14 @@ interface UserDetailsDialogProps {
 
 const userTypeBadge = (type: string) => {
   switch (type) {
+    case 'super_admin':
     case 'admin':
       return { variant: 'destructive' as const, icon: Shield }
     case 'provider':
-      return { variant: 'default' as const, icon: User }
+      return { variant: 'default' as const, icon: UserIcon }
     case 'customer':
     default:
-      return { variant: 'success' as const, icon: User }
+      return { variant: 'success' as const, icon: UserIcon }
   }
 }
 
@@ -135,7 +124,7 @@ export const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({ open, onCl
             <div className="grid gap-2 sm:grid-cols-2">
               <Card>
                 <CardContent className="flex items-center gap-3 p-4">
-                  <User className="h-5 w-5 text-primary" />
+                  <UserIcon className="h-5 w-5 text-primary" />
                   <div className="min-w-0">
                     <p className="text-xs text-muted-foreground">User ID</p>
                     <p className="break-all font-mono text-sm">{user.id}</p>
@@ -173,6 +162,19 @@ export const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({ open, onCl
               )}
             </div>
           </div>
+
+          <Separator />
+
+          {(user.userType === 'admin' || user.userType === 'super_admin') && (
+            <div>
+              <h3 className="mb-2 text-sm font-semibold">Dashboard authorization</h3>
+              <p className="mb-2 text-xs text-muted-foreground">
+                Role defines the baseline template; explicit mode uses only the permission list for navigation and
+                routes.
+              </p>
+              <UserAccessChips user={user} maxPermissionChips={80} />
+            </div>
+          )}
 
           <Separator />
 

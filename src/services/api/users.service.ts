@@ -1,18 +1,9 @@
 import { apiClient } from '../apiClient'
+import type { User } from '../../types'
+import type { Permission, RbacPermissionMode, UserRole } from '../../types/rbac.types'
+import { mapBackendUserToAppUser } from '../../lib/mapBackendUser'
 
-export interface User {
-  id: string
-  email: string
-  firstName: string
-  lastName: string
-  phone?: string
-  userType: 'customer' | 'provider' | 'admin'
-  isVerified: boolean
-  profilePicture?: string
-  createdAt: string
-  updatedAt?: string
-  isActive?: boolean
-}
+export type { User }
 
 export interface GetUsersParams {
   page?: number
@@ -43,6 +34,9 @@ export interface CreateUserRequest {
   isVerified?: boolean
   isActive?: boolean
   profilePicture?: string
+  rbacRole?: UserRole
+  rbacPermissionMode?: RbacPermissionMode
+  permissions?: Permission[]
 }
 
 export interface UpdateUserRequest {
@@ -52,6 +46,9 @@ export interface UpdateUserRequest {
   profilePicture?: string
   isVerified?: boolean
   isActive?: boolean
+  rbacRole?: UserRole | null
+  rbacPermissionMode?: RbacPermissionMode | null
+  permissions?: Permission[] | null
 }
 
 export interface UserStats {
@@ -63,10 +60,11 @@ export interface UserStats {
   unverifiedUsers: number
 }
 
+function mapListUser(raw: unknown): User {
+  return mapBackendUserToAppUser(raw as Record<string, unknown>, null)
+}
+
 export const usersService = {
-  /**
-   * Get all users with pagination and filtering
-   */
   async getUsers(params?: GetUsersParams): Promise<GetUsersResponse> {
     const queryParams = new URLSearchParams()
     if (params) {
@@ -75,30 +73,31 @@ export const usersService = {
       })
     }
     const url = queryParams.toString() ? `/users/all?${queryParams.toString()}` : '/users/all'
-    const response = await apiClient.get(url) as any
-    // console.log('Users API Response:-----1234', response.data.users) // Debug log
-    // Handle the response structure
+    const response = (await apiClient.get(url)) as { data?: { users?: unknown[]; pagination?: GetUsersResponse['pagination'] } }
     if (response?.data) {
-      return response.data
+      const rawUsers = response.data.users || []
+      return {
+        users: rawUsers.map(mapListUser),
+        pagination: response.data.pagination || {
+          page: 1,
+          limit: 100,
+          total: rawUsers.length,
+          totalPages: 1,
+        },
+      }
     }
-    
-    // Fallback if structure is different
     throw new Error('Invalid response structure from users API')
   },
 
-  /**
-   * Get user by ID
-   */
   async getUserById(userId: string): Promise<User> {
-    const response = await apiClient.get(`/users/${userId}`) as any
-    return (response as any).data.data.user
+    const response = (await apiClient.get(`/users/${userId}`)) as { data?: { data?: { user?: unknown } } }
+    const raw = (response as { data?: { data?: { user?: unknown } } })?.data?.data?.user
+    if (!raw) throw new Error('User not found')
+    return mapListUser(raw)
   },
 
-  /**
-   * Create a new user
-   */
   async createUser(data: CreateUserRequest): Promise<User> {
-    const response = await apiClient.post('/auth/register', {
+    const body: Record<string, unknown> = {
       email: data.email,
       password: data.password,
       first_name: data.firstName,
@@ -106,78 +105,74 @@ export const usersService = {
       phone: data.phone,
       user_type: data.userType,
       profile_picture: data.profilePicture,
-    })
-    return (response as any).data.data.user
+    }
+    if (data.userType === 'admin') {
+      if (data.rbacRole) body.rbac_role = data.rbacRole
+      if (data.rbacPermissionMode) body.rbac_permission_mode = data.rbacPermissionMode
+      if (data.permissions !== undefined) body.permissions = data.permissions
+      const response = await apiClient.post('/auth/register/admin', body)
+      const userRaw = (response as { data?: { data?: { user?: unknown } } })?.data?.data?.user
+      if (!userRaw) throw new Error('Invalid create user response')
+      return mapListUser(userRaw)
+    }
+    const response = await apiClient.post('/auth/register', body)
+    const userRaw = (response as { data?: { data?: { user?: unknown } } })?.data?.data?.user
+    if (!userRaw) throw new Error('Invalid create user response')
+    return mapListUser(userRaw)
   },
 
-  /**
-   * Update user
-   */
   async updateUser(userId: string, data: UpdateUserRequest): Promise<User> {
-    const response = await apiClient.put(`/users/update/${userId}`, {
+    const payload: Record<string, unknown> = {
       first_name: data.firstName,
       last_name: data.lastName,
       phone: data.phone,
       profile_picture: data.profilePicture,
       is_verified: data.isVerified,
       is_active: data.isActive,
-    })
-    return (response as any).data.data.user
+    }
+    if (data.rbacRole !== undefined) payload.rbac_role = data.rbacRole
+    if (data.rbacPermissionMode !== undefined) payload.rbac_permission_mode = data.rbacPermissionMode
+    if (data.permissions !== undefined) payload.permissions = data.permissions
+
+    const response = await apiClient.put(`/users/update/${userId}`, payload)
+    const userRaw = (response as { data?: { data?: { user?: unknown } } })?.data?.data?.user
+    if (!userRaw) throw new Error('Invalid update user response')
+    return mapListUser(userRaw)
   },
 
-  /**
-   * Delete user
-   */
   async deleteUser(userId: string): Promise<void> {
     await apiClient.delete(`/users/delete/${userId}`)
   },
 
-  /**
-   * Verify user email
-   */
   async verifyUser(userId: string): Promise<void> {
     await apiClient.post(`/users/verify/${userId}`)
   },
 
-  /**
-   * Toggle user active status
-   */
   async toggleUserStatus(userId: string, isActive: boolean): Promise<User> {
     const response = await apiClient.put(`/users/update/${userId}`, {
       is_active: isActive,
     })
-    return (response as any).data.data.user
+    const userRaw = (response as { data?: { data?: { user?: unknown } } })?.data?.data?.user
+    if (!userRaw) throw new Error('Invalid response')
+    return mapListUser(userRaw)
   },
 
-  /**
-   * Get user statistics
-   */
   async getUserStats(): Promise<UserStats> {
     const response = await apiClient.get('/users/stats')
-    return (response as any).data.data
+    return (response as { data?: { data?: UserStats } }).data?.data as UserStats
   },
 
-  /**
-   * Bulk delete users
-   */
   async bulkDeleteUsers(userIds: string[]): Promise<void> {
-    await Promise.all(userIds.map(id => apiClient.delete(`/users/${id}`)))
+    await Promise.all(userIds.map((id) => apiClient.delete(`/users/${id}`)))
   },
 
-  /**
-   * Bulk verify users
-   */
   async bulkVerifyUsers(userIds: string[]): Promise<void> {
-    await Promise.all(userIds.map(id => apiClient.post(`/users/${id}/verify`)))
+    await Promise.all(userIds.map((id) => apiClient.post(`/users/${id}/verify`)))
   },
 
-  /**
-   * Bulk update user status
-   */
   async bulkUpdateStatus(userIds: string[], isActive: boolean): Promise<void> {
-    await Promise.all(userIds.map(id => 
-      apiClient.put(`/users/${id}`, { is_active: isActive })
-    ))
+    await Promise.all(
+      userIds.map((id) => apiClient.put(`/users/${id}`, { is_active: isActive })),
+    )
   },
 }
-

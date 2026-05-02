@@ -1,87 +1,102 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useAppSelector } from '../store/hooks'
-import { Permission, UserRole } from '../types/rbac.types'
-import { hasPermission, hasAnyPermission, hasAllPermissions, canAccessRoute } from '../config/rbac.config'
+import type { Permission, UserRole } from '../types/rbac.types'
+import {
+  hasPermission,
+  hasAnyPermission,
+  hasAllPermissions,
+  canAccessRoute,
+  type PermissionCheckOptions,
+} from '../config/rbac.config'
+import { sanitizePermissions } from '../lib/sanitizePermissions'
 
 /**
  * Custom hook for checking user permissions
  */
 export const usePermissions = () => {
-  // Get current user from Redux store
   const currentUser = useAppSelector((state) => state.auth.user)
-  console.log(currentUser, 'currentUser')
-  const userRole = (currentUser?.userType || 'admin') as UserRole
-  const customPermissions = (currentUser as any)?.permissions as Permission[] | undefined
 
-  /**
-   * Check if user has a specific permission
-   */
-  const checkPermission = useCallback((permission: Permission): boolean => {
-    if (!currentUser) return false
-    return hasPermission(userRole, permission, customPermissions)
-  }, [currentUser, userRole, customPermissions])
+  const rbacRole = useMemo((): UserRole => {
+    if (!currentUser) return 'admin'
+    const r = currentUser.rbacRole
+    if (r) return r
+    const ut = currentUser.userType
+    if (ut === 'super_admin') return 'super_admin'
+    if (ut === 'admin') return 'admin'
+    if (ut === 'provider') return 'provider'
+    if (ut === 'customer') return 'customer'
+    return 'admin'
+  }, [currentUser])
 
-  /**
-   * Check if user has any of the specified permissions
-   */
-  const checkAnyPermission = useCallback((permissions: Permission[]): boolean => {
-    if (!currentUser) return false
-    return hasAnyPermission(userRole, permissions, customPermissions)
-  }, [currentUser, userRole, customPermissions])
+  const explicitOnly = currentUser?.rbacPermissionMode === 'explicit'
 
-  /**
-   * Check if user has all of the specified permissions
-   */
-  const checkAllPermissions = useCallback((permissions: Permission[]): boolean => {
-    if (!currentUser) return false
-    return hasAllPermissions(userRole, permissions, customPermissions)
-  }, [currentUser, userRole, customPermissions])
+  const customPermissions = useMemo(
+    () => sanitizePermissions(currentUser?.permissions),
+    [currentUser?.permissions],
+  )
 
-  /**
-   * Check if user can access a specific route
-   */
-  const checkRouteAccess = useCallback((routePath: string): boolean => {
-    if (!currentUser) return false
-    return canAccessRoute(userRole, routePath)
-  }, [currentUser, userRole])
+  const checkOpts = useMemo((): PermissionCheckOptions => ({ explicitOnly }), [explicitOnly])
 
-  /**
-   * Check if user is a specific role
-   */
-  const isRole = useCallback((role: UserRole): boolean => {
-    return userRole === role
-  }, [userRole])
+  const checkPermission = useCallback(
+    (permission: Permission): boolean => {
+      if (!currentUser) return false
+      return hasPermission(rbacRole, permission, customPermissions, checkOpts)
+    },
+    [currentUser, rbacRole, customPermissions, checkOpts],
+  )
 
-  /**
-   * Check if user is one of the specified roles
-   */
-  const isAnyRole = useCallback((roles: UserRole[]): boolean => {
-    return roles.includes(userRole)
-  }, [userRole])
+  const checkAnyPermission = useCallback(
+    (permissions: Permission[]): boolean => {
+      if (!currentUser) return false
+      return hasAnyPermission(rbacRole, permissions, customPermissions, checkOpts)
+    },
+    [currentUser, rbacRole, customPermissions, checkOpts],
+  )
 
-  /**
-   * Check if user is super admin
-   */
+  const checkAllPermissions = useCallback(
+    (permissions: Permission[]): boolean => {
+      if (!currentUser) return false
+      return hasAllPermissions(rbacRole, permissions, customPermissions, checkOpts)
+    },
+    [currentUser, rbacRole, customPermissions, checkOpts],
+  )
+
+  const checkRouteAccess = useCallback(
+    (routePath: string): boolean => {
+      if (!currentUser) return false
+      return canAccessRoute(rbacRole, routePath, customPermissions, checkOpts)
+    },
+    [currentUser, rbacRole, customPermissions, checkOpts],
+  )
+
+  const isRole = useCallback(
+    (role: UserRole): boolean => {
+      return rbacRole === role
+    },
+    [rbacRole],
+  )
+
+  const isAnyRole = useCallback(
+    (roles: UserRole[]): boolean => {
+      return roles.includes(rbacRole)
+    },
+    [rbacRole],
+  )
+
   const isSuperAdmin = useCallback((): boolean => {
-    return userRole === 'super_admin'
-  }, [userRole])
+    return rbacRole === 'super_admin'
+  }, [rbacRole])
 
-  /**
-   * Check if user is admin or super admin
-   */
   const isAdmin = useCallback((): boolean => {
-    return userRole === 'super_admin' || userRole === 'admin'
-  }, [userRole])
+    return rbacRole === 'super_admin' || rbacRole === 'admin'
+  }, [rbacRole])
 
-  /**
-   * Check if user is manager or above
-   */
   const isManager = useCallback((): boolean => {
-    return ['super_admin', 'admin', 'manager'].includes(userRole)
-  }, [userRole])
+    return ['super_admin', 'admin', 'manager'].includes(rbacRole)
+  }, [rbacRole])
 
   return {
-    userRole,
+    userRole: rbacRole,
     customPermissions,
     checkPermission,
     checkAnyPermission,
@@ -92,5 +107,6 @@ export const usePermissions = () => {
     isSuperAdmin,
     isAdmin,
     isManager,
+    explicitOnly,
   }
 }

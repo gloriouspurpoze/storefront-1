@@ -69,6 +69,7 @@ import {
   History,
   MoreVert,
   PhotoCamera,
+  StickyNote2Outlined,
 } from '@mui/icons-material'
 import { AssignProfessionalDialog } from '../../components/bookings/AssignProfessionalDialog'
 import { BookingsService } from '../../services/api/bookings.service'
@@ -77,6 +78,7 @@ import { PaymentsService } from '../../services/api/payments.service'
 import { apiClient } from '../../services/apiClient'
 import { useAppSelector, useAppDispatch } from '../../store/hooks'
 import { addToast } from '../../store/slices/uiSlice'
+import { isLikelyImageUrl, parseBookingNotesContent } from '../../lib/parseBookingNotesContent'
 
 // Line item from API (services[] or items[])
 interface BookingServiceItem {
@@ -233,12 +235,11 @@ const statusConfig: Record<string, { color: string; bg: string; label: string; g
 
 /** URLs embedded in legacy `notes` when the app merges completion photos into text. */
 function parseCompletionPhotoUrlsFromNotes(notes: string): string[] {
-  const marker = '[After-service photos]'
-  const i = notes.indexOf(marker)
-  if (i === -1) return []
-  const rest = notes.slice(i + marker.length).trim()
+  const m = notes.match(/\[After-service photos\]/i)
+  if (!m || m.index === undefined) return []
+  const rest = notes.slice(m.index + m[0].length).trim()
   return rest
-    .split('\n')
+    .split(/\n/)
     .map((l) => l.trim())
     .filter((l) => /^https?:\/\//i.test(l))
 }
@@ -271,12 +272,116 @@ function normalizeUrlList(raw: unknown): string[] {
   return []
 }
 
-/** Avoid duplicating completion URLs in the text panel when the gallery already shows them. */
-function stripTrailingAfterServicePhotoNoteBlock(notes: string): string {
-  const marker = '\n\n[After-service photos]'
-  const i = notes.indexOf(marker)
-  if (i === -1) return notes
-  return notes.slice(0, i).trimEnd()
+/** Remove after-service evidence block from notes shown as prose (thumbnails live in "Professional photo evidence"). */
+function stripAfterServicePhotoEvidenceFromNotes(text: string): string {
+  const lines = text.split(/\r?\n/)
+  const out: string[] = []
+  let skipping = false
+  for (const line of lines) {
+    const t = line.trim()
+    if (/^\[After-service photos\]/i.test(t)) {
+      const after = t.replace(/^\[After-service photos\]\s*/i, '').trim()
+      if (after && /^https?:\/\//i.test(after)) {
+        continue
+      }
+      skipping = true
+      continue
+    }
+    if (skipping) {
+      if (isLikelyImageUrl(t)) continue
+      if (!t) continue
+      skipping = false
+    }
+    if (!skipping) out.push(line)
+  }
+  return out.join('\n').trimEnd()
+}
+
+/** Remove pre-start lines duplicated under the structured photo evidence card. */
+function stripPreStartEvidenceLinesFromNotes(text: string): string {
+  const lines = text.split(/\r?\n/)
+  const out: string[] = []
+  let skippingSite = false
+  for (const line of lines) {
+    const t = line.trim()
+    if (/^Pre-start selfie:/i.test(t)) continue
+    if (/^Pre-start site photos:/i.test(t)) {
+      skippingSite = true
+      continue
+    }
+    if (skippingSite) {
+      if (/^https?:\/\//i.test(t)) continue
+      if (!t) continue
+      skippingSite = false
+    }
+    out.push(line)
+  }
+  return out.join('\n').trimEnd()
+}
+
+function professionalNotesForAdminDisplay(notes: string): string {
+  return stripPreStartEvidenceLinesFromNotes(stripAfterServicePhotoEvidenceFromNotes(notes)).trim()
+}
+
+/** Renders bracket headings, paragraphs, and inline image URLs as thumbnails (admin). */
+function AdminNotesRichBody({ text }: { text: string }) {
+  const blocks = parseBookingNotesContent(text)
+  if (!blocks.length) {
+    return (
+      <Typography variant="body2" color="text.secondary" fontStyle="italic">
+        No additional written notes. Structured photo evidence is listed below.
+      </Typography>
+    )
+  }
+  return (
+    <Stack spacing={2}>
+      {blocks.map((block, index) => {
+        if (block.type === 'heading') {
+          return (
+            <Typography key={`nh-${index}`} variant="subtitle2" fontWeight={700} color="text.primary">
+              {block.title}
+            </Typography>
+          )
+        }
+        if (block.type === 'text') {
+          return (
+            <Typography key={`nt-${index}`} variant="body2" color="text.primary" sx={{ lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>
+              {block.content}
+            </Typography>
+          )
+        }
+        return (
+          <Box key={`ni-${index}`} display="flex" flexWrap="wrap" gap={1.5}>
+            {block.urls.map((url) => (
+              <Box
+                key={url}
+                component="a"
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{
+                  borderRadius: 1.5,
+                  overflow: 'hidden',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  display: 'block',
+                  transition: 'box-shadow 0.2s',
+                  '&:hover': { boxShadow: 2 },
+                }}
+              >
+                <Box
+                  component="img"
+                  src={url}
+                  alt=""
+                  sx={{ width: 128, height: 128, objectFit: 'cover', display: 'block', bgcolor: 'grey.100' }}
+                />
+              </Box>
+            ))}
+          </Box>
+        )
+      })}
+    </Stack>
+  )
 }
 
 export function BookingDetails() {
@@ -1855,89 +1960,76 @@ export function BookingDetails() {
             </CardContent>
           </Card>
 
-          {/* Premium Notes Card */}
-          {(booking.customerNotes ||
-            (booking.notes && stripTrailingAfterServicePhotoNoteBlock(booking.notes))) && (
-            <Card 
-              sx={{ 
-                borderRadius: 3,
-                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                border: '1px solid rgba(0,0,0,0.05)',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
-                  transform: 'translateY(-2px)',
-                }
+          {/* Notes & context — professional log strips duplicated evidence; rich render for any remaining URLs */}
+          {(booking.customerNotes || professionalNotesForAdminDisplay(booking.notes || '')) && (
+            <Card
+              sx={{
+                mt: 3,
+                borderRadius: 2,
+                border: '1px solid',
+                borderColor: 'divider',
+                boxShadow: (theme) => theme.shadows[1],
               }}
             >
-              <CardContent sx={{ p: 3.5 }}>
-                <Box display="flex" alignItems="center" gap={1.5} mb={3}>
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      borderRadius: 2,
-                      bgcolor: '#FF9800',
-                      color: 'white',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Info sx={{ fontSize: 24 }} />
-                  </Box>
-                  <Typography variant="h6" fontWeight="700" color="text.primary">
-                    Notes & Instructions
-                  </Typography>
-                </Box>
-                <Divider sx={{ mb: 3 }} />
-                
-                {booking.notes && stripTrailingAfterServicePhotoNoteBlock(booking.notes) && (
-                  <Box 
-                    mb={2.5} 
-                    p={2.5} 
-                    bgcolor={alpha('#2196F3', 0.08)} 
-                    borderRadius={2.5}
-                    sx={{
-                      border: '1px solid',
-                      borderColor: alpha('#2196F3', 0.2),
-                      borderLeft: '4px solid',
-                      borderLeftColor: 'primary.main',
-                    }}
-                  >
-                    <Box display="flex" alignItems="center" gap={1} mb={1}>
-                      <Info sx={{ fontSize: 18, color: 'primary.main' }} />
-                      <Typography variant="subtitle2" color="primary.main" fontWeight="700" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                        Booking & professional updates
-                      </Typography>
-                    </Box>
-                    <Typography variant="body1" color="text.primary" sx={{ lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-                      {stripTrailingAfterServicePhotoNoteBlock(booking.notes)}
+              <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                <Stack direction="row" alignItems="flex-start" spacing={1.5} mb={2}>
+                  <StickyNote2Outlined sx={{ fontSize: 28, color: 'primary.main', mt: 0.25 }} />
+                  <Box flex={1}>
+                    <Typography variant="h6" fontWeight={700}>
+                      Notes & context
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5, maxWidth: 720 }}>
+                      Booking log and professional comments. After-service and pre-start photos are de-duplicated here
+                      and shown in <strong>Professional photo evidence</strong> below.
                     </Typography>
                   </Box>
-                )}
-                {booking.customerNotes && (
-                  <Box 
-                    p={2.5} 
-                    bgcolor={alpha('#FF9800', 0.08)} 
-                    borderRadius={2.5}
-                    sx={{
-                      border: '1px solid',
-                      borderColor: alpha('#FF9800', 0.2),
-                      borderLeft: '4px solid',
-                      borderLeftColor: '#FF9800',
-                    }}
-                  >
-                    <Box display="flex" alignItems="center" gap={1} mb={1}>
-                      <Person sx={{ fontSize: 18, color: '#FF9800' }} />
-                      <Typography variant="subtitle2" color="#FF9800" fontWeight="700" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                        Customer Instructions
+                </Stack>
+                <Divider sx={{ mb: 2 }} />
+                <Stack spacing={2.5}>
+                  {professionalNotesForAdminDisplay(booking.notes || '') ? (
+                    <Paper
+                      variant="outlined"
+                      sx={{
+                        p: 2.5,
+                        borderRadius: 2,
+                        bgcolor: (theme) => alpha(theme.palette.text.primary, 0.02),
+                        borderColor: 'divider',
+                      }}
+                    >
+                      <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={0.8}>
+                        Booking & professional
                       </Typography>
-                    </Box>
-                    <Typography variant="body1" color="text.primary" sx={{ lineHeight: 1.7 }}>
-                      {booking.customerNotes}
-                    </Typography>
-                  </Box>
-                )}
+                      <Box sx={{ mt: 1.5 }}>
+                        <AdminNotesRichBody text={professionalNotesForAdminDisplay(booking.notes || '')} />
+                      </Box>
+                    </Paper>
+                  ) : null}
+                  {booking.customerNotes ? (
+                    <Paper
+                      variant="outlined"
+                      sx={{
+                        p: 2.5,
+                        borderRadius: 2,
+                        bgcolor: (theme) => alpha(theme.palette.warning.main, 0.06),
+                        borderColor: (theme) => alpha(theme.palette.warning.main, 0.28),
+                      }}
+                    >
+                      <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                        <Person sx={{ fontSize: 20, color: 'warning.dark' }} />
+                        <Typography variant="overline" color="warning.dark" fontWeight={700} letterSpacing={0.8}>
+                          Customer instructions
+                        </Typography>
+                      </Stack>
+                      <Typography
+                        variant="body2"
+                        color="text.primary"
+                        sx={{ lineHeight: 1.75, whiteSpace: 'pre-wrap' }}
+                      >
+                        {booking.customerNotes}
+                      </Typography>
+                    </Paper>
+                  ) : null}
+                </Stack>
               </CardContent>
             </Card>
           )}

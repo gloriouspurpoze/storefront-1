@@ -2,6 +2,7 @@ import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit'
 import { AuthService } from '../../services/api'
 import type { User } from '../../types'
 import { extractTenantFromAuthPayload } from '../../lib/extractTenantFromAuth'
+import { mapBackendUserToAppUser } from '../../lib/mapBackendUser'
 
 /** Minimum client session length (persisted Redux `tokenExpiry`). Prefer matching backend access-token TTL to 24h. */
 const ACCESS_TOKEN_TTL_MS = 24 * 60 * 60 * 1000
@@ -158,19 +159,7 @@ const authSlice = createSlice({
         // Transform backend response (snake_case) to frontend format (camelCase)
         const backendUser = action.payload.user as any
         const tenantRef = extractTenantFromAuthPayload(action.payload)
-        state.user = {
-          id: backendUser.id,
-          email: backendUser.email,
-          firstName: backendUser.first_name || backendUser.firstName,
-          lastName: backendUser.last_name || backendUser.lastName,
-          phone: backendUser.phone,
-          userType: backendUser.user_type || backendUser.userType, // Transform snake_case to camelCase
-          isVerified: backendUser.is_verified || backendUser.isVerified,
-          profilePicture: backendUser.profile_picture || backendUser.profilePicture,
-          createdAt: backendUser.created_at || backendUser.createdAt || new Date().toISOString(),
-          updatedAt: backendUser.updated_at || backendUser.updatedAt,
-          ...(tenantRef ? { tenant: tenantRef } : {}),
-        } as User
+        state.user = mapBackendUserToAppUser(backendUser, tenantRef)
         
         // Handle tokens from nested tokens object
         const accessToken = action.payload.tokens?.accessToken || action.payload.token
@@ -205,19 +194,7 @@ const authSlice = createSlice({
         // Transform backend response (snake_case) to frontend format (camelCase)
         const backendUser = action.payload.user as any
         const tenantRef = extractTenantFromAuthPayload(action.payload)
-        state.user = {
-          id: backendUser.id,
-          email: backendUser.email,
-          firstName: backendUser.first_name || backendUser.firstName,
-          lastName: backendUser.last_name || backendUser.lastName,
-          phone: backendUser.phone,
-          userType: backendUser.user_type || backendUser.userType,
-          isVerified: backendUser.is_verified || backendUser.isVerified,
-          profilePicture: backendUser.profile_picture || backendUser.profilePicture,
-          createdAt: backendUser.created_at || backendUser.createdAt || new Date().toISOString(),
-          updatedAt: backendUser.updated_at || backendUser.updatedAt,
-          ...(tenantRef ? { tenant: tenantRef } : {}),
-        } as User
+        state.user = mapBackendUserToAppUser(backendUser, tenantRef)
         
         // Handle tokens from nested tokens object
         const accessToken = action.payload.tokens?.accessToken || action.payload.token
@@ -256,46 +233,20 @@ const authSlice = createSlice({
       
       // Get profile
       .addCase(getUserProfile.fulfilled, (state, action) => {
-        // Transform backend response
         const backendUser = action.payload as any
         const tenantRef =
           extractTenantFromAuthPayload({ user: action.payload }) ||
           extractTenantFromAuthPayload(action.payload)
-        state.user = {
-          id: backendUser.id,
-          email: backendUser.email,
-          firstName: backendUser.first_name || backendUser.firstName,
-          lastName: backendUser.last_name || backendUser.lastName,
-          phone: backendUser.phone,
-          userType: backendUser.user_type || backendUser.userType,
-          isVerified: backendUser.is_verified || backendUser.isVerified,
-          profilePicture: backendUser.profile_picture || backendUser.profilePicture,
-          createdAt: backendUser.created_at || backendUser.createdAt || new Date().toISOString(),
-          updatedAt: backendUser.updated_at || backendUser.updatedAt,
-          ...(tenantRef ? { tenant: tenantRef } : {}),
-        } as User
+        state.user = mapBackendUserToAppUser(backendUser, tenantRef)
       })
       
       // Update profile
       .addCase(updateUserProfile.fulfilled, (state, action) => {
-        // Transform backend response
         const backendUser = action.payload as any
         const tenantRef =
           extractTenantFromAuthPayload({ user: action.payload }) ||
           extractTenantFromAuthPayload(action.payload)
-        state.user = {
-          id: backendUser.id,
-          email: backendUser.email,
-          firstName: backendUser.first_name || backendUser.firstName,
-          lastName: backendUser.last_name || backendUser.lastName,
-          phone: backendUser.phone,
-          userType: backendUser.user_type || backendUser.userType,
-          isVerified: backendUser.is_verified || backendUser.isVerified,
-          profilePicture: backendUser.profile_picture || backendUser.profilePicture,
-          createdAt: backendUser.created_at || backendUser.createdAt || new Date().toISOString(),
-          updatedAt: backendUser.updated_at || backendUser.updatedAt,
-          ...(tenantRef ? { tenant: tenantRef } : {}),
-        } as User
+        state.user = mapBackendUserToAppUser(backendUser, tenantRef)
       })
   },
 })

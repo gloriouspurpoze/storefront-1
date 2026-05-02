@@ -200,4 +200,28 @@ export class QuotesService {
       showSuccessToast: false,
     })
   }
+
+  /** Professional-submitted quotes awaiting platform approval */
+  static async getAdminReviewQueue(query: { page?: number; limit?: number } = {}) {
+    const params = new URLSearchParams()
+    if (query.page != null) params.append('page', String(query.page))
+    if (query.limit != null) params.append('limit', String(query.limit))
+    const qs = params.toString()
+    return api.get<QuotesResponse>(`/quotes/admin/queue${qs ? `?${qs}` : ''}`, {
+      loadingMessage: 'Loading review queue...',
+      showSuccessToast: false,
+    })
+  }
+
+  static async adminReviewQuote(id: string, action: 'approve' | 'reject', note?: string) {
+    return api.patch<{ quote: Quote; message: string }>(
+      `/quotes/${id}/admin-review`,
+      { action, ...(note?.trim() ? { note: note.trim() } : {}) },
+      {
+        loadingMessage: 'Updating quote…',
+        successMessage: action === 'approve' ? 'Quote approved.' : 'Quote rejected.',
+        errorMessage: 'Could not update quote review.',
+      }
+    )
+  }
 }

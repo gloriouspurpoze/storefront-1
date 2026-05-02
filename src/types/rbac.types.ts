@@ -141,3 +141,6 @@ export interface RoutePermission {
   requireAll?: boolean // If true, user needs all permissions; if false, needs at least one
   allowedRoles?: UserRole[]
 }
+
+/** When `explicit`, only `permissions` on the user account apply (no role template merge). */
+export type RbacPermissionMode = 'role_plus' | 'explicit'

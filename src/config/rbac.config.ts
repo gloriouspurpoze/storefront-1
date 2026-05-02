@@ -441,26 +441,6 @@ export const routePermissions: RoutePermission[] = [
     allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
   },
 
-  // Marketplace hub (card links enforce finer permissions)
-  {
-    path: '/marketplace',
-    requiredPermissions: ['view_services'],
-    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
-  },
-
-  // E-commerce hub (products & orders)
-  {
-    path: '/ecommerce',
-    requiredPermissions: ['view_products'],
-    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
-  },
-
-  {
-    path: '/inventory',
-    requiredPermissions: ['view_products'],
-    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
-  },
-  
   // Payments
   {
     path: '/payments',
@@ -490,14 +470,14 @@ export const routePermissions: RoutePermission[] = [
   // Coupons
   {
     path: '/coupons',
-    requiredPermissions: ['view_coupons'],
+    requiredPermissions: ['manage_coupons'],
     allowedRoles: ['super_admin', 'admin']
   },
   
   // Referrals
   {
     path: '/referrals',
-    requiredPermissions: ['view_referrals'],
+    requiredPermissions: ['manage_referrals'],
     allowedRoles: ['super_admin', 'admin']
   },
 
@@ -536,6 +516,184 @@ export const routePermissions: RoutePermission[] = [
     path: '/crm/settings',
     requiredPermissions: ['view_crm'],
     allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+
+  // Service requests
+  {
+    path: '/requests',
+    requiredPermissions: ['view_dashboard'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff', 'provider', 'professional']
+  },
+
+  // Product nested paths (longer prefix wins over /products)
+  {
+    path: '/products/edit',
+    requiredPermissions: ['edit_products'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+  {
+    path: '/products/view',
+    requiredPermissions: ['view_products'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff', 'customer']
+  },
+
+  // Platform services
+  {
+    path: '/platform-services/create',
+    requiredPermissions: ['create_services'],
+    allowedRoles: ['super_admin', 'admin', 'manager']
+  },
+  {
+    path: '/platform-services/edit',
+    requiredPermissions: ['edit_services'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+
+  // Ops hubs (OR semantics — matches RoleBasedRoute defaults)
+  {
+    path: '/marketplace',
+    requiredPermissions: [
+      'view_services',
+      'view_categories',
+      'view_bookings',
+      'view_providers',
+      'view_payments',
+      'manage_coupons',
+      'manage_system_settings'
+    ],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+  {
+    path: '/ecommerce',
+    requiredPermissions: [
+      'view_products',
+      'create_products',
+      'view_categories',
+      'view_orders',
+      'manage_coupons',
+      'manage_system_settings',
+      'view_settings'
+    ],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+  {
+    path: '/bazaar',
+    requiredPermissions: [
+      'view_products',
+      'create_products',
+      'view_categories',
+      'view_orders',
+      'manage_coupons',
+      'manage_system_settings',
+      'view_settings'
+    ],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+
+  {
+    path: '/inventory',
+    requiredPermissions: ['view_products', 'edit_products', 'manage_product_inventory'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+
+  {
+    path: '/payouts',
+    requiredPermissions: ['view_payments'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+
+  {
+    path: '/invoices/create',
+    requiredPermissions: ['view_payments'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+
+  {
+    path: '/professionals',
+    requiredPermissions: ['view_providers'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+  {
+    path: '/professionals/create',
+    requiredPermissions: ['create_providers'],
+    allowedRoles: ['super_admin', 'admin', 'manager']
+  },
+  {
+    path: '/professionals/edit',
+    requiredPermissions: ['edit_providers'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+  {
+    path: '/provider-applications',
+    requiredPermissions: ['view_providers'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+
+  {
+    path: '/providers/create',
+    requiredPermissions: ['create_providers'],
+    allowedRoles: ['super_admin', 'admin', 'manager']
+  },
+  {
+    path: '/providers/edit',
+    requiredPermissions: ['edit_providers'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+
+  {
+    path: '/sliders',
+    requiredPermissions: ['view_settings'],
+    allowedRoles: ['super_admin', 'admin', 'manager']
+  },
+
+  {
+    path: '/reports',
+    requiredPermissions: ['view_reports'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+
+  {
+    path: '/system-status',
+    requiredPermissions: ['manage_system_settings'],
+    allowedRoles: ['super_admin', 'admin']
+  },
+
+  {
+    path: '/cms',
+    requiredPermissions: ['manage_system_settings'],
+    allowedRoles: ['super_admin', 'admin', 'manager']
+  },
+
+  {
+    path: '/notifications',
+    requiredPermissions: ['view_notifications'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+
+  {
+    path: '/support',
+    requiredPermissions: ['view_dashboard'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff', 'provider', 'professional']
+  },
+
+  {
+    path: '/chat',
+    requiredPermissions: ['view_messages'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff', 'provider', 'professional', 'customer']
+  },
+
+  /** Provider portal — role-only gate (matches ProtectedRoute usage). */
+  {
+    path: '/provider',
+    requiredPermissions: [],
+    allowedRoles: ['provider']
+  },
+
+  /** Professional portal — role-only gate. */
+  {
+    path: '/professional',
+    requiredPermissions: [],
+    allowedRoles: ['professional']
   }
 ]
 
@@ -548,28 +706,78 @@ export const getRoleLevel = (role: UserRole): number => {
   return rolePermissionsMap[role]?.level || 0
 }
 
-export const canAccessRoute = (userRole: UserRole, routePath: string): boolean => {
-  const route = routePermissions.find(r => r.path === routePath)
-  if (!route) return true // If route not configured, allow access
-  
-  return route.allowedRoles?.includes(userRole) || false
+export type PermissionCheckOptions = {
+  /** If true, only `customPermissions` grant access (for scoped dashboard users). */
+  explicitOnly?: boolean
 }
 
-export const hasPermission = (userRole: UserRole, permission: Permission, customPermissions?: Permission[]): boolean => {
-  // Check custom permissions first
+const matchRouteConfig = (routePath: string): RoutePermission | undefined => {
+  const matches = routePermissions.filter(
+    (r) => routePath === r.path || routePath.startsWith(`${r.path}/`),
+  )
+  if (matches.length === 0) return undefined
+  return matches.sort((a, b) => b.path.length - a.path.length)[0]
+}
+
+export const canAccessRoute = (
+  userRole: UserRole,
+  routePath: string,
+  customPermissions?: Permission[],
+  opts?: PermissionCheckOptions,
+): boolean => {
+  const route = matchRouteConfig(routePath)
+  if (!route) return true
+
+  const roleAllowed = !route.allowedRoles?.length || route.allowedRoles.includes(userRole)
+  if (!roleAllowed) return false
+
+  if (!route.requiredPermissions?.length) {
+    return true
+  }
+
+  const needAll = route.requireAll === true
+  if (needAll) {
+    return hasAllPermissions(userRole, route.requiredPermissions, customPermissions, opts)
+  }
+  return hasAnyPermission(userRole, route.requiredPermissions, customPermissions, opts)
+}
+
+export const hasPermission = (
+  userRole: UserRole,
+  permission: Permission,
+  customPermissions?: Permission[],
+  opts?: PermissionCheckOptions,
+): boolean => {
+  if (userRole === 'super_admin') {
+    return true
+  }
+
+  if (opts?.explicitOnly) {
+    return customPermissions?.includes(permission) ?? false
+  }
+
   if (customPermissions?.includes(permission)) {
     return true
   }
-  
-  // Check role permissions
+
   const rolePerms = getRolePermissions(userRole)
   return rolePerms.includes(permission)
 }
 
-export const hasAnyPermission = (userRole: UserRole, permissions: Permission[], customPermissions?: Permission[]): boolean => {
-  return permissions.some(permission => hasPermission(userRole, permission, customPermissions))
+export const hasAnyPermission = (
+  userRole: UserRole,
+  permissions: Permission[],
+  customPermissions?: Permission[],
+  opts?: PermissionCheckOptions,
+): boolean => {
+  return permissions.some((permission) => hasPermission(userRole, permission, customPermissions, opts))
 }
 
-export const hasAllPermissions = (userRole: UserRole, permissions: Permission[], customPermissions?: Permission[]): boolean => {
-  return permissions.every(permission => hasPermission(userRole, permission, customPermissions))
+export const hasAllPermissions = (
+  userRole: UserRole,
+  permissions: Permission[],
+  customPermissions?: Permission[],
+  opts?: PermissionCheckOptions,
+): boolean => {
+  return permissions.every((permission) => hasPermission(userRole, permission, customPermissions, opts))
 }

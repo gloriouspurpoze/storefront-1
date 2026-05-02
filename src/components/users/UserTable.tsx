@@ -33,19 +33,8 @@ import {
 } from '../ui/dropdown-menu'
 import { Pagination } from '../common/Pagination'
 import { cn } from '../../lib/utils'
-
-interface User {
-  id: string
-  email: string
-  firstName: string
-  lastName: string
-  phone?: string
-  userType: 'customer' | 'provider' | 'admin'
-  isVerified: boolean
-  profilePicture?: string
-  createdAt: string
-  isActive?: boolean
-}
+import type { User } from '../../types'
+import { UserAccessChips } from './UserAccessChips'
 
 interface UserTableProps {
   users: User[]
@@ -64,6 +53,7 @@ const userTypeBadgeVariant = (
   type: string,
 ): React.ComponentProps<typeof Badge>['variant'] => {
   switch (type) {
+    case 'super_admin':
     case 'admin':
       return 'destructive'
     case 'provider':
@@ -259,9 +249,12 @@ export const UserTable: React.FC<UserTableProps> = ({
                     {user.firstName} {user.lastName}
                   </p>
                   <div className="mb-1 flex flex-wrap gap-1">
-                    <Badge variant={userTypeBadgeVariant(user.userType)} className="capitalize">
-                      {user.userType}
-                    </Badge>
+                    {user.userType !== 'admin' && user.userType !== 'super_admin' && (
+                      <Badge variant={userTypeBadgeVariant(user.userType)} className="capitalize">
+                        {user.userType}
+                      </Badge>
+                    )}
+                    <UserAccessChips user={user} maxPermissionChips={3} className="w-full" />
                     {user.isVerified && (
                       <Badge variant="success" className="border border-green-600/30 bg-transparent">
                         Verified
@@ -321,6 +314,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                 direction={orderBy === 'userType' ? order : 'asc'}
                 onSort={() => handleRequestSort('userType')}
               />
+              <TableHead className="min-w-[200px]">Access</TableHead>
               <TableHead>Contact</TableHead>
               <SortableHead
                 label="Status"
@@ -371,6 +365,9 @@ export const UserTable: React.FC<UserTableProps> = ({
                     <Badge variant={userTypeBadgeVariant(user.userType)} className="capitalize">
                       {user.userType}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="max-w-[260px]">
+                    <UserAccessChips user={user} maxPermissionChips={4} />
                   </TableCell>
                   <TableCell>
                     <p className="text-sm">{user.email}</p>

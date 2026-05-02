@@ -1,3 +1,5 @@
+import type { Permission, RbacPermissionMode, UserRole } from './rbac.types'
+
 // Base types
 export interface PaginationResponse {
   page: number
@@ -32,8 +34,14 @@ export interface User {
   lastName: string
   phone?: string
   userType: 'customer' | 'provider' | 'admin' | 'super_admin'
-  permissions?: string[]
+  /** Dashboard RBAC role when `userType` is admin (or super_admin). */
+  rbacRole?: UserRole
+  /** When `explicit`, only `permissions` are used for access checks. */
+  rbacPermissionMode?: RbacPermissionMode
+  /** Custom permission grants (merged with role, or sole list when mode is explicit). */
+  permissions?: Permission[]
   isVerified: boolean
+  isActive?: boolean
   profilePicture?: string
   createdAt: string
   updatedAt?: string
@@ -306,23 +314,51 @@ export interface Review {
   createdAt: string
 }
 
-// Quote types
+// Quote types (API returns snake_case from fixer-backend /quotes)
+export type QuoteAdminReviewStatus = 'pending_review' | 'approved' | 'rejected'
+
 export interface Quote {
   id: string
-  serviceRequestId: string
-  providerId: string
   amount: number
   description: string
-  estimatedDuration?: number
+  estimated_duration?: number
   status: 'pending' | 'accepted' | 'rejected' | 'expired'
+  /** API */
+  valid_until?: string
   validUntil?: string
   notes?: string
-  provider: {
-    businessName: string
-    rating: number
-  }
-  createdAt: string
+  service_request_id?: string
+  booking_id?: string
+  provider_id?: string
+  customer_id?: string
+  professional_id?: string
+  attachment_urls?: string[]
+  admin_review_status?: QuoteAdminReviewStatus
+  admin_review_note?: string
+  admin_reviewed_at?: string
+  created_at?: string
+  createdAt?: string
+  updated_at?: string
   updatedAt?: string
+  service_request?: { title?: string; serviceType?: string; description?: string }
+  booking?: {
+    status?: string
+    scheduledDate?: string
+    totalAmount?: number
+    services?: Array<{ serviceName?: string }>
+  }
+  provider?: { businessName?: string; rating?: number }
+  customer?: { firstName?: string; lastName?: string; email?: string; phone?: string }
+  professional?: {
+    firstName?: string
+    lastName?: string
+    email?: string
+    professionalId?: string
+    categories?: string[]
+  }
+  /** Legacy static UI */
+  serviceRequestId?: string
+  providerId?: string
 }
 
 export interface CreateQuoteRequest {
@@ -343,7 +379,11 @@ export interface QuotesQuery {
   limit?: number
   status?: string
   serviceRequestId?: string
+  service_request_id?: string
   providerId?: string
+  provider_id?: string
+  booking_id?: string
+  admin_review_status?: QuoteAdminReviewStatus
 }
 
 // Booking types
