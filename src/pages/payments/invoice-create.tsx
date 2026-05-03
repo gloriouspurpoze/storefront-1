@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   Box,
   Button,
@@ -45,6 +45,7 @@ import {
 import { appToast } from '../../lib/appToast'
 import { computeInvoiceFromLines, isInterStateForPreview } from './invoicePreviewData'
 import { InvoicePreviewPanel } from './InvoicePreviewPanel'
+import { useInvoiceBranding } from '../../hooks/useInvoiceBranding'
 import {
   PAYMENT_METHOD_CHOICES,
   type BackendPaymentMethod,
@@ -114,6 +115,7 @@ function maskId(id: string) {
 
 export function InvoiceCreate() {
   const navigate = useNavigate()
+  const { branding: invoiceBranding } = useInvoiceBranding()
   const [activeStep, setActiveStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [successOpen, setSuccessOpen] = useState(false)
@@ -789,9 +791,15 @@ export function InvoiceCreate() {
           <Box>
             <Alert severity="success" sx={{ mb: 2 }}>
               Check customer name, state (place of supply), amounts, and payment mode. Issuing will call{' '}
-              <code>POST /api/invoices/generate</code> (admin) and then PDF generation, same as online flows.
+              <code>POST /api/invoices/generate</code> (admin) and then PDF generation, same as online flows. Logo and
+              colours follow{' '}
+              <Link to="/invoices/branding" style={{ fontWeight: 600 }}>
+                Invoice appearance
+              </Link>{' '}
+              for this preview.
             </Alert>
             <InvoicePreviewPanel
+              branding={invoiceBranding}
               documentTypeLabel={documentTypeLabel}
               customerMode={customerMode}
               customerReference={customerReference || undefined}

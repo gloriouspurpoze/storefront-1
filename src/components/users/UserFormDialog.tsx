@@ -24,6 +24,7 @@ import { Badge } from '../ui/badge'
 import { cn, getInitials } from '../../lib/utils'
 import type { User } from '../../types'
 import type { Permission, RbacPermissionMode, UserRole } from '../../types/rbac.types'
+import { getRolePermissions } from '../../config/rbac.config'
 import { DASHBOARD_ACCESS_MODULES } from '../../config/dashboard-access-modules'
 import { PermissionChipPicker } from './PermissionChipPicker'
 import {
@@ -87,13 +88,13 @@ function presetToRbac(
     case 'manager':
       return {
         rbacRole: 'manager',
-        rbacPermissionMode: 'role_plus',
+        rbacPermissionMode: 'explicit',
         permissions: chipPerms,
       }
     case 'staff':
       return {
         rbacRole: 'staff',
-        rbacPermissionMode: 'role_plus',
+        rbacPermissionMode: 'explicit',
         permissions: chipPerms,
       }
     case 'explicit':
@@ -217,14 +218,25 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
       newErrors.phone = 'Invalid phone format'
     }
 
-    if (isDashboardUser && accessPreset === 'explicit') {
+    if (isDashboardUser && accessPreset !== 'full') {
       if (!selectedPermissions.has('view_dashboard')) {
-        newErrors.dashboard = 'Custom access must include Dashboard (overview)'
+        newErrors.dashboard = 'Scoped access must include Dashboard (overview)'
       }
     }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
+  }
+
+  const handleAccessPresetChange = (v: AccessPreset) => {
+    setAccessPreset(v)
+    if (v === 'staff') {
+      setSelectedPermissions(new Set(getRolePermissions('staff')))
+    } else if (v === 'manager') {
+      setSelectedPermissions(new Set(getRolePermissions('manager')))
+    } else if (v === 'full') {
+      setSelectedPermissions(new Set())
+    }
   }
 
   const handleChange = (field: keyof FormUser, value: string | boolean | undefined) => {
@@ -508,15 +520,13 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
                   Dashboard access control
                 </h3>
                 <p className="mb-3 text-xs text-muted-foreground">
-                  Pick a template, then toggle permission chips. Values are sent as{' '}
-                  <span className="font-mono">permissions</span> with{' '}
-                  <span className="font-mono">rbac_role</span> and{' '}
-                  <span className="font-mono">rbac_permission_mode</span> (role_plus adds chips on top of the role;
-                  explicit uses only the chips, with a route baseline role).
+                  Pick a template, then toggle permission chips. Staff and Manager start from that role&apos;s default
+                  modules; only checked chips grant access (stored as{' '}
+                  <span className="font-mono">rbac_permission_mode: explicit</span>). Full admin clears scoped RBAC.
                 </p>
                 <div className="space-y-1.5">
                   <Label>Access template</Label>
-                  <Select value={accessPreset} onValueChange={(v) => setAccessPreset(v as AccessPreset)}>
+                  <Select value={accessPreset} onValueChange={(v) => handleAccessPresetChange(v as AccessPreset)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -642,6 +652,12 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
                         Stored as <span className="font-mono">rbac_role</span>; access is still driven by the chip list.
                       </p>
                     </div>
+                  )}
+                  {(accessPreset === 'staff' || accessPreset === 'manager') && (
+                    <p className="text-xs text-muted-foreground">
+                      <span className="font-mono">rbac_role</span> is {accessPreset}; remove chips to narrow access —
+                      unchecked modules stay blocked.
+                    </p>
                   )}
                   <PermissionChipPicker
                     selected={selectedPermissions}

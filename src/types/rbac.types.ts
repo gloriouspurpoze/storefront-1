@@ -111,6 +111,10 @@ export type Permission =
   | 'view_crm'
   | 'manage_crm'
 
+  // Team work (internal tasks / Jira-style)
+  | 'view_team_tasks'
+  | 'manage_team_tasks'
+
 export interface RolePermissions {
   role: UserRole
   permissions: Permission[]

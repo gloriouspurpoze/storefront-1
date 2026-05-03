@@ -62,7 +62,7 @@ export function CrmCompanies() {
         if (c) setRows(r)
       })
       .catch(() => {
-        if (c) setLoadError('Could not load companies. Check your connection and try again.')
+        if (c) setLoadError('Could not load B2B accounts. Check your connection and try again.')
       })
       .finally(() => {
         if (c) setLoading(false)
@@ -132,7 +132,7 @@ export function CrmCompanies() {
       await Promise.all(ids.map((id) => crmService.deleteCompany(id)))
       setSelectionModel(emptySelection)
       refresh()
-      setSnackbar({ open: true, message: ids.length > 1 ? 'Companies removed' : 'Company removed', severity: 'success' })
+      setSnackbar({ open: true, message: ids.length > 1 ? 'B2B accounts removed' : 'B2B account removed', severity: 'success' })
       setDeleteTarget(null)
       setCompanyToDeleteId(null)
     } catch {
@@ -181,8 +181,8 @@ export function CrmCompanies() {
   return (
     <div className="p-4 md:p-6">
       <PageHeader
-        title="Companies"
-        subtitle="Accounts and organizations — linked from contacts and deals."
+        title="B2B accounts"
+        subtitle="Societies, builders, and commercial accounts (ProFixer.in) — link contacts and large deals here."
         action={
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" className="gap-1" onClick={() => crmService.downloadExport('companies')}>
@@ -192,7 +192,7 @@ export function CrmCompanies() {
             {canManage ? (
               <Button size="sm" className="gap-1" onClick={openCreate}>
                 <Plus className="h-4 w-4" />
-                Add company
+                Add B2B account
               </Button>
             ) : null}
           </div>
@@ -200,7 +200,7 @@ export function CrmCompanies() {
       />
       <CrmSubnav />
 
-      <CrmListToolbar qInput={qInput} onQChange={setQInput} searchPlaceholder="Search companies…" />
+      <CrmListToolbar qInput={qInput} onQChange={setQInput} searchPlaceholder="Search B2B accounts…" />
 
       {canManage && selectedIds.length > 0 ? (
         <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -219,9 +219,9 @@ export function CrmCompanies() {
         empty={
           <Card>
             <CrmEmptyState
-              title="No companies yet"
-              description="Add accounts you work with so contacts and deals can link to them."
-              actionLabel={canManage ? 'Add company' : undefined}
+              title="No B2B accounts yet"
+              description="Add societies, builders, or commercial clients so contacts and deals can link to them."
+              actionLabel={canManage ? 'Add B2B account' : undefined}
               onAction={canManage ? openCreate : undefined}
             />
           </Card>
@@ -231,7 +231,7 @@ export function CrmCompanies() {
         <Card>
           <CardContent className="p-0">
             {filteredRows.length === 0 && rows.length > 0 ? (
-              <CrmEmptyState title="No matching companies" description="Try a different search term." />
+              <CrmEmptyState title="No matching B2B accounts" description="Try a different search term." />
             ) : (
               <DataGrid
                 rows={filteredRows}
@@ -252,8 +252,8 @@ export function CrmCompanies() {
 
       <ConfirmDeleteDialog
         open={deleteTarget === 'single' && !!companyToDeleteId}
-        title="Delete this company?"
-        description="This cannot be undone. Contacts may lose their company link."
+        title="Delete this B2B account?"
+        description="This cannot be undone. Contacts may lose their B2B account link."
         loading={deleteLoading}
         onClose={() => {
           if (!deleteLoading) {
@@ -268,7 +268,7 @@ export function CrmCompanies() {
 
       <ConfirmDeleteDialog
         open={deleteTarget === 'bulk'}
-        title={`Delete ${selectedIds.length} companies?`}
+        title={`Delete ${selectedIds.length} B2B accounts?`}
         description="This cannot be undone."
         loading={deleteLoading}
         onClose={() => {
@@ -282,7 +282,7 @@ export function CrmCompanies() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editing ? 'Edit company' : 'New company'}</DialogTitle>
+            <DialogTitle>{editing ? 'Edit B2B account' : 'New B2B account'}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-3 py-1">
             <div className="space-y-1.5">
@@ -358,7 +358,7 @@ export function CrmCompanies() {
                     })
                     setOpen(false)
                     refresh()
-                    setSnackbar({ open: true, message: 'Company saved', severity: 'success' })
+                    setSnackbar({ open: true, message: 'B2B account saved', severity: 'success' })
                   } catch {
                     setSnackbar({ open: true, message: 'Save failed', severity: 'error' })
                   }

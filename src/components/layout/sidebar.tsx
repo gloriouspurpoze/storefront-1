@@ -40,6 +40,7 @@ import {
   Image as MediaIcon,
   Menu as MenusIcon,
   Receipt as ReceiptIcon,
+  Palette as InvoiceBrandingIcon,
   CreditCard as CreditCardIcon,
   Landmark as AccountBalanceIcon,
   TrendingUp as TrendingUpIcon,
@@ -53,10 +54,10 @@ import {
   ListTodo as AssignmentIcon,
   ListChecks as RateReviewIcon,
   BadgeCheck as VerifiedUserIcon,
+  KanbanSquare as KanbanSquareIcon,
 } from 'lucide-react'
 import { useAppSelector } from '../../store/hooks'
 import { usePermissions } from '../../hooks/usePermissions'
-import { expandNavPermissionTokens } from '../../lib/navPermissionAliases'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useSidebar } from '../../contexts/sidebar-context'
 import { cn } from '../../lib/utils'
@@ -149,7 +150,7 @@ const navigationGroups = [
     title: 'Overview',
     icon: DashboardIcon,
     items: [
-      { name: 'Dashboard', href: '/', icon: DashboardIcon, permissions: [], badge: null },
+      { name: 'Dashboard', href: '/', icon: DashboardIcon, permissions: ['view_dashboard'], badge: null },
       { name: 'Analytics', href: '/analytics', icon: BarChartIcon, permissions: ['view_analytics'], badge: null },
     ]
   },
@@ -160,7 +161,7 @@ const navigationGroups = [
       { name: 'CRM overview', href: '/crm', icon: BusinessCenterIcon, permissions: ['view_crm'], badge: null },
       { name: 'Leads', href: '/crm/leads', icon: PersonSearchIcon, permissions: ['view_crm'], badge: null },
       { name: 'Contacts', href: '/crm/contacts', icon: UsersIcon, permissions: ['view_crm'], badge: null },
-      { name: 'Companies', href: '/crm/companies', icon: BusinessIcon, permissions: ['view_crm'], badge: null },
+      { name: 'B2B accounts', href: '/crm/companies', icon: BusinessIcon, permissions: ['view_crm'], badge: null },
       { name: 'Deals', href: '/crm/deals', icon: HandshakeIcon, permissions: ['view_crm'], badge: null },
       { name: 'Activities', href: '/crm/activities', icon: AssignmentIcon, permissions: ['view_crm'], badge: null },
       { name: 'CRM settings', href: '/crm/settings', icon: TuneIcon, permissions: ['view_crm'], badge: null },
@@ -279,12 +280,25 @@ const navigationGroups = [
     title: 'Operations',
     icon: ShoppingCartIcon,
     items: [
-      // { name: 'Orders', href: '/orders', icon: ShoppingCartIcon, permissions: ['view_orders', 'manage_orders'], badge: null },
       { name: 'Bookings', href: '/bookings', icon: CalendarIcon, permissions: ['view_bookings', 'manage_bookings'], badge: null },
-      // { name: 'Service Requests', href: '/requests', icon: FileTextIcon, permissions: ['view_bookings', 'manage_bookings'], badge: null },
-      // { name: 'Quotes', href: '/quotes', icon: DollarSignIcon, permissions: ['view_bookings', 'manage_bookings'], badge: null },
+      {
+        name: 'Team work',
+        href: '/team-work',
+        icon: KanbanSquareIcon,
+        permissions: ['view_team_tasks', 'manage_team_tasks'],
+        badge: null,
+      },
+      { name: 'Service requests', href: '/requests', icon: FileTextIcon, permissions: ['view_services', 'manage_services'], badge: null },
+      { name: 'Quotes', href: '/quotes', icon: DollarSignIcon, permissions: ['view_quotes'], badge: null },
       { name: 'Payments', href: '/payments', icon: CreditCardIcon, permissions: ['view_payments', 'manage_payments'], badge: null },
       { name: 'Invoices', href: '/invoices', icon: ReceiptIcon, permissions: ['view_payments', 'manage_payments'], badge: null },
+      {
+        name: 'Invoice appearance',
+        href: '/invoices/branding',
+        icon: InvoiceBrandingIcon,
+        permissions: ['view_payments', 'manage_payments'],
+        badge: null,
+      },
       { name: 'Earnings & Payouts', href: '/payouts', icon: AccountBalanceIcon, permissions: ['view_payments', 'manage_payments'], badge: null },
       { name: 'Chat', href: '/chat', icon: ChatIcon, permissions: ['view_messages'], badge: 'new' },
     ]
@@ -350,7 +364,7 @@ const navigationGroups = [
       { name: 'Reports', href: '/reports', icon: AssessmentIcon, permissions: ['view_reports'], badge: null },
       { name: 'System Status', href: '/system-status', icon: CloudIcon, permissions: ['view_system_status'], badge: null },
       { name: 'Settings', href: '/settings', icon: SettingsIcon, permissions: ['manage_settings'], badge: null },
-      { name: 'Help & Support', href: '/support', icon: SupportIcon, permissions: [], badge: null },
+      { name: 'Help & Support', href: '/support', icon: SupportIcon, permissions: ['view_dashboard'], badge: null },
     ]
   }
 ]
@@ -383,46 +397,42 @@ interface SidebarProps {
   onClose: () => void
 }
 
+/**
+ * Admin drawer visibility uses the same path→permission resolution as in-app navigation guards
+ * (`routePermissions` via {@link usePermissions}, including explicit scoped admins).
+ */
+function filterAdminNavigationByRouteAccess(
+  groups: SidebarGroup[],
+  checkRouteAccess: (path: string) => boolean,
+): SidebarGroup[] {
+  return groups
+    .map((group) => {
+      const items = group.items
+        .map((item): SidebarItem | null => {
+          if (item.hasSubmenu && item.subItems?.length) {
+            const subItems = item.subItems.filter((sub) => checkRouteAccess(sub.href))
+            if (subItems.length === 0) return null
+            return { ...item, subItems }
+          }
+          if (item.href) {
+            return checkRouteAccess(item.href) ? item : null
+          }
+          return null
+        })
+        .filter((item): item is SidebarItem => item !== null)
+      return { ...group, items }
+    })
+    .filter((g) => g.items.length > 0)
+}
+
 export function Sidebar({ open, onClose }: SidebarProps) {
   const location = useLocation()
   const isMobile = useMediaQuery('(max-width: 899px)')
   const { isOpen: sidebarOpen } = useSidebar()
   const authState = useAppSelector((state) => state.auth)
   const user = authState?.user || null
-  const { checkAnyPermission } = usePermissions()
+  const { checkRouteAccess } = usePermissions()
   const [openSubmenus, setOpenSubmenus] = useState<{ [key: string]: boolean }>({})
-
-  const navigationAccessOk = (requiredPermissions?: string[]): boolean => {
-    if (!requiredPermissions || requiredPermissions.length === 0) {
-      return true
-    }
-    const tokens = expandNavPermissionTokens(requiredPermissions)
-    if (tokens.length === 0) return true
-    return checkAnyPermission(tokens)
-  }
-
-  /**
-   * Filter navigation groups to only show items user has permission for
-   */
-  const filterNavigationByPermissions = (groups: SidebarGroup[]): SidebarGroup[] => {
-    return groups.map(group => ({
-      ...group,
-      items: group.items.filter((item: SidebarItem) => {
-        if (!navigationAccessOk(item.permissions)) {
-          return false
-        }
-
-        if (item.hasSubmenu && item.subItems) {
-          item.subItems = item.subItems.filter((subItem: SidebarSubItem) => 
-            navigationAccessOk(subItem.permissions)
-          )
-          return item.subItems.length > 0
-        }
-
-        return true
-      })
-    })).filter(group => group.items.length > 0)
-  }
 
   // Determine user role
   const isProvider = 
@@ -442,24 +452,23 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     if (isProvider) {
       return providerNavigationGroups as SidebarGroup[]
     }
-    return filterNavigationByPermissions(navigationGroups)
-  }, [isProvider, isProfessional, user, checkAnyPermission])
+    return filterAdminNavigationByRouteAccess(navigationGroups, checkRouteAccess)
+  }, [isProvider, isProfessional, checkRouteAccess])
 
-  // Auto-open submenu if current path matches
+  // Auto-open submenu if current path matches (only for nav the user is allowed to see)
   React.useEffect(() => {
     const currentPath = location.pathname
-    navigationGroups.forEach(group => {
+    activeNavigationGroups.forEach((group) => {
       group.items.forEach((item: SidebarItem) => {
-        if ((item as SidebarItem).hasSubmenu && (item as SidebarItem).subItems) {
-          const subItems = (item as SidebarItem).subItems!
-          const hasActiveSubItem = subItems.some((sub: SidebarSubItem) => sub.href === currentPath)
+        if (item.hasSubmenu && item.subItems) {
+          const hasActiveSubItem = item.subItems.some((sub: SidebarSubItem) => sub.href === currentPath)
           if (hasActiveSubItem) {
-            setOpenSubmenus(prev => ({ ...prev, [item.name]: true }))
+            setOpenSubmenus((prev) => ({ ...prev, [item.name]: true }))
           }
         }
       })
     })
-  }, [location.pathname])
+  }, [location.pathname, activeNavigationGroups])
 
   const handleSubmenuToggle = (menuName: string) => {
     setOpenSubmenus(prev => ({

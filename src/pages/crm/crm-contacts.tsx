@@ -8,6 +8,7 @@ import { CrmListShell } from '../../components/crm/CrmListShell'
 import { CrmEmptyState } from '../../components/crm/CrmEmptyState'
 import { CrmDataGridSkeleton } from '../../components/crm/CrmDataGridSkeleton'
 import { CrmContactDetailDrawer } from '../../components/crm/CrmRecordDrawers'
+import { CrmWhatsAppStaffPlaybook } from '../../components/crm/CrmWhatsAppStaffPlaybook'
 import {
   DataGrid,
   GridActionsCellItem,
@@ -16,9 +17,18 @@ import {
 } from '../../components/crm/CrmDataTable'
 import { crmService } from '../../services/api/crm.service'
 import { usePermissions } from '../../hooks/usePermissions'
+import { useCrmFieldAccess } from '../../hooks/useCrmFieldAccess'
+import { buildCrmContactUpsertPayload, canCreateContactWithPolicies } from '../../lib/crmContactUpsertPayload'
 import { useCrmSearchParam } from '../../hooks/useCrmUrlFilters'
 import { activitiesForContact, filterContacts } from '../../utils/crmFilters'
-import type { CrmActivity, CrmCompany, CrmContact, CrmContactLifecycle } from '../../types/crm.types'
+import type { CrmActivity, CrmCompany, CrmContact, CrmContactLifecycle, CrmRecordType } from '../../types/crm.types'
+import {
+  ALL_CONTACT_LIFECYCLES,
+  CONTACT_LIFECYCLE_LABELS,
+  CRM_LEAD_SOURCE_PRESETS,
+  CRM_WHATSAPP_LEAD_SOURCE,
+  RECORD_TYPE_LABELS,
+} from '../../lib/crmNiche'
 import { Card, CardContent } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
 import {
@@ -41,21 +51,12 @@ import {
 } from '../../components/ui/select'
 import { cn } from '../../lib/utils'
 
-const LIFECYCLE_OPTIONS: CrmContactLifecycle[] = [
-  'subscriber',
-  'lead',
-  'mql',
-  'sql',
-  'opportunity',
-  'customer',
-  'churned',
-]
-
 const emptySelection: GridRowSelectionModel = { type: 'include', ids: new Set() }
 
 export function CrmContacts() {
   const { checkPermission } = usePermissions()
   const canManage = checkPermission('manage_crm')
+  const { fields: crmFieldPolicies } = useCrmFieldAccess()
   const { qInput, setQInput, setParam, searchParams } = useCrmSearchParam()
   const lifecycleFilter = searchParams.get('lifecycle') ?? 'all'
 
@@ -120,9 +121,15 @@ export function CrmContacts() {
     phone: '',
     jobTitle: '',
     companyId: '' as string | undefined,
-    lifecycle: 'lead' as CrmContactLifecycle,
+    recordType: 'customer' as CrmRecordType,
+    lifecycle: 'inquiry' as CrmContactLifecycle,
     leadSource: '',
     notes: '',
+    locality: '',
+    serviceCategory: '',
+    platformUserId: '',
+    platformBookingId: '',
+    platformOrderId: '',
   })
 
   const openCreate = () => {
@@ -134,9 +141,37 @@ export function CrmContacts() {
       phone: '',
       jobTitle: '',
       companyId: undefined,
-      lifecycle: 'lead',
+      recordType: 'customer',
+      lifecycle: 'inquiry',
       leadSource: '',
       notes: '',
+      locality: '',
+      serviceCategory: '',
+      platformUserId: '',
+      platformBookingId: '',
+      platformOrderId: '',
+    })
+    setOpen(true)
+  }
+
+  const openCreateWithLeadSource = (leadSource: string) => {
+    setEditing(null)
+    setForm({
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      jobTitle: '',
+      companyId: undefined,
+      recordType: 'customer',
+      lifecycle: 'inquiry',
+      leadSource,
+      notes: '',
+      locality: '',
+      serviceCategory: '',
+      platformUserId: '',
+      platformBookingId: '',
+      platformOrderId: '',
     })
     setOpen(true)
   }
@@ -150,9 +185,15 @@ export function CrmContacts() {
       phone: row.phone ?? '',
       jobTitle: row.jobTitle ?? '',
       companyId: row.companyId,
+      recordType: row.recordType ?? 'customer',
       lifecycle: row.lifecycle,
       leadSource: row.leadSource ?? '',
       notes: row.notes ?? '',
+      locality: row.locality ?? '',
+      serviceCategory: row.serviceCategory ?? '',
+      platformUserId: row.platformUserId ?? '',
+      platformBookingId: row.platformBookingId ?? '',
+      platformOrderId: row.platformOrderId ?? '',
     })
     setOpen(true)
   }, [])
@@ -181,18 +222,30 @@ export function CrmContacts() {
       { field: 'lastName', headerName: 'Last', flex: 1, minWidth: 100 },
       { field: 'email', headerName: 'Email', flex: 1.2, minWidth: 180 },
       {
-        field: 'lifecycle',
-        headerName: 'Lifecycle',
-        width: 130,
+        field: 'recordType',
+        headerName: 'Type',
+        width: 140,
         renderCell: (p) => (
-          <Badge variant="outline" className="font-normal">
-            {String(p.value ?? '—')}
+          <Badge variant="secondary" className="font-normal">
+            {RECORD_TYPE_LABELS[p.row.recordType ?? 'customer']}
           </Badge>
         ),
       },
       {
+        field: 'lifecycle',
+        headerName: 'Stage',
+        width: 150,
+        renderCell: (p) => (
+          <Badge variant="outline" className="font-normal">
+            {CONTACT_LIFECYCLE_LABELS[p.row.lifecycle]}
+          </Badge>
+        ),
+      },
+      { field: 'locality', headerName: 'Locality', width: 110 },
+      { field: 'leadSource', headerName: 'Source', width: 110 },
+      {
         field: 'companyId',
-        headerName: 'Company',
+        headerName: 'B2B account',
         flex: 1,
         minWidth: 140,
         renderCell: (p) => {
@@ -254,7 +307,7 @@ export function CrmContacts() {
     <div className="p-4 md:p-6">
       <PageHeader
         title="Contacts"
-        subtitle="People you sell and support — linked to companies and deals."
+        subtitle="Customers, partners, and B2B contacts — link to platform user / booking / order when known."
         action={
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" className="gap-1" onClick={() => crmService.downloadExport('contacts')}>
@@ -262,15 +315,25 @@ export function CrmContacts() {
               Export CSV
             </Button>
             {canManage ? (
-              <Button size="sm" className="gap-1" onClick={openCreate}>
-                <Plus className="h-4 w-4" />
-                Add contact
-              </Button>
+              <>
+                <Button type="button" size="sm" variant="secondary" className="gap-1" onClick={() => openCreateWithLeadSource(CRM_WHATSAPP_LEAD_SOURCE)}>
+                  <Plus className="h-4 w-4" />
+                  Add WhatsApp contact
+                </Button>
+                <Button size="sm" className="gap-1" onClick={openCreate}>
+                  <Plus className="h-4 w-4" />
+                  Add contact
+                </Button>
+              </>
             ) : null}
           </div>
         }
       />
       <CrmSubnav />
+
+      <div className="mb-4">
+        <CrmWhatsAppStaffPlaybook />
+      </div>
 
       <CrmListToolbar qInput={qInput} onQChange={setQInput} searchPlaceholder="Search contacts…">
         <div className="space-y-1.5">
@@ -281,9 +344,9 @@ export function CrmContacts() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All</SelectItem>
-              {LIFECYCLE_OPTIONS.map((s) => (
+              {ALL_CONTACT_LIFECYCLES.map((s) => (
                 <SelectItem key={s} value={s}>
-                  {s}
+                  {CONTACT_LIFECYCLE_LABELS[s]}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -309,7 +372,7 @@ export function CrmContacts() {
           <Card>
             <CrmEmptyState
               title="No contacts yet"
-              description="Add people you work with and link them to companies."
+              description="Add homeowners, partners, or B2B contacts and link them to the platform when IDs exist."
               actionLabel={canManage ? 'Add contact' : undefined}
               onAction={canManage ? openCreate : undefined}
             />
@@ -383,7 +446,7 @@ export function CrmContacts() {
       />
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{editing ? 'Edit contact' : 'New contact'}</DialogTitle>
           </DialogHeader>
@@ -422,7 +485,7 @@ export function CrmContacts() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="ct-title">Job title</Label>
+              <Label htmlFor="ct-title">Role / job title (optional)</Label>
               <Input
                 id="ct-title"
                 value={form.jobTitle}
@@ -430,13 +493,42 @@ export function CrmContacts() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Company</Label>
+              <Label>Record type</Label>
+              <Select
+                value={form.recordType}
+                onValueChange={(v) =>
+                  setForm((f) => ({
+                    ...f,
+                    recordType: v as CrmRecordType,
+                    lifecycle:
+                      v === 'partner' && !f.lifecycle.startsWith('partner_')
+                        ? 'partner_applied'
+                        : v !== 'partner' && f.lifecycle.startsWith('partner_')
+                          ? 'inquiry'
+                          : f.lifecycle,
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(RECORD_TYPE_LABELS) as CrmRecordType[]).map((rt) => (
+                    <SelectItem key={rt} value={rt}>
+                      {RECORD_TYPE_LABELS[rt]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>B2B account</Label>
               <Select
                 value={form.companyId ?? 'none'}
                 onValueChange={(v) => setForm((f) => ({ ...f, companyId: v === 'none' ? undefined : v }))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Company" />
+                  <SelectValue placeholder="B2B account" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
@@ -449,7 +541,7 @@ export function CrmContacts() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Lifecycle</Label>
+              <Label>Lifecycle / stage</Label>
               <Select
                 value={form.lifecycle}
                 onValueChange={(v) => setForm((f) => ({ ...f, lifecycle: v as CrmContactLifecycle }))}
@@ -458,20 +550,88 @@ export function CrmContacts() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {LIFECYCLE_OPTIONS.map((s) => (
+                  {ALL_CONTACT_LIFECYCLES.map((s) => (
                     <SelectItem key={s} value={s}>
-                      {s}
+                      {CONTACT_LIFECYCLE_LABELS[s]}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
+              <Label htmlFor="ct-locality">Locality</Label>
+              <Input
+                id="ct-locality"
+                value={form.locality}
+                onChange={(e) => setForm((f) => ({ ...f, locality: e.target.value }))}
+                placeholder="e.g. Borivali"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ct-svc">Service category</Label>
+              <Input
+                id="ct-svc"
+                value={form.serviceCategory}
+                onChange={(e) => setForm((f) => ({ ...f, serviceCategory: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
               <Label htmlFor="ct-src">Lead source</Label>
+              <div className="mb-2 flex flex-wrap gap-1.5">
+                {CRM_LEAD_SOURCE_PRESETS.slice(0, 5).map((src) => (
+                  <Button
+                    key={src}
+                    type="button"
+                    size="sm"
+                    variant={form.leadSource === src ? 'default' : 'outline'}
+                    className="h-8 text-xs"
+                    onClick={() => setForm((f) => ({ ...f, leadSource: src }))}
+                  >
+                    {src}
+                  </Button>
+                ))}
+              </div>
               <Input
                 id="ct-src"
+                list="crm-contact-sources"
                 value={form.leadSource}
                 onChange={(e) => setForm((f) => ({ ...f, leadSource: e.target.value }))}
+                placeholder="e.g. WhatsApp"
+              />
+              <datalist id="crm-contact-sources">
+                {CRM_LEAD_SOURCE_PRESETS.map((s) => (
+                  <option key={s} value={s} />
+                ))}
+              </datalist>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ct-puid">Platform user ID</Label>
+              <p className="text-xs text-muted-foreground">From admin Users — enables “Open user” in the contact panel.</p>
+              <Input
+                id="ct-puid"
+                value={form.platformUserId}
+                onChange={(e) => setForm((f) => ({ ...f, platformUserId: e.target.value }))}
+                placeholder="Mongo ObjectId"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ct-pbid">Platform booking ID</Label>
+              <p className="text-xs text-muted-foreground">From Bookings detail URL when a job exists.</p>
+              <Input
+                id="ct-pbid"
+                value={form.platformBookingId}
+                onChange={(e) => setForm((f) => ({ ...f, platformBookingId: e.target.value }))}
+                placeholder="Booking id"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ct-poid">Platform order ID</Label>
+              <p className="text-xs text-muted-foreground">From Orders when payment / order context exists.</p>
+              <Input
+                id="ct-poid"
+                value={form.platformOrderId}
+                onChange={(e) => setForm((f) => ({ ...f, platformOrderId: e.target.value }))}
+                placeholder="Order id"
               />
             </div>
             <div className="space-y-1.5">
@@ -495,25 +655,45 @@ export function CrmContacts() {
                   setSnackbar({ open: true, message: 'Name and email are required', severity: 'error' })
                   return
                 }
+                if (!editing?.id && !canCreateContactWithPolicies(crmFieldPolicies)) {
+                  setSnackbar({
+                    open: true,
+                    message:
+                      'CRM field policies block creating contacts (first name, last name, or email is read-only for your role). Ask an admin to update field policies.',
+                    severity: 'error',
+                  })
+                  return
+                }
                 void (async () => {
                   try {
-                    await crmService.upsertContact({
+                    const payload = buildCrmContactUpsertPayload(crmFieldPolicies, {
                       id: editing?.id,
-                      firstName: form.firstName.trim(),
-                      lastName: form.lastName.trim(),
-                      email: form.email.trim(),
+                      firstName: form.firstName,
+                      lastName: form.lastName,
+                      email: form.email,
                       phone: form.phone || undefined,
                       jobTitle: form.jobTitle || undefined,
                       companyId: form.companyId,
+                      recordType: form.recordType,
                       lifecycle: form.lifecycle,
                       leadSource: form.leadSource || undefined,
                       notes: form.notes || undefined,
+                      locality: form.locality || undefined,
+                      serviceCategory: form.serviceCategory || undefined,
+                      platformUserId: form.platformUserId.trim() || undefined,
+                      platformBookingId: form.platformBookingId.trim() || undefined,
+                      platformOrderId: form.platformOrderId.trim() || undefined,
                     })
+                    await crmService.upsertContact(payload)
                     setOpen(false)
                     refresh()
                     setSnackbar({ open: true, message: 'Contact saved', severity: 'success' })
-                  } catch {
-                    setSnackbar({ open: true, message: 'Save failed', severity: 'error' })
+                  } catch (e: unknown) {
+                    setSnackbar({
+                      open: true,
+                      message: e instanceof Error ? e.message : 'Save failed',
+                      severity: 'error',
+                    })
                   }
                 })()
               }}

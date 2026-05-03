@@ -1,6 +1,7 @@
 /**
- * CRM data layer: persists to localStorage for a working admin UI without a backend.
- * Replace internals with apiClient calls when `/api/crm/*` is available — shapes match REST payloads.
+ * CRM data layer: fixer-backend `/api/crm/*` (MongoDB) in production and whenever
+ * REACT_APP_CRM_USE_API=true. Optional browser localStorage fallback only in development
+ * when that flag is not set — see `src/lib/crmNiche.ts` for niche types.
  */
 import type {
   CrmActivity,
@@ -10,9 +11,21 @@ import type {
   CrmDealStage,
   CrmMetrics,
 } from '../../types/crm.types'
+import {
+  coerceCrmMetrics,
+  DEAL_PIPELINE_STAGES,
+  isLeadLifecycle,
+  migrateActivityType,
+  migrateContactLifecycle,
+  migrateDealStage,
+  normalizeRecordType,
+  type CrmMetricsApiShape,
+} from '../../lib/crmNiche'
 import { crmApi } from './crm.api'
 
-function isCrmApiMode(): boolean {
+/** Production builds always use the CRM API. In development, set REACT_APP_CRM_USE_API=true (recommended). */
+export function isCrmApiMode(): boolean {
+  if (process.env.NODE_ENV === 'production') return true
   return process.env.REACT_APP_CRM_USE_API === 'true'
 }
 
@@ -33,85 +46,112 @@ function uid() {
   return crypto.randomUUID()
 }
 
+function migrateState(s: CrmState): CrmState {
+  return {
+    companies: s.companies ?? [],
+    contacts: (s.contacts ?? []).map((c) => ({
+      ...c,
+      lifecycle: migrateContactLifecycle(c.lifecycle as unknown as string),
+      recordType: normalizeRecordType(c.recordType as string | undefined),
+    })),
+    deals: (s.deals ?? []).map((d) => ({
+      ...d,
+      stage: migrateDealStage(d.stage as unknown as string),
+    })),
+    activities: (s.activities ?? []).map((a) => ({
+      ...a,
+      type: migrateActivityType(a.type as unknown as string),
+    })),
+  }
+}
+
 function seedState(): CrmState {
   const t = nowIso()
-  const acme: CrmCompany = {
+  const society: CrmCompany = {
     id: uid(),
-    name: 'Acme Services Ltd',
-    industry: 'Facilities',
-    website: 'https://acme.example.com',
-    phone: '+44 20 7946 0001',
-    city: 'London',
-    country: 'UK',
-    employeeCount: '51–200',
-    annualRevenue: '£2M–£5M',
+    name: 'Sunrise Heights CHS (B2B)',
+    industry: 'Residential society / AMC',
+    website: 'https://profixer.in',
+    phone: '+91-22-0000-0000',
+    city: 'Mira Road',
+    country: 'India',
+    employeeCount: 'Office staff 5–10',
+    annualRevenue: 'Maintenance fund',
     createdAt: t,
     updatedAt: t,
   }
-  const globex: CrmCompany = {
+  const builder: CrmCompany = {
     id: uid(),
-    name: 'Globex Maintenance',
-    industry: 'Property',
-    website: 'https://globex.example.com',
-    city: 'Manchester',
-    country: 'UK',
+    name: 'Metro Infra Developers',
+    industry: 'Construction',
+    website: 'https://example.com',
+    city: 'Thane',
+    country: 'India',
     createdAt: t,
     updatedAt: t,
   }
-  const c1: CrmContact = {
+  const homeowner: CrmContact = {
     id: uid(),
-    firstName: 'Sarah',
-    lastName: 'Chen',
-    email: 's.chen@acme.example.com',
-    phone: '+44 7700 900123',
-    jobTitle: 'Operations Director',
-    companyId: acme.id,
-    lifecycle: 'sql',
-    leadSource: 'Inbound',
+    recordType: 'customer',
+    firstName: 'Priya',
+    lastName: 'Nair',
+    email: 'priya.nair.example@profixer.in',
+    phone: '+91-99200-25516',
+    locality: 'Mira Road',
+    addressLine: 'Near Dahisar check naka',
+    serviceCategory: 'AC repair',
+    lifecycle: 'quoted',
+    leadSource: 'WhatsApp',
     createdAt: t,
     updatedAt: t,
   }
-  const c2: CrmContact = {
+  const partnerLead: CrmContact = {
     id: uid(),
-    firstName: 'James',
-    lastName: 'Okafor',
-    email: 'j.okafor@globex.example.com',
-    lifecycle: 'lead',
+    recordType: 'partner',
+    firstName: 'Rahul',
+    lastName: 'Electrician',
+    email: 'rahul.spark.example@profixer.in',
+    phone: '+91-90000-00001',
+    locality: 'Borivali',
+    lifecycle: 'partner_verification',
     leadSource: 'Referral',
+    notes: 'Background check pending',
     createdAt: t,
     updatedAt: t,
   }
   const d1: CrmDeal = {
     id: uid(),
-    name: 'Enterprise rollout — tier-1 cities',
-    amount: 4800000,
+    name: 'Split AC service — 2 units',
+    amount: 4500,
     currency: 'INR',
-    stage: 'negotiation',
-    probability: 70,
-    companyId: acme.id,
-    primaryContactId: c1.id,
-    expectedCloseDate: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
+    stage: 'quoted',
+    probability: 50,
+    primaryContactId: homeowner.id,
+    locality: 'Mira Road',
+    serviceCategory: 'AC repair',
+    expectedCloseDate: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10),
     createdAt: t,
     updatedAt: t,
   }
   const d2: CrmDeal = {
     id: uid(),
-    name: 'Pilot — North region',
-    amount: 1200000,
+    name: 'Society AMC — quarterly electrical audit',
+    amount: 185000,
     currency: 'INR',
-    stage: 'proposal',
-    probability: 40,
-    companyId: globex.id,
-    primaryContactId: c2.id,
-    expectedCloseDate: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+    stage: 'in_progress',
+    probability: 75,
+    companyId: society.id,
+    locality: 'Mira Road',
+    serviceCategory: 'Electrical',
+    expectedCloseDate: new Date(Date.now() + 21 * 86400000).toISOString().slice(0, 10),
     createdAt: t,
     updatedAt: t,
   }
   const activities: CrmActivity[] = [
     {
       id: uid(),
-      subject: 'Follow-up call — pricing',
-      type: 'call',
+      subject: 'WhatsApp — send quote for AC gas refill',
+      type: 'whatsapp',
       status: 'open',
       priority: 'high',
       dueAt: new Date(Date.now() + 86400000).toISOString(),
@@ -122,8 +162,8 @@ function seedState(): CrmState {
     },
     {
       id: uid(),
-      subject: 'Send revised proposal',
-      type: 'task',
+      subject: 'Follow-up call after site visit',
+      type: 'call',
       status: 'open',
       priority: 'normal',
       dueAt: new Date(Date.now() - 86400000).toISOString(),
@@ -134,20 +174,20 @@ function seedState(): CrmState {
     },
     {
       id: uid(),
-      subject: 'Discovery meeting booked',
-      type: 'meeting',
+      subject: 'Site visit — distribution panel inspection',
+      type: 'site_visit',
       status: 'done',
       priority: 'normal',
       completedAt: t,
       relatedType: 'contact',
-      relatedId: c1.id,
+      relatedId: homeowner.id,
       createdAt: t,
       updatedAt: t,
     },
   ]
   return {
-    companies: [acme, globex],
-    contacts: [c1, c2],
+    companies: [society, builder],
+    contacts: [homeowner, partnerLead],
     deals: [d1, d2],
     activities,
   }
@@ -161,7 +201,7 @@ function read(): CrmState {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
       return s
     }
-    return JSON.parse(raw) as CrmState
+    return migrateState(JSON.parse(raw) as CrmState)
   } catch {
     const s = seedState()
     localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
@@ -173,20 +213,17 @@ function write(s: CrmState) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
 }
 
-const STAGES: CrmDealStage[] = ['lead', 'qualified', 'proposal', 'negotiation', 'won', 'lost']
-
 export function computeMetrics(state: CrmState): CrmMetrics {
-  const openDeals = state.deals.filter((d) => d.stage !== 'won' && d.stage !== 'lost')
+  const openDeals = state.deals.filter((d) => d.stage !== 'paid' && d.stage !== 'lost')
   const pipelineValue = openDeals.reduce((a, d) => a + d.amount, 0)
   const weightedPipeline = openDeals.reduce((a, d) => a + d.amount * (d.probability / 100), 0)
   const start = new Date()
   start.setDate(1)
   start.setHours(0, 0, 0, 0)
-  const wonThisMonth = state.deals.filter(
-    (d) => d.stage === 'won' && new Date(d.updatedAt) >= start
+  const paidThisMonth = state.deals.filter(
+    (d) => d.stage === 'paid' && new Date(d.updatedAt) >= start
   ).length
-  const leadStages = new Set(['subscriber', 'lead', 'mql', 'sql', 'opportunity'])
-  const activeLeads = state.contacts.filter((c) => leadStages.has(c.lifecycle)).length
+  const activeLeads = state.contacts.filter((c) => isLeadLifecycle(c.lifecycle)).length
   const now = Date.now()
   const overdueTasks = state.activities.filter(
     (a) =>
@@ -195,7 +232,7 @@ export function computeMetrics(state: CrmState): CrmMetrics {
       a.dueAt &&
       new Date(a.dueAt).getTime() < now
   ).length
-  const dealsByStage = STAGES.reduce(
+  const dealsByStage = DEAL_PIPELINE_STAGES.reduce(
     (acc, st) => {
       acc[st] = state.deals.filter((d) => d.stage === st).length
       return acc
@@ -206,7 +243,7 @@ export function computeMetrics(state: CrmState): CrmMetrics {
     pipelineValue,
     weightedPipeline,
     openDeals: openDeals.length,
-    wonThisMonth,
+    paidThisMonth,
     activeLeads,
     overdueTasks,
     dealsByStage,
@@ -268,23 +305,30 @@ const localStore = {
   listContacts() {
     return read().contacts
   },
-  upsertContact(partial: Partial<CrmContact> & { firstName: string; lastName: string; email: string }) {
+  upsertContact(partial: Partial<CrmContact>) {
     const s = read()
     const id = partial.id ?? uid()
     const existing = s.contacts.find((c) => c.id === id)
     const row: CrmContact = {
       id,
-      firstName: partial.firstName,
-      lastName: partial.lastName,
-      email: partial.email,
+      recordType: partial.recordType ?? existing?.recordType ?? 'customer',
+      firstName: partial.firstName ?? existing?.firstName ?? '',
+      lastName: partial.lastName ?? existing?.lastName ?? '',
+      email: partial.email ?? existing?.email ?? '',
       phone: partial.phone,
       jobTitle: partial.jobTitle,
       companyId: partial.companyId,
-      lifecycle: partial.lifecycle ?? existing?.lifecycle ?? 'lead',
+      lifecycle: partial.lifecycle ?? existing?.lifecycle ?? 'inquiry',
       leadSource: partial.leadSource,
       ownerId: partial.ownerId,
       tags: partial.tags,
       notes: partial.notes,
+      platformUserId: partial.platformUserId ?? existing?.platformUserId,
+      platformBookingId: partial.platformBookingId ?? existing?.platformBookingId,
+      platformOrderId: partial.platformOrderId ?? existing?.platformOrderId,
+      locality: partial.locality ?? existing?.locality,
+      addressLine: partial.addressLine ?? existing?.addressLine,
+      serviceCategory: partial.serviceCategory ?? existing?.serviceCategory,
       createdAt: existing?.createdAt ?? nowIso(),
       updatedAt: nowIso(),
     }
@@ -315,11 +359,15 @@ const localStore = {
       currency: partial.currency,
       stage: partial.stage,
       probability: partial.probability ?? existing?.probability ?? 10,
-      companyId: partial.companyId,
-      primaryContactId: partial.primaryContactId,
-      ownerId: partial.ownerId,
-      expectedCloseDate: partial.expectedCloseDate,
-      notes: partial.notes,
+      companyId: partial.companyId ?? existing?.companyId,
+      primaryContactId: partial.primaryContactId ?? existing?.primaryContactId,
+      ownerId: partial.ownerId ?? existing?.ownerId,
+      expectedCloseDate: partial.expectedCloseDate ?? existing?.expectedCloseDate,
+      notes: partial.notes ?? existing?.notes,
+      platformBookingId: partial.platformBookingId ?? existing?.platformBookingId,
+      platformOrderId: partial.platformOrderId ?? existing?.platformOrderId,
+      locality: partial.locality ?? existing?.locality,
+      serviceCategory: partial.serviceCategory ?? existing?.serviceCategory,
       createdAt: existing?.createdAt ?? nowIso(),
       updatedAt: nowIso(),
     }
@@ -373,7 +421,11 @@ export const crmService = {
     return isCrmApiMode()
   },
 
+  /** Local demo state only; empty when API mode. */
   getState(): CrmState {
+    if (isCrmApiMode()) {
+      return { companies: [], contacts: [], deals: [], activities: [] }
+    }
     return localStore.getState()
   },
 
@@ -385,7 +437,10 @@ export const crmService = {
   },
 
   async getMetrics(): Promise<CrmMetrics> {
-    if (isCrmApiMode()) return crmApi.getMetrics()
+    if (isCrmApiMode()) {
+      const raw = await crmApi.getMetrics()
+      return coerceCrmMetrics(raw as CrmMetricsApiShape)
+    }
     return localStore.getMetrics()
   },
 
@@ -406,11 +461,20 @@ export const crmService = {
   },
 
   async listContacts(): Promise<CrmContact[]> {
-    if (isCrmApiMode()) return crmApi.listContacts()
+    if (isCrmApiMode()) {
+      const rows = await crmApi.listContacts()
+      return rows.map((c) => ({
+        ...c,
+        lifecycle: migrateContactLifecycle(c.lifecycle as unknown as string),
+        recordType: normalizeRecordType(c.recordType as string | undefined),
+      }))
+    }
     return localStore.listContacts()
   },
   async upsertContact(
-    partial: Partial<CrmContact> & { firstName: string; lastName: string; email: string }
+    partial:
+      | (Partial<CrmContact> & { id: string })
+      | (Partial<CrmContact> & { firstName: string; lastName: string; email: string }),
   ): Promise<CrmContact> {
     if (isCrmApiMode()) return crmApi.upsertContact(partial)
     return localStore.upsertContact(partial)
@@ -421,7 +485,13 @@ export const crmService = {
   },
 
   async listDeals(): Promise<CrmDeal[]> {
-    if (isCrmApiMode()) return crmApi.listDeals()
+    if (isCrmApiMode()) {
+      const rows = await crmApi.listDeals()
+      return rows.map((d) => ({
+        ...d,
+        stage: migrateDealStage(d.stage as unknown as string),
+      }))
+    }
     return localStore.listDeals()
   },
   async upsertDeal(
@@ -436,7 +506,13 @@ export const crmService = {
   },
 
   async listActivities(): Promise<CrmActivity[]> {
-    if (isCrmApiMode()) return crmApi.listActivities()
+    if (isCrmApiMode()) {
+      const rows = await crmApi.listActivities()
+      return rows.map((a) => ({
+        ...a,
+        type: migrateActivityType(a.type as unknown as string),
+      }))
+    }
     return localStore.listActivities()
   },
   async upsertActivity(

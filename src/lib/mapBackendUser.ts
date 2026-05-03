@@ -4,7 +4,10 @@ import { sanitizePermissions } from './sanitizePermissions'
 import type { TenantRef } from '../types'
 
 export function mapBackendUserToAppUser(backendUser: any, tenantRef?: TenantRef | null): User {
-  const perms = sanitizePermissions(backendUser.permissions as string[] | undefined)
+  const rawPermissions = backendUser.permissions
+  const perms = Array.isArray(rawPermissions)
+    ? sanitizePermissions(rawPermissions as string[])
+    : sanitizePermissions(undefined)
   const rbacRole = (backendUser.rbac_role || backendUser.rbacRole) as UserRole | undefined
   const rbacPermissionMode = (backendUser.rbac_permission_mode ||
     backendUser.rbacPermissionMode) as RbacPermissionMode | undefined
@@ -24,6 +27,6 @@ export function mapBackendUserToAppUser(backendUser: any, tenantRef?: TenantRef 
     ...(tenantRef ? { tenant: tenantRef } : {}),
     ...(rbacRole ? { rbacRole } : {}),
     ...(rbacPermissionMode ? { rbacPermissionMode } : {}),
-    ...(perms.length ? { permissions: perms } : {}),
+    ...(Array.isArray(rawPermissions) ? { permissions: perms } : {}),
   }
 }

@@ -5,7 +5,8 @@ import { useAppSelector } from '../../store/hooks'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
-  requiredRole?: 'admin' | 'provider' | 'customer'
+  /** When set, only users with this `userType` may access (JWT / profile). */
+  requiredRole?: 'admin' | 'super_admin' | 'provider' | 'professional' | 'customer'
 }
 
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {

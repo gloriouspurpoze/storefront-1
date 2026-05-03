@@ -31,10 +31,12 @@ export const QUICK_NAV_ITEMS: QuickNavItem[] = [
   { label: 'CRM overview', path: '/crm', group: 'CRM' },
   { label: 'Leads', path: '/crm/leads', group: 'CRM' },
   { label: 'Contacts', path: '/crm/contacts', group: 'CRM' },
-  { label: 'Companies', path: '/crm/companies', group: 'CRM' },
+  { label: 'B2B accounts', path: '/crm/companies', group: 'CRM' },
   { label: 'Deals', path: '/crm/deals', group: 'CRM' },
   { label: 'Activities', path: '/crm/activities', group: 'CRM' },
   { label: 'CRM settings', path: '/crm/settings', group: 'CRM' },
+
+  { label: 'Team work', path: '/team-work', group: 'Operations', keywords: 'tasks jira kanban sprint' },
 
   { label: 'Category management', path: '/categories', group: 'Catalog' },
   { label: 'Product categories', path: '/categories/products', group: 'Catalog' },
@@ -54,9 +56,12 @@ export const QUICK_NAV_ITEMS: QuickNavItem[] = [
   { label: 'Pro-Verify queue', path: '/bazaar/pro-verify', group: 'Bazaar' },
 
   { label: 'Bookings', path: '/bookings', group: 'Operations' },
+  { label: 'Service requests', path: '/requests', group: 'Operations', keywords: 'operations leads' },
+  { label: 'Quotes', path: '/quotes', group: 'Operations' },
   { label: 'Payments', path: '/payments', group: 'Operations' },
   { label: 'Invoices', path: '/invoices', group: 'Operations' },
   { label: 'Create invoice', path: '/invoices/create', group: 'Operations', keywords: 'manual pdf gst' },
+  { label: 'Invoice appearance', path: '/invoices/branding', group: 'Operations', keywords: 'logo branding colours gst pdf' },
   { label: 'Earnings & payouts', path: '/payouts', group: 'Operations' },
   { label: 'Chat', path: '/chat', group: 'Operations' },
 

@@ -25,7 +25,6 @@ const Unauthorized = lazy(() => import('./pages/auth/unauthorized'))
 const NotFound = lazy(() => import('./pages/NotFound').then((m) => ({ default: m.NotFound })))
 
 const SmartDashboard = lazy(() => import('./pages/dashboard/smart-dashboard').then((m) => ({ default: m.SmartDashboard })))
-const Dashboard = lazy(() => import('./pages/dashboard/dashboard').then((m) => ({ default: m.Dashboard })))
 const Analytics = lazy(() => import('./pages/dashboard/analytics').then((m) => ({ default: m.Analytics })))
 const AdminEarningsOverview = lazy(() => import('./pages/payments/admin-earnings-overview').then((m) => ({ default: m.AdminEarningsOverview })))
 
@@ -36,6 +35,8 @@ const CrmCompanies = lazy(() => import('./pages/crm/crm-companies').then((m) => 
 const CrmDeals = lazy(() => import('./pages/crm/crm-deals').then((m) => ({ default: m.CrmDeals })))
 const CrmActivities = lazy(() => import('./pages/crm/crm-activities').then((m) => ({ default: m.CrmActivities })))
 const CrmSettings = lazy(() => import('./pages/crm/crm-settings').then((m) => ({ default: m.CrmSettings })))
+
+const TeamWorkHub = lazy(() => import('./pages/team-work/team-work-hub').then((m) => ({ default: m.TeamWorkHub })))
 
 const Users = lazy(() => import('./pages/users/users').then((m) => ({ default: m.Users })))
 const Products = lazy(() => import('./pages/products/products').then((m) => ({ default: m.Products })))
@@ -85,6 +86,9 @@ const Payments = lazy(() => import('./pages/payments/payments').then((m) => ({ d
 const Invoices = lazy(() => import('./pages/payments/invoices').then((m) => ({ default: m.Invoices })))
 const InvoiceCreate = lazy(() =>
   import('./pages/payments/invoice-create').then((m) => ({ default: m.InvoiceCreate }))
+)
+const InvoiceBrandingPage = lazy(() =>
+  import('./pages/payments/invoice-branding').then((m) => ({ default: m.InvoiceBrandingPage }))
 )
 
 const Messages = lazy(() => import('./pages/communication/messages').then((m) => ({ default: m.Messages })))
@@ -395,7 +399,7 @@ function App() {
                       <Route 
                         path="/requests" 
                         element={
-                          <RoleBasedRoute permissions={['view_dashboard']}>
+                          <RoleBasedRoute permissions={['view_services']}>
                             <ServiceRequests />
                           </RoleBasedRoute>
                         } 
@@ -447,6 +451,14 @@ function App() {
                             <InvoiceCreate />
                           </RoleBasedRoute>
                         } 
+                      />
+                      <Route
+                        path="/invoices/branding"
+                        element={
+                          <RoleBasedRoute permissions={['view_payments']}>
+                            <InvoiceBrandingPage />
+                          </RoleBasedRoute>
+                        }
                       />
                       <Route 
                         path="/invoices" 
@@ -541,7 +553,7 @@ function App() {
                       <Route 
                         path="/professional/dashboard" 
                         element={
-                          <ProtectedRoute>
+                          <ProtectedRoute requiredRole="professional">
                             <ProfessionalDashboard />
                           </ProtectedRoute>
                         }
@@ -549,7 +561,7 @@ function App() {
                       <Route 
                         path="/professional/bookings" 
                         element={
-                          <ProtectedRoute>
+                          <ProtectedRoute requiredRole="professional">
                             <ProfessionalBookings />
                           </ProtectedRoute>
                         }
@@ -557,7 +569,7 @@ function App() {
                       <Route 
                         path="/professional/earnings" 
                         element={
-                          <ProtectedRoute>
+                          <ProtectedRoute requiredRole="professional">
                             <ProfessionalEarningsWallet />
                           </ProtectedRoute>
                         }
@@ -565,7 +577,7 @@ function App() {
                       <Route 
                         path="/professional/profile" 
                         element={
-                          <ProtectedRoute>
+                          <ProtectedRoute requiredRole="professional">
                             <ProfessionalProfile />
                           </ProtectedRoute>
                         }
@@ -573,7 +585,7 @@ function App() {
                       <Route 
                         path="/professional/reviews" 
                         element={
-                          <ProtectedRoute>
+                          <ProtectedRoute requiredRole="professional">
                             <ProfessionalReviews />
                           </ProtectedRoute>
                         }
@@ -581,7 +593,7 @@ function App() {
                       <Route 
                         path="/professional/documents" 
                         element={
-                          <ProtectedRoute>
+                          <ProtectedRoute requiredRole="professional">
                             <ProfessionalDocuments />
                           </ProtectedRoute>
                         }
@@ -589,7 +601,7 @@ function App() {
                       <Route 
                         path="/professional/services" 
                         element={
-                          <ProtectedRoute>
+                          <ProtectedRoute requiredRole="professional">
                             <ProfessionalServices />
                           </ProtectedRoute>
                         }
@@ -597,7 +609,7 @@ function App() {
                       <Route 
                         path="/professional/settings" 
                         element={
-                          <ProtectedRoute>
+                          <ProtectedRoute requiredRole="professional">
                             <ProfessionalSettings />
                           </ProtectedRoute>
                         }
@@ -697,6 +709,15 @@ function App() {
                         element={
                           <RoleBasedRoute permissions={['view_crm']}>
                             <CrmSettings />
+                          </RoleBasedRoute>
+                        }
+                      />
+
+                      <Route
+                        path="/team-work"
+                        element={
+                          <RoleBasedRoute permissions={['view_team_tasks']}>
+                            <TeamWorkHub />
                           </RoleBasedRoute>
                         }
                       />
@@ -964,7 +985,7 @@ function App() {
                       <Route 
                         path="/provider/dashboard" 
                         element={
-                          <ProtectedRoute>
+                          <ProtectedRoute requiredRole="provider">
                             <ProviderDashboard />
                           </ProtectedRoute>
                         } 
@@ -972,7 +993,7 @@ function App() {
                       <Route 
                         path="/provider/bookings" 
                         element={
-                          <ProtectedRoute>
+                          <ProtectedRoute requiredRole="provider">
                             <ProviderBookings />
                           </ProtectedRoute>
                         } 
@@ -980,7 +1001,7 @@ function App() {
                       <Route 
                         path="/provider/earnings" 
                         element={
-                          <ProtectedRoute>
+                          <ProtectedRoute requiredRole="provider">
                             <ProviderEarnings />
                           </ProtectedRoute>
                         } 
@@ -988,7 +1009,7 @@ function App() {
                       <Route 
                         path="/provider/profile" 
                         element={
-                          <ProtectedRoute>
+                          <ProtectedRoute requiredRole="provider">
                             <ProviderProfile />
                           </ProtectedRoute>
                         } 

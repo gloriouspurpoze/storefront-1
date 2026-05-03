@@ -12,11 +12,12 @@ const ALIAS: Record<string, Permission[]> = {
   manage_bookings: ['manage_bookings', 'edit_bookings'],
   manage_payments: ['refund_payments', 'create_payments'],
   manage_users: ['manage_user_roles', 'edit_users'],
-  manage_settings: ['manage_system_settings', 'edit_settings'],
+  manage_settings: ['view_settings', 'edit_settings', 'manage_system_settings'],
   manage_marketing: ['manage_coupons', 'manage_referrals'],
   view_cms: ['view_settings'],
   manage_cms: ['manage_system_settings', 'edit_settings'],
-  view_system_status: ['view_settings'],
+  /** Matches `/system-status` route (RoleBasedRoute uses manage_system_settings). */
+  view_system_status: ['manage_system_settings'],
 }
 
 /**

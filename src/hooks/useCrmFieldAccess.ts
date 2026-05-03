@@ -45,7 +45,8 @@ export function useCrmFieldAccess() {
   const canWriteField = useCallback(
     (entity: string, field: string) => {
       if (!crmService.isApiEnabled() || !fields) return true
-      return fields[entity]?.[field]?.write === true
+      // Only explicit write: false denies; missing rules default to writable (matches typical CRM policy seeds).
+      return fields[entity]?.[field]?.write !== false
     },
     [fields]
   )

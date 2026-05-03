@@ -1,4 +1,6 @@
 import { apiClient } from '../apiClient';
+import { api } from './base';
+import type { OrderStatsResponse } from './orders.service';
 
 export interface DashboardStats {
   totalRevenue: number;
@@ -147,6 +149,23 @@ function normalizeAdminDashboardPayload(raw: any): AdminDashboardData {
     }))
   }
 
+  if (Array.isArray(data.recentActivity?.bookings) && data.recentActivity.bookings.length > 0) {
+    const fromBookings = data.recentActivity.bookings.map((b: any) => ({
+      id: String(b.id ?? b._id ?? ''),
+      customer: b.customer ?? '—',
+      service: b.orderNumber ? `Booking ${b.orderNumber}` : 'Booking',
+      amount: Number(b.totalAmount ?? b.amount ?? 0),
+      status: String(b.status ?? 'pending'),
+      date: b.createdAt ? new Date(b.createdAt).toLocaleString() : '',
+      avatar: b.avatar,
+    }))
+    recentOrders = [...recentOrders, ...fromBookings].sort((a, b) => {
+      const ta = a.date ? new Date(a.date).getTime() : 0
+      const tb = b.date ? new Date(b.date).getTime() : 0
+      return tb - ta
+    }).slice(0, 10)
+  }
+
   const topProviders: TopProvider[] = Array.isArray(data.topProviders) ? data.topProviders : []
 
   return {
@@ -158,21 +177,124 @@ function normalizeAdminDashboardPayload(raw: any): AdminDashboardData {
   }
 }
 
+function adminDataFromOrdersDashboard(res: {
+  data?: {
+    recentOrders?: Array<Record<string, unknown>>
+    stats?: Record<string, unknown>
+  }
+}): AdminDashboardData {
+  const payload = res.data || {}
+  const rows = Array.isArray(payload.recentOrders) ? payload.recentOrders : []
+  const stats = payload.stats || {}
+  const recentOrders: RecentOrder[] = rows.map((o) => ({
+    id: String(o.id ?? o._id ?? ''),
+    customer: String(o.customer ?? o.userId ?? '—'),
+    service: String(o.orderNumber ? `Order #${o.orderNumber}` : 'Order'),
+    amount: Number(o.totalAmount ?? o.amount ?? 0),
+    status: String(o.status ?? 'pending'),
+    date:
+      typeof o.createdAt === 'string'
+        ? new Date(o.createdAt).toLocaleString()
+        : typeof o.date === 'string'
+          ? o.date
+          : '',
+    avatar: o.avatar as string | undefined,
+  }))
+  return {
+    stats: {
+      totalRevenue: 0,
+      totalOrders: Number(stats.total ?? 0),
+      activeProviders: 0,
+      averageRating: 0,
+      revenueGrowth: 0,
+      ordersGrowth: 0,
+      providersGrowth: 0,
+      ratingChange: 0,
+    },
+    revenueData: [],
+    categoryPerformance: [],
+    recentOrders,
+    topProviders: [],
+  }
+}
+
 class DashboardService {
   /**
-   * Get admin dashboard data
+   * Get admin dashboard data (several backends expose different routes — try each).
    */
   async getAdminDashboard(): Promise<AdminDashboardData> {
-    try {
-      const response = await apiClient.get('/dashboard/admin', {
-        showSuccessToast: false,
-        showLoading: false,
-      }) as any;
-      return normalizeAdminDashboardPayload(response)
-    } catch (error: any) {
-      console.error('Error fetching admin dashboard:', error);
-      throw error;
+    const attempts: Array<{ label: string; run: () => Promise<AdminDashboardData> }> = [
+      {
+        label: '/dashboard/admin',
+        run: async () => {
+          const response = (await apiClient.get('/dashboard/admin', {
+            showSuccessToast: false,
+            showLoading: false,
+          })) as any
+          return normalizeAdminDashboardPayload(response)
+        },
+      },
+      {
+        label: '/dashboard/quick-stats',
+        run: async () => {
+          const response = (await apiClient.get('/dashboard/quick-stats', {
+            showSuccessToast: false,
+            showLoading: false,
+          })) as any
+          return normalizeAdminDashboardPayload(response)
+        },
+      },
+      {
+        label: '/orders/dashboard',
+        run: async () => {
+          const res = await api.get<{
+            recentOrders?: Array<Record<string, unknown>>
+            stats?: Record<string, unknown>
+          }>(`/orders/dashboard?limit=10`, {
+            showLoading: false,
+            showErrorToast: false,
+            showSuccessToast: false,
+          })
+          return adminDataFromOrdersDashboard(res)
+        },
+      },
+      {
+        label: '/orders/stats',
+        run: async () => {
+          const res = await api.get<OrderStatsResponse>('/orders/stats', {
+            showLoading: false,
+            showErrorToast: false,
+            showSuccessToast: false,
+          })
+          const inner = res.data
+          if (!inner) throw new Error('Empty order stats')
+          return normalizeAdminDashboardPayload({
+            stats: {
+              totalOrders: inner.totalOrders,
+              totalRevenue: inner.totalRevenue,
+              activeProviders: 0,
+              averageRating: 0,
+              revenueGrowth: 0,
+              ordersGrowth: 0,
+              providersGrowth: 0,
+              ratingChange: 0,
+            },
+            recentOrders: inner.recentOrders,
+          })
+        },
+      },
+    ]
+
+    let lastError: unknown
+    for (const { run } of attempts) {
+      try {
+        return await run()
+      } catch (e) {
+        lastError = e
+      }
     }
+    console.error('Error fetching admin dashboard (all fallbacks failed):', lastError)
+    throw lastError instanceof Error ? lastError : new Error('Dashboard unavailable')
   }
 
   /**

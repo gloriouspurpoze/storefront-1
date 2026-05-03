@@ -1,6 +1,7 @@
 /**
  * CRM REST client — fixer-backend `/api/crm/*`.
- * Enable with REACT_APP_CRM_USE_API=true (requires Mongo + seed permissions view_crm / manage_crm).
+ * Used whenever CRM runs in API mode (production builds, or dev with REACT_APP_CRM_USE_API=true).
+ * Requires Mongo + RBAC permissions view_crm / manage_crm.
  */
 import { store } from '../../store'
 import { apiClient } from '../apiClient'
@@ -17,8 +18,14 @@ const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api'
 type ApiEnvelope<T> = { success: boolean; data: T; message?: string }
 
 function unwrap<T>(body: ApiEnvelope<T> | T): T {
-  if (body && typeof body === 'object' && 'data' in body && (body as ApiEnvelope<T>).success !== false) {
-    return (body as ApiEnvelope<T>).data
+  if (body && typeof body === 'object' && 'success' in body) {
+    const e = body as ApiEnvelope<T>
+    if (e.success === false) {
+      throw new Error(e.message || 'CRM request failed')
+    }
+    if ('data' in e && e.data !== undefined) {
+      return e.data as T
+    }
   }
   return body as T
 }
@@ -70,7 +77,12 @@ export const crmApi = {
   async listContacts(): Promise<CrmContact[]> {
     return getJson<CrmContact[]>('/crm/contacts')
   },
-  async upsertContact(row: Partial<CrmContact> & { firstName: string; lastName: string; email: string }) {
+  /** Create requires firstName, lastName, email; updates may omit read-only identity fields per field policies. */
+  async upsertContact(
+    row:
+      | (Partial<CrmContact> & { id: string })
+      | (Partial<CrmContact> & { firstName: string; lastName: string; email: string }),
+  ) {
     if (row.id) {
       return sendJson<CrmContact>('PUT', `/crm/contacts/${row.id}`, row)
     }

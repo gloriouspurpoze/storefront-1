@@ -47,8 +47,8 @@ import {
   SelectValue,
 } from '../../components/ui/select'
 import { cn } from '../../lib/utils'
-
-const TYPES: CrmActivityType[] = ['call', 'email', 'meeting', 'task', 'note']
+import { ACTIVITY_TYPES_ORDERED, ACTIVITY_TYPE_LABELS } from '../../lib/crmNiche'
+import { CrmWhatsAppStaffPlaybook } from '../../components/crm/CrmWhatsAppStaffPlaybook'
 const STATUS_OPTS: CrmActivityStatus[] = ['open', 'done', 'cancelled']
 
 const emptySelection: GridRowSelectionModel = { type: 'include', ids: new Set() }
@@ -147,6 +147,21 @@ export function CrmActivities() {
     setOpen(true)
   }
 
+  const openCreateWhatsappOutcome = () => {
+    setEditing(null)
+    setForm({
+      subject: 'WhatsApp — ',
+      type: 'whatsapp',
+      status: 'open',
+      priority: 'normal',
+      dueAt: '',
+      relatedType: '',
+      relatedId: '',
+      body: '',
+    })
+    setOpen(true)
+  }
+
   const openEdit = useCallback((row: CrmActivity) => {
     setEditing(row)
     setForm({
@@ -203,7 +218,7 @@ export function CrmActivities() {
         width: 100,
         renderCell: (p) => (
           <Badge variant="outline" className="font-normal">
-            {String(p.value ?? '—')}
+            {ACTIVITY_TYPE_LABELS[p.row.type]}
           </Badge>
         ),
       },
@@ -309,7 +324,7 @@ export function CrmActivities() {
     <div className="p-4 md:p-6">
       <PageHeader
         title="Activities"
-        subtitle="Calls, tasks, and meetings — tied to deals and contacts."
+        subtitle="WhatsApp, calls, site visits, and tasks — tied to deals and contacts."
         action={
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" className="gap-1" onClick={() => crmService.downloadExport('activities')}>
@@ -317,19 +332,29 @@ export function CrmActivities() {
               Export CSV
             </Button>
             {canManage ? (
-              <Button size="sm" className="gap-1" onClick={openCreate}>
-                <Plus className="h-4 w-4" />
-                Log activity
-              </Button>
+              <>
+                <Button type="button" size="sm" variant="secondary" className="gap-1" onClick={openCreateWhatsappOutcome}>
+                  <Plus className="h-4 w-4" />
+                  Log WhatsApp outcome
+                </Button>
+                <Button size="sm" className="gap-1" onClick={openCreate}>
+                  <Plus className="h-4 w-4" />
+                  Log activity
+                </Button>
+              </>
             ) : null}
           </div>
         }
       />
       <CrmSubnav />
 
-      <p className="mb-4 text-sm text-muted-foreground">
-        Tasks past due are highlighted on the CRM overview as overdue work.
-      </p>
+      <div className="mb-4 space-y-3">
+        <CrmWhatsAppStaffPlaybook variant="compact" />
+        <p className="text-sm text-muted-foreground">
+          After a WhatsApp thread, use <strong className="text-foreground">Log WhatsApp outcome</strong>, link the activity to the contact or deal,
+          then mark the task done. Open tasks past due appear on the CRM overview.
+        </p>
+      </div>
 
       <CrmListToolbar qInput={qInput} onQChange={setQInput} searchPlaceholder="Search activities…">
         <div className="space-y-1.5">
@@ -340,9 +365,9 @@ export function CrmActivities() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All types</SelectItem>
-              {TYPES.map((t) => (
+              {ACTIVITY_TYPES_ORDERED.map((t) => (
                 <SelectItem key={t} value={t}>
-                  {t}
+                  {ACTIVITY_TYPE_LABELS[t]}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -384,9 +409,11 @@ export function CrmActivities() {
           <Card>
             <CrmEmptyState
               title="No activities yet"
-              description="Log calls, meetings, and tasks so your team keeps context in one place."
-              actionLabel={canManage ? 'Log activity' : undefined}
-              onAction={canManage ? openCreate : undefined}
+              description="Log WhatsApp follow-ups and calls against contacts or deals so the next shift sees the full story."
+              actionLabel={canManage ? 'Log WhatsApp outcome' : undefined}
+              onAction={canManage ? openCreateWhatsappOutcome : undefined}
+              secondaryActionLabel={canManage ? 'Log other activity' : undefined}
+              onSecondaryAction={canManage ? openCreate : undefined}
             />
           </Card>
         }
@@ -446,7 +473,9 @@ export function CrmActivities() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editing ? 'Edit activity' : 'Log activity'}</DialogTitle>
+            <DialogTitle>
+              {editing ? 'Edit activity' : form.type === 'whatsapp' ? 'Log WhatsApp outcome' : 'Log activity'}
+            </DialogTitle>
           </DialogHeader>
           <div className="flex max-h-[75vh] flex-col gap-3 overflow-y-auto py-1 pr-1">
             <div className="space-y-1.5">
@@ -464,13 +493,18 @@ export function CrmActivities() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {TYPES.map((t) => (
+                  {ACTIVITY_TYPES_ORDERED.map((t) => (
                     <SelectItem key={t} value={t}>
-                      {t}
+                      {ACTIVITY_TYPE_LABELS[t]}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {form.type === 'whatsapp' ? (
+                <p className="text-xs text-muted-foreground">
+                  Link this to the contact or deal. Add platform user / booking / order IDs on the contact record when the job exists in the app.
+                </p>
+              ) : null}
             </div>
             <div className="space-y-1.5">
               <Label>Status</Label>

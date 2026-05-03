@@ -7,9 +7,19 @@ type Props = {
   description?: string
   actionLabel?: string
   onAction?: () => void
+  /** Shown next to the primary action (e.g. generic “Log activity” beside “Log WhatsApp outcome”). */
+  secondaryActionLabel?: string
+  onSecondaryAction?: () => void
 }
 
-export function CrmEmptyState({ title, description, actionLabel, onAction }: Props) {
+export function CrmEmptyState({
+  title,
+  description,
+  actionLabel,
+  onAction,
+  secondaryActionLabel,
+  onSecondaryAction,
+}: Props) {
   return (
     <div className="flex min-h-[280px] flex-col items-center justify-center px-2 py-12 text-center">
       <Inbox className="mb-2 h-12 w-12 text-muted-foreground" aria-hidden />
@@ -18,9 +28,16 @@ export function CrmEmptyState({ title, description, actionLabel, onAction }: Pro
         <p className="mb-2 max-w-[420px] text-sm text-muted-foreground">{description}</p>
       ) : null}
       {actionLabel && onAction ? (
-        <Button type="button" onClick={onAction}>
-          {actionLabel}
-        </Button>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Button type="button" onClick={onAction}>
+            {actionLabel}
+          </Button>
+          {secondaryActionLabel && onSecondaryAction ? (
+            <Button type="button" variant="outline" onClick={onSecondaryAction}>
+              {secondaryActionLabel}
+            </Button>
+          ) : null}
+        </div>
       ) : null}
     </div>
   )

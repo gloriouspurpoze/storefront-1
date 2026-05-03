@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react'
-import { ChevronDown, Cloud, Link2, ListChecks, RefreshCw, Shield } from 'lucide-react'
+import React, { useCallback, useEffect, useState } from 'react'
+import { AlertCircle, CheckCircle2, Cloud, Link2, ListChecks, RefreshCw, Shield } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { CrmSubnav } from '../../components/crm/CrmSubnav'
+import { CrmWhatsAppStaffPlaybook } from '../../components/crm/CrmWhatsAppStaffPlaybook'
 import { crmApi } from '../../services/api/crm.api'
 import { crmService } from '../../services/api/crm.service'
 import { usePermissions } from '../../hooks/usePermissions'
-import { Card, CardContent } from '../../components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
 import { Textarea } from '../../components/ui/textarea'
 import {
@@ -20,17 +21,40 @@ import { cn } from '../../lib/utils'
 
 const ENTITY_OPTIONS = ['contact', 'company', 'deal', 'activity'] as const
 
-const PRODUCTION_LAUNCH_CHECKLIST: string[] = [
-  'Secrets: JWT and CRM_GOOGLE_* live only in the server environment or secrets manager — never in git or the browser bundle.',
-  'HTTPS everywhere for admin and API in production; OAuth redirect URIs must match backend CRM_GOOGLE_REDIRECT_URI exactly.',
-  'MongoDB: backups scheduled and a restore drill done; CRM collections included.',
-  'RBAC: run seed:crm-permissions (or equivalent); confirm view_crm / manage_crm on the right roles and test field masks for non-admins.',
-  'CORS: your admin origin is allowed to call REACT_APP_API_URL (see fixer-backend CORS / deployment docs).',
-  'Google Cloud: OAuth consent screen appropriate for production; Calendar + Gmail APIs enabled for the OAuth client.',
-  'Operations: monitor or rate-limit /api/crm and sync routes; alert on 5xx spikes.',
-  'Security: plan encryption at rest for Google refresh tokens in MongoDB if your policy requires it.',
-  'Compliance: document Gmail/calendar read access in your privacy policy; define CRM data retention.',
-  'Smoke test: create/edit contact, deal, activity; CSV export; field policies; Google connect + one calendar and one email sync.',
+/** Grouped go-live items — short lines for ops/security reviews before production. */
+const GO_LIVE_SECTIONS: { title: string; items: string[] }[] = [
+  {
+    title: 'API & data (MongoDB)',
+    items: [
+      'REACT_APP_API_URL points at production API; admin uses /api/crm only (no browser CRM store in production).',
+      'Mongo CRM collections match admin: contact lifecycle (inquiry→paid, partner_*), deal stages (inquiry→lost), activities (whatsapp, site_visit, …), optional platformUserId / platformBookingId / platformOrderId.',
+      'GET /crm/metrics returns paidThisMonth or legacy wonThisMonth; deal stage counts align with admin pipeline.',
+    ],
+  },
+  {
+    title: 'Security & access',
+    items: [
+      'JWT and CRM_GOOGLE_* only in server env or secrets manager — never in the client bundle or git.',
+      'HTTPS on admin and API; CRM_GOOGLE_REDIRECT_URI matches backend OAuth callback exactly.',
+      'RBAC: seed view_crm / manage_crm; test field masks for staff vs managers.',
+    ],
+  },
+  {
+    title: 'Google CRM sync (optional)',
+    items: [
+      'Google Cloud: OAuth consent appropriate for production; Calendar + Gmail APIs enabled.',
+      'Plan encryption at rest for refresh tokens if required by policy; document data retention.',
+    ],
+  },
+  {
+    title: 'Operations',
+    items: [
+      'CORS: admin origin allowed on the API (see fixer-backend CORS config).',
+      'Monitor /api/crm and sync routes; rate-limit or alert on 5xx.',
+      'Smoke test: contact/deal/activity CRUD, CSV export, field policies save, Google connect + one calendar/email sync.',
+      'WhatsApp ops: lead source WhatsApp, log WhatsApp activities after threads, paste platform user / booking / order IDs when the job exists.',
+    ],
+  },
 ]
 
 export function CrmSettings() {
@@ -40,24 +64,60 @@ export function CrmSettings() {
 
   const [status, setStatus] = useState<{
     googleConnected: boolean
+    calendarSyncEnabled?: boolean
+    emailSyncEnabled?: boolean
     lastCalendarSyncAt?: string
     lastEmailSyncAt?: string
   } | null>(null)
-  const [syncMsg, setSyncMsg] = useState<string | null>(null)
+  const [integrationError, setIntegrationError] = useState<string | null>(null)
+  const [policiesLoading, setPoliciesLoading] = useState(false)
+  const [policiesLoaded, setPoliciesLoaded] = useState(false)
+  const [policiesError, setPoliciesError] = useState<string | null>(null)
   const [rulesJson, setRulesJson] = useState('[]')
+  const [syncMsg, setSyncMsg] = useState<string | null>(null)
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' })
 
-  useEffect(() => {
-    if (!isApi || !canManage) return
+  const loadIntegrationStatus = useCallback(() => {
+    if (!isApi) return
+    setIntegrationError(null)
     crmApi
       .getIntegrationStatus()
-      .then(setStatus)
-      .catch(() => setStatus({ googleConnected: false }))
+      .then((s) => {
+        setStatus(s)
+        setIntegrationError(null)
+      })
+      .catch((e: unknown) => {
+        setStatus({ googleConnected: false })
+        setIntegrationError(e instanceof Error ? e.message : 'Could not load integration status')
+      })
+  }, [isApi])
+
+  const loadFieldPolicies = useCallback(() => {
+    if (!isApi || !canManage) return
+    setPoliciesLoading(true)
+    setPoliciesError(null)
     crmApi
       .getFieldPolicies()
-      .then((r) => setRulesJson(JSON.stringify(r.rules, null, 2)))
-      .catch(() => {})
+      .then((r) => {
+        setRulesJson(JSON.stringify(r.rules, null, 2))
+        setPoliciesError(null)
+      })
+      .catch((e: unknown) => {
+        setPoliciesError(e instanceof Error ? e.message : 'Could not load field policies (needs manage_crm and backend /crm/admin/field-policies)')
+      })
+      .finally(() => {
+        setPoliciesLoading(false)
+        setPoliciesLoaded(true)
+      })
   }, [isApi, canManage])
+
+  useEffect(() => {
+    loadIntegrationStatus()
+  }, [loadIntegrationStatus])
+
+  useEffect(() => {
+    loadFieldPolicies()
+  }, [loadFieldPolicies])
 
   useEffect(() => {
     if (!snackbar.open) return undefined
@@ -102,9 +162,16 @@ export function CrmSettings() {
 
   const savePolicies = async () => {
     try {
-      const rules = JSON.parse(rulesJson)
-      await crmApi.saveFieldPolicies(rules)
+      const parsed = JSON.parse(rulesJson) as unknown
+      if (!Array.isArray(parsed)) {
+        setSnackbar({ open: true, message: 'Field policies must be a JSON array of rule objects.', severity: 'error' })
+        return
+      }
+      await crmApi.saveFieldPolicies(
+        parsed as Array<{ roleKey: string; entity: string; field: string; read: boolean; write: boolean }>
+      )
       setSnackbar({ open: true, message: 'Field policies saved', severity: 'success' })
+      await loadFieldPolicies()
     } catch (e: unknown) {
       setSnackbar({
         open: true,
@@ -119,116 +186,213 @@ export function CrmSettings() {
     if (q === 'connected') {
       setSnackbar({ open: true, message: 'Google connected for CRM sync', severity: 'success' })
       window.history.replaceState({}, '', '/crm/settings')
+      loadIntegrationStatus()
     } else if (q === 'error') {
       setSnackbar({ open: true, message: 'Google connection failed', severity: 'error' })
       window.history.replaceState({}, '', '/crm/settings')
     }
-  }, [])
+  }, [loadIntegrationStatus])
 
   return (
     <div className="p-4 md:p-6">
       <PageHeader
         title="CRM settings"
-        subtitle="Google Calendar & Gmail sync, and server-side field policies (API mode)."
+        subtitle="Google Calendar & Gmail sync, field-level permissions, and go-live checklist — all backed by fixer-backend when CRM API mode is on."
       />
       <CrmSubnav />
 
-      <details className="mb-4 rounded-md border group">
-        <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-3 text-sm font-semibold [&::-webkit-details-marker]:hidden">
-          <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
-          <ListChecks className="h-4 w-4 text-muted-foreground" />
-          Production launch checklist (internal)
-        </summary>
-        <div className="border-t px-3 pb-4 pt-0">
-          <p className="mb-3 text-sm text-muted-foreground">
-            Use before go-live. Full env notes live in <code className="rounded bg-muted px-1 py-0.5 text-xs">.env.example</code> (CRM section).
-          </p>
-          <ul className="list-inside list-disc space-y-2 pl-0.5 text-sm text-muted-foreground">
-            {PRODUCTION_LAUNCH_CHECKLIST.map((line) => (
-              <li key={line.slice(0, 48)}>{line}</li>
-            ))}
-          </ul>
-        </div>
-      </details>
+      <div className="mb-6">
+        <CrmWhatsAppStaffPlaybook variant="compact" />
+      </div>
 
-      {!isApi && (
+      <Card className="mb-6 border-dashed">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <ListChecks className="h-5 w-5 text-muted-foreground" aria-hidden />
+            <CardTitle className="text-base">Pre-production checklist</CardTitle>
+          </div>
+          <CardDescription>
+            Review before launch. Env reference: <code className="rounded bg-muted px-1 py-0.5 text-xs">.env.example</code> (CRM section).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5 pt-0">
+          {GO_LIVE_SECTIONS.map((section) => (
+            <div key={section.title}>
+              <h3 className="mb-2 text-sm font-semibold text-foreground">{section.title}</h3>
+              <ul className="list-inside list-disc space-y-1.5 text-sm text-muted-foreground">
+                {section.items.map((item, idx) => (
+                  <li key={`${section.title}-${idx}`}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <div
+        role="status"
+        className={cn(
+          'mb-4 rounded-md border px-4 py-3 text-sm',
+          isApi
+            ? 'border-emerald-600/40 bg-emerald-600/10 text-emerald-950 dark:text-emerald-100'
+            : 'border-amber-600/40 bg-amber-600/10 text-amber-950 dark:text-amber-100',
+        )}
+      >
+        {isApi ? (
+          <>
+            <strong>API mode on.</strong> CRM reads and writes MongoDB via <code className="rounded bg-background/60 px-1 text-xs">/api/crm</code>.
+            Metrics use job-style deal stages; backend may return <code className="rounded bg-background/60 px-1 text-xs">paidThisMonth</code> or
+            legacy <code className="rounded bg-background/60 px-1 text-xs">wonThisMonth</code> — the admin normalizes both.
+          </>
+        ) : (
+          <>
+            <strong>Local CRM demo.</strong> Set <code className="rounded bg-background/60 px-1 text-xs">REACT_APP_CRM_USE_API=true</code> and a
+            valid <code className="rounded bg-background/60 px-1 text-xs">REACT_APP_API_URL</code> for Mongo-backed settings and integrations (
+            <code className="rounded bg-background/60 px-1 text-xs">.env.example</code>).
+          </>
+        )}
+      </div>
+
+      {!isApi ? (
         <div
-          role="status"
-          className="mb-4 rounded-md border border-sky-500/40 bg-sky-500/10 px-4 py-3 text-sm text-sky-900 dark:text-sky-100"
+          role="alert"
+          className="mb-6 flex gap-3 rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive"
         >
-          Set <code className="rounded bg-background/60 px-1">REACT_APP_CRM_USE_API=true</code> and point{' '}
-          <code className="rounded bg-background/60 px-1">REACT_APP_API_URL</code> at your fixer-backend
-          <code className="rounded bg-background/60 px-1">/api</code> to enable integrations and field-level permissions from MongoDB.
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+          <div>
+            <p className="font-semibold">Integrations unavailable</p>
+            <p className="mt-1 text-destructive/90">
+              Google sync and field policies require CRM API mode. Enable{' '}
+              <code className="rounded bg-background/60 px-1 text-xs">REACT_APP_CRM_USE_API=true</code> and restart the dev server, then reload this
+              page.
+            </p>
+          </div>
         </div>
-      )}
+      ) : null}
 
-      {isApi && (
+      {isApi ? (
         <>
           <Card className="mb-6">
             <CardContent className="pt-6">
-              <div className="mb-2 flex items-center gap-2">
-                <Link2 className="h-5 w-5 text-primary" />
-                <h2 className="text-lg font-semibold">Email &amp; calendar sync (Google)</h2>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Link2 className="h-5 w-5 text-primary" aria-hidden />
+                  <h2 className="text-lg font-semibold">Email &amp; calendar sync (Google)</h2>
+                </div>
+                <Button type="button" variant="outline" size="sm" className="gap-1" onClick={() => loadIntegrationStatus()}>
+                  <RefreshCw className="h-4 w-4" />
+                  Refresh status
+                </Button>
               </div>
               <p className="mb-4 text-sm text-muted-foreground">
-                Connect a Google workspace account with Calendar + Gmail read-only. Sync creates CRM activities (meetings from calendar; email
-                subjects as notes). Configure OAuth in the backend env: <code className="rounded bg-muted px-1 text-xs">CRM_GOOGLE_CLIENT_ID</code>
-                , <code className="rounded bg-muted px-1 text-xs">CRM_GOOGLE_CLIENT_SECRET</code>,{' '}
+                Connect a Google account (Calendar + Gmail read). Backend env:{' '}
+                <code className="rounded bg-muted px-1 text-xs">CRM_GOOGLE_CLIENT_ID</code>,{' '}
+                <code className="rounded bg-muted px-1 text-xs">CRM_GOOGLE_CLIENT_SECRET</code>,{' '}
                 <code className="rounded bg-muted px-1 text-xs">CRM_GOOGLE_REDIRECT_URI</code>.
               </p>
-              {status && (
-                <p className="mb-4 text-sm">
-                  Status: {status.googleConnected ? 'Connected' : 'Not connected'}
-                  {status.lastCalendarSyncAt && (
-                    <> · Last calendar sync: {new Date(status.lastCalendarSyncAt).toLocaleString()}</>
-                  )}
-                  {status.lastEmailSyncAt && <> · Last email sync: {new Date(status.lastEmailSyncAt).toLocaleString()}</>}
-                </p>
-              )}
-              {syncMsg && (
+              {integrationError ? (
+                <div
+                  role="alert"
+                  className="mb-4 flex gap-3 rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+                >
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                  <div>
+                    <p className="font-semibold">Could not load status</p>
+                    <p className="mt-1 text-destructive/90">{integrationError}</p>
+                  </div>
+                </div>
+              ) : null}
+              {status && !integrationError ? (
+                <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
+                  <CheckCircle2
+                    className={cn('h-4 w-4 shrink-0', status.googleConnected ? 'text-emerald-600' : 'text-muted-foreground')}
+                    aria-hidden
+                  />
+                  <span>
+                    Google: <strong>{status.googleConnected ? 'Connected' : 'Not connected'}</strong>
+                    {status.lastCalendarSyncAt && (
+                      <> · Last calendar sync: {new Date(status.lastCalendarSyncAt).toLocaleString()}</>
+                    )}
+                    {status.lastEmailSyncAt && <> · Last email sync: {new Date(status.lastEmailSyncAt).toLocaleString()}</>}
+                  </span>
+                </div>
+              ) : null}
+              {!status && !integrationError ? (
+                <p className="mb-4 text-sm text-muted-foreground">Loading integration status…</p>
+              ) : null}
+              {syncMsg ? (
                 <div
                   role="status"
                   className="mb-4 rounded-md border border-sky-500/40 bg-sky-500/10 px-4 py-2 text-sm text-sky-900 dark:text-sky-100"
                 >
                   {syncMsg}
                 </div>
-              )}
+              ) : null}
               {canManage ? (
                 <div className="flex flex-wrap gap-2">
-                  <Button className="gap-1" onClick={connectGoogle}>
+                  <Button type="button" className="gap-1" onClick={() => void connectGoogle()}>
                     <Link2 className="h-4 w-4" />
                     Connect Google
                   </Button>
-                  <Button variant="outline" className="gap-1" onClick={runCalendar}>
+                  <Button type="button" variant="outline" className="gap-1" onClick={() => void runCalendar()}>
                     <Cloud className="h-4 w-4" />
                     Sync calendar
                   </Button>
-                  <Button variant="outline" className="gap-1" onClick={runEmail}>
+                  <Button type="button" variant="outline" className="gap-1" onClick={() => void runEmail()}>
                     <RefreshCw className="h-4 w-4" />
                     Sync email
                   </Button>
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">Manage CRM permission required to connect and sync.</p>
+                <p className="text-sm text-muted-foreground">
+                  <strong>manage_crm</strong> is required to connect Google and run sync. You can still view status with <strong>view_crm</strong>.
+                </p>
               )}
             </CardContent>
           </Card>
 
           <Card className="mb-6">
             <CardContent className="pt-6">
-              <div className="mb-2 flex items-center gap-2">
-                <Shield className="h-5 w-5 text-primary" />
-                <h2 className="text-lg font-semibold">Field-level permissions</h2>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-primary" aria-hidden />
+                  <h2 className="text-lg font-semibold">Field-level permissions</h2>
+                </div>
+                {canManage ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-1"
+                    disabled={policiesLoading}
+                    onClick={() => void loadFieldPolicies()}
+                  >
+                    <RefreshCw className={cn('h-4 w-4', policiesLoading && 'animate-spin')} />
+                    Reload from server
+                  </Button>
+                ) : null}
               </div>
               <p className="mb-4 text-sm text-muted-foreground">
                 Rules match <code className="rounded bg-muted px-1 text-xs">roleKey</code> to the user&apos;s MongoDB Role name (or{' '}
                 <code className="rounded bg-muted px-1 text-xs">userType</code> if no role). Users with{' '}
-                <code className="rounded bg-muted px-1 text-xs">manage_crm</code> bypass all field restrictions. Default for others: read all, write
-                none — add rules to open specific fields per role.
+                <code className="rounded bg-muted px-1 text-xs">manage_crm</code> bypass field restrictions. Default for others: read all, write
+                none — add rules to allow writes per role.
               </p>
               <p className="mb-2 text-xs text-muted-foreground">
-                Entities: {ENTITY_OPTIONS.join(', ')} · Example field keys: email, phone, notes, amount…
+                Entities: {ENTITY_OPTIONS.join(', ')} · Include niche fields (e.g. locality, platformUserId) in rules if you mask them.
               </p>
+              {policiesError ? (
+                <div
+                  role="alert"
+                  className="mb-4 flex gap-3 rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+                >
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                  <div>
+                    <p className="font-semibold">Could not load policies</p>
+                    <p className="mt-1 text-destructive/90">{policiesError}</p>
+                  </div>
+                </div>
+              ) : null}
               {canManage ? (
                 <>
                   <Textarea
@@ -236,19 +400,23 @@ export function CrmSettings() {
                     onChange={(e) => setRulesJson(e.target.value)}
                     rows={14}
                     className="font-mono text-[13px]"
+                    disabled={policiesLoading}
+                    placeholder={policiesLoaded && !policiesError ? undefined : 'Loading rules…'}
                   />
-                  <Button className="mt-4" onClick={savePolicies}>
+                  <Button type="button" className="mt-4" disabled={policiesLoading} onClick={() => void savePolicies()}>
                     Save policies
                   </Button>
                 </>
               ) : (
-                <p className="text-sm">View-only — field policy editing requires manage_crm.</p>
+                <p className="text-sm text-muted-foreground">
+                  Policy JSON editing requires <strong>manage_crm</strong>. Ask an admin to adjust rules or grant permission.
+                </p>
               )}
             </CardContent>
           </Card>
 
           <div className="rounded-md border p-4">
-            <h3 className="mb-3 text-sm font-semibold">Rule shape</h3>
+            <h3 className="mb-3 text-sm font-semibold">Rule shape (example)</h3>
             <div className="w-full overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -262,7 +430,7 @@ export function CrmSettings() {
                 </TableHeader>
                 <TableBody>
                   <TableRow>
-                    <TableCell>moderator</TableCell>
+                    <TableCell>staff</TableCell>
                     <TableCell>contact</TableCell>
                     <TableCell>email</TableCell>
                     <TableCell>true</TableCell>
@@ -273,13 +441,13 @@ export function CrmSettings() {
             </div>
           </div>
         </>
-      )}
+      ) : null}
 
       {snackbar.open ? (
         <div
           role="status"
           className={cn(
-            'fixed bottom-4 left-1/2 z-[200] w-[min(100%,20rem)] -translate-x-1/2 rounded-md border px-4 py-2 text-sm shadow-md',
+            'fixed bottom-4 left-1/2 z-[200] w-[min(100%,24rem)] -translate-x-1/2 rounded-md border px-4 py-2 text-sm shadow-md',
             snackbar.severity === 'error'
               ? 'border-destructive bg-destructive text-destructive-foreground'
               : 'border-emerald-600 bg-emerald-600 text-white',

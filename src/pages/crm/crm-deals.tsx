@@ -21,6 +21,7 @@ import { usePermissions } from '../../hooks/usePermissions'
 import { useCrmSearchParam } from '../../hooks/useCrmUrlFilters'
 import { activitiesForDeal, filterDeals } from '../../utils/crmFilters'
 import type { CrmActivity, CrmCompany, CrmContact, CrmDeal, CrmDealStage } from '../../types/crm.types'
+import { DEAL_PIPELINE_STAGES, DEAL_STAGE_LABELS } from '../../lib/crmNiche'
 import { formatMoneyAmount, APP_CURRENCY } from '../../lib/utils'
 import { Card, CardContent } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
@@ -44,16 +45,7 @@ import {
 } from '../../components/ui/select'
 import { cn } from '../../lib/utils'
 
-const STAGES: CrmDealStage[] = ['lead', 'qualified', 'proposal', 'negotiation', 'won', 'lost']
-
-const STAGE_LABELS: Record<CrmDealStage, string> = {
-  lead: 'Lead',
-  qualified: 'Qualified',
-  proposal: 'Proposal',
-  negotiation: 'Negotiation',
-  won: 'Won',
-  lost: 'Lost',
-}
+const STAGES = DEAL_PIPELINE_STAGES
 
 const emptySelection: GridRowSelectionModel = { type: 'include', ids: new Set() }
 
@@ -137,12 +129,16 @@ export function CrmDeals() {
     name: '',
     amount: 0,
     currency: 'INR',
-    stage: 'lead' as CrmDealStage,
+    stage: 'inquiry' as CrmDealStage,
     probability: 10,
     companyId: '' as string | undefined,
     primaryContactId: '' as string | undefined,
     expectedCloseDate: '',
     notes: '',
+    locality: '',
+    serviceCategory: '',
+    platformBookingId: '',
+    platformOrderId: '',
   })
 
   const openCreate = () => {
@@ -151,12 +147,16 @@ export function CrmDeals() {
       name: '',
       amount: 0,
       currency: 'INR',
-      stage: 'lead',
+      stage: 'inquiry',
       probability: 10,
       companyId: undefined,
       primaryContactId: undefined,
       expectedCloseDate: '',
       notes: '',
+      locality: '',
+      serviceCategory: '',
+      platformBookingId: '',
+      platformOrderId: '',
     })
     setOpen(true)
   }
@@ -173,6 +173,10 @@ export function CrmDeals() {
       primaryContactId: row.primaryContactId,
       expectedCloseDate: row.expectedCloseDate?.slice(0, 10) ?? '',
       notes: row.notes ?? '',
+      locality: row.locality ?? '',
+      serviceCategory: row.serviceCategory ?? '',
+      platformBookingId: row.platformBookingId ?? '',
+      platformOrderId: row.platformOrderId ?? '',
     })
     setOpen(true)
   }, [])
@@ -187,16 +191,8 @@ export function CrmDeals() {
       setRows((r) => r.map((d) => (d.id === dealId ? { ...d, stage: newStage } : d)))
       try {
         await crmService.upsertDeal({
-          id: deal.id,
-          name: deal.name,
-          amount: deal.amount,
-          currency: deal.currency,
+          ...deal,
           stage: newStage,
-          probability: deal.probability,
-          companyId: deal.companyId,
-          primaryContactId: deal.primaryContactId,
-          expectedCloseDate: deal.expectedCloseDate,
-          notes: deal.notes,
         })
         setSnackbar({ open: true, message: 'Stage updated', severity: 'success' })
       } catch {
@@ -237,7 +233,7 @@ export function CrmDeals() {
         field: 'stage',
         headerName: 'Stage',
         width: 130,
-        renderCell: (p) => <Badge className="font-normal">{STAGE_LABELS[p.row.stage]}</Badge>,
+        renderCell: (p) => <Badge className="font-normal">{DEAL_STAGE_LABELS[p.row.stage]}</Badge>,
       },
       { field: 'probability', headerName: '%', width: 70 },
       {
@@ -305,7 +301,7 @@ export function CrmDeals() {
     <div className="p-4 md:p-6">
       <PageHeader
         title="Deals"
-        subtitle="Opportunity pipeline with weighted value and expected close dates."
+        subtitle="Job and contract pipeline (quote → scheduled → paid) — weighted value and expected close."
         action={
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex gap-1">
@@ -342,7 +338,7 @@ export function CrmDeals() {
               <SelectItem value="all">All stages</SelectItem>
               {STAGES.map((s) => (
                 <SelectItem key={s} value={s}>
-                  {STAGE_LABELS[s]}
+                  {DEAL_STAGE_LABELS[s]}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -404,7 +400,7 @@ export function CrmDeals() {
         ) : (
           <CrmDealPipelineBoard
             stages={STAGES}
-            stageLabels={STAGE_LABELS}
+            stageLabels={DEAL_STAGE_LABELS}
             deals={filteredRows}
             canManage={canManage}
             formatMoney={formatMoneyAmount}
@@ -461,7 +457,7 @@ export function CrmDeals() {
       />
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{editing ? 'Edit deal' : 'New deal'}</DialogTitle>
           </DialogHeader>
@@ -500,7 +496,7 @@ export function CrmDeals() {
                 <SelectContent>
                   {STAGES.map((s) => (
                     <SelectItem key={s} value={s}>
-                      {STAGE_LABELS[s]}
+                      {DEAL_STAGE_LABELS[s]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -518,13 +514,30 @@ export function CrmDeals() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Company</Label>
+              <Label htmlFor="dl-locality">Locality</Label>
+              <Input
+                id="dl-locality"
+                value={form.locality}
+                onChange={(e) => setForm((f) => ({ ...f, locality: e.target.value }))}
+                placeholder="e.g. Powai"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="dl-svc">Service category</Label>
+              <Input
+                id="dl-svc"
+                value={form.serviceCategory}
+                onChange={(e) => setForm((f) => ({ ...f, serviceCategory: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>B2B account</Label>
               <Select
                 value={form.companyId ?? 'none'}
                 onValueChange={(v) => setForm((f) => ({ ...f, companyId: v === 'none' ? undefined : v }))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Company" />
+                  <SelectValue placeholder="B2B account" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
@@ -565,6 +578,24 @@ export function CrmDeals() {
               />
             </div>
             <div className="space-y-1.5">
+              <Label htmlFor="dl-pbid">Platform booking ID</Label>
+              <Input
+                id="dl-pbid"
+                value={form.platformBookingId}
+                onChange={(e) => setForm((f) => ({ ...f, platformBookingId: e.target.value }))}
+                placeholder="Optional"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="dl-poid">Platform order ID</Label>
+              <Input
+                id="dl-poid"
+                value={form.platformOrderId}
+                onChange={(e) => setForm((f) => ({ ...f, platformOrderId: e.target.value }))}
+                placeholder="Optional"
+              />
+            </div>
+            <div className="space-y-1.5">
               <Label htmlFor="dl-notes">Notes</Label>
               <Textarea
                 id="dl-notes"
@@ -598,6 +629,10 @@ export function CrmDeals() {
                       primaryContactId: form.primaryContactId,
                       expectedCloseDate: form.expectedCloseDate || undefined,
                       notes: form.notes || undefined,
+                      locality: form.locality || undefined,
+                      serviceCategory: form.serviceCategory || undefined,
+                      platformBookingId: form.platformBookingId.trim() || undefined,
+                      platformOrderId: form.platformOrderId.trim() || undefined,
                     })
                     setOpen(false)
                     refresh()

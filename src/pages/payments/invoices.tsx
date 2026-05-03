@@ -539,6 +539,9 @@ export function Invoices() {
         icon={<ReceiptIcon />}
         action={
           <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" justifyContent="flex-end">
+            <Button variant="outlined" onClick={() => navigate('/invoices/branding')}>
+              Invoice appearance
+            </Button>
             <Button
               variant="outlined"
               onClick={() => {

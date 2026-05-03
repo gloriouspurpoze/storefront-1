@@ -1,23 +1,45 @@
-/** CRM domain model — aligns with common B2B CRM objects (Salesforce/HubSpot-style). */
+/**
+ * CRM domain for ProFixer.in admin: home services pipeline + optional B2B accounts + partner onboarding.
+ *
+ * Users / Bookings / Orders in fixer-backend are canonical; link CRM rows via platform* IDs when known.
+ */
 
 export type CrmDealStage =
-  | 'lead'
-  | 'qualified'
-  | 'proposal'
-  | 'negotiation'
-  | 'won'
+  | 'inquiry'
+  | 'quoted'
+  | 'scheduled'
+  | 'in_progress'
+  | 'completed'
+  | 'paid'
   | 'lost'
 
+/** Homeowner job journey + repeat/churn + partner states */
 export type CrmContactLifecycle =
-  | 'subscriber'
-  | 'lead'
-  | 'mql'
-  | 'sql'
-  | 'opportunity'
-  | 'customer'
+  | 'inquiry'
+  | 'quoted'
+  | 'scheduled'
+  | 'in_progress'
+  | 'completed'
+  | 'paid'
+  | 'repeat_customer'
   | 'churned'
+  | 'partner_applied'
+  | 'partner_verification'
+  | 'partner_active'
+  | 'partner_suspended'
+  | 'partner_churned'
 
-export type CrmActivityType = 'call' | 'email' | 'meeting' | 'task' | 'note'
+export type CrmRecordType = 'customer' | 'partner' | 'b2b_account'
+
+export type CrmActivityType =
+  | 'call'
+  | 'email'
+  | 'meeting'
+  | 'task'
+  | 'note'
+  | 'whatsapp'
+  | 'sms'
+  | 'site_visit'
 
 export type CrmActivityStatus = 'open' | 'done' | 'cancelled'
 
@@ -41,10 +63,13 @@ export interface CrmCompany {
 
 export interface CrmContact {
   id: string
+  /** customer | partner | b2b_account — drives which lifecycle options are typical */
+  recordType?: CrmRecordType
   firstName: string
   lastName: string
   email: string
   phone?: string
+  /** Optional; often blank for B2C homeowners */
   jobTitle?: string
   companyId?: string
   lifecycle: CrmContactLifecycle
@@ -52,6 +77,15 @@ export interface CrmContact {
   ownerId?: string
   tags?: string[]
   notes?: string
+  /** Link to platform user when this CRM row mirrors a registered customer */
+  platformUserId?: string
+  /** Active or recent booking tied to this conversation */
+  platformBookingId?: string
+  /** Commerce order / job payment context */
+  platformOrderId?: string
+  locality?: string
+  addressLine?: string
+  serviceCategory?: string
   createdAt: string
   updatedAt: string
 }
@@ -68,6 +102,10 @@ export interface CrmDeal {
   ownerId?: string
   expectedCloseDate?: string
   notes?: string
+  platformBookingId?: string
+  platformOrderId?: string
+  locality?: string
+  serviceCategory?: string
   createdAt: string
   updatedAt: string
 }
@@ -92,7 +130,8 @@ export interface CrmMetrics {
   pipelineValue: number
   weightedPipeline: number
   openDeals: number
-  wonThisMonth: number
+  /** Deals marked paid this calendar month */
+  paidThisMonth: number
   activeLeads: number
   overdueTasks: number
   dealsByStage: Record<CrmDealStage, number>

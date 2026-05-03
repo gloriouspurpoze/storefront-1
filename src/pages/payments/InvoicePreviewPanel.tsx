@@ -1,7 +1,23 @@
 import React from 'react'
-import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, Divider, Chip, Stack, useTheme } from '@mui/material'
+import {
+  Box,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
+  Divider,
+  Chip,
+  Stack,
+  useTheme,
+} from '@mui/material'
+import { alpha } from '@mui/material/styles'
 import { PictureAsPdf as PdfIcon, Verified as VerifiedIcon } from '@mui/icons-material'
 import type { LineComputed } from './invoicePreviewData'
+import type { InvoiceBranding } from '../../lib/invoiceBranding'
 
 const ru = (n: number) =>
   n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -29,6 +45,8 @@ export type InvoicePreviewPanelProps = {
   companyHint?: string
   /** e.g. “Pro forma — matches server PDF layout” */
   mode?: 'proforma' | 'final'
+  /** Custom logo, colours, supplier block — from Invoice branding settings */
+  branding?: InvoiceBranding | null
 }
 
 /**
@@ -56,11 +74,16 @@ export function InvoicePreviewPanel({
   companyStateLabel,
   companyHint = 'Legal name, full address & company GSTIN appear on the official PDF (server / company settings).',
   mode = 'proforma',
+  branding,
 }: InvoicePreviewPanelProps) {
   const theme = useTheme()
   const cgst = isInterState ? 0 : totalTax / 2
   const sgst = isInterState ? 0 : totalTax / 2
   const igst = isInterState ? totalTax : 0
+
+  const primary = branding?.primaryColor ?? theme.palette.primary.main
+  const accent = branding?.accentColor ?? theme.palette.primary.dark
+  const docTitle = branding?.documentTitle?.trim() || 'TAX INVOICE'
 
   return (
     <Paper
@@ -68,7 +91,7 @@ export function InvoicePreviewPanel({
       sx={{
         p: { xs: 2, sm: 3, md: 4 },
         border: '1px solid',
-        borderColor: 'divider',
+        borderColor: branding ? alpha(primary, 0.35) : 'divider',
         borderRadius: 1,
         bgcolor: 'background.paper',
         maxWidth: 900,
@@ -78,19 +101,48 @@ export function InvoicePreviewPanel({
       }}
     >
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2} flexWrap="wrap" sx={{ mb: 2 }}>
-        <Box>
-          <Typography
-            variant="h5"
-            sx={{ fontWeight: 700, letterSpacing: '0.04em', color: 'primary.main' }}
-          >
-            TAX INVOICE
-          </Typography>
-          <Typography variant="caption" color="text.secondary" display="block">
-            {mode === 'proforma' ? 'Preview — for review before issue' : 'Original for recipient'}
-          </Typography>
-        </Box>
+        <Stack direction="row" spacing={2} alignItems="flex-start">
+          {branding?.showLogo && branding.logoDataUrl && (
+            <Box
+              component="img"
+              src={branding.logoDataUrl}
+              alt=""
+              sx={{
+                maxHeight: 56,
+                maxWidth: 180,
+                width: 'auto',
+                height: 'auto',
+                objectFit: 'contain',
+              }}
+            />
+          )}
+          <Box>
+            <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: '0.04em', color: primary }}>
+              {docTitle}
+            </Typography>
+            {branding?.tagline ? (
+              <Typography variant="caption" color="text.secondary" display="block">
+                {branding.tagline}
+              </Typography>
+            ) : (
+              <Typography variant="caption" color="text.secondary" display="block">
+                {mode === 'proforma' ? 'Preview — for review before issue' : 'Original for recipient'}
+              </Typography>
+            )}
+          </Box>
+        </Stack>
         <Stack alignItems="flex-end" spacing={0.5}>
-          <Chip size="small" icon={<VerifiedIcon sx={{ '&&': { fontSize: 16 } }} />} label={documentTypeLabel} color="primary" variant="outlined" />
+          <Chip
+            size="small"
+            icon={<VerifiedIcon sx={{ '&&': { fontSize: 16 } }} />}
+            label={documentTypeLabel}
+            variant="outlined"
+            sx={{
+              borderColor: alpha(primary, 0.55),
+              color: primary,
+              '& .MuiChip-icon': { color: primary },
+            }}
+          />
           <Stack direction="row" alignItems="center" spacing={0.5} color="text.secondary">
             <PdfIcon sx={{ fontSize: 18 }} />
             <Typography variant="caption">Number & date are assigned on issue</Typography>
@@ -139,28 +191,107 @@ export function InvoicePreviewPanel({
           </Stack>
         }
         right={
-          <Box
-            sx={{
-              p: 1.5,
-              borderRadius: 1,
-              bgcolor: (t) => (t.palette.mode === 'dark' ? 'grey.900' : 'grey.50'),
-              border: '1px dashed',
-              borderColor: 'divider',
-            }}
-          >
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
-              {companyHint}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Invoices you issue use the same PDF engine as online orders and service bookings
-              (fixer-backend <code style={{ fontSize: '0.8em' }}>PDFService</code> / company config).
-            </Typography>
-          </Box>
+          branding ? (
+            <Box
+              sx={{
+                p: 1.5,
+                borderRadius: 1,
+                bgcolor: alpha(primary, theme.palette.mode === 'dark' ? 0.12 : 0.06),
+                border: `1px solid ${alpha(primary, 0.25)}`,
+              }}
+            >
+              <Typography variant="subtitle1" fontWeight={700} sx={{ color: primary }}>
+                {branding.companyDisplayName}
+              </Typography>
+              {branding.companyLegalName && branding.companyLegalName !== branding.companyDisplayName && (
+                <Typography variant="caption" color="text.secondary" display="block">
+                  {branding.companyLegalName}
+                </Typography>
+              )}
+              {(branding.supplierAddressLines.length > 0
+                ? branding.supplierAddressLines
+                : ['Add registered address in Invoice appearance']
+              ).map((l, i) => (
+                <Typography key={i} variant="body2" color="text.secondary">
+                  {l}
+                </Typography>
+              ))}
+              {branding.supplierPhone && (
+                <Typography variant="body2" sx={{ mt: 0.5 }}>
+                  Ph: {branding.supplierPhone}
+                </Typography>
+              )}
+              {branding.supplierEmail && (
+                <Typography variant="body2" color="text.secondary">
+                  {branding.supplierEmail}
+                </Typography>
+              )}
+              {branding.supplierWebsite && (
+                <Typography variant="body2" color="text.secondary">
+                  {branding.supplierWebsite}
+                </Typography>
+              )}
+              {branding.supplierGstin && (
+                <Typography variant="body2" sx={{ mt: 0.75 }}>
+                  GSTIN: <strong>{branding.supplierGstin}</strong>
+                </Typography>
+              )}
+              {branding.supplierPan && (
+                <Typography variant="body2" color="text.secondary">
+                  PAN: {branding.supplierPan}
+                </Typography>
+              )}
+              {branding.bankDetails?.trim() && (
+                <Typography
+                  variant="caption"
+                  component="pre"
+                  sx={{
+                    mt: 1,
+                    p: 1,
+                    borderRadius: 1,
+                    bgcolor: 'action.hover',
+                    whiteSpace: 'pre-wrap',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  {branding.bankDetails.trim()}
+                </Typography>
+              )}
+            </Box>
+          ) : (
+            <Box
+              sx={{
+                p: 1.5,
+                borderRadius: 1,
+                bgcolor: (t) => (t.palette.mode === 'dark' ? 'grey.900' : 'grey.50'),
+                border: '1px dashed',
+                borderColor: 'divider',
+              }}
+            >
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+                {companyHint}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Invoices you issue use the same PDF engine as online orders and service bookings
+                (fixer-backend <code style={{ fontSize: '0.8em' }}>PDFService</code> / company config). Customize logo
+                & colours in <strong>Invoices → Invoice appearance</strong>.
+              </Typography>
+            </Box>
+          )
         }
       />
 
       <TableContainer sx={{ my: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
-        <Table size="small" sx={{ '& th': { fontWeight: 700, bgcolor: 'action.hover' } }}>
+        <Table
+          size="small"
+          sx={{
+            '& th': {
+              fontWeight: 700,
+              bgcolor: branding ? alpha(primary, 0.1) : 'action.hover',
+              color: branding ? primary : undefined,
+            },
+          }}
+        >
           <TableHead>
             <TableRow>
               <TableCell width="5%">#</TableCell>
@@ -237,7 +368,7 @@ export function InvoicePreviewPanel({
         )}
         {discount > 0 && <Row label="Less: discount / adjustment" value={`−${ru(discount)}`} />}
         <Divider sx={{ width: '100%', my: 0.5 }} />
-        <Row label="Net payable (INR)" value={ru(grandTotal)} large />
+        <Row label="Net payable (INR)" value={ru(grandTotal)} large accentColor={accent} />
       </Stack>
 
       {(paymentMethod || notes) && (
@@ -255,15 +386,35 @@ export function InvoicePreviewPanel({
         </Box>
       )}
 
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2, textAlign: 'center' }}>
-        Amounts follow server calculation: per-line 18% GST, then discount applied to grand total. For queries, see
-        fixer-backend InvoiceService.
-      </Typography>
+      {branding?.footerNote?.trim() && (
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2, textAlign: 'center', whiteSpace: 'pre-wrap' }}>
+          {branding.footerNote.trim()}
+        </Typography>
+      )}
+      {!branding?.footerNote?.trim() && (
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2, textAlign: 'center' }}>
+          Amounts follow server calculation: per-line 18% GST, then discount applied to grand total.
+        </Typography>
+      )}
     </Paper>
   )
 }
 
-function Row({ label, value, large, muted, bold }: { label: string; value: string; large?: boolean; muted?: boolean; bold?: boolean }) {
+function Row({
+  label,
+  value,
+  large,
+  muted,
+  bold,
+  accentColor,
+}: {
+  label: string
+  value: string
+  large?: boolean
+  muted?: boolean
+  bold?: boolean
+  accentColor?: string
+}) {
   return (
     <Stack direction="row" justifyContent="space-between" width="100%" alignItems="baseline" spacing={2}>
       <Typography variant={large ? 'subtitle1' : 'body2'} color={muted ? 'text.secondary' : 'text.primary'} fontWeight={bold === false ? 400 : 600}>
@@ -272,8 +423,10 @@ function Row({ label, value, large, muted, bold }: { label: string; value: strin
       <Typography
         variant={large ? 'h6' : 'body2'}
         fontWeight={700}
-        color="primary.main"
-        sx={{ fontFeatureSettings: '"tnum"' }}
+        sx={{
+          fontFeatureSettings: '"tnum"',
+          color: accentColor ?? 'primary.main',
+        }}
       >
         ₹{value}
       </Typography>

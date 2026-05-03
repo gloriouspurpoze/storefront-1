@@ -21,7 +21,15 @@ export function filterDeals(
   stage: string | null | undefined
 ): CrmDeal[] {
   return rows.filter((d) => {
-    if (!includesQ(q, d.name) && !includesQ(q, d.notes)) return false
+    if (
+      !includesQ(q, d.name) &&
+      !includesQ(q, d.notes) &&
+      !includesQ(q, d.locality) &&
+      !includesQ(q, d.serviceCategory) &&
+      !includesQ(q, d.platformBookingId) &&
+      !includesQ(q, d.platformOrderId)
+    )
+      return false
     if (stage && stage !== 'all' && d.stage !== (stage as CrmDealStage)) return false
     return true
   })
@@ -34,7 +42,21 @@ export function filterContacts(
   companyName: (id?: string) => string | undefined
 ): CrmContact[] {
   return rows.filter((c) => {
-    const blob = [c.firstName, c.lastName, c.email, c.phone, c.jobTitle, c.leadSource, companyName(c.companyId)]
+    const blob = [
+      c.firstName,
+      c.lastName,
+      c.email,
+      c.phone,
+      c.jobTitle,
+      c.leadSource,
+      c.locality,
+      c.addressLine,
+      c.serviceCategory,
+      c.platformUserId,
+      c.platformBookingId,
+      c.platformOrderId,
+      companyName(c.companyId),
+    ]
       .filter(Boolean)
       .join(' ')
     if (!includesQ(q, blob)) return false

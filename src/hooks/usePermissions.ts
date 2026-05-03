@@ -28,7 +28,15 @@ export const usePermissions = () => {
     return 'admin'
   }, [currentUser])
 
-  const explicitOnly = currentUser?.rbacPermissionMode === 'explicit'
+  /** Legacy Staff/Manager entries used role_plus (union with role). Narrow chip lists were stored but still merged with the full role — treat non-empty chip lists as the sole allowlist. Empty list keeps union behavior. */
+  const legacyRolePlusScoped =
+    currentUser?.userType === 'admin' &&
+    currentUser?.rbacPermissionMode === 'role_plus' &&
+    (currentUser?.rbacRole === 'staff' || currentUser?.rbacRole === 'manager') &&
+    (currentUser?.permissions?.length ?? 0) > 0
+
+  const explicitOnly =
+    currentUser?.rbacPermissionMode === 'explicit' || Boolean(legacyRolePlusScoped)
 
   const customPermissions = useMemo(
     () => sanitizePermissions(currentUser?.permissions),

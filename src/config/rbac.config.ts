@@ -107,6 +107,9 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
 
       'view_crm',
       'manage_crm',
+
+      'view_team_tasks',
+      'manage_team_tasks',
     ]
   },
   
@@ -200,6 +203,9 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
 
       'view_crm',
       'manage_crm',
+
+      'view_team_tasks',
+      'manage_team_tasks',
     ]
   },
   
@@ -252,6 +258,9 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
 
       'view_crm',
       'manage_crm',
+
+      'view_team_tasks',
+      'manage_team_tasks',
     ]
   },
   
@@ -289,6 +298,9 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       'view_notifications',
 
       'view_crm',
+
+      'view_team_tasks',
+      'manage_team_tasks',
     ]
   },
   
@@ -518,11 +530,23 @@ export const routePermissions: RoutePermission[] = [
     allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
   },
 
-  // Service requests
+  {
+    path: '/team-work',
+    requiredPermissions: ['view_team_tasks'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+
+  // Service requests (operations — aligns with ServiceRequest APIs)
   {
     path: '/requests',
-    requiredPermissions: ['view_dashboard'],
+    requiredPermissions: ['view_services'],
     allowedRoles: ['super_admin', 'admin', 'manager', 'staff', 'provider', 'professional']
+  },
+
+  {
+    path: '/platform-services',
+    requiredPermissions: ['view_services'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
   },
 
   // Product nested paths (longer prefix wins over /products)

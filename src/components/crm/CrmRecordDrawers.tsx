@@ -1,10 +1,20 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import { Pencil, X } from 'lucide-react'
-import type { CrmActivity, CrmCompany, CrmContact, CrmDeal, CrmDealStage } from '../../types/crm.types'
+import type { CrmActivity, CrmCompany, CrmContact, CrmDeal } from '../../types/crm.types'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
 import { Separator } from '../ui/separator'
 import { cn } from '../../lib/utils'
+import {
+  ACTIVITY_TYPE_LABELS,
+  CONTACT_LIFECYCLE_LABELS,
+  DEAL_STAGE_LABELS,
+  RECORD_TYPE_LABELS,
+  adminPathToBooking,
+  adminPathToOrder,
+  adminPathToUser,
+} from '../../lib/crmNiche'
 
 function formatActivityWhen(a: CrmActivity) {
   const t = a.dueAt ?? a.completedAt ?? a.createdAt
@@ -77,22 +87,65 @@ export function CrmContactDetailDrawer({
                   <span className="font-medium">Phone:</span> {contact.phone}
                 </p>
               ) : null}
-              {companyName ? (
-                <p>
-                  <span className="font-medium">Company:</span> {companyName}
-                </p>
-              ) : null}
               <p className="flex flex-wrap items-center gap-2">
-                <span className="font-medium">Lifecycle:</span>
-                <Badge variant="outline" className="font-normal">
-                  {contact.lifecycle}
+                <span className="font-medium">Record type:</span>
+                <Badge variant="secondary" className="font-normal">
+                  {RECORD_TYPE_LABELS[contact.recordType ?? 'customer']}
                 </Badge>
               </p>
+              <p className="flex flex-wrap items-center gap-2">
+                <span className="font-medium">Stage:</span>
+                <Badge variant="outline" className="font-normal">
+                  {CONTACT_LIFECYCLE_LABELS[contact.lifecycle]}
+                </Badge>
+              </p>
+              {contact.locality ? (
+                <p>
+                  <span className="font-medium">Locality:</span> {contact.locality}
+                </p>
+              ) : null}
+              {contact.addressLine ? (
+                <p>
+                  <span className="font-medium">Address:</span> {contact.addressLine}
+                </p>
+              ) : null}
+              {contact.serviceCategory ? (
+                <p>
+                  <span className="font-medium">Service:</span> {contact.serviceCategory}
+                </p>
+              ) : null}
+              {companyName ? (
+                <p>
+                  <span className="font-medium">B2B account:</span> {companyName}
+                </p>
+              ) : null}
               {contact.leadSource ? (
                 <p>
                   <span className="font-medium">Source:</span> {contact.leadSource}
                 </p>
               ) : null}
+              {(contact.platformUserId || contact.platformBookingId || contact.platformOrderId) && (
+                <div className="rounded-md border border-border bg-muted/40 p-2">
+                  <p className="mb-1.5 text-xs font-medium text-muted-foreground">Platform links</p>
+                  <div className="flex flex-col gap-1.5">
+                    {contact.platformUserId?.trim() ? (
+                      <Button variant="outline" size="sm" className="h-8 justify-start" asChild>
+                        <Link to={adminPathToUser(contact.platformUserId.trim())}>Open user</Link>
+                      </Button>
+                    ) : null}
+                    {contact.platformBookingId?.trim() ? (
+                      <Button variant="outline" size="sm" className="h-8 justify-start" asChild>
+                        <Link to={adminPathToBooking(contact.platformBookingId.trim())}>Open booking</Link>
+                      </Button>
+                    ) : null}
+                    {contact.platformOrderId?.trim() ? (
+                      <Button variant="outline" size="sm" className="h-8 justify-start" asChild>
+                        <Link to={adminPathToOrder(contact.platformOrderId.trim())}>Open order</Link>
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+              )}
               {contact.notes ? <p className="text-muted-foreground">{contact.notes}</p> : null}
             </div>
             <Separator className="mb-3" />
@@ -106,7 +159,7 @@ export function CrmContactDetailDrawer({
                     <p className="font-medium leading-snug">{a.subject}</p>
                     <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                       <Badge variant="secondary" className="text-[0.7rem] font-normal">
-                        {a.type}
+                        {ACTIVITY_TYPE_LABELS[a.type]}
                       </Badge>
                       <span>
                         {formatActivityWhen(a)} · {a.status}
@@ -121,15 +174,6 @@ export function CrmContactDetailDrawer({
       </div>
     </>
   )
-}
-
-const STAGE_LABELS: Record<CrmDealStage, string> = {
-  lead: 'Lead',
-  qualified: 'Qualified',
-  proposal: 'Proposal',
-  negotiation: 'Negotiation',
-  won: 'Won',
-  lost: 'Lost',
 }
 
 type DealDrawerProps = {
@@ -179,7 +223,7 @@ export function CrmDealDetailDrawer({
               <div className="min-w-0">
                 <h2 className="text-lg font-semibold leading-tight">{deal.name}</h2>
                 <p className="text-sm text-muted-foreground">
-                  {formatMoney(deal.amount, deal.currency)} · {deal.probability}% · {STAGE_LABELS[deal.stage]}
+                  {formatMoney(deal.amount, deal.currency)} · {deal.probability}% · {DEAL_STAGE_LABELS[deal.stage]}
                 </p>
               </div>
               <div className="flex shrink-0 gap-1">
@@ -198,9 +242,19 @@ export function CrmDealDetailDrawer({
                   <span className="font-medium">Expected close:</span> {String(deal.expectedCloseDate).slice(0, 10)}
                 </p>
               ) : null}
+              {deal.locality ? (
+                <p>
+                  <span className="font-medium">Locality:</span> {deal.locality}
+                </p>
+              ) : null}
+              {deal.serviceCategory ? (
+                <p>
+                  <span className="font-medium">Service:</span> {deal.serviceCategory}
+                </p>
+              ) : null}
               {companyName ? (
                 <p>
-                  <span className="font-medium">Company:</span> {companyName}
+                  <span className="font-medium">B2B account:</span> {companyName}
                 </p>
               ) : null}
               {contactName ? (
@@ -208,6 +262,23 @@ export function CrmDealDetailDrawer({
                   <span className="font-medium">Primary contact:</span> {contactName}
                 </p>
               ) : null}
+              {(deal.platformBookingId || deal.platformOrderId) && (
+                <div className="rounded-md border border-border bg-muted/40 p-2">
+                  <p className="mb-1.5 text-xs font-medium text-muted-foreground">Platform links</p>
+                  <div className="flex flex-col gap-1.5">
+                    {deal.platformBookingId?.trim() ? (
+                      <Button variant="outline" size="sm" className="h-8 justify-start" asChild>
+                        <Link to={adminPathToBooking(deal.platformBookingId.trim())}>Open booking</Link>
+                      </Button>
+                    ) : null}
+                    {deal.platformOrderId?.trim() ? (
+                      <Button variant="outline" size="sm" className="h-8 justify-start" asChild>
+                        <Link to={adminPathToOrder(deal.platformOrderId.trim())}>Open order</Link>
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+              )}
               {deal.notes ? <p className="text-muted-foreground">{deal.notes}</p> : null}
             </div>
             <Separator className="mb-3" />
@@ -221,7 +292,7 @@ export function CrmDealDetailDrawer({
                     <p className="font-medium leading-snug">{a.subject}</p>
                     <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                       <Badge variant="secondary" className="text-[0.7rem] font-normal">
-                        {a.type}
+                        {ACTIVITY_TYPE_LABELS[a.type]}
                       </Badge>
                       <span>
                         {formatActivityWhen(a)} · {a.status}

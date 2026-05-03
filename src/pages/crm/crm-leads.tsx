@@ -8,6 +8,7 @@ import { CrmListShell } from '../../components/crm/CrmListShell'
 import { CrmEmptyState } from '../../components/crm/CrmEmptyState'
 import { CrmDataGridSkeleton } from '../../components/crm/CrmDataGridSkeleton'
 import { CrmContactDetailDrawer } from '../../components/crm/CrmRecordDrawers'
+import { CrmWhatsAppStaffPlaybook } from '../../components/crm/CrmWhatsAppStaffPlaybook'
 import {
   DataGrid,
   GridActionsCellItem,
@@ -16,9 +17,21 @@ import {
 } from '../../components/crm/CrmDataTable'
 import { crmService } from '../../services/api/crm.service'
 import { usePermissions } from '../../hooks/usePermissions'
+import { useCrmFieldAccess } from '../../hooks/useCrmFieldAccess'
+import { buildCrmContactUpsertPayload, canCreateContactWithPolicies } from '../../lib/crmContactUpsertPayload'
 import { useCrmSearchParam } from '../../hooks/useCrmUrlFilters'
 import { activitiesForContact, filterContacts } from '../../utils/crmFilters'
-import type { CrmActivity, CrmCompany, CrmContact, CrmContactLifecycle } from '../../types/crm.types'
+import type { CrmActivity, CrmCompany, CrmContact, CrmContactLifecycle, CrmRecordType } from '../../types/crm.types'
+import {
+  ALL_CONTACT_LIFECYCLES,
+  CONTACT_LIFECYCLE_LABELS,
+  CRM_LEAD_SOURCE_PRESETS,
+  CRM_WHATSAPP_LEAD_SOURCE,
+  CUSTOMER_FUNNEL,
+  PARTNER_FUNNEL,
+  RECORD_TYPE_LABELS,
+  isLeadLifecycle,
+} from '../../lib/crmNiche'
 import { Card, CardContent } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
 import {
@@ -40,17 +53,14 @@ import {
 } from '../../components/ui/select'
 import { cn } from '../../lib/utils'
 
-const FUNNEL: CrmContactLifecycle[] = ['subscriber', 'lead', 'mql', 'sql', 'opportunity']
-
-function isLeadRow(c: CrmContact) {
-  return FUNNEL.includes(c.lifecycle)
-}
+const FUNNEL_STAGES: CrmContactLifecycle[] = [...CUSTOMER_FUNNEL, ...PARTNER_FUNNEL]
 
 const emptySelection: GridRowSelectionModel = { type: 'include', ids: new Set() }
 
 export function CrmLeads() {
   const { checkPermission } = usePermissions()
   const canManage = checkPermission('manage_crm')
+  const { fields: crmFieldPolicies } = useCrmFieldAccess()
   const { qInput, setQInput, setParam, searchParams } = useCrmSearchParam()
   const lifecycleFilter = searchParams.get('lifecycle') ?? 'all'
 
@@ -98,7 +108,7 @@ export function CrmLeads() {
     return () => window.clearTimeout(t)
   }, [snackbar.open, snackbar.message])
 
-  const leadRows = useMemo(() => allContacts.filter(isLeadRow), [allContacts])
+  const leadRows = useMemo(() => allContacts.filter((c) => isLeadLifecycle(c.lifecycle)), [allContacts])
 
   const companyName = useCallback(
     (id?: string) => (id ? companies.find((x) => x.id === id)?.name : undefined),
@@ -117,8 +127,14 @@ export function CrmLeads() {
     phone: '',
     jobTitle: '',
     companyId: '' as string | undefined,
-    lifecycle: 'lead' as CrmContactLifecycle,
+    lifecycle: 'inquiry' as CrmContactLifecycle,
+    recordType: 'customer' as CrmRecordType,
     leadSource: '',
+    locality: '',
+    serviceCategory: '',
+    platformUserId: '',
+    platformBookingId: '',
+    platformOrderId: '',
   })
 
   const resetForm = () =>
@@ -129,9 +145,36 @@ export function CrmLeads() {
       phone: '',
       jobTitle: '',
       companyId: undefined,
-      lifecycle: 'lead',
+      lifecycle: 'inquiry',
+      recordType: 'customer',
       leadSource: '',
+      locality: '',
+      serviceCategory: '',
+      platformUserId: '',
+      platformBookingId: '',
+      platformOrderId: '',
     })
+
+  const openNewLeadWithSource = (leadSource: string) => {
+    setEditing(null)
+    setForm({
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      jobTitle: '',
+      companyId: undefined,
+      lifecycle: 'inquiry',
+      recordType: 'customer',
+      leadSource,
+      locality: '',
+      serviceCategory: '',
+      platformUserId: '',
+      platformBookingId: '',
+      platformOrderId: '',
+    })
+    setOpen(true)
+  }
 
   const refresh = useCallback(() => setTick((x) => x + 1), [])
 
@@ -145,7 +188,13 @@ export function CrmLeads() {
       jobTitle: row.jobTitle ?? '',
       companyId: row.companyId,
       lifecycle: row.lifecycle,
+      recordType: row.recordType ?? 'customer',
       leadSource: row.leadSource ?? '',
+      locality: row.locality ?? '',
+      serviceCategory: row.serviceCategory ?? '',
+      platformUserId: row.platformUserId ?? '',
+      platformBookingId: row.platformBookingId ?? '',
+      platformOrderId: row.platformOrderId ?? '',
     })
     setOpen(true)
   }, [])
@@ -172,19 +221,30 @@ export function CrmLeads() {
       { field: 'lastName', headerName: 'Last', flex: 1, minWidth: 100 },
       { field: 'email', headerName: 'Email', flex: 1.2, minWidth: 180 },
       {
-        field: 'lifecycle',
-        headerName: 'Stage',
-        width: 130,
+        field: 'recordType',
+        headerName: 'Type',
+        width: 150,
         renderCell: (p) => (
-          <Badge variant="outline" className="font-normal">
-            {String(p.value ?? '—')}
+          <Badge variant="secondary" className="font-normal">
+            {RECORD_TYPE_LABELS[p.row.recordType ?? 'customer']}
           </Badge>
         ),
       },
+      {
+        field: 'lifecycle',
+        headerName: 'Stage',
+        width: 150,
+        renderCell: (p) => (
+          <Badge variant="outline" className="font-normal">
+            {CONTACT_LIFECYCLE_LABELS[p.row.lifecycle]}
+          </Badge>
+        ),
+      },
+      { field: 'locality', headerName: 'Locality', width: 120 },
       { field: 'leadSource', headerName: 'Source', width: 120 },
       {
         field: 'companyId',
-        headerName: 'Company',
+        headerName: 'B2B account',
         flex: 1,
         minWidth: 140,
         renderCell: (p) => {
@@ -242,7 +302,7 @@ export function CrmLeads() {
     <div className="p-4 md:p-6">
       <PageHeader
         title="Leads"
-        subtitle="Pre-customer contacts in your marketing & sales funnel."
+        subtitle="Home service inquiries and partner onboarding — before job is paid or partner is active."
         action={
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" className="gap-1" onClick={() => crmService.downloadExport('contacts')}>
@@ -250,23 +310,40 @@ export function CrmLeads() {
               Export CSV
             </Button>
             {canManage ? (
-              <Button
-                size="sm"
-                className="gap-1"
-                onClick={() => {
-                  setEditing(null)
-                  resetForm()
-                  setOpen(true)
-                }}
-              >
-                <Plus className="h-4 w-4" />
-                New lead
-              </Button>
+              <>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="gap-1"
+                  type="button"
+                  onClick={() => openNewLeadWithSource(CRM_WHATSAPP_LEAD_SOURCE)}
+                >
+                  <Plus className="h-4 w-4" />
+                  New WhatsApp lead
+                </Button>
+                <Button
+                  size="sm"
+                  className="gap-1"
+                  type="button"
+                  onClick={() => {
+                    setEditing(null)
+                    resetForm()
+                    setOpen(true)
+                  }}
+                >
+                  <Plus className="h-4 w-4" />
+                  New lead
+                </Button>
+              </>
             ) : null}
           </div>
         }
       />
       <CrmSubnav />
+
+      <div className="mb-4">
+        <CrmWhatsAppStaffPlaybook />
+      </div>
 
       <CrmListToolbar qInput={qInput} onQChange={setQInput} searchPlaceholder="Search leads…">
         <div className="space-y-1.5">
@@ -277,9 +354,9 @@ export function CrmLeads() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All</SelectItem>
-              {FUNNEL.map((s) => (
+              {FUNNEL_STAGES.map((s) => (
                 <SelectItem key={s} value={s}>
-                  {s}
+                  {CONTACT_LIFECYCLE_LABELS[s]}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -305,17 +382,9 @@ export function CrmLeads() {
           <Card>
             <CrmEmptyState
               title="No leads in the funnel"
-              description="Create a lead to track prospects before they become customers."
-              actionLabel={canManage ? 'New lead' : undefined}
-              onAction={
-                canManage
-                  ? () => {
-                      setEditing(null)
-                      resetForm()
-                      setOpen(true)
-                    }
-                  : undefined
-              }
+              description="Start with WhatsApp as lead source, then log activities and link booking/order IDs when the job exists."
+              actionLabel={canManage ? 'New WhatsApp lead' : undefined}
+              onAction={canManage ? () => openNewLeadWithSource(CRM_WHATSAPP_LEAD_SOURCE) : undefined}
             />
           </Card>
         }
@@ -387,7 +456,7 @@ export function CrmLeads() {
       />
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{editing ? 'Edit lead' : 'New lead'}</DialogTitle>
           </DialogHeader>
@@ -434,13 +503,42 @@ export function CrmLeads() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Company</Label>
+              <Label>Record type</Label>
+              <Select
+                value={form.recordType}
+                onValueChange={(v) =>
+                  setForm((f) => ({
+                    ...f,
+                    recordType: v as CrmRecordType,
+                    lifecycle:
+                      v === 'partner' && !f.lifecycle.startsWith('partner_')
+                        ? 'partner_applied'
+                        : v !== 'partner' && f.lifecycle.startsWith('partner_')
+                          ? 'inquiry'
+                          : f.lifecycle,
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(RECORD_TYPE_LABELS) as CrmRecordType[]).map((rt) => (
+                    <SelectItem key={rt} value={rt}>
+                      {RECORD_TYPE_LABELS[rt]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>B2B account</Label>
               <Select
                 value={form.companyId ?? 'none'}
                 onValueChange={(v) => setForm((f) => ({ ...f, companyId: v === 'none' ? undefined : v }))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Company" />
+                  <SelectValue placeholder="B2B account" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
@@ -453,7 +551,7 @@ export function CrmLeads() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Funnel stage</Label>
+              <Label>Lifecycle / stage</Label>
               <Select
                 value={form.lifecycle}
                 onValueChange={(v) => setForm((f) => ({ ...f, lifecycle: v as CrmContactLifecycle }))}
@@ -462,20 +560,89 @@ export function CrmLeads() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {FUNNEL.map((s) => (
+                  {ALL_CONTACT_LIFECYCLES.map((s) => (
                     <SelectItem key={s} value={s}>
-                      {s}
+                      {CONTACT_LIFECYCLE_LABELS[s]}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
+              <Label htmlFor="ld-locality">Locality</Label>
+              <Input
+                id="ld-locality"
+                value={form.locality}
+                onChange={(e) => setForm((f) => ({ ...f, locality: e.target.value }))}
+                placeholder="e.g. Mira Road"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ld-svc">Service category</Label>
+              <Input
+                id="ld-svc"
+                value={form.serviceCategory}
+                onChange={(e) => setForm((f) => ({ ...f, serviceCategory: e.target.value }))}
+                placeholder="e.g. AC repair"
+              />
+            </div>
+            <div className="space-y-1.5">
               <Label htmlFor="ld-src">Lead source</Label>
+              <div className="mb-2 flex flex-wrap gap-1.5">
+                {CRM_LEAD_SOURCE_PRESETS.slice(0, 5).map((src) => (
+                  <Button
+                    key={src}
+                    type="button"
+                    size="sm"
+                    variant={form.leadSource === src ? 'default' : 'outline'}
+                    className="h-8 text-xs"
+                    onClick={() => setForm((f) => ({ ...f, leadSource: src }))}
+                  >
+                    {src}
+                  </Button>
+                ))}
+              </div>
               <Input
                 id="ld-src"
+                list="crm-lead-sources"
                 value={form.leadSource}
                 onChange={(e) => setForm((f) => ({ ...f, leadSource: e.target.value }))}
+                placeholder="e.g. WhatsApp"
+              />
+              <datalist id="crm-lead-sources">
+                {CRM_LEAD_SOURCE_PRESETS.map((s) => (
+                  <option key={s} value={s} />
+                ))}
+              </datalist>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ld-puid">Platform user ID</Label>
+              <p className="text-xs text-muted-foreground">Paste from Users when the customer already has an app account.</p>
+              <Input
+                id="ld-puid"
+                value={form.platformUserId}
+                onChange={(e) => setForm((f) => ({ ...f, platformUserId: e.target.value }))}
+                placeholder="Mongo ObjectId — optional"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ld-pbid">Platform booking ID</Label>
+              <p className="text-xs text-muted-foreground">From Bookings when a slot/job exists.</p>
+              <Input
+                id="ld-pbid"
+                value={form.platformBookingId}
+                onChange={(e) => setForm((f) => ({ ...f, platformBookingId: e.target.value }))}
+                placeholder="Optional"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ld-poid">Platform order ID</Label>
+              <p className="text-xs text-muted-foreground">From Orders for payment / commerce context.</p>
+              <Input
+                id="ld-poid"
+                value={form.platformOrderId}
+                onChange={(e) => setForm((f) => ({ ...f, platformOrderId: e.target.value }))}
+                placeholder="Optional"
               />
             </div>
           </div>
@@ -490,24 +657,44 @@ export function CrmLeads() {
                   setSnackbar({ open: true, message: 'Name and email are required', severity: 'error' })
                   return
                 }
+                if (!editing?.id && !canCreateContactWithPolicies(crmFieldPolicies)) {
+                  setSnackbar({
+                    open: true,
+                    message:
+                      'CRM field policies block creating leads (first name, last name, or email is read-only for your role). Ask an admin to update field policies.',
+                    severity: 'error',
+                  })
+                  return
+                }
                 void (async () => {
                   try {
-                    await crmService.upsertContact({
+                    const payload = buildCrmContactUpsertPayload(crmFieldPolicies, {
                       id: editing?.id,
-                      firstName: form.firstName.trim(),
-                      lastName: form.lastName.trim(),
-                      email: form.email.trim(),
+                      firstName: form.firstName,
+                      lastName: form.lastName,
+                      email: form.email,
                       phone: form.phone || undefined,
                       jobTitle: form.jobTitle || undefined,
                       companyId: form.companyId,
+                      recordType: form.recordType,
                       lifecycle: form.lifecycle,
                       leadSource: form.leadSource || undefined,
+                      locality: form.locality || undefined,
+                      serviceCategory: form.serviceCategory || undefined,
+                      platformUserId: form.platformUserId.trim() || undefined,
+                      platformBookingId: form.platformBookingId.trim() || undefined,
+                      platformOrderId: form.platformOrderId.trim() || undefined,
                     })
+                    await crmService.upsertContact(payload)
                     setOpen(false)
                     refresh()
                     setSnackbar({ open: true, message: 'Lead saved', severity: 'success' })
-                  } catch {
-                    setSnackbar({ open: true, message: 'Failed to save lead', severity: 'error' })
+                  } catch (e: unknown) {
+                    setSnackbar({
+                      open: true,
+                      message: e instanceof Error ? e.message : 'Failed to save lead',
+                      severity: 'error',
+                    })
                   }
                 })()
               }}

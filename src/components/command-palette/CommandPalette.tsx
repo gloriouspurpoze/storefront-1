@@ -5,6 +5,7 @@ import { Input } from '../ui/input'
 import { Badge } from '../ui/badge'
 import { Dialog, DialogContent, DialogTitle } from '../ui/dialog'
 import { QUICK_NAV_ITEMS, type QuickNavGroup } from '../../config/app-routes'
+import { usePermissions } from '../../hooks/usePermissions'
 import { useCommandPalette } from '../../contexts/command-palette-context'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { cn } from '../../lib/utils'
@@ -32,6 +33,7 @@ const downSm = '(max-width: 599px)'
 
 export function CommandPalette() {
   const { open, setOpen } = useCommandPalette()
+  const { checkRouteAccess } = usePermissions()
   const [query, setQuery] = useState('')
   const navigate = useNavigate()
   const location = useLocation()
@@ -57,15 +59,16 @@ export function CommandPalette() {
   }, [setOpen])
 
   const filtered = useMemo(() => {
+    const allowed = QUICK_NAV_ITEMS.filter((item) => checkRouteAccess(item.path))
     const q = normalize(query)
-    if (!q) return QUICK_NAV_ITEMS
-    return QUICK_NAV_ITEMS.filter((item) => {
+    if (!q) return allowed
+    return allowed.filter((item) => {
       if (normalize(item.label).includes(q) || normalize(item.path).includes(q)) return true
       if (item.keywords && normalize(item.keywords).includes(q)) return true
       if (normalize(item.group).includes(q)) return true
       return false
     })
-  }, [query])
+  }, [query, checkRouteAccess])
 
   const grouped = useMemo(() => {
     const map = new Map<QuickNavGroup, typeof filtered>()

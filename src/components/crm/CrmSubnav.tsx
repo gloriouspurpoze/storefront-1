@@ -6,7 +6,7 @@ const CRM_TABS = [
   { label: 'Overview', path: '/crm' },
   { label: 'Leads', path: '/crm/leads' },
   { label: 'Contacts', path: '/crm/contacts' },
-  { label: 'Companies', path: '/crm/companies' },
+  { label: 'B2B accounts', path: '/crm/companies' },
   { label: 'Deals', path: '/crm/deals' },
   { label: 'Activities', path: '/crm/activities' },
   { label: 'Settings', path: '/crm/settings' },

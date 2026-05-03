@@ -1,45 +1,32 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
-  Box,
-  Typography,
+  BookOpen,
+  ChevronDown,
+  ChevronRight,
+  HelpCircle,
+  LifeBuoy,
+  Mail,
+  MessageCircle,
+  Phone,
+  Video,
+} from 'lucide-react'
+import { PageHeader } from '../../components/common/PageHeader'
+import {
   Card,
   CardContent,
-  Button,
-  TextField,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Chip,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Divider,
-  Paper,
-  useTheme,
-  alpha,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
-import {
-  ExpandMore as ExpandMoreIcon,
-  Help as HelpIcon,
-  Support as SupportIcon,
-  Email as EmailIcon,
-  Phone as PhoneIcon,
-  Chat as ChatIcon,
-  VideoCall as VideoCallIcon,
-  Article as ArticleIcon,
-  BugReport as BugReportIcon,
-  Lightbulb as LightbulbIcon,
-  School as SchoolIcon,
-  ContactSupport as ContactSupportIcon,
-  QuestionAnswer as QuestionAnswerIcon,
-  Book as BookIcon,
-  VideoLibrary as VideoLibraryIcon,
-  Download as DownloadIcon,
-} from '@mui/icons-material'
-import { PageHeader } from '../../components/common/PageHeader'
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '../../components/ui/card'
+import { Button } from '../../components/ui/button'
+import { Input } from '../../components/ui/input'
+import { Badge } from '../../components/ui/badge'
+import { Separator } from '../../components/ui/separator'
+import { cn } from '../../lib/utils'
+
+const SUPPORT_EMAIL = process.env.REACT_APP_SUPPORT_EMAIL || 'support@profixer.in'
+const SUPPORT_PHONE = process.env.REACT_APP_SUPPORT_PHONE || '+91-98765-43210'
 
 interface FAQItem {
   id: string
@@ -48,352 +35,285 @@ interface FAQItem {
   category: string
 }
 
-interface SupportOption {
-  id: string
-  title: string
-  description: string
-  icon: React.ReactNode
-  color: string
-  action: string
-  available: boolean
-}
+const FAQ_ITEMS: FAQItem[] = [
+  {
+    id: '1',
+    category: 'Products',
+    question: 'How do I add a new product?',
+    answer:
+      'Go to E-commerce → Products → Add product. Complete pricing, media, and SEO fields, then publish when ready.',
+  },
+  {
+    id: '2',
+    category: 'Users',
+    question: 'How are roles and permissions enforced?',
+    answer:
+      'This admin checks permissions on each route. Your API must enforce the same rules server-side for every write.',
+  },
+  {
+    id: '3',
+    category: 'Operations',
+    question: 'Where do service requests and bookings show up?',
+    answer:
+      'Operations → Service requests and Bookings. Filters help triage by status; exports live on those screens when enabled.',
+  },
+  {
+    id: '4',
+    category: 'Notifications',
+    question: 'How do I broadcast to users?',
+    answer:
+      'Open Notifications in the sidebar: in-app feed, templates, and optional broadcast sends when your backend allows it.',
+  },
+  {
+    id: '5',
+    category: 'Data',
+    question: 'How do I export operational data?',
+    answer:
+      'Use Reports & data for shortcuts. Most tables expose CSV or Excel when the API supports export — check each module\'s toolbar.',
+  },
+  {
+    id: '6',
+    category: 'System',
+    question: 'How do I verify the API is reachable?',
+    answer:
+      'System → System status runs live probes against your configured REACT_APP_API_URL using your current session.',
+  },
+]
 
 export function Support() {
-  const navigate = useNavigate()
-  const theme = useTheme()
-  const [expandedFAQ, setExpandedFAQ] = useState<string | false>(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [openFaq, setOpenFaq] = useState<string | null>(FAQ_ITEMS[0]?.id ?? null)
 
-  const supportOptions: SupportOption[] = [
-    {
-      id: 'email',
-      title: 'Email Support',
-      description: 'Get help via email within 24 hours',
-      icon: <EmailIcon />,
-      color: theme.palette.primary.main,
-      action: 'mailto:support@fixer.com',
-      available: true,
-    },
-    {
-      id: 'phone',
-      title: 'Phone Support',
-      description: 'Call us for immediate assistance',
-      icon: <PhoneIcon />,
-      color: theme.palette.success.main,
-      action: 'tel:+1-555-0123',
-      available: true,
-    },
-    {
-      id: 'chat',
-      title: 'Live Chat',
-      description: 'Open the in-app chat console to message customers and providers',
-      icon: <ChatIcon />,
-      color: theme.palette.info.main,
-      action: '/chat',
-      available: true,
-    },
-    {
-      id: 'video',
-      title: 'Video Call',
-      description: 'Request a scheduled call — email us with your preferred time',
-      icon: <VideoCallIcon />,
-      color: theme.palette.warning.main,
-      action: 'mailto:support@fixer.com?subject=Video%20support%20request',
-      available: true,
-    },
-  ]
-
-  const faqItems: FAQItem[] = [
-    {
-      id: '1',
-      question: 'How do I add a new product to the platform?',
-      answer: 'To add a new product, navigate to the Products section, click "Add Product", fill in the required information including name, description, price, and images, then click "Save". Make sure to include proper SEO details for better visibility.',
-      category: 'Products',
-    },
-    {
-      id: '2',
-      question: 'How can I manage user permissions and roles?',
-      answer: 'User roles and permissions can be managed in the Users section. Click on a user to edit their profile, then use the Role dropdown to assign appropriate permissions. Super admins can modify all permissions.',
-      category: 'Users',
-    },
-    {
-      id: '3',
-      question: 'What is the difference between service requests and platform services?',
-      answer: 'Service requests are customer-submitted requests for specific services, while platform services are the predefined service categories and offerings that customers can choose from when submitting requests.',
-      category: 'Services',
-    },
-    {
-      id: '4',
-      question: 'How do I configure notification settings?',
-      answer: 'Go to Settings > Notifications to configure email, push, and SMS notifications. You can also set up automated notifications for specific events like new orders or user registrations.',
-      category: 'Settings',
-    },
-    {
-      id: '5',
-      question: 'Can I export data from the admin panel?',
-      answer: 'Yes, most data tables have export functionality. Look for the "Export" button in the top-right corner of data tables. You can export data in CSV, Excel, or PDF formats.',
-      category: 'Data',
-    },
-    {
-      id: '6',
-      question: 'How do I reset a user\'s password?',
-      answer: 'In the Users section, click on the user you want to reset the password for, then click "Reset Password". An email with reset instructions will be sent to the user\'s email address.',
-      category: 'Users',
-    },
-  ]
-
-  const resources = [
-    {
-      title: 'User Manual',
-      description: 'Complete guide to using the admin panel',
-      icon: <BookIcon />,
-      action: '#',
-    },
-    {
-      title: 'Video Tutorials',
-      description: 'Step-by-step video guides',
-      icon: <VideoLibraryIcon />,
-      action: '#',
-    },
-    {
-      title: 'API Documentation',
-      description: 'Technical documentation for developers',
-      icon: <ArticleIcon />,
-      action: '#',
-    },
-    {
-      title: 'System Status',
-      description: 'Check current system status and uptime',
-      icon: <BugReportIcon />,
-      action: '#',
-    },
-  ]
-
-  const handleFAQChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
-    setExpandedFAQ(isExpanded ? panel : false)
-  }
-
-  const filteredFAQs = faqItems.filter(item =>
-    item.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.answer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.category.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredFaqs = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return FAQ_ITEMS
+    return FAQ_ITEMS.filter(
+      (item) =>
+        item.question.toLowerCase().includes(q) ||
+        item.answer.toLowerCase().includes(q) ||
+        item.category.toLowerCase().includes(q),
+    )
+  }, [searchQuery])
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
+    <div className="min-h-0 flex-1 space-y-8">
       <PageHeader
-        title="Help & Support"
-        subtitle="Get assistance and find answers to common questions"
-        icon={<SupportIcon />}
+        title="Help & support"
+        subtitle="Contact channels, FAQs, and links into the admin. Prefer in-app chat for customer conversations."
+        icon={<LifeBuoy className="h-8 w-8 shrink-0" aria-hidden />}
       />
 
-      <Grid container spacing={3}>
-        {/* Support Options */}
-        <Grid item xs={12} md={8}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <ContactSupportIcon />
-                Contact Support
-              </Typography>
-              <Grid container spacing={2}>
-                {supportOptions.map((option) => (
-                  <Grid item xs={12} sm={6} key={option.id}>
-                    <Paper
-                      sx={{
-                        p: 2,
-                        textAlign: 'center',
-                        cursor: option.available ? 'pointer' : 'not-allowed',
-                        opacity: option.available ? 1 : 0.6,
-                        transition: 'all 0.2s',
-                        '&:hover': option.available ? {
-                          transform: 'translateY(-2px)',
-                          boxShadow: theme.shadows[4],
-                        } : {},
-                      }}
-                      onClick={() => {
-                        if (!option.available) return
-                        const a = option.action
-                        if (a.startsWith('mailto:') || a.startsWith('tel:') || a.startsWith('http')) {
-                          window.open(a, '_blank', 'noopener,noreferrer')
-                        } else {
-                          navigate(a)
-                        }
-                      }}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base">Contact</CardTitle>
+            <CardDescription>Pick the channel that matches urgency and audience.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2">
+            <ContactTile
+              icon={<Mail className="h-5 w-5" />}
+              title="Email"
+              body={`${SUPPORT_EMAIL} — typical reply within one business day.`}
+              action={
+                <Button variant="outline" size="sm" className="mt-3 w-full sm:w-auto" asChild>
+                  <a href={`mailto:${SUPPORT_EMAIL}`}>Compose email</a>
+                </Button>
+              }
+            />
+            <ContactTile
+              icon={<Phone className="h-5 w-5" />}
+              title="Phone"
+              body={`${SUPPORT_PHONE} — for production-impacting issues.`}
+              action={
+                <Button variant="outline" size="sm" className="mt-3 w-full sm:w-auto" asChild>
+                  <a href={`tel:${SUPPORT_PHONE.replace(/\s/g, '')}`}>Call</a>
+                </Button>
+              }
+            />
+            <ContactTile
+              icon={<MessageCircle className="h-5 w-5" />}
+              title="In-app chat"
+              body="Operator console for customer and provider threads."
+              action={
+                <Button variant="default" size="sm" className="mt-3 w-full sm:w-auto" asChild>
+                  <Link to="/chat">Open chat</Link>
+                </Button>
+              }
+            />
+            <ContactTile
+              icon={<Video className="h-5 w-5" />}
+              title="Live session"
+              body="Schedule a screen-share for onboarding or incident review."
+              action={
+                <Button variant="outline" size="sm" className="mt-3 w-full sm:w-auto" asChild>
+                  <a
+                    href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Schedule a support session')}`}
+                  >
+                    Request session
+                  </a>
+                </Button>
+              }
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Shortcuts</CardTitle>
+            <CardDescription>Jump to operational pages.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2">
+            <Button variant="outline" className="justify-between font-normal" asChild>
+              <Link to="/system-status">
+                System status <Badge variant="secondary">Live checks</Badge>
+              </Link>
+            </Button>
+            <Button variant="outline" className="justify-between font-normal" asChild>
+              <Link to="/reports">Reports &amp; data</Link>
+            </Button>
+            <Button variant="outline" className="justify-between font-normal" asChild>
+              <Link to="/notifications">Notifications</Link>
+            </Button>
+            <Button variant="outline" className="justify-between font-normal" asChild>
+              <Link to="/settings">Settings</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <HelpCircle className="h-4 w-4" aria-hidden />
+            Frequently asked questions
+          </CardTitle>
+          <CardDescription>Search across questions and answers.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Input
+            placeholder="Search FAQs…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            aria-label="Search FAQs"
+          />
+          {filteredFaqs.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">No matches. Try another keyword.</p>
+          ) : (
+            <ul className="divide-y rounded-lg border">
+              {filteredFaqs.map((item) => {
+                const open = openFaq === item.id
+                return (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      className="flex w-full items-start gap-2 px-4 py-3 text-left hover:bg-muted/50"
+                      onClick={() => setOpenFaq(open ? null : item.id)}
+                      aria-expanded={open}
                     >
-                      <Box
-                        sx={{
-                          width: 48,
-                          height: 48,
-                          borderRadius: '50%',
-                          backgroundColor: alpha(option.color, 0.1),
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          margin: '0 auto 16px',
-                          color: option.color,
-                        }}
-                      >
-                        {option.icon}
-                      </Box>
-                      <Typography variant="h6" sx={{ mb: 1 }}>
-                        {option.title}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        {option.description}
-                      </Typography>
-                      {!option.available && (
-                        <Chip label="Coming Soon" size="small" color="default" />
-                      )}
-                    </Paper>
-                  </Grid>
-                ))}
-              </Grid>
-            </CardContent>
-          </Card>
-        </Grid>
+                      <span className="mt-0.5 shrink-0 text-muted-foreground">
+                        {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex flex-wrap items-center gap-2">
+                          <span className="font-medium">{item.question}</span>
+                          <Badge variant="outline" className="text-[0.65rem] font-normal">
+                            {item.category}
+                          </Badge>
+                        </span>
+                        {open && (
+                          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.answer}</p>
+                        )}
+                      </span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
 
-        {/* Quick Stats */}
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <LightbulbIcon />
-                Quick Stats
-              </Typography>
-              <List>
-                <ListItem>
-                  <ListItemIcon>
-                    <QuestionAnswerIcon color="primary" />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="FAQ Articles"
-                    secondary={`${faqItems.length} available`}
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemIcon>
-                    <SupportIcon color="success" />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="Response Time"
-                    secondary="< 24 hours"
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemIcon>
-                    <SchoolIcon color="info" />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="Resources"
-                    secondary={`${resources.length} guides`}
-                  />
-                </ListItem>
-              </List>
-            </CardContent>
-          </Card>
-        </Grid>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <BookOpen className="h-4 w-4" aria-hidden />
+            Documentation & resources
+          </CardTitle>
+          <CardDescription>Wire these URLs when your docs site or API portal is ready.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <ResourceCard title="Admin guide" description="Internal runbooks for your team." href="#" />
+            <ResourceCard title="API reference" description="REST shapes your backend exposes." href="#" />
+            <ResourceCard title="Analytics" description="Charts when endpoints are enabled." href="/analytics" internal />
+            <ResourceCard title="Release notes" description="Shipped changes and migrations." href="#" />
+          </div>
+          <Separator className="my-6" />
+          <p className="text-xs text-muted-foreground">
+            Set <code className="rounded bg-muted px-1">REACT_APP_SUPPORT_EMAIL</code> and{' '}
+            <code className="rounded bg-muted px-1">REACT_APP_SUPPORT_PHONE</code> in your env files to customize
+            contact details without code changes.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
 
-        {/* FAQ Section */}
-        <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-                <HelpIcon />
-                <Typography variant="h6">Frequently Asked Questions</Typography>
-              </Box>
-              
-              <TextField
-                fullWidth
-                placeholder="Search FAQs..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                sx={{ mb: 3 }}
-                InputProps={{
-                  startAdornment: <HelpIcon sx={{ mr: 1, color: 'text.secondary' }} />,
-                }}
-              />
+function ContactTile({
+  icon,
+  title,
+  body,
+  action,
+}: {
+  icon: React.ReactNode
+  title: string
+  body: string
+  action: React.ReactNode
+}) {
+  return (
+    <div className="flex gap-3 rounded-lg border bg-card p-4">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">{icon}</div>
+      <div className="min-w-0 flex-1">
+        <p className="font-medium">{title}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{body}</p>
+        {action}
+      </div>
+    </div>
+  )
+}
 
-              {filteredFAQs.map((item) => (
-                <Accordion
-                  key={item.id}
-                  expanded={expandedFAQ === item.id}
-                  onChange={handleFAQChange(item.id)}
-                  sx={{ mb: 1 }}
-                >
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
-                      <Typography variant="subtitle1" sx={{ flex: 1 }}>
-                        {item.question}
-                      </Typography>
-                      <Chip label={item.category} size="small" color="primary" variant="outlined" />
-                    </Box>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <Typography variant="body2" color="text.secondary">
-                      {item.answer}
-                    </Typography>
-                  </AccordionDetails>
-                </Accordion>
-              ))}
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Resources */}
-        <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <ArticleIcon />
-                Resources & Documentation
-              </Typography>
-              <Grid container spacing={2}>
-                {resources.map((resource, index) => (
-                  <Grid item xs={12} sm={6} md={3} key={index}>
-                    <Paper
-                      sx={{
-                        p: 2,
-                        textAlign: 'center',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        '&:hover': {
-                          transform: 'translateY(-2px)',
-                          boxShadow: theme.shadows[4],
-                        },
-                      }}
-                      onClick={() => window.open(resource.action)}
-                    >
-                      <Box
-                        sx={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: '50%',
-                          backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          margin: '0 auto 12px',
-                          color: theme.palette.primary.main,
-                        }}
-                      >
-                        {resource.icon}
-                      </Box>
-                      <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                        {resource.title}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {resource.description}
-                      </Typography>
-                    </Paper>
-                  </Grid>
-                ))}
-              </Grid>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    </Box>
+function ResourceCard({
+  title,
+  description,
+  href,
+  internal,
+}: {
+  title: string
+  description: string
+  href: string
+  internal?: boolean
+}) {
+  const className =
+    'flex flex-col rounded-lg border bg-muted/20 p-4 transition-colors hover:bg-muted/40 hover:border-primary/30'
+  if (internal && href.startsWith('/')) {
+    return (
+      <Link to={href} className={className}>
+        <span className="font-medium">{title}</span>
+        <span className="mt-1 text-sm text-muted-foreground">{description}</span>
+      </Link>
+    )
+  }
+  return (
+    <a href={href} className={cn(className, href === '#' && 'pointer-events-none opacity-60')}>
+      <span className="font-medium">{title}</span>
+      <span className="mt-1 text-sm text-muted-foreground">{description}</span>
+      {href === '#' && (
+        <Badge variant="outline" className="mt-3 w-fit text-[0.65rem] font-normal">
+          Configure URL
+        </Badge>
+      )}
+    </a>
   )
 }
 

@@ -14,19 +14,19 @@ import {
 } from '../../components/ui'
 import {
   Save as SaveIcon,
-  Camera as CameraIcon,
   Shield as SecurityIcon,
   Bell as NotificationsIcon,
   Palette as PaletteIcon,
   Globe as LanguageIcon,
-  Upload as UploadIcon,
-  Trash2 as DeleteIcon,
-  Edit as EditIcon,
-  Plus as AddIcon,
   Settings as SettingsIcon,
+  CloudOff,
+  Cloud,
+  Loader2,
 } from 'lucide-react'
+import { PageHeader } from '../../components/common/PageHeader'
 import { PushNotificationManager } from '../../components/notifications/PushNotificationManager'
-import { settingsService, type Settings, type SettingsUpdateRequest } from '../../services/api/settings.service'
+import { Badge } from '../../components/ui/badge'
+import { settingsService, type Settings } from '../../services/api/settings.service'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -54,6 +54,9 @@ export function Settings() {
   const [tabValue, setTabValue] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [apiSynced, setApiSynced] = useState<boolean | null>(null)
+  const [lastFetchedAt, setLastFetchedAt] = useState<Date | null>(null)
+  const [fetchDetail, setFetchDetail] = useState<string | null>(null)
   const { toast } = useToast()
   
   const [settings, setSettings] = useState<Settings>({
@@ -109,18 +112,25 @@ export function Settings() {
   const loadSettings = async () => {
     try {
       setIsLoading(true)
+      setFetchDetail(null)
       const response = await settingsService.getSettings()
+      setLastFetchedAt(new Date())
       if (response?.success && response.data) {
         setSettings(response.data)
+        setApiSynced(true)
       } else {
-        // If API fails or returns no data, keep default settings
+        setApiSynced(false)
+        setFetchDetail(response?.error || response?.message || 'API returned no data')
         console.warn('Settings API returned no data, using defaults')
       }
     } catch (error) {
+      setApiSynced(false)
+      setLastFetchedAt(new Date())
+      setFetchDetail(error instanceof Error ? error.message : 'Request failed')
       toast({
-        title: "Error",
-        description: "Failed to load settings",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to load settings',
+        variant: 'destructive',
       })
     } finally {
       setIsLoading(false)
@@ -130,16 +140,29 @@ export function Settings() {
   const handleSave = async () => {
     try {
       setIsSaving(true)
-      await settingsService.updateSettings(settings)
+      const res = await settingsService.updateSettings(settings)
+      if (!res.success) {
+        toast({
+          title: 'Could not save',
+          description: res.error || res.message || 'Server rejected the update',
+          variant: 'destructive',
+        })
+        return
+      }
+      if (res.data) {
+        setSettings(res.data)
+      }
+      setApiSynced(true)
+      setLastFetchedAt(new Date())
       toast({
-        title: "Success",
-        description: "Settings saved successfully",
+        title: 'Saved',
+        description: 'Settings were updated successfully.',
       })
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to save settings",
-        variant: "destructive",
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to save settings',
+        variant: 'destructive',
       })
     } finally {
       setIsSaving(false)
@@ -154,16 +177,58 @@ export function Settings() {
     { label: 'Client Controls', icon: <LanguageIcon className="h-4 w-4" /> },
   ]
 
+  const apiLabel =
+    apiSynced === null
+      ? 'Checking API…'
+      : apiSynced
+        ? 'Connected — values loaded from backend'
+        : 'Offline defaults — API unavailable or empty response'
+
   return (
-    <div className="p-6">
+    <div className="min-h-0 flex-1 p-4 sm:p-6">
       <VStack spacing={6}>
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold">Settings</h1>
-          <p className="text-muted-foreground mt-2">
-            Manage your application settings and preferences
-          </p>
-        </div>
+        <PageHeader
+          title="Settings"
+          subtitle="Tenant-wide preferences and guardrails. Changes apply after save; the API must enforce the same rules for mobile and public apps."
+          icon={<SettingsIcon className="h-8 w-8 shrink-0" aria-hidden />}
+          action={
+            <div className="flex flex-wrap items-center gap-2">
+              {isLoading ? (
+                <Badge variant="outline" className="gap-1 font-normal">
+                  <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                  Loading…
+                </Badge>
+              ) : apiSynced ? (
+                <Badge variant="outline" className="gap-1 border-emerald-200 bg-emerald-50 font-normal text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100">
+                  <Cloud className="h-3 w-3" aria-hidden />
+                  API OK
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="gap-1 border-amber-200 bg-amber-50 font-normal text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+                  <CloudOff className="h-3 w-3" aria-hidden />
+                  Check connection
+                </Badge>
+              )}
+              <Button size="sm" variant="outline" onClick={() => void loadSettings()} disabled={isLoading}>
+                Reload
+              </Button>
+            </div>
+          }
+        />
+
+        <Card className="border-dashed bg-muted/30">
+          <CardContent className="py-4">
+            <p className="text-sm font-medium text-foreground">{apiLabel}</p>
+            {lastFetchedAt && (
+              <p className="mt-1 text-xs text-muted-foreground">Last request: {lastFetchedAt.toLocaleString()}</p>
+            )}
+            {fetchDetail && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Detail: <span className="font-mono text-destructive">{fetchDetail}</span>
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Tabs */}
         <Card>
