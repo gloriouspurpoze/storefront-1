@@ -2,7 +2,17 @@
  * Team work REST client — fixer-backend `/api/team-work/*`.
  */
 import { apiClient } from '../apiClient'
-import type { TeamWorkComment, TeamWorkItem, TeamWorkListResponse, TeamWorkMeta } from '../../types/teamWork.types'
+import type {
+  TeamWorkCalendarFeed,
+  TeamWorkCeremonySeries,
+  TeamWorkComment,
+  TeamWorkItem,
+  TeamWorkItemReminderRow,
+  TeamWorkListResponse,
+  TeamWorkMeta,
+  TeamWorkProject,
+  TeamWorkTagCatalogEntry,
+} from '../../types/teamWork.types'
 
 type ApiEnvelope<T> = { success: boolean; data: T; message?: string }
 
@@ -31,10 +41,64 @@ function mapComment(c: Record<string, unknown>): TeamWorkComment {
   }
 }
 
+function mapProject(raw: Record<string, unknown>): TeamWorkProject {
+  const catRaw = raw.tagCatalog as Record<string, unknown>[] | undefined
+  const tagCatalog: TeamWorkTagCatalogEntry[] = Array.isArray(catRaw)
+    ? catRaw
+        .map((t) => ({
+          slug: String(t.slug || '').trim(),
+          name: String(t.name || t.slug || '').trim(),
+          color: t.color ? String(t.color) : undefined,
+        }))
+        .filter((t) => t.slug && t.name)
+    : []
+  return {
+    id: String(raw.id || raw._id || ''),
+    name: String(raw.name || ''),
+    key: String(raw.key || ''),
+    description: raw.description ? String(raw.description) : undefined,
+    memberUserIds: Array.isArray(raw.memberUserIds) ? (raw.memberUserIds as unknown[]).map((x) => String(x)) : [],
+    tagCatalog,
+    isDefault: Boolean(raw.isDefault),
+    isArchived: Boolean(raw.isArchived),
+  }
+}
+
+function mapCeremony(raw: Record<string, unknown>): TeamWorkCeremonySeries {
+  return {
+    id: String(raw.id || raw._id || ''),
+    projectId: String(raw.projectId || ''),
+    title: String(raw.title || ''),
+    anchorStart: raw.anchorStart ? new Date(raw.anchorStart as string).toISOString() : '',
+    durationMinutes: Number(raw.durationMinutes ?? 60),
+    recurrence: (raw.recurrence as TeamWorkCeremonySeries['recurrence']) || 'weekly',
+    attendeeUserIds: Array.isArray(raw.attendeeUserIds) ? (raw.attendeeUserIds as unknown[]).map((x) => String(x)) : [],
+    slackWebhookUrl: raw.slackWebhookUrl ? String(raw.slackWebhookUrl) : undefined,
+    teamsWebhookUrl: raw.teamsWebhookUrl ? String(raw.teamsWebhookUrl) : undefined,
+    isActive: raw.isActive !== false,
+    createdByUserId: String(raw.createdByUserId || ''),
+  }
+}
+
+function mapReminder(raw: Record<string, unknown>): TeamWorkItemReminderRow {
+  return {
+    id: String(raw.id || raw._id || ''),
+    teamWorkItemId: String(raw.teamWorkItemId || ''),
+    remindAt: raw.remindAt ? new Date(raw.remindAt as string).toISOString() : '',
+    notifyEmail: raw.notifyEmail !== false,
+    notifySlack: Boolean(raw.notifySlack),
+    notifyTeams: Boolean(raw.notifyTeams),
+    createdByUserId: String(raw.createdByUserId || ''),
+    dispatchedAt: raw.dispatchedAt ? new Date(raw.dispatchedAt as string).toISOString() : undefined,
+    lastError: raw.lastError ? String(raw.lastError) : undefined,
+  }
+}
+
 function mapItem(raw: Record<string, unknown>): TeamWorkItem {
   const commentsRaw = raw.comments as Record<string, unknown>[] | undefined
   return {
     id: String(raw.id || raw._id || ''),
+    projectId: raw.projectId ? String(raw.projectId) : undefined,
     issueKey: String(raw.issueKey || ''),
     issueNumber: Number(raw.issueNumber ?? 0),
     title: String(raw.title || ''),
@@ -89,6 +153,33 @@ export const teamWorkApi = {
     return getJson<TeamWorkMeta>('/team-work/meta', false)
   },
 
+  async listProjects(): Promise<TeamWorkProject[]> {
+    const d = await getJson<{ projects: Record<string, unknown>[] }>('/team-work/projects', false)
+    return (d.projects || []).map((row) => mapProject(row))
+  },
+
+  async createProject(body: {
+    name: string
+    key?: string
+    description?: string
+    memberUserIds?: string[]
+  }): Promise<TeamWorkProject> {
+    const d = await sendJson<{ project: Record<string, unknown> }>('POST', '/team-work/projects', body)
+    return mapProject(d.project)
+  },
+
+  async getProjectTags(projectId: string): Promise<{ catalog: TeamWorkTagCatalogEntry[]; inUse: string[] }> {
+    return getJson(`/team-work/projects/${projectId}/tags`, false)
+  },
+
+  async patchProject(
+    id: string,
+    body: Partial<Pick<TeamWorkProject, 'name' | 'description' | 'memberUserIds' | 'isArchived' | 'tagCatalog'>>,
+  ): Promise<TeamWorkProject> {
+    const d = await sendJson<{ project: Record<string, unknown> }>('PATCH', `/team-work/projects/${id}`, body)
+    return mapProject(d.project)
+  },
+
   async listItems(params?: Record<string, string | undefined>): Promise<TeamWorkListResponse> {
     const qs = new URLSearchParams()
     if (params) {
@@ -114,6 +205,7 @@ export const teamWorkApi = {
     body: Partial<
       Pick<
         TeamWorkItem,
+        | 'projectId'
         | 'title'
         | 'description'
         | 'status'
@@ -152,5 +244,87 @@ export const teamWorkApi = {
   async addComment(id: string, body: string): Promise<TeamWorkItem> {
     const row = await sendJson<Record<string, unknown>>('POST', `/team-work/items/${id}/comments`, { body })
     return mapItem(row)
+  },
+
+  async getCalendarFeed(params: { from: string; to: string; includeGoogle?: boolean }): Promise<TeamWorkCalendarFeed> {
+    const qs = new URLSearchParams({ from: params.from, to: params.to })
+    if (params.includeGoogle) qs.set('includeGoogle', '1')
+    return getJson<TeamWorkCalendarFeed>(`/team-work/calendar?${qs.toString()}`, false)
+  },
+
+  async getGoogleCalendarStatus(): Promise<{ googleConnected: boolean; lastCalendarWriteAt?: string }> {
+    return getJson('/team-work/calendar/google/status', false)
+  },
+
+  async getGoogleCalendarOAuthUrl(): Promise<string> {
+    const d = await getJson<{ url: string }>('/team-work/calendar/google/oauth-url', false)
+    return d.url
+  },
+
+  async createGoogleCalendarEvent(body: {
+    title: string
+    description?: string
+    start: string
+    end: string
+    attendeeEmails?: string[]
+    createMeet?: boolean
+  }): Promise<Record<string, unknown>> {
+    return sendJson<Record<string, unknown>>('POST', '/team-work/calendar/google/events', {
+      title: body.title,
+      description: body.description,
+      startIso: body.start,
+      endIso: body.end,
+      attendeeEmails: body.attendeeEmails,
+      createMeet: body.createMeet !== false,
+    })
+  },
+
+  async listCeremonies(projectId?: string): Promise<TeamWorkCeremonySeries[]> {
+    const q = projectId ? `?projectId=${encodeURIComponent(projectId)}` : ''
+    const d = await getJson<{ ceremonies: Record<string, unknown>[] }>(`/team-work/ceremonies${q}`, false)
+    return (d.ceremonies || []).map((row) => mapCeremony(row))
+  },
+
+  async createCeremony(body: {
+    projectId: string
+    title: string
+    anchorStart: string
+    durationMinutes?: number
+    recurrence?: TeamWorkCeremonySeries['recurrence']
+    attendeeUserIds?: string[]
+    slackWebhookUrl?: string
+    teamsWebhookUrl?: string
+  }): Promise<TeamWorkCeremonySeries> {
+    const d = await sendJson<{ ceremony: Record<string, unknown> }>('POST', '/team-work/ceremonies', body)
+    return mapCeremony(d.ceremony)
+  },
+
+  async patchCeremony(
+    id: string,
+    body: Partial<
+      Pick<
+        TeamWorkCeremonySeries,
+        'title' | 'anchorStart' | 'durationMinutes' | 'recurrence' | 'attendeeUserIds' | 'isActive' | 'slackWebhookUrl' | 'teamsWebhookUrl'
+      >
+    >,
+  ): Promise<TeamWorkCeremonySeries> {
+    const d = await sendJson<{ ceremony: Record<string, unknown> }>('PATCH', `/team-work/ceremonies/${id}`, body)
+    return mapCeremony(d.ceremony)
+  },
+
+  async createReminder(body: {
+    teamWorkItemId: string
+    remindAt: string
+    notifyEmail?: boolean
+    notifySlack?: boolean
+    notifyTeams?: boolean
+  }): Promise<TeamWorkItemReminderRow> {
+    const d = await sendJson<{ reminder: Record<string, unknown> }>('POST', '/team-work/reminders', body)
+    return mapReminder(d.reminder)
+  },
+
+  async listRemindersForItem(itemId: string): Promise<TeamWorkItemReminderRow[]> {
+    const d = await getJson<{ reminders: Record<string, unknown>[] }>(`/team-work/items/${itemId}/reminders`, false)
+    return (d.reminders || []).map((row) => mapReminder(row))
   },
 }

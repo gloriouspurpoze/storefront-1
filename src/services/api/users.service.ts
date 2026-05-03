@@ -8,10 +8,12 @@ export type { User }
 export interface GetUsersParams {
   page?: number
   limit?: number
-  user_type?: 'customer' | 'provider' | 'admin'
+  user_type?: 'customer' | 'provider' | 'professional' | 'admin' | 'super_admin'
   search?: string
   is_verified?: boolean
   is_active?: boolean
+  /** directory = app users; members = admin-provisioned dashboard accounts */
+  scope?: 'directory' | 'members'
 }
 
 export interface GetUsersResponse {
@@ -30,7 +32,7 @@ export interface CreateUserRequest {
   firstName: string
   lastName: string
   phone?: string
-  userType: 'customer' | 'provider' | 'admin'
+  userType: 'customer' | 'provider' | 'professional' | 'admin'
   isVerified?: boolean
   isActive?: boolean
   profilePicture?: string

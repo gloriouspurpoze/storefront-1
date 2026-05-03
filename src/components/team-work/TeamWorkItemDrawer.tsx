@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { format } from 'date-fns'
-import { Loader2, MessageSquare, Pencil, Trash2, X } from 'lucide-react'
+import { CalendarPlus, Loader2, MessageSquare, Pencil, Tag, Trash2, UserMinus, UserPlus, X } from 'lucide-react'
 import { teamWorkApi } from '../../services/api/teamWork.api'
-import type { TeamWorkItem, TeamWorkMeta } from '../../types/teamWork.types'
+import type { TeamWorkItem, TeamWorkMeta, TeamWorkTagCatalogEntry } from '../../types/teamWork.types'
+import { teamWorkTagDisplayName, teamWorkTagSlug } from '../../lib/teamWorkTags'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
 import { Input } from '../ui/input'
@@ -18,12 +19,15 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { cn } from '../../lib/utils'
 import { ConfirmDialog } from '../common/ConfirmDialog'
+import { ScheduleMeetingDialog } from './ScheduleMeetingDialog'
 import type { User } from '../../services/api/users.service'
 import { assigneeSwatchClass, initialsFromLabel, PRIORITY_CHIP, priorityLabel } from '../../lib/teamWorkVisuals'
 
 type Props = {
   open: boolean
   itemId: string | null
+  /** Current board — used for tags API and catalog. */
+  projectId: string | null
   meta: TeamWorkMeta | null
   onClose: () => void
   canManage: boolean
@@ -32,6 +36,12 @@ type Props = {
   epics: TeamWorkItem[]
   adminUsers: User[]
   assigneeMap: Map<string, string>
+  /** Logged-in user id for “Assign to me”. */
+  currentUserId?: string
+  /** Preset tags from the project (refreshed when parent reloads projects). */
+  projectTagCatalog?: TeamWorkTagCatalogEntry[]
+  /** After saving tag catalog on the project. */
+  onProjectTagCatalogChanged?: () => void | Promise<void>
 }
 
 function userLabel(u: User): string {
@@ -42,6 +52,7 @@ function userLabel(u: User): string {
 export function TeamWorkItemDrawer({
   open,
   itemId,
+  projectId,
   meta,
   onClose,
   canManage,
@@ -50,6 +61,9 @@ export function TeamWorkItemDrawer({
   epics,
   adminUsers,
   assigneeMap,
+  currentUserId,
+  projectTagCatalog = [],
+  onProjectTagCatalogChanged,
 }: Props) {
   const [item, setItem] = useState<TeamWorkItem | null>(null)
   const [loading, setLoading] = useState(false)
@@ -57,7 +71,11 @@ export function TeamWorkItemDrawer({
   const [comment, setComment] = useState('')
   const [posting, setPosting] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [scheduleMeetingOpen, setScheduleMeetingOpen] = useState(false)
   const [form, setForm] = useState<Partial<TeamWorkItem>>({})
+  const [tagOptions, setTagOptions] = useState<{ catalog: TeamWorkTagCatalogEntry[]; inUse: string[] } | null>(null)
+  const [newCustomTag, setNewCustomTag] = useState('')
+  const [savingCatalog, setSavingCatalog] = useState(false)
 
   useEffect(() => {
     if (!open || !itemId) {
@@ -95,6 +113,67 @@ export function TeamWorkItemDrawer({
     }
   }, [open, itemId])
 
+  useEffect(() => {
+    if (!open || !projectId) {
+      setTagOptions(null)
+      return
+    }
+    let cancelled = false
+    void teamWorkApi
+      .getProjectTags(projectId)
+      .then((d) => {
+        if (!cancelled) setTagOptions(d)
+      })
+      .catch(() => {
+        if (!cancelled) setTagOptions({ catalog: [], inUse: [] })
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [open, projectId])
+
+  const catalogMerged = useMemo(() => {
+    const m = new Map<string, TeamWorkTagCatalogEntry>()
+    for (const t of projectTagCatalog) m.set(t.slug, t)
+    for (const t of tagOptions?.catalog ?? []) {
+      if (!m.has(t.slug)) m.set(t.slug, t)
+    }
+    return Array.from(m.values()).sort((a, b) => a.name.localeCompare(b.name))
+  }, [projectTagCatalog, tagOptions])
+
+  const extraLabelSlugs = useMemo(() => {
+    const known = new Set(catalogMerged.map((t) => t.slug))
+    const out: string[] = []
+    for (const slug of tagOptions?.inUse ?? []) {
+      if (!known.has(slug)) out.push(slug)
+    }
+    for (const slug of form.labels ?? []) {
+      if (!known.has(slug)) out.push(slug)
+    }
+    return Array.from(new Set(out)).sort()
+  }, [catalogMerged, tagOptions, form.labels])
+
+  const reporterLabel = useMemo(() => {
+    if (!item?.reporterUserId) return '—'
+    return assigneeMap.get(item.reporterUserId) || item.reporterUserId
+  }, [item?.reporterUserId, assigneeMap])
+
+  const assigneeGuestEmails = useMemo(() => {
+    if (!item?.assigneeUserId) return [] as string[]
+    const u = adminUsers.find((x) => x.id === item.assigneeUserId)
+    return u?.email ? [u.email] : []
+  }, [item?.assigneeUserId, adminUsers])
+
+  const meetingDefaultDetails = useMemo(() => {
+    if (!item) return ''
+    const lines = [
+      `Work item: ${item.issueKey} — ${item.title}`,
+      item.description?.trim() ? `\n${item.description.trim()}` : '',
+      '\n\nOpened from Fixer Admin → Team work.',
+    ]
+    return lines.join('')
+  }, [item])
+
   const save = async () => {
     if (!item || !canManage) return
     setSaving(true)
@@ -131,6 +210,40 @@ export function TeamWorkItemDrawer({
     onClose()
   }
 
+  const toggleLabel = (slug: string) => {
+    const cur = new Set(form.labels || [])
+    if (cur.has(slug)) cur.delete(slug)
+    else cur.add(slug)
+    setForm((f) => ({ ...f, labels: Array.from(cur) }))
+  }
+
+  const addCustomTagFromInput = () => {
+    const raw = newCustomTag.trim()
+    if (!raw) return
+    const slug = teamWorkTagSlug(raw)
+    const cur = new Set(form.labels || [])
+    cur.add(slug)
+    setForm((f) => ({ ...f, labels: Array.from(cur) }))
+    setNewCustomTag('')
+  }
+
+  const saveTagToBoardPreset = async (slug: string, displayName: string) => {
+    if (!projectId || !canManage) return
+    setSavingCatalog(true)
+    try {
+      const next = [...projectTagCatalog]
+      if (!next.some((t) => t.slug === slug)) {
+        next.push({ slug, name: displayName.slice(0, 64) })
+      }
+      await teamWorkApi.patchProject(projectId, { tagCatalog: next })
+      await onProjectTagCatalogChanged?.()
+      const d = await teamWorkApi.getProjectTags(projectId)
+      setTagOptions(d)
+    } finally {
+      setSavingCatalog(false)
+    }
+  }
+
   if (!open) return null
 
   const statuses = meta?.statuses ?? []
@@ -142,7 +255,7 @@ export function TeamWorkItemDrawer({
       <button type="button" aria-label="Close panel" className="fixed inset-0 z-[150] bg-black/50" onClick={onClose} />
       <div
         className={cn(
-          'fixed right-0 top-0 z-[160] flex h-full w-full max-w-lg flex-col border-l bg-background shadow-xl',
+          'fixed right-0 top-0 z-[160] flex h-full w-full max-w-xl flex-col border-l bg-background shadow-xl',
           'animate-in slide-in-from-right duration-200',
         )}
       >
@@ -172,6 +285,15 @@ export function TeamWorkItemDrawer({
                     {priorityLabel(item.priority)}
                   </span>
                 </div>
+                <div className="mt-2 rounded-lg border border-border/60 bg-muted/25 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
+                  <p>
+                    <span className="font-medium text-foreground">Created</span> by {reporterLabel} on{' '}
+                    {item.createdAt ? format(new Date(item.createdAt), 'PPp') : '—'}
+                  </p>
+                  <p className="mt-0.5">
+                    <span className="font-medium text-foreground">Last updated</span> {format(new Date(item.updatedAt), 'PPp')}
+                  </p>
+                </div>
                 {item.assigneeUserId ? (
                   <div className="mt-2 flex items-center gap-2">
                     <span
@@ -190,9 +312,10 @@ export function TeamWorkItemDrawer({
                     </div>
                   </div>
                 ) : (
-                  <p className="mt-2 text-xs italic text-muted-foreground">Unassigned — set Assignee in the Details tab.</p>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">Unassigned</span> — open the Details tab and pick someone, use Assign to me, or leave in the team pool.
+                  </p>
                 )}
-                <p className="mt-1 truncate text-xs text-muted-foreground">Updated {format(new Date(item.updatedAt), 'PPp')}</p>
               </>
             ) : (
               <p className="text-sm text-destructive">Could not load this item.</p>
@@ -222,7 +345,166 @@ export function TeamWorkItemDrawer({
             </TabsList>
 
             <TabsContent value="details" className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-4">
-              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto py-4">
+              <div className="min-h-0 flex-1 space-y-5 overflow-y-auto py-4">
+                <div className="rounded-lg border border-border/70 bg-card p-4 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Assignee</p>
+                      <p className="mt-0.5 text-sm text-foreground">
+                        {form.assigneeUserId
+                          ? assigneeMap.get(form.assigneeUserId) || form.assigneeUserId
+                          : 'Unassigned — visible to the whole board'}
+                      </p>
+                    </div>
+                    {canManage ? (
+                      <div className="flex flex-wrap gap-2">
+                        {currentUserId ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            className="gap-1"
+                            onClick={() => setForm((f) => ({ ...f, assigneeUserId: currentUserId }))}
+                          >
+                            <UserPlus className="h-3.5 w-3.5" aria-hidden />
+                            Assign to me
+                          </Button>
+                        ) : null}
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="gap-1"
+                          onClick={() => setForm((f) => ({ ...f, assigneeUserId: undefined }))}
+                        >
+                          <UserMinus className="h-3.5 w-3.5" aria-hidden />
+                          Unassign
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    Assigning someone else emails them when SMTP is configured on the API. Assigning yourself does not send email.
+                  </p>
+                  <Select
+                    disabled={!canManage}
+                    value={form.assigneeUserId || '__none__'}
+                    onValueChange={(v) =>
+                      setForm((f) => ({ ...f, assigneeUserId: v === '__none__' ? undefined : v }))
+                    }
+                  >
+                    <SelectTrigger className="mt-2">
+                      <SelectValue placeholder="Choose assignee" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Unassigned (team pool)</SelectItem>
+                      {form.assigneeUserId && !adminUsers.some((u) => u.id === form.assigneeUserId) ? (
+                        <SelectItem value={form.assigneeUserId}>
+                          {assigneeMap.get(form.assigneeUserId) || form.assigneeUserId}
+                        </SelectItem>
+                      ) : null}
+                      {adminUsers.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {userLabel(u)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Tag className="h-4 w-4 text-muted-foreground" aria-hidden />
+                    <Label className="text-base">Tags</Label>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Tap a tag to add or remove it from this issue. Tags are shared on this board — save a new name as a board preset so everyone can reuse it in filters.
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {catalogMerged.map((t) => {
+                      const on = (form.labels || []).includes(t.slug)
+                      return (
+                        <Button
+                          key={t.slug}
+                          type="button"
+                          size="sm"
+                          variant={on ? 'default' : 'outline'}
+                          className="h-8 rounded-full px-3 text-xs font-normal"
+                          disabled={!canManage}
+                          onClick={() => toggleLabel(t.slug)}
+                        >
+                          {t.name}
+                        </Button>
+                      )
+                    })}
+                    {extraLabelSlugs.map((slug) => {
+                      const on = (form.labels || []).includes(slug)
+                      const name = teamWorkTagDisplayName(slug, catalogMerged)
+                      return (
+                        <Button
+                          key={`extra-${slug}`}
+                          type="button"
+                          size="sm"
+                          variant={on ? 'default' : 'secondary'}
+                          className="h-8 rounded-full px-3 text-xs font-normal"
+                          disabled={!canManage}
+                          onClick={() => toggleLabel(slug)}
+                        >
+                          {name}
+                        </Button>
+                      )
+                    })}
+                  </div>
+                  {canManage ? (
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <Label htmlFor="tw-newtag" className="text-xs">
+                          Add custom tag
+                        </Label>
+                        <Input
+                          id="tw-newtag"
+                          placeholder="e.g. Marketing team"
+                          value={newCustomTag}
+                          onChange={(e) => setNewCustomTag(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              addCustomTagFromInput()
+                            }
+                          }}
+                        />
+                      </div>
+                      <Button type="button" variant="secondary" size="sm" onClick={addCustomTagFromInput}>
+                        Add tag
+                      </Button>
+                    </div>
+                  ) : null}
+                  {canManage && projectId
+                    ? (form.labels || []).map((slug) => {
+                        const inPreset = projectTagCatalog.some((t) => t.slug === slug)
+                        if (inPreset) return null
+                        return (
+                          <div key={`preset-${slug}`} className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                            <span>
+                              “{teamWorkTagDisplayName(slug, catalogMerged)}” is only on this issue.
+                            </span>
+                            <Button
+                              type="button"
+                              variant="link"
+                              className="h-auto p-0 text-xs"
+                              disabled={savingCatalog}
+                              onClick={() =>
+                                void saveTagToBoardPreset(slug, teamWorkTagDisplayName(slug, catalogMerged))
+                              }
+                            >
+                              Save as board tag
+                            </Button>
+                          </div>
+                        )
+                      })
+                    : null}
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="tw-title">Title</Label>
                   <Input
@@ -236,7 +518,7 @@ export function TeamWorkItemDrawer({
                   <Label htmlFor="tw-desc">Description</Label>
                   <Textarea
                     id="tw-desc"
-                    rows={6}
+                    rows={5}
                     className="resize-y"
                     disabled={!canManage}
                     value={form.description ?? ''}
@@ -322,37 +604,6 @@ export function TeamWorkItemDrawer({
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Assignee</Label>
-                  <p className="text-[11px] text-muted-foreground">
-                    Saving a new assignee sends them an email (when the API has SMTP configured). Self-assign does not email you.
-                  </p>
-                  <Select
-                    disabled={!canManage}
-                    value={form.assigneeUserId || '__none__'}
-                    onValueChange={(v) =>
-                      setForm((f) => ({ ...f, assigneeUserId: v === '__none__' ? undefined : v }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Unassigned" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">Unassigned</SelectItem>
-                      {form.assigneeUserId &&
-                      !adminUsers.some((u) => u.id === form.assigneeUserId) ? (
-                        <SelectItem value={form.assigneeUserId}>
-                          {assigneeMap.get(form.assigneeUserId) || form.assigneeUserId}
-                        </SelectItem>
-                      ) : null}
-                      {adminUsers.map((u) => (
-                        <SelectItem key={u.id} value={u.id}>
-                          {userLabel(u)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
                   <Label>Epic</Label>
                   <Select
                     disabled={!canManage}
@@ -373,23 +624,6 @@ export function TeamWorkItemDrawer({
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="tw-labels">Labels (comma-separated)</Label>
-                  <Input
-                    id="tw-labels"
-                    disabled={!canManage}
-                    value={(form.labels || []).join(', ')}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        labels: e.target.value
-                          .split(',')
-                          .map((s) => s.trim())
-                          .filter(Boolean),
-                      }))
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="tw-due">Due date</Label>
                   <Input
                     id="tw-due"
@@ -407,6 +641,23 @@ export function TeamWorkItemDrawer({
                       }))
                     }
                   />
+                </div>
+                <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
+                  <p className="text-xs font-medium text-foreground">Meetings</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Open Google Calendar with this issue in the title and description. Add guests or a Meet link in
+                    the next step.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 gap-1.5"
+                    onClick={() => setScheduleMeetingOpen(true)}
+                  >
+                    <CalendarPlus className="h-3.5 w-3.5" aria-hidden />
+                    Schedule in Google Calendar
+                  </Button>
                 </div>
               </div>
               {canManage ? (
@@ -468,6 +719,16 @@ export function TeamWorkItemDrawer({
           confirmText="Delete"
           severity="error"
         />
+
+        {item ? (
+          <ScheduleMeetingDialog
+            open={scheduleMeetingOpen}
+            onOpenChange={setScheduleMeetingOpen}
+            defaultTitle={`${item.issueKey}: ${item.title}`}
+            defaultDetails={meetingDefaultDetails}
+            defaultGuestEmails={assigneeGuestEmails}
+          />
+        ) : null}
       </div>
     </>
   )

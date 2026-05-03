@@ -110,6 +110,7 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
 
       'view_team_tasks',
       'manage_team_tasks',
+      'manage_team_projects',
     ]
   },
   
@@ -206,6 +207,7 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
 
       'view_team_tasks',
       'manage_team_tasks',
+      'manage_team_projects',
     ]
   },
   
@@ -261,6 +263,7 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
 
       'view_team_tasks',
       'manage_team_tasks',
+      'manage_team_projects',
     ]
   },
   

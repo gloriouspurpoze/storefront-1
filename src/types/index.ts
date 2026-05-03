@@ -33,7 +33,11 @@ export interface User {
   firstName: string
   lastName: string
   phone?: string
-  userType: 'customer' | 'provider' | 'admin' | 'super_admin'
+  userType: 'customer' | 'provider' | 'professional' | 'admin' | 'super_admin'
+  /** Set when account was created via admin invite (dashboard staff). */
+  isDashboardMember?: boolean
+  /** First sign-up channel (Google OAuth customers vs email vs admin invite). */
+  registrationSource?: 'email' | 'google_oauth' | 'admin_invite'
   /** Dashboard RBAC role when `userType` is admin (or super_admin). */
   rbacRole?: UserRole
   /** When `explicit`, only `permissions` are used for access checks. */

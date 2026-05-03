@@ -22,6 +22,10 @@ interface UserFiltersProps {
   selectedVerification: string
   onVerificationChange: (value: string) => void
   onClearFilters: () => void
+  /** When false, user type filter is hidden (e.g. team members page). */
+  showUserTypeFilter?: boolean
+  /** App directory: only customer / provider / professional options. */
+  directoryTypesOnly?: boolean
 }
 
 export const UserFilters: React.FC<UserFiltersProps> = ({
@@ -34,10 +38,12 @@ export const UserFilters: React.FC<UserFiltersProps> = ({
   selectedVerification,
   onVerificationChange,
   onClearFilters,
+  showUserTypeFilter = true,
+  directoryTypesOnly = false,
 }) => {
   const hasActiveFilters =
     searchTerm ||
-    selectedType !== 'all' ||
+    (showUserTypeFilter && selectedType !== 'all') ||
     selectedStatus !== 'all' ||
     selectedVerification !== 'all'
 
@@ -60,20 +66,23 @@ export const UserFilters: React.FC<UserFiltersProps> = ({
           </div>
         </div>
 
-        <div className="md:col-span-2">
-          <Label className="mb-1.5 block text-xs text-muted-foreground">User Type</Label>
-          <Select value={selectedType} onValueChange={onTypeChange}>
-            <SelectTrigger>
-              <SelectValue placeholder="User Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="provider">Provider</SelectItem>
-              <SelectItem value="customer">Customer</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {showUserTypeFilter && (
+          <div className="md:col-span-2">
+            <Label className="mb-1.5 block text-xs text-muted-foreground">User Type</Label>
+            <Select value={selectedType} onValueChange={onTypeChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="User Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                {!directoryTypesOnly && <SelectItem value="admin">Admin</SelectItem>}
+                <SelectItem value="provider">Provider</SelectItem>
+                <SelectItem value="customer">Customer</SelectItem>
+                {directoryTypesOnly && <SelectItem value="professional">Professional</SelectItem>}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <div className="md:col-span-2">
           <Label className="mb-1.5 block text-xs text-muted-foreground">Status</Label>

@@ -37,8 +37,12 @@ const CrmActivities = lazy(() => import('./pages/crm/crm-activities').then((m) =
 const CrmSettings = lazy(() => import('./pages/crm/crm-settings').then((m) => ({ default: m.CrmSettings })))
 
 const TeamWorkHub = lazy(() => import('./pages/team-work/team-work-hub').then((m) => ({ default: m.TeamWorkHub })))
+const TeamWorkCalendarPage = lazy(() =>
+  import('./pages/team-work/team-work-calendar').then((m) => ({ default: m.TeamWorkCalendarPage })),
+)
 
 const Users = lazy(() => import('./pages/users/users').then((m) => ({ default: m.Users })))
+const TeamMembers = lazy(() => import('./pages/users/users').then((m) => ({ default: m.TeamMembers })))
 const Products = lazy(() => import('./pages/products/products').then((m) => ({ default: m.Products })))
 const AddProduct = lazy(() => import('./pages/products/add-product').then((m) => ({ default: m.AddProduct })))
 const CategoryHub = lazy(() => import('./pages/categories/category-hub'))
@@ -488,7 +492,15 @@ function App() {
                           </RoleBasedRoute>
                         } 
                       />
-                      
+                      <Route
+                        path="/users/members"
+                        element={
+                          <RoleBasedRoute permissions={['view_users']}>
+                            <TeamMembers />
+                          </RoleBasedRoute>
+                        }
+                      />
+
                       {/* Providers */}
                       <Route 
                         path="/providers" 
@@ -718,6 +730,14 @@ function App() {
                         element={
                           <RoleBasedRoute permissions={['view_team_tasks']}>
                             <TeamWorkHub />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/team-work/calendar"
+                        element={
+                          <RoleBasedRoute permissions={['view_team_tasks']}>
+                            <TeamWorkCalendarPage />
                           </RoleBasedRoute>
                         }
                       />

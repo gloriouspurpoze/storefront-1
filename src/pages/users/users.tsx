@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Plus,
   Users as UsersIcon,
@@ -7,6 +8,8 @@ import {
   ShoppingCart,
   CheckCircle,
   XCircle,
+  Sparkles,
+  UserCog,
   type LucideIcon,
 } from 'lucide-react'
 import { Card, CardContent } from '../../components/ui/card'
@@ -24,11 +27,14 @@ import { useAppSelector } from '../../store/hooks'
 
 interface UserStats {
   total: number
-  admins: number
-  providers: number
   customers: number
+  providers: number
+  professionals: number
+  googleSignIn: number
   verified: number
   unverified: number
+  active: number
+  inactive: number
 }
 
 const iconColor: Record<string, string> = {
@@ -39,8 +45,11 @@ const iconColor: Record<string, string> = {
   warning: 'text-amber-600',
 }
 
-export function Users() {
+type UsersPageMode = 'directory' | 'members'
+
+function UsersPageContent({ mode }: { mode: UsersPageMode }) {
   const tenantId = useAppSelector((s) => s.auth.user?.tenant?.id ?? null)
+  const scope = mode === 'directory' ? 'directory' : 'members'
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -66,11 +75,14 @@ export function Users() {
 
   const [stats, setStats] = useState<UserStats>({
     total: 0,
-    admins: 0,
-    providers: 0,
     customers: 0,
+    providers: 0,
+    professionals: 0,
+    googleSignIn: 0,
     verified: 0,
     unverified: 0,
+    active: 0,
+    inactive: 0,
   })
 
   useEffect(() => {
@@ -98,7 +110,7 @@ export function Users() {
   const fetchUsers = async () => {
     try {
       setLoading(true)
-      const response = await usersService.getUsers({ page: 1, limit: 100 })
+      const response = await usersService.getUsers({ page: 1, limit: 100, scope })
       setUsers(response.users)
       calculateStats(response.users)
     } catch (error) {
@@ -110,24 +122,37 @@ export function Users() {
   }
 
   const calculateStats = (userList: User[]) => {
-    setStats({
-      total: userList.length,
-      admins: userList.filter((u) => u.userType === 'admin').length,
-      providers: userList.filter((u) => u.userType === 'provider').length,
-      customers: userList.filter((u) => u.userType === 'customer').length,
-      verified: userList.filter((u) => u.isVerified).length,
-      unverified: userList.filter((u) => !u.isVerified).length,
-    })
+    if (mode === 'directory') {
+      setStats({
+        total: userList.length,
+        customers: userList.filter((u) => u.userType === 'customer').length,
+        providers: userList.filter((u) => u.userType === 'provider').length,
+        professionals: userList.filter((u) => u.userType === 'professional').length,
+        googleSignIn: userList.filter((u) => u.registrationSource === 'google_oauth').length,
+        verified: userList.filter((u) => u.isVerified).length,
+        unverified: userList.filter((u) => !u.isVerified).length,
+        active: userList.filter((u) => u.isActive !== false).length,
+        inactive: userList.filter((u) => u.isActive === false).length,
+      })
+    } else {
+      setStats({
+        total: userList.length,
+        customers: 0,
+        providers: 0,
+        professionals: 0,
+        googleSignIn: 0,
+        verified: userList.filter((u) => u.isVerified).length,
+        unverified: userList.filter((u) => !u.isVerified).length,
+        active: userList.filter((u) => u.isActive !== false).length,
+        inactive: userList.filter((u) => u.isActive === false).length,
+      })
+    }
   }
 
-  const dashboardUsersForClone = useMemo(
-    () =>
-      users.filter(
-        (u) =>
-          (u.userType === 'admin' || u.userType === 'super_admin') && u.id !== selectedUser?.id,
-      ),
-    [users, selectedUser?.id],
-  )
+  const dashboardUsersForClone = useMemo(() => {
+    if (mode === 'directory') return []
+    return users.filter((u) => u.id !== selectedUser?.id)
+  }, [mode, users, selectedUser?.id])
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
@@ -234,17 +259,21 @@ export function Users() {
   ) => {
     try {
       if (formMode === 'create') {
+        const createUserType =
+          mode === 'members'
+            ? 'admin'
+            : ((userData.userType || 'customer') as 'customer' | 'provider' | 'professional')
         await usersService.createUser({
           email: userData.email!,
           password: userData.password!,
           firstName: userData.firstName!,
           lastName: userData.lastName!,
           phone: userData.phone,
-          userType: (userData.userType || 'customer') as 'customer' | 'provider' | 'admin',
+          userType: createUserType,
           isVerified: userData.isVerified,
           isActive: userData.isActive,
           profilePicture: userData.profilePicture,
-          ...(userData.userType === 'admin' && !userData.clearDashboardRbac
+          ...(createUserType === 'admin' && !userData.clearDashboardRbac
             ? {
                 rbacRole: userData.rbacRole,
                 rbacPermissionMode: userData.rbacPermissionMode,
@@ -321,25 +350,54 @@ export function Users() {
     <div className="min-h-0 flex-1">
       <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="mb-1 text-2xl font-bold">User Management</h1>
+          <h1 className="mb-1 text-2xl font-bold">
+            {mode === 'directory' ? 'App users' : 'Team members'}
+          </h1>
           <p className="text-muted-foreground">
-            Accounts, verification, and dashboard RBAC (role, explicit module grants, and navigation visibility).
+            {mode === 'directory' ? (
+              <>
+                People who use the consumer app or provider tools (including Google sign-in). Dashboard staff
+                are managed separately under{' '}
+                <Link to="/users/members" className="font-medium text-primary underline-offset-4 hover:underline">
+                  Team members
+                </Link>
+                .
+              </>
+            ) : (
+              <>
+                Admin-invited accounts for this dashboard (roles, scoped modules, and navigation). Consumer
+                accounts are under{' '}
+                <Link to="/users" className="font-medium text-primary underline-offset-4 hover:underline">
+                  App users
+                </Link>
+                .
+              </>
+            )}
           </p>
         </div>
         <Button className="min-w-[140px]" onClick={handleCreateUser}>
           <Plus className="mr-2 h-4 w-4" />
-          Add User
+          {mode === 'directory' ? 'Add app user' : 'Invite team member'}
         </Button>
       </div>
 
-      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-6">
-        <StatCard title="Total Users" value={stats.total} icon={UsersIcon} color="primary" />
-        <StatCard title="Admins" value={stats.admins} icon={Shield} color="error" />
-        <StatCard title="Providers" value={stats.providers} icon={Wrench} color="info" />
-        <StatCard title="Customers" value={stats.customers} icon={ShoppingCart} color="success" />
-        <StatCard title="Verified" value={stats.verified} icon={CheckCircle} color="success" />
-        <StatCard title="Unverified" value={stats.unverified} icon={XCircle} color="warning" />
-      </div>
+      {mode === 'directory' ? (
+        <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-6">
+          <StatCard title="Total" value={stats.total} icon={UsersIcon} color="primary" />
+          <StatCard title="Customers" value={stats.customers} icon={ShoppingCart} color="success" />
+          <StatCard title="Providers" value={stats.providers} icon={Wrench} color="info" />
+          <StatCard title="Professionals" value={stats.professionals} icon={UserCog} color="warning" />
+          <StatCard title="Google sign-in" value={stats.googleSignIn} icon={Sparkles} color="primary" />
+          <StatCard title="Verified" value={stats.verified} icon={CheckCircle} color="success" />
+        </div>
+      ) : (
+        <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-2 md:grid-cols-4">
+          <StatCard title="Team members" value={stats.total} icon={Shield} color="primary" />
+          <StatCard title="Active" value={stats.active} icon={CheckCircle} color="success" />
+          <StatCard title="Verified" value={stats.verified} icon={CheckCircle} color="success" />
+          <StatCard title="Inactive" value={stats.inactive} icon={XCircle} color="warning" />
+        </div>
+      )}
 
       <Card className="mb-4">
         <CardContent className="pt-6">
@@ -353,6 +411,8 @@ export function Users() {
             selectedVerification={selectedVerification}
             onVerificationChange={setSelectedVerification}
             onClearFilters={handleClearFilters}
+            showUserTypeFilter={mode === 'directory'}
+            directoryTypesOnly={mode === 'directory'}
           />
         </CardContent>
       </Card>
@@ -368,6 +428,7 @@ export function Users() {
       <UserTable
         users={filteredUsers}
         loading={loading}
+        listVariant={mode}
         onView={handleViewUser}
         onEdit={handleEditUser}
         onDelete={handleDeleteUser}
@@ -384,6 +445,7 @@ export function Users() {
         onSubmit={handleFormSubmit}
         user={selectedUser}
         mode={formMode}
+        accountVariant={mode === 'directory' ? 'directory' : 'members'}
         cloneFromUsers={dashboardUsersForClone}
         tenantId={tenantId}
       />
@@ -430,4 +492,12 @@ export function Users() {
       )}
     </div>
   )
+}
+
+export function Users() {
+  return <UsersPageContent mode="directory" />
+}
+
+export function TeamMembers() {
+  return <UsersPageContent mode="members" />
 }

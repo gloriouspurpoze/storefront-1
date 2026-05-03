@@ -44,6 +44,8 @@ interface UserFormDialogProps {
   onSubmit: (user: FormUser) => Promise<void>
   user?: User | null
   mode: 'create' | 'edit'
+  /** App directory vs team members invite flow. */
+  accountVariant?: 'directory' | 'members'
   /** Dashboard users to copy RBAC from (e.g. same list page). */
   cloneFromUsers?: User[]
   /** Tenant scope for saved templates in localStorage. */
@@ -117,6 +119,7 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
   onSubmit,
   user,
   mode,
+  accountVariant = 'directory',
   cloneFromUsers = [],
   tenantId,
 }) => {
@@ -175,7 +178,7 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
         firstName: '',
         lastName: '',
         phone: '',
-        userType: 'customer',
+        userType: accountVariant === 'members' ? 'admin' : 'customer',
         isVerified: false,
         isActive: true,
         profilePicture: '',
@@ -187,7 +190,7 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
     }
     setError(null)
     setErrors({})
-  }, [user, mode, open])
+  }, [user, mode, open, accountVariant])
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
@@ -356,7 +359,13 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
       >
         <DialogHeader className="flex flex-row items-center justify-between space-y-0 border-b border-border pb-2">
           <DialogTitle className="text-lg font-semibold">
-            {mode === 'create' ? 'Create New User' : 'Edit User'}
+            {mode === 'create'
+              ? accountVariant === 'members'
+                ? 'Invite team member'
+                : 'Add app user'
+              : accountVariant === 'members'
+                ? 'Edit team member'
+                : 'Edit user'}
           </DialogTitle>
           <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onClose}>
             <X className="h-4 w-4" />
@@ -475,19 +484,25 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
 
           <div className="space-y-1.5">
             <Label>User Type</Label>
-            <Select
-              value={formData.userType}
-              onValueChange={(v) => handleChange('userType', v as User['userType'])}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="customer">Customer</SelectItem>
-                <SelectItem value="provider">Provider</SelectItem>
-                <SelectItem value="admin">Admin (dashboard)</SelectItem>
-              </SelectContent>
-            </Select>
+            {accountVariant === 'members' ? (
+              <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                Dashboard team account <span className="font-medium text-foreground">(admin access)</span>
+              </div>
+            ) : (
+              <Select
+                value={formData.userType}
+                onValueChange={(v) => handleChange('userType', v as User['userType'])}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="customer">Customer</SelectItem>
+                  <SelectItem value="provider">Provider</SelectItem>
+                  <SelectItem value="professional">Professional</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           <div className="mt-1 flex flex-wrap items-center gap-6 sm:col-span-1">

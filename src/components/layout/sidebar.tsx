@@ -55,6 +55,7 @@ import {
   ListChecks as RateReviewIcon,
   BadgeCheck as VerifiedUserIcon,
   KanbanSquare as KanbanSquareIcon,
+  CalendarDays as TeamCalendarIcon,
 } from 'lucide-react'
 import { useAppSelector } from '../../store/hooks'
 import { usePermissions } from '../../hooks/usePermissions'
@@ -288,6 +289,13 @@ const navigationGroups = [
         permissions: ['view_team_tasks', 'manage_team_tasks'],
         badge: null,
       },
+      {
+        name: 'Team calendar',
+        href: '/team-work/calendar',
+        icon: TeamCalendarIcon,
+        permissions: ['view_team_tasks', 'manage_team_tasks'],
+        badge: null,
+      },
       { name: 'Service requests', href: '/requests', icon: FileTextIcon, permissions: ['view_services', 'manage_services'], badge: null },
       { name: 'Quotes', href: '/quotes', icon: DollarSignIcon, permissions: ['view_quotes'], badge: null },
       { name: 'Payments', href: '/payments', icon: CreditCardIcon, permissions: ['view_payments', 'manage_payments'], badge: null },
@@ -352,7 +360,14 @@ const navigationGroups = [
     title: 'Users & Communication',
     icon: UsersIcon,
     items: [
-      { name: 'Users', href: '/users', icon: UsersIcon, permissions: ['view_users', 'manage_users'], badge: null },
+      { name: 'App users', href: '/users', icon: UsersIcon, permissions: ['view_users', 'manage_users'], badge: null },
+      {
+        name: 'Team members',
+        href: '/users/members',
+        icon: VerifiedUserIcon,
+        permissions: ['view_users', 'manage_users'],
+        badge: null,
+      },
       // { name: 'Messages', href: '/messages', icon: MessageIcon, permissions: ['view_messages'], badge: null },
       { name: 'Notifications', href: '/notifications', icon: NotificationsIcon, permissions: ['view_notifications', 'manage_notifications'], badge: null },
     ]

@@ -12,6 +12,9 @@ export function mapBackendUserToAppUser(backendUser: any, tenantRef?: TenantRef 
   const rbacPermissionMode = (backendUser.rbac_permission_mode ||
     backendUser.rbacPermissionMode) as RbacPermissionMode | undefined
 
+  const registrationSource = (backendUser.registration_source ||
+    backendUser.registrationSource) as User['registrationSource'] | undefined
+
   return {
     id: String(backendUser.id),
     email: backendUser.email,
@@ -22,6 +25,8 @@ export function mapBackendUserToAppUser(backendUser: any, tenantRef?: TenantRef 
     isVerified: Boolean(backendUser.is_verified ?? backendUser.isVerified),
     isActive: backendUser.is_active ?? backendUser.isActive,
     profilePicture: backendUser.profile_picture || backendUser.profilePicture,
+    isDashboardMember: Boolean(backendUser.is_dashboard_member ?? backendUser.isDashboardMember),
+    ...(registrationSource ? { registrationSource } : {}),
     createdAt: backendUser.created_at || backendUser.createdAt || new Date().toISOString(),
     updatedAt: backendUser.updated_at || backendUser.updatedAt,
     ...(tenantRef ? { tenant: tenantRef } : {}),

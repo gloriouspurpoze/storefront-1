@@ -55,9 +55,20 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     disabled,
     ...props 
   }, ref) => {
-    const Comp = asChild ? Slot : "button"
+    // Radix Slot (asChild) requires exactly one React element child — never mix with loading/icons.
+    if (asChild) {
+      return (
+        <Slot
+          className={cn(buttonVariants({ variant, size, className }))}
+          ref={ref}
+          {...props}
+        >
+          {children}
+        </Slot>
+      )
+    }
     return (
-      <Comp
+      <button
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
         disabled={loading || disabled}
@@ -67,7 +78,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {!loading && leftIcon && <span className="mr-2 flex items-center">{leftIcon}</span>}
         {children}
         {!loading && rightIcon && <span className="ml-2 flex items-center">{rightIcon}</span>}
-      </Comp>
+      </button>
     )
   }
 )

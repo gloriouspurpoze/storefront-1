@@ -359,12 +359,32 @@ export class CMSService {
     limit?: number;
     type?: string;
     search?: string;
+    folder?: string;
+    tags?: string;
   }) {
     const response = await axios.get(`${API_BASE}/cms/admin/media`, {
       ...this.getAuthHeaders(),
       params,
     });
-    return response.data.data;
+    return response.data.data as {
+      files: unknown[]
+      pagination: { total: number; page: number; limit: number; pages: number }
+    }
+  }
+
+  static async getMediaStats() {
+    const response = await axios.get(`${API_BASE}/cms/admin/media/stats`, this.getAuthHeaders())
+    return response.data.data.stats as Array<{ _id: string; count: number; totalSize: number }>
+  }
+
+  static async getMediaFolders() {
+    const response = await axios.get(`${API_BASE}/cms/admin/media/folders`, this.getAuthHeaders())
+    return (response.data.data.folders || []) as string[]
+  }
+
+  static async createMediaRecord(payload: Record<string, unknown>) {
+    const response = await axios.post(`${API_BASE}/cms/admin/media`, payload, this.getAuthHeaders())
+    return response.data.data.file
   }
 
   static async uploadMedia(formData: FormData) {

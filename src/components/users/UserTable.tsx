@@ -39,6 +39,8 @@ import { UserAccessChips } from './UserAccessChips'
 interface UserTableProps {
   users: User[]
   loading?: boolean
+  /** directory: show Google sign-in badge; members: dashboard list context. */
+  listVariant?: 'directory' | 'members'
   onView?: (user: User) => void
   onEdit?: (user: User) => void
   onDelete?: (user: User) => void
@@ -60,6 +62,8 @@ const userTypeBadgeVariant = (
       return 'default'
     case 'customer':
       return 'success'
+    case 'professional':
+      return 'secondary'
     default:
       return 'secondary'
   }
@@ -156,6 +160,7 @@ function SortableHead({
 export const UserTable: React.FC<UserTableProps> = ({
   users,
   loading: _loading = false,
+  listVariant,
   onView,
   onEdit,
   onDelete,
@@ -249,9 +254,12 @@ export const UserTable: React.FC<UserTableProps> = ({
                     {user.firstName} {user.lastName}
                   </p>
                   <div className="mb-1 flex flex-wrap gap-1">
-                    {user.userType !== 'admin' && user.userType !== 'super_admin' && (
-                      <Badge variant={userTypeBadgeVariant(user.userType)} className="capitalize">
-                        {user.userType}
+                    <Badge variant={userTypeBadgeVariant(user.userType)} className="capitalize">
+                      {user.userType}
+                    </Badge>
+                    {listVariant === 'directory' && user.registrationSource === 'google_oauth' && (
+                      <Badge variant="outline" className="border-sky-500/40 text-sky-700 dark:text-sky-300">
+                        Google
                       </Badge>
                     )}
                     <UserAccessChips user={user} maxPermissionChips={3} className="w-full" />
@@ -362,9 +370,16 @@ export const UserTable: React.FC<UserTableProps> = ({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={userTypeBadgeVariant(user.userType)} className="capitalize">
-                      {user.userType}
-                    </Badge>
+                    <div className="flex flex-wrap items-center gap-1">
+                      <Badge variant={userTypeBadgeVariant(user.userType)} className="capitalize">
+                        {user.userType}
+                      </Badge>
+                      {listVariant === 'directory' && user.registrationSource === 'google_oauth' && (
+                        <Badge variant="outline" className="border-sky-500/40 text-sky-700 dark:text-sky-300">
+                          Google
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="max-w-[260px]">
                     <UserAccessChips user={user} maxPermissionChips={4} />

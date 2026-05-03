@@ -114,6 +114,8 @@ export type Permission =
   // Team work (internal tasks / Jira-style)
   | 'view_team_tasks'
   | 'manage_team_tasks'
+  /** Create boards, archive, set per-board member roster (who sees which project). */
+  | 'manage_team_projects'
 
 export interface RolePermissions {
   role: UserRole

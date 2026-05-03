@@ -37,6 +37,7 @@ export const QUICK_NAV_ITEMS: QuickNavItem[] = [
   { label: 'CRM settings', path: '/crm/settings', group: 'CRM' },
 
   { label: 'Team work', path: '/team-work', group: 'Operations', keywords: 'tasks jira kanban sprint' },
+  { label: 'Team calendar', path: '/team-work/calendar', group: 'Operations', keywords: 'meet google due schedule ceremony' },
 
   { label: 'Category management', path: '/categories', group: 'Catalog' },
   { label: 'Product categories', path: '/categories/products', group: 'Catalog' },
@@ -87,7 +88,8 @@ export const QUICK_NAV_ITEMS: QuickNavItem[] = [
   { label: 'Media library', path: '/cms/media', group: 'Content & marketing' },
   { label: 'SEO management', path: '/cms/seo', group: 'Content & marketing' },
 
-  { label: 'Users', path: '/users', group: 'Users & communication' },
+  { label: 'App users', path: '/users', group: 'Users & communication' },
+  { label: 'Team members', path: '/users/members', group: 'Users & communication' },
   { label: 'Notifications', path: '/notifications', group: 'Users & communication' },
   { label: 'Messages', path: '/messages', group: 'Users & communication' },
 
