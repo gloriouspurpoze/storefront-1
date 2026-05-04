@@ -297,13 +297,16 @@ export function TeamWorkCalendarPage() {
       ? { prev: 'Previous month', next: 'Next month', today: 'This month' }
       : { prev: 'Previous year', next: 'Next year', today: 'This year' }
 
-  const renderEventCard = (ev: TeamWorkCalendarEvent, compact?: boolean) => (
+  const renderEventCard = (ev: TeamWorkCalendarEvent, compact?: boolean) => {
+    const isStartLine = ev.kind === 'due' && ev.title.startsWith('Start ·')
+    return (
     <div
       key={ev.id}
       className={cn(
         'rounded-md border px-2 py-1.5 leading-snug',
         compact ? 'text-[10px]' : 'text-[11px]',
-        ev.kind === 'due' && 'border-primary/30 bg-primary/5',
+        ev.kind === 'due' && !isStartLine && 'border-primary/30 bg-primary/5',
+        isStartLine && 'border-emerald-600/30 bg-emerald-500/5',
         ev.kind === 'ceremony' && 'border-amber-500/30 bg-amber-500/5',
         ev.kind === 'google' && 'border-sky-500/30 bg-sky-500/5',
       )}
@@ -339,7 +342,8 @@ export function TeamWorkCalendarPage() {
         </a>
       ) : null}
     </div>
-  )
+    )
+  }
 
   useEffect(() => {
     if (!meetOpen || meetStart) return

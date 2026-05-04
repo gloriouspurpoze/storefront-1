@@ -111,6 +111,9 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       'view_team_tasks',
       'manage_team_tasks',
       'manage_team_projects',
+
+      'view_finance',
+      'manage_finance',
     ]
   },
   
@@ -208,6 +211,9 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       'view_team_tasks',
       'manage_team_tasks',
       'manage_team_projects',
+
+      'view_finance',
+      'manage_finance',
     ]
   },
   
@@ -264,6 +270,9 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       'view_team_tasks',
       'manage_team_tasks',
       'manage_team_projects',
+
+      'view_finance',
+      'manage_finance',
     ]
   },
   
@@ -304,6 +313,8 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
 
       'view_team_tasks',
       'manage_team_tasks',
+
+      'view_finance',
     ]
   },
   
@@ -536,6 +547,12 @@ export const routePermissions: RoutePermission[] = [
   {
     path: '/team-work',
     requiredPermissions: ['view_team_tasks'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+
+  {
+    path: '/finance',
+    requiredPermissions: ['view_finance'],
     allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
   },
 

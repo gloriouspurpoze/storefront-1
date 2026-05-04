@@ -55,6 +55,8 @@ export interface TeamWorkItem {
   assigneeUserId?: string
   reporterUserId: string
   labels: string[]
+  /** Planned work start (optional; team calendar). */
+  startAt?: string
   dueAt?: string
   epicId?: string
   storyPoints?: number

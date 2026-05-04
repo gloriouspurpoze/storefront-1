@@ -110,6 +110,7 @@ function mapItem(raw: Record<string, unknown>): TeamWorkItem {
     assigneeUserId: raw.assigneeUserId ? String(raw.assigneeUserId) : undefined,
     reporterUserId: String(raw.reporterUserId || ''),
     labels: Array.isArray(raw.labels) ? (raw.labels as unknown[]).map((x) => String(x)) : [],
+    startAt: raw.startAt ? new Date(raw.startAt as string).toISOString() : undefined,
     dueAt: raw.dueAt ? new Date(raw.dueAt as string).toISOString() : undefined,
     epicId: raw.epicId ? String(raw.epicId) : undefined,
     storyPoints: raw.storyPoints !== undefined && raw.storyPoints !== null ? Number(raw.storyPoints) : undefined,
@@ -214,9 +215,11 @@ export const teamWorkApi = {
         | 'teamKey'
         | 'assigneeUserId'
         | 'labels'
+        | 'startAt'
         | 'dueAt'
         | 'epicId'
         | 'storyPoints'
+        | 'status'
       >
     >,
   ): Promise<TeamWorkItem> {

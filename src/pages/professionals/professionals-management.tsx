@@ -43,6 +43,7 @@ import {
   Delete as DeleteIcon,
   CheckCircle as VerifiedIcon,
   AccessTime as AvailabilityIcon,
+  Dashboard as DashboardIcon,
 } from '@mui/icons-material'
 import { PageHeader } from '../../components/common/PageHeader'
 import {
@@ -67,6 +68,7 @@ export function ProfessionalsManagement() {
   const [expertiseFilter, setExpertiseFilter] = useState('all')
   const [verificationFilter, setVerificationFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
+  const [accountFilter, setAccountFilter] = useState('all')
 
   // Pagination
   const [page, setPage] = useState(0)
@@ -106,7 +108,7 @@ export function ProfessionalsManagement() {
 
   useEffect(() => {
     fetchProfessionals()
-  }, [page, limit, searchTerm, availabilityFilter, expertiseFilter, verificationFilter, categoryFilter])
+  }, [page, limit, searchTerm, availabilityFilter, expertiseFilter, verificationFilter, categoryFilter, accountFilter])
 
   const fetchProfessionals = async () => {
     try {
@@ -126,6 +128,11 @@ export function ProfessionalsManagement() {
         query.verificationStatus = 'pending'
       } else if (verificationFilter === 'rejected') {
         query.verificationStatus = 'rejected'
+      }
+      if (accountFilter === 'active') {
+        query.isActive = true
+      } else if (accountFilter === 'inactive') {
+        query.isActive = false
       }
 
       const response = await ProfessionalsService.getProfessionals(query as any)
@@ -157,6 +164,11 @@ export function ProfessionalsManagement() {
 
   const handleEdit = (professional: Professional) => {
     navigate(`/professionals/edit/${professional._id}`)
+    handleMenuClose()
+  }
+
+  const handleOpenHub = (professional: Professional) => {
+    navigate(`/professionals/${professional._id}`)
     handleMenuClose()
   }
 
@@ -278,6 +290,7 @@ export function ProfessionalsManagement() {
     setExpertiseFilter('all')
     setVerificationFilter('all')
     setCategoryFilter('all')
+    setAccountFilter('all')
     setPage(0)
   }
 
@@ -318,6 +331,8 @@ export function ProfessionalsManagement() {
         onVerificationChange={setVerificationFilter}
         categoryFilter={categoryFilter}
         onCategoryChange={setCategoryFilter}
+        accountFilter={accountFilter}
+        onAccountFilterChange={setAccountFilter}
         onClearFilters={handleClearFilters}
         onApplyFilters={handleApplyFilters}
       />
@@ -327,6 +342,7 @@ export function ProfessionalsManagement() {
         professionals={professionals}
         loading={loading}
         onMenuClick={handleMenuClick}
+        onOpenHub={handleOpenHub}
       />
 
       {/* Action Menu */}
@@ -341,6 +357,10 @@ export function ProfessionalsManagement() {
         <MenuItem onClick={() => menuProfessional && handleView(menuProfessional)}>
           <ViewIcon sx={{ mr: 1 }} fontSize="small" />
           View Details
+        </MenuItem>
+        <MenuItem onClick={() => menuProfessional && handleOpenHub(menuProfessional)}>
+          <DashboardIcon sx={{ mr: 1 }} fontSize="small" />
+          Command center
         </MenuItem>
         <MenuItem onClick={() => menuProfessional && handleEdit(menuProfessional)}>
           <EditIcon sx={{ mr: 1 }} fontSize="small" />
@@ -409,6 +429,17 @@ export function ProfessionalsManagement() {
           )}
         </DialogContent>
         <DialogActions>
+          {viewingProfessional ? (
+            <Button
+              variant="contained"
+              onClick={() => {
+                setViewDialogOpen(false)
+                navigate(`/professionals/${viewingProfessional._id}`)
+              }}
+            >
+              Command center
+            </Button>
+          ) : null}
           <Button onClick={() => setViewDialogOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>

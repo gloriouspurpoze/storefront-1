@@ -5,6 +5,7 @@
 
 export type QuickNavGroup =
   | 'Overview'
+  | 'Finance'
   | 'CRM'
   | 'Catalog'
   | 'E-commerce'
@@ -28,6 +29,13 @@ export const QUICK_NAV_ITEMS: QuickNavItem[] = [
   { label: 'Dashboard', path: '/', group: 'Overview' },
   { label: 'Analytics', path: '/analytics', group: 'Overview' },
 
+  { label: 'Finance overview', path: '/finance/overview', group: 'Finance', keywords: 'expenses budget pnl cashflow' },
+  { label: 'Finance expenses', path: '/finance/expenses', group: 'Finance', keywords: 'bills vendors approval' },
+  { label: 'Finance budgets', path: '/finance/budgets', group: 'Finance', keywords: 'forecast opex' },
+  { label: 'Finance directory', path: '/finance/directory', group: 'Finance', keywords: 'accounts vendors categories' },
+  { label: 'Finance reconciliation', path: '/finance/reconciliation', group: 'Finance', keywords: 'csv bank statement match' },
+  { label: 'Finance recurring', path: '/finance/recurring', group: 'Finance', keywords: 'subscription schedule' },
+
   { label: 'CRM overview', path: '/crm', group: 'CRM' },
   { label: 'Leads', path: '/crm/leads', group: 'CRM' },
   { label: 'Contacts', path: '/crm/contacts', group: 'CRM' },
@@ -44,7 +52,7 @@ export const QUICK_NAV_ITEMS: QuickNavItem[] = [
   { label: 'Service categories', path: '/categories/services', group: 'Catalog' },
   { label: 'Platform services', path: '/platform-services', group: 'Catalog' },
   { label: 'Marketplace', path: '/marketplace', group: 'Catalog' },
-  { label: 'Professionals', path: '/professionals', group: 'Catalog' },
+  { label: 'Professionals', path: '/professionals', group: 'Catalog', keywords: 'technicians workers supply' },
   { label: 'Provider applications', path: '/provider-applications', group: 'Catalog' },
 
   { label: 'Store overview', path: '/ecommerce', group: 'E-commerce' },
@@ -138,6 +146,7 @@ const SEGMENT_TITLE_RULES: { test: RegExp; title: string }[] = [
   { test: /^\/providers\/edit\/[^/]+$/, title: 'Edit provider' },
   { test: /^\/providers\/edit$/, title: 'Edit provider' },
   { test: /^\/professionals\/create$/, title: 'Create professional' },
+  { test: /^\/professionals\/(?!edit\/|create)[^/]+$/, title: 'Professional command center' },
   { test: /^\/professionals\/edit\//, title: 'Edit professional' },
   { test: /^\/bookings\/[^/]+$/, title: 'Booking details' },
   { test: /^\/cms\/blogs\/new$/, title: 'New blog post' },

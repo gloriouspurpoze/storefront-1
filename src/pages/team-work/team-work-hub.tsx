@@ -20,7 +20,13 @@ import { TeamWorkItemDrawer } from '../../components/team-work/TeamWorkItemDrawe
 import { ScheduleMeetingDialog } from '../../components/team-work/ScheduleMeetingDialog'
 import { teamWorkApi } from '../../services/api/teamWork.api'
 import { usersService } from '../../services/api/users.service'
-import type { TeamWorkItem, TeamWorkMeta, TeamWorkProject, TeamWorkStatus } from '../../types/teamWork.types'
+import type {
+  TeamWorkItem,
+  TeamWorkMeta,
+  TeamWorkProject,
+  TeamWorkStatus,
+  TeamWorkTagCatalogEntry,
+} from '../../types/teamWork.types'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useAppSelector } from '../../store/hooks'
 import { Button } from '../../components/ui/button'
@@ -48,7 +54,7 @@ import {
 import { Switch } from '../../components/ui/switch'
 import { Checkbox } from '../../components/ui/checkbox'
 import { assigneeSwatchClass, initialsFromLabel, PRIORITY_CHIP, priorityLabel } from '../../lib/teamWorkVisuals'
-import { teamWorkTagDisplayName } from '../../lib/teamWorkTags'
+import { teamWorkTagDisplayName, teamWorkTagSlug } from '../../lib/teamWorkTags'
 import { cn } from '../../lib/utils'
 
 const STATUS_LABELS: Record<TeamWorkStatus, string> = {
@@ -103,6 +109,17 @@ export function TeamWorkHub() {
   const [newPriority, setNewPriority] = useState<TeamWorkItem['priority']>('medium')
   const [newType, setNewType] = useState<TeamWorkItem['issueType']>('task')
   const [newAssigneeId, setNewAssigneeId] = useState<string>('__none__')
+  const [newStatus, setNewStatus] = useState<TeamWorkStatus>('backlog')
+  const [newStartAt, setNewStartAt] = useState('')
+  const [newDueAt, setNewDueAt] = useState('')
+  const [createTagSlugs, setCreateTagSlugs] = useState<string[]>([])
+  const [newCustomCreateTag, setNewCustomCreateTag] = useState('')
+  const [createTagOptions, setCreateTagOptions] = useState<{ catalog: TeamWorkTagCatalogEntry[]; inUse: string[] } | null>(
+    null,
+  )
+  const [savingCreateCatalog, setSavingCreateCatalog] = useState(false)
+  const [newEpicId, setNewEpicId] = useState<string>('__none__')
+  const [newStoryPoints, setNewStoryPoints] = useState('')
   const [creating, setCreating] = useState(false)
 
   const [projectSettingsOpen, setProjectSettingsOpen] = useState(false)
@@ -133,6 +150,27 @@ export function TeamWorkHub() {
     () => Array.from(new Set([...boardTagOptions, ...tagFilters])).sort(),
     [boardTagOptions, tagFilters],
   )
+
+  const createCatalogMerged = useMemo(() => {
+    const m = new Map<string, TeamWorkTagCatalogEntry>()
+    for (const t of currentProject?.tagCatalog ?? []) m.set(t.slug, t)
+    for (const t of createTagOptions?.catalog ?? []) {
+      if (!m.has(t.slug)) m.set(t.slug, t)
+    }
+    return Array.from(m.values()).sort((a, b) => a.name.localeCompare(b.name))
+  }, [currentProject?.tagCatalog, createTagOptions])
+
+  const createExtraLabelSlugs = useMemo(() => {
+    const known = new Set(createCatalogMerged.map((t) => t.slug))
+    const out: string[] = []
+    for (const slug of createTagOptions?.inUse ?? []) {
+      if (!known.has(slug)) out.push(slug)
+    }
+    for (const slug of createTagSlugs) {
+      if (!known.has(slug)) out.push(slug)
+    }
+    return Array.from(new Set(out)).sort()
+  }, [createCatalogMerged, createTagOptions, createTagSlugs])
 
   const statuses = useMemo(() => meta?.statuses ?? (Object.keys(STATUS_LABELS) as TeamWorkStatus[]), [meta])
 
@@ -261,19 +299,24 @@ export function TeamWorkHub() {
     if (!newTitle.trim()) return
     setCreating(true)
     try {
+      const sp = newStoryPoints.trim()
       await teamWorkApi.createItem({
         projectId: projectId!,
         title: newTitle.trim(),
         description: newDesc.trim() || undefined,
         priority: newPriority,
         issueType: newType,
-        status: 'backlog',
+        status: newStatus,
         assigneeUserId: newAssigneeId !== '__none__' ? newAssigneeId : undefined,
+        labels: createTagSlugs.length ? createTagSlugs : undefined,
+        startAt: newStartAt ? new Date(newStartAt).toISOString() : undefined,
+        dueAt: newDueAt ? new Date(newDueAt).toISOString() : undefined,
+        epicId: newEpicId !== '__none__' ? newEpicId : undefined,
+        storyPoints:
+          sp !== '' && !Number.isNaN(Number(sp)) ? Math.min(100, Math.max(0, Math.floor(Number(sp)))) : undefined,
       })
       setCreateOpen(false)
-      setNewTitle('')
-      setNewDesc('')
-      setNewAssigneeId('__none__')
+      resetNewIssueForm()
       await load()
     } finally {
       setCreating(false)
@@ -292,6 +335,69 @@ export function TeamWorkHub() {
     const list = await teamWorkApi.listProjects()
     setProjects(list)
   }, [])
+
+  const resetNewIssueForm = useCallback(() => {
+    setNewTitle('')
+    setNewDesc('')
+    setNewPriority('medium')
+    setNewType('task')
+    setNewAssigneeId('__none__')
+    setNewStatus('backlog')
+    setNewStartAt('')
+    setNewDueAt('')
+    setCreateTagSlugs([])
+    setNewCustomCreateTag('')
+    setCreateTagOptions(null)
+    setNewEpicId('__none__')
+    setNewStoryPoints('')
+  }, [])
+
+  useEffect(() => {
+    if (!createOpen || !projectId) {
+      setCreateTagOptions(null)
+      return
+    }
+    let cancelled = false
+    void teamWorkApi
+      .getProjectTags(projectId)
+      .then((d) => {
+        if (!cancelled) setCreateTagOptions(d)
+      })
+      .catch(() => {
+        if (!cancelled) setCreateTagOptions({ catalog: [], inUse: [] })
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [createOpen, projectId])
+
+  const toggleCreateTag = (slug: string) => {
+    setCreateTagSlugs((prev) => (prev.includes(slug) ? prev.filter((x) => x !== slug) : [...prev, slug]))
+  }
+
+  const addCustomCreateTagFromInput = () => {
+    const raw = newCustomCreateTag.trim()
+    if (!raw) return
+    const slug = teamWorkTagSlug(raw)
+    setCreateTagSlugs((prev) => (prev.includes(slug) ? prev : [...prev, slug]))
+    setNewCustomCreateTag('')
+  }
+
+  const saveCreateTagPreset = async (slug: string, displayName: string) => {
+    if (!projectId || !canManage) return
+    setSavingCreateCatalog(true)
+    try {
+      const cat = currentProject?.tagCatalog ?? []
+      const next = [...cat]
+      if (!next.some((t) => t.slug === slug)) next.push({ slug, name: displayName.slice(0, 64) })
+      await teamWorkApi.patchProject(projectId, { tagCatalog: next })
+      await refreshProjects()
+      const d = await teamWorkApi.getProjectTags(projectId)
+      setCreateTagOptions(d)
+    } finally {
+      setSavingCreateCatalog(false)
+    }
+  }
 
   const saveBoardAccess = async () => {
     if (!currentProject) return
@@ -696,21 +802,56 @@ export function TeamWorkHub() {
         onProjectTagCatalogChanged={() => void refreshProjects()}
       />
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-md">
+      <Dialog
+        open={createOpen}
+        onOpenChange={(o) => {
+          setCreateOpen(o)
+          if (!o) resetNewIssueForm()
+        }}
+      >
+        <DialogContent className="max-h-[min(90vh,720px)] max-w-lg overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create issue</DialogTitle>
+            <DialogDescription className="text-left text-sm text-muted-foreground">
+              Set board tags, dates, and workflow fields before creating. Start and due dates appear on the team calendar.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 py-2">
+          <div className="space-y-4 py-2">
             <div className="space-y-2">
               <Label htmlFor="nw-t">Title</Label>
-              <Input id="nw-t" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Short, actionable summary" />
+              <Input
+                id="nw-t"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                placeholder="Short, actionable summary"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="nw-d">Description</Label>
-              <Textarea id="nw-d" rows={4} value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Context, acceptance criteria, links…" />
+              <Textarea
+                id="nw-d"
+                rows={3}
+                value={newDesc}
+                onChange={(e) => setNewDesc(e.target.value)}
+                placeholder="Context, acceptance criteria, links…"
+              />
             </div>
             <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={newStatus} onValueChange={(v) => setNewStatus(v as TeamWorkStatus)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statuses.map((s) => (
+                      <SelectItem key={s} value={s} className="capitalize">
+                        {STATUS_LABELS[s]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-2">
                 <Label>Priority</Label>
                 <Select value={newPriority} onValueChange={(v) => setNewPriority(v as TeamWorkItem['priority'])}>
@@ -726,6 +867,8 @@ export function TeamWorkHub() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Type</Label>
                 <Select value={newType} onValueChange={(v) => setNewType(v as TeamWorkItem['issueType'])}>
@@ -741,6 +884,132 @@ export function TeamWorkHub() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="nw-sp">Story points</Label>
+                <Input
+                  id="nw-sp"
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={newStoryPoints}
+                  onChange={(e) => setNewStoryPoints(e.target.value)}
+                  placeholder="Optional"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="nw-start">Start date</Label>
+                <Input id="nw-start" type="datetime-local" value={newStartAt} onChange={(e) => setNewStartAt(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="nw-due">Due date</Label>
+                <Input id="nw-due" type="datetime-local" value={newDueAt} onChange={(e) => setNewDueAt(e.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Epic (optional)</Label>
+              <Select value={newEpicId} onValueChange={setNewEpicId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="None" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">None</SelectItem>
+                  {epics.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>
+                      {e.issueKey} — {e.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2 rounded-lg border border-border/60 bg-muted/15 p-3">
+              <div className="flex items-center gap-2">
+                <Tag className="h-4 w-4 text-muted-foreground" aria-hidden />
+                <Label className="text-base">Tags</Label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Select board tags or add a custom label. Save new names as board presets so filters stay useful for everyone.
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {createCatalogMerged.map((t) => {
+                  const on = createTagSlugs.includes(t.slug)
+                  return (
+                    <Button
+                      key={t.slug}
+                      type="button"
+                      size="sm"
+                      variant={on ? 'default' : 'outline'}
+                      className="h-8 rounded-full px-3 text-xs font-normal"
+                      disabled={!canManage}
+                      onClick={() => toggleCreateTag(t.slug)}
+                    >
+                      {t.name}
+                    </Button>
+                  )
+                })}
+                {createExtraLabelSlugs.map((slug) => {
+                  const on = createTagSlugs.includes(slug)
+                  const name = teamWorkTagDisplayName(slug, createCatalogMerged)
+                  return (
+                    <Button
+                      key={`extra-${slug}`}
+                      type="button"
+                      size="sm"
+                      variant={on ? 'default' : 'secondary'}
+                      className="h-8 rounded-full px-3 text-xs font-normal"
+                      disabled={!canManage}
+                      onClick={() => toggleCreateTag(slug)}
+                    >
+                      {name}
+                    </Button>
+                  )
+                })}
+              </div>
+              {canManage ? (
+                <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:items-end">
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <Label htmlFor="nw-newtag" className="text-xs">
+                      New tag
+                    </Label>
+                    <Input
+                      id="nw-newtag"
+                      placeholder="e.g. Marketing team"
+                      value={newCustomCreateTag}
+                      onChange={(e) => setNewCustomCreateTag(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          addCustomCreateTagFromInput()
+                        }
+                      }}
+                    />
+                  </div>
+                  <Button type="button" variant="secondary" size="sm" onClick={addCustomCreateTagFromInput}>
+                    Add tag
+                  </Button>
+                </div>
+              ) : null}
+              {canManage && projectId
+                ? createTagSlugs.map((slug) => {
+                    const inPreset = (currentProject?.tagCatalog ?? []).some((t) => t.slug === slug)
+                    if (inPreset) return null
+                    return (
+                      <div key={`preset-hint-${slug}`} className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                        <span>“{teamWorkTagDisplayName(slug, createCatalogMerged)}” is new on this issue.</span>
+                        <Button
+                          type="button"
+                          variant="link"
+                          className="h-auto p-0 text-xs"
+                          disabled={savingCreateCatalog}
+                          onClick={() => void saveCreateTagPreset(slug, teamWorkTagDisplayName(slug, createCatalogMerged))}
+                        >
+                          Save as board tag
+                        </Button>
+                      </div>
+                    )
+                  })
+                : null}
             </div>
             <div className="space-y-2">
               <Label>Assignee (optional)</Label>

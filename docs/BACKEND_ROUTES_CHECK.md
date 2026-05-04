@@ -219,6 +219,21 @@ Until the booking document has the correct `professionalId`, “My Bookings” f
 
 ---
 
+## Admin: professional command center (recommended)
+
+The admin app (`/professionals/:id`) resolves bookings in this order:
+
+1. **GET** `/api/bookings?professionalId=<mongoId>` — camelCase query (and `professional_id` as alternate).
+2. **GET** `/api/bookings/admin/professional/<mongoId>?page=&limit=&status=&dateFrom=&dateTo=` — dedicated admin list (optional but best for RBAC and performance).
+3. If neither returns a consistent assignment list, the UI falls back to a **bounded client-side filter** on the latest 150 general bookings (clearly labeled in the UI).
+
+Also recommended for production:
+
+- **GET** `/api/professionals/:id/activity?limit=&cursor=` — append-only audit stream (merged with booking-derived milestones in the UI).
+- **GET** `/api/payments?professional_id=<mongoId>` — so earnings do not require N+1 `GET /payments/booking/:id` calls.
+
+---
+
 ## Current Frontend Configuration
 
 - **Base URL:** `http://localhost:8005/api` (from `.env`)

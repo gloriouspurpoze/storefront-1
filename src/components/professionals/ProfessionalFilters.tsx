@@ -34,6 +34,8 @@ interface ProfessionalFiltersProps {
   onVerificationChange: (value: string) => void
   categoryFilter: string
   onCategoryChange: (value: string) => void
+  accountFilter: string
+  onAccountFilterChange: (value: string) => void
   onClearFilters: () => void
   onApplyFilters: () => void
 }
@@ -49,6 +51,8 @@ export function ProfessionalFilters({
   onVerificationChange,
   categoryFilter,
   onCategoryChange,
+  accountFilter,
+  onAccountFilterChange,
   onClearFilters,
   onApplyFilters,
 }: ProfessionalFiltersProps) {
@@ -56,7 +60,7 @@ export function ProfessionalFilters({
     <Card className="mb-6 shadow-sm">
       <CardContent className="p-6">
         <div className="grid grid-cols-1 items-end gap-4 md:grid-cols-12">
-          <div className="md:col-span-3">
+          <div className="md:col-span-2">
             <Label htmlFor="prof-search" className="sr-only">
               Search
             </Label>
@@ -85,6 +89,20 @@ export function ProfessionalFilters({
                     {c.label}
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="md:col-span-1 min-w-[120px]">
+            <Label className="mb-1.5 block text-xs text-muted-foreground">Account</Label>
+            <Select value={accountFilter} onValueChange={onAccountFilterChange}>
+              <SelectTrigger className="rounded-md">
+                <SelectValue placeholder="Account" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
           </div>

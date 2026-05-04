@@ -446,6 +446,19 @@ export interface Booking {
   source?: 'web' | 'mobile_app';
   createdAt: string
   updatedAt?: string
+  /** Assigned marketplace professional (admin / detail views) */
+  professionalId?: string
+  professional?: {
+    _id?: string
+    firstName?: string
+    lastName?: string
+    email?: string
+    professionalId?: string
+  }
+  cancellationReason?: string | null
+  cancellation_reason?: string | null
+  assignedAt?: string | null
+  assigned_at?: string | null
 }
 
 export interface UpdateBookingStatusRequest {
@@ -464,6 +477,15 @@ export interface BookingsQuery {
   status?: string
   customerId?: string
   providerId?: string
+  /** Admin: filter bookings assigned to this professional */
+  professionalId?: string
+  /** Some backends expect snake_case query key */
+  professional_id?: string
+  /** ISO date range when API supports it */
+  dateFrom?: string
+  dateTo?: string
+  /** Free-text search when API supports it */
+  search?: string
   /** Filter by where booking was created: 'web' | 'mobile_app' */
   source?: 'web' | 'mobile_app'
 }
@@ -979,6 +1001,8 @@ export interface MenusQuery {
   sort_by?: 'name' | 'created_at' | 'updated_at'
   sort_order?: 'asc' | 'desc'
 }
+
+export * from './finance.types'
 
 // Static Data types
 export interface StaticData {

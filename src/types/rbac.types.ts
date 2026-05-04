@@ -83,6 +83,10 @@ export type Permission =
   | 'create_payments'
   | 'refund_payments'
   | 'export_payments'
+
+  // Company finance (expenses, budgets, vendors — fixer-admin /api/finance)
+  | 'view_finance'
+  | 'manage_finance'
   
   // Message permissions
   | 'view_messages'

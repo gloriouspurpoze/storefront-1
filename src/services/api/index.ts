@@ -27,6 +27,7 @@ export { dashboardService } from './dashboard.service'
 export { crmService, isCrmApiMode } from './crm.service'
 export { crmApi } from './crm.api'
 export { teamWorkApi } from './teamWork.api'
+export { FinanceService } from './finance.service'
 export { BazaarMarketplaceService } from './bazaarMarketplace.service'
 export { ErrorHandler } from './error-handler'
 

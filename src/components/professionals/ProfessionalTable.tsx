@@ -17,6 +17,7 @@ import {
   Circle,
 } from 'lucide-react'
 import { Professional } from '../../types/professional.types'
+import { professionalDisplayAccountStatus } from '../../lib/professionalAdmin'
 import { getProfessionalCategoryLabel } from '../../constants/professionalCategories'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
@@ -35,6 +36,7 @@ interface ProfessionalTableProps {
   professionals: Professional[]
   loading: boolean
   onMenuClick: (event: React.MouseEvent<HTMLElement>, professional: Professional) => void
+  onOpenHub?: (professional: Professional) => void
 }
 
 const verificationIcon = (status: string) => {
@@ -88,7 +90,15 @@ const getAvailabilityColor = (availability: string) => {
   }
 }
 
-export function ProfessionalTable({ professionals, loading, onMenuClick }: ProfessionalTableProps) {
+const accountBadgeVariant = (
+  status: ReturnType<typeof professionalDisplayAccountStatus>,
+): React.ComponentProps<typeof Badge>['variant'] => {
+  if (status === 'active') return 'success'
+  if (status === 'suspended') return 'warning'
+  return 'destructive'
+}
+
+export function ProfessionalTable({ professionals, loading, onMenuClick, onOpenHub }: ProfessionalTableProps) {
   if (loading) {
     return (
       <Card>
@@ -127,6 +137,7 @@ export function ProfessionalTable({ professionals, loading, onMenuClick }: Profe
             <TableHead>Experience</TableHead>
             <TableHead>Availability</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Account</TableHead>
             <TableHead>Rating</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
@@ -141,6 +152,7 @@ export function ProfessionalTable({ professionals, loading, onMenuClick }: Profe
             const skills = professional.skills ?? []
             const categories = professional.categories ?? []
             const ac = getAvailabilityColor(professional.availability)
+            const acct = professionalDisplayAccountStatus(professional)
 
             return (
               <TableRow
@@ -162,9 +174,19 @@ export function ProfessionalTable({ professionals, loading, onMenuClick }: Profe
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="text-sm font-semibold">
-                        {professional.firstName} {professional.lastName}
-                      </p>
+                      {onOpenHub ? (
+                        <button
+                          type="button"
+                          className="text-left text-sm font-semibold text-primary underline-offset-4 hover:underline"
+                          onClick={() => onOpenHub(professional)}
+                        >
+                          {professional.firstName} {professional.lastName}
+                        </button>
+                      ) : (
+                        <p className="text-sm font-semibold">
+                          {professional.firstName} {professional.lastName}
+                        </p>
+                      )}
                       <p className="text-xs text-muted-foreground">{professional.professionalId}</p>
                     </div>
                   </div>
@@ -238,6 +260,11 @@ export function ProfessionalTable({ professionals, loading, onMenuClick }: Profe
                   >
                     {verificationIcon(professional.verificationStatus)}
                     {professional.verificationStatus}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={accountBadgeVariant(acct)} className="capitalize">
+                    {acct}
                   </Badge>
                 </TableCell>
                 <TableCell>

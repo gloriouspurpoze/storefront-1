@@ -48,7 +48,7 @@ export default function Marketplace() {
     },
     {
       title: 'Professionals',
-      description: 'Onboard and manage professionals listed on the marketplace.',
+      description: 'Fleet list, filters, and per-professional command center (bookings, reviews, coverage, moderation).',
       href: '/professionals',
       icon: Users,
       permission: 'view_providers',

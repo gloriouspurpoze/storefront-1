@@ -5,6 +5,7 @@ import type {
   BookingsResponse,
   BookingsQuery,
 } from '../../types'
+import { bookingMatchesProfessional } from '../../lib/proBookingResolution'
 
 /**
  * Bookings Service
@@ -630,5 +631,117 @@ export class BookingsService {
       successMessage: 'Booking deleted successfully!',
       errorMessage: 'Failed to delete booking.',
     })
+  }
+
+  /**
+   * Admin hub: resolve bookings for a professional using multiple server query shapes,
+   * optional dedicated admin route, then a bounded client-side filter as last resort.
+   */
+  static async getBookingsForProfessionalAdmin(
+    mongoProfessionalId: string,
+    humanProfessionalId: string | undefined,
+    query: BookingsQuery = {},
+  ): Promise<{
+    api: Awaited<ReturnType<typeof BookingsService.getBookings>>
+    loadMeta: {
+      strategy: 'query_professionalId' | 'query_professional_id' | 'admin_route' | 'client_slice' | 'empty'
+      warning?: string
+    }
+  }> {
+    const page = query.page ?? 1
+    const limit = query.limit ?? 25
+    const base: BookingsQuery = { ...query, page, limit }
+
+    const payloadOf = (res: Awaited<ReturnType<typeof BookingsService.getBookings>>) =>
+      (res.data || {}) as BookingsResponse
+
+    const isConsistentAssignment = (res: Awaited<ReturnType<typeof BookingsService.getBookings>>) => {
+      if (!res.success) return false
+      const { bookings = [] } = payloadOf(res)
+      if (bookings.length === 0) return true
+      return bookings.every((b) => bookingMatchesProfessional(b, mongoProfessionalId, humanProfessionalId))
+    }
+
+    const hasRows = (res: Awaited<ReturnType<typeof BookingsService.getBookings>>) => {
+      if (!res.success) return false
+      const { bookings = [], pagination } = payloadOf(res)
+      const total = pagination?.total ?? 0
+      return bookings.length > 0 || total > 0
+    }
+
+    let r = await this.getBookings({ ...base, professionalId: mongoProfessionalId })
+    if (hasRows(r) && isConsistentAssignment(r)) {
+      return { api: r, loadMeta: { strategy: 'query_professionalId' } }
+    }
+
+    r = await this.getBookings({ ...base, professional_id: mongoProfessionalId } as BookingsQuery)
+    if (hasRows(r) && isConsistentAssignment(r)) {
+      return { api: r, loadMeta: { strategy: 'query_professional_id' } }
+    }
+
+    try {
+      const params = new URLSearchParams()
+      Object.entries(base).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && k !== 'professionalId' && k !== 'professional_id') {
+          params.append(k, String(v))
+        }
+      })
+      const qs = params.toString()
+      const adminUrl = `/bookings/admin/professional/${mongoProfessionalId}${qs ? `?${qs}` : ''}`
+      const adminRes = await api.get<BookingsResponse>(adminUrl, {
+        loadingMessage: 'Loading bookings...',
+        showSuccessToast: false,
+      })
+      if (adminRes.success && hasRows(adminRes) && isConsistentAssignment(adminRes)) {
+        return { api: adminRes, loadMeta: { strategy: 'admin_route' } }
+      }
+    } catch (err: unknown) {
+      const status = (err as { status?: number }).status
+      if (status && status !== 404) {
+        /* fall through */
+      }
+    }
+
+    const MAX = 150
+    const wide = await this.getBookings({
+      page: 1,
+      limit: MAX,
+      status: base.status,
+      dateFrom: base.dateFrom,
+      dateTo: base.dateTo,
+      source: base.source,
+    })
+    const all = payloadOf(wide).bookings ?? []
+    const matched = all.filter((b) => bookingMatchesProfessional(b, mongoProfessionalId, humanProfessionalId))
+    const pageSize = Number(limit) || 25
+    const p = Number(page) || 1
+    const start = (p - 1) * pageSize
+    const slice = matched.slice(start, start + pageSize)
+    const warning =
+      matched.length === 0
+        ? 'No assigned bookings found. Ensure the API exposes assignment fields (professional / professionalId) and supports GET /bookings?professionalId=… or GET /bookings/admin/professional/:id.'
+        : 'Server did not return a professional-scoped list. Showing matches from the latest ' +
+          MAX +
+          ' bookings (client-side filter; totals are approximate).'
+
+    return {
+      api: {
+        success: true,
+        data: {
+          bookings: slice,
+          pagination: {
+            page: p,
+            limit: pageSize,
+            total: matched.length,
+            totalPages: Math.max(1, Math.ceil(matched.length / pageSize)),
+          },
+        },
+        message: wide.message || 'OK',
+      },
+      loadMeta: {
+        strategy: matched.length === 0 ? 'empty' : 'client_slice',
+        warning,
+      },
+    }
   }
 }

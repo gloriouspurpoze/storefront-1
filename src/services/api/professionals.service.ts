@@ -18,6 +18,8 @@ import {
   ProfessionalStats,
   UpdateVerificationData,
   UpdateAvailabilityData,
+  SuspendProfessionalRequest,
+  BlockProfessionalRequest,
 } from '../../types/professional.types'
 
 export class ProfessionalsService {
@@ -188,8 +190,139 @@ export class ProfessionalsService {
   }
 
   /**
-   * Export professionals to CSV
+   * Optional audit timeline (backend). Returns empty events when route is not implemented (404).
    */
+  static async getProfessionalActivity(
+    id: string,
+    query: { limit?: number; cursor?: string } = {},
+  ) {
+    const params = new URLSearchParams()
+    if (query.limit != null) params.append('limit', String(query.limit))
+    if (query.cursor) params.append('cursor', query.cursor)
+    const qs = params.toString()
+    try {
+      return await api.get<{
+        events: Array<{
+          id: string
+          occurredAt: string
+          kind: string
+          title: string
+          description?: string
+          bookingId?: string
+        }>
+        nextCursor?: string | null
+      }>(`/professionals/${id}/activity${qs ? `?${qs}` : ''}`, {
+        loadingMessage: 'Loading activity...',
+        showSuccessToast: false,
+      })
+    } catch (err: unknown) {
+      const status = (err as { status?: number }).status
+      if (status === 404) {
+        return {
+          success: true as const,
+          data: { events: [] as Array<{ id: string; occurredAt: string; kind: string; title: string; description?: string; bookingId?: string }>, nextCursor: null },
+          message: 'Activity API not available',
+        }
+      }
+      throw err
+    }
+  }
+
+  /**
+   * Suspend professional (temporary). Prefers POST /professionals/:id/suspend; falls back to deactivate when API returns 404.
+   */
+  static async suspendProfessional(id: string, body: SuspendProfessionalRequest) {
+    try {
+      return await api.post<Professional>(`/professionals/${id}/suspend`, body, {
+        loadingMessage: 'Suspending professional...',
+        successMessage: 'Professional suspended.',
+      })
+    } catch (err: any) {
+      const status = err?.status
+      if (status === 404) {
+        return api.put<Professional>(
+          `/professionals/${id}`,
+          {
+            isActive: false,
+            availability: 'offline',
+            moderationReason: body.reason,
+            suspendedUntil: body.until ?? null,
+            accountStatus: 'suspended',
+          } as UpdateProfessionalData,
+          {
+            loadingMessage: 'Suspending professional...',
+            successMessage: 'Professional deactivated (fallback — enable dedicated suspend API for full audit).',
+          },
+        )
+      }
+      throw err
+    }
+  }
+
+  /**
+   * Block professional. Prefers POST /professionals/:id/block; falls back to isActive false.
+   */
+  static async blockProfessional(id: string, body: BlockProfessionalRequest) {
+    try {
+      return await api.post<Professional>(`/professionals/${id}/block`, body, {
+        loadingMessage: 'Blocking professional...',
+        successMessage: 'Professional blocked.',
+      })
+    } catch (err: any) {
+      const status = err?.status
+      if (status === 404) {
+        return api.put<Professional>(
+          `/professionals/${id}`,
+          {
+            isActive: false,
+            availability: 'offline',
+            moderationReason: body.reason,
+            accountStatus: 'blocked',
+          } as UpdateProfessionalData,
+          {
+            loadingMessage: 'Blocking professional...',
+            successMessage: 'Professional deactivated (fallback — enable dedicated block API for full audit).',
+          },
+        )
+      }
+      throw err
+    }
+  }
+
+  /**
+   * Reinstate professional after suspend/block. Prefers POST /professionals/:id/reinstate.
+   */
+  static async reinstateProfessional(id: string) {
+    try {
+      return await api.post<Professional>(
+        `/professionals/${id}/reinstate`,
+        {},
+        {
+          loadingMessage: 'Reinstating professional...',
+          successMessage: 'Professional reinstated.',
+        },
+      )
+    } catch (err: any) {
+      const status = err?.status
+      if (status === 404) {
+        return api.put<Professional>(
+          `/professionals/${id}`,
+          {
+            isActive: true,
+            accountStatus: 'active',
+            suspendedUntil: null,
+            moderationReason: undefined,
+          } as UpdateProfessionalData,
+          {
+            loadingMessage: 'Reinstating professional...',
+            successMessage: 'Professional reactivated.',
+          },
+        )
+      }
+      throw err
+    }
+  }
+
   static async exportProfessionals(query: ProfessionalsQuery = {}) {
     const params = new URLSearchParams()
     

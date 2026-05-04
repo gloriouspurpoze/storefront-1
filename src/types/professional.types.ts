@@ -8,11 +8,16 @@
  * @date November 7, 2025
  */
 
+/** Account moderation (admin). Backend may return snake_case — normalize in UI when needed. */
+export type ProfessionalAccountStatus = 'active' | 'suspended' | 'blocked'
+
 export interface Professional {
   _id: string
   id: string
   professionalId: string
-  
+  /** Linked auth user for login disable / user admin flows when API provides it */
+  userId?: string
+
   // Personal Information
   firstName: string
   lastName: string
@@ -48,6 +53,8 @@ export interface Professional {
     issuedDate?: string
     expiryDate?: string
     certificateUrl?: string
+    verificationStatus?: 'pending' | 'approved' | 'rejected'
+    adminNotes?: string
   }>
   experience: number
   expertiseLevel: 'beginner' | 'intermediate' | 'expert'
@@ -82,6 +89,12 @@ export interface Professional {
   
   // Status & Performance
   isActive: boolean
+  /** When API supports moderation endpoints / expanded GET */
+  accountStatus?: ProfessionalAccountStatus
+  suspendedUntil?: string
+  moderationReason?: string
+  moderationNotes?: string
+  lastModerationAt?: string
   isVerified: boolean
   verificationStatus: 'pending' | 'verified' | 'rejected'
   rating: number
@@ -126,6 +139,8 @@ export interface CreateProfessionalData {
     issuedDate?: string
     expiryDate?: string
     certificateUrl?: string
+    verificationStatus?: 'pending' | 'approved' | 'rejected'
+    adminNotes?: string
   }>
   experience: number
   expertiseLevel: 'beginner' | 'intermediate' | 'expert'
@@ -168,6 +183,10 @@ export interface UpdateProfessionalData extends Partial<CreateProfessionalData> 
   availability?: 'available' | 'busy' | 'offline'
   isActive?: boolean
   isVerified?: boolean
+  accountStatus?: ProfessionalAccountStatus
+  moderationReason?: string
+  moderationNotes?: string
+  suspendedUntil?: string | null
 }
 
 export interface ProfessionalsQuery {
@@ -183,6 +202,8 @@ export interface ProfessionalsQuery {
   isVerified?: boolean
   /** Refine list when API supports it (e.g. rejected vs pending). */
   verificationStatus?: 'pending' | 'verified' | 'rejected'
+  /** When API supports filtering by active flag */
+  isActive?: boolean
   isIndependent?: boolean
   sortBy?: 'name' | 'rating' | 'experience' | 'created_at'
   sortOrder?: 'asc' | 'desc'
@@ -213,6 +234,10 @@ export interface ProfessionalStats {
     category: string
     count: number
   }>
+  /** Optional fleet moderation counts when GET /professionals/stats returns them */
+  suspendedProfessionals?: number
+  blockedProfessionals?: number
+  inactiveProfessionals?: number
 }
 
 export interface UpdateVerificationData {
@@ -226,5 +251,14 @@ export interface UpdateVerificationData {
 export interface UpdateAvailabilityData {
   availability: 'available' | 'busy' | 'offline'
   reason?: string
+}
+
+export interface SuspendProfessionalRequest {
+  reason: string
+  until?: string
+}
+
+export interface BlockProfessionalRequest {
+  reason: string
 }
 

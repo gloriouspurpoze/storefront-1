@@ -54,7 +54,7 @@ import { BookingsService, ProvidersService } from '../../services/api'
 import { AssignProviderModal } from '../../components/bookings/AssignProviderModal'
 import { AssignProfessionalDialog } from '../../components/bookings/AssignProfessionalDialog'
 import { UpdateBookingStatusModal } from '../../components/bookings/UpdateBookingStatusModal'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAppConfirm } from '../../components/providers/AppDialogsProvider'
 
 const statusConfig: Record<
@@ -124,6 +124,8 @@ const statusTabs: Array<{ label: string; value: string }> = [
 
 export function Bookings() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const professionalIdFromUrl = searchParams.get('professionalId') || undefined
   const confirm = useAppConfirm()
 
   // State management
@@ -189,6 +191,10 @@ export function Bookings() {
         query.source = selectedSource
       }
 
+      if (professionalIdFromUrl) {
+        query.professionalId = professionalIdFromUrl
+      }
+
       const response = await BookingsService.getBookings(query)
       
       if (response.success && response.data) {
@@ -211,7 +217,7 @@ export function Bookings() {
 
   useEffect(() => {
     fetchBookings()
-  }, [page, pageSize, selectedStatus, selectedSource])
+  }, [page, pageSize, selectedStatus, selectedSource, professionalIdFromUrl])
 
   useEffect(() => {
     const loadStats = async () => {
@@ -466,6 +472,19 @@ export function Bookings() {
         <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Bookings Management</h1>
         <p className="text-sm text-muted-foreground md:text-base">Manage and track all service bookings</p>
       </div>
+
+      {professionalIdFromUrl ? (
+        <div className="mb-4 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
+          <span className="text-muted-foreground">Filtered by professional.</span>{' '}
+          <Link className="font-medium text-primary underline-offset-4 hover:underline" to={`/professionals/${professionalIdFromUrl}`}>
+            Open command center
+          </Link>
+          {' · '}
+          <Link className="text-muted-foreground underline-offset-4 hover:underline" to="/bookings">
+            Clear filter
+          </Link>
+        </div>
+      ) : null}
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[

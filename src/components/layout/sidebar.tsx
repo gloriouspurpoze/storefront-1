@@ -308,6 +308,13 @@ const navigationGroups = [
         badge: null,
       },
       { name: 'Earnings & Payouts', href: '/payouts', icon: AccountBalanceIcon, permissions: ['view_payments', 'manage_payments'], badge: null },
+      {
+        name: 'Finance',
+        href: '/finance/overview',
+        icon: TrendingUpIcon,
+        permissions: ['view_finance'],
+        badge: null,
+      },
       { name: 'Chat', href: '/chat', icon: ChatIcon, permissions: ['view_messages'], badge: 'new' },
     ]
   },

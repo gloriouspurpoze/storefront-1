@@ -28,6 +28,31 @@ const SmartDashboard = lazy(() => import('./pages/dashboard/smart-dashboard').th
 const Analytics = lazy(() => import('./pages/dashboard/analytics').then((m) => ({ default: m.Analytics })))
 const AdminEarningsOverview = lazy(() => import('./pages/payments/admin-earnings-overview').then((m) => ({ default: m.AdminEarningsOverview })))
 
+const FinanceLayout = lazy(() =>
+  import('./pages/finance/finance-layout').then((m) => ({ default: m.FinanceLayout })),
+)
+const FinanceIndexRedirect = lazy(() =>
+  import('./pages/finance/finance-layout').then((m) => ({ default: m.FinanceIndexRedirect })),
+)
+const FinanceOverviewPage = lazy(() =>
+  import('./pages/finance/finance-overview').then((m) => ({ default: m.FinanceOverviewPage })),
+)
+const FinanceExpensesPage = lazy(() =>
+  import('./pages/finance/finance-expenses').then((m) => ({ default: m.FinanceExpensesPage })),
+)
+const FinanceBudgetsPage = lazy(() =>
+  import('./pages/finance/finance-budgets').then((m) => ({ default: m.FinanceBudgetsPage })),
+)
+const FinanceDirectoryPage = lazy(() =>
+  import('./pages/finance/finance-directory').then((m) => ({ default: m.FinanceDirectoryPage })),
+)
+const FinanceReconciliationPage = lazy(() =>
+  import('./pages/finance/finance-reconciliation').then((m) => ({ default: m.FinanceReconciliationPage })),
+)
+const FinanceRecurringPage = lazy(() =>
+  import('./pages/finance/finance-recurring').then((m) => ({ default: m.FinanceRecurringPage })),
+)
+
 const CrmDashboard = lazy(() => import('./pages/crm/crm-dashboard').then((m) => ({ default: m.CrmDashboard })))
 const CrmLeads = lazy(() => import('./pages/crm/crm-leads').then((m) => ({ default: m.CrmLeads })))
 const CrmContacts = lazy(() => import('./pages/crm/crm-contacts').then((m) => ({ default: m.CrmContacts })))
@@ -70,6 +95,9 @@ const ProviderEarnings = lazy(() => import('./pages/providers/provider-earnings'
 const Professionals = lazy(() => import('./pages/professionals/professionals').then((m) => ({ default: m.Professionals })))
 const CreateProfessional = lazy(() => import('./pages/professionals/create-professional').then((m) => ({ default: m.CreateProfessional })))
 const EditProfessional = lazy(() => import('./pages/professionals/edit-professional').then((m) => ({ default: m.EditProfessional })))
+const ProfessionalAdminHub = lazy(() =>
+  import('./pages/professionals/professional-admin-hub').then((m) => ({ default: m.ProfessionalAdminHub })),
+)
 const ProfessionalDashboard = lazy(() => import('./pages/professionals/professional-dashboard').then((m) => ({ default: m.ProfessionalDashboard })))
 const ProfessionalBookings = lazy(() => import('./pages/bookings/professional-bookings').then((m) => ({ default: m.ProfessionalBookings })))
 const ProfessionalProfile = lazy(() => import('./pages/professionals/professional-profile').then((m) => ({ default: m.ProfessionalProfile })))
@@ -482,6 +510,23 @@ function App() {
                           </RoleBasedRoute>
                         } 
                       />
+
+                      <Route
+                        path="/finance"
+                        element={
+                          <RoleBasedRoute permissions={['view_finance']}>
+                            <FinanceLayout />
+                          </RoleBasedRoute>
+                        }
+                      >
+                        <Route index element={<FinanceIndexRedirect />} />
+                        <Route path="overview" element={<FinanceOverviewPage />} />
+                        <Route path="expenses" element={<FinanceExpensesPage />} />
+                        <Route path="budgets" element={<FinanceBudgetsPage />} />
+                        <Route path="reconciliation" element={<FinanceReconciliationPage />} />
+                        <Route path="recurring" element={<FinanceRecurringPage />} />
+                        <Route path="directory" element={<FinanceDirectoryPage />} />
+                      </Route>
                       
                       {/* Users - Admin only */}
                       <Route 
@@ -557,6 +602,14 @@ function App() {
                         element={
                           <RoleBasedRoute permissions={['edit_providers']}>
                             <EditProfessional />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/professionals/:id"
+                        element={
+                          <RoleBasedRoute permissions={['view_providers']}>
+                            <ProfessionalAdminHub />
                           </RoleBasedRoute>
                         }
                       />

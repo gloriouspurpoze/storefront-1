@@ -51,6 +51,42 @@ export function ProfessionalStatsWidget({ onRefresh }: ProfessionalStatsWidgetPr
 
   if (!stats) return null
 
+  const moderationCards: {
+    title: string
+    value: string | number
+    icon: typeof Users
+    color: string
+    bgColor: string
+  }[] = []
+
+  if (stats.suspendedProfessionals != null && stats.suspendedProfessionals > 0) {
+    moderationCards.push({
+      title: 'Suspended (fleet)',
+      value: stats.suspendedProfessionals,
+      icon: Clock,
+      color: '#ca8a04',
+      bgColor: '#fefce8',
+    })
+  }
+  if (stats.blockedProfessionals != null && stats.blockedProfessionals > 0) {
+    moderationCards.push({
+      title: 'Blocked (fleet)',
+      value: stats.blockedProfessionals,
+      icon: Users,
+      color: '#b91c1c',
+      bgColor: '#fef2f2',
+    })
+  }
+  if (stats.inactiveProfessionals != null && stats.inactiveProfessionals > 0) {
+    moderationCards.push({
+      title: 'Inactive (fleet)',
+      value: stats.inactiveProfessionals,
+      icon: Users,
+      color: '#64748b',
+      bgColor: '#f8fafc',
+    })
+  }
+
   const statCards: {
     title: string
     value: string | number
@@ -123,6 +159,34 @@ export function ProfessionalStatsWidget({ onRefresh }: ProfessionalStatsWidgetPr
           )
         })}
       </div>
+
+      {moderationCards.length > 0 && (
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {moderationCards.map((stat, index) => {
+            const Icon = stat.icon
+            return (
+              <Card key={`mod-${index}`} className="border-amber-200/80">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="mb-1 text-sm font-medium text-muted-foreground">{stat.title}</p>
+                      <p className="text-2xl font-bold" style={{ color: stat.color }}>
+                        {stat.value}
+                      </p>
+                    </div>
+                    <div
+                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md"
+                      style={{ backgroundColor: stat.bgColor }}
+                    >
+                      <Icon className="h-6 w-6" style={{ color: stat.color }} aria-hidden />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      )}
 
       {byCategory.length > 0 && (
         <Card className="mt-4">

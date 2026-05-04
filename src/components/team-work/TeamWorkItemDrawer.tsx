@@ -97,6 +97,7 @@ export function TeamWorkItemDrawer({
           issueType: row.issueType,
           assigneeUserId: row.assigneeUserId,
           labels: row.labels,
+          startAt: row.startAt,
           dueAt: row.dueAt,
           epicId: row.epicId,
           storyPoints: row.storyPoints,
@@ -623,24 +624,44 @@ export function TeamWorkItemDrawer({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="tw-due">Due date</Label>
-                  <Input
-                    id="tw-due"
-                    type="datetime-local"
-                    disabled={!canManage}
-                    value={
-                      form.dueAt
-                        ? format(new Date(form.dueAt), "yyyy-MM-dd'T'HH:mm")
-                        : ''
-                    }
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        dueAt: e.target.value ? new Date(e.target.value).toISOString() : undefined,
-                      }))
-                    }
-                  />
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="tw-start">Start date</Label>
+                    <Input
+                      id="tw-start"
+                      type="datetime-local"
+                      disabled={!canManage}
+                      value={
+                        form.startAt ? format(new Date(form.startAt), "yyyy-MM-dd'T'HH:mm") : ''
+                      }
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          startAt: e.target.value ? new Date(e.target.value).toISOString() : undefined,
+                        }))
+                      }
+                    />
+                    <p className="text-[11px] text-muted-foreground">Optional. Shown on the team calendar as “Start · …”.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="tw-due">Due date</Label>
+                    <Input
+                      id="tw-due"
+                      type="datetime-local"
+                      disabled={!canManage}
+                      value={
+                        form.dueAt
+                          ? format(new Date(form.dueAt), "yyyy-MM-dd'T'HH:mm")
+                          : ''
+                      }
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          dueAt: e.target.value ? new Date(e.target.value).toISOString() : undefined,
+                        }))
+                      }
+                    />
+                  </div>
                 </div>
                 <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
                   <p className="text-xs font-medium text-foreground">Meetings</p>

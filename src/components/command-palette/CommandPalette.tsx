@@ -12,6 +12,7 @@ import { cn } from '../../lib/utils'
 
 const GROUP_ORDER: QuickNavGroup[] = [
   'Overview',
+  'Finance',
   'CRM',
   'Catalog',
   'E-commerce',

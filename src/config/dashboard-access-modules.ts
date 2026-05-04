@@ -70,6 +70,13 @@ export const DASHBOARD_ACCESS_MODULES: DashboardAccessModule[] = [
     ],
   },
   {
+    id: 'finance',
+    label: 'Company finance',
+    description: 'Expenses, budgets, vendors, cash accounts, P&L overview',
+    viewPermissions: ['view_finance'],
+    extras: [{ key: 'finance_manage', label: 'Manage finance data', permissions: ['manage_finance'] }],
+  },
+  {
     id: 'people',
     label: 'Users & providers',
     description: 'Team, providers, professionals',

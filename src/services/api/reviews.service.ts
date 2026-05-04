@@ -55,7 +55,13 @@ export interface CategoryFeedbackResponse {
 }
 
 export const ReviewsService = {
-  async getBookingReviews(params?: { page?: number; limit?: number; rating?: number }) {
+  async getBookingReviews(params?: {
+    page?: number
+    limit?: number
+    rating?: number
+    /** When backend supports filtering reviews by assigned professional */
+    professionalId?: string
+  }) {
     const response = await axios.get<BookingReviewsResponse>(`${API_BASE}/reviews/all`, {
       ...getAuthHeaders(),
       params: { page: 1, limit: 50, ...params },

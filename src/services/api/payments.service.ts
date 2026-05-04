@@ -65,6 +65,8 @@ export class PaymentsService {
     bookingId?: string
     customerId?: string
     providerId?: string
+    professionalId?: string
+    professional_id?: string
     start_date?: string
     end_date?: string
   } = {}) {
@@ -81,6 +83,10 @@ export class PaymentsService {
     if (q.providerId != null) {
       q.provider_id = q.providerId
       delete q.providerId
+    }
+    if (q.professionalId != null) {
+      q.professional_id = q.professional_id ?? q.professionalId
+      delete q.professionalId
     }
     Object.entries(q).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
