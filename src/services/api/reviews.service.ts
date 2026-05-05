@@ -12,21 +12,54 @@ function getAuthHeaders() {
   };
 }
 
+/** Populated professional on review list (Mongo ref: Professional). */
+export interface BookingReviewProfessional {
+  _id?: string;
+  firstName?: string;
+  lastName?: string;
+  displayName?: string;
+  profileImage?: string;
+  averageRating?: number;
+  /** Human-readable pro code e.g. PRO-xxx */
+  professionalId?: string;
+}
+
+/** Populated business/provider on review list (Mongo ref: ServiceProvider). */
+export interface BookingReviewProvider {
+  _id?: string;
+  businessName?: string;
+  businessDisplayName?: string;
+  /** Business code e.g. BIZ-xxx */
+  providerId?: string;
+  logo?: string;
+  averageRating?: number;
+  totalRatings?: number;
+}
+
+export interface BookingReviewBookingEmbed {
+  _id?: string;
+  services?: Array<{ serviceName?: string; variantName?: string; serviceId?: string }>;
+  scheduledDate?: string;
+}
+
 /** Booking reviews (from completed bookings) */
 export interface BookingReview {
   _id: string;
-  bookingId: string;
-  customerId?: string;
-  professionalId?: string;
-  providerId?: string;
+  bookingId?: string | BookingReviewBookingEmbed;
+  /** Populated customer User when returned from admin list API */
+  customerId?: string | { firstName?: string; lastName?: string; email?: string };
+  professionalId?: string | BookingReviewProfessional;
+  providerId?: string | BookingReviewProvider;
+  /** Snapshot at review time + optional populated PlatformService */
+  platformServiceId?: string | { _id?: string };
+  serviceName?: string;
+  variantName?: string;
   rating: number;
   comment?: string;
   isVerified?: boolean;
   helpfulCount?: number;
   createdAt: string;
   updatedAt?: string;
-  customer?: { firstName?: string; lastName?: string; email?: string };
-  booking?: { service?: { name?: string }; bookingNumber?: string };
 }
 
 export interface BookingReviewsResponse {
@@ -59,8 +92,9 @@ export const ReviewsService = {
     page?: number
     limit?: number
     rating?: number
-    /** When backend supports filtering reviews by assigned professional */
     professionalId?: string
+    providerId?: string
+    platformServiceId?: string
   }) {
     const response = await axios.get<BookingReviewsResponse>(`${API_BASE}/reviews/all`, {
       ...getAuthHeaders(),

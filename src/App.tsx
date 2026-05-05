@@ -694,7 +694,14 @@ function App() {
                       <Route 
                         path="/coupons" 
                         element={
-                          <RoleBasedRoute permissions={['manage_coupons']}>
+                          <RoleBasedRoute
+                            permissions={[
+                              'manage_coupons',
+                              'edit_coupons',
+                              'create_coupons',
+                              'view_coupons',
+                            ]}
+                          >
                             <Coupons />
                           </RoleBasedRoute>
                         } 
@@ -704,7 +711,14 @@ function App() {
                       <Route 
                         path="/referrals" 
                         element={
-                          <RoleBasedRoute permissions={['manage_referrals']}>
+                          <RoleBasedRoute
+                            permissions={[
+                              'manage_referrals',
+                              'edit_referrals',
+                              'create_referrals',
+                              'view_referrals',
+                            ]}
+                          >
                             <Referrals />
                           </RoleBasedRoute>
                         } 

@@ -40,9 +40,16 @@ import {
   TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
 import { PageHeader } from '../../components/common/PageHeader';
-import { CouponsService } from '../../services/api';
+import { CouponsService } from '../../services/api/coupons.service';
 import { appToast } from '../../lib/appToast';
 import { useAppConfirm } from '../../components/providers/AppDialogsProvider';
+
+function toDateInputValue(iso: string | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toISOString().slice(0, 10);
+}
 
 interface Coupon {
   id: string;
@@ -92,7 +99,7 @@ export default function Coupons() {
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
   const [copiedCode, setCopiedCode] = useState('');
 
-  const [formData, setFormData] = useState<CouponFormData>({
+  const [formData, setFormData] = useState<CouponFormData>(() => ({
     code: '',
     name: '',
     description: '',
@@ -103,10 +110,10 @@ export default function Coupons() {
     usage_limit: 1000,
     user_limit: 1,
     is_active: true,
-    starts_at: '',
+    starts_at: new Date().toISOString().slice(0, 10),
     expires_at: '',
     applicable_to: 'all',
-  });
+  }));
 
   useEffect(() => {
     if (viewMode === 'list') {
@@ -117,34 +124,15 @@ export default function Coupons() {
   const fetchCoupons = async () => {
     try {
       setLoading(true);
-      // Replace with actual API call
-      // const response = await CouponsService.getCoupons();
-      // setCoupons(response.data);
-      
-      // Mock data for now
-      const mockCoupons: Coupon[] = [
-        {
-          id: '1',
-          code: 'WELCOME10',
-          name: 'Welcome Discount',
-          description: '10% off for new customers',
-          type: 'percentage',
-          value: 10,
-          minimum_amount: 50,
-          usage_limit: 100,
-          usage_count: 25,
-          user_limit: 1,
-          is_active: true,
-          starts_at: '2024-01-01',
-          expires_at: '2024-12-31',
-          applicable_to: 'all',
-          created_at: '2024-01-01T00:00:00Z',
-          updated_at: '2024-01-01T00:00:00Z',
-        },
-      ];
-      setCoupons(mockCoupons);
+      const response = await CouponsService.getCoupons({ limit: 500, page: 1 });
+      if (response.success && response.data?.coupons?.length !== undefined) {
+        setCoupons(response.data.coupons as unknown as Coupon[]);
+      } else {
+        setCoupons([]);
+      }
     } catch (error) {
       console.error('Error fetching coupons:', error);
+      setCoupons([]);
     } finally {
       setLoading(false);
     }
@@ -153,21 +141,55 @@ export default function Coupons() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Replace with actual API call
-      // if (editingCoupon) {
-      //   await CouponsService.updateCoupon(editingCoupon.id, formData);
-      // } else {
-      //   await CouponsService.createCoupon(formData);
-      // }
-      
+      const usageLimit =
+        formData.usage_limit > 0 ? formData.usage_limit : undefined;
+      const payload = {
+        code: formData.code.trim().toUpperCase(),
+        name: formData.name.trim(),
+        description: formData.description?.trim() || undefined,
+        type: formData.type,
+        value: formData.value,
+        minimum_amount: formData.minimum_amount,
+        maximum_discount:
+          formData.maximum_discount > 0 ? formData.maximum_discount : undefined,
+        usage_limit: usageLimit,
+        user_limit: formData.user_limit,
+        starts_at: formData.starts_at
+          ? new Date(formData.starts_at).toISOString()
+          : new Date().toISOString(),
+        expires_at: formData.expires_at
+          ? new Date(formData.expires_at).toISOString()
+          : undefined,
+        applicable_to: formData.applicable_to,
+      };
+
+      if (editingCoupon) {
+        const res = await CouponsService.updateCoupon(editingCoupon.id, {
+          ...payload,
+          is_active: formData.is_active,
+        });
+        if (!res.success) {
+          appToast(res.message || 'Failed to update coupon', 'error');
+          return;
+        }
+      } else {
+        const res = await CouponsService.createCoupon(payload);
+        if (!res.success) {
+          appToast(res.message || 'Failed to create coupon', 'error');
+          return;
+        }
+      }
+
+      appToast(editingCoupon ? 'Coupon updated' : 'Coupon created', 'success');
       fetchCoupons();
       setViewMode('list');
       resetForm();
-    } catch (error: any) {
-      appToast(
-        'Error: ' + (error.response?.data?.error || 'Failed to save coupon'),
-        'error'
-      );
+    } catch (error: unknown) {
+      const msg =
+        error && typeof error === 'object' && 'message' in error
+          ? String((error as { message: string }).message)
+          : 'Failed to save coupon';
+      appToast(msg, 'error');
     }
   };
 
@@ -180,9 +202,14 @@ export default function Coupons() {
     });
     if (!ok) return;
     try {
-      // await CouponsService.deleteCoupon(id);
+      const res = await CouponsService.deleteCoupon(id);
+      if (!res.success) {
+        appToast(res.message || 'Failed to delete coupon', 'error');
+        return;
+      }
+      appToast('Coupon deleted', 'success');
       fetchCoupons();
-    } catch (error) {
+    } catch {
       appToast('Error deleting coupon', 'error');
     }
   };
@@ -197,11 +224,11 @@ export default function Coupons() {
       value: coupon.value,
       minimum_amount: coupon.minimum_amount,
       maximum_discount: coupon.maximum_discount || 0,
-      usage_limit: coupon.usage_limit || 1000,
+      usage_limit: coupon.usage_limit ?? 1000,
       user_limit: coupon.user_limit,
       is_active: coupon.is_active,
-      starts_at: coupon.starts_at,
-      expires_at: coupon.expires_at || '',
+      starts_at: toDateInputValue(coupon.starts_at),
+      expires_at: toDateInputValue(coupon.expires_at),
       applicable_to: coupon.applicable_to,
     });
     setViewMode('form');
@@ -219,7 +246,7 @@ export default function Coupons() {
       usage_limit: 1000,
       user_limit: 1,
       is_active: true,
-      starts_at: '',
+      starts_at: new Date().toISOString().slice(0, 10),
       expires_at: '',
       applicable_to: 'all',
     });

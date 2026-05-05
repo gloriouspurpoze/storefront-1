@@ -48,6 +48,7 @@ import {
 import {
   type CategoryMarketingConfig,
   type LocalityGuideCmsFields,
+  type LocalSeoCmsFields,
   type ServiceTypeBlock,
   emptyCategoryMarketingConfig,
   emptyLocalityGuideSection,
@@ -66,6 +67,7 @@ import { appToast } from '../../lib/appToast'
 
 type TabKey =
   | 'metadata'
+  | 'localSeo'
   | 'hero'
   | 'cards'
   | 'detailed'
@@ -138,6 +140,7 @@ export default function CategoryMarketingManagement() {
         localityGuide: updates.localityGuide
           ? { ...base.localityGuide, ...updates.localityGuide }
           : base.localityGuide,
+        localSeo: updates.localSeo ? { ...base.localSeo, ...updates.localSeo } : base.localSeo,
       }
       return { ...prev, [effectiveKey]: next }
     })
@@ -145,6 +148,10 @@ export default function CategoryMarketingManagement() {
 
   const updateLocalityGuide = (updates: Partial<LocalityGuideCmsFields>) => {
     updateConfig({ localityGuide: { ...config.localityGuide, ...updates } })
+  }
+
+  const updateLocalSeo = (updates: Partial<LocalSeoCmsFields>) => {
+    updateConfig({ localSeo: { ...config.localSeo, ...updates } })
   }
 
   const handleSave = async () => {
@@ -227,7 +234,7 @@ export default function CategoryMarketingManagement() {
     <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
       <PageHeader
         title="Industry service pages"
-        subtitle="Per-catalog-category template: SEO, hero, service cards, pricing notes, FAQs — use [City] or similar placeholders for location."
+        subtitle="Admin is the source of truth: SEO, local pack fields, hero, cards, pricing, FAQs, and JSON-LD inputs all persist on this record. Use [City], [Location], [ServiceName] in copy; set a locality slug for hyperlocal keys (e.g. ac__bandra-west)."
         action={
           <Button
             variant="contained"
@@ -349,6 +356,22 @@ export default function CategoryMarketingManagement() {
             >
               Merge locality guide only
             </Button>
+            <Button
+              variant="outlined"
+              color="secondary"
+              disabled={!duplicateSourceKey || !data[duplicateSourceKey]}
+              onClick={() => {
+                const src = data[duplicateSourceKey]
+                if (!src) return
+                const full = mergeCategoryConfig(src)
+                updateConfig({
+                  localSeo: JSON.parse(JSON.stringify(full.localSeo)) as LocalSeoCmsFields,
+                })
+                appToast(`Merged local SEO from "${duplicateSourceKey}". Click Save to persist.`, 'success')
+              }}
+            >
+              Merge local SEO only
+            </Button>
           </Stack>
 
           <Accordion sx={{ mt: 2, border: 1, borderColor: 'divider', borderRadius: 1, '&:before': { display: 'none' } }}>
@@ -387,6 +410,7 @@ export default function CategoryMarketingManagement() {
                             ...patch,
                             leadMagnet: { ...base.leadMagnet, ...patch.leadMagnet },
                             localityGuide: { ...base.localityGuide, ...patch.localityGuide },
+                            localSeo: { ...base.localSeo, ...patch.localSeo },
                           })
                           return { ...prev, [effectiveKey]: combined }
                         })
@@ -423,6 +447,7 @@ export default function CategoryMarketingManagement() {
                 allowScrollButtonsMobile
               >
                 <Tab label="Metadata & SEO" value="metadata" />
+                <Tab label="Local SEO" value="localSeo" />
                 <Tab label="Hero & intro" value="hero" />
                 <Tab label="Service cards" value="cards" />
                 <Tab label="Detailed options" value="detailed" />
@@ -542,6 +567,295 @@ export default function CategoryMarketingManagement() {
                         Add keyword
                       </Button>
                     </Stack>
+                  </CardContent>
+                </Card>
+              </Stack>
+            </TabPanel>
+
+            <TabPanel value="localSeo" sx={{ px: 0 }}>
+              <Stack spacing={2}>
+                <Alert severity="info">
+                  <strong>Consumer app contract:</strong> map-pack style data should be read only from this CMS record
+                  (<code>localSeo</code> and related fields). Avoid hardcoding service areas, NAP, or GBP URLs in the
+                  public bundle so hyperlocal pages stay editable from admin.
+                </Alert>
+                <Card sx={{ borderRadius: 2 }}>
+                  <CardContent>
+                    <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                      Structured data &amp; profile
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Toggle LocalBusiness-oriented JSON-LD on the consumer site when you have a consistent NAP and
+                      service-area story for this key.
+                    </Typography>
+                    <Stack spacing={2}>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={config.localSeo.enableLocalBusinessSchema}
+                            onChange={(e) => updateLocalSeo({ enableLocalBusinessSchema: e.target.checked })}
+                          />
+                        }
+                        label="Enable LocalBusiness / local schema (consumer reads this flag)"
+                      />
+                      <TextField
+                        fullWidth
+                        label="Local profile name (schema / visible)"
+                        value={config.localSeo.localProfileName}
+                        onChange={(e) => updateLocalSeo({ localProfileName: e.target.value })}
+                        placeholder="e.g. ProFixer AC Repair – Mira Road"
+                        helperText="Optional override for JSON-LD name on this URL; use locality keys for true hyperlocal profiles."
+                      />
+                      <TextField
+                        fullWidth
+                        label="Opening hours summary"
+                        value={config.localSeo.openingHoursSummary}
+                        onChange={(e) => updateLocalSeo({ openingHoursSummary: e.target.value })}
+                        placeholder="Mon–Sat 8:00–20:00 · Sun 9:00–18:00"
+                      />
+                      <TextField
+                        fullWidth
+                        label="Price range hint"
+                        value={config.localSeo.priceRange}
+                        onChange={(e) => updateLocalSeo({ priceRange: e.target.value })}
+                        placeholder="e.g. ₹₹ or Inexpensive–Moderate"
+                      />
+                    </Stack>
+                  </CardContent>
+                </Card>
+                <Card sx={{ borderRadius: 2 }}>
+                  <CardContent>
+                    <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                      Service area (local SEO)
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Lists and narrative power “near me” relevance and internal linking to locality URLs.
+                    </Typography>
+                    <Stack spacing={2}>
+                      <TextField
+                        fullWidth
+                        label="Service area headline"
+                        value={config.localSeo.serviceAreaHeadline}
+                        onChange={(e) => updateLocalSeo({ serviceAreaHeadline: e.target.value })}
+                        placeholder="Same-day AC repair across [Location] and surrounding suburbs"
+                      />
+                      <TextField
+                        fullWidth
+                        multiline
+                        minRows={4}
+                        label="Service area narrative"
+                        value={config.localSeo.serviceAreaNarrative}
+                        onChange={(e) => updateLocalSeo({ serviceAreaNarrative: e.target.value })}
+                        placeholder="Unique paragraph describing coverage, dispatch times, and why you win locally."
+                      />
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Places served (suburbs / neighborhoods)
+                      </Typography>
+                      {(config.localSeo.serviceAreaPlaceNames.length
+                        ? config.localSeo.serviceAreaPlaceNames
+                        : ['']
+                      ).map((place, i) => (
+                        <Stack key={i} direction="row" spacing={1} alignItems="center">
+                          <TextField
+                            fullWidth
+                            size="small"
+                            value={place}
+                            onChange={(e) => {
+                              const base = config.localSeo.serviceAreaPlaceNames.length
+                                ? [...config.localSeo.serviceAreaPlaceNames]
+                                : ['']
+                              const next = [...base]
+                              next[i] = e.target.value
+                              updateLocalSeo({ serviceAreaPlaceNames: next })
+                            }}
+                            placeholder="e.g. Mira Road, Bhayandar East"
+                          />
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() =>
+                              updateLocalSeo({
+                                serviceAreaPlaceNames: config.localSeo.serviceAreaPlaceNames.filter((_, j) => j !== i),
+                              })
+                            }
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Stack>
+                      ))}
+                      <Button
+                        size="small"
+                        startIcon={<AddIcon />}
+                        onClick={() =>
+                          updateLocalSeo({
+                            serviceAreaPlaceNames: [...config.localSeo.serviceAreaPlaceNames, ''],
+                          })
+                        }
+                      >
+                        Add place
+                      </Button>
+                      <Typography variant="subtitle2" color="text.secondary" sx={{ pt: 1 }}>
+                        Local intent keywords
+                      </Typography>
+                      {(config.localSeo.localIntentKeywords.length
+                        ? config.localSeo.localIntentKeywords
+                        : ['']
+                      ).map((kw, i) => (
+                        <Stack key={i} direction="row" spacing={1} alignItems="center">
+                          <TextField
+                            fullWidth
+                            size="small"
+                            value={kw}
+                            onChange={(e) => {
+                              const base = config.localSeo.localIntentKeywords.length
+                                ? [...config.localSeo.localIntentKeywords]
+                                : ['']
+                              const next = [...base]
+                              next[i] = e.target.value
+                              updateLocalSeo({ localIntentKeywords: next })
+                            }}
+                            placeholder="e.g. AC repair near me in Mira Road"
+                          />
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() =>
+                              updateLocalSeo({
+                                localIntentKeywords: config.localSeo.localIntentKeywords.filter((_, j) => j !== i),
+                              })
+                            }
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Stack>
+                      ))}
+                      <Button
+                        size="small"
+                        startIcon={<AddIcon />}
+                        onClick={() =>
+                          updateLocalSeo({
+                            localIntentKeywords: [...config.localSeo.localIntentKeywords, ''],
+                          })
+                        }
+                      >
+                        Add local keyword
+                      </Button>
+                    </Stack>
+                  </CardContent>
+                </Card>
+                <Card sx={{ borderRadius: 2 }}>
+                  <CardContent>
+                    <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                      NAP &amp; citations
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Keep consistent with Google Business Profile for trust and schema quality.
+                    </Typography>
+                    <Stack spacing={2}>
+                      <TextField
+                        fullWidth
+                        label="Street address"
+                        value={config.localSeo.streetAddress}
+                        onChange={(e) => updateLocalSeo({ streetAddress: e.target.value })}
+                      />
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                        <TextField
+                          fullWidth
+                          label="City / locality"
+                          value={config.localSeo.addressLocality}
+                          onChange={(e) => updateLocalSeo({ addressLocality: e.target.value })}
+                        />
+                        <TextField
+                          fullWidth
+                          label="Region / state"
+                          value={config.localSeo.addressRegion}
+                          onChange={(e) => updateLocalSeo({ addressRegion: e.target.value })}
+                        />
+                      </Stack>
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                        <TextField
+                          fullWidth
+                          label="Postal code"
+                          value={config.localSeo.postalCode}
+                          onChange={(e) => updateLocalSeo({ postalCode: e.target.value })}
+                        />
+                        <TextField
+                          fullWidth
+                          label="Country code (ISO)"
+                          value={config.localSeo.addressCountryCode}
+                          onChange={(e) => updateLocalSeo({ addressCountryCode: e.target.value.toUpperCase() })}
+                          placeholder="IN"
+                          inputProps={{ maxLength: 2 }}
+                        />
+                      </Stack>
+                      <TextField
+                        fullWidth
+                        label="Geo coordinates (optional)"
+                        value={config.localSeo.geoLatLng}
+                        onChange={(e) => updateLocalSeo({ geoLatLng: e.target.value })}
+                        placeholder="19.2856,72.8691"
+                        helperText="Latitude,longitude for JSON-LD geo — use the verified storefront or service center."
+                      />
+                      <TextField
+                        fullWidth
+                        label="Google Business Profile URL"
+                        value={config.localSeo.googleBusinessProfileUrl}
+                        onChange={(e) => updateLocalSeo({ googleBusinessProfileUrl: e.target.value })}
+                        placeholder="https://maps.google.com/?cid=…"
+                      />
+                      <Typography variant="subtitle2" color="text.secondary">
+                        sameAs URLs
+                      </Typography>
+                      {(config.localSeo.sameAsUrls.length ? config.localSeo.sameAsUrls : ['']).map((url, i) => (
+                        <Stack key={i} direction="row" spacing={1} alignItems="center">
+                          <TextField
+                            fullWidth
+                            size="small"
+                            value={url}
+                            onChange={(e) => {
+                              const base = config.localSeo.sameAsUrls.length ? [...config.localSeo.sameAsUrls] : ['']
+                              const next = [...base]
+                              next[i] = e.target.value
+                              updateLocalSeo({ sameAsUrls: next })
+                            }}
+                            placeholder="https://"
+                          />
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() =>
+                              updateLocalSeo({
+                                sameAsUrls: config.localSeo.sameAsUrls.filter((_, j) => j !== i),
+                              })
+                            }
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Stack>
+                      ))}
+                      <Button
+                        size="small"
+                        startIcon={<AddIcon />}
+                        onClick={() => updateLocalSeo({ sameAsUrls: [...config.localSeo.sameAsUrls, ''] })}
+                      >
+                        Add URL
+                      </Button>
+                    </Stack>
+                  </CardContent>
+                </Card>
+                <Card sx={{ borderRadius: 2 }}>
+                  <CardContent>
+                    <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                      Social preview
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      label="Open Graph image override (absolute URL)"
+                      value={config.localSeo.ogImageOverride}
+                      onChange={(e) => updateLocalSeo({ ogImageOverride: e.target.value })}
+                      placeholder="https://…"
+                      helperText="Optional; consumer should prefer this for og:image on this service URL when set."
+                    />
                   </CardContent>
                 </Card>
               </Stack>

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Box,
@@ -39,6 +39,7 @@ import {
 import { PageHeader } from '../../components/common/PageHeader'
 import {
   InvoicesService,
+  type InvoicePdfTemplateId,
   type ManualInvoiceLineItem,
   type ManualInvoicePayload,
 } from '../../services/api/invoices.service'
@@ -71,6 +72,32 @@ const GOODS_CATEGORIES: { value: string; label: string }[] = [
   { value: 'subscription', label: 'Subscription / digital' },
 ]
 
+const PDF_TEMPLATES_CUSTOMER: { value: InvoicePdfTemplateId; label: string; hint: string }[] = [
+  {
+    value: 'customer_gst',
+    label: 'Customer — Tax invoice (GST)',
+    hint: 'HSN/SAC, taxable value, CGST/SGST or IGST — standard B2B/B2C GST layout.',
+  },
+  {
+    value: 'customer_non_gst',
+    label: 'Customer — Bill of supply / receipt (no GST)',
+    hint: 'Single amounts, no tax breakdown — exempt/nil-rated/composite or gross receipt.',
+  },
+]
+
+const PDF_TEMPLATES_VENDOR: { value: InvoicePdfTemplateId; label: string; hint: string }[] = [
+  {
+    value: 'vendor_non_gst',
+    label: 'Vendor — Payout statement',
+    hint: 'Partner settlement summary (default vendor layout).',
+  },
+  {
+    value: 'vendor_gst',
+    label: 'Vendor — Settlement (GST details)',
+    hint: 'Same settlement with platform & recipient GSTIN banner for records.',
+  },
+]
+
 const INVOICE_TYPES: { value: ManualInvoicePayload['type']; label: string; hint: string }[] = [
   {
     value: 'service',
@@ -83,6 +110,11 @@ const INVOICE_TYPES: { value: ManualInvoicePayload['type']; label: string; hint:
     hint: 'Spares, materials, retail (HSN lines).',
   },
   { value: 'subscription', label: 'Subscription / recurring', hint: 'Recurring or digital add-ons.' },
+  {
+    value: 'provider_payout',
+    label: 'Vendor / provider payout',
+    hint: 'Settlement PDF to partner (uses vendor template set below).',
+  },
 ]
 
 const OFFLINE_GUEST = (process.env.REACT_APP_INVOICE_OFFLINE_GUEST_USER_ID || '').trim()
@@ -123,6 +155,7 @@ export function InvoiceCreate() {
 
   const [customerMode, setCustomerMode] = useState<'platform' | 'offline'>('offline')
   const [type, setType] = useState<ManualInvoicePayload['type']>('service')
+  const [pdfTemplate, setPdfTemplate] = useState<InvoicePdfTemplateId>('customer_gst')
   const [customerId, setCustomerId] = useState('')
   const [bookingId, setBookingId] = useState('')
   const [orderId, setOrderId] = useState('')
@@ -157,10 +190,22 @@ export function InvoiceCreate() {
     [type]
   )
 
+  const applyGstPreview = pdfTemplate !== 'customer_non_gst'
+
   const { lines, subtotal, totalTax, discount: discountN, grandTotal } = useMemo(
-    () => computeInvoiceFromLines(items, discount),
-    [items, discount]
+    () => computeInvoiceFromLines(items, discount, { applyGst: applyGstPreview }),
+    [items, discount, applyGstPreview]
   )
+
+  useEffect(() => {
+    if (type === 'provider_payout') {
+      setPdfTemplate((t) => (t === 'vendor_gst' || t === 'vendor_non_gst' ? t : 'vendor_non_gst'))
+    } else {
+      setPdfTemplate((t) =>
+        t === 'vendor_gst' || t === 'vendor_non_gst' ? 'customer_gst' : t === 'customer_non_gst' ? t : 'customer_gst'
+      )
+    }
+  }, [type])
 
   const isInterState = isInterStateForPreview(billingTo.state, COMPANY_STATE)
   const documentTypeLabel = INVOICE_TYPES.find((t) => t.value === type)?.label ?? 'Invoice'
@@ -255,6 +300,7 @@ export function InvoiceCreate() {
 
     const payload: ManualInvoicePayload = {
       type,
+      pdfTemplate,
       isOfflineCustomer: customerMode === 'offline',
       customerReference: customerReference.trim() || undefined,
       billingTo: {
@@ -443,6 +489,28 @@ export function InvoiceCreate() {
                     </TextField>
                     <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
                       {INVOICE_TYPES.find((x) => x.value === type)?.hint}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} md={8}>
+                    <TextField
+                      label="PDF template"
+                      select
+                      fullWidth
+                      value={pdfTemplate}
+                      onChange={(e) => setPdfTemplate(e.target.value as InvoicePdfTemplateId)}
+                    >
+                      {(type === 'provider_payout' ? PDF_TEMPLATES_VENDOR : PDF_TEMPLATES_CUSTOMER).map((opt) => (
+                        <MenuItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                      {
+                        (type === 'provider_payout' ? PDF_TEMPLATES_VENDOR : PDF_TEMPLATES_CUSTOMER).find(
+                          (x) => x.value === pdfTemplate
+                        )?.hint
+                      }
                     </Typography>
                   </Grid>
                 </Grid>
@@ -774,11 +842,15 @@ export function InvoiceCreate() {
                       Live summary (matches backend)
                     </Typography>
                     <Stack spacing={0.5}>
-                      <Line label="Taxable (lines)" v={subtotal} />
-                      <Line label="GST 18% (lines)" v={totalTax} />
+                      <Line label={applyGstPreview ? 'Taxable (lines)' : 'Line amounts'} v={subtotal} />
+                      {applyGstPreview ? (
+                        <Line label="GST 18% (lines)" v={totalTax} />
+                      ) : (
+                        <Line label="GST on document" v={0} muted />
+                      )}
                       <Line label="Less discount" v={-discountN} muted />
                       <Divider />
-                      <Line label="Net payable" v={grandTotal} bold />
+                      <Line label={applyGstPreview ? 'Net payable' : 'Total payable'} v={grandTotal} bold />
                     </Stack>
                   </CardContent>
                 </Card>
@@ -798,8 +870,16 @@ export function InvoiceCreate() {
               </Link>{' '}
               for this preview.
             </Alert>
+            {type === 'provider_payout' && (
+              <Alert severity="warning" variant="outlined" sx={{ mb: 2 }}>
+                Vendor / payout: the grid below is a <strong>customer-style</strong> line preview only. The issued PDF
+                uses the <strong>vendor settlement</strong> layout from your PDF template selection (GST banner or
+                standard payout statement).
+              </Alert>
+            )}
             <InvoicePreviewPanel
               branding={invoiceBranding}
+              previewVariant={type === 'provider_payout' ? 'gst' : applyGstPreview ? 'gst' : 'non_gst'}
               documentTypeLabel={documentTypeLabel}
               customerMode={customerMode}
               customerReference={customerReference || undefined}

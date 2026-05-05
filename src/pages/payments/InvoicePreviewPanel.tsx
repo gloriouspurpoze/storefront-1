@@ -47,6 +47,8 @@ export type InvoicePreviewPanelProps = {
   mode?: 'proforma' | 'final'
   /** Custom logo, colours, supplier block — from Invoice branding settings */
   branding?: InvoiceBranding | null
+  /** GST tax invoice vs bill-of-supply style preview */
+  previewVariant?: 'gst' | 'non_gst'
 }
 
 /**
@@ -75,15 +77,19 @@ export function InvoicePreviewPanel({
   companyHint = 'Legal name, full address & company GSTIN appear on the official PDF (server / company settings).',
   mode = 'proforma',
   branding,
+  previewVariant = 'gst',
 }: InvoicePreviewPanelProps) {
   const theme = useTheme()
   const cgst = isInterState ? 0 : totalTax / 2
   const sgst = isInterState ? 0 : totalTax / 2
   const igst = isInterState ? totalTax : 0
+  const isNonGstDoc = previewVariant === 'non_gst'
 
   const primary = branding?.primaryColor ?? theme.palette.primary.main
   const accent = branding?.accentColor ?? theme.palette.primary.dark
-  const docTitle = branding?.documentTitle?.trim() || 'TAX INVOICE'
+  const docTitle =
+    (isNonGstDoc ? undefined : branding?.documentTitle?.trim()) ||
+    (isNonGstDoc ? 'BILL OF SUPPLY' : 'TAX INVOICE')
 
   return (
     <Paper
@@ -151,7 +157,10 @@ export function InvoicePreviewPanel({
       </Stack>
 
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-        Place of supply: {placeOfSupply} · {isInterState ? 'Inter-state (IGST)' : 'Intra-state (CGST + SGST)'}
+        Place of supply: {placeOfSupply}
+        {isNonGstDoc
+          ? ' · No GST breakdown on this document'
+          : ` · ${isInterState ? 'Inter-state (IGST)' : 'Intra-state (CGST + SGST)'}`}
         {companyStateLabel && ` · Seller state: ${companyStateLabel}`}
       </Typography>
 
@@ -296,30 +305,36 @@ export function InvoicePreviewPanel({
             <TableRow>
               <TableCell width="5%">#</TableCell>
               <TableCell>Description</TableCell>
-              <TableCell width="10%" align="right">
-                HSN/SAC
-              </TableCell>
+              {!isNonGstDoc && (
+                <TableCell width="10%" align="right">
+                  HSN/SAC
+                </TableCell>
+              )}
               <TableCell width="8%" align="right">
                 Qty
               </TableCell>
               <TableCell width="10%" align="right">
                 Rate (₹)
               </TableCell>
-              <TableCell width="11%" align="right">
-                Taxable
-              </TableCell>
-              <TableCell width="10%" align="right">
-                GST
-              </TableCell>
+              {!isNonGstDoc && (
+                <TableCell width="11%" align="right">
+                  Taxable
+                </TableCell>
+              )}
+              {!isNonGstDoc && (
+                <TableCell width="10%" align="right">
+                  GST
+                </TableCell>
+              )}
               <TableCell width="12%" align="right">
-                Total
+                Amount (₹)
               </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {lineRows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} align="center">
+                <TableCell colSpan={isNonGstDoc ? 5 : 8} align="center">
                   <Typography color="text.secondary" variant="body2" py={2}>
                     No line items
                   </Typography>
@@ -337,13 +352,15 @@ export function InvoicePreviewPanel({
                     </Typography>
                   )}
                 </TableCell>
-                <TableCell align="right" sx={{ fontFeatureSettings: '"tnum"' }}>
-                  {r.hsnSac}
-                </TableCell>
+                {!isNonGstDoc && (
+                  <TableCell align="right" sx={{ fontFeatureSettings: '"tnum"' }}>
+                    {r.hsnSac}
+                  </TableCell>
+                )}
                 <TableCell align="right">{r.quantity}</TableCell>
                 <TableCell align="right">{ru(r.unitPrice)}</TableCell>
-                <TableCell align="right">{ru(r.taxable)}</TableCell>
-                <TableCell align="right">{ru(r.taxAmount)}</TableCell>
+                {!isNonGstDoc && <TableCell align="right">{ru(r.taxable)}</TableCell>}
+                {!isNonGstDoc && <TableCell align="right">{ru(r.taxAmount)}</TableCell>}
                 <TableCell align="right" sx={{ fontWeight: 600 }}>
                   {ru(r.lineTotal)}
                 </TableCell>
@@ -354,21 +371,33 @@ export function InvoicePreviewPanel({
       </TableContainer>
 
       <Stack spacing={1} alignItems="flex-end" sx={{ maxWidth: 400, ml: 'auto' }}>
-        <Row label="Subtotal (taxable value)" value={ru(subtotal)} />
-        <Row label="Total GST @ 18%" value={ru(totalTax)} bold={false} muted />
-        {!isInterState && totalTax > 0 && (
-          <Typography variant="caption" color="text.secondary" sx={{ pl: 1, alignSelf: 'flex-start' }}>
-            CGST {ru(cgst)} + SGST {ru(sgst)}
-          </Typography>
-        )}
-        {isInterState && totalTax > 0 && (
-          <Typography variant="caption" color="text.secondary" sx={{ pl: 1 }}>
-            IGST {ru(igst)}
-          </Typography>
+        <Row
+          label={isNonGstDoc ? 'Subtotal (line amounts)' : 'Subtotal (taxable value)'}
+          value={ru(subtotal)}
+        />
+        {!isNonGstDoc && (
+          <>
+            <Row label="Total GST @ 18%" value={ru(totalTax)} bold={false} muted />
+            {!isInterState && totalTax > 0 && (
+              <Typography variant="caption" color="text.secondary" sx={{ pl: 1, alignSelf: 'flex-start' }}>
+                CGST {ru(cgst)} + SGST {ru(sgst)}
+              </Typography>
+            )}
+            {isInterState && totalTax > 0 && (
+              <Typography variant="caption" color="text.secondary" sx={{ pl: 1 }}>
+                IGST {ru(igst)}
+              </Typography>
+            )}
+          </>
         )}
         {discount > 0 && <Row label="Less: discount / adjustment" value={`−${ru(discount)}`} />}
         <Divider sx={{ width: '100%', my: 0.5 }} />
-        <Row label="Net payable (INR)" value={ru(grandTotal)} large accentColor={accent} />
+        <Row
+          label={isNonGstDoc ? 'Total payable (INR)' : 'Net payable (INR)'}
+          value={ru(grandTotal)}
+          large
+          accentColor={accent}
+        />
       </Stack>
 
       {(paymentMethod || notes) && (
@@ -393,7 +422,9 @@ export function InvoicePreviewPanel({
       )}
       {!branding?.footerNote?.trim() && (
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2, textAlign: 'center' }}>
-          Amounts follow server calculation: per-line 18% GST, then discount applied to grand total.
+          {isNonGstDoc
+            ? 'Bill-of-supply preview: no GST components; discount applied to total as on server.'
+            : 'Amounts follow server calculation: per-line 18% GST, then discount applied to grand total.'}
         </Typography>
       )}
     </Paper>

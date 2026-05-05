@@ -543,7 +543,7 @@ export class CMSService {
 
   // ==================== CATEGORY MARKETING (industry service page template + catalog blocks) ====================
   /**
-   * Backend should persist this payload as schemaless JSON per category key.
+   * Backend should persist this payload as schemaless JSON per category key (including `localSeo` for map-pack fields).
    * If the API validates keys strictly, extend the server schema to allow the full `CategoryMarketingConfig` shape.
    */
   static async getCategoryMarketing(): Promise<Record<string, CategoryMarketingConfig>> {

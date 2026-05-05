@@ -42,25 +42,31 @@ export function CouponInput({
     setError(null)
 
     try {
-      const response = (await CouponsService.validateCoupon(code.toUpperCase(), {
+      const response = await CouponsService.validateCoupon(code.toUpperCase(), {
         subtotal,
         type: 'order',
-      })) as { success?: boolean; data?: { valid?: boolean; message?: string; coupon?: { code: string; id: string }; discount?: number } }
+      })
 
-      if (response.success && response.data?.valid && response.data.coupon) {
+      const data = response.data
+      const coupon = data?.coupon
+      const couponId =
+        (coupon && ('id' in coupon ? coupon.id : undefined)) ||
+        (coupon && '_id' in coupon ? (coupon as { _id?: string })._id : undefined)
+
+      if (response.success && data?.valid && coupon && couponId) {
         onCouponApplied({
-          code: response.data.coupon.code,
-          discount: response.data.discount ?? 0,
-          couponId: response.data.coupon.id,
+          code: coupon.code,
+          discount: data.discountAmount ?? 0,
+          couponId: String(couponId),
         })
         setApplied(true)
         setError(null)
       } else {
-        setError(response.data?.message || 'Invalid coupon code')
+        setError(data?.message || data?.error || 'Invalid coupon code')
       }
     } catch (err: unknown) {
-      const ax = err as { response?: { data?: { message?: string } } }
-      setError(ax.response?.data?.message || 'Failed to validate coupon')
+      const ax = err as { message?: string }
+      setError(ax.message || 'Failed to validate coupon')
     } finally {
       setLoading(false)
     }

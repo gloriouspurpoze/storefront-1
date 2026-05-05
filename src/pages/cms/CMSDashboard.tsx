@@ -1,19 +1,28 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Home,
-  ImageIcon,
-  Tag,
-  Star,
-  HelpCircle,
-  Search,
+  Images,
+  LayoutPanelTop,
+  LayoutGrid,
   FileText,
   FolderOpen,
   File,
   Menu,
+  Percent,
+  Gift,
+  Mail,
+  Share2,
+  Star,
+  MessageSquareQuote,
+  HelpCircle,
   Receipt,
   Megaphone,
   Link2,
+  Search,
+  Tag,
+  Newspaper,
+  type LucideIcon,
   Loader2,
 } from 'lucide-react'
 import { CMSService } from '../../services/api'
@@ -21,26 +30,198 @@ import { PageHeader, StatHighlightCard } from '../../components/common'
 import { Card, CardContent } from '../../components/ui/card'
 import { Badge } from '../../components/ui/badge'
 import { cn } from '../../lib/utils'
+import { usePermissions } from '../../hooks/usePermissions'
 
 interface CMSStats {
   totalPages?: number
   totalBlogs?: number
-  totalMedia?: number
   totalTestimonials?: number
   totalFAQs?: number
-  recentActivity?: number
 }
 
-interface Module {
+type StatKey = 'pages' | 'blogs' | 'testimonials' | 'faqs'
+
+interface HubTile {
   title: string
   description: string
-  icon: React.ElementType
-  link: string
-  color: string
-  stat: number | null
+  to: string
+  icon: LucideIcon
+  stat?: StatKey
 }
 
+interface HubSection {
+  id: string
+  title: string
+  subtitle: string
+  tiles: HubTile[]
+}
+
+const ICON_ACCENTS = [
+  'bg-primary/12 text-primary',
+  'bg-violet-500/12 text-violet-600 dark:text-violet-400',
+  'bg-teal-500/12 text-teal-600 dark:text-teal-400',
+  'bg-amber-500/12 text-amber-700 dark:text-amber-400',
+  'bg-sky-500/12 text-sky-600 dark:text-sky-400',
+  'bg-rose-500/12 text-rose-600 dark:text-rose-400',
+]
+
+const HUB_SECTIONS: HubSection[] = [
+  {
+    id: 'structure',
+    title: 'Website structure',
+    subtitle: 'Navigation, layouts, and reusable media.',
+    tiles: [
+      {
+        title: 'Homepage',
+        description: 'Hero, featured modules, and above-the-fold content.',
+        to: '/cms/homepage',
+        icon: Home,
+      },
+      {
+        title: 'Pages',
+        description: 'Legal, policy, and custom static pages.',
+        to: '/cms/pages',
+        icon: File,
+        stat: 'pages',
+      },
+      {
+        title: 'Menus',
+        description: 'Header, footer, and app navigation trees.',
+        to: '/cms/menus',
+        icon: Menu,
+      },
+      {
+        title: 'Media library',
+        description: 'Centralized images, documents, and uploads.',
+        to: '/cms/media',
+        icon: FolderOpen,
+      },
+    ],
+  },
+  {
+    id: 'surfaces',
+    title: 'Surfaces & campaigns',
+    subtitle: 'On-site placements, offers, and referral growth.',
+    tiles: [
+      {
+        title: 'Sliders',
+        description: 'Homepage and landing carousel banners.',
+        to: '/sliders',
+        icon: Images,
+      },
+      {
+        title: 'Banners & pop-ups',
+        description: 'Notice bars, modals, and timed announcements.',
+        to: '/cms/banners',
+        icon: LayoutPanelTop,
+      },
+      {
+        title: 'Promotions',
+        description: 'Scheduled offers and campaign messaging.',
+        to: '/cms/promotions',
+        icon: Tag,
+      },
+      {
+        title: 'Coupons',
+        description: 'Discount codes and redemption rules.',
+        to: '/coupons',
+        icon: Percent,
+      },
+      {
+        title: 'Referrals',
+        description: 'Refer-a-friend programs and rewards.',
+        to: '/referrals',
+        icon: Gift,
+      },
+    ],
+  },
+  {
+    id: 'editorial',
+    title: 'Editorial & social proof',
+    subtitle: 'Content, subscribers, and credibility signals.',
+    tiles: [
+      {
+        title: 'Blog posts',
+        description: 'Articles, guides, and long-form content.',
+        to: '/cms/blogs',
+        icon: Newspaper,
+        stat: 'blogs',
+      },
+      {
+        title: 'Blog categories',
+        description: 'Taxonomy and URL structure for the blog.',
+        to: '/cms/blog-categories',
+        icon: LayoutGrid,
+      },
+      {
+        title: 'Newsletter',
+        description: 'Subscriber lists and email touchpoints.',
+        to: '/cms/newsletter',
+        icon: Mail,
+      },
+      {
+        title: 'Social links',
+        description: 'Official profiles for footer and headers.',
+        to: '/cms/social-links',
+        icon: Share2,
+      },
+      {
+        title: 'Testimonials',
+        description: 'Curated quotes and success stories.',
+        to: '/cms/testimonials',
+        icon: Star,
+        stat: 'testimonials',
+      },
+      {
+        title: 'Reviews',
+        description: 'Booking and category feedback surfaced on the site.',
+        to: '/cms/reviews',
+        icon: MessageSquareQuote,
+      },
+      {
+        title: 'FAQs',
+        description: 'Structured answers for support and SEO.',
+        to: '/cms/faqs',
+        icon: HelpCircle,
+        stat: 'faqs',
+      },
+    ],
+  },
+  {
+    id: 'catalog-seo',
+    title: 'Catalog content & discovery',
+    subtitle: 'Service templates, local SEO signals from admin, internal links, and global SEO records.',
+    tiles: [
+      {
+        title: 'Rate card',
+        description: 'Category pricing and spare-parts references.',
+        to: '/cms/rate-card',
+        icon: Receipt,
+      },
+      {
+        title: 'Industry service pages',
+        description: 'Per-vertical landing templates and modules.',
+        to: '/cms/category-marketing',
+        icon: Megaphone,
+      },
+      {
+        title: 'Cross-linking',
+        description: 'Related problems and internal link suggestions.',
+        to: '/cms/cross-linking',
+        icon: Link2,
+      },
+      {
+        title: 'SEO management',
+        description: 'Meta defaults, redirects, and indexation hints.',
+        to: '/cms/seo',
+        icon: Search,
+      },
+    ],
+  },
+]
+
 export default function CMSDashboard() {
+  const { checkRouteAccess } = usePermissions()
   const [stats, setStats] = useState<CMSStats>({})
   const [loading, setLoading] = useState(true)
 
@@ -73,152 +254,27 @@ export default function CMSDashboard() {
     }
   }
 
-  const modules: Module[] = [
-    {
-      title: 'Homepage Management',
-      description: 'Manage hero sections, featured content, and homepage layout',
-      icon: Home,
-      link: '/cms/homepage',
-      color: 'hsl(var(--primary))',
-      stat: null,
-    },
-    {
-      title: 'Banner Management',
-      description: 'Create and schedule promotional banners',
-      icon: ImageIcon,
-      link: '/cms/banners',
-      color: 'hsl(var(--secondary))',
-      stat: null,
-    },
-    {
-      title: 'Announcements & Pop-ups',
-      description: 'Site-wide notice bars and pop-up modals',
-      icon: ImageIcon,
-      link: '/cms/banners',
-      color: '#9C27B0',
-      stat: null,
-    },
-    {
-      title: 'Promotions & Offers',
-      description: 'Manage discount codes and promotional campaigns',
-      link: '/cms/promotions',
-      icon: Tag,
-      color: 'hsl(142.1 70.6% 45.3%)',
-      stat: null,
-    },
-    {
-      title: 'Testimonials',
-      description: 'Manage customer reviews and testimonials',
-      icon: Star,
-      link: '/cms/testimonials',
-      color: 'hsl(38 92% 50%)',
-      stat: stats.totalTestimonials ?? null,
-    },
-    {
-      title: 'Reviews',
-      description: 'View all booking reviews and category feedback',
-      icon: Star,
-      link: '/cms/reviews',
-      color: '#C2410C',
-      stat: null,
-    },
-    {
-      title: 'FAQs',
-      description: 'Manage frequently asked questions',
-      icon: HelpCircle,
-      link: '/cms/faqs',
-      color: 'hsl(199.4 85.2% 47.1%)',
-      stat: stats.totalFAQs || null,
-    },
-    {
-      title: 'Rate Card',
-      description: 'Category-wise spare parts & pricing for catalog',
-      icon: Receipt,
-      link: '/cms/rate-card',
-      color: '#795548',
-      stat: null,
-    },
-    {
-      title: 'Industry service pages',
-      description: 'Per-industry SEO template: hero, cards, FAQs, pricing notes',
-      icon: Megaphone,
-      link: '/cms/category-marketing',
-      color: '#5C6BC0',
-      stat: null,
-    },
-    {
-      title: 'Cross-Linking',
-      description: 'Common problems per category for SEO',
-      icon: Link2,
-      link: '/cms/cross-linking',
-      color: '#00897B',
-      stat: null,
-    },
-    {
-      title: 'SEO Management',
-      description: 'Manage meta tags and SEO settings',
-      icon: Search,
-      link: '/cms/seo',
-      color: 'hsl(0 84.2% 60.2%)',
-      stat: null,
-    },
-    {
-      title: 'Blog Management',
-      description: 'Create and manage blog posts',
-      icon: FileText,
-      link: '/cms/blogs',
-      color: '#00BCD4',
-      stat: stats.totalBlogs || null,
-    },
-    {
-      title: 'Blog Categories',
-      description: 'Organize blog posts by category',
-      icon: FileText,
-      link: '/cms/blog-categories',
-      color: '#03A9F4',
-      stat: null,
-    },
-    {
-      title: 'Media Library',
-      description: 'Manage images, videos, and files',
-      icon: FolderOpen,
-      link: '/cms/media',
-      color: '#009688',
-      stat: null,
-    },
-    {
-      title: 'Pages',
-      description: 'Create and manage static pages',
-      icon: File,
-      link: '/cms/pages',
-      color: '#FF9800',
-      stat: stats.totalPages || null,
-    },
-    {
-      title: 'Menus',
-      description: 'Manage navigation menus',
-      icon: Menu,
-      link: '/cms/menus',
-      color: '#8BC34A',
-      stat: null,
-    },
-    {
-      title: 'Newsletter & Email',
-      description: 'Subscribers and email campaign setup',
-      icon: Tag,
-      link: '/cms/newsletter',
-      color: '#E91E63',
-      stat: null,
-    },
-    {
-      title: 'Social Links',
-      description: 'Social and website URLs for footer/header',
-      icon: Tag,
-      link: '/cms/social-links',
-      color: '#607D8B',
-      stat: null,
-    },
-  ]
+  const statValue = (key: StatKey): number => {
+    switch (key) {
+      case 'pages':
+        return stats.totalPages || 0
+      case 'blogs':
+        return stats.totalBlogs || 0
+      case 'testimonials':
+        return stats.totalTestimonials || 0
+      case 'faqs':
+        return stats.totalFAQs || 0
+      default:
+        return 0
+    }
+  }
+
+  const visibleSections = useMemo(() => {
+    return HUB_SECTIONS.map((section) => ({
+      ...section,
+      tiles: section.tiles.filter((t) => checkRouteAccess(t.to)),
+    })).filter((s) => s.tiles.length > 0)
+  }, [checkRouteAccess])
 
   if (loading) {
     return (
@@ -231,13 +287,13 @@ export default function CMSDashboard() {
   return (
     <div className="p-4 sm:p-6 md:p-8">
       <PageHeader
-        title="Content Management System"
-        subtitle="Manage your website content, promotions, and SEO"
+        title="Content & marketing"
+        subtitle="Manage site structure, campaigns, editorial content, and SEO from one hub — aligned with how modern CMS products group workflows."
       />
 
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
         <StatHighlightCard
-          label="Total pages"
+          label="Pages"
           value={stats.totalPages || 0}
           tone="primary"
           icon={<File className="h-7 w-7" />}
@@ -262,51 +318,72 @@ export default function CMSDashboard() {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {modules.map((module) => {
-          const Icon = module.icon
-          return (
-            <Link
-              key={module.link + module.title}
-              to={module.link}
-              className={cn(
-                'block h-full rounded-xl border border-transparent bg-card text-card-foreground shadow-sm transition-all',
-                'hover:-translate-y-1 hover:shadow-lg',
-              )}
-              style={{ borderColor: `color-mix(in srgb, ${module.color} 25%, transparent)` }}
-            >
-              <Card className="h-full border-0 bg-transparent shadow-none">
-                <CardContent className="p-5">
-                  <div className="mb-3 flex items-start justify-between">
-                    <div
-                      className="flex h-12 w-12 items-center justify-center rounded-lg"
-                      style={{
-                        backgroundColor: `color-mix(in srgb, ${module.color} 12%, transparent)`,
-                        color: module.color,
-                      }}
-                    >
-                      <Icon className="h-7 w-7" />
-                    </div>
-                    {module.stat !== null && (
-                      <Badge
-                        className="font-semibold"
-                        style={{
-                          backgroundColor: `color-mix(in srgb, ${module.color} 15%, transparent)`,
-                          color: module.color,
-                        }}
-                      >
-                        {module.stat}
-                      </Badge>
+      <div className="space-y-10">
+        {visibleSections.map((section) => (
+          <section key={section.id} aria-labelledby={`cms-section-${section.id}`}>
+            <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2
+                  id={`cms-section-${section.id}`}
+                  className="text-base font-semibold tracking-tight text-foreground"
+                >
+                  {section.title}
+                </h2>
+                <p className="text-sm text-muted-foreground">{section.subtitle}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {section.tiles.map((tile, i) => {
+                const Icon = tile.icon
+                const accent = ICON_ACCENTS[i % ICON_ACCENTS.length]
+                const count = tile.stat !== undefined ? statValue(tile.stat) : null
+                return (
+                  <Link
+                    key={tile.to}
+                    to={tile.to}
+                    className={cn(
+                      'group block h-full rounded-xl border border-border/80 bg-card text-card-foreground shadow-sm transition-all',
+                      'hover:-translate-y-0.5 hover:border-border hover:shadow-md',
                     )}
-                  </div>
-                  <h2 className="mb-1 text-lg font-semibold">{module.title}</h2>
-                  <p className="text-sm leading-relaxed text-muted-foreground">{module.description}</p>
-                </CardContent>
-              </Card>
-            </Link>
-          )
-        })}
+                  >
+                    <Card className="h-full border-0 bg-transparent shadow-none">
+                      <CardContent className="p-5">
+                        <div className="mb-3 flex items-start justify-between gap-2">
+                          <div
+                            className={cn(
+                              'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg',
+                              accent,
+                            )}
+                          >
+                            <Icon className="h-5 w-5" aria-hidden />
+                          </div>
+                          {count !== null && (
+                            <Badge variant="secondary" className="shrink-0 font-semibold tabular-nums">
+                              {count}
+                            </Badge>
+                          )}
+                        </div>
+                        <h3 className="mb-1 text-base font-semibold leading-snug group-hover:text-primary">
+                          {tile.title}
+                        </h3>
+                        <p className="text-sm leading-relaxed text-muted-foreground">{tile.description}</p>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                )
+              })}
+            </div>
+          </section>
+        ))}
       </div>
+
+      {visibleSections.length === 0 && (
+        <p className="rounded-lg border border-dashed border-border bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">
+          You do not have access to any content tools. Ask an administrator for{' '}
+          <span className="font-medium text-foreground">view CMS</span> or{' '}
+          <span className="font-medium text-foreground">manage marketing</span> permissions.
+        </p>
+      )}
     </div>
   )
 }

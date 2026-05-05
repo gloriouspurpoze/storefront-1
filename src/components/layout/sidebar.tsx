@@ -28,7 +28,6 @@ import {
   Tag as CategoryIcon,
   Images as SlideshowIcon,
   Tag as CouponIcon,
-  Tag as LocalOfferIcon,
   Share2 as ReferralIcon,
   Globe as WebIcon,
   Image as ImageIcon,
@@ -56,6 +55,12 @@ import {
   BadgeCheck as VerifiedUserIcon,
   KanbanSquare as KanbanSquareIcon,
   CalendarDays as TeamCalendarIcon,
+  LayoutGrid,
+  TicketPercent,
+  Newspaper,
+  Sparkles,
+  Layers,
+  LayoutPanelTop,
 } from 'lucide-react'
 import { useAppSelector } from '../../store/hooks'
 import { usePermissions } from '../../hooks/usePermissions'
@@ -72,6 +77,15 @@ import {
 
 const drawerWidth = DRAWER_WIDTH_EXPANDED_PX
 const collapsedDrawerWidth = DRAWER_WIDTH_COLLAPSED_PX
+
+/** Paths that are hub landing pages — avoid treating `/cms`, `/users`, etc. as prefixes of sibling routes. */
+const NAV_EXACT_ONLY_HREFS = new Set<string>(['/', '/cms', '/crm', '/users', '/team-work'])
+
+function routeMatchesNav(href: string, pathname: string): boolean {
+  if (pathname === href) return true
+  if (NAV_EXACT_ONLY_HREFS.has(href)) return false
+  return pathname.startsWith(`${href}/`)
+}
 
 /**
  * Provider Navigation Menu - For Service Providers
@@ -322,9 +336,9 @@ const navigationGroups = [
     title: 'Content & Marketing',
     icon: WebIcon,
     items: [
-      { 
-        name: 'Website content', 
-        icon: WebIcon, 
+      {
+        name: 'Site structure',
+        icon: LayoutGrid,
         hasSubmenu: true,
         permissions: ['view_cms', 'manage_cms'],
         badge: null,
@@ -333,35 +347,53 @@ const navigationGroups = [
           { name: 'Homepage', href: '/cms/homepage', icon: HomeIcon, permissions: ['manage_cms'] },
           { name: 'Pages', href: '/cms/pages', icon: DescriptionIcon, permissions: ['manage_cms'] },
           { name: 'Menus', href: '/cms/menus', icon: MenusIcon, permissions: ['manage_cms'] },
-          { name: 'Blog posts', href: '/cms/blogs', icon: ArticleIcon, permissions: ['manage_cms'] },
-          { name: 'Blog categories', href: '/cms/blog-categories', icon: CategoryIcon, permissions: ['manage_cms'] },
-        ]
+          { name: 'Media library', href: '/cms/media', icon: MediaIcon, permissions: ['manage_cms'] },
+        ],
       },
-      { 
-        name: 'Marketing', 
-        icon: CouponIcon, 
+      {
+        name: 'Surfaces & promotions',
+        icon: Sparkles,
         hasSubmenu: true,
         permissions: ['view_cms', 'manage_cms', 'manage_marketing'],
         badge: null,
         subItems: [
-          { name: 'Banners & Sliders', href: '/sliders', icon: SlideshowIcon, permissions: ['manage_cms'] },
-          { name: 'Announcements & Pop-ups', href: '/cms/banners', icon: SlideshowIcon, permissions: ['manage_cms'] },
+          { name: 'Sliders', href: '/sliders', icon: SlideshowIcon, permissions: ['manage_cms'] },
+          { name: 'Banners & pop-ups', href: '/cms/banners', icon: LayoutPanelTop, permissions: ['manage_cms'] },
           { name: 'Promotions', href: '/cms/promotions', icon: CouponIcon, permissions: ['manage_marketing'] },
-          { name: 'Coupons', href: '/coupons', icon: LocalOfferIcon, permissions: ['manage_marketing'] },
+          { name: 'Coupons', href: '/coupons', icon: TicketPercent, permissions: ['manage_marketing'] },
           { name: 'Referrals', href: '/referrals', icon: ReferralIcon, permissions: ['manage_marketing'] },
-          { name: 'Newsletter', href: '/cms/newsletter', icon: CampaignIcon, permissions: ['manage_cms'] },
-          { name: 'Social Links', href: '/cms/social-links', icon: LinkIcon, permissions: ['manage_cms'] },
-        ]
+        ],
       },
-      { name: 'Testimonials', href: '/cms/testimonials', icon: StarIcon, permissions: ['manage_cms'], badge: null },
-      { name: 'Reviews', href: '/cms/reviews', icon: StarIcon, permissions: ['manage_cms'], badge: null },
-      { name: 'FAQs', href: '/cms/faqs', icon: HelpIcon, permissions: ['manage_cms'], badge: null },
-      { name: 'Rate Card', href: '/cms/rate-card', icon: ReceiptIcon, permissions: ['manage_cms'], badge: null },
-      { name: 'Industry service pages', href: '/cms/category-marketing', icon: CampaignIcon, permissions: ['manage_cms'], badge: null },
-      { name: 'Cross-Linking', href: '/cms/cross-linking', icon: LinkIcon, permissions: ['manage_cms'], badge: null },
-      { name: 'Media Library', href: '/cms/media', icon: MediaIcon, permissions: ['manage_cms'], badge: null },
-      { name: 'SEO Management', href: '/cms/seo', icon: SearchIcon, permissions: ['manage_cms'], badge: null },
-    ]
+      {
+        name: 'Editorial & social proof',
+        icon: Newspaper,
+        hasSubmenu: true,
+        permissions: ['view_cms', 'manage_cms'],
+        badge: null,
+        subItems: [
+          { name: 'Blog posts', href: '/cms/blogs', icon: ArticleIcon, permissions: ['manage_cms'] },
+          { name: 'Blog categories', href: '/cms/blog-categories', icon: CategoryIcon, permissions: ['manage_cms'] },
+          { name: 'Newsletter', href: '/cms/newsletter', icon: CampaignIcon, permissions: ['manage_cms'] },
+          { name: 'Social links', href: '/cms/social-links', icon: LinkIcon, permissions: ['manage_cms'] },
+          { name: 'Testimonials', href: '/cms/testimonials', icon: StarIcon, permissions: ['manage_cms'] },
+          { name: 'Reviews', href: '/cms/reviews', icon: StarIcon, permissions: ['manage_cms'] },
+          { name: 'FAQs', href: '/cms/faqs', icon: HelpIcon, permissions: ['manage_cms'] },
+        ],
+      },
+      {
+        name: 'Catalog & SEO',
+        icon: Layers,
+        hasSubmenu: true,
+        permissions: ['manage_cms'],
+        badge: null,
+        subItems: [
+          { name: 'Rate card', href: '/cms/rate-card', icon: ReceiptIcon, permissions: ['manage_cms'] },
+          { name: 'Industry service pages', href: '/cms/category-marketing', icon: CampaignIcon, permissions: ['manage_cms'] },
+          { name: 'Cross-linking', href: '/cms/cross-linking', icon: LinkIcon, permissions: ['manage_cms'] },
+          { name: 'SEO management', href: '/cms/seo', icon: SearchIcon, permissions: ['manage_cms'] },
+        ],
+      },
+    ],
   },
   {
     title: 'Users & Communication',
@@ -483,7 +515,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     activeNavigationGroups.forEach((group) => {
       group.items.forEach((item: SidebarItem) => {
         if (item.hasSubmenu && item.subItems) {
-          const hasActiveSubItem = item.subItems.some((sub: SidebarSubItem) => sub.href === currentPath)
+          const hasActiveSubItem = item.subItems.some((sub: SidebarSubItem) =>
+            routeMatchesNav(sub.href, currentPath),
+          )
           if (hasActiveSubItem) {
             setOpenSubmenus((prev) => ({ ...prev, [item.name]: true }))
           }
@@ -544,9 +578,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             <ul className="px-0.5">
               {group.items.map((item: SidebarItem) => {
                 const isActive = Boolean(
-                  (!!item.href && location.pathname === item.href) ||
+                  (!!item.href && routeMatchesNav(item.href, location.pathname)) ||
                     (!!item.hasSubmenu &&
-                      item.subItems?.some((sub) => sub.href === location.pathname)),
+                      item.subItems?.some((sub) => routeMatchesNav(sub.href, location.pathname))),
                 )
                 const hasSubmenu = item.hasSubmenu
                 const isSubmenuOpen = openSubmenus[item.name] || false
@@ -611,7 +645,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                     {hasSubmenu && isSubmenuOpen && sidebarOpen && item.subItems && (
                       <ul className="mt-0.5 space-y-0.5 pl-2.5 pr-0.5">
                         {item.subItems.map((subItem: SidebarSubItem) => {
-                          const isSubActive = location.pathname === subItem.href
+                          const isSubActive = routeMatchesNav(subItem.href, location.pathname)
                           const SIcon = subItem.icon
                           return (
                             <li key={subItem.name} className="list-none">

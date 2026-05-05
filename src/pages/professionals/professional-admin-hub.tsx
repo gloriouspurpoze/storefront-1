@@ -36,7 +36,7 @@ import { PageHeader } from '../../components/common/PageHeader'
 import { ProfessionalsService } from '../../services/api/professionals.service'
 import { BookingsService } from '../../services/api/bookings.service'
 import { PaymentsService } from '../../services/api/payments.service'
-import { ReviewsService } from '../../services/api/reviews.service'
+import { ReviewsService, type BookingReview } from '../../services/api/reviews.service'
 import { usersService } from '../../services/api/users.service'
 import type { Professional } from '../../types/professional.types'
 import type { Booking, Payment } from '../../types'
@@ -66,6 +66,21 @@ function bookingRowId(b: Booking): string {
 function cancellationText(b: Booking): string {
   const r = b.cancellationReason ?? b.cancellation_reason
   return (r && String(r).trim()) || '—'
+}
+
+/** Admin review list may populate `professionalId` as a document; match filters by Mongo _id. */
+function reviewProfessionalMongoId(r: Pick<BookingReview, 'professionalId'>): string | null {
+  const p = r.professionalId
+  if (!p) return null
+  if (typeof p === 'string') return p
+  return p._id != null ? String(p._id) : null
+}
+
+function reviewBookingMongoId(r: Pick<BookingReview, 'bookingId'>): string | null {
+  const b = r.bookingId
+  if (!b) return null
+  if (typeof b === 'string') return b
+  return b._id != null ? String(b._id) : null
 }
 
 export function ProfessionalAdminHub() {
@@ -291,7 +306,10 @@ export function ProfessionalAdminHub() {
         limit: 200,
       })
       const proKeys = new Set([id, professional?._id, professional?.id].filter(Boolean) as string[])
-      const filtered = raw.filter((r) => r.professionalId && proKeys.has(String(r.professionalId)))
+      const filtered = raw.filter((r) => {
+        const pid = reviewProfessionalMongoId(r)
+        return pid != null && proKeys.has(pid)
+      })
       setReviews(filtered.length > 0 ? filtered : raw)
     } catch {
       setReviews([])
@@ -909,21 +927,38 @@ export function ProfessionalAdminHub() {
             <Alert severity="info">No reviews matched this professional (try widening API support for professionalId).</Alert>
           ) : null}
           {!reviewsLoading &&
-            reviews.map((r) => (
-              <Card key={r._id} variant="outlined" sx={{ mb: 1 }}>
-                <CardContent>
-                  <Typography variant="subtitle1">
-                    {r.rating} ★ · {formatDate(r.createdAt)}
-                  </Typography>
-                  <Typography variant="body2">{r.comment || '—'}</Typography>
-                  {r.bookingId ? (
-                    <Button size="small" sx={{ mt: 1 }} component={RouterLink} to={`/bookings/${r.bookingId}`}>
-                      Open booking
-                    </Button>
-                  ) : null}
-                </CardContent>
-              </Card>
-            ))}
+            reviews.map((r) => {
+              const bookingEmbed =
+                r.bookingId && typeof r.bookingId === 'object' ? r.bookingId : null
+              const line0 =
+                bookingEmbed && 'services' in bookingEmbed
+                  ? bookingEmbed.services?.[0]
+                  : undefined
+              const serviceCaption = r.serviceName
+                ? [r.serviceName, r.variantName].filter(Boolean).join(' · ')
+                : [line0?.serviceName, line0?.variantName].filter(Boolean).join(' · ')
+              const bid = reviewBookingMongoId(r)
+              return (
+                <Card key={r._id} variant="outlined" sx={{ mb: 1 }}>
+                  <CardContent>
+                    <Typography variant="subtitle1">
+                      {r.rating} ★ · {formatDate(r.createdAt)}
+                    </Typography>
+                    <Typography variant="body2">{r.comment || '—'}</Typography>
+                    {serviceCaption ? (
+                      <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                        {serviceCaption}
+                      </Typography>
+                    ) : null}
+                    {bid ? (
+                      <Button size="small" sx={{ mt: 1 }} component={RouterLink} to={`/bookings/${bid}`}>
+                        Open booking
+                      </Button>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              )
+            })}
         </Box>
       )}
 

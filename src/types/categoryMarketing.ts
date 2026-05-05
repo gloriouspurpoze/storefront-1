@@ -61,6 +61,43 @@ export interface LocalityGuideSectionBlock {
 }
 
 /**
+ * Admin-only local SEO + NAP-style signals for service URLs (base category or `industry__locality` keys).
+ * The public site should read these fields from the category-marketing API — do not hardcode service areas or LocalBusiness data in the app bundle.
+ */
+export interface LocalSeoCmsFields {
+  /** When true, consumer may emit LocalBusiness / Service JSON-LD using the fields below. */
+  enableLocalBusinessSchema: boolean
+  /** Visible / schema name for this local profile (falls back to locality guide / brand rules on consumer if empty). */
+  localProfileName: string
+  /** Short H2-style line for “Areas we serve” blocks. Supports [City], [Location], [ServiceName]. */
+  serviceAreaHeadline: string
+  /** Neighborhoods and suburbs for copy + optional `areaServed` in JSON-LD. */
+  serviceAreaPlaceNames: string[]
+  /** Longer hyperlocal coverage story (unique per locality key). */
+  serviceAreaNarrative: string
+  /** “Near me”, landmark, and neighborhood-intent phrases. */
+  localIntentKeywords: string[]
+  /** Human-readable hours for schema or visible strip (consumer may map to OpeningHoursSpecification). */
+  openingHoursSummary: string
+  /** Google Business Profile or Maps listing URL. */
+  googleBusinessProfileUrl: string
+  /** Extra `sameAs` URLs (directories, social proof). */
+  sameAsUrls: string[]
+  streetAddress: string
+  addressLocality: string
+  addressRegion: string
+  postalCode: string
+  /** ISO 3166-1 alpha-2, e.g. IN */
+  addressCountryCode: string
+  /** Optional "lat,lng" for `geo` in JSON-LD. */
+  geoLatLng: string
+  /** e.g. ₹₹ or $–$$$ for schema `priceRange`. */
+  priceRange: string
+  /** Absolute URL for Open Graph / local landing share image. */
+  ogImageOverride: string
+}
+
+/**
  * Admin-controlled locality landing copy — stored on composite keys like `electric__mira-bhayandar`.
  * @see `src/lib/catalog/cmsAdminContract.ts`
  */
@@ -138,6 +175,9 @@ export interface CategoryMarketingConfig {
 
   /** Hyperlocal SEO article + JSON-LD toggles — use composite CMS keys (`electric__mira-bhayandar`). */
   localityGuide: LocalityGuideCmsFields
+
+  /** Local pack / map-pack oriented fields — admin is source of truth for consumer structured data. */
+  localSeo: LocalSeoCmsFields
 }
 
 export const emptyLeadMagnet = (): LeadMagnetBlock => ({
@@ -207,6 +247,26 @@ export const emptyLocalityGuide = (): LocalityGuideCmsFields => ({
   showBookingCtaStrip: true,
 })
 
+export const emptyLocalSeo = (): LocalSeoCmsFields => ({
+  enableLocalBusinessSchema: false,
+  localProfileName: '',
+  serviceAreaHeadline: '',
+  serviceAreaPlaceNames: [],
+  serviceAreaNarrative: '',
+  localIntentKeywords: [],
+  openingHoursSummary: '',
+  googleBusinessProfileUrl: '',
+  sameAsUrls: [],
+  streetAddress: '',
+  addressLocality: '',
+  addressRegion: '',
+  postalCode: '',
+  addressCountryCode: '',
+  geoLatLng: '',
+  priceRange: '',
+  ogImageOverride: '',
+})
+
 export const emptyServiceTypeBlock = (): ServiceTypeBlock => ({
   title: '',
   description: '',
@@ -246,6 +306,7 @@ export function emptyCategoryMarketingConfig(): CategoryMarketingConfig {
     leadMagnet: emptyLeadMagnet(),
     jsonLdExtra: '',
     localityGuide: emptyLocalityGuide(),
+    localSeo: emptyLocalSeo(),
   }
 }
 
@@ -368,6 +429,35 @@ function normalizeLocalityGuideSection(raw: unknown): LocalityGuideSectionBlock 
   }
 }
 
+function normalizeLocalSeo(raw: unknown): LocalSeoCmsFields {
+  const e = emptyLocalSeo()
+  if (!raw || typeof raw !== 'object') return e
+  const o = raw as Record<string, unknown>
+  return {
+    enableLocalBusinessSchema: Boolean(o.enableLocalBusinessSchema),
+    localProfileName: String(o.localProfileName ?? ''),
+    serviceAreaHeadline: String(o.serviceAreaHeadline ?? ''),
+    serviceAreaPlaceNames: asStringArray(o.serviceAreaPlaceNames).length
+      ? asStringArray(o.serviceAreaPlaceNames)
+      : e.serviceAreaPlaceNames,
+    serviceAreaNarrative: String(o.serviceAreaNarrative ?? ''),
+    localIntentKeywords: asStringArray(o.localIntentKeywords).length
+      ? asStringArray(o.localIntentKeywords)
+      : e.localIntentKeywords,
+    openingHoursSummary: String(o.openingHoursSummary ?? ''),
+    googleBusinessProfileUrl: String(o.googleBusinessProfileUrl ?? o.googleBusinessUrl ?? ''),
+    sameAsUrls: asStringArray(o.sameAsUrls).length ? asStringArray(o.sameAsUrls) : e.sameAsUrls,
+    streetAddress: String(o.streetAddress ?? ''),
+    addressLocality: String(o.addressLocality ?? ''),
+    addressRegion: String(o.addressRegion ?? ''),
+    postalCode: String(o.postalCode ?? ''),
+    addressCountryCode: String(o.addressCountryCode ?? o.countryCode ?? ''),
+    geoLatLng: String(o.geoLatLng ?? o.geo ?? ''),
+    priceRange: String(o.priceRange ?? ''),
+    ogImageOverride: String(o.ogImageOverride ?? o.ogImage ?? ''),
+  }
+}
+
 function normalizeLocalityGuide(raw: unknown): LocalityGuideCmsFields {
   const e = emptyLocalityGuide()
   if (!raw || typeof raw !== 'object') return e
@@ -465,6 +555,7 @@ export function mergeCategoryConfig(
     leadMagnet: normalizeLeadMagnet(p.leadMagnet),
     jsonLdExtra: String(p.jsonLdExtra ?? e.jsonLdExtra),
     localityGuide: normalizeLocalityGuide(p.localityGuide),
+    localSeo: normalizeLocalSeo(p.localSeo),
   }
 }
 
@@ -535,6 +626,31 @@ export function mergePreferApiStatic(
       ? { ...lgS, ...lgA, sections: lgA.sections.length > 0 ? lgA.sections : lgS.sections }
       : lgS
 
+  const lsS = staticBase.localSeo
+  const lsA = api.localSeo ?? emptyLocalSeo()
+  const serviceAreaPlaceNames = pickArr(lsS.serviceAreaPlaceNames, lsA.serviceAreaPlaceNames, nonEmpty)
+  const localIntentKeywords = pickArr(lsS.localIntentKeywords, lsA.localIntentKeywords, nonEmpty)
+  const sameAsUrls = pickArr(lsS.sameAsUrls, lsA.sameAsUrls, nonEmpty)
+  const localSeo: LocalSeoCmsFields = {
+    enableLocalBusinessSchema: lsA.enableLocalBusinessSchema || lsS.enableLocalBusinessSchema,
+    localProfileName: pickStr(lsS.localProfileName, lsA.localProfileName),
+    serviceAreaHeadline: pickStr(lsS.serviceAreaHeadline, lsA.serviceAreaHeadline),
+    serviceAreaPlaceNames,
+    serviceAreaNarrative: pickStr(lsS.serviceAreaNarrative, lsA.serviceAreaNarrative),
+    localIntentKeywords,
+    openingHoursSummary: pickStr(lsS.openingHoursSummary, lsA.openingHoursSummary),
+    googleBusinessProfileUrl: pickStr(lsS.googleBusinessProfileUrl, lsA.googleBusinessProfileUrl),
+    sameAsUrls,
+    streetAddress: pickStr(lsS.streetAddress, lsA.streetAddress),
+    addressLocality: pickStr(lsS.addressLocality, lsA.addressLocality),
+    addressRegion: pickStr(lsS.addressRegion, lsA.addressRegion),
+    postalCode: pickStr(lsS.postalCode, lsA.postalCode),
+    addressCountryCode: pickStr(lsS.addressCountryCode, lsA.addressCountryCode),
+    geoLatLng: pickStr(lsS.geoLatLng, lsA.geoLatLng),
+    priceRange: pickStr(lsS.priceRange, lsA.priceRange),
+    ogImageOverride: pickStr(lsS.ogImageOverride, lsA.ogImageOverride),
+  }
+
   return {
     seoTitle: pickStr(staticBase.seoTitle, api.seoTitle),
     metaDescription: pickStr(staticBase.metaDescription, api.metaDescription),
@@ -570,6 +686,7 @@ export function mergePreferApiStatic(
     leadMagnet,
     jsonLdExtra: pickStr(staticBase.jsonLdExtra, api.jsonLdExtra),
     localityGuide,
+    localSeo,
   }
 }
 

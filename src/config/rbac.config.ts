@@ -273,9 +273,16 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
 
       'view_finance',
       'manage_finance',
+
+      'view_coupons',
+      'edit_coupons',
+      'manage_coupons',
+      'view_referrals',
+      'edit_referrals',
+      'manage_referrals',
     ]
   },
-  
+
   staff: {
     role: 'staff',
     level: 50,
@@ -315,9 +322,14 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       'manage_team_tasks',
 
       'view_finance',
+
+      'view_coupons',
+      'edit_coupons',
+      'view_referrals',
+      'edit_referrals',
     ]
   },
-  
+
   provider: {
     role: 'provider',
     level: 30,
@@ -493,18 +505,28 @@ export const routePermissions: RoutePermission[] = [
     allowedRoles: ['super_admin', 'admin', 'manager', 'staff', 'provider', 'professional', 'customer']
   },
   
-  // Coupons
+  // Coupons (align with sidebar manage_marketing — any coupon permission grants route access)
   {
     path: '/coupons',
-    requiredPermissions: ['manage_coupons'],
-    allowedRoles: ['super_admin', 'admin']
+    requiredPermissions: [
+      'manage_coupons',
+      'edit_coupons',
+      'create_coupons',
+      'view_coupons',
+    ],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
   },
   
   // Referrals
   {
     path: '/referrals',
-    requiredPermissions: ['manage_referrals'],
-    allowedRoles: ['super_admin', 'admin']
+    requiredPermissions: [
+      'manage_referrals',
+      'edit_referrals',
+      'create_referrals',
+      'view_referrals',
+    ],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
   },
 
   // CRM

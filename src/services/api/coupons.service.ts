@@ -1,114 +1,112 @@
 /**
- * Coupons Service
- * API client for coupon management
+ * Coupons Service — matches `/api/coupons` (admin CRUD + public validate).
  */
 
 import { api } from './base';
 
+const silentRead = { showSuccessToast: false, showLoading: false } as const;
+
 export interface CouponFilters {
-  isActive?: boolean;
-  applicableTo?: 'all' | 'orders' | 'bookings';
+  is_active?: boolean;
+  type?: string;
+  search?: string;
   page?: number;
   limit?: number;
+  sort_by?: string;
+  sort_order?: 'asc' | 'desc';
 }
 
-export interface CreateCouponRequest {
+export interface CouponListResponse {
+  coupons: Record<string, unknown>[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface AdminCouponPayload {
   code: string;
-  discountType: 'percentage' | 'fixed';
-  discountValue: number;
-  maxDiscount?: number;
-  minOrderAmount?: number;
-  usageLimit?: number;
-  userUsageLimit?: number;
-  validFrom?: Date;
-  validUntil?: Date;
-  applicableTo?: 'all' | 'orders' | 'bookings';
-  categories?: string[];
-  products?: string[];
-  services?: string[];
-  providers?: string[];
+  name: string;
+  description?: string;
+  type: 'percentage' | 'fixed_amount' | 'free_shipping' | 'bogo' | 'first_order';
+  value: number;
+  minimum_amount?: number;
+  maximum_discount?: number;
+  usage_limit?: number;
+  user_limit?: number;
+  starts_at?: string;
+  expires_at?: string;
+  applicable_to?: 'all' | 'services' | 'products' | 'bookings';
+  applicable_categories?: string[];
+  applicable_providers?: string[];
+  is_active?: boolean;
 }
 
-export interface ValidateCouponRequest {
+export interface ValidateCouponParams {
   subtotal: number;
   type: 'order' | 'booking';
   userId?: string;
 }
 
-export class CouponsService {
-  /**
-   * Get all coupons (admin)
-   */
-  static async getCoupons(filters?: CouponFilters) {
-    const response = await api.get('/coupons', { params: filters });
-    return response.data;
-  }
-
-  /**
-   * Get coupon by ID
-   */
-  static async getCouponById(id: string) {
-    const response = await api.get(`/coupons/${id}`);
-    return response.data;
-  }
-
-  /**
-   * Get coupon by code
-   */
-  static async getCouponByCode(code: string) {
-    const response = await api.get(`/coupons/code/${code}`);
-    return response.data;
-  }
-
-  /**
-   * Validate coupon
-   */
-  static async validateCoupon(code: string, params: ValidateCouponRequest) {
-    const response = await api.post(`/coupons/validate`, {
-      code,
-      ...params,
-    });
-    return response.data;
-  }
-
-  /**
-   * Create new coupon (admin)
-   */
-  static async createCoupon(data: CreateCouponRequest) {
-    const response = await api.post('/coupons', data);
-    return response.data;
-  }
-
-  /**
-   * Update coupon (admin)
-   */
-  static async updateCoupon(id: string, data: Partial<CreateCouponRequest>) {
-    const response = await api.put(`/coupons/${id}`, data);
-    return response.data;
-  }
-
-  /**
-   * Delete coupon (admin)
-   */
-  static async deleteCoupon(id: string) {
-    const response = await api.delete(`/coupons/${id}`);
-    return response.data;
-  }
-
-  /**
-   * Toggle coupon active status (admin)
-   */
-  static async toggleCouponStatus(id: string) {
-    const response = await api.patch(`/coupons/${id}/toggle`);
-    return response.data;
-  }
-
-  /**
-   * Get coupon statistics (admin)
-   */
-  static async getCouponStats(id: string) {
-    const response = await api.get(`/coupons/${id}/stats`);
-    return response.data;
-  }
+export interface ValidateCouponResult {
+  valid: boolean;
+  coupon?: { id?: string; _id?: string; code: string };
+  discountAmount: number;
+  finalAmount: number;
+  message: string;
+  error?: string;
 }
 
+export class CouponsService {
+  static async getCoupons(filters?: CouponFilters) {
+    const params: Record<string, unknown> = {
+      page: filters?.page ?? 1,
+      limit: filters?.limit ?? 200,
+      ...(filters?.is_active !== undefined && { is_active: filters.is_active }),
+      ...(filters?.type && { type: filters.type }),
+      ...(filters?.search && { search: filters.search }),
+      ...(filters?.sort_by && { sort_by: filters.sort_by }),
+      ...(filters?.sort_order && { sort_order: filters.sort_order }),
+    };
+    return api.get<CouponListResponse>('/coupons', { params, ...silentRead });
+  }
+
+  static async getCouponById(id: string) {
+    return api.get(`/coupons/${id}`, { ...silentRead });
+  }
+
+  static async getCouponByCode(code: string) {
+    return api.get(`/coupons/code/${encodeURIComponent(code)}`, { ...silentRead });
+  }
+
+  /** Public validate — GET `/coupons/validate` */
+  static async validateCoupon(code: string, params: ValidateCouponParams) {
+    return api.get<ValidateCouponResult>('/coupons/validate', {
+      params: {
+        code: code.trim().toUpperCase(),
+        subtotal: params.subtotal,
+        type: params.type,
+        ...(params.userId ? { userId: params.userId } : {}),
+      },
+      ...silentRead,
+    });
+  }
+
+  static async createCoupon(data: AdminCouponPayload) {
+    return api.post('/coupons', data, { showSuccessToast: false });
+  }
+
+  static async updateCoupon(id: string, data: Partial<AdminCouponPayload>) {
+    return api.put(`/coupons/${id}`, data, { showSuccessToast: false });
+  }
+
+  static async deleteCoupon(id: string) {
+    return api.delete(`/coupons/${id}`, { showSuccessToast: false });
+  }
+
+  static async getCouponStats() {
+    return api.get('/coupons/stats', { ...silentRead });
+  }
+}

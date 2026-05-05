@@ -44,6 +44,8 @@ export interface OrdersQuery {
   userId?: string
   providerId?: string
   orderNumber?: string
+  /** Server-side: order #, customer email/name/phone, order id, user id */
+  search?: string
   startDate?: string
   endDate?: string
 }
@@ -102,6 +104,8 @@ export interface Order {
   trackingNumber?: string
   shippedAt?: string
   deliveredAt?: string
+  estimatedDeliveryAt?: string
+  checkoutBatchId?: string | null
   createdAt: string
   updatedAt: string
   customer?: {
@@ -124,6 +128,8 @@ export interface OrderItem {
   product?: {
     name: string
     images?: string[]
+    category?: string
+    subcategory?: string
   }
 }
 
@@ -232,6 +238,15 @@ export class OrdersService {
       loadingMessage: 'Cancelling order...',
       successMessage: 'Order cancelled successfully!',
       errorMessage: 'Failed to cancel order.',
+    })
+  }
+
+  /** Admin: cancel any customer order (before shipped). Restores catalog stock. */
+  static async cancelOrderAsAdmin(id: string, reason?: string): Promise<ApiResponse<Order>> {
+    return api.put<Order>(`/orders/admin/cancel/${id}`, { reason }, {
+      loadingMessage: 'Cancelling order…',
+      showSuccessToast: false,
+      showErrorToast: false,
     })
   }
 

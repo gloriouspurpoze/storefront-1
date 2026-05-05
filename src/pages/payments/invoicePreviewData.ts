@@ -42,7 +42,8 @@ export type LineComputed = {
 
 export function computeInvoiceFromLines(
   items: ManualInvoiceLineItem[],
-  discountInput: string | number
+  discountInput: string | number,
+  options?: { applyGst?: boolean }
 ): {
   lines: LineComputed[]
   subtotal: number
@@ -50,12 +51,13 @@ export function computeInvoiceFromLines(
   discount: number
   grandTotal: number
 } {
+  const applyGst = options?.applyGst !== false
   const clean = items.filter(
     (it) => it.description?.trim() && it.quantity > 0 && it.unitPrice >= 0
   )
   const lines: LineComputed[] = clean.map((it) => {
     const taxable = it.quantity * it.unitPrice
-    const taxAmount = (taxable * GST_PCT) / 100
+    const taxAmount = applyGst ? (taxable * GST_PCT) / 100 : 0
     const lineTotal = taxable + taxAmount
     const cat = it.category || (it.lineKind === 'product' ? 'product' : 'electrical')
     return {

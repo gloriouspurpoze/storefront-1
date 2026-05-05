@@ -16,6 +16,13 @@ export function getInvoiceApiBaseUrl(): string {
 
 export type ManualInvoiceLineKind = 'product' | 'service'
 
+/** Matches fixer-backend `InvoicePdfTemplate` — selects PDF layout (GST vs bill of supply vs vendor). */
+export type InvoicePdfTemplateId =
+  | 'customer_gst'
+  | 'customer_non_gst'
+  | 'vendor_gst'
+  | 'vendor_non_gst'
+
 export interface ManualInvoiceLineItem {
   description: string
   quantity: number
@@ -57,6 +64,8 @@ export interface ManualInvoicePayload {
   orderId?: string
   bookingId?: string
   notes?: string
+  /** PDF template for server PDFService (default inferred from type if omitted). */
+  pdfTemplate?: InvoicePdfTemplateId
 }
 
 export interface Invoice {
@@ -163,6 +172,7 @@ function toGenerateInvoiceBody(p: ManualInvoicePayload): object {
     billingTo: p.billingTo,
     items,
     paymentMethod: normalizePaymentMethodForBackend(p.paymentMethod),
+    ...(p.pdfTemplate ? { pdfTemplate: p.pdfTemplate } : {}),
     ...(p.customerId ? { customerId: p.customerId } : {}),
     ...(p.discount != null && p.discount > 0 ? { discount: p.discount } : {}),
     ...(p.creditsUsed != null && p.creditsUsed > 0 ? { creditsUsed: p.creditsUsed } : {}),
