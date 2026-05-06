@@ -66,6 +66,7 @@ import {
   FlaskConical as LabIcon,
   Target as TargetIcon,
   Mail as MailTemplateIcon,
+  Palette as PaletteIcon,
 } from 'lucide-react'
 import { useAppSelector, useAppDispatch } from '../../store/hooks'
 import { setChatUnreadMessages } from '../../store/slices/chatInboxSlice'
@@ -86,7 +87,16 @@ const drawerWidth = DRAWER_WIDTH_EXPANDED_PX
 const collapsedDrawerWidth = DRAWER_WIDTH_COLLAPSED_PX
 
 /** Paths that are hub landing pages — avoid treating `/cms`, `/users`, etc. as prefixes of sibling routes. */
-const NAV_EXACT_ONLY_HREFS = new Set<string>(['/', '/cms', '/crm', '/users', '/team-work', '/support', '/marketing'])
+const NAV_EXACT_ONLY_HREFS = new Set<string>([
+  '/',
+  '/cms',
+  '/crm',
+  '/users',
+  '/team-work',
+  '/support',
+  '/marketing',
+  '/settings',
+])
 
 /** Sidebar badge text; numeric badges cap at 99+ (avoids layout break). */
 function formatSidebarBadgeValue(badge: string | number | null | undefined): string | null {
@@ -368,6 +378,7 @@ const navigationGroups = [
         subItems: [
           { name: 'CMS overview', href: '/cms', icon: WebIcon, permissions: ['view_cms'] },
           { name: 'Homepage', href: '/cms/homepage', icon: HomeIcon, permissions: ['manage_cms'] },
+          { name: 'Site appearance', href: '/cms/site-appearance', icon: PaletteIcon, permissions: ['manage_cms'] },
           { name: 'Pages', href: '/cms/pages', icon: DescriptionIcon, permissions: ['manage_cms'] },
           { name: 'Menus', href: '/cms/menus', icon: MenusIcon, permissions: ['manage_cms'] },
           { name: 'Media library', href: '/cms/media', icon: MediaIcon, permissions: ['manage_cms'] },
@@ -471,6 +482,13 @@ const navigationGroups = [
       { name: 'System Status', href: '/system-status', icon: CloudIcon, permissions: ['view_system_status'], badge: null },
       { name: 'Settings', href: '/settings', icon: SettingsIcon, permissions: ['manage_settings'], badge: null },
       { name: 'Help & Support', href: '/support', icon: SupportIcon, permissions: ['view_dashboard'], badge: null },
+      {
+        name: 'SaaS platform',
+        href: '/settings/saas',
+        icon: BusinessIcon,
+        permissions: ['manage_settings'],
+        badge: null,
+      },
     ]
   }
 ]

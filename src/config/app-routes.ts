@@ -76,6 +76,7 @@ export const QUICK_NAV_ITEMS: QuickNavItem[] = [
 
   { label: 'CMS overview', path: '/cms', group: 'Content & marketing' },
   { label: 'Homepage', path: '/cms/homepage', group: 'Content & marketing' },
+  { label: 'Site appearance', path: '/cms/site-appearance', group: 'Content & marketing', keywords: 'theme tokens branding colors' },
   { label: 'Pages', path: '/cms/pages', group: 'Content & marketing' },
   { label: 'Menus', path: '/cms/menus', group: 'Content & marketing' },
   { label: 'Blog posts', path: '/cms/blogs', group: 'Content & marketing' },
@@ -112,6 +113,7 @@ export const QUICK_NAV_ITEMS: QuickNavItem[] = [
   { label: 'Refund requests', path: '/support/refund-requests', group: 'System' },
   { label: 'System status', path: '/system-status', group: 'System' },
   { label: 'Settings', path: '/settings', group: 'System' },
+  { label: 'SaaS platform', path: '/settings/saas', group: 'System', keywords: 'tenant billing checklist multi' },
   { label: 'Help & support', path: '/support', group: 'System' },
 
   { label: 'Provider dashboard', path: '/provider/dashboard', group: 'Provider' },

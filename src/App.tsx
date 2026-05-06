@@ -132,6 +132,9 @@ const ChatPage = lazy(() => import('./pages/communication/chat'))
 const Notifications = lazy(() => import('./pages/communication/notifications').then((m) => ({ default: m.Notifications })))
 
 const Settings = lazy(() => import('./pages/settings/settings').then((m) => ({ default: m.Settings })))
+const SaasPlatformPage = lazy(() =>
+  import('./pages/settings/SaasPlatformPage').then((m) => ({ default: m.SaasPlatformPage })),
+)
 const Sliders = lazy(() => import('./pages/settings/sliders').then((m) => ({ default: m.Sliders })))
 const SystemStatus = lazy(() => import('./pages/settings/system-status'))
 
@@ -142,6 +145,7 @@ const Reports = lazy(() => import('./pages/support/reports'))
 const RefundRequestsPage = lazy(() => import('./pages/support/RefundRequestsPage'))
 
 const CMSDashboard = lazy(() => import('./pages/cms/CMSDashboard'))
+const SiteAppearancePage = lazy(() => import('./pages/cms/SiteAppearancePage'))
 const BannerManagement = lazy(() => import('./pages/cms/BannerManagement'))
 const PromotionManagement = lazy(() => import('./pages/cms/PromotionManagement'))
 const TestimonialManagement = lazy(() => import('./pages/cms/TestimonialManagement'))
@@ -891,6 +895,14 @@ function App() {
                           </RoleBasedRoute>
                         } 
                       />
+                      <Route
+                        path="/settings/saas"
+                        element={
+                          <RoleBasedRoute permissions={['view_settings']}>
+                            <SaasPlatformPage />
+                          </RoleBasedRoute>
+                        }
+                      />
                       
                       {/* Notifications */}
                       <Route 
@@ -973,6 +985,14 @@ function App() {
                             <HomepageManagement />
                           </RoleBasedRoute>
                         } 
+                      />
+                      <Route
+                        path="/cms/site-appearance"
+                        element={
+                          <RoleBasedRoute permissions={['manage_system_settings']}>
+                            <SiteAppearancePage />
+                          </RoleBasedRoute>
+                        }
                       />
                       <Route 
                         path="/cms/banners" 

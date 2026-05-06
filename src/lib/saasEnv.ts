@@ -19,3 +19,25 @@ export function getDefaultTenantIdFromEnv(): string | null {
   if (!raw || !String(raw).trim()) return null
   return String(raw).trim()
 }
+
+/** Stripe Customer Portal or billing vendor URL (optional). */
+export function getBillingPortalUrl(): string | null {
+  const u = process.env.REACT_APP_BILLING_PORTAL_URL?.trim()
+  return u || null
+}
+
+export function getLegalPrivacyUrl(): string | null {
+  const u = process.env.REACT_APP_LEGAL_PRIVACY_URL?.trim()
+  return u || null
+}
+
+export function getLegalTermsUrl(): string | null {
+  const u = process.env.REACT_APP_LEGAL_TERMS_URL?.trim()
+  return u || null
+}
+
+/** Internal wiki / Notion for DPA & subprocessors (optional). */
+export function getLegalComplianceDocsUrl(): string | null {
+  const u = process.env.REACT_APP_LEGAL_COMPLIANCE_DOCS_URL?.trim()
+  return u || null
+}

@@ -54,6 +54,7 @@ import { HomepageService, type HomepageSection, type CreateHomepageSectionReques
 import { ImageUploadField, type ImageFile } from '../../components/forms'
 import { PageHeader } from '../../components/common/PageHeader'
 import { ConfirmDialog, EmptyState } from '../../components/common'
+import { HomepageBlockLibraryAccordion } from '../../components/cms/HomepageBlockLibraryAccordion'
 
 const SECTION_TYPES = [
   { value: 'hero', label: 'Hero Banner', icon: HomeIcon, description: 'Main banner section with CTA' },
@@ -596,6 +597,8 @@ export default function HomepageManagement() {
           </Grid>
         </Grid>
       </Paper>
+
+      <HomepageBlockLibraryAccordion />
 
       {loading ? (
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">

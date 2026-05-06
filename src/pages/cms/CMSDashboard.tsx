@@ -25,6 +25,7 @@ import {
   Newspaper,
   type LucideIcon,
   Loader2,
+  Palette,
 } from 'lucide-react'
 import { CMSService } from '../../services/api'
 import { PageHeader, StatHighlightCard } from '../../components/common'
@@ -77,6 +78,12 @@ const HUB_SECTIONS: HubSection[] = [
         description: 'Hero, featured modules, and above-the-fold content.',
         to: '/cms/homepage',
         icon: Home,
+      },
+      {
+        title: 'Site appearance',
+        description: 'Public-site colors, type, radius, and spacing tokens.',
+        to: '/cms/site-appearance',
+        icon: Palette,
       },
       {
         title: 'Pages',
