@@ -1,19 +1,31 @@
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { Building2, User } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Dialog, DialogContent } from '../../components/ui/dialog'
 import { cn } from '../../lib/utils'
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
+import { useAppDispatch } from '../../store/hooks';
+import { setChatUnreadMessages } from '../../store/slices/chatInboxSlice';
 import { useSocket } from '../../hooks/useSocket';
 import {
   ChatService,
   ChatConversation,
   ChatMessage,
   ConversationType,
+  MessageType,
   normalizeConversationList,
   normalizeMessageList,
+  sortConversationsForInbox,
 } from '../../services/api/chat.service';
+
+function extractIncomingMessage(raw: unknown): ChatMessage | null {
+  if (!raw || typeof raw !== 'object') return null
+  const o = raw as Record<string, unknown>
+  if (o.message && typeof o.message === 'object') return o.message as unknown as ChatMessage
+  if ('_id' in o && 'conversationId' in o) return o as unknown as ChatMessage
+  return null
+}
 import ConversationList from '../../components/chat/ConversationList';
 import MessageThread from '../../components/chat/MessageThread';
 import ProviderListForChat from '../../components/chat/ProviderListForChat';
@@ -33,6 +45,8 @@ const ChatPage: React.FC = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const [showProviderList, setShowProviderList] = useState(false);
   const [showUserList, setShowUserList] = useState(false);
+  const [conversationTypeFilter, setConversationTypeFilter] = useState<ConversationType | 'all'>('all');
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     if (!snackbar.open) return undefined;
@@ -41,6 +55,10 @@ const ChatPage: React.FC = () => {
   }, [snackbar.open, snackbar.message]);
   
   const authUser = useSelector((s: RootState) => s.auth.user);
+  const isAdminUser = useMemo(() => {
+    const t = (authUser as any)?.userType || (authUser as any)?.role || (authUser as any)?.type;
+    return t === 'admin' || t === 'super_admin';
+  }, [authUser]);
   const currentUserId = useMemo(() => {
     if (authUser?.id) return String(authUser.id);
     try {
@@ -53,8 +71,50 @@ const ChatPage: React.FC = () => {
     return localStorage.getItem('userId') || '';
   }, [authUser?.id]);
 
+  const refreshChatUnread = useCallback(async () => {
+    try {
+      const r = await ChatService.getUnreadCount();
+      if (r.success && r.data != null) {
+        const d = r.data as { messages?: number };
+        dispatch(setChatUnreadMessages(d.messages ?? 0));
+      }
+    } catch {
+      /* non-fatal */
+    }
+  }, [dispatch]);
+
+  const applyConversations = useCallback(
+    (updater: ChatConversation[] | ((prev: ChatConversation[]) => ChatConversation[])) => {
+      setConversations((prev) => {
+        const next =
+          typeof updater === 'function' ? (updater as (p: ChatConversation[]) => ChatConversation[])(prev) : updater;
+        return sortConversationsForInbox(next);
+      });
+    },
+    [],
+  );
+
+  const displayedConversations = useMemo(() => {
+    const sorted = sortConversationsForInbox(conversations);
+    if (conversationTypeFilter === 'all') return sorted;
+    return sorted.filter((c) => c.type === conversationTypeFilter);
+  }, [conversations, conversationTypeFilter]);
+
+  useEffect(() => {
+    if (!selectedConversation) return;
+    if (!displayedConversations.some((c) => c._id === selectedConversation._id)) {
+      setSelectedConversation(null);
+      setMessages([]);
+    }
+  }, [displayedConversations, selectedConversation]);
+
+  const selectedConversationIdRef = useRef<string | null>(null)
+  useEffect(() => {
+    selectedConversationIdRef.current = selectedConversation?._id ?? null
+  }, [selectedConversation?._id])
+
   // Socket.IO connection
-  const { socket, isConnected, error: socketError } = useSocket({
+  const { socket, isConnected } = useSocket({
     autoConnect: true,
     onConnect: () => {
       console.log('✅ Connected to chat');
@@ -70,22 +130,37 @@ const ChatPage: React.FC = () => {
   };
 
   // Load conversations (API returns conversation array in `data`, not `data.conversations`)
-  const loadConversations = async (): Promise<ChatConversation[]> => {
+  const loadConversations = useCallback(async (): Promise<ChatConversation[]> => {
     try {
       setLoading(true);
-      const response = await ChatService.getConversations();
-      if (response.success && response.data !== undefined) {
-        const list = normalizeConversationList(response.data);
-        setConversations(list);
-        return list;
-      }
+      const [baseRes, supportRes] = await Promise.all([
+        ChatService.getConversations(),
+        isAdminUser ? ChatService.getSupportConversations({ limit: 100 }) : Promise.resolve(null),
+      ]);
+
+      const baseList =
+        baseRes && baseRes.success && baseRes.data !== undefined ? normalizeConversationList(baseRes.data) : [];
+
+      const supportList =
+        supportRes && (supportRes as any).success && (supportRes as any).data !== undefined
+          ? normalizeConversationList((supportRes as any).data)
+          : [];
+
+      const merged = [...baseList, ...supportList].reduce<ChatConversation[]>((acc, c) => {
+        if (!acc.some((x) => x._id === c._id)) acc.push(c);
+        return acc;
+      }, []);
+
+      applyConversations(merged);
+      void refreshChatUnread();
+      return merged;
     } catch (err: any) {
       setError(err.message || 'Failed to load conversations');
     } finally {
       setLoading(false);
     }
     return [];
-  };
+  }, [isAdminUser, applyConversations, refreshChatUnread]);
 
   const loadMessages = async (conversationId: string) => {
     try {
@@ -103,47 +178,127 @@ const ChatPage: React.FC = () => {
 
   // Handle conversation selection
   const handleSelectConversation = async (conversation: ChatConversation) => {
-    setSelectedConversation(conversation);
-    await loadMessages(conversation._id);
+    let activeConversation = conversation;
 
-    // Join conversation via Socket.IO
-    if (socket) {
-      socket.emit('join:conversation', { conversationId: conversation._id });
+    // Support queue: support conversations may not include any admin until assigned.
+    // Take ownership on open so the admin can load/join/send immediately.
+    if (
+      isAdminUser &&
+      conversation.type === ConversationType.SUPPORT &&
+      !conversation.participants.some((p) => String(p.userId?._id) === String(currentUserId))
+    ) {
+      try {
+        const assigned = await ChatService.assignAdminToSupport(conversation._id, currentUserId);
+        if (assigned.success && assigned.data) {
+          activeConversation = assigned.data;
+          await loadConversations();
+        }
+      } catch (e: any) {
+        showSnackbar(e?.message || 'Failed to take support conversation', 'error');
+      }
+    }
+
+    setSelectedConversation(activeConversation);
+    await loadMessages(activeConversation._id);
+
+    // Join conversation via Socket.IO (also re-runs when socket connects — see effect below)
+    if (socket?.connected) {
+      socket.emit('join:conversation', { conversationId: activeConversation._id });
     }
 
     // Mark as read
     try {
-      await ChatService.markAsRead(conversation._id);
+      await ChatService.markAsRead(activeConversation._id);
       // Update unread count in conversations list
-      setConversations(prev => 
-        prev.map(conv => 
-          conv._id === conversation._id
+      applyConversations((prev) =>
+        prev.map((conv) =>
+          conv._id === activeConversation._id
             ? {
                 ...conv,
-                participants: conv.participants.map(p =>
-                  p.userId._id === currentUserId
-                    ? { ...p, unreadCount: 0 }
-                    : p
-                )
+                participants: conv.participants.map((p) =>
+                  p.userId && String(p.userId._id) === currentUserId ? { ...p, unreadCount: 0 } : p,
+                ),
               }
-            : conv
-        )
+            : conv,
+        ),
       );
+      void refreshChatUnread();
     } catch (err) {
       console.error('Error marking as read:', err);
     }
   };
 
-  // Send message
+  /**
+   * Prefer socket (broadcasts to other participants).
+   * Fall back to REST when socket is unavailable.
+   */
   const handleSendMessage = async (content: string, attachments?: any[]) => {
-    if (!selectedConversation || !socket) return;
+    if (!selectedConversation) return;
 
-    socket.emit('message:send', {
+    const payload = {
       conversationId: selectedConversation._id,
       content,
-      type: 'text',
-      attachments,
-    });
+      type: MessageType.TEXT,
+      attachments: attachments?.length ? attachments : undefined,
+      clientTempId: `admin-${Date.now()}`,
+    };
+
+    try {
+      // Socket path (best UX: broadcast + ack)
+      if (socket?.connected) {
+        const msg = await new Promise<ChatMessage>((resolve, reject) => {
+          socket.emit('message:send', payload, (err: any, resp?: any) => {
+            if (err) return reject(new Error(err?.message || 'Failed to send message'));
+            const m = extractIncomingMessage(resp);
+            if (!m) return reject(new Error('Invalid message response'));
+            resolve(m);
+          });
+        });
+
+        setMessages((prev) => (prev.some((m) => m._id === msg._id) ? prev : [...prev, msg]));
+        applyConversations((prev) =>
+          prev.map((conv) =>
+            conv._id === msg.conversationId
+              ? {
+                  ...conv,
+                  lastMessage: {
+                    text: msg.content,
+                    senderId: currentUserId,
+                    sentAt: msg.createdAt,
+                    messageType: msg.type,
+                  },
+                }
+              : conv,
+          ),
+        );
+        return;
+      }
+
+      // REST fallback (delivery works, but realtime broadcast depends on recipients polling)
+      const response = await ChatService.sendMessage(payload);
+      if (response.success && response.data) {
+        const msg = response.data;
+        setMessages((prev) => (prev.some((m) => m._id === msg._id) ? prev : [...prev, msg]));
+        applyConversations((prev) =>
+          prev.map((conv) =>
+            conv._id === msg.conversationId
+              ? {
+                  ...conv,
+                  lastMessage: {
+                    text: msg.content,
+                    senderId: currentUserId,
+                    sentAt: msg.createdAt,
+                    messageType: msg.type,
+                  },
+                }
+              : conv,
+          ),
+        );
+      }
+    } catch (err: any) {
+      showSnackbar(err.message || 'Failed to send message', 'error');
+      throw err;
+    }
   };
 
   // Upload file
@@ -215,26 +370,55 @@ const ChatPage: React.FC = () => {
     }
   };
 
+  // Re-join the active conversation when the socket (re)connects
+  useEffect(() => {
+    if (!socket || !isConnected || !selectedConversation) return;
+    socket.emit('join:conversation', { conversationId: selectedConversation._id });
+  }, [socket, isConnected, selectedConversation?._id]);
+
+  // Refresh inbox when the operator returns to the tab (customer may have opened support on the app)
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === 'visible') void loadConversations();
+    };
+    document.addEventListener('visibilitychange', refresh);
+    window.addEventListener('focus', refresh);
+    return () => {
+      document.removeEventListener('visibilitychange', refresh);
+      window.removeEventListener('focus', refresh);
+    };
+  }, [loadConversations]);
+
   // Socket.IO event listeners
   useEffect(() => {
     if (!socket) return;
 
     // Listen for new messages
-    socket.on('message:received', (data: { message: ChatMessage }) => {
-      const msg = data.message;
+    socket.on('message:received', (data: unknown) => {
+      const msg = extractIncomingMessage(data);
+      if (!msg) return;
+
       const senderRaw = msg.senderId as unknown;
       const senderIdStr =
         typeof senderRaw === 'object' && senderRaw !== null && '_id' in senderRaw
           ? String((senderRaw as { _id: string })._id)
           : String(senderRaw ?? '');
 
-      setMessages((prev) => {
-        if (prev.some((m) => m._id === msg._id)) return prev;
-        return [...prev, msg];
-      });
+      const openId = selectedConversationIdRef.current;
+      if (openId === msg.conversationId) {
+        setMessages((prev) => {
+          if (prev.some((m) => m._id === msg._id)) return prev;
+          return [...prev, msg];
+        });
+      }
 
-      setConversations((prev) =>
-        prev.map((conv) =>
+      applyConversations((prev) => {
+        const exists = prev.some((c) => c._id === msg.conversationId);
+        if (!exists) {
+          void loadConversations();
+          return prev;
+        }
+        return prev.map((conv) =>
           conv._id === msg.conversationId
             ? {
                 ...conv,
@@ -245,14 +429,15 @@ const ChatPage: React.FC = () => {
                   messageType: msg.type,
                 },
                 participants: conv.participants.map((p) =>
-                  p.userId._id === currentUserId && senderIdStr !== currentUserId
+                  p.userId && String(p.userId._id) === currentUserId && senderIdStr !== currentUserId
                     ? { ...p, unreadCount: p.unreadCount + 1 }
-                    : p
+                    : p,
                 ),
               }
-            : conv
-        )
-      );
+            : conv,
+        );
+      });
+      void refreshChatUnread();
     });
 
     // Listen for message edits
@@ -288,12 +473,12 @@ const ChatPage: React.FC = () => {
       socket.off('message:delete');
       socket.off('message:reaction');
     };
-  }, [socket, currentUserId]);
+  }, [socket, currentUserId, loadConversations, applyConversations, refreshChatUnread]);
 
   // Load conversations on mount
   useEffect(() => {
-    loadConversations();
-  }, []);
+    void loadConversations();
+  }, [loadConversations]);
 
   const handleProviderSelect = async (_providerId: string, conversationId: string) => {
     setShowProviderList(false);
@@ -340,9 +525,10 @@ const ChatPage: React.FC = () => {
         </div>
         
         <ConversationList
-          conversations={conversations}
+          conversations={displayedConversations}
           selectedConversation={selectedConversation}
           onSelectConversation={handleSelectConversation}
+          onTypeChange={setConversationTypeFilter}
           loading={loading}
           currentUserId={currentUserId}
         />
@@ -367,7 +553,7 @@ const ChatPage: React.FC = () => {
           className="fixed bottom-4 right-4 z-[9999] max-w-sm rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 shadow-md dark:border-amber-800 dark:bg-amber-950/90 dark:text-amber-100"
           role="status"
         >
-          Connecting to chat server...
+          Connecting for live updates… You can still load threads and send messages via the API.
         </div>
       )}
 

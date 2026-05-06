@@ -62,6 +62,8 @@ export interface BlogPost {
   };
   faqItems?: BlogFaqItem[];
   leadMagnet?: BlogLeadMagnetSettings;
+  /** Optional: product cross-links for internal linking + conversion */
+  relatedProducts?: Array<{ _id: string; name: string; slug?: string }>;
   createdAt: string;
   updatedAt?: string;
 }
@@ -98,6 +100,8 @@ export interface BlogPostCreatePayload {
   };
   faqItems?: BlogFaqItem[];
   leadMagnet?: BlogLeadMagnetSettings;
+  /** Product IDs to store in `relatedProducts` */
+  relatedProductIds?: string[];
 }
 
 export interface BlogListResponse {

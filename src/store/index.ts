@@ -7,6 +7,7 @@ import { mapBackendUserToAppUser } from '../lib/mapBackendUser'
 import tenantSlice from './slices/tenantSlice'
 import uiSlice from './slices/uiSlice'
 import dataSlice from './slices/dataSlice'
+import chatInboxSlice from './slices/chatInboxSlice'
 
 // Transform to convert snake_case backend data to camelCase frontend data
 const authTransform = createTransform(
@@ -46,6 +47,7 @@ const rootReducer = combineReducers({
   tenant: tenantSlice,
   ui: uiSlice,
   data: dataSlice,
+  chatInbox: chatInboxSlice,
 })
 
 // Create persisted reducer

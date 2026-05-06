@@ -120,6 +120,21 @@ export function normalizeMessageList(data: unknown): ChatMessage[] {
   return []
 }
 
+/** Most recent activity first (WhatsApp-style inbox). */
+function conversationRecencyMs(c: ChatConversation): number {
+  const sent = c.lastMessage?.sentAt
+  if (sent) {
+    const t = new Date(sent as unknown as string).getTime()
+    if (!Number.isNaN(t)) return t
+  }
+  const u = c.updatedAt ? new Date(c.updatedAt as unknown as string).getTime() : 0
+  return Number.isNaN(u) ? 0 : u
+}
+
+export function sortConversationsForInbox(list: ChatConversation[]): ChatConversation[] {
+  return [...list].sort((a, b) => conversationRecencyMs(b) - conversationRecencyMs(a))
+}
+
 /**
  * Chat Service
  */
@@ -146,6 +161,30 @@ export class ChatService {
       conversations: ChatConversation[];
       pagination: any;
     }>(`/chat/conversations?${queryParams.toString()}`, {
+      showSuccessToast: false,
+    });
+  }
+
+  /**
+   * List support conversations for admins (queue).
+   * Backend: GET /api/chat/conversations/support (requires admin + view_messages)
+   */
+  static async getSupportConversations(params?: {
+    assignedToAdminId?: string;
+    unassignedOnly?: boolean;
+    page?: number;
+    limit?: number;
+  }) {
+    const queryParams = new URLSearchParams();
+    if (params?.assignedToAdminId) queryParams.append('assignedToAdminId', params.assignedToAdminId);
+    if (params?.unassignedOnly !== undefined) queryParams.append('unassignedOnly', String(params.unassignedOnly));
+    if (params?.page) queryParams.append('page', String(params.page));
+    if (params?.limit) queryParams.append('limit', String(params.limit));
+
+    return api.get<{
+      conversations: ChatConversation[];
+      pagination: any;
+    }>(`/chat/conversations/support?${queryParams.toString()}`, {
       showSuccessToast: false,
     });
   }

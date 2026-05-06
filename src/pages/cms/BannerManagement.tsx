@@ -57,7 +57,18 @@ interface Banner {
   schedule: { startDate: string; endDate: string };
   isActive: boolean;
   analytics: { impressions: number; clicks: number; conversions: number };
+  productId?: string;
+  productSlug?: string;
+  productName?: string;
 }
+
+type BannerTarget = 'all' | 'product';
+
+type ProductOption = {
+  id: string;
+  name: string;
+  slug?: string;
+};
 
 export default function BannerManagement() {
   const theme = useTheme();
@@ -72,6 +83,10 @@ export default function BannerManagement() {
     description: '',
     bannerType: 'hero',
     position: 'top',
+    target: 'all' as BannerTarget,
+    productId: '',
+    productSlug: '',
+    productName: '',
     desktopImages: [] as ImageFile[],
     mobileImages: [] as ImageFile[],
     ctaText: '',
@@ -81,10 +96,52 @@ export default function BannerManagement() {
     isActive: true,
   });
 
+  const [productSearch, setProductSearch] = useState('');
+  const [productLoading, setProductLoading] = useState(false);
+  const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
+
   useEffect(() => {
     fetchBanners();
   }, []);
 
+  useEffect(() => {
+    if (!showForm || formData.target !== 'product') return;
+
+    const q = productSearch.trim();
+    const controller = new AbortController();
+
+    const run = async () => {
+      try {
+        setProductLoading(true);
+        const token = localStorage.getItem('token');
+        const res = await axios.get(`${API_BASE}/products`, {
+          params: { page: 1, limit: 10, search: q || undefined },
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          signal: controller.signal,
+        });
+
+        const items = (res.data?.data?.products || res.data?.products || []) as any[];
+        setProductOptions(
+          items.map((p) => ({
+            id: String(p.id || p._id),
+            name: String(p.name || 'Unnamed product'),
+            slug: p.slug ? String(p.slug) : undefined,
+          })),
+        );
+      } catch (e: any) {
+        if (e?.name === 'CanceledError' || e?.code === 'ERR_CANCELED') return;
+        setProductOptions([]);
+      } finally {
+        setProductLoading(false);
+      }
+    };
+
+    const t = window.setTimeout(() => void run(), 350);
+    return () => {
+      window.clearTimeout(t);
+      controller.abort();
+    };
+  }, [productSearch, showForm, formData.target]);
   const fetchBanners = async () => {
     try {
       setLoading(true);
@@ -109,6 +166,9 @@ export default function BannerManagement() {
         description: formData.description,
         bannerType: formData.bannerType,
         position: formData.position,
+        productId: formData.target === 'product' ? (formData.productId || undefined) : undefined,
+        productSlug: formData.target === 'product' ? (formData.productSlug || undefined) : undefined,
+        productName: formData.target === 'product' ? (formData.productName || undefined) : undefined,
         images: {
           desktop: formData.desktopImages[0]?.url || '',
           mobile: formData.mobileImages[0]?.url || formData.desktopImages[0]?.url || '',
@@ -174,6 +234,10 @@ export default function BannerManagement() {
       description: '',
       bannerType: banner.bannerType,
       position: banner.position,
+      target: banner.productId ? 'product' : 'all',
+      productId: banner.productId || '',
+      productSlug: banner.productSlug || '',
+      productName: banner.productName || '',
       desktopImages: banner.images.desktop ? [{
         id: '1',
         url: banner.images.desktop,
@@ -203,6 +267,10 @@ export default function BannerManagement() {
       description: '',
       bannerType: 'hero',
       position: 'top',
+      target: 'all',
+      productId: '',
+      productSlug: '',
+      productName: '',
       desktopImages: [],
       mobileImages: [],
       ctaText: '',
@@ -211,6 +279,8 @@ export default function BannerManagement() {
       endDate: '',
       isActive: true,
     });
+    setProductSearch('');
+    setProductOptions([]);
     setEditingBanner(null);
     setShowForm(false);
   };
@@ -492,6 +562,86 @@ export default function BannerManagement() {
                   </Select>
                 </FormControl>
               </Grid>
+
+              <Grid item xs={12}>
+                <Divider sx={{ my: 1 }} />
+                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
+                  Targeting
+                </Typography>
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Target</InputLabel>
+                  <Select
+                    value={formData.target}
+                    label="Target"
+                    onChange={(e) => {
+                      const next = e.target.value as BannerTarget
+                      setFormData((prev) => ({
+                        ...prev,
+                        target: next,
+                        productId: next === 'product' ? prev.productId : '',
+                        productSlug: next === 'product' ? prev.productSlug : '',
+                        productName: next === 'product' ? prev.productName : '',
+                      }))
+                      if (next !== 'product') {
+                        setProductSearch('')
+                        setProductOptions([])
+                      }
+                    }}
+                  >
+                    <MenuItem value="all">All users (global)</MenuItem>
+                    <MenuItem value="product">Specific product</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              {formData.target === 'product' && (
+                <>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Search products"
+                      value={productSearch}
+                      onChange={(e) => setProductSearch(e.target.value)}
+                      placeholder="Type product name…"
+                      InputProps={{
+                        endAdornment: productLoading ? <CircularProgress size={18} /> : undefined,
+                      }}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <FormControl fullWidth>
+                      <InputLabel>Product</InputLabel>
+                      <Select
+                        value={formData.productId || ''}
+                        label="Product"
+                        onChange={(e) => {
+                          const id = String(e.target.value || '')
+                          const picked = productOptions.find((p) => p.id === id)
+                          setFormData((prev) => ({
+                            ...prev,
+                            productId: id,
+                            productName: picked?.name || prev.productName,
+                            productSlug: picked?.slug || prev.productSlug,
+                          }))
+                        }}
+                      >
+                        <MenuItem value="">
+                          <em>Select a product</em>
+                        </MenuItem>
+                        {productOptions.map((p) => (
+                          <MenuItem key={p.id} value={p.id}>
+                            {p.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                </>
+              )}
 
               <Grid item xs={12}>
                 <Divider sx={{ my: 1 }} />

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { Navigate, useLocation, Link } from 'react-router-dom'
+import React, { useState } from 'react'
+import { Navigate, useLocation } from 'react-router-dom'
 import { LoginForm } from '../../components/auth/LoginForm'
 import { useAppSelector, useAppDispatch } from '../../store/hooks'
 import { loginUser } from '../../store/slices/authSlice'
@@ -11,7 +11,6 @@ export function Auth() {
   const [error, setError] = useState<string>('')
   const location = useLocation()
 
-  // Redirect if already authenticated
   if (isAuthenticated) {
     const from = location.state?.from?.pathname || '/'
     return <Navigate to={from} replace />
@@ -20,20 +19,18 @@ export function Auth() {
   const handleLogin = async (credentials: { email: string; password: string; rememberMe: boolean }) => {
     try {
       setError('')
-      
-      // Use the new async thunk for login
-      const result = await dispatch(loginUser({
-        email: credentials.email,
-        password: credentials.password,
-        rememberMe: credentials.rememberMe
-      }))
-      
-      // Check if login was successful
+
+      const result = await dispatch(
+        loginUser({
+          email: credentials.email,
+          password: credentials.password,
+          rememberMe: credentials.rememberMe,
+        }),
+      )
+
       if (loginUser.fulfilled.match(result)) {
-        // Store transformed user data in localStorage if remember me is checked
         if (credentials.rememberMe) {
-          const rawUser = result.payload.user as any
-          // Store the TRANSFORMED user data (camelCase), not raw backend response
+          const rawUser = result.payload.user as Record<string, unknown>
           const transformedUser = {
             id: rawUser.id,
             email: rawUser.email,
@@ -45,183 +42,51 @@ export function Auth() {
             profilePicture: rawUser.profile_picture || rawUser.profilePicture,
             createdAt: rawUser.created_at || rawUser.createdAt || new Date().toISOString(),
           }
-          
+
           localStorage.setItem('user', JSON.stringify(transformedUser))
           localStorage.setItem('token', result.payload.tokens?.accessToken || result.payload.token)
-          localStorage.setItem('refreshToken', result.payload.tokens?.refreshToken || result.payload.refreshToken)
+          localStorage.setItem(
+            'refreshToken',
+            result.payload.tokens?.refreshToken || result.payload.refreshToken,
+          )
         }
-        
-        // Show success message
-        dispatch(addToast({
-          message: 'Welcome back! You have been successfully signed in.',
-          severity: 'success'
-        }))
+
+        dispatch(
+          addToast({
+            message: 'Welcome back! You have been successfully signed in.',
+            severity: 'success',
+          }),
+        )
       } else {
-        // Handle login failure
         const errorMessage = typeof result.payload === 'string' ? result.payload : 'Login failed'
         setError(errorMessage)
-        dispatch(addToast({
-          message: errorMessage,
-          severity: 'error'
-        }))
+        dispatch(
+          addToast({
+            message: errorMessage,
+            severity: 'error',
+          }),
+        )
       }
-      
-    } catch (err: any) {
-      const errorMessage = err?.message || 'Login failed'
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Login failed'
       setError(errorMessage)
-      dispatch(addToast({
-        message: errorMessage,
-        severity: 'error'
-      }))
+      dispatch(
+        addToast({
+          message: errorMessage,
+          severity: 'error',
+        }),
+      )
     }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#667eea] to-[#764ba2] p-2 sm:p-4">
-      <div className="w-full max-w-5xl px-1 sm:px-2">
-        <div className="flex flex-col items-center justify-center gap-6 lg:flex-row lg:gap-10">
-          {/* Features Section */}
-          {/* <Paper
-            sx={{
-              p: { xs: 3, sm: 4 },
-              maxWidth: { xs: '100%', lg: 400 },
-              width: '100%',
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              color: 'white',
-              order: { xs: 2, lg: 1 },
-            }}
-          >
-            <Typography variant="h4" sx={{
-              fontWeight: 700,
-              mb: 3,
-              fontSize: { xs: '1.5rem', sm: '2rem' }
-            }}>
-              Manage Your Business with Ease
-            </Typography>
-            <Stack spacing={{ xs: 2, sm: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Box
-                  sx={{
-                    width: { xs: 40, sm: 48 },
-                    height: { xs: 40, sm: 48 },
-                    borderRadius: 2,
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Typography variant="h6" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>📊</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="h6" sx={{
-                    fontWeight: 600,
-                    fontSize: { xs: '1rem', sm: '1.25rem' }
-                  }}>
-                    Complete Dashboard
-                  </Typography>
-                  <Typography variant="body2" sx={{
-                    opacity: 0.8,
-                    fontSize: { xs: '0.875rem', sm: '1rem' }
-                  }}>
-                    Track revenue, orders, and customer satisfaction
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Box
-                  sx={{
-                    width: { xs: 40, sm: 48 },
-                    height: { xs: 40, sm: 48 },
-                    borderRadius: 2,
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Typography variant="h6" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>👥</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="h6" sx={{
-                    fontWeight: 600,
-                    fontSize: { xs: '1rem', sm: '1.25rem' }
-                  }}>
-                    User Management
-                  </Typography>
-                  <Typography variant="body2" sx={{
-                    opacity: 0.8,
-                    fontSize: { xs: '0.875rem', sm: '1rem' }
-                  }}>
-                    Manage customers, providers, and admin accounts
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Box
-                  sx={{
-                    width: { xs: 40, sm: 48 },
-                    height: { xs: 40, sm: 48 },
-                    borderRadius: 2,
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Typography variant="h6" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>🔒</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="h6" sx={{
-                    fontWeight: 600,
-                    fontSize: { xs: '1rem', sm: '1.25rem' }
-                  }}>
-                    Secure & Reliable
-                  </Typography>
-                  <Typography variant="body2" sx={{
-                    opacity: 0.8,
-                    fontSize: { xs: '0.875rem', sm: '1rem' }
-                  }}>
-                    Enterprise-grade security for your business data
-                  </Typography>
-                </Box>
-              </Box>
-            </Stack>
-          </Paper> */}
-
-          {/* Login Form */}
-          <div className="order-1 lg:order-2">
-            <LoginForm onLogin={handleLogin} isLoading={isLoading} error={error} />
-            
-            {/* Signup Link */}
-            {/* <Box sx={{ textAlign: 'center', mt: 3 }}>
-              <Typography variant="body2" color="white" sx={{ opacity: 0.9, mb: 2 }}>
-                Don't have an account yet?
-              </Typography>
-              <Button
-                component={Link}
-                to="/signup"
-                variant="outlined"
-                sx={{
-                  color: 'white',
-                  borderColor: 'rgba(255, 255, 255, 0.5)',
-                  '&:hover': {
-                    borderColor: 'white',
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  },
-                  px: 4,
-                  py: 1.5,
-                }}
-              >
-                Create Account
-              </Button>
-            </div> */}
-          </div>
-        </div>
+    <div className="relative flex min-h-screen flex-col items-center justify-center bg-muted/50 px-4 py-10">
+      <div
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-transparent"
+        aria-hidden
+      />
+      <div className="relative w-full max-w-[400px]">
+        <LoginForm onLogin={handleLogin} isLoading={isLoading} error={error} />
       </div>
     </div>
   )

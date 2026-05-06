@@ -46,6 +46,14 @@ import { useAppConfirm } from '../../components/providers/AppDialogsProvider';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
+type PromotionTarget = 'all' | 'products';
+
+type ProductOption = {
+  id: string;
+  name: string;
+  slug?: string;
+};
+
 interface Promotion {
   _id: string;
   code: string;
@@ -74,6 +82,8 @@ export default function PromotionManagement() {
     description: '',
     promotionType: 'percentage',
     discountValue: 0,
+    target: 'all' as PromotionTarget,
+    productId: '',
     minOrderValue: 0,
     maxDiscount: 0,
     totalLimit: 1000,
@@ -84,9 +94,52 @@ export default function PromotionManagement() {
     isFeatured: false,
   });
 
+  const [productSearch, setProductSearch] = useState('');
+  const [productLoading, setProductLoading] = useState(false);
+  const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
+
   useEffect(() => {
     fetchPromotions();
   }, []);
+
+  useEffect(() => {
+    if (!showForm || formData.target !== 'products') return;
+
+    const q = productSearch.trim();
+    const controller = new AbortController();
+
+    const run = async () => {
+      try {
+        setProductLoading(true);
+        const token = localStorage.getItem('token');
+        const res = await axios.get(`${API_BASE}/products`, {
+          params: { page: 1, limit: 10, search: q || undefined },
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          signal: controller.signal,
+        });
+
+        const items = (res.data?.data?.products || res.data?.products || []) as any[];
+        setProductOptions(
+          items.map((p) => ({
+            id: String(p.id || p._id),
+            name: String(p.name || 'Unnamed product'),
+            slug: p.slug ? String(p.slug) : undefined,
+          })),
+        );
+      } catch (e: any) {
+        if (e?.name === 'CanceledError' || e?.code === 'ERR_CANCELED') return;
+        setProductOptions([]);
+      } finally {
+        setProductLoading(false);
+      }
+    };
+
+    const t = window.setTimeout(() => void run(), 350);
+    return () => {
+      window.clearTimeout(t);
+      controller.abort();
+    };
+  }, [productSearch, showForm, formData.target]);
 
   const fetchPromotions = async () => {
     try {
@@ -113,7 +166,10 @@ export default function PromotionManagement() {
         description: formData.description,
         promotionType: formData.promotionType,
         discountValue: formData.discountValue,
-        applicableTo: { type: 'all' },
+        applicableTo:
+          formData.target === 'products'
+            ? { type: 'products', productIds: formData.productId ? [formData.productId] : [] }
+            : { type: 'all' },
         conditions: {
           minOrderValue: formData.minOrderValue || undefined,
           maxDiscount: formData.maxDiscount || undefined,
@@ -175,6 +231,8 @@ export default function PromotionManagement() {
       description: '',
       promotionType: 'percentage',
       discountValue: 0,
+      target: 'all',
+      productId: '',
       minOrderValue: 0,
       maxDiscount: 0,
       totalLimit: 1000,
@@ -184,6 +242,8 @@ export default function PromotionManagement() {
       isActive: true,
       isFeatured: false,
     });
+    setProductSearch('');
+    setProductOptions([]);
     setShowForm(false);
   };
 
@@ -465,6 +525,68 @@ export default function PromotionManagement() {
                   Discount Details
                 </Typography>
               </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Applies To</InputLabel>
+                  <Select
+                    value={formData.target}
+                    label="Applies To"
+                    onChange={(e) => {
+                      const next = e.target.value as PromotionTarget
+                      setFormData((prev) => ({
+                        ...prev,
+                        target: next,
+                        productId: next === 'products' ? prev.productId : '',
+                      }))
+                      if (next !== 'products') {
+                        setProductSearch('')
+                        setProductOptions([])
+                      }
+                    }}
+                  >
+                    <MenuItem value="all">All orders (global)</MenuItem>
+                    <MenuItem value="products">Specific product</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              {formData.target === 'products' && (
+                <>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Search products"
+                      value={productSearch}
+                      onChange={(e) => setProductSearch(e.target.value)}
+                      placeholder="Type product name…"
+                      InputProps={{
+                        endAdornment: productLoading ? <CircularProgress size={18} /> : undefined,
+                      }}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <FormControl fullWidth>
+                      <InputLabel>Product</InputLabel>
+                      <Select
+                        value={formData.productId || ''}
+                        label="Product"
+                        onChange={(e) => setFormData((prev) => ({ ...prev, productId: String(e.target.value || '') }))}
+                      >
+                        <MenuItem value="">
+                          <em>Select a product</em>
+                        </MenuItem>
+                        {productOptions.map((p) => (
+                          <MenuItem key={p.id} value={p.id}>
+                            {p.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                </>
+              )}
 
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth>

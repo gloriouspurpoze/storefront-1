@@ -83,6 +83,12 @@ registerQuillTableFormats()
 
 type FaqEditorRow = { id: string; question: string; answer: string }
 
+type ProductOption = {
+  id: string
+  name: string
+  slug?: string
+}
+
 // --- Slugify (URL-safe segment from title) -----------------------------------
 
 function slugify(input: string): string {
@@ -326,6 +332,10 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
   const [categoryId, setCategoryId] = useState('')
   const [cmsCategories, setCmsCategories] = useState<{ _id: string; name: string }[]>([])
   const [tagsInput, setTagsInput] = useState('')
+  const [relatedProductIds, setRelatedProductIds] = useState<string[]>([])
+  const [relatedProductSearch, setRelatedProductSearch] = useState('')
+  const [relatedProductOptions, setRelatedProductOptions] = useState<ProductOption[]>([])
+  const [relatedProductLoading, setRelatedProductLoading] = useState(false)
   const [contentHtml, setContentHtml] = useState('')
   const [primaryKeyword, setPrimaryKeyword] = useState('pillar topic')
   const [secondaryKeywordsInput, setSecondaryKeywordsInput] = useState('')
@@ -391,6 +401,50 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
     }
   }, [])
 
+  // Related products: lightweight search against catalog
+  useEffect(() => {
+    const q = relatedProductSearch.trim()
+    const controller = new AbortController()
+
+    const run = async () => {
+      try {
+        setRelatedProductLoading(true)
+        const token = localStorage.getItem('token')
+        const base = process.env.REACT_APP_API_URL || 'http://localhost:5000/api'
+        const url = `${base}/products?${new URLSearchParams({
+          page: '1',
+          limit: '10',
+          ...(q ? { search: q } : {}),
+        }).toString()}`
+        const res = await fetch(url, {
+          method: 'GET',
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          signal: controller.signal,
+        })
+        const json = await res.json()
+        const items = (json?.data?.products || json?.products || []) as any[]
+        setRelatedProductOptions(
+          items.map((p) => ({
+            id: String(p.id || p._id),
+            name: String(p.name || 'Unnamed product'),
+            slug: p.slug ? String(p.slug) : undefined,
+          })),
+        )
+      } catch (e: any) {
+        if (e?.name === 'AbortError') return
+        setRelatedProductOptions([])
+      } finally {
+        setRelatedProductLoading(false)
+      }
+    }
+
+    const t = window.setTimeout(() => void run(), 350)
+    return () => {
+      window.clearTimeout(t)
+      controller.abort()
+    }
+  }, [relatedProductSearch])
+
   // Load existing post when editing (route: /cms/blogs/:id/edit)
   useEffect(() => {
     if (!postId) {
@@ -416,6 +470,9 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
           typeof post.category === 'object' && post.category?._id ? post.category._id : '',
         )
         setTagsInput((post.tags ?? []).join(', '))
+        setRelatedProductIds(
+          Array.isArray(post.relatedProducts) ? post.relatedProducts.map((p) => p._id).filter(Boolean) : [],
+        )
         setContentHtml(sanitizeBlogBodyHtml(post.content ?? ''))
         const allKw = post.seo?.keywords ?? []
         if (allKw[0]) setPrimaryKeyword(allKw[0])
@@ -1378,6 +1435,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
         status: effectiveStatus,
         isFeatured,
         allowComments,
+        relatedProductIds,
         featuredImage: trimmedUrl || undefined,
         featuredImageAlt: featuredImageAlt.trim() || undefined,
         scheduledPublishAt,
@@ -1782,6 +1840,81 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                 onChange={(e) => setTagsInput(e.target.value)}
                 placeholder="seo, content, product (comma-separated)"
               />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium">Related products</label>
+              <div className="flex gap-2">
+                <input
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  value={relatedProductSearch}
+                  onChange={(e) => setRelatedProductSearch(e.target.value)}
+                  placeholder="Search products to link…"
+                />
+                <button
+                  type="button"
+                  className="shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm hover:bg-slate-50"
+                  onClick={() => setRelatedProductSearch('')}
+                >
+                  Clear
+                </button>
+              </div>
+
+              {relatedProductLoading && (
+                <p className="mt-1 text-xs text-slate-500">Searching…</p>
+              )}
+
+              {relatedProductOptions.length > 0 && (
+                <div className="mt-2 max-h-40 overflow-auto rounded-lg border border-slate-200 bg-white">
+                  {relatedProductOptions.map((p) => {
+                    const selected = relatedProductIds.includes(p.id)
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-slate-50 ${
+                          selected ? 'bg-indigo-50' : ''
+                        }`}
+                        onClick={() => {
+                          setRelatedProductIds((prev) =>
+                            selected ? prev.filter((id) => id !== p.id) : [...prev, p.id],
+                          )
+                        }}
+                      >
+                        <span className="min-w-0 flex-1 truncate">{p.name}</span>
+                        <span className="shrink-0 text-xs text-slate-500">
+                          {selected ? 'Linked' : 'Link'}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+
+              {relatedProductIds.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {relatedProductIds.map((id) => (
+                    <span
+                      key={id}
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs"
+                    >
+                      <span className="font-medium text-slate-700">{id}</span>
+                      <button
+                        type="button"
+                        className="rounded-full px-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                        onClick={() => setRelatedProductIds((prev) => prev.filter((x) => x !== id))}
+                        aria-label="Remove related product"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <p className="mt-1 text-xs text-slate-500">
+                These are stored on the post and can be used to render “Related products” blocks on the public blog / product pages.
+              </p>
             </div>
 
             <div>

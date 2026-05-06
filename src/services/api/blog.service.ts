@@ -66,6 +66,7 @@ interface BackendBlogPost {
   updatedAt?: string;
   faqItems?: BlogFaqItem[];
   leadMagnet?: BlogLeadMagnetSettings;
+  relatedProducts?: Array<{ _id: string; name: string; slug?: string }>;
   [key: string]: unknown;
 }
 
@@ -109,6 +110,11 @@ function mapBackendPostToFrontend(raw: BackendBlogPost): BlogPost {
       raw.leadMagnet != null && typeof raw.leadMagnet === 'object'
         ? (raw.leadMagnet as BlogLeadMagnetSettings)
         : undefined,
+    relatedProducts: Array.isArray(raw.relatedProducts)
+      ? raw.relatedProducts
+          .filter((p): p is { _id: string; name: string; slug?: string } => !!p && typeof p._id === 'string' && typeof p.name === 'string')
+          .map((p) => ({ _id: p._id, name: p.name, slug: p.slug }))
+      : undefined,
     createdAt: raw.createdAt ?? new Date().toISOString(),
     updatedAt: raw.updatedAt,
   };
@@ -142,10 +148,12 @@ function mapPayloadToBackend(payload: BlogPostCreatePayload): Record<string, unk
     scheduledPublishAt,
     isFeatured,
     allowComments,
+    relatedProductIds,
     ...rest
   } = payload;
   return {
     ...rest,
+    ...(Array.isArray(relatedProductIds) ? { relatedProducts: relatedProductIds } : {}),
     settings: {
       allowComments: allowComments ?? true,
       isFeatured: isFeatured ?? false,

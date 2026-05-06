@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard as DashboardIcon,
@@ -62,7 +62,9 @@ import {
   Layers,
   LayoutPanelTop,
 } from 'lucide-react'
-import { useAppSelector } from '../../store/hooks'
+import { useAppSelector, useAppDispatch } from '../../store/hooks'
+import { setChatUnreadMessages } from '../../store/slices/chatInboxSlice'
+import { ChatService } from '../../services/api/chat.service'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useSidebar } from '../../contexts/sidebar-context'
@@ -80,6 +82,22 @@ const collapsedDrawerWidth = DRAWER_WIDTH_COLLAPSED_PX
 
 /** Paths that are hub landing pages — avoid treating `/cms`, `/users`, etc. as prefixes of sibling routes. */
 const NAV_EXACT_ONLY_HREFS = new Set<string>(['/', '/cms', '/crm', '/users', '/team-work'])
+
+/** Sidebar badge text; numeric badges cap at 99+ (avoids layout break). */
+function formatSidebarBadgeValue(badge: string | number | null | undefined): string | null {
+  if (badge == null || badge === '') return null
+  if (typeof badge === 'number') {
+    if (badge <= 0) return null
+    return badge > 99 ? '99+' : String(badge)
+  }
+  const s = String(badge)
+  if (/^\d+$/.test(s)) {
+    const n = Number(s)
+    if (n <= 0) return null
+    return n > 99 ? '99+' : s
+  }
+  return s
+}
 
 function routeMatchesNav(href: string, pathname: string): boolean {
   if (pathname === href) return true
@@ -329,7 +347,7 @@ const navigationGroups = [
         permissions: ['view_finance'],
         badge: null,
       },
-      { name: 'Chat', href: '/chat', icon: ChatIcon, permissions: ['view_messages'], badge: 'new' },
+      { name: 'Chat', href: '/chat', icon: ChatIcon, permissions: ['view_messages'], badge: null },
     ]
   },
   {
@@ -483,10 +501,42 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const location = useLocation()
   const isMobile = useMediaQuery('(max-width: 899px)')
   const { isOpen: sidebarOpen } = useSidebar()
+  const dispatch = useAppDispatch()
   const authState = useAppSelector((state) => state.auth)
+  const chatUnread = useAppSelector((state) => state.chatInbox?.unreadMessages ?? 0)
   const user = authState?.user || null
   const { checkRouteAccess } = usePermissions()
   const [openSubmenus, setOpenSubmenus] = useState<{ [key: string]: boolean }>({})
+
+  const canPollChatUnread = Boolean(authState?.token) && checkRouteAccess('/chat')
+
+  useEffect(() => {
+    if (!canPollChatUnread) return
+    let cancelled = false
+    const sync = async () => {
+      try {
+        const r = await ChatService.getUnreadCount()
+        if (cancelled || !r.success || r.data == null) return
+        const d = r.data as { messages?: number }
+        dispatch(setChatUnreadMessages(d.messages ?? 0))
+      } catch {
+        /* non-fatal */
+      }
+    }
+    void sync()
+    const id = window.setInterval(sync, 45_000)
+    const onFocus = () => {
+      if (document.visibilityState === 'visible') void sync()
+    }
+    document.addEventListener('visibilitychange', onFocus)
+    window.addEventListener('focus', onFocus)
+    return () => {
+      cancelled = true
+      window.clearInterval(id)
+      document.removeEventListener('visibilitychange', onFocus)
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [canPollChatUnread, dispatch])
 
   // Determine user role
   const isProvider = 
@@ -585,6 +635,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 const hasSubmenu = item.hasSubmenu
                 const isSubmenuOpen = openSubmenus[item.name] || false
                 const Icon = item.icon
+                const navBadgeRaw =
+                  item.href === '/chat' ? (chatUnread > 0 ? chatUnread : null) : item.badge
+                const navBadgeLabel = formatSidebarBadgeValue(navBadgeRaw)
 
                 const mainCell = hasSubmenu ? (
                   <button
@@ -594,9 +647,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                     title={!sidebarOpen ? item.name : undefined}
                   >
                     <span className="relative flex w-8 shrink-0 items-center justify-center">
-                      {item.badge != null && item.badge !== '' && (
+                      {navBadgeLabel != null && (
                         <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-0.5 text-[9px] font-bold leading-none text-destructive-foreground">
-                          {String(item.badge).length > 2 ? '99' : item.badge}
+                          {navBadgeLabel}
                         </span>
                       )}
                       {renderNavIcon(Icon, isActive)}
@@ -622,9 +675,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                     title={!sidebarOpen ? item.name : undefined}
                   >
                     <span className="relative flex w-8 shrink-0 items-center justify-center">
-                      {item.badge != null && item.badge !== '' && (
+                      {navBadgeLabel != null && (
                         <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-0.5 text-[9px] font-bold leading-none text-destructive-foreground">
-                          {String(item.badge).length > 2 ? '99' : item.badge}
+                          {navBadgeLabel}
                         </span>
                       )}
                       {renderNavIcon(Icon, isActive)}

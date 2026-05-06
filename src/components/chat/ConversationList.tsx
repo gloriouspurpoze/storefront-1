@@ -51,17 +51,31 @@ const ConversationList: React.FC<ConversationListProps> = ({
     }
   }
 
+  /** Backend may return null userId if populate failed or user was removed. */
+  const participantUserId = (p: ChatConversation['participants'][number]): string | null => {
+    const uid = p.userId as { _id?: string } | null | undefined
+    if (!uid || uid._id == null) return null
+    return String(uid._id)
+  }
+
   const getConversationTitle = (conversation: ChatConversation): string => {
     if (conversation.title) {
       return conversation.title
     }
 
-    const otherParticipants = conversation.participants.filter(
-      (p) => p.userId._id !== currentUserId,
-    )
+    const otherParticipants = conversation.participants.filter((p) => {
+      const id = participantUserId(p)
+      return id != null && id !== currentUserId
+    })
 
     if (otherParticipants.length > 0) {
-      return otherParticipants.map((p) => `${p.userId.firstName} ${p.userId.lastName}`).join(', ')
+      return otherParticipants
+        .map((p) => {
+          const u = p.userId as { firstName?: string; lastName?: string } | null | undefined
+          const name = `${u?.firstName ?? ''} ${u?.lastName ?? ''}`.trim()
+          return name || 'User'
+        })
+        .join(', ')
     }
 
     return 'Conversation'
@@ -69,7 +83,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
 
   const getUnreadCount = (conversation: ChatConversation): number => {
     const currentParticipant = conversation.participants.find(
-      (p) => p.userId._id === currentUserId,
+      (p) => participantUserId(p) === currentUserId,
     )
     return currentParticipant?.unreadCount || 0
   }
@@ -150,7 +164,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
               const unreadCount = getUnreadCount(conversation)
               const isSelected = selectedConversation?._id === conversation._id
               const isArchived = conversation.participants.some(
-                (p) => p.userId._id === currentUserId && p.isArchived,
+                (p) => participantUserId(p) === currentUserId && p.isArchived,
               )
 
               return (
@@ -172,6 +186,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
                     className={cn(
                       'flex w-full gap-3 py-3 pl-3 pr-10 text-left transition-colors hover:bg-muted/80',
                       isSelected && 'bg-muted',
+                      unreadCount > 0 && !isSelected && 'bg-primary/[0.06]',
                     )}
                   >
                     <div className="relative shrink-0">
