@@ -135,6 +135,7 @@ const Coupons = lazy(() => import('./pages/marketing/coupons'))
 const Referrals = lazy(() => import('./pages/marketing/referrals'))
 const Support = lazy(() => import('./pages/support/support'))
 const Reports = lazy(() => import('./pages/support/reports'))
+const RefundRequestsPage = lazy(() => import('./pages/support/RefundRequestsPage'))
 
 const CMSDashboard = lazy(() => import('./pages/cms/CMSDashboard'))
 const BannerManagement = lazy(() => import('./pages/cms/BannerManagement'))
@@ -869,7 +870,15 @@ function App() {
                           </RoleBasedRoute>
                         } 
                       />
-                      
+                      <Route
+                        path="/support/refund-requests"
+                        element={
+                          <RoleBasedRoute permissions={['refund_payments']}>
+                            <RefundRequestsPage />
+                          </RoleBasedRoute>
+                        }
+                      />
+
                       {/* Reports - Manager and above */}
                       <Route 
                         path="/reports" 

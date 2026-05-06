@@ -743,6 +743,12 @@ export const routePermissions: RoutePermission[] = [
   },
 
   {
+    path: '/support/refund-requests',
+    requiredPermissions: ['refund_payments'],
+    allowedRoles: ['super_admin', 'admin']
+  },
+
+  {
     path: '/chat',
     requiredPermissions: ['view_messages'],
     allowedRoles: ['super_admin', 'admin', 'manager', 'staff', 'provider', 'professional', 'customer']

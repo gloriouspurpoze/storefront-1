@@ -102,6 +102,7 @@ export const QUICK_NAV_ITEMS: QuickNavItem[] = [
   { label: 'Messages', path: '/messages', group: 'Users & communication' },
 
   { label: 'Reports', path: '/reports', group: 'System' },
+  { label: 'Refund requests', path: '/support/refund-requests', group: 'System' },
   { label: 'System status', path: '/system-status', group: 'System' },
   { label: 'Settings', path: '/settings', group: 'System' },
   { label: 'Help & support', path: '/support', group: 'System' },
