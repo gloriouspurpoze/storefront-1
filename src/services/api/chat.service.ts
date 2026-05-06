@@ -381,6 +381,7 @@ export class ChatService {
       messages: number;
     }>('/chat/unread', {
       showSuccessToast: false,
+      showLoading: false,
     });
   }
 

@@ -48,6 +48,7 @@ export const UserListForChat: React.FC<UserListForChatProps> = ({ onUserSelect, 
       const response = await usersService.getUsers({
         page: 1,
         limit: 100,
+        scope: 'directory',
         user_type: 'customer',
         is_active: true,
       })

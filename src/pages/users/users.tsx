@@ -4,12 +4,9 @@ import {
   Plus,
   Users as UsersIcon,
   Shield,
-  Wrench,
-  ShoppingCart,
   CheckCircle,
   XCircle,
   Sparkles,
-  UserCog,
   type LucideIcon,
 } from 'lucide-react'
 import { Card, CardContent } from '../../components/ui/card'
@@ -46,6 +43,19 @@ const iconColor: Record<string, string> = {
 }
 
 type UsersPageMode = 'directory' | 'members'
+
+/** Enforce list separation even if GET /users/all ignores `scope`. */
+function narrowUsersForPageMode(rows: User[], pageMode: UsersPageMode): User[] {
+  if (pageMode === 'directory') {
+    return rows.filter((u) => u.userType === 'customer')
+  }
+  return rows.filter(
+    (u) =>
+      u.userType === 'admin' ||
+      u.userType === 'super_admin' ||
+      u.isDashboardMember === true,
+  )
+}
 
 function UsersPageContent({ mode }: { mode: UsersPageMode }) {
   const tenantId = useAppSelector((s) => s.auth.user?.tenant?.id ?? null)
@@ -85,49 +95,17 @@ function UsersPageContent({ mode }: { mode: UsersPageMode }) {
     inactive: 0,
   })
 
-  useEffect(() => {
-    let isMounted = true
-
-    const loadUsers = async () => {
-      if (isMounted) {
-        await fetchUsers()
-      }
-    }
-
-    loadUsers()
-
-    return () => {
-      isMounted = false
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!snackbar.open) return undefined
-    const t = window.setTimeout(() => setSnackbar((s) => ({ ...s, open: false })), 6000)
-    return () => window.clearTimeout(t)
-  }, [snackbar.open, snackbar.message])
-
-  const fetchUsers = async () => {
-    try {
-      setLoading(true)
-      const response = await usersService.getUsers({ page: 1, limit: 100, scope })
-      setUsers(response.users)
-      calculateStats(response.users)
-    } catch (error) {
-      showSnackbar('Failed to load users', 'error')
-      console.error('Error fetching users:', error)
-    } finally {
-      setLoading(false)
-    }
+  const showSnackbar = (message: string, severity: 'success' | 'error' | 'info' | 'warning') => {
+    setSnackbar({ open: true, message, severity })
   }
 
-  const calculateStats = (userList: User[]) => {
-    if (mode === 'directory') {
+  const calculateStats = (userList: User[], pageMode: UsersPageMode) => {
+    if (pageMode === 'directory') {
       setStats({
         total: userList.length,
-        customers: userList.filter((u) => u.userType === 'customer').length,
-        providers: userList.filter((u) => u.userType === 'provider').length,
-        professionals: userList.filter((u) => u.userType === 'professional').length,
+        customers: userList.length,
+        providers: 0,
+        professionals: 0,
         googleSignIn: userList.filter((u) => u.registrationSource === 'google_oauth').length,
         verified: userList.filter((u) => u.isVerified).length,
         unverified: userList.filter((u) => !u.isVerified).length,
@@ -149,6 +127,64 @@ function UsersPageContent({ mode }: { mode: UsersPageMode }) {
     }
   }
 
+  useEffect(() => {
+    let isMounted = true
+
+    const loadUsers = async () => {
+      try {
+        if (isMounted) setLoading(true)
+        const response = await usersService.getUsers({
+          page: 1,
+          limit: 100,
+          scope,
+          ...(mode === 'directory' ? { user_type: 'customer' as const } : {}),
+        })
+        if (!isMounted) return
+        const list = narrowUsersForPageMode(response.users, mode)
+        setUsers(list)
+        calculateStats(list, mode)
+      } catch (error) {
+        if (!isMounted) return
+        showSnackbar('Failed to load users', 'error')
+        console.error('Error fetching users:', error)
+      } finally {
+        if (isMounted) setLoading(false)
+      }
+    }
+
+    void loadUsers()
+
+    return () => {
+      isMounted = false
+    }
+  }, [scope, mode])
+
+  useEffect(() => {
+    if (!snackbar.open) return undefined
+    const t = window.setTimeout(() => setSnackbar((s) => ({ ...s, open: false })), 6000)
+    return () => window.clearTimeout(t)
+  }, [snackbar.open, snackbar.message])
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true)
+      const response = await usersService.getUsers({
+        page: 1,
+        limit: 100,
+        scope,
+        ...(mode === 'directory' ? { user_type: 'customer' as const } : {}),
+      })
+      const list = narrowUsersForPageMode(response.users, mode)
+      setUsers(list)
+      calculateStats(list, mode)
+    } catch (error) {
+      showSnackbar('Failed to load users', 'error')
+      console.error('Error fetching users:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const dashboardUsersForClone = useMemo(() => {
     if (mode === 'directory') return []
     return users.filter((u) => u.id !== selectedUser?.id)
@@ -161,7 +197,8 @@ function UsersPageContent({ mode }: { mode: UsersPageMode }) {
       (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (user.phone && user.phone.includes(searchTerm))
 
-    const matchesType = selectedType === 'all' || user.userType === selectedType
+    const matchesType =
+      mode === 'directory' || selectedType === 'all' || user.userType === selectedType
 
     const matchesStatus =
       selectedStatus === 'all' ||
@@ -175,10 +212,6 @@ function UsersPageContent({ mode }: { mode: UsersPageMode }) {
 
     return matchesSearch && matchesType && matchesStatus && matchesVerification
   })
-
-  const showSnackbar = (message: string, severity: 'success' | 'error' | 'info' | 'warning') => {
-    setSnackbar({ open: true, message, severity })
-  }
 
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false })
@@ -255,7 +288,7 @@ function UsersPageContent({ mode }: { mode: UsersPageMode }) {
   }
 
   const handleFormSubmit = async (
-    userData: Partial<User> & { password?: string; clearDashboardRbac?: boolean },
+    userData: Partial<User> & { password?: string; username?: string; clearDashboardRbac?: boolean },
   ) => {
     try {
       if (formMode === 'create') {
@@ -265,14 +298,16 @@ function UsersPageContent({ mode }: { mode: UsersPageMode }) {
             : ((userData.userType || 'customer') as 'customer' | 'provider' | 'professional')
         await usersService.createUser({
           email: userData.email!,
-          password: userData.password!,
+          ...(mode === 'members' ? {} : { password: userData.password! }),
           firstName: userData.firstName!,
           lastName: userData.lastName!,
+          username: userData.username?.trim() || undefined,
           phone: userData.phone,
           userType: createUserType,
           isVerified: userData.isVerified,
           isActive: userData.isActive,
           profilePicture: userData.profilePicture,
+          inviteTeamMember: mode === 'members',
           ...(createUserType === 'admin' && !userData.clearDashboardRbac
             ? {
                 rbacRole: userData.rbacRole,
@@ -281,7 +316,12 @@ function UsersPageContent({ mode }: { mode: UsersPageMode }) {
               }
             : {}),
         })
-        showSnackbar('User created successfully', 'success')
+        showSnackbar(
+          mode === 'members'
+            ? 'Invite sent (if SMTP is configured). They’ll get a temporary password and a link to set a final password.'
+            : 'User created successfully',
+          'success',
+        )
       } else if (selectedUser) {
         const isDashboardAccount =
           selectedUser.userType === 'admin' || selectedUser.userType === 'super_admin'
@@ -351,24 +391,23 @@ function UsersPageContent({ mode }: { mode: UsersPageMode }) {
       <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="mb-1 text-2xl font-bold">
-            {mode === 'directory' ? 'App users' : 'Team members'}
+            {mode === 'directory' ? 'Customers' : 'Team members'}
           </h1>
           <p className="text-muted-foreground">
             {mode === 'directory' ? (
               <>
-                People who use the consumer app or provider tools (including Google sign-in). Dashboard staff
-                are managed separately under{' '}
+                Consumer accounts (customer role only). Dashboard staff live under{' '}
                 <Link to="/users/members" className="font-medium text-primary underline-offset-4 hover:underline">
                   Team members
                 </Link>
-                .
+                ; providers and professionals are managed from their own admin sections.
               </>
             ) : (
               <>
-                Admin-invited accounts for this dashboard (roles, scoped modules, and navigation). Consumer
-                accounts are under{' '}
+                Admin-invited dashboard accounts (roles, scoped modules, and navigation). Customer accounts
+                are under{' '}
                 <Link to="/users" className="font-medium text-primary underline-offset-4 hover:underline">
-                  App users
+                  Customers
                 </Link>
                 .
               </>
@@ -377,18 +416,17 @@ function UsersPageContent({ mode }: { mode: UsersPageMode }) {
         </div>
         <Button className="min-w-[140px]" onClick={handleCreateUser}>
           <Plus className="mr-2 h-4 w-4" />
-          {mode === 'directory' ? 'Add app user' : 'Invite team member'}
+          {mode === 'directory' ? 'Add customer' : 'Invite team member'}
         </Button>
       </div>
 
       {mode === 'directory' ? (
-        <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-6">
+        <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
           <StatCard title="Total" value={stats.total} icon={UsersIcon} color="primary" />
-          <StatCard title="Customers" value={stats.customers} icon={ShoppingCart} color="success" />
-          <StatCard title="Providers" value={stats.providers} icon={Wrench} color="info" />
-          <StatCard title="Professionals" value={stats.professionals} icon={UserCog} color="warning" />
           <StatCard title="Google sign-in" value={stats.googleSignIn} icon={Sparkles} color="primary" />
           <StatCard title="Verified" value={stats.verified} icon={CheckCircle} color="success" />
+          <StatCard title="Active" value={stats.active} icon={CheckCircle} color="success" />
+          <StatCard title="Inactive" value={stats.inactive} icon={XCircle} color="warning" />
         </div>
       ) : (
         <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-2 md:grid-cols-4">
@@ -411,8 +449,8 @@ function UsersPageContent({ mode }: { mode: UsersPageMode }) {
             selectedVerification={selectedVerification}
             onVerificationChange={setSelectedVerification}
             onClearFilters={handleClearFilters}
-            showUserTypeFilter={mode === 'directory'}
-            directoryTypesOnly={mode === 'directory'}
+            showUserTypeFilter={false}
+            directoryTypesOnly={false}
           />
         </CardContent>
       </Card>

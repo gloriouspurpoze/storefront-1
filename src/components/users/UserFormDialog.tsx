@@ -127,6 +127,7 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
     email: '',
     firstName: '',
     lastName: '',
+    username: '',
     phone: '',
     userType: 'customer',
     isVerified: false,
@@ -145,6 +146,7 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
   const photoInputRef = useRef<HTMLInputElement>(null)
 
   const isDashboardUser = formData.userType === 'admin' || formData.userType === 'super_admin'
+  const useEmailInvite = accountVariant === 'members' && mode === 'create'
 
   useEffect(() => {
     if (open) {
@@ -158,6 +160,7 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        username: user.username || '',
         phone: user.phone || '',
         userType: user.userType === 'super_admin' ? 'admin' : user.userType,
         isVerified: user.isVerified,
@@ -177,6 +180,7 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
         email: '',
         firstName: '',
         lastName: '',
+        username: '',
         phone: '',
         userType: accountVariant === 'members' ? 'admin' : 'customer',
         isVerified: false,
@@ -206,10 +210,19 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Invalid email format'
     }
-    if (mode === 'create' && !formData.password?.trim()) {
+    if (useEmailInvite) {
+      const u = formData.username?.trim() || ''
+      if (!u) {
+        newErrors.username = 'Username is required'
+      } else if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{1,39}$/.test(u)) {
+        newErrors.username =
+          '2–40 characters: start with a letter or number, then letters, numbers, . _ -'
+      }
+    }
+    if (mode === 'create' && !useEmailInvite && !formData.password?.trim()) {
       newErrors.password = 'Password is required'
     }
-    if (mode === 'create' && formData.password) {
+    if (mode === 'create' && !useEmailInvite && formData.password) {
       if (formData.password.length < 8) {
         newErrors.password = 'Password must be at least 8 characters'
       } else if (!STRONG_PASSWORD.test(formData.password)) {
@@ -446,6 +459,33 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
             />
             {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
           </div>
+          {useEmailInvite && (
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="uf-username">Username *</Label>
+              <Input
+                id="uf-username"
+                value={formData.username || ''}
+                onChange={(e) => handleChange('username', e.target.value.toLowerCase())}
+                placeholder="e.g. alex.kumar"
+                autoComplete="off"
+                className={cn(errors.username && 'border-destructive')}
+              />
+              {errors.username ? (
+                <p className="text-xs text-destructive">{errors.username}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  They’ll use this to sign in (not their email). The email field is only for delivering the invite.
+                </p>
+              )}
+            </div>
+          )}
+          {accountVariant === 'members' && mode === 'edit' && formData.username ? (
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Username</Label>
+              <Input value={formData.username} readOnly className="bg-muted/50" />
+              <p className="text-xs text-muted-foreground">Login id cannot be changed here yet.</p>
+            </div>
+          ) : null}
           <div className="space-y-1.5">
             <Label htmlFor="uf-phone">Phone</Label>
             <Input
@@ -458,7 +498,17 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
             {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
           </div>
 
-          {mode === 'create' && (
+          {mode === 'create' && useEmailInvite && (
+            <div className="rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-muted-foreground sm:col-span-2">
+              <p className="font-medium text-foreground">Email invitation</p>
+              <p className="mt-1">
+                We’ll email this address a <strong>temporary password</strong>, their <strong>username</strong>, and a
+                link to set a final password. They sign in with <strong>username + password</strong> (not email).
+                Configure SMTP on the API (<code className="rounded bg-muted px-1 text-xs">SMTP_*</code>) for delivery.
+              </p>
+            </div>
+          )}
+          {mode === 'create' && !useEmailInvite && (
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="uf-pass">Password *</Label>
               <Input

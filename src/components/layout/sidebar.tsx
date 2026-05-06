@@ -65,6 +65,7 @@ import {
   Lightbulb as LightbulbIcon,
   FlaskConical as LabIcon,
   Target as TargetIcon,
+  Mail as MailTemplateIcon,
 } from 'lucide-react'
 import { useAppSelector, useAppDispatch } from '../../store/hooks'
 import { setChatUnreadMessages } from '../../store/slices/chatInboxSlice'
@@ -396,6 +397,12 @@ const navigationGroups = [
           { name: 'Blog posts', href: '/cms/blogs', icon: ArticleIcon, permissions: ['manage_cms'] },
           { name: 'Blog categories', href: '/cms/blog-categories', icon: CategoryIcon, permissions: ['manage_cms'] },
           { name: 'Newsletter', href: '/cms/newsletter', icon: CampaignIcon, permissions: ['manage_cms'] },
+          {
+            name: 'Email templates',
+            href: '/cms/email-templates',
+            icon: MailTemplateIcon,
+            permissions: ['manage_system_settings'],
+          },
           { name: 'Social links', href: '/cms/social-links', icon: LinkIcon, permissions: ['manage_cms'] },
           { name: 'Testimonials', href: '/cms/testimonials', icon: StarIcon, permissions: ['manage_cms'] },
           { name: 'Reviews', href: '/cms/reviews', icon: StarIcon, permissions: ['manage_cms'] },
@@ -437,7 +444,7 @@ const navigationGroups = [
     title: 'Users & Communication',
     icon: UsersIcon,
     items: [
-      { name: 'App users', href: '/users', icon: UsersIcon, permissions: ['view_users', 'manage_users'], badge: null },
+      { name: 'Customers', href: '/users', icon: UsersIcon, permissions: ['view_users', 'manage_users'], badge: null },
       {
         name: 'Team members',
         href: '/users/members',

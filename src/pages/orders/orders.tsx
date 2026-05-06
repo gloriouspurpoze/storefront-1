@@ -486,7 +486,9 @@ export function Orders() {
                           <Typography variant="body2">
                             {order.customer
                               ? `${order.customer.firstName} ${order.customer.lastName}`
-                              : order.userId.slice(-6)}
+                              : order.userId
+                                ? String(order.userId).slice(-6)
+                                : '—'}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
                             {order.customer?.email || order.customer?.phone || '—'}

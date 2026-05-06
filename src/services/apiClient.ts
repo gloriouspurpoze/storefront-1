@@ -85,6 +85,7 @@ class ApiClient {
       if (!response.ok) {
         const errorData = (await response.json().catch(() => ({}))) as {
           message?: string
+          error?: string
         }
 
         if (response.status === 401 && !isAuthCredentialFailure401(endpoint)) {
@@ -97,7 +98,11 @@ class ApiClient {
           throw apiError
         }
 
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+        const errMsg =
+          (typeof errorData.error === 'string' && errorData.error) ||
+          errorData.message ||
+          `HTTP error! status: ${response.status}`
+        throw new Error(errMsg)
       }
 
       const data = await response.json()

@@ -32,6 +32,10 @@ export interface User {
   email: string
   firstName: string
   lastName: string
+  /** Preferred greeting name; optional */
+  displayName?: string
+  /** Dashboard sign-in username (team members); optional */
+  username?: string
   phone?: string
   userType: 'customer' | 'provider' | 'professional' | 'admin' | 'super_admin'
   /** Set when account was created via admin invite (dashboard staff). */

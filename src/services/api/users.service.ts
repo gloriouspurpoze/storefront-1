@@ -12,7 +12,7 @@ export interface GetUsersParams {
   search?: string
   is_verified?: boolean
   is_active?: boolean
-  /** directory = app users; members = admin-provisioned dashboard accounts */
+  /** directory = consumer accounts (customers); members = dashboard / team accounts */
   scope?: 'directory' | 'members'
 }
 
@@ -28,7 +28,8 @@ export interface GetUsersResponse {
 
 export interface CreateUserRequest {
   email: string
-  password: string
+  /** Omit when inviteTeamMember — backend generates and emails */
+  password?: string
   firstName: string
   lastName: string
   phone?: string
@@ -39,6 +40,10 @@ export interface CreateUserRequest {
   rbacRole?: UserRole
   rbacPermissionMode?: RbacPermissionMode
   permissions?: Permission[]
+  /** Team invite: login username (stored lowercase); not the email */
+  username?: string
+  /** Dashboard team invite: email temp password + set-password link */
+  inviteTeamMember?: boolean
 }
 
 export interface UpdateUserRequest {
@@ -101,24 +106,34 @@ export const usersService = {
   async createUser(data: CreateUserRequest): Promise<User> {
     const body: Record<string, unknown> = {
       email: data.email,
-      password: data.password,
       first_name: data.firstName,
       last_name: data.lastName,
       phone: data.phone,
       user_type: data.userType,
       profile_picture: data.profilePicture,
     }
+    const skipPassword =
+      data.userType === 'admin' && data.inviteTeamMember && !data.password?.trim()
+    if (!skipPassword && data.password !== undefined) {
+      body.password = data.password
+    }
     if (data.userType === 'admin') {
       if (data.rbacRole) body.rbac_role = data.rbacRole
       if (data.rbacPermissionMode) body.rbac_permission_mode = data.rbacPermissionMode
       if (data.permissions !== undefined) body.permissions = data.permissions
-      const response = await apiClient.post('/auth/register/admin', body)
-      const userRaw = (response as { data?: { data?: { user?: unknown } } })?.data?.data?.user
+      if (data.username?.trim()) body.username = data.username.trim()
+      if (data.inviteTeamMember) {
+        body.invite_team_member = true
+      }
+      const response = (await apiClient.post('/auth/register/admin', body)) as {
+        data?: { user?: unknown }
+      }
+      const userRaw = response?.data?.user
       if (!userRaw) throw new Error('Invalid create user response')
       return mapListUser(userRaw)
     }
-    const response = await apiClient.post('/auth/register', body)
-    const userRaw = (response as { data?: { data?: { user?: unknown } } })?.data?.data?.user
+    const response = (await apiClient.post('/auth/register', body)) as { data?: { user?: unknown } }
+    const userRaw = response?.data?.user
     if (!userRaw) throw new Error('Invalid create user response')
     return mapListUser(userRaw)
   },

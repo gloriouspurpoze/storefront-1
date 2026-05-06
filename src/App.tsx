@@ -21,6 +21,9 @@ import type { Permission } from './types/rbac.types'
 
 // Route-level code splitting (industry standard for performance)
 const Auth = lazy(() => import('./pages/auth/auth').then((m) => ({ default: m.Auth })))
+const AcceptTeamInvite = lazy(() =>
+  import('./pages/auth/accept-team-invite').then((m) => ({ default: m.AcceptTeamInvite })),
+)
 const Signup = lazy(() => import('./pages/auth/signup').then((m) => ({ default: m.Signup })))
 const Unauthorized = lazy(() => import('./pages/auth/unauthorized'))
 const NotFound = lazy(() => import('./pages/NotFound').then((m) => ({ default: m.NotFound })))
@@ -153,6 +156,7 @@ const MediaLibrary = lazy(() => import('./pages/cms/MediaLibrary'))
 const PageManagement = lazy(() => import('./pages/cms/PageManagement'))
 const MenuManagement = lazy(() => import('./pages/cms/MenuManagement'))
 const NewsletterManagement = lazy(() => import('./pages/cms/NewsletterManagement'))
+const EmailTemplatesManagement = lazy(() => import('./pages/cms/EmailTemplatesManagement'))
 const SocialLinksManagement = lazy(() => import('./pages/cms/SocialLinksManagement'))
 const RateCardManagement = lazy(() => import('./pages/cms/RateCardManagement'))
 const CategoryMarketingManagement = lazy(() => import('./pages/cms/CategoryMarketingManagement'))
@@ -214,6 +218,7 @@ function App() {
             <Routes>
               {/* Public routes */}
               <Route path="/auth" element={<Auth />} />
+              <Route path="/auth/accept-invite" element={<AcceptTeamInvite />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/unauthorized" element={<Unauthorized />} />
               
@@ -1080,6 +1085,14 @@ function App() {
                             <NewsletterManagement />
                           </RoleBasedRoute>
                         } 
+                      />
+                      <Route
+                        path="/cms/email-templates"
+                        element={
+                          <RoleBasedRoute permissions={['manage_system_settings']}>
+                            <EmailTemplatesManagement />
+                          </RoleBasedRoute>
+                        }
                       />
                       <Route 
                         path="/cms/social-links" 

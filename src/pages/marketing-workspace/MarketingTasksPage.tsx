@@ -13,6 +13,8 @@ import type {
   MarketingTaskType,
 } from '../../types/marketingWorkspace.types'
 import { TASK_COLUMN_LABEL, TASK_PRIORITY_LABEL, TASK_TYPE_LABEL } from '../../lib/marketingWorkspaceLabels'
+import { usersService } from '../../services/api/users.service'
+import type { User } from '../../types'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent } from '../../components/ui/card'
 import { Input } from '../../components/ui/input'
@@ -61,6 +63,8 @@ export function MarketingTasksPage() {
   const campaigns = bundle?.campaigns ?? []
   const allTasks = bundle?.tasks ?? []
   const [templates, setTemplates] = useState<MarketingTaskTemplate[]>([])
+  const [teamMembers, setTeamMembers] = useState<User[]>([])
+  const [teamMembersLoading, setTeamMembersLoading] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -81,7 +85,7 @@ export function MarketingTasksPage() {
     priority: 'medium' as MarketingTaskPriority,
     column: 'todo' as MarketingTaskColumn,
     taskType: 'other' as MarketingTaskType,
-    assigneesInput: '',
+    assigneeUserIds: [] as string[],
     timeEstimateMinutes: '',
     timeLoggedMinutes: '',
     notes: '',
@@ -91,6 +95,26 @@ export function MarketingTasksPage() {
     templateId: '__none__' as string,
     dependsOnTaskId: '__none__' as string,
   })
+
+  useEffect(() => {
+    if (!dialogOpen) return
+    let cancelled = false
+    setTeamMembersLoading(true)
+    void usersService
+      .getUsers({ scope: 'members', limit: 100, page: 1 })
+      .then((r) => {
+        if (!cancelled) setTeamMembers(r.users)
+      })
+      .catch(() => {
+        if (!cancelled) setTeamMembers([])
+      })
+      .finally(() => {
+        if (!cancelled) setTeamMembersLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [dialogOpen])
 
   const rows = useMemo(() => {
     let list = [...allTasks]
@@ -122,7 +146,7 @@ export function MarketingTasksPage() {
       priority: 'medium',
       column: columnTab !== '__all__' ? (columnTab as MarketingTaskColumn) : 'todo',
       taskType: 'other',
-      assigneesInput: '',
+      assigneeUserIds: [] as string[],
       timeEstimateMinutes: '',
       timeLoggedMinutes: '',
       notes: '',
@@ -143,7 +167,7 @@ export function MarketingTasksPage() {
       priority: row.priority,
       column: row.column,
       taskType: row.taskType,
-      assigneesInput: (row.assigneeUserIds || []).join(', '),
+      assigneeUserIds: [...(row.assigneeUserIds || [])],
       timeEstimateMinutes: row.timeEstimateMinutes != null ? String(row.timeEstimateMinutes) : '',
       timeLoggedMinutes: row.timeLoggedMinutes != null ? String(row.timeLoggedMinutes) : '',
       notes: row.notes || '',
@@ -174,10 +198,7 @@ export function MarketingTasksPage() {
     }
 
     if (!form.title.trim()) return
-    const assigneeUserIds = form.assigneesInput
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean)
+    const assigneeUserIds = form.assigneeUserIds
     const payload: Record<string, unknown> = {
       title: form.title.trim(),
       dueDate: form.dueDate || undefined,
@@ -462,13 +483,65 @@ export function MarketingTasksPage() {
               </Label>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="t-assign">Assignee user IDs (comma)</Label>
-              <Input
-                id="t-assign"
-                value={form.assigneesInput}
-                onChange={(e) => setForm((f) => ({ ...f, assigneesInput: e.target.value }))}
-                placeholder="Mongo user ids — wire picker later"
-              />
+              <Label>Assignees (team members)</Label>
+              <p className="text-xs text-muted-foreground">
+                Only dashboard accounts — same list as Team members in Users.
+              </p>
+              <div className="max-h-44 space-y-2 overflow-y-auto rounded-md border border-border p-2">
+                {teamMembersLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading team…</p>
+                ) : (
+                  <>
+                    {teamMembers.map((u) => (
+                      <div key={u.id} className="flex items-start gap-2">
+                        <Checkbox
+                          id={`assign-${u.id}`}
+                          checked={form.assigneeUserIds.includes(u.id)}
+                          onCheckedChange={(c) =>
+                            setForm((f) => ({
+                              ...f,
+                              assigneeUserIds:
+                                c === true
+                                  ? [...f.assigneeUserIds, u.id]
+                                  : f.assigneeUserIds.filter((id) => id !== u.id),
+                            }))
+                          }
+                        />
+                        <label htmlFor={`assign-${u.id}`} className="cursor-pointer text-sm leading-tight">
+                          <span className="font-medium">
+                            {u.firstName || ''} {u.lastName || ''}
+                          </span>
+                          <span className="block text-xs text-muted-foreground">{u.email}</span>
+                        </label>
+                      </div>
+                    ))}
+                    {form.assigneeUserIds
+                      .filter((id) => !teamMembers.some((u) => u.id === id))
+                      .map((id) => (
+                        <div key={id} className="flex items-start gap-2 text-amber-800 dark:text-amber-200">
+                          <Checkbox
+                            id={`assign-orphan-${id}`}
+                            checked
+                            onCheckedChange={(c) =>
+                              c !== true &&
+                              setForm((f) => ({
+                                ...f,
+                                assigneeUserIds: f.assigneeUserIds.filter((x) => x !== id),
+                              }))
+                            }
+                          />
+                          <label htmlFor={`assign-orphan-${id}`} className="cursor-pointer text-sm leading-tight">
+                            <span className="font-medium">Assignee not in team list</span>
+                            <span className="block font-mono text-xs opacity-90">{id}</span>
+                          </label>
+                        </div>
+                      ))}
+                    {teamMembers.length === 0 && form.assigneeUserIds.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No team members found.</p>
+                    ) : null}
+                  </>
+                )}
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">

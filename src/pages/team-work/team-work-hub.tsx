@@ -67,7 +67,8 @@ const STATUS_LABELS: Record<TeamWorkStatus, string> = {
   cancelled: 'Cancelled',
 }
 
-function userLabel(u: { firstName?: string; lastName?: string; email?: string; id: string }): string {
+function userLabel(u: { username?: string; firstName?: string; lastName?: string; email?: string; id: string }): string {
+  if (u.username?.trim()) return u.username.trim()
   const n = `${u.firstName || ''} ${u.lastName || ''}`.trim()
   return n || u.email || u.id
 }

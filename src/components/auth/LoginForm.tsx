@@ -39,10 +39,15 @@ export function LoginForm({ onLogin, isLoading = false, error }: LoginFormProps)
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
 
-    if (!formData.email) {
-      newErrors.email = 'Email is required'
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address'
+    const id = formData.email.trim()
+    if (!id) {
+      newErrors.email = 'Email or username is required'
+    } else if (id.includes('@')) {
+      if (!/\S+@\S+\.\S+/.test(id)) {
+        newErrors.email = 'Please enter a valid email address'
+      }
+    } else if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{1,39}$/.test(id)) {
+      newErrors.email = 'Username: 2–40 characters, letters/numbers, may include . _ -'
     }
 
     if (!formData.password) {
@@ -59,7 +64,9 @@ export function LoginForm({ onLogin, isLoading = false, error }: LoginFormProps)
     event.preventDefault()
 
     if (validateForm()) {
-      onLogin(formData)
+      const id = formData.email.trim()
+      const normalized = id.includes('@') ? id : id.toLowerCase()
+      onLogin({ ...formData, email: normalized })
     }
   }
 
@@ -137,21 +144,24 @@ export function LoginForm({ onLogin, isLoading = false, error }: LoginFormProps)
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-1.5">
-              <Label htmlFor="login-email">Work email</Label>
+              <Label htmlFor="login-email">Email or username</Label>
               <div className="relative">
                 <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="login-email"
-                  type="email"
+                  type="text"
                   className={cn('pl-9', errors.email && 'border-destructive')}
                   value={formData.email}
                   onChange={handleInputChange('email')}
                   disabled={isLoading}
-                  autoComplete="email"
-                  placeholder="you@company.com"
+                  autoComplete="username"
+                  placeholder="you@company.com or your.username"
                 />
               </div>
               {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+              <p className="text-xs text-muted-foreground">
+                Team members invited by email sign in with the username from their invite, not the email address.
+              </p>
             </div>
 
             <div className="space-y-1.5">

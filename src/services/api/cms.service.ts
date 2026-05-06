@@ -581,5 +581,97 @@ export class CMSService {
     );
     return response.data?.data ?? response.data;
   }
+
+  // ==================== TRANSACTIONAL EMAIL TEMPLATES (HTML + preview) ====================
+
+  static async listEmailTemplates(): Promise<
+    Array<{
+      id: string;
+      title: string;
+      description: string;
+      filename: string;
+      placeholders: string[];
+      hasCustom: boolean;
+      updatedAt: string | null;
+    }>
+  > {
+    const response = await axios.get(`${API_BASE}/cms/admin/email-templates`, this.getAuthHeaders());
+    return response.data.data;
+  }
+
+  static async getEmailTemplate(id: string): Promise<{
+    id: string;
+    title: string;
+    description: string;
+    filename: string;
+    placeholders: string[];
+    sampleVariables: Record<string, string>;
+    activeSource: 'database' | 'file';
+    html: string;
+    fileBaselineHtml: string;
+    updatedAt: string | null;
+  }> {
+    const response = await axios.get(`${API_BASE}/cms/admin/email-templates/${id}`, this.getAuthHeaders());
+    return response.data.data;
+  }
+
+  static async previewEmailTemplate(
+    id: string,
+    body: {
+      htmlDraft?: string;
+      variables?: Record<string, string>;
+      sourceFormat?: 'html' | 'mjml';
+    }
+  ): Promise<{
+    html: string;
+    validationHints?: { missing: string[]; unknown: string[] };
+  }> {
+    const response = await axios.post(
+      `${API_BASE}/cms/admin/email-templates/${id}/preview`,
+      body,
+      this.getAuthHeaders()
+    );
+    return response.data.data;
+  }
+
+  static async saveEmailTemplateOverride(
+    id: string,
+    payload: {
+      htmlBody: string;
+      sourceFormat?: 'html' | 'mjml';
+      skipPlaceholderValidation?: boolean;
+      allowUnknownPlaceholders?: boolean;
+      changeNote?: string;
+    }
+  ): Promise<void> {
+    await axios.put(`${API_BASE}/cms/admin/email-templates/${id}`, payload, this.getAuthHeaders());
+  }
+
+  static async listEmailTemplateVersions(id: string): Promise<
+    Array<{
+      id: string;
+      createdAt: string;
+      changeNote: string | null;
+      previewSnippet: string;
+    }>
+  > {
+    const response = await axios.get(
+      `${API_BASE}/cms/admin/email-templates/${id}/versions`,
+      this.getAuthHeaders()
+    );
+    return response.data.data;
+  }
+
+  static async restoreEmailTemplateVersion(templateId: string, versionId: string): Promise<void> {
+    await axios.post(
+      `${API_BASE}/cms/admin/email-templates/${templateId}/restore/${versionId}`,
+      {},
+      this.getAuthHeaders()
+    );
+  }
+
+  static async revertEmailTemplateToDefault(id: string): Promise<void> {
+    await axios.delete(`${API_BASE}/cms/admin/email-templates/${id}`, this.getAuthHeaders());
+  }
 }
 

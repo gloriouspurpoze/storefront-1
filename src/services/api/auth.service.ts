@@ -2,6 +2,7 @@ import { api } from './base'
 
 // Types
 export interface LoginRequest {
+  /** Email address or dashboard username */
   email: string
   password: string
   rememberMe?: boolean
@@ -152,9 +153,10 @@ export class AuthService {
    */
   static async resetPassword(data: ResetPasswordRequest) {
     return api.post('/auth/reset-password', data, {
-      loadingMessage: 'Resetting password...',
-      successMessage: 'Password reset successfully!',
-      errorMessage: 'Failed to reset password.',
+      showLoading: true,
+      loadingMessage: 'Saving password…',
+      successMessage: 'Password updated. You can sign in.',
+      errorMessage: 'Could not update password.',
     })
   }
 }

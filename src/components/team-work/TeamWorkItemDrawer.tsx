@@ -45,6 +45,7 @@ type Props = {
 }
 
 function userLabel(u: User): string {
+  if (u.username?.trim()) return u.username.trim()
   const n = `${u.firstName || ''} ${u.lastName || ''}`.trim()
   return n || u.email || u.id
 }
@@ -328,7 +329,7 @@ export function TeamWorkItemDrawer({
         </div>
 
         {item ? (
-          <Tabs defaultValue="details" className="flex min-h-0 flex-1 flex-col">
+          <Tabs defaultValue="details" className="flex flex-1 flex-col">
             <TabsList className="mx-4 mt-2 w-auto justify-start">
               <TabsTrigger value="details" className="gap-1.5">
                 <Pencil className="h-3.5 w-3.5" />
@@ -345,7 +346,7 @@ export function TeamWorkItemDrawer({
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="details" className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-4">
+            <TabsContent value="details" className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-4 ">
               <div className="min-h-0 flex-1 space-y-5 overflow-y-auto py-4">
                 <div className="rounded-lg border border-border/70 bg-card p-4 shadow-sm">
                   <div className="flex flex-wrap items-center justify-between gap-2">

@@ -15,11 +15,16 @@ export function mapBackendUserToAppUser(backendUser: any, tenantRef?: TenantRef 
   const registrationSource = (backendUser.registration_source ||
     backendUser.registrationSource) as User['registrationSource'] | undefined
 
+  const displayName = backendUser.display_name || backendUser.displayName
+  const username = backendUser.username || backendUser.user_name
+
   return {
     id: String(backendUser.id),
     email: backendUser.email,
     firstName: backendUser.first_name || backendUser.firstName,
     lastName: backendUser.last_name || backendUser.lastName,
+    ...(displayName ? { displayName: String(displayName) } : {}),
+    ...(username ? { username: String(username) } : {}),
     phone: backendUser.phone,
     userType: backendUser.user_type || backendUser.userType,
     isVerified: Boolean(backendUser.is_verified ?? backendUser.isVerified),

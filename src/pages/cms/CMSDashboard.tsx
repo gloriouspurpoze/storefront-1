@@ -12,6 +12,7 @@ import {
   Percent,
   Gift,
   Mail,
+  FileCode,
   Share2,
   Star,
   MessageSquareQuote,
@@ -158,6 +159,12 @@ const HUB_SECTIONS: HubSection[] = [
         description: 'Subscriber lists and email touchpoints.',
         to: '/cms/newsletter',
         icon: Mail,
+      },
+      {
+        title: 'Email templates',
+        description: 'Preview and edit transactional HTML (bookings, invoices, admin invites).',
+        to: '/cms/email-templates',
+        icon: FileCode,
       },
       {
         title: 'Social links',
