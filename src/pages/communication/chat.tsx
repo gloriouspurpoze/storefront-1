@@ -18,6 +18,11 @@ import {
   normalizeMessageList,
   sortConversationsForInbox,
 } from '../../services/api/chat.service';
+import ConversationList from '../../components/chat/ConversationList';
+import MessageThread from '../../components/chat/MessageThread';
+import ProviderListForChat from '../../components/chat/ProviderListForChat';
+import UserListForChat from '../../components/chat/UserListForChat';
+import { useAppConfirm, useAppPrompt } from '../../components/providers/AppDialogsProvider';
 
 function extractIncomingMessage(raw: unknown): ChatMessage | null {
   if (!raw || typeof raw !== 'object') return null
@@ -26,11 +31,6 @@ function extractIncomingMessage(raw: unknown): ChatMessage | null {
   if ('_id' in o && 'conversationId' in o) return o as unknown as ChatMessage
   return null
 }
-import ConversationList from '../../components/chat/ConversationList';
-import MessageThread from '../../components/chat/MessageThread';
-import ProviderListForChat from '../../components/chat/ProviderListForChat';
-import UserListForChat from '../../components/chat/UserListForChat';
-import { useAppConfirm, useAppPrompt } from '../../components/providers/AppDialogsProvider';
 
 const ChatPage: React.FC = () => {
   const confirm = useAppConfirm();
