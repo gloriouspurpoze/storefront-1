@@ -18,6 +18,7 @@ import {
   Bell as NotificationsIcon,
   Palette as PaletteIcon,
   Globe as LanguageIcon,
+  Share2,
   Settings as SettingsIcon,
   CloudOff,
   Cloud,
@@ -25,6 +26,7 @@ import {
 } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { PushNotificationManager } from '../../components/notifications/PushNotificationManager'
+import { SocialPublishSettingsForm } from '../../components/marketing-workspace/SocialPublishSettingsForm'
 import { Badge } from '../../components/ui/badge'
 import { settingsService, type Settings } from '../../services/api/settings.service'
 
@@ -175,6 +177,7 @@ export function Settings() {
     { label: 'Notifications', icon: <NotificationsIcon className="h-4 w-4" /> },
     { label: 'Appearance', icon: <PaletteIcon className="h-4 w-4" /> },
     { label: 'Client Controls', icon: <LanguageIcon className="h-4 w-4" /> },
+    { label: 'Social publish', icon: <Share2 className="h-4 w-4" /> },
   ]
 
   const apiLabel =
@@ -539,6 +542,21 @@ export function Settings() {
                     />
                   </div>
                 </VStack>
+              </div>
+            </VStack>
+          </TabPanel>
+
+          {/* Live publish (marketing social APIs) */}
+          <TabPanel value={tabValue} index={5}>
+            <VStack spacing={6}>
+              <div>
+                <h2 className="text-xl font-semibold mb-2">Social publish</h2>
+                <p className="text-sm text-muted-foreground mb-4 max-w-3xl">
+                  Credentials for pushing marketing social posts live (LinkedIn, Meta, Reddit, WhatsApp). Stored on the
+                  API; secret tokens are not returned after save. You can also open this under{' '}
+                  <span className="font-medium text-foreground">Marketing → Live publish</span>.
+                </p>
+                <SocialPublishSettingsForm />
               </div>
             </VStack>
           </TabPanel>

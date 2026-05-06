@@ -95,6 +95,13 @@ export const QUICK_NAV_ITEMS: QuickNavItem[] = [
   { label: 'Cross-linking', path: '/cms/cross-linking', group: 'Content & marketing' },
   { label: 'Media library', path: '/cms/media', group: 'Content & marketing' },
   { label: 'SEO management', path: '/cms/seo', group: 'Content & marketing' },
+  { label: 'Marketing workspace', path: '/marketing', group: 'Content & marketing', keywords: 'calendar social planning' },
+  { label: 'Marketing campaigns', path: '/marketing/campaigns', group: 'Content & marketing', keywords: 'program launch kpi' },
+  { label: 'Content calendar', path: '/marketing/calendar', group: 'Content & marketing', keywords: 'editorial schedule' },
+  { label: 'Social posts', path: '/marketing/social', group: 'Content & marketing', keywords: 'instagram linkedin organic' },
+  { label: 'Planning & ideas', path: '/marketing/planning', group: 'Content & marketing', keywords: 'backlog campaign' },
+  { label: 'Marketing tasks', path: '/marketing/tasks', group: 'Content & marketing', keywords: 'todo checklist' },
+  { label: 'R&D & brainstorm', path: '/marketing/lab', group: 'Content & marketing', keywords: 'research hypothesis' },
 
   { label: 'App users', path: '/users', group: 'Users & communication' },
   { label: 'Team members', path: '/users/members', group: 'Users & communication' },

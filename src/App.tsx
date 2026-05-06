@@ -17,6 +17,7 @@ import { LoadingProvider } from './components/providers/LoadingProvider'
 import { ToastProvider } from './components/providers/ToastProvider'
 import { AppDialogsProvider } from './components/providers/AppDialogsProvider'
 import { Toaster } from './components/ui'
+import type { Permission } from './types/rbac.types'
 
 // Route-level code splitting (industry standard for performance)
 const Auth = lazy(() => import('./pages/auth/auth').then((m) => ({ default: m.Auth })))
@@ -156,6 +157,42 @@ const SocialLinksManagement = lazy(() => import('./pages/cms/SocialLinksManageme
 const RateCardManagement = lazy(() => import('./pages/cms/RateCardManagement'))
 const CategoryMarketingManagement = lazy(() => import('./pages/cms/CategoryMarketingManagement'))
 const CrossLinkingManagement = lazy(() => import('./pages/cms/CrossLinkingManagement'))
+
+const MarketingWorkspaceHub = lazy(() =>
+  import('./pages/marketing-workspace/MarketingWorkspaceHub').then((m) => ({ default: m.MarketingWorkspaceHub })),
+)
+const MarketingCampaignsPage = lazy(() =>
+  import('./pages/marketing-workspace/CampaignsPage').then((m) => ({ default: m.CampaignsPage })),
+)
+const MarketingContentCalendarPage = lazy(() =>
+  import('./pages/marketing-workspace/ContentCalendarPage').then((m) => ({ default: m.ContentCalendarPage })),
+)
+const MarketingSocialPostsPage = lazy(() =>
+  import('./pages/marketing-workspace/SocialPostsPage').then((m) => ({ default: m.SocialPostsPage })),
+)
+const MarketingLivePublishPage = lazy(() =>
+  import('./pages/marketing-workspace/SocialPublishSettingsPage').then((m) => ({ default: m.SocialPublishSettingsPage })),
+)
+const MarketingPlanningIdeasPage = lazy(() =>
+  import('./pages/marketing-workspace/PlanningIdeasPage').then((m) => ({ default: m.PlanningIdeasPage })),
+)
+const MarketingTasksPage = lazy(() =>
+  import('./pages/marketing-workspace/MarketingTasksPage').then((m) => ({ default: m.MarketingTasksPage })),
+)
+const MarketingResearchBrainstormPage = lazy(() =>
+  import('./pages/marketing-workspace/ResearchBrainstormPage').then((m) => ({ default: m.ResearchBrainstormPage })),
+)
+
+/** Gate aligned with `routePermissions` `/marketing` entry in rbac.config. */
+const MARKETING_WORKSPACE_PERMISSIONS: Permission[] = [
+  'manage_system_settings',
+  'manage_coupons',
+  'manage_referrals',
+  'edit_coupons',
+  'edit_referrals',
+  'create_coupons',
+  'create_referrals',
+]
 
 const RouteFallback = (
   <div className="flex min-h-[280px] w-full items-center justify-center">
@@ -1075,6 +1112,71 @@ function App() {
                             <CrossLinkingManagement />
                           </RoleBasedRoute>
                         } 
+                      />
+
+                      <Route
+                        path="/marketing"
+                        element={
+                          <RoleBasedRoute permissions={MARKETING_WORKSPACE_PERMISSIONS}>
+                            <MarketingWorkspaceHub />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/marketing/campaigns"
+                        element={
+                          <RoleBasedRoute permissions={MARKETING_WORKSPACE_PERMISSIONS}>
+                            <MarketingCampaignsPage />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/marketing/calendar"
+                        element={
+                          <RoleBasedRoute permissions={MARKETING_WORKSPACE_PERMISSIONS}>
+                            <MarketingContentCalendarPage />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/marketing/social"
+                        element={
+                          <RoleBasedRoute permissions={MARKETING_WORKSPACE_PERMISSIONS}>
+                            <MarketingSocialPostsPage />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/marketing/live-publish"
+                        element={
+                          <RoleBasedRoute permissions={MARKETING_WORKSPACE_PERMISSIONS}>
+                            <MarketingLivePublishPage />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/marketing/planning"
+                        element={
+                          <RoleBasedRoute permissions={MARKETING_WORKSPACE_PERMISSIONS}>
+                            <MarketingPlanningIdeasPage />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/marketing/tasks"
+                        element={
+                          <RoleBasedRoute permissions={MARKETING_WORKSPACE_PERMISSIONS}>
+                            <MarketingTasksPage />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/marketing/lab"
+                        element={
+                          <RoleBasedRoute permissions={MARKETING_WORKSPACE_PERMISSIONS}>
+                            <MarketingResearchBrainstormPage />
+                          </RoleBasedRoute>
+                        }
                       />
                       
                       {/* Provider Routes - For Service Providers */}

@@ -730,6 +730,21 @@ export const routePermissions: RoutePermission[] = [
     allowedRoles: ['super_admin', 'admin', 'manager']
   },
 
+  /** Marketing planning hub (local workspace until API exists) */
+  {
+    path: '/marketing',
+    requiredPermissions: [
+      'manage_system_settings',
+      'manage_coupons',
+      'manage_referrals',
+      'edit_coupons',
+      'edit_referrals',
+      'create_coupons',
+      'create_referrals',
+    ],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff'],
+  },
+
   {
     path: '/notifications',
     requiredPermissions: ['view_notifications'],

@@ -62,6 +62,9 @@ import {
   Sparkles,
   Layers,
   LayoutPanelTop,
+  Lightbulb as LightbulbIcon,
+  FlaskConical as LabIcon,
+  Target as TargetIcon,
 } from 'lucide-react'
 import { useAppSelector, useAppDispatch } from '../../store/hooks'
 import { setChatUnreadMessages } from '../../store/slices/chatInboxSlice'
@@ -82,7 +85,7 @@ const drawerWidth = DRAWER_WIDTH_EXPANDED_PX
 const collapsedDrawerWidth = DRAWER_WIDTH_COLLAPSED_PX
 
 /** Paths that are hub landing pages — avoid treating `/cms`, `/users`, etc. as prefixes of sibling routes. */
-const NAV_EXACT_ONLY_HREFS = new Set<string>(['/', '/cms', '/crm', '/users', '/team-work', '/support'])
+const NAV_EXACT_ONLY_HREFS = new Set<string>(['/', '/cms', '/crm', '/users', '/team-work', '/support', '/marketing'])
 
 /** Sidebar badge text; numeric badges cap at 99+ (avoids layout break). */
 function formatSidebarBadgeValue(badge: string | number | null | undefined): string | null {
@@ -410,6 +413,22 @@ const navigationGroups = [
           { name: 'Industry service pages', href: '/cms/category-marketing', icon: CampaignIcon, permissions: ['manage_cms'] },
           { name: 'Cross-linking', href: '/cms/cross-linking', icon: LinkIcon, permissions: ['manage_cms'] },
           { name: 'SEO management', href: '/cms/seo', icon: SearchIcon, permissions: ['manage_cms'] },
+        ],
+      },
+      {
+        name: 'Marketing workspace',
+        icon: CampaignIcon,
+        hasSubmenu: true,
+        permissions: ['manage_cms', 'manage_marketing'],
+        badge: null,
+        subItems: [
+          { name: 'Overview', href: '/marketing', icon: LayoutGrid, permissions: ['manage_coupons'] },
+          { name: 'Campaigns', href: '/marketing/campaigns', icon: TargetIcon, permissions: ['manage_coupons'] },
+          { name: 'Content calendar', href: '/marketing/calendar', icon: CalendarIcon, permissions: ['manage_coupons'] },
+          { name: 'Social posts', href: '/marketing/social', icon: ReferralIcon, permissions: ['manage_coupons'] },
+          { name: 'Planning & ideas', href: '/marketing/planning', icon: LightbulbIcon, permissions: ['manage_coupons'] },
+          { name: 'Tasks', href: '/marketing/tasks', icon: AssignmentIcon, permissions: ['manage_coupons'] },
+          { name: 'R&D & brainstorm', href: '/marketing/lab', icon: LabIcon, permissions: ['manage_coupons'] },
         ],
       },
     ],
