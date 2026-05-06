@@ -96,6 +96,8 @@ const NAV_EXACT_ONLY_HREFS = new Set<string>([
   '/support',
   '/marketing',
   '/settings',
+  '/settings/saas',
+  '/settings/tenants',
 ])
 
 /** Sidebar badge text; numeric badges cap at 99+ (avoids layout break). */
@@ -487,6 +489,13 @@ const navigationGroups = [
         href: '/settings/saas',
         icon: BusinessIcon,
         permissions: ['manage_settings'],
+        badge: null,
+      },
+      {
+        name: 'Organizations',
+        href: '/settings/tenants',
+        icon: BusinessIcon,
+        permissions: ['manage_system_settings'],
         badge: null,
       },
     ]

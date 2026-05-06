@@ -493,11 +493,16 @@ export const routePermissions: RoutePermission[] = [
   
   // Settings
   {
+    path: '/settings/tenants',
+    requiredPermissions: ['manage_system_settings'],
+    allowedRoles: ['super_admin', 'admin'],
+  },
+  {
     path: '/settings',
     requiredPermissions: ['view_settings'],
     allowedRoles: ['super_admin', 'admin', 'manager']
   },
-  
+
   // Messages
   {
     path: '/messages',

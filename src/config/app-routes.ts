@@ -114,6 +114,7 @@ export const QUICK_NAV_ITEMS: QuickNavItem[] = [
   { label: 'System status', path: '/system-status', group: 'System' },
   { label: 'Settings', path: '/settings', group: 'System' },
   { label: 'SaaS platform', path: '/settings/saas', group: 'System', keywords: 'tenant billing checklist multi' },
+  { label: 'Organizations', path: '/settings/tenants', group: 'System', keywords: 'tenants onboard saas clients' },
   { label: 'Help & support', path: '/support', group: 'System' },
 
   { label: 'Provider dashboard', path: '/provider/dashboard', group: 'Provider' },

@@ -58,7 +58,10 @@ function narrowUsersForPageMode(rows: User[], pageMode: UsersPageMode): User[] {
 }
 
 function UsersPageContent({ mode }: { mode: UsersPageMode }) {
-  const tenantId = useAppSelector((s) => s.auth.user?.tenant?.id ?? null)
+  const jwtTenantId = useAppSelector((s) => s.auth.user?.tenant?.id ?? null)
+  const selectedTenantId = useAppSelector((s) => s.tenant.tenantId)
+  /** JWT org (tenant admins), else Redux org from Organizations / checklist context. */
+  const tenantContextId = jwtTenantId || selectedTenantId || null
   const scope = mode === 'directory' ? 'directory' : 'members'
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
@@ -308,6 +311,7 @@ function UsersPageContent({ mode }: { mode: UsersPageMode }) {
           isActive: userData.isActive,
           profilePicture: userData.profilePicture,
           inviteTeamMember: mode === 'members',
+          ...(mode === 'members' && tenantContextId ? { tenantId: tenantContextId } : {}),
           ...(createUserType === 'admin' && !userData.clearDashboardRbac
             ? {
                 rbacRole: userData.rbacRole,
@@ -318,9 +322,11 @@ function UsersPageContent({ mode }: { mode: UsersPageMode }) {
         })
         showSnackbar(
           mode === 'members'
-            ? 'Invite sent (if SMTP is configured). They’ll get a temporary password and a link to set a final password.'
+            ? tenantContextId
+              ? 'Invite sent (if SMTP is configured). User is attached to the active organization — they can sign in without a separate “attach” step.'
+              : 'Invite sent (if SMTP is configured). No organization context in this browser — use Organizations → Attach user, or pick an org first so new staff are tenant-scoped.'
             : 'User created successfully',
-          'success',
+          mode === 'members' && !tenantContextId ? 'warning' : 'success',
         )
       } else if (selectedUser) {
         const isDashboardAccount =
@@ -485,7 +491,7 @@ function UsersPageContent({ mode }: { mode: UsersPageMode }) {
         mode={formMode}
         accountVariant={mode === 'directory' ? 'directory' : 'members'}
         cloneFromUsers={dashboardUsersForClone}
-        tenantId={tenantId}
+        tenantId={tenantContextId}
       />
 
       <UserDetailsDialog

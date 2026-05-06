@@ -31,6 +31,7 @@ export { teamWorkApi } from './teamWork.api'
 export { FinanceService } from './finance.service'
 export { SupportTicketsService } from './supportTickets.service'
 export { marketingWorkspaceApi } from './marketingWorkspace.api'
+export { platformTenantsService } from './platformTenants.service'
 export { BazaarMarketplaceService } from './bazaarMarketplace.service'
 export { ErrorHandler } from './error-handler'
 

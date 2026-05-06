@@ -44,6 +44,8 @@ export interface CreateUserRequest {
   username?: string
   /** Dashboard team invite: email temp password + set-password link */
   inviteTeamMember?: boolean
+  /** SaaS: attach new dashboard admin to this organization (also sent as `X-Tenant-Id` when Redux has context). */
+  tenantId?: string
 }
 
 export interface UpdateUserRequest {
@@ -124,6 +126,9 @@ export const usersService = {
       if (data.username?.trim()) body.username = data.username.trim()
       if (data.inviteTeamMember) {
         body.invite_team_member = true
+      }
+      if (data.tenantId?.trim()) {
+        body.tenant_id = data.tenantId.trim()
       }
       const response = (await apiClient.post('/auth/register/admin', body)) as {
         data?: { user?: unknown }

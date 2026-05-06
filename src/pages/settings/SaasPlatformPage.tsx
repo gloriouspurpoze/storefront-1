@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Badge,
   Button,
@@ -112,6 +113,22 @@ export function SaasPlatformPage() {
           subtitle="Operational checklist, tenant header wiring, and links to billing and legal surfaces. Enforcement stays on the backend."
           icon={<ClipboardList className="h-8 w-8 shrink-0" aria-hidden />}
         />
+
+        <Card className="border-primary/25 bg-primary/[0.04]">
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">
+              The <strong className="text-foreground">Minimum platform checklist</strong> below is saved in{' '}
+              <strong className="text-foreground">this browser</strong>, keyed by the{' '}
+              <strong className="text-foreground">organization id</strong> in Tenant context (sidebar/header when SaaS
+              mode is on). Create organizations under{' '}
+              <Link to="/settings/tenants" className="font-medium text-primary underline-offset-4 hover:underline">
+                Organizations
+              </Link>
+              — after creation we switch context automatically so this checklist applies to the new tenant (or use the{' '}
+              <strong className="text-foreground">Checklist</strong> button there).
+            </p>
+          </CardContent>
+        </Card>
 
         {!SAAS_MODE && (
           <Card className="border-amber-500/40 bg-amber-500/5">

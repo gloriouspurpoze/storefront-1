@@ -4,7 +4,9 @@
 
 **Audience:** Founder, ops, implementation engineer.
 
-**Related:** `docs/PRODUCT_AND_SAAS_PLAYBOOK.md`, admin route **`/settings/saas`** (platform readiness checklist), **`/cms/site-appearance`** (public theme tokens).
+**Related:** `docs/PRODUCT_AND_SAAS_PLAYBOOK.md`, **`docs/TENANT_ONBOARDING_AND_RBAC_RUNBOOK.md`** (step-by-step tenant + RBAC + login), admin **`/settings/saas`** (checklist), **`/settings/tenants`** (organizations UI when backend APIs are live), **`/cms/site-appearance`** (theme tokens).
+
+**Backend contract (fixer-backend):** see sibling repo **`docs/TENANT_PLATFORM_API.md`** — `/api/platform/tenants`, `/api/cms/public-site-theme`, Stripe webhook `POST /api/webhooks/billing/stripe`.
 
 ---
 

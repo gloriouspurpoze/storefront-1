@@ -135,6 +135,9 @@ const Settings = lazy(() => import('./pages/settings/settings').then((m) => ({ d
 const SaasPlatformPage = lazy(() =>
   import('./pages/settings/SaasPlatformPage').then((m) => ({ default: m.SaasPlatformPage })),
 )
+const PlatformTenantsPage = lazy(() =>
+  import('./pages/settings/PlatformTenantsPage').then((m) => ({ default: m.PlatformTenantsPage })),
+)
 const Sliders = lazy(() => import('./pages/settings/sliders').then((m) => ({ default: m.Sliders })))
 const SystemStatus = lazy(() => import('./pages/settings/system-status'))
 
@@ -900,6 +903,14 @@ function App() {
                         element={
                           <RoleBasedRoute permissions={['view_settings']}>
                             <SaasPlatformPage />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/settings/tenants"
+                        element={
+                          <RoleBasedRoute permissions={['manage_system_settings']}>
+                            <PlatformTenantsPage />
                           </RoleBasedRoute>
                         }
                       />
