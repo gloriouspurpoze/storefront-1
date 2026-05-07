@@ -14,6 +14,8 @@ export interface TeamWorkProject {
   key: string
   description?: string
   memberUserIds: string[]
+  /** Normalized roster emails (mirrors members; used when JWT user id mismatches). */
+  memberEmails?: string[]
   tagCatalog: TeamWorkTagCatalogEntry[]
   isDefault?: boolean
   isArchived?: boolean
@@ -32,6 +34,27 @@ export type TeamWorkPriority = 'lowest' | 'low' | 'medium' | 'high' | 'highest'
 
 export type TeamWorkIssueType = 'task' | 'bug' | 'story' | 'epic'
 
+/** Scrum sprint metadata — stored locally until backend exposes `/team-work/sprints`. */
+export type TeamWorkSprintState = 'planned' | 'active' | 'completed'
+
+export interface TeamWorkSprint {
+  id: string
+  projectId: string
+  name: string
+  goal?: string
+  /** Sprint window (ISO). */
+  startAt: string
+  endAt: string
+  state: TeamWorkSprintState
+  createdAt: string
+  /** When the sprint was started (first moved to active). */
+  startedAt?: string
+  /** When the sprint was closed. */
+  completedAt?: string
+  /** Length chosen at creation (e.g. 7 or 14). */
+  durationDays: number
+}
+
 export interface TeamWorkComment {
   id: string
   userId: string
@@ -40,10 +63,20 @@ export interface TeamWorkComment {
   createdAt: string
 }
 
+/** File or image linked to an issue (URLs from upload APIs). */
+export interface TeamWorkAttachment {
+  url: string
+  fileName: string
+  mimeType?: string
+  fileSize?: number
+}
+
 export interface TeamWorkItem {
   id: string
   /** Parent project board. */
   projectId?: string
+  /** Parent issue when this row is a sub-task (Jira-style). */
+  parentWorkItemId?: string
   issueKey: string
   issueNumber: number
   title: string
@@ -53,6 +86,8 @@ export interface TeamWorkItem {
   issueType: TeamWorkIssueType
   teamKey: string
   assigneeUserId?: string
+  /** When the API supports multiple assignees; first id mirrors `assigneeUserId` when synced. */
+  assigneeUserIds?: string[]
   reporterUserId: string
   labels: string[]
   /** Planned work start (optional; team calendar). */
@@ -60,8 +95,11 @@ export interface TeamWorkItem {
   dueAt?: string
   epicId?: string
   storyPoints?: number
+  /** Scrum sprint membership (API or local overlay). */
+  sprintId?: string
   boardRank: number
   comments?: TeamWorkComment[]
+  attachments?: TeamWorkAttachment[]
   completedAt?: string
   createdAt: string
   updatedAt: string

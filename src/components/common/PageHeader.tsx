@@ -7,14 +7,17 @@ interface PageHeaderProps {
   icon?: React.ReactElement
   action?: React.ReactNode
   children?: React.ReactNode
+  /** Merged onto the root container (e.g. tighter margins for dense pages). */
+  className?: string
 }
 
-export function PageHeader({ title, subtitle, icon, action, children }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, icon, action, children, className }: PageHeaderProps) {
   return (
     <div
       className={cn(
         'mb-6 flex flex-col gap-2 sm:mb-8 md:mb-10',
-        'items-start sm:flex-row sm:items-center sm:justify-between'
+        'items-start sm:flex-row sm:items-center sm:justify-between',
+        className,
       )}
     >
       <div className="flex min-w-0 items-start gap-1.5">

@@ -17,6 +17,7 @@ import {
 import { PageHeader } from '../../components/common/PageHeader'
 import { TeamWorkBoard } from '../../components/team-work/TeamWorkBoard'
 import { TeamWorkItemDrawer } from '../../components/team-work/TeamWorkItemDrawer'
+import { TeamWorkSprintPanel } from '../../components/team-work/TeamWorkSprintPanel'
 import { ScheduleMeetingDialog } from '../../components/team-work/ScheduleMeetingDialog'
 import { teamWorkApi } from '../../services/api/teamWork.api'
 import { usersService } from '../../services/api/users.service'
@@ -24,6 +25,7 @@ import type {
   TeamWorkItem,
   TeamWorkMeta,
   TeamWorkProject,
+  TeamWorkSprint,
   TeamWorkStatus,
   TeamWorkTagCatalogEntry,
 } from '../../types/teamWork.types'
@@ -43,7 +45,6 @@ import {
   DialogTitle,
 } from '../../components/ui/dialog'
 import { Label } from '../../components/ui/label'
-import { Textarea } from '../../components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -55,7 +56,19 @@ import { Switch } from '../../components/ui/switch'
 import { Checkbox } from '../../components/ui/checkbox'
 import { assigneeSwatchClass, initialsFromLabel, PRIORITY_CHIP, priorityLabel } from '../../lib/teamWorkVisuals'
 import { teamWorkTagDisplayName, teamWorkTagSlug } from '../../lib/teamWorkTags'
+import { assigneeIdsFromItem, primaryAssigneeUserId } from '../../lib/teamWorkAssignees'
+import { getProjectTeamUsersForAssignee } from '../../lib/teamWorkProjectTeam'
+import {
+  getActiveSprint,
+  loadSprintAssignmentsFromStorage,
+  loadSprintsFromStorage,
+  mergeSprintOntoItems,
+  saveSprintAssignmentsToStorage,
+} from '../../lib/teamWorkSprintLocal'
 import { cn } from '../../lib/utils'
+import { sprintIdForTeamWorkApi } from '../../lib/mongoObjectId'
+import { hierarchicalIssueLabel } from '../../lib/teamWorkIssueDisplay'
+import { RichTextField } from '../../components/forms/RichTextField'
 
 const STATUS_LABELS: Record<TeamWorkStatus, string> = {
   backlog: 'Backlog',
@@ -73,11 +86,19 @@ function userLabel(u: { username?: string; firstName?: string; lastName?: string
   return n || u.email || u.id
 }
 
+function normalizeBoardEmail(email: string | undefined): string {
+  return String(email || '')
+    .trim()
+    .toLowerCase()
+}
+
 export function TeamWorkHub() {
   const { checkPermission } = usePermissions()
   const authUser = useAppSelector((s) => s.auth.user)
   const canManage = checkPermission('manage_team_tasks')
   const canManageProjects = checkPermission('manage_team_projects')
+  const showProjectSwitcherPanel =
+    authUser?.userType === 'admin' || authUser?.userType === 'super_admin'
 
   const projectStorageKey = useMemo(
     () => `fixer-team-work-project:${authUser?.tenant?.id ?? '_'}`,
@@ -109,7 +130,7 @@ export function TeamWorkHub() {
   const [newDesc, setNewDesc] = useState('')
   const [newPriority, setNewPriority] = useState<TeamWorkItem['priority']>('medium')
   const [newType, setNewType] = useState<TeamWorkItem['issueType']>('task')
-  const [newAssigneeId, setNewAssigneeId] = useState<string>('__none__')
+  const [newAssigneeIds, setNewAssigneeIds] = useState<string[]>([])
   const [newStatus, setNewStatus] = useState<TeamWorkStatus>('backlog')
   const [newStartAt, setNewStartAt] = useState('')
   const [newDueAt, setNewDueAt] = useState('')
@@ -131,6 +152,12 @@ export function TeamWorkHub() {
   const [savingAccess, setSavingAccess] = useState(false)
   const [savingNewProject, setSavingNewProject] = useState(false)
   const [scheduleMeetingOpen, setScheduleMeetingOpen] = useState(false)
+
+  const tenantId = authUser?.tenant?.id ?? '_'
+  const [sprintRows, setSprintRows] = useState<TeamWorkSprint[]>([])
+  const [sprintAssignments, setSprintAssignments] = useState<Record<string, string>>({})
+  const [sprintViewFilter, setSprintViewFilter] = useState<string>('__all__')
+  const [newSprintIdForCreate, setNewSprintIdForCreate] = useState<string>('__none__')
 
   const currentProject = useMemo(
     () => projects.find((p) => p.id === projectId) ?? null,
@@ -185,6 +212,58 @@ export function TeamWorkHub() {
     return m
   }, [adminUsers, authUser])
 
+  /** Assignees = board roster when restricted; otherwise directory members from API. */
+  const teamMembers = useMemo(
+    () => getProjectTeamUsersForAssignee(currentProject, adminUsers),
+    [currentProject, adminUsers],
+  )
+
+  useEffect(() => {
+    if (!projectId) {
+      setSprintRows([])
+      setSprintAssignments({})
+      return
+    }
+    setSprintRows(loadSprintsFromStorage(tenantId, projectId))
+    setSprintAssignments(loadSprintAssignmentsFromStorage(tenantId, projectId))
+  }, [projectId, tenantId])
+
+  useEffect(() => {
+    if (!projectId) return
+    setSprintAssignments((prev) => {
+      const next = { ...prev }
+      let changed = false
+      for (const it of items) {
+        if (it.sprintId && next[it.id] !== it.sprintId) {
+          next[it.id] = it.sprintId
+          changed = true
+        }
+      }
+      if (changed) saveSprintAssignmentsToStorage(tenantId, projectId, next)
+      return changed ? next : prev
+    })
+  }, [items, projectId, tenantId])
+
+  const mergedItems = useMemo(() => mergeSprintOntoItems(items, sprintAssignments), [items, sprintAssignments])
+
+  const sprintNameById = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const s of sprintRows) m.set(s.id, s.name)
+    return m
+  }, [sprintRows])
+
+  const activeSprintRow = useMemo(() => getActiveSprint(sprintRows), [sprintRows])
+
+  const visibleItems = useMemo(() => {
+    if (sprintViewFilter === '__all__') return mergedItems
+    if (sprintViewFilter === '__backlog__') return mergedItems.filter((i) => !i.sprintId)
+    if (sprintViewFilter === '__active__') {
+      const a = getActiveSprint(sprintRows)
+      return a ? mergedItems.filter((i) => i.sprintId === a.id) : []
+    }
+    return mergedItems.filter((i) => i.sprintId === sprintViewFilter)
+  }, [mergedItems, sprintViewFilter, sprintRows])
+
   const load = useCallback(
     async (override?: { q?: string }) => {
       if (!projectId) return
@@ -209,7 +288,11 @@ export function TeamWorkHub() {
           usersService.getUsers({ scope: 'members', limit: 100, page: 1 }),
         ])
         setMeta(m)
-        setItems(list.items)
+        let boardItems = list.items
+        if (mineOnly && authUser?.id) {
+          boardItems = boardItems.filter((it) => assigneeIdsFromItem(it).includes(authUser.id))
+        }
+        setItems(boardItems)
         setTotal(list.total)
         setEpics(epicList.items.filter((e) => e.issueType === 'epic'))
         setAdminUsers(admins.users)
@@ -270,11 +353,20 @@ export function TeamWorkHub() {
 
   /** Pre-fill Calendar guests when the board is restricted to a roster. */
   const boardMemberGuestEmails = useMemo(() => {
-    if (!currentProject?.memberUserIds?.length) return [] as string[]
-    const allowed = new Set(currentProject.memberUserIds)
+    const idRestricted = (currentProject?.memberUserIds?.length ?? 0) > 0
+    const emailRestricted = (currentProject?.memberEmails?.length ?? 0) > 0
+    if (!currentProject || (!idRestricted && !emailRestricted)) return [] as string[]
+    const allowedIds = new Set(currentProject.memberUserIds)
+    const allowedEmails = new Set(
+      (currentProject.memberEmails ?? []).map((e) => normalizeBoardEmail(e)).filter(Boolean),
+    )
     return adminUsers
-      .filter((u) => allowed.has(u.id) && u.email)
+      .filter(
+        (u) =>
+          allowedIds.has(u.id) || Boolean(u.email && allowedEmails.has(normalizeBoardEmail(u.email))),
+      )
       .map((u) => u.email)
+      .filter(Boolean) as string[]
   }, [currentProject, adminUsers])
 
   const stats = useMemo(() => {
@@ -282,17 +374,50 @@ export function TeamWorkHub() {
     let open = 0
     let done = 0
     let blocked = 0
-    for (const it of items) {
+    for (const it of visibleItems) {
       if (it.status === 'blocked') blocked += 1
       if (it.status === 'done') done += 1
       if (openStatuses.has(it.status)) open += 1
     }
-    return { open, done, blocked, total: items.length }
-  }, [items])
+    return { open, done, blocked, total: visibleItems.length }
+  }, [visibleItems])
 
   const onMoveItem = async (itemId: string, newStatus: TeamWorkStatus) => {
     if (!canManage) return
     await teamWorkApi.patchStatus(itemId, newStatus)
+    await load()
+  }
+
+  const persistItemSprint = useCallback(
+    (itemId: string, sprintId: string | undefined) => {
+      setSprintAssignments((prev) => {
+        const next = { ...prev }
+        if (sprintId) next[itemId] = sprintId
+        else delete next[itemId]
+        if (projectId) saveSprintAssignmentsToStorage(tenantId, projectId, next)
+        return next
+      })
+    },
+    [projectId, tenantId],
+  )
+
+  const handleSprintCloseAssignments = async (nextMap: Record<string, string>) => {
+    const prev = sprintAssignments
+    setSprintAssignments(nextMap)
+    if (projectId) saveSprintAssignmentsToStorage(tenantId, projectId, nextMap)
+    const allIds = Array.from(new Set([...Object.keys(prev), ...Object.keys(nextMap)]))
+    for (const id of allIds) {
+      const before = prev[id]
+      const after = nextMap[id]
+      if (before === after) continue
+      const apiSprint = sprintIdForTeamWorkApi(after)
+      if (after && apiSprint === undefined) continue
+      try {
+        await teamWorkApi.updateItem(id, { sprintId: apiSprint })
+      } catch {
+        /* API may not persist sprintId yet */
+      }
+    }
     await load()
   }
 
@@ -301,14 +426,22 @@ export function TeamWorkHub() {
     setCreating(true)
     try {
       const sp = newStoryPoints.trim()
-      await teamWorkApi.createItem({
+      const poolIds = new Set(teamMembers.map((u) => u.id))
+      const cleanedAssignees = newAssigneeIds.filter((id) => poolIds.has(id))
+      const primaryAssignee = primaryAssigneeUserId(cleanedAssignees)
+      const descPlain = newDesc.replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, ' ').trim()
+      const sprintIdCreate = newSprintIdForCreate !== '__none__' ? newSprintIdForCreate : undefined
+      const sprintIdForApi = sprintIdForTeamWorkApi(sprintIdCreate)
+      const created = await teamWorkApi.createItem({
         projectId: projectId!,
         title: newTitle.trim(),
-        description: newDesc.trim() || undefined,
+        description: descPlain ? newDesc : undefined,
         priority: newPriority,
         issueType: newType,
         status: newStatus,
-        assigneeUserId: newAssigneeId !== '__none__' ? newAssigneeId : undefined,
+        assigneeUserId: primaryAssignee,
+        assigneeUserIds: cleanedAssignees.length ? cleanedAssignees : undefined,
+        sprintId: sprintIdForApi,
         labels: createTagSlugs.length ? createTagSlugs : undefined,
         startAt: newStartAt ? new Date(newStartAt).toISOString() : undefined,
         dueAt: newDueAt ? new Date(newDueAt).toISOString() : undefined,
@@ -316,6 +449,20 @@ export function TeamWorkHub() {
         storyPoints:
           sp !== '' && !Number.isNaN(Number(sp)) ? Math.min(100, Math.max(0, Math.floor(Number(sp)))) : undefined,
       })
+      if (sprintIdCreate && projectId) {
+        setSprintAssignments((prev) => {
+          const next = { ...prev, [created.id]: sprintIdCreate }
+          saveSprintAssignmentsToStorage(tenantId, projectId, next)
+          return next
+        })
+        if (sprintIdForApi) {
+          try {
+            await teamWorkApi.updateItem(created.id, { sprintId: sprintIdForApi })
+          } catch {
+            /* overlay already saved */
+          }
+        }
+      }
       setCreateOpen(false)
       resetNewIssueForm()
       await load()
@@ -327,6 +474,7 @@ export function TeamWorkHub() {
   const onChangeProject = (id: string) => {
     setDrawerId(null)
     setTagFilters([])
+    setSprintViewFilter('__all__')
     setProjectId(id)
     window.localStorage.setItem(projectStorageKey, id)
     setLoadError(null)
@@ -342,7 +490,7 @@ export function TeamWorkHub() {
     setNewDesc('')
     setNewPriority('medium')
     setNewType('task')
-    setNewAssigneeId('__none__')
+    setNewAssigneeIds([])
     setNewStatus('backlog')
     setNewStartAt('')
     setNewDueAt('')
@@ -351,6 +499,7 @@ export function TeamWorkHub() {
     setCreateTagOptions(null)
     setNewEpicId('__none__')
     setNewStoryPoints('')
+    setNewSprintIdForCreate('__none__')
   }, [])
 
   useEffect(() => {
@@ -404,7 +553,18 @@ export function TeamWorkHub() {
     if (!currentProject) return
     setSavingAccess(true)
     try {
-      const updated = await teamWorkApi.patchProject(currentProject.id, { memberUserIds: accessMemberIds })
+      const emailFromMemberId = (id: string): string => {
+        if (authUser?.id === id && authUser.email) return normalizeBoardEmail(authUser.email)
+        const u = adminUsers.find((x) => x.id === id)
+        return u?.email ? normalizeBoardEmail(u.email) : ''
+      }
+      const memberEmails = Array.from(
+        new Set(accessMemberIds.map(emailFromMemberId).filter(Boolean)),
+      ) as string[]
+      const updated = await teamWorkApi.patchProject(currentProject.id, {
+        memberUserIds: accessMemberIds,
+        memberEmails,
+      })
       setProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
       setProjectSettingsOpen(false)
       void load()
@@ -440,8 +600,9 @@ export function TeamWorkHub() {
   }, [projectSettingsOpen, currentProject])
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6">
+    <div className="flex flex-col gap-3 p-3 md:p-4">
       <PageHeader
+        className="mb-3 gap-1.5 sm:mb-4 md:mb-5"
         title="Team work"
         subtitle="Each project is its own board. Restrict a board by adding members (Board access); leave members empty for a tenant-wide board. Super admins and users with manage_team_projects see every board and can create new ones."
         action={
@@ -451,59 +612,71 @@ export function TeamWorkHub() {
         }
       />
 
-      <Card className="border-border/80">
-        <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-          <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <FolderKanban className="h-4 w-4 shrink-0" aria-hidden />
-              Project board
+      {showProjectSwitcherPanel ? (
+        <Card className="border-border/80">
+          <CardContent className="flex flex-col gap-2 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+            <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <FolderKanban className="h-4 w-4 shrink-0" aria-hidden />
+                Project board
+              </div>
+              <Select
+                value={projectId ?? ''}
+                onValueChange={onChangeProject}
+                disabled={!projects.length}
+              >
+                <SelectTrigger className="w-full min-w-[220px] sm:max-w-md">
+                  <SelectValue placeholder="Select a board" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map((p) => {
+                    const restricted =
+                      p.memberUserIds.length > 0 || (p.memberEmails?.length ?? 0) > 0
+                    return (
+                      <SelectItem key={p.id} value={p.id}>
+                        <span className="font-mono text-xs text-muted-foreground">{p.key}</span>{' '}
+                        <span className="ml-1">{p.name}</span>
+                        {restricted ? (
+                          <span className="ml-2 text-xs text-muted-foreground">(restricted)</span>
+                        ) : (
+                          <span className="ml-2 text-xs text-muted-foreground">(org-wide)</span>
+                        )}
+                      </SelectItem>
+                    )
+                  })}
+                </SelectContent>
+              </Select>
             </div>
-            <Select
-              value={projectId ?? ''}
-              onValueChange={onChangeProject}
-              disabled={!projects.length}
-            >
-              <SelectTrigger className="w-full min-w-[220px] sm:max-w-md">
-                <SelectValue placeholder="Select a board" />
-              </SelectTrigger>
-              <SelectContent>
-                {projects.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    <span className="font-mono text-xs text-muted-foreground">{p.key}</span>{' '}
-                    <span className="ml-1">{p.name}</span>
-                    {p.memberUserIds.length > 0 ? (
-                      <span className="ml-2 text-xs text-muted-foreground">(restricted)</span>
-                    ) : (
-                      <span className="ml-2 text-xs text-muted-foreground">(org-wide)</span>
-                    )}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {canManageProjects ? (
-              <>
-                <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => setNewProjectOpen(true)}>
-                  <Plus className="h-3.5 w-3.5" />
-                  New project
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5"
-                  disabled={!currentProject}
-                  onClick={() => setProjectSettingsOpen(true)}
-                >
-                  <Settings2 className="h-3.5 w-3.5" />
-                  Board access
-                </Button>
-              </>
-            ) : null}
-          </div>
-        </CardContent>
-      </Card>
+            <div className="flex flex-wrap gap-2">
+              {canManageProjects ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => setNewProjectOpen(true)}
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    New project
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    disabled={!currentProject}
+                    onClick={() => setProjectSettingsOpen(true)}
+                  >
+                    <Settings2 className="h-3.5 w-3.5" />
+                    Board access
+                  </Button>
+                </>
+              ) : null}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {loadError ? (
         <Card className="border-destructive/40 bg-destructive/5">
@@ -513,7 +686,7 @@ export function TeamWorkHub() {
 
       {projectsLoaded && !projects.length && !loadError ? (
         <Card className="border-border/80">
-          <CardContent className="flex flex-col gap-3 py-8 text-center">
+          <CardContent className="flex flex-col gap-2 py-6 text-center">
             <FolderKanban className="mx-auto h-10 w-10 text-muted-foreground/50" aria-hidden />
             <p className="text-sm text-muted-foreground">
               No project boards yet. Ask someone with <span className="font-medium text-foreground">manage team projects</span>{' '}
@@ -530,15 +703,15 @@ export function TeamWorkHub() {
       ) : null}
 
       {projectId ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { label: 'Active pipeline', value: stats.open, hint: 'Backlog through review' },
-            { label: 'Blocked', value: stats.blocked, hint: 'Needs attention' },
-            { label: 'Done (loaded)', value: stats.done, hint: 'In current page' },
-            { label: 'Total (server)', value: total, hint: 'Matches filters' },
+            { label: 'Active pipeline', value: stats.open, hint: 'Open work in current view' },
+            { label: 'Blocked', value: stats.blocked, hint: 'In current view' },
+            { label: 'Done', value: stats.done, hint: 'In current view' },
+            { label: 'Total (server)', value: total, hint: 'Matches search & tags (not sprint scope)' },
           ].map((s) => (
             <Card key={s.label} className="border-border/80 bg-gradient-to-br from-card to-muted/30">
-              <CardContent className="pt-4">
+              <CardContent className="pt-3 pb-3">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{s.label}</p>
                 <p className="mt-1 text-3xl font-semibold tabular-nums">{loading ? '—' : s.value}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{s.hint}</p>
@@ -549,9 +722,22 @@ export function TeamWorkHub() {
       ) : null}
 
       {projectId ? (
+        <TeamWorkSprintPanel
+          tenantId={tenantId}
+          projectId={projectId}
+          items={mergedItems}
+          canManage={canManage}
+          sprints={sprintRows}
+          sprintAssignments={sprintAssignments}
+          onSprintsUpdated={setSprintRows}
+          onAssignmentsAfterClose={handleSprintCloseAssignments}
+        />
+      ) : null}
+
+      {projectId ? (
       <Card className="border-border/80">
-        <CardContent className="flex flex-col gap-4 py-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <CardContent className="flex flex-col gap-3 py-3">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-1 flex-wrap items-center gap-2">
               <div className="relative min-w-[200px] flex-1 max-w-md">
                 <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -598,6 +784,28 @@ export function TeamWorkHub() {
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-muted/30 px-3 py-1.5">
+                <span className="text-xs text-muted-foreground">Sprint scope</span>
+                <Select value={sprintViewFilter} onValueChange={setSprintViewFilter}>
+                  <SelectTrigger className="h-8 w-[200px] border-0 bg-transparent shadow-none">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">All issues</SelectItem>
+                    <SelectItem value="__backlog__">Backlog (no sprint)</SelectItem>
+                    <SelectItem value="__active__">
+                      Active sprint{activeSprintRow ? `: ${activeSprintRow.name}` : ''}
+                    </SelectItem>
+                    {sprintRows
+                      .filter((s) => s.state === 'planned')
+                      .map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          Planned: {s.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-muted/30 px-3 py-1.5">
                 <UserCircle2 className="h-4 w-4 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">Assignee</span>
                 <Select value={assigneeFilter} onValueChange={setAssigneeFilter} disabled={mineOnly}>
@@ -606,7 +814,7 @@ export function TeamWorkHub() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__all__">Everyone</SelectItem>
-                    {adminUsers.map((u) => (
+                    {teamMembers.map((u) => (
                       <SelectItem key={u.id} value={u.id}>
                         {userLabel(u)}
                       </SelectItem>
@@ -702,9 +910,11 @@ export function TeamWorkHub() {
             <TeamWorkBoard
               statuses={statuses}
               statusLabels={STATUS_LABELS}
-              items={items}
+              items={visibleItems}
+              hierarchyItems={mergedItems}
               canManage={canManage}
               assigneeMap={assigneeMap}
+              sprintNameById={sprintNameById}
               onMoveItem={onMoveItem}
               onOpenItem={(id) => setDrawerId(id)}
             />
@@ -718,58 +928,82 @@ export function TeamWorkHub() {
                     <th className="px-3 py-2 font-medium">Status</th>
                     <th className="px-3 py-2 font-medium">Priority</th>
                     <th className="px-3 py-2 font-medium">Type</th>
+                    <th className="px-3 py-2 font-medium">Sprint</th>
                     <th className="px-3 py-2 font-medium">Assignee</th>
                     <th className="px-3 py-2 font-medium" />
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((it) => (
-                    <tr key={it.id} className="border-b border-border/50 hover:bg-muted/20">
-                      <td className="px-3 py-2 font-mono text-xs font-semibold text-primary">{it.issueKey}</td>
-                      <td className="max-w-[280px] px-3 py-2">
-                        <span className="line-clamp-2 font-medium">{it.title}</span>
-                      </td>
-                      <td className="px-3 py-2 capitalize text-muted-foreground">{it.status.replace(/_/g, ' ')}</td>
-                      <td className="px-3 py-2">
-                        <span
-                          className={cn(
-                            'inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize',
-                            PRIORITY_CHIP[it.priority],
+                  {visibleItems.map((it) => {
+                    const rowAssignees = assigneeIdsFromItem(it)
+                    const rowLabel = hierarchicalIssueLabel(it, mergedItems)
+                    return (
+                      <tr key={it.id} className="border-b border-border/50 hover:bg-muted/20">
+                        <td className="px-3 py-2">
+                          <div className="font-mono text-xs font-semibold text-primary">{rowLabel}</div>
+                          {rowLabel !== it.issueKey ? (
+                            <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">{it.issueKey}</div>
+                          ) : null}
+                          {it.parentWorkItemId ? (
+                            <Badge variant="secondary" className="mt-1 h-5 px-1.5 text-[10px] font-normal">
+                              Subtask
+                            </Badge>
+                          ) : null}
+                        </td>
+                        <td className="max-w-[280px] px-3 py-2">
+                          <span className="line-clamp-2 font-medium">{it.title}</span>
+                        </td>
+                        <td className="px-3 py-2 capitalize text-muted-foreground">{it.status.replace(/_/g, ' ')}</td>
+                        <td className="px-3 py-2">
+                          <span
+                            className={cn(
+                              'inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize',
+                              PRIORITY_CHIP[it.priority],
+                            )}
+                          >
+                            {priorityLabel(it.priority)}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 capitalize">{it.issueType}</td>
+                        <td className="max-w-[120px] truncate px-3 py-2 text-xs text-muted-foreground">
+                          {it.sprintId ? sprintNameById.get(it.sprintId) ?? it.sprintId.slice(0, 8) : '—'}
+                        </td>
+                        <td className="px-3 py-2">
+                          {rowAssignees.length ? (
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <div className="flex -space-x-1.5">
+                                {rowAssignees.slice(0, 3).map((aid) => (
+                                  <span
+                                    key={aid}
+                                    className={cn(
+                                      'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ring-2 ring-background',
+                                      assigneeSwatchClass(aid),
+                                    )}
+                                    title={assigneeMap.get(aid) || aid}
+                                  >
+                                    {initialsFromLabel(assigneeMap.get(aid) || aid)}
+                                  </span>
+                                ))}
+                              </div>
+                              <span className="max-w-[160px] truncate text-xs text-foreground/90">
+                                {rowAssignees.map((aid) => assigneeMap.get(aid) || aid).join(', ')}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs italic text-muted-foreground">—</span>
                           )}
-                        >
-                          {priorityLabel(it.priority)}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 capitalize">{it.issueType}</td>
-                      <td className="px-3 py-2">
-                        {it.assigneeUserId ? (
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={cn(
-                                'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ring-2 ring-background',
-                                assigneeSwatchClass(it.assigneeUserId),
-                              )}
-                            >
-                              {initialsFromLabel(assigneeMap.get(it.assigneeUserId) || it.assigneeUserId)}
-                            </span>
-                            <span className="max-w-[140px] truncate text-xs text-foreground/90">
-                              {assigneeMap.get(it.assigneeUserId) || it.assigneeUserId}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-xs italic text-muted-foreground">—</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-right">
-                        <Button type="button" size="sm" variant="ghost" className="h-8" onClick={() => setDrawerId(it.id)}>
-                          View
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          <Button type="button" size="sm" variant="ghost" className="h-8" onClick={() => setDrawerId(it.id)}>
+                            View
+                          </Button>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
-              {items.length === 0 ? (
+              {visibleItems.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 py-16 text-center text-muted-foreground">
                   <ClipboardList className="h-10 w-10 opacity-40" />
                   <p className="text-sm">No issues match your filters.</p>
@@ -789,15 +1023,21 @@ export function TeamWorkHub() {
       <TeamWorkItemDrawer
         open={Boolean(drawerId)}
         itemId={drawerId}
+        tenantId={tenantId}
+        boardItems={mergedItems}
         projectId={projectId}
         meta={meta}
         onClose={() => setDrawerId(null)}
         canManage={canManage}
         onUpdated={() => void load()}
         onDeleted={() => void load()}
+        onNavigateItem={(id) => setDrawerId(id)}
         epics={epics.filter((e) => e.id !== drawerId)}
-        adminUsers={adminUsers}
+        assigneePoolUsers={teamMembers}
         assigneeMap={assigneeMap}
+        sprints={sprintRows}
+        sprintAssignmentMap={sprintAssignments}
+        onItemSprintPersist={persistItemSprint}
         currentUserId={authUser?.id}
         projectTagCatalog={currentProject?.tagCatalog ?? []}
         onProjectTagCatalogChanged={() => void refreshProjects()}
@@ -827,16 +1067,14 @@ export function TeamWorkHub() {
                 placeholder="Short, actionable summary"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="nw-d">Description</Label>
-              <Textarea
-                id="nw-d"
-                rows={3}
-                value={newDesc}
-                onChange={(e) => setNewDesc(e.target.value)}
-                placeholder="Context, acceptance criteria, links…"
-              />
-            </div>
+            <RichTextField
+              label="Description"
+              value={newDesc}
+              onChange={setNewDesc}
+              placeholder="Context, acceptance criteria, links…"
+              height={160}
+              helperText="Same rich description editor as the issue drawer."
+            />
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Status</Label>
@@ -923,6 +1161,28 @@ export function TeamWorkHub() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Sprint (optional)</Label>
+              <Select value={newSprintIdForCreate} onValueChange={setNewSprintIdForCreate}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Backlog" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Backlog (no sprint)</SelectItem>
+                  {activeSprintRow ? (
+                    <SelectItem value={activeSprintRow.id}>Active: {activeSprintRow.name}</SelectItem>
+                  ) : null}
+                  {sprintRows
+                    .filter((s) => s.state === 'planned')
+                    .map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        Planned: {s.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">New issues can jump straight into the active or a planned sprint.</p>
             </div>
             <div className="space-y-2 rounded-lg border border-border/60 bg-muted/15 p-3">
               <div className="flex items-center gap-2">
@@ -1012,21 +1272,26 @@ export function TeamWorkHub() {
                   })
                 : null}
             </div>
-            <div className="space-y-2">
-              <Label>Assignee (optional)</Label>
-              <Select value={newAssigneeId} onValueChange={setNewAssigneeId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Unassigned" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Unassigned</SelectItem>
-                  {adminUsers.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>
-                      {userLabel(u)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-2 rounded-lg border border-border/60 bg-muted/15 p-3">
+              <Label>Assignees (optional)</Label>
+              <p className="text-xs text-muted-foreground">
+                Pick everyone working this issue — same model as Jira multi-assignee.
+              </p>
+              <div className="max-h-40 space-y-2 overflow-y-auto pr-1">
+                {adminUsers.map((u) => (
+                  <label key={u.id} className="flex cursor-pointer items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={newAssigneeIds.includes(u.id)}
+                      onCheckedChange={(on) =>
+                        setNewAssigneeIds((prev) =>
+                          on ? [...prev, u.id] : prev.filter((id) => id !== u.id),
+                        )
+                      }
+                    />
+                    <span>{userLabel(u)}</span>
+                  </label>
+                ))}
+              </div>
               <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
                 <Mail className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary/80" aria-hidden />
                 If you pick someone other than yourself, the API emails them when SMTP is configured.

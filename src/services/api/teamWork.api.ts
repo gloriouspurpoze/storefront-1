@@ -3,6 +3,7 @@
  */
 import { apiClient } from '../apiClient'
 import type {
+  TeamWorkAttachment,
   TeamWorkCalendarFeed,
   TeamWorkCeremonySeries,
   TeamWorkComment,
@@ -52,12 +53,17 @@ function mapProject(raw: Record<string, unknown>): TeamWorkProject {
         }))
         .filter((t) => t.slug && t.name)
     : []
+  const emailsRaw = raw.memberEmails as unknown[] | undefined
+  const memberEmails = Array.isArray(emailsRaw)
+    ? emailsRaw.map((x) => String(x).trim().toLowerCase()).filter(Boolean)
+    : undefined
   return {
     id: String(raw.id || raw._id || ''),
     name: String(raw.name || ''),
     key: String(raw.key || ''),
     description: raw.description ? String(raw.description) : undefined,
     memberUserIds: Array.isArray(raw.memberUserIds) ? (raw.memberUserIds as unknown[]).map((x) => String(x)) : [],
+    ...(memberEmails !== undefined ? { memberEmails } : {}),
     tagCatalog,
     isDefault: Boolean(raw.isDefault),
     isArchived: Boolean(raw.isArchived),
@@ -94,11 +100,28 @@ function mapReminder(raw: Record<string, unknown>): TeamWorkItemReminderRow {
   }
 }
 
+function mapAttachment(a: Record<string, unknown>): TeamWorkAttachment {
+  return {
+    url: String(a.url || ''),
+    fileName: String(a.fileName || a.name || 'attachment'),
+    mimeType: a.mimeType ? String(a.mimeType) : undefined,
+    fileSize: a.fileSize !== undefined && a.fileSize !== null ? Number(a.fileSize) : undefined,
+  }
+}
+
 function mapItem(raw: Record<string, unknown>): TeamWorkItem {
   const commentsRaw = raw.comments as Record<string, unknown>[] | undefined
+  const assigneesRaw = raw.assigneeUserIds as unknown[] | undefined
+  const assigneeUserIds = Array.isArray(assigneesRaw)
+    ? Array.from(new Set(assigneesRaw.map((x) => String(x)).filter(Boolean)))
+    : undefined
+  const singleAssignee = raw.assigneeUserId ? String(raw.assigneeUserId) : undefined
+  const attachmentsRaw = raw.attachments as Record<string, unknown>[] | undefined
+  const parentRaw = raw.parentWorkItemId ?? raw.parentId ?? raw.parentItemId
   return {
     id: String(raw.id || raw._id || ''),
     projectId: raw.projectId ? String(raw.projectId) : undefined,
+    parentWorkItemId: parentRaw ? String(parentRaw) : undefined,
     issueKey: String(raw.issueKey || ''),
     issueNumber: Number(raw.issueNumber ?? 0),
     title: String(raw.title || ''),
@@ -107,7 +130,8 @@ function mapItem(raw: Record<string, unknown>): TeamWorkItem {
     priority: raw.priority as TeamWorkItem['priority'],
     issueType: raw.issueType as TeamWorkItem['issueType'],
     teamKey: String(raw.teamKey || 'operations'),
-    assigneeUserId: raw.assigneeUserId ? String(raw.assigneeUserId) : undefined,
+    assigneeUserId: singleAssignee ?? (assigneeUserIds?.length ? assigneeUserIds[0] : undefined),
+    assigneeUserIds: assigneeUserIds?.length ? assigneeUserIds : undefined,
     reporterUserId: String(raw.reporterUserId || ''),
     labels: Array.isArray(raw.labels) ? (raw.labels as unknown[]).map((x) => String(x)) : [],
     startAt: raw.startAt ? new Date(raw.startAt as string).toISOString() : undefined,
@@ -115,7 +139,11 @@ function mapItem(raw: Record<string, unknown>): TeamWorkItem {
     epicId: raw.epicId ? String(raw.epicId) : undefined,
     storyPoints: raw.storyPoints !== undefined && raw.storyPoints !== null ? Number(raw.storyPoints) : undefined,
     boardRank: Number(raw.boardRank ?? 0),
+    sprintId: raw.sprintId ? String(raw.sprintId) : undefined,
     comments: commentsRaw?.length ? commentsRaw.map((c) => mapComment(c)) : undefined,
+    attachments: attachmentsRaw?.filter((x) => x && String((x as Record<string, unknown>).url || '')).length
+      ? attachmentsRaw.map((x) => mapAttachment(x as Record<string, unknown>)).filter((x) => x.url)
+      : undefined,
     completedAt: raw.completedAt ? new Date(raw.completedAt as string).toISOString() : undefined,
     createdAt: raw.createdAt ? new Date(raw.createdAt as string).toISOString() : '',
     updatedAt: raw.updatedAt ? new Date(raw.updatedAt as string).toISOString() : '',
@@ -175,7 +203,9 @@ export const teamWorkApi = {
 
   async patchProject(
     id: string,
-    body: Partial<Pick<TeamWorkProject, 'name' | 'description' | 'memberUserIds' | 'isArchived' | 'tagCatalog'>>,
+    body: Partial<
+      Pick<TeamWorkProject, 'name' | 'description' | 'memberUserIds' | 'memberEmails' | 'isArchived' | 'tagCatalog'>
+    >,
   ): Promise<TeamWorkProject> {
     const d = await sendJson<{ project: Record<string, unknown> }>('PATCH', `/team-work/projects/${id}`, body)
     return mapProject(d.project)
@@ -214,12 +244,16 @@ export const teamWorkApi = {
         | 'issueType'
         | 'teamKey'
         | 'assigneeUserId'
+        | 'assigneeUserIds'
         | 'labels'
         | 'startAt'
         | 'dueAt'
         | 'epicId'
         | 'storyPoints'
         | 'status'
+        | 'parentWorkItemId'
+        | 'attachments'
+        | 'sprintId'
       >
     >,
   ): Promise<TeamWorkItem> {

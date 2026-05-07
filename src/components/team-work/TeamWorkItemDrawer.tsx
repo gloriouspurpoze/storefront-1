@@ -1,31 +1,67 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { format } from 'date-fns'
-import { CalendarPlus, Loader2, MessageSquare, Pencil, Tag, Trash2, UserMinus, UserPlus, X } from 'lucide-react'
+import CloseIcon from '@mui/icons-material/Close'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+import AttachFileIcon from '@mui/icons-material/AttachFile'
+import CommentIcon from '@mui/icons-material/Comment'
+import EditNoteIcon from '@mui/icons-material/EditNote'
+import EventIcon from '@mui/icons-material/Event'
+import PersonAddIcon from '@mui/icons-material/PersonAdd'
+import Avatar from '@mui/material/Avatar'
+import AvatarGroup from '@mui/material/AvatarGroup'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import Checkbox from '@mui/material/Checkbox'
+import Chip from '@mui/material/Chip'
+import CircularProgress from '@mui/material/CircularProgress'
+import Divider from '@mui/material/Divider'
+import Drawer from '@mui/material/Drawer'
+import FormControl from '@mui/material/FormControl'
+import FormControlLabel from '@mui/material/FormControlLabel'
+import FormGroup from '@mui/material/FormGroup'
+import IconButton from '@mui/material/IconButton'
+import InputLabel from '@mui/material/InputLabel'
+import Link from '@mui/material/Link'
+import MenuItem from '@mui/material/MenuItem'
+import Paper from '@mui/material/Paper'
+import Select from '@mui/material/Select'
+import Stack from '@mui/material/Stack'
+import Tab from '@mui/material/Tab'
+import Tabs from '@mui/material/Tabs'
+import TextField from '@mui/material/TextField'
+import Typography from '@mui/material/Typography'
 import { teamWorkApi } from '../../services/api/teamWork.api'
-import type { TeamWorkItem, TeamWorkMeta, TeamWorkTagCatalogEntry } from '../../types/teamWork.types'
+import { apiClient } from '../../services/apiClient'
+import type {
+  TeamWorkAttachment,
+  TeamWorkItem,
+  TeamWorkMeta,
+  TeamWorkSprint,
+  TeamWorkTagCatalogEntry,
+} from '../../types/teamWork.types'
 import { teamWorkTagDisplayName, teamWorkTagSlug } from '../../lib/teamWorkTags'
-import { Button } from '../ui/button'
-import { Badge } from '../ui/badge'
-import { Input } from '../ui/input'
-import { Label } from '../ui/label'
-import { Textarea } from '../ui/textarea'
+import { assigneeSwatchClass, initialsFromLabel, PRIORITY_CHIP, priorityLabel } from '../../lib/teamWorkVisuals'
+import { assigneeIdsFromItem, primaryAssigneeUserId } from '../../lib/teamWorkAssignees'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../ui/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
-import { cn } from '../../lib/utils'
+  clearTeamWorkDrawerDraft,
+  loadTeamWorkDrawerDraft,
+  saveTeamWorkDrawerDraft,
+  type TeamWorkDrawerDraft,
+} from '../../lib/teamWorkDrawerDraft'
 import { ConfirmDialog } from '../common/ConfirmDialog'
 import { ScheduleMeetingDialog } from './ScheduleMeetingDialog'
 import type { User } from '../../services/api/users.service'
-import { assigneeSwatchClass, initialsFromLabel, PRIORITY_CHIP, priorityLabel } from '../../lib/teamWorkVisuals'
+import { RichTextField } from '../forms/RichTextField'
+import { cn } from '../../lib/utils'
+import { sprintIdForTeamWorkApi } from '../../lib/mongoObjectId'
+import { hierarchicalIssueLabel, parentIssueItem, subtasksOfParent } from '../../lib/teamWorkIssueDisplay'
 
 type Props = {
   open: boolean
   itemId: string | null
+  tenantId: string
+  /** Items on the current board (for sub-task list). */
+  boardItems: TeamWorkItem[]
   /** Current board — used for tags API and catalog. */
   projectId: string | null
   meta: TeamWorkMeta | null
@@ -33,9 +69,15 @@ type Props = {
   canManage: boolean
   onUpdated: () => void
   onDeleted: () => void
+  /** Open another issue without closing hub state. */
+  onNavigateItem?: (id: string) => void
   epics: TeamWorkItem[]
-  adminUsers: User[]
+  /** Board team roster — assignees are chosen only from this list. */
+  assigneePoolUsers: User[]
   assigneeMap: Map<string, string>
+  sprints: TeamWorkSprint[]
+  sprintAssignmentMap: Record<string, string>
+  onItemSprintPersist?: (itemId: string, sprintId: string | undefined) => void
   /** Logged-in user id for “Assign to me”. */
   currentUserId?: string
   /** Preset tags from the project (refreshed when parent reloads projects). */
@@ -50,18 +92,84 @@ function userLabel(u: User): string {
   return n || u.email || u.id
 }
 
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+async function uploadAttachmentFile(file: File): Promise<TeamWorkAttachment> {
+  const fd = new FormData()
+  fd.append('file', file)
+  const raw = await apiClient.uploadFile<Record<string, unknown>>('/chat/upload', fd, {
+    showSuccessToast: false,
+    showErrorToast: true,
+    errorMessage: 'Could not upload file',
+    showLoading: false,
+    loadingMessage: '',
+  })
+  const inner =
+    raw &&
+    typeof raw === 'object' &&
+    'success' in raw &&
+    (raw as { success?: boolean }).success &&
+    'data' in raw &&
+    typeof (raw as { data?: unknown }).data === 'object'
+      ? ((raw as { data: Record<string, unknown> }).data as Record<string, unknown>)
+      : raw
+  const url = String(inner?.url || '')
+  if (!url) throw new Error('Upload response missing URL')
+  return {
+    url,
+    fileName: String(inner?.fileName || file.name),
+    mimeType: inner?.mimeType ? String(inner.mimeType) : file.type || undefined,
+    fileSize: inner?.fileSize !== undefined ? Number(inner.fileSize) : file.size,
+  }
+}
+
+const DESC_MODULES = {
+  toolbar: [
+    [{ header: [1, 2, 3, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ color: [] }, { background: [] }],
+    [{ list: 'ordered' }, { list: 'bullet' }],
+    [{ indent: '-1' }, { indent: '+1' }],
+    ['link'],
+    ['clean'],
+  ],
+  clipboard: { matchVisual: false },
+}
+
+const DESC_FORMATS = [
+  'header',
+  'bold',
+  'italic',
+  'underline',
+  'strike',
+  'color',
+  'background',
+  'list',
+  'bullet',
+  'indent',
+  'link',
+]
+
 export function TeamWorkItemDrawer({
   open,
   itemId,
+  tenantId,
+  boardItems,
   projectId,
   meta,
   onClose,
   canManage,
   onUpdated,
   onDeleted,
+  onNavigateItem,
   epics,
-  adminUsers,
+  assigneePoolUsers,
   assigneeMap,
+  sprints,
+  sprintAssignmentMap,
+  onItemSprintPersist,
   currentUserId,
   projectTagCatalog = [],
   onProjectTagCatalogChanged,
@@ -74,65 +182,17 @@ export function TeamWorkItemDrawer({
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [scheduleMeetingOpen, setScheduleMeetingOpen] = useState(false)
   const [form, setForm] = useState<Partial<TeamWorkItem>>({})
+  const [assigneeUserIds, setAssigneeUserIds] = useState<string[]>([])
+  const [attachments, setAttachments] = useState<TeamWorkAttachment[]>([])
+  const [uploadingFile, setUploadingFile] = useState(false)
+  const [tab, setTab] = useState(0)
   const [tagOptions, setTagOptions] = useState<{ catalog: TeamWorkTagCatalogEntry[]; inUse: string[] } | null>(null)
   const [newCustomTag, setNewCustomTag] = useState('')
   const [savingCatalog, setSavingCatalog] = useState(false)
+  const [subtaskTitle, setSubtaskTitle] = useState('')
+  const [creatingSubtask, setCreatingSubtask] = useState(false)
 
-  useEffect(() => {
-    if (!open || !itemId) {
-      setItem(null)
-      return
-    }
-    let cancelled = false
-    setLoading(true)
-    teamWorkApi
-      .getItem(itemId)
-      .then((row) => {
-        if (cancelled) return
-        setItem(row)
-        setForm({
-          title: row.title,
-          description: row.description,
-          status: row.status,
-          priority: row.priority,
-          issueType: row.issueType,
-          assigneeUserId: row.assigneeUserId,
-          labels: row.labels,
-          startAt: row.startAt,
-          dueAt: row.dueAt,
-          epicId: row.epicId,
-          storyPoints: row.storyPoints,
-        })
-      })
-      .catch(() => {
-        if (!cancelled) setItem(null)
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [open, itemId])
-
-  useEffect(() => {
-    if (!open || !projectId) {
-      setTagOptions(null)
-      return
-    }
-    let cancelled = false
-    void teamWorkApi
-      .getProjectTags(projectId)
-      .then((d) => {
-        if (!cancelled) setTagOptions(d)
-      })
-      .catch(() => {
-        if (!cancelled) setTagOptions({ catalog: [], inUse: [] })
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [open, projectId])
+  const fileRef = useRef<HTMLInputElement>(null)
 
   const catalogMerged = useMemo(() => {
     const m = new Map<string, TeamWorkTagCatalogEntry>()
@@ -161,30 +221,194 @@ export function TeamWorkItemDrawer({
   }, [item?.reporterUserId, assigneeMap])
 
   const assigneeGuestEmails = useMemo(() => {
-    if (!item?.assigneeUserId) return [] as string[]
-    const u = adminUsers.find((x) => x.id === item.assigneeUserId)
-    return u?.email ? [u.email] : []
-  }, [item?.assigneeUserId, adminUsers])
+    const emails: string[] = []
+    for (const id of assigneeUserIds) {
+      const u = assigneePoolUsers.find((x) => x.id === id)
+      if (u?.email) emails.push(u.email)
+    }
+    return emails
+  }, [assigneeUserIds, assigneePoolUsers])
+
+  const assignableSprints = useMemo(() => {
+    const live = sprints.filter((s) => s.state !== 'completed')
+    const cur = form.sprintId
+    if (cur && !live.some((s) => s.id === cur)) {
+      const historic = sprints.find((s) => s.id === cur)
+      return historic ? [...live, historic] : live
+    }
+    return live
+  }, [sprints, form.sprintId])
+
+  const issueDisplayLabel = useMemo(
+    () => (item ? hierarchicalIssueLabel(item, boardItems) : ''),
+    [item, boardItems],
+  )
+
+  const parentRowItem = useMemo(
+    () => (item ? parentIssueItem(item, boardItems) : undefined),
+    [item, boardItems],
+  )
 
   const meetingDefaultDetails = useMemo(() => {
     if (!item) return ''
+    const descPlain = form.description ? stripHtml(form.description) : ''
+    const label = hierarchicalIssueLabel(item, boardItems)
     const lines = [
-      `Work item: ${item.issueKey} — ${item.title}`,
-      item.description?.trim() ? `\n${item.description.trim()}` : '',
+      `Work item: ${label}${label !== item.issueKey ? ` (${item.issueKey})` : ''} — ${item.title}`,
+      descPlain ? `\n${descPlain}` : '',
       '\n\nOpened from Fixer Admin → Team work.',
     ]
     return lines.join('')
-  }, [item])
+  }, [item, form.description, boardItems])
+
+  const subtasks = useMemo(() => {
+    if (!item) return []
+    return subtasksOfParent(item.id, boardItems)
+  }, [boardItems, item])
+
+  const persistDraft = useCallback(() => {
+    if (!itemId || !item) return
+    const draft: TeamWorkDrawerDraft = {
+      form: {
+        title: form.title,
+        description: form.description,
+        status: form.status,
+        priority: form.priority,
+        issueType: form.issueType,
+        labels: form.labels,
+        startAt: form.startAt,
+        dueAt: form.dueAt,
+        epicId: form.epicId,
+        storyPoints: form.storyPoints,
+        sprintId: form.sprintId,
+      },
+      assigneeUserIds,
+      attachments,
+      commentDraft: comment,
+      tab: tab === 1 ? 'comments' : 'details',
+    }
+    saveTeamWorkDrawerDraft(tenantId, itemId, draft)
+  }, [
+    itemId,
+    item,
+    form.title,
+    form.description,
+    form.status,
+    form.priority,
+    form.issueType,
+    form.labels,
+    form.startAt,
+    form.dueAt,
+    form.epicId,
+    form.storyPoints,
+    form.sprintId,
+    assigneeUserIds,
+    attachments,
+    comment,
+    tab,
+    tenantId,
+  ])
+
+  useEffect(() => {
+    if (!open || !itemId) {
+      setItem(null)
+      return
+    }
+    let cancelled = false
+    setLoading(true)
+    teamWorkApi
+      .getItem(itemId)
+      .then((row) => {
+        if (cancelled) return
+        setItem(row)
+        const poolIds = new Set(assigneePoolUsers.map((u) => u.id))
+        const sprintMerged = row.sprintId ?? sprintAssignmentMap[row.id]
+        const baseForm: Partial<TeamWorkItem> = {
+          title: row.title,
+          description: row.description ?? '',
+          status: row.status,
+          priority: row.priority,
+          issueType: row.issueType,
+          labels: row.labels,
+          startAt: row.startAt,
+          dueAt: row.dueAt,
+          epicId: row.epicId,
+          storyPoints: row.storyPoints,
+          sprintId: sprintMerged,
+        }
+        setForm(baseForm)
+        setAssigneeUserIds(assigneeIdsFromItem(row).filter((id) => poolIds.has(id)))
+        setAttachments(row.attachments ?? [])
+        setComment('')
+        setTab(0)
+
+        const draft = loadTeamWorkDrawerDraft(tenantId, row.id)
+        if (draft) {
+          setForm((f) => ({ ...f, ...draft.form }))
+          if (draft.assigneeUserIds?.length) setAssigneeUserIds(draft.assigneeUserIds)
+          if (draft.attachments?.length) setAttachments(draft.attachments)
+          setComment(draft.commentDraft ?? '')
+          setTab(draft.tab === 'comments' ? 1 : 0)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setItem(null)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [open, itemId, tenantId, sprintAssignmentMap, assigneePoolUsers])
+
+  useEffect(() => {
+    if (!open || !projectId) {
+      setTagOptions(null)
+      return
+    }
+    let cancelled = false
+    void teamWorkApi
+      .getProjectTags(projectId)
+      .then((d) => {
+        if (!cancelled) setTagOptions(d)
+      })
+      .catch(() => {
+        if (!cancelled) setTagOptions({ catalog: [], inUse: [] })
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [open, projectId])
+
+  useEffect(() => {
+    if (!open || !itemId || !item) return
+    const t = window.setTimeout(() => persistDraft(), 450)
+    return () => window.clearTimeout(t)
+  }, [open, itemId, item, persistDraft])
 
   const save = async () => {
     if (!item || !canManage) return
     setSaving(true)
     try {
+      const poolIds = new Set(assigneePoolUsers.map((u) => u.id))
+      const cleanedAssignees = assigneeUserIds.filter((id) => poolIds.has(id))
+      const primary = primaryAssigneeUserId(cleanedAssignees)
+      const sprintOut: string | undefined = form.sprintId ? form.sprintId : undefined
       const updated = await teamWorkApi.updateItem(item.id, {
         ...form,
         labels: form.labels || [],
+        assigneeUserId: primary,
+        assigneeUserIds: cleanedAssignees.length ? cleanedAssignees : [],
+        attachments: attachments.length ? attachments : [],
+        sprintId: sprintIdForTeamWorkApi(sprintOut),
       })
       setItem(updated)
+      setForm((f) => ({ ...f, sprintId: updated.sprintId ?? sprintOut }))
+      setAssigneeUserIds(assigneeIdsFromItem(updated).filter((id) => poolIds.has(id)))
+      setAttachments(updated.attachments ?? [])
+      onItemSprintPersist?.(item.id, sprintOut)
+      clearTeamWorkDrawerDraft(tenantId, item.id)
       onUpdated()
     } finally {
       setSaving(false)
@@ -198,6 +422,7 @@ export function TeamWorkItemDrawer({
       const updated = await teamWorkApi.addComment(item.id, comment.trim())
       setItem(updated)
       setComment('')
+      clearTeamWorkDrawerDraft(tenantId, item.id)
       onUpdated()
     } finally {
       setPosting(false)
@@ -207,6 +432,7 @@ export function TeamWorkItemDrawer({
   const remove = async () => {
     if (!item || !canManage) return
     await teamWorkApi.deleteItem(item.id)
+    clearTeamWorkDrawerDraft(tenantId, item.id)
     setDeleteOpen(false)
     onDeleted()
     onClose()
@@ -246,226 +472,309 @@ export function TeamWorkItemDrawer({
     }
   }
 
-  if (!open) return null
+  const toggleAssignee = (userId: string) => {
+    setAssigneeUserIds((prev) =>
+      prev.includes(userId) ? prev.filter((x) => x !== userId) : [...prev, userId].sort(),
+    )
+  }
+
+  const onPickFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    e.target.value = ''
+    if (!files?.length || !canManage) return
+    setUploadingFile(true)
+    try {
+      const next = [...attachments]
+      for (const file of Array.from(files)) {
+        const row = await uploadAttachmentFile(file)
+        next.push(row)
+      }
+      setAttachments(next)
+    } finally {
+      setUploadingFile(false)
+    }
+  }
+
+  const createSubtask = async () => {
+    if (!item || !projectId || !subtaskTitle.trim() || !canManage) return
+    setCreatingSubtask(true)
+    try {
+      const parentSprint = form.sprintId || item.sprintId
+      const created = await teamWorkApi.createItem({
+        projectId,
+        title: subtaskTitle.trim(),
+        parentWorkItemId: item.id,
+        issueType: 'task',
+        status: 'todo',
+        priority: form.priority ?? item.priority,
+        sprintId: sprintIdForTeamWorkApi(parentSprint),
+      })
+      if (parentSprint) onItemSprintPersist?.(created.id, parentSprint)
+      setSubtaskTitle('')
+      onUpdated()
+    } finally {
+      setCreatingSubtask(false)
+    }
+  }
 
   const statuses = meta?.statuses ?? []
   const priorities = meta?.priorities ?? []
   const issueTypes = meta?.issueTypes ?? []
 
+  const drawerPaperSx = {
+    width: { xs: '100%', sm: 'min(100%, 560px)' },
+    maxWidth: '100%',
+    bgcolor: 'hsl(var(--background) / 1)',
+    borderLeft: '1px solid hsl(var(--border) / 0.6)',
+    display: 'flex',
+    flexDirection: 'column',
+  }
+
   return (
     <>
-      <button type="button" aria-label="Close panel" className="fixed inset-0 z-[150] bg-black/50" onClick={onClose} />
-      <div
-        className={cn(
-          'fixed right-0 top-0 z-[160] flex h-full w-full max-w-xl flex-col border-l bg-background shadow-xl',
-          'animate-in slide-in-from-right duration-200',
-        )}
+      <Drawer
+        anchor="right"
+        open={open}
+        onClose={onClose}
+        slotProps={{
+          backdrop: { sx: { bgcolor: 'rgba(0,0,0,0.45)' } },
+          paper: { sx: drawerPaperSx },
+        }}
       >
-        <div className="flex items-center justify-between border-b px-4 py-3">
-          <div className="min-w-0">
-            {loading ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading…
-              </div>
-            ) : item ? (
-              <>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-mono text-sm font-bold text-primary">{item.issueKey}</span>
-                  <Badge variant="outline" className="text-[10px] capitalize">
-                    {item.issueType}
-                  </Badge>
-                  <Badge variant="secondary" className="text-[10px] capitalize">
-                    {item.status.replace(/_/g, ' ')}
-                  </Badge>
-                  <span
-                    className={cn(
-                      'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
-                      PRIORITY_CHIP[item.priority],
-                    )}
-                  >
-                    {priorityLabel(item.priority)}
-                  </span>
-                </div>
-                <div className="mt-2 rounded-lg border border-border/60 bg-muted/25 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
-                  <p>
-                    <span className="font-medium text-foreground">Created</span> by {reporterLabel} on{' '}
-                    {item.createdAt ? format(new Date(item.createdAt), 'PPp') : '—'}
-                  </p>
-                  <p className="mt-0.5">
-                    <span className="font-medium text-foreground">Last updated</span> {format(new Date(item.updatedAt), 'PPp')}
-                  </p>
-                </div>
-                {item.assigneeUserId ? (
-                  <div className="mt-2 flex items-center gap-2">
-                    <span
-                      className={cn(
-                        'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ring-2 ring-background',
-                        assigneeSwatchClass(item.assigneeUserId),
+        <Box sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
+          <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1}>
+            <Box sx={{ minWidth: 0, flex: 1 }}>
+              {loading ? (
+                <Stack direction="row" alignItems="center" spacing={1} sx={{ color: 'text.secondary' }}>
+                  <CircularProgress size={18} />
+                  <Typography variant="body2">Loading…</Typography>
+                </Stack>
+              ) : item ? (
+                <>
+                  <Stack direction="row" alignItems="center" flexWrap="wrap" gap={0.75}>
+                    <Typography variant="subtitle2" sx={{ fontFamily: 'ui-monospace, monospace', color: 'primary.main', fontWeight: 700 }}>
+                      {issueDisplayLabel}
+                    </Typography>
+                    {issueDisplayLabel !== item.issueKey ? (
+                      <Typography
+                        component="span"
+                        variant="caption"
+                        sx={{ fontFamily: 'ui-monospace, monospace', color: 'text.secondary', fontWeight: 600 }}
+                        title="Stored issue key from server"
+                      >
+                        {item.issueKey}
+                      </Typography>
+                    ) : null}
+                    {item.parentWorkItemId ? (
+                      <Chip size="small" label="Subtask" color="secondary" variant="outlined" sx={{ fontWeight: 700 }} />
+                    ) : null}
+                    <Chip size="small" label={item.issueType} variant="outlined" sx={{ textTransform: 'capitalize' }} />
+                    <Chip size="small" label={item.status.replace(/_/g, ' ')} sx={{ textTransform: 'capitalize' }} />
+                    <Chip
+                      size="small"
+                      label={priorityLabel(item.priority)}
+                      className={cn(PRIORITY_CHIP[item.priority])}
+                      sx={{ fontWeight: 600, fontSize: '0.65rem' }}
+                    />
+                  </Stack>
+                  {parentRowItem ? (
+                    <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mt: 1, flexWrap: 'wrap' }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                        Parent
+                      </Typography>
+                      {onNavigateItem ? (
+                        <Button
+                          size="small"
+                          variant="text"
+                          sx={{ minWidth: 0, px: 0.5, py: 0, fontSize: '0.75rem', textAlign: 'left' }}
+                          onClick={() => onNavigateItem(parentRowItem.id)}
+                        >
+                          <Box component="span" sx={{ fontFamily: 'ui-monospace, monospace', fontWeight: 700 }}>
+                            {hierarchicalIssueLabel(parentRowItem, boardItems)}
+                          </Box>
+                          <Box component="span" sx={{ ml: 0.75, fontWeight: 500 }}>
+                            — {parentRowItem.title}
+                          </Box>
+                        </Button>
+                      ) : (
+                        <Typography variant="caption" color="text.secondary">
+                          {hierarchicalIssueLabel(parentRowItem, boardItems)} — {parentRowItem.title}
+                        </Typography>
                       )}
-                    >
-                      {initialsFromLabel(assigneeMap.get(item.assigneeUserId) || item.assigneeUserId)}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate text-xs font-medium text-foreground">Assignee</p>
-                      <p className="truncate text-sm text-muted-foreground">
-                        {assigneeMap.get(item.assigneeUserId) || item.assigneeUserId}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground">Unassigned</span> — open the Details tab and pick someone, use Assign to me, or leave in the team pool.
-                  </p>
-                )}
-              </>
-            ) : (
-              <p className="text-sm text-destructive">Could not load this item.</p>
-            )}
-          </div>
-          <Button type="button" size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={onClose} aria-label="Close">
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+                    </Stack>
+                  ) : null}
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                    Created by {reporterLabel}
+                    {item.createdAt ? ` · ${format(new Date(item.createdAt), 'PPp')}` : ''}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                    Updated {format(new Date(item.updatedAt), 'PPp')}
+                  </Typography>
+                  <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 1.5 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                      Assignees
+                    </Typography>
+                    {assigneeUserIds.length ? (
+                      <AvatarGroup max={4} sx={{ '& .MuiAvatar-root': { width: 28, height: 28, fontSize: '0.7rem' } }}>
+                        {assigneeUserIds.map((id) => (
+                          <Avatar
+                            key={id}
+                            className={assigneeSwatchClass(id)}
+                            sx={{ fontWeight: 700, fontSize: '0.65rem' }}
+                          >
+                            {initialsFromLabel(assigneeMap.get(id) || id)}
+                          </Avatar>
+                        ))}
+                      </AvatarGroup>
+                    ) : (
+                      <Typography variant="caption" color="text.secondary">
+                        Unassigned
+                      </Typography>
+                    )}
+                  </Stack>
+                </>
+              ) : (
+                <Typography color="error" variant="body2">
+                  Could not load this item.
+                </Typography>
+              )}
+            </Box>
+            <IconButton aria-label="Close" onClick={onClose} size="small">
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Stack>
+        </Box>
 
         {item ? (
-          <Tabs defaultValue="details" className="flex flex-1 flex-col">
-            <TabsList className="mx-4 mt-2 w-auto justify-start">
-              <TabsTrigger value="details" className="gap-1.5">
-                <Pencil className="h-3.5 w-3.5" />
-                Details
-              </TabsTrigger>
-              <TabsTrigger value="comments" className="gap-1.5">
-                <MessageSquare className="h-3.5 w-3.5" />
-                Comments
-                {item.comments?.length ? (
-                  <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">
-                    {item.comments.length}
-                  </Badge>
-                ) : null}
-              </TabsTrigger>
-            </TabsList>
+          <>
+            <Tabs
+              value={tab}
+              onChange={(_, v) => setTab(v)}
+              variant="fullWidth"
+              sx={{ minHeight: 42, flexShrink: 0, borderBottom: 1, borderColor: 'divider', px: 1 }}
+            >
+              <Tab icon={<EditNoteIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Details" sx={{ minHeight: 42 }} />
+              <Tab
+                icon={<CommentIcon sx={{ fontSize: 18 }} />}
+                iconPosition="start"
+                label={`Comments${item.comments?.length ? ` (${item.comments.length})` : ''}`}
+                sx={{ minHeight: 42 }}
+              />
+            </Tabs>
 
-            <TabsContent value="details" className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-4 ">
-              <div className="min-h-0 flex-1 space-y-5 overflow-y-auto py-4">
-                <div className="rounded-lg border border-border/70 bg-card p-4 shadow-sm">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Assignee</p>
-                      <p className="mt-0.5 text-sm text-foreground">
-                        {form.assigneeUserId
-                          ? assigneeMap.get(form.assigneeUserId) || form.assigneeUserId
-                          : 'Unassigned — visible to the whole board'}
-                      </p>
-                    </div>
-                    {canManage ? (
-                      <div className="flex flex-wrap gap-2">
-                        {currentUserId ? (
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="secondary"
-                            className="gap-1"
-                            onClick={() => setForm((f) => ({ ...f, assigneeUserId: currentUserId }))}
-                          >
-                            <UserPlus className="h-3.5 w-3.5" aria-hidden />
-                            Assign to me
-                          </Button>
-                        ) : null}
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="gap-1"
-                          onClick={() => setForm((f) => ({ ...f, assigneeUserId: undefined }))}
-                        >
-                          <UserMinus className="h-3.5 w-3.5" aria-hidden />
-                          Unassign
-                        </Button>
-                      </div>
+            <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 2, py: 2 }}>
+              {tab === 0 ? (
+                <Stack spacing={2.5}>
+                  <Paper variant="outlined" sx={{ p: 2, bgcolor: 'hsl(var(--muted) / 0.25)' }}>
+                    <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 700 }}>
+                      People
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                      Select everyone responsible — matches Jira-style multiple assignees when the API supports it.
+                    </Typography>
+                    {canManage && currentUserId ? (
+                      <Button
+                        size="small"
+                        startIcon={<PersonAddIcon />}
+                        onClick={() => toggleAssignee(currentUserId)}
+                        sx={{ mb: 1 }}
+                      >
+                        {assigneeUserIds.includes(currentUserId) ? 'Remove me' : 'Assign to me'}
+                      </Button>
                     ) : null}
-                  </div>
-                  <p className="mt-2 text-[11px] text-muted-foreground">
-                    Assigning someone else emails them when SMTP is configured on the API. Assigning yourself does not send email.
-                  </p>
-                  <Select
-                    disabled={!canManage}
-                    value={form.assigneeUserId || '__none__'}
-                    onValueChange={(v) =>
-                      setForm((f) => ({ ...f, assigneeUserId: v === '__none__' ? undefined : v }))
-                    }
-                  >
-                    <SelectTrigger className="mt-2">
-                      <SelectValue placeholder="Choose assignee" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">Unassigned (team pool)</SelectItem>
-                      {form.assigneeUserId && !adminUsers.some((u) => u.id === form.assigneeUserId) ? (
-                        <SelectItem value={form.assigneeUserId}>
-                          {assigneeMap.get(form.assigneeUserId) || form.assigneeUserId}
-                        </SelectItem>
-                      ) : null}
-                      {adminUsers.map((u) => (
-                        <SelectItem key={u.id} value={u.id}>
-                          {userLabel(u)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                    {assigneePoolUsers.length === 0 ? (
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', py: 1 }}>
+                        No one is on this board’s team list — add members under{' '}
+                        <Box component="span" sx={{ fontWeight: 700 }}>
+                          Board access
+                        </Box>{' '}
+                        to pick assignees, or use an org-wide board to use all directory members.
+                      </Typography>
+                    ) : (
+                      <FormGroup sx={{ maxHeight: 200, overflow: 'auto', gap: 0 }}>
+                        {assigneePoolUsers.map((u) => (
+                          <FormControlLabel
+                            key={u.id}
+                            disabled={!canManage}
+                            control={
+                              <Checkbox
+                                size="small"
+                                checked={assigneeUserIds.includes(u.id)}
+                                onChange={() => toggleAssignee(u.id)}
+                              />
+                            }
+                            label={<Typography variant="body2">{userLabel(u)}</Typography>}
+                          />
+                        ))}
+                      </FormGroup>
+                    )}
+                  </Paper>
 
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Tag className="h-4 w-4 text-muted-foreground" aria-hidden />
-                    <Label className="text-base">Tags</Label>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Tap a tag to add or remove it from this issue. Tags are shared on this board — save a new name as a board preset so everyone can reuse it in filters.
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {catalogMerged.map((t) => {
-                      const on = (form.labels || []).includes(t.slug)
-                      return (
-                        <Button
-                          key={t.slug}
-                          type="button"
-                          size="sm"
-                          variant={on ? 'default' : 'outline'}
-                          className="h-8 rounded-full px-3 text-xs font-normal"
-                          disabled={!canManage}
-                          onClick={() => toggleLabel(t.slug)}
-                        >
-                          {t.name}
-                        </Button>
-                      )
-                    })}
-                    {extraLabelSlugs.map((slug) => {
-                      const on = (form.labels || []).includes(slug)
-                      const name = teamWorkTagDisplayName(slug, catalogMerged)
-                      return (
-                        <Button
-                          key={`extra-${slug}`}
-                          type="button"
-                          size="sm"
-                          variant={on ? 'default' : 'secondary'}
-                          className="h-8 rounded-full px-3 text-xs font-normal"
-                          disabled={!canManage}
-                          onClick={() => toggleLabel(slug)}
-                        >
-                          {name}
-                        </Button>
-                      )
-                    })}
-                  </div>
-                  {canManage ? (
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <Label htmlFor="tw-newtag" className="text-xs">
-                          Add custom tag
-                        </Label>
-                        <Input
-                          id="tw-newtag"
-                          placeholder="e.g. Marketing team"
+                  <FormControl fullWidth size="small" disabled={!canManage}>
+                    <InputLabel id="tw-sprint-lbl">Sprint</InputLabel>
+                    <Select
+                      labelId="tw-sprint-lbl"
+                      label="Sprint"
+                      value={form.sprintId ? form.sprintId : '__backlog__'}
+                      onChange={(e) => {
+                        const v = e.target.value as string
+                        setForm((f) => ({ ...f, sprintId: v === '__backlog__' ? undefined : v }))
+                      }}
+                    >
+                      <MenuItem value="__backlog__">Backlog (no sprint)</MenuItem>
+                      {assignableSprints.map((s) => (
+                        <MenuItem key={s.id} value={s.id}>
+                          {s.state === 'active' ? '● ' : ''}
+                          {s.name} · {format(new Date(s.startAt), 'MMM d')} – {format(new Date(s.endAt), 'MMM d')}
+                          {s.state === 'completed' ? ' (closed)' : ''}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: -1 }}>
+                    Move work in or out of the current iteration. Save to persist (API + local overlay).
+                  </Typography>
+
+                  <Stack spacing={1}>
+                    <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 700 }}>
+                      Tags
+                    </Typography>
+                    <Stack direction="row" flexWrap="wrap" gap={0.75}>
+                      {catalogMerged.map((t) => {
+                        const on = (form.labels || []).includes(t.slug)
+                        return (
+                          <Chip
+                            key={t.slug}
+                            label={t.name}
+                            size="small"
+                            color={on ? 'primary' : 'default'}
+                            variant={on ? 'filled' : 'outlined'}
+                            onClick={() => canManage && toggleLabel(t.slug)}
+                          />
+                        )
+                      })}
+                      {extraLabelSlugs.map((slug) => {
+                        const on = (form.labels || []).includes(slug)
+                        const name = teamWorkTagDisplayName(slug, catalogMerged)
+                        return (
+                          <Chip
+                            key={`extra-${slug}`}
+                            label={name}
+                            size="small"
+                            variant={on ? 'filled' : 'outlined'}
+                            color={on ? 'secondary' : 'default'}
+                            onClick={() => canManage && toggleLabel(slug)}
+                          />
+                        )
+                      })}
+                    </Stack>
+                    {canManage ? (
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'flex-end' }}>
+                        <TextField
+                          size="small"
+                          fullWidth
+                          label="Custom tag"
+                          placeholder="e.g. Marketing"
                           value={newCustomTag}
                           onChange={(e) => setNewCustomTag(e.target.value)}
                           onKeyDown={(e) => {
@@ -475,126 +784,236 @@ export function TeamWorkItemDrawer({
                             }
                           }}
                         />
-                      </div>
-                      <Button type="button" variant="secondary" size="sm" onClick={addCustomTagFromInput}>
-                        Add tag
-                      </Button>
-                    </div>
-                  ) : null}
-                  {canManage && projectId
-                    ? (form.labels || []).map((slug) => {
-                        const inPreset = projectTagCatalog.some((t) => t.slug === slug)
-                        if (inPreset) return null
-                        return (
-                          <div key={`preset-${slug}`} className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                            <span>
-                              “{teamWorkTagDisplayName(slug, catalogMerged)}” is only on this issue.
-                            </span>
-                            <Button
-                              type="button"
-                              variant="link"
-                              className="h-auto p-0 text-xs"
-                              disabled={savingCatalog}
-                              onClick={() =>
-                                void saveTagToBoardPreset(slug, teamWorkTagDisplayName(slug, catalogMerged))
-                              }
-                            >
-                              Save as board tag
-                            </Button>
-                          </div>
-                        )
-                      })
-                    : null}
-                </div>
+                        <Button variant="outlined" size="small" onClick={addCustomTagFromInput}>
+                          Add
+                        </Button>
+                      </Stack>
+                    ) : null}
+                    {canManage && projectId
+                      ? (form.labels || []).map((slug) => {
+                          const inPreset = projectTagCatalog.some((t) => t.slug === slug)
+                          if (inPreset) return null
+                          return (
+                            <Typography key={`preset-${slug}`} variant="caption" color="text.secondary">
+                              “{teamWorkTagDisplayName(slug, catalogMerged)}” is only on this issue —{' '}
+                              <Link
+                                component="button"
+                                type="button"
+                                variant="caption"
+                                disabled={savingCatalog}
+                                onClick={() => void saveTagToBoardPreset(slug, teamWorkTagDisplayName(slug, catalogMerged))}
+                              >
+                                Save as board tag
+                              </Link>
+                            </Typography>
+                          )
+                        })
+                      : null}
+                  </Stack>
 
-                <div className="space-y-2">
-                  <Label htmlFor="tw-title">Title</Label>
-                  <Input
-                    id="tw-title"
-                    value={form.title ?? ''}
+                  <TextField
+                    label="Title"
+                    fullWidth
+                    size="small"
                     disabled={!canManage}
+                    value={form.title ?? ''}
                     onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="tw-desc">Description</Label>
-                  <Textarea
-                    id="tw-desc"
-                    rows={5}
-                    className="resize-y"
-                    disabled={!canManage}
-                    value={form.description ?? ''}
-                    onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>Status</Label>
-                    <Select
+
+                  <Box>
+                    <RichTextField
+                      label="Description"
+                      value={form.description ?? ''}
+                      onChange={(html) => setForm((f) => ({ ...f, description: html }))}
                       disabled={!canManage}
-                      value={form.status}
-                      onValueChange={(v) => setForm((f) => ({ ...f, status: v as TeamWorkItem['status'] }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
+                      placeholder="Goals, acceptance criteria, links…"
+                      height={220}
+                      modules={DESC_MODULES}
+                      formats={DESC_FORMATS}
+                      helperText="Rich text is saved with the issue. Drafts persist in this browser session if you close the drawer."
+                    />
+                  </Box>
+
+                  <Stack spacing={1}>
+                    <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 700 }}>
+                      Attachments
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Images and documents upload via the chat file endpoint, then attach to this issue.
+                    </Typography>
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      hidden
+                      multiple
+                      accept="image/*,.pdf,.doc,.docx,.txt,.csv,.zip"
+                      onChange={(e) => void onPickFiles(e)}
+                    />
+                    <Stack direction="row" flexWrap="wrap" gap={1} alignItems="center">
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={uploadingFile ? <CircularProgress size={16} /> : <AttachFileIcon />}
+                        disabled={!canManage || uploadingFile}
+                        onClick={() => fileRef.current?.click()}
+                      >
+                        Add files
+                      </Button>
+                    </Stack>
+                    {attachments.length ? (
+                      <Stack spacing={0.75}>
+                        {attachments.map((a, idx) => (
+                          <Paper key={`${a.url}-${idx}`} variant="outlined" sx={{ px: 1.5, py: 1 }}>
+                            <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1}>
+                              <Link href={a.url} target="_blank" rel="noopener noreferrer" variant="body2" sx={{ wordBreak: 'break-all' }}>
+                                {a.fileName}
+                              </Link>
+                              {canManage ? (
+                                <IconButton
+                                  size="small"
+                                  aria-label="Remove attachment"
+                                  onClick={() => setAttachments((prev) => prev.filter((_, i) => i !== idx))}
+                                >
+                                  <DeleteOutlineIcon fontSize="small" />
+                                </IconButton>
+                              ) : null}
+                            </Stack>
+                          </Paper>
+                        ))}
+                      </Stack>
+                    ) : (
+                      <Typography variant="caption" color="text.secondary">
+                        No attachments yet.
+                      </Typography>
+                    )}
+                  </Stack>
+
+                  <Paper variant="outlined" sx={{ p: 2 }}>
+                    <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 700 }}>
+                      Sub-tasks
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                      Numbers follow the parent ticket (e.g. <Box component="span" sx={{ fontFamily: 'monospace', fontWeight: 700 }}>PF-12.1</Box>,{' '}
+                      <Box component="span" sx={{ fontFamily: 'monospace', fontWeight: 700 }}>PF-12.2</Box>) in board order. The smaller monospace key is
+                      the stored server id when it differs.
+                    </Typography>
+                    {subtasks.length ? (
+                      <Stack spacing={0.75} sx={{ mb: 1.5 }}>
+                        {subtasks.map((st) => {
+                          const stLabel = hierarchicalIssueLabel(st, boardItems)
+                          return (
+                          <Paper key={st.id} variant="outlined" sx={{ px: 1.5, py: 1, borderLeftWidth: 3, borderLeftColor: 'primary.main' }}>
+                            <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1}>
+                              <Box sx={{ minWidth: 0 }}>
+                                <Stack direction="row" alignItems="center" gap={0.5} flexWrap="wrap">
+                                  <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'primary.main', fontWeight: 700 }}>
+                                    {stLabel}
+                                  </Typography>
+                                  {stLabel !== st.issueKey ? (
+                                    <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>
+                                      {st.issueKey}
+                                    </Typography>
+                                  ) : null}
+                                  <Chip size="small" label="Subtask" variant="outlined" sx={{ height: 20, fontSize: '0.6rem' }} />
+                                </Stack>
+                                <Typography variant="body2" sx={{ fontWeight: 500 }} noWrap title={st.title}>
+                                  {st.title}
+                                </Typography>
+                              </Box>
+                              {onNavigateItem ? (
+                                <Button size="small" onClick={() => onNavigateItem(st.id)}>
+                                  Open
+                                </Button>
+                              ) : null}
+                            </Stack>
+                          </Paper>
+                          )
+                        })}
+                      </Stack>
+                    ) : (
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                        No sub-tasks yet.
+                      </Typography>
+                    )}
+                    {canManage ? (
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                        <TextField
+                          size="small"
+                          fullWidth
+                          placeholder="New sub-task title"
+                          value={subtaskTitle}
+                          onChange={(e) => setSubtaskTitle(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              void createSubtask()
+                            }
+                          }}
+                        />
+                        <Button
+                          variant="contained"
+                          disabled={creatingSubtask || !subtaskTitle.trim()}
+                          onClick={() => void createSubtask()}
+                        >
+                          {creatingSubtask ? <CircularProgress size={18} color="inherit" /> : 'Add'}
+                        </Button>
+                      </Stack>
+                    ) : null}
+                  </Paper>
+
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                    <FormControl fullWidth size="small" disabled={!canManage}>
+                      <InputLabel>Status</InputLabel>
+                      <Select
+                        label="Status"
+                        value={form.status ?? ''}
+                        onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as TeamWorkItem['status'] }))}
+                      >
                         {statuses.map((s) => (
-                          <SelectItem key={s} value={s} className="capitalize">
+                          <MenuItem key={s} value={s} sx={{ textTransform: 'capitalize' }}>
                             {s.replace(/_/g, ' ')}
-                          </SelectItem>
+                          </MenuItem>
                         ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Priority</Label>
-                    <Select
-                      disabled={!canManage}
-                      value={form.priority}
-                      onValueChange={(v) => setForm((f) => ({ ...f, priority: v as TeamWorkItem['priority'] }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormControl fullWidth size="small" disabled={!canManage}>
+                      <InputLabel>Priority</InputLabel>
+                      <Select
+                        label="Priority"
+                        value={form.priority ?? ''}
+                        onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value as TeamWorkItem['priority'] }))}
+                      >
                         {priorities.map((p) => (
-                          <SelectItem key={p} value={p} className="capitalize">
+                          <MenuItem key={p} value={p} sx={{ textTransform: 'capitalize' }}>
                             {p}
-                          </SelectItem>
+                          </MenuItem>
                         ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>Type</Label>
-                    <Select
-                      disabled={!canManage}
-                      value={form.issueType}
-                      onValueChange={(v) => setForm((f) => ({ ...f, issueType: v as TeamWorkItem['issueType'] }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
+                      </Select>
+                    </FormControl>
+                  </Stack>
+
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                    <FormControl fullWidth size="small" disabled={!canManage}>
+                      <InputLabel>Type</InputLabel>
+                      <Select
+                        label="Type"
+                        value={form.issueType ?? ''}
+                        onChange={(e) => setForm((f) => ({ ...f, issueType: e.target.value as TeamWorkItem['issueType'] }))}
+                      >
                         {issueTypes.map((t) => (
-                          <SelectItem key={t} value={t} className="capitalize">
+                          <MenuItem key={t} value={t} sx={{ textTransform: 'capitalize' }}>
                             {t}
-                          </SelectItem>
+                          </MenuItem>
                         ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="tw-sp">Story points</Label>
-                    <Input
-                      id="tw-sp"
+                      </Select>
+                    </FormControl>
+                    <TextField
+                      label="Story points"
                       type="number"
-                      min={0}
-                      max={100}
+                      size="small"
+                      fullWidth
                       disabled={!canManage}
+                      inputProps={{ min: 0, max: 100 }}
                       value={form.storyPoints ?? ''}
                       onChange={(e) =>
                         setForm((f) => ({
@@ -603,38 +1022,35 @@ export function TeamWorkItemDrawer({
                         }))
                       }
                     />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Epic</Label>
-                  <Select
-                    disabled={!canManage}
-                    value={form.epicId || '__none__'}
-                    onValueChange={(v) => setForm((f) => ({ ...f, epicId: v === '__none__' ? undefined : v }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="None" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">None</SelectItem>
-                      {epics.map((e) => (
-                        <SelectItem key={e.id} value={e.id}>
-                          {e.issueKey} — {e.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="tw-start">Start date</Label>
-                    <Input
-                      id="tw-start"
-                      type="datetime-local"
-                      disabled={!canManage}
-                      value={
-                        form.startAt ? format(new Date(form.startAt), "yyyy-MM-dd'T'HH:mm") : ''
+                  </Stack>
+
+                  <FormControl fullWidth size="small" disabled={!canManage}>
+                    <InputLabel>Epic</InputLabel>
+                    <Select
+                      label="Epic"
+                      value={form.epicId || '__none__'}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, epicId: e.target.value === '__none__' ? undefined : String(e.target.value) }))
                       }
+                    >
+                      <MenuItem value="__none__">None</MenuItem>
+                      {epics.map((ep) => (
+                        <MenuItem key={ep.id} value={ep.id}>
+                          {ep.issueKey} — {ep.title}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                    <TextField
+                      label="Start"
+                      type="datetime-local"
+                      size="small"
+                      fullWidth
+                      disabled={!canManage}
+                      InputLabelProps={{ shrink: true }}
+                      value={form.startAt ? format(new Date(form.startAt), "yyyy-MM-dd'T'HH:mm") : ''}
                       onChange={(e) =>
                         setForm((f) => ({
                           ...f,
@@ -642,19 +1058,14 @@ export function TeamWorkItemDrawer({
                         }))
                       }
                     />
-                    <p className="text-[11px] text-muted-foreground">Optional. Shown on the team calendar as “Start · …”.</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="tw-due">Due date</Label>
-                    <Input
-                      id="tw-due"
+                    <TextField
+                      label="Due"
                       type="datetime-local"
+                      size="small"
+                      fullWidth
                       disabled={!canManage}
-                      value={
-                        form.dueAt
-                          ? format(new Date(form.dueAt), "yyyy-MM-dd'T'HH:mm")
-                          : ''
-                      }
+                      InputLabelProps={{ shrink: true }}
+                      value={form.dueAt ? format(new Date(form.dueAt), "yyyy-MM-dd'T'HH:mm") : ''}
                       onChange={(e) =>
                         setForm((f) => ({
                           ...f,
@@ -662,96 +1073,115 @@ export function TeamWorkItemDrawer({
                         }))
                       }
                     />
-                  </div>
-                </div>
-                <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
-                  <p className="text-xs font-medium text-foreground">Meetings</p>
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    Open Google Calendar with this issue in the title and description. Add guests or a Meet link in
-                    the next step.
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="mt-2 gap-1.5"
-                    onClick={() => setScheduleMeetingOpen(true)}
-                  >
-                    <CalendarPlus className="h-3.5 w-3.5" aria-hidden />
-                    Schedule in Google Calendar
-                  </Button>
-                </div>
-              </div>
-              {canManage ? (
-                <div className="flex shrink-0 flex-wrap gap-2 border-t pt-3">
-                  <Button type="button" onClick={() => void save()} disabled={saving}>
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                    Save changes
-                  </Button>
-                  <Button type="button" variant="destructive" className="gap-1" onClick={() => setDeleteOpen(true)}>
-                    <Trash2 className="h-4 w-4" />
-                    Delete
-                  </Button>
-                </div>
-              ) : null}
-            </TabsContent>
+                  </Stack>
 
-            <TabsContent value="comments" className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-4">
-              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto py-4">
-                {(item.comments || []).length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No comments yet. Start the thread below.</p>
-                ) : (
-                  [...(item.comments || [])]
-                    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-                    .map((c) => (
-                      <div key={c.id} className="rounded-lg border border-border/70 bg-muted/20 p-3">
-                        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                          <span className="font-medium text-foreground">{c.authorName || c.userId}</span>
-                          <span>{format(new Date(c.createdAt), 'PPp')}</span>
-                        </div>
-                        <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed">{c.body}</p>
-                      </div>
-                    ))
-                )}
-              </div>
-              <div className="shrink-0 space-y-2 border-t pt-3">
-                <Label htmlFor="tw-comment">Add comment</Label>
-                <Textarea
-                  id="tw-comment"
-                  rows={3}
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder="Mention context, blockers, or handoff notes…"
-                />
-                <Button type="button" size="sm" onClick={() => void postComment()} disabled={posting || !comment.trim()}>
-                  {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  Post comment
-                </Button>
-              </div>
-            </TabsContent>
-          </Tabs>
+                  <Paper variant="outlined" sx={{ p: 2 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                      Meetings
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                      Open Google Calendar with this issue prefilled.
+                    </Typography>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<EventIcon />}
+                      sx={{ mt: 1 }}
+                      onClick={() => setScheduleMeetingOpen(true)}
+                    >
+                      Schedule in Google Calendar
+                    </Button>
+                  </Paper>
+
+                  {canManage ? (
+                    <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ pt: 1 }}>
+                      <Button variant="contained" disabled={saving} onClick={() => void save()}>
+                        {saving ? <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} /> : null}
+                        Save changes
+                      </Button>
+                      <Button color="error" variant="outlined" startIcon={<DeleteOutlineIcon />} onClick={() => setDeleteOpen(true)}>
+                        Delete
+                      </Button>
+                    </Stack>
+                  ) : null}
+                </Stack>
+              ) : (
+                <Stack spacing={2} sx={{ height: '100%' }}>
+                  <Stack spacing={1.5} sx={{ flex: 1, minHeight: 0, overflow: 'auto', pr: 0.5 }}>
+                    {(item.comments || []).length === 0 ? (
+                      <Typography variant="body2" color="text.secondary">
+                        No comments yet.
+                      </Typography>
+                    ) : (
+                      [...(item.comments || [])]
+                        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+                        .map((c) => (
+                          <Paper key={c.id} variant="outlined" sx={{ p: 1.5, bgcolor: 'hsl(var(--muted) / 0.2)' }}>
+                            <Stack direction="row" justifyContent="space-between" alignItems="baseline" gap={1}>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                {c.authorName || c.userId}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {format(new Date(c.createdAt), 'PPp')}
+                              </Typography>
+                            </Stack>
+                            <Divider sx={{ my: 1 }} />
+                            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                              {c.body}
+                            </Typography>
+                          </Paper>
+                        ))
+                    )}
+                  </Stack>
+                  <Paper variant="outlined" sx={{ p: 2, flexShrink: 0 }}>
+                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                      Add comment
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      multiline
+                      minRows={3}
+                      placeholder="Context, blockers, handoff…"
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                    />
+                    <Stack direction="row" justifyContent="flex-end" sx={{ mt: 1 }}>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        disabled={posting || !comment.trim()}
+                        onClick={() => void postComment()}
+                      >
+                        {posting ? <CircularProgress size={18} color="inherit" /> : 'Post'}
+                      </Button>
+                    </Stack>
+                  </Paper>
+                </Stack>
+              )}
+            </Box>
+          </>
         ) : null}
+      </Drawer>
 
-        <ConfirmDialog
-          open={deleteOpen}
-          onCancel={() => setDeleteOpen(false)}
-          onConfirm={() => void remove()}
-          title="Delete work item?"
-          message="This permanently removes the issue and its comments."
-          confirmText="Delete"
-          severity="error"
+      <ConfirmDialog
+        open={deleteOpen}
+        onCancel={() => setDeleteOpen(false)}
+        onConfirm={() => void remove()}
+        title="Delete work item?"
+        message="This permanently removes the issue and its comments."
+        confirmText="Delete"
+        severity="error"
+      />
+
+      {item ? (
+        <ScheduleMeetingDialog
+          open={scheduleMeetingOpen}
+          onOpenChange={setScheduleMeetingOpen}
+          defaultTitle={`${issueDisplayLabel}: ${item.title}`}
+          defaultDetails={meetingDefaultDetails}
+          defaultGuestEmails={assigneeGuestEmails}
         />
-
-        {item ? (
-          <ScheduleMeetingDialog
-            open={scheduleMeetingOpen}
-            onOpenChange={setScheduleMeetingOpen}
-            defaultTitle={`${item.issueKey}: ${item.title}`}
-            defaultDetails={meetingDefaultDetails}
-            defaultGuestEmails={assigneeGuestEmails}
-          />
-        ) : null}
-      </div>
+      ) : null}
     </>
   )
 }

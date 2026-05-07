@@ -24,6 +24,8 @@ import {
   priorityLabel,
 } from '../../lib/teamWorkVisuals'
 import type { TeamWorkItem, TeamWorkStatus } from '../../types/teamWork.types'
+import { assigneeIdsFromItem } from '../../lib/teamWorkAssignees'
+import { hierarchicalIssueLabel } from '../../lib/teamWorkIssueDisplay'
 
 const itemDragId = (id: string) => `tw-${id}`
 const columnDropId = (status: TeamWorkStatus) => `col-${status}`
@@ -38,15 +40,20 @@ function IssueTypeIcon({ type }: { type: TeamWorkItem['issueType'] }) {
 
 function WorkCard({
   item,
+  issueLabel,
   canDrag,
-  assigneeLabel,
-  assigneeId,
+  assigneeLabels,
+  assigneeIds,
+  sprintName,
   onOpen,
 }: {
   item: TeamWorkItem
+  /** Hierarchical display key (e.g. PF-12.1 for subtasks). */
+  issueLabel: string
   canDrag: boolean
-  assigneeLabel?: string
-  assigneeId?: string
+  assigneeLabels: string[]
+  assigneeIds: string[]
+  sprintName?: string
   onOpen: (id: string) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -75,7 +82,17 @@ function WorkCard({
         <IssueTypeIcon type={item.issueType} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="font-mono text-[11px] font-semibold text-muted-foreground">{item.issueKey}</span>
+            <span className="font-mono text-[11px] font-semibold text-primary">{issueLabel}</span>
+            {issueLabel !== item.issueKey ? (
+              <span className="font-mono text-[10px] font-medium text-muted-foreground/80" title="Server issue key">
+                {item.issueKey}
+              </span>
+            ) : null}
+            {item.parentWorkItemId ? (
+              <Badge variant="secondary" className="h-4 px-1 text-[9px] font-semibold uppercase tracking-wide">
+                Subtask
+              </Badge>
+            ) : null}
             <span
               className={cn(
                 'rounded-full px-1.5 py-0 text-[10px] font-semibold uppercase tracking-wide',
@@ -87,21 +104,32 @@ function WorkCard({
             </span>
           </div>
           <p className="mt-0.5 line-clamp-3 text-sm font-medium leading-snug text-foreground">{item.title}</p>
-          {assigneeLabel && assigneeId ? (
-            <div className="mt-2 flex items-center gap-2">
-              <span
-                className={cn(
-                  'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ring-2 ring-background',
-                  assigneeSwatchClass(assigneeId),
-                )}
-                title={assigneeLabel}
-              >
-                {initialsFromLabel(assigneeLabel)}
+          {sprintName ? (
+            <Badge variant="outline" className="mt-1 h-5 max-w-full truncate px-1.5 text-[10px] font-normal">
+              {sprintName}
+            </Badge>
+          ) : null}
+          {assigneeIds.length ? (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <div className="flex -space-x-2">
+                {assigneeIds.slice(0, 4).map((id, idx) => (
+                  <span
+                    key={`${id}-${idx}`}
+                    className={cn(
+                      'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ring-2 ring-background',
+                      assigneeSwatchClass(id),
+                    )}
+                    title={assigneeLabels[idx] ?? id}
+                  >
+                    {initialsFromLabel(assigneeLabels[idx] ?? id)}
+                  </span>
+                ))}
+              </div>
+              <span className="min-w-0 truncate text-xs font-medium text-foreground/90">
+                {assigneeLabels.filter(Boolean).join(', ')}
+                {assigneeIds.length > 4 ? ` +${assigneeIds.length - 4}` : ''}
               </span>
-              <span className="truncate text-xs font-medium text-foreground/90">{assigneeLabel}</span>
             </div>
-          ) : assigneeLabel ? (
-            <p className="mt-1 truncate text-xs text-muted-foreground">{assigneeLabel}</p>
           ) : (
             <p className="mt-1.5 text-[11px] font-medium italic text-muted-foreground/80">Unassigned</p>
           )}
@@ -136,15 +164,20 @@ function Column({
   status,
   label,
   items,
+  hierarchyItems,
   canDrag,
   assigneeMap,
+  sprintNameById,
   onOpen,
 }: {
   status: TeamWorkStatus
   label: string
   items: TeamWorkItem[]
+  /** Full board (unfiltered) for stable subtask numbering. */
+  hierarchyItems: TeamWorkItem[]
   canDrag: boolean
   assigneeMap: Map<string, string>
+  sprintNameById?: Map<string, string>
   onOpen: (id: string) => void
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: columnDropId(status) })
@@ -166,16 +199,22 @@ function Column({
           isOver && canDrag && 'bg-primary/5 ring-1 ring-inset ring-primary/20',
         )}
       >
-        {items.map((it) => (
-          <WorkCard
-            key={it.id}
-            item={it}
-            canDrag={canDrag}
-            assigneeId={it.assigneeUserId}
-            assigneeLabel={it.assigneeUserId ? assigneeMap.get(it.assigneeUserId) : undefined}
-            onOpen={onOpen}
-          />
-        ))}
+        {items.map((it) => {
+          const ids = assigneeIdsFromItem(it)
+          const labels = ids.map((id) => assigneeMap.get(id) || id)
+          return (
+            <WorkCard
+              key={it.id}
+              item={it}
+              issueLabel={hierarchicalIssueLabel(it, hierarchyItems)}
+              canDrag={canDrag}
+              assigneeIds={ids}
+              assigneeLabels={labels}
+              sprintName={it.sprintId ? sprintNameById?.get(it.sprintId) : undefined}
+              onOpen={onOpen}
+            />
+          )
+        })}
         {items.length === 0 ? (
           <p className="px-2 py-8 text-center text-xs text-muted-foreground">No items — drop here or create new.</p>
         ) : null}
@@ -188,8 +227,11 @@ type Props = {
   statuses: TeamWorkStatus[]
   statusLabels: Record<TeamWorkStatus, string>
   items: TeamWorkItem[]
+  /** All issues used to compute PF-12.1-style labels (typically unfiltered board list). */
+  hierarchyItems: TeamWorkItem[]
   canManage: boolean
   assigneeMap: Map<string, string>
+  sprintNameById?: Map<string, string>
   onMoveItem: (itemId: string, newStatus: TeamWorkStatus) => Promise<void>
   onOpenItem: (id: string) => void
 }
@@ -198,8 +240,10 @@ export function TeamWorkBoard({
   statuses,
   statusLabels,
   items,
+  hierarchyItems,
   canManage,
   assigneeMap,
+  sprintNameById,
   onMoveItem,
   onOpenItem,
 }: Props) {
@@ -222,6 +266,7 @@ export function TeamWorkBoard({
     return m
   }, [items, statuses])
 
+  const hi = hierarchyItems.length ? hierarchyItems : items
   const activeItem = activeId ? items.find((i) => itemDragId(i.id) === activeId) : undefined
 
   const parseColumn = (dropId: string): TeamWorkStatus | null => {
@@ -258,8 +303,10 @@ export function TeamWorkBoard({
             status={st}
             label={statusLabels[st] ?? st}
             items={byStatus.get(st) || []}
+            hierarchyItems={hi}
             canDrag={canManage}
             assigneeMap={assigneeMap}
+            sprintNameById={sprintNameById}
             onOpen={onOpenItem}
           />
         ))}
@@ -267,7 +314,9 @@ export function TeamWorkBoard({
       <DragOverlay dropAnimation={null}>
         {activeItem ? (
           <div className="w-[260px] rounded-lg border border-primary/40 bg-card p-2.5 shadow-lg">
-            <span className="font-mono text-[11px] font-semibold text-muted-foreground">{activeItem.issueKey}</span>
+            <span className="font-mono text-[11px] font-semibold text-primary">
+              {hierarchicalIssueLabel(activeItem, hi)}
+            </span>
             <p className="mt-1 text-sm font-medium leading-snug">{activeItem.title}</p>
           </div>
         ) : null}
