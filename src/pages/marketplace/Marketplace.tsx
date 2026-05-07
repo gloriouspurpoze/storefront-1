@@ -83,7 +83,7 @@ export default function Marketplace() {
     },
     {
       title: 'Industry service pages',
-      description: 'SEO landing pages tied to categories and services.',
+      description: 'Landing SEO, rate card, and cross-links — one hub per catalog vertical.',
       href: '/cms/category-marketing',
       icon: Megaphone,
       permission: 'manage_system_settings',

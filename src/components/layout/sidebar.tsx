@@ -98,6 +98,7 @@ const NAV_EXACT_ONLY_HREFS = new Set<string>([
   '/settings',
   '/settings/saas',
   '/settings/tenants',
+  '/cms/category-marketing',
 ])
 
 /** Sidebar badge text; numeric badges cap at 99+ (avoids layout break). */
@@ -116,10 +117,27 @@ function formatSidebarBadgeValue(badge: string | number | null | undefined): str
   return s
 }
 
-function routeMatchesNav(href: string, pathname: string): boolean {
-  if (pathname === href) return true
-  if (NAV_EXACT_ONLY_HREFS.has(href)) return false
-  return pathname.startsWith(`${href}/`)
+function routeMatchesNav(href: string, pathname: string, search: string = ''): boolean {
+  const [hrefPath, hrefQuery] = href.split('?')
+  const q = search.startsWith('?') ? search.slice(1) : search
+
+  if (hrefQuery) {
+    if (pathname !== hrefPath) return false
+    const want = new URLSearchParams(hrefQuery)
+    const have = new URLSearchParams(q)
+    return Array.from(want.entries()).every(([k, v]) => have.get(k) === v)
+  }
+
+  if (hrefPath === '/cms/category-marketing') {
+    if (pathname !== hrefPath) return false
+    const have = new URLSearchParams(q)
+    const tab = have.get('tab')
+    return tab == null || tab === '' || tab === 'landing'
+  }
+
+  if (pathname === hrefPath) return true
+  if (NAV_EXACT_ONLY_HREFS.has(hrefPath)) return false
+  return pathname.startsWith(`${hrefPath}/`)
 }
 
 /**
@@ -429,9 +447,24 @@ const navigationGroups = [
         permissions: ['manage_cms'],
         badge: null,
         subItems: [
-          { name: 'Rate card', href: '/cms/rate-card', icon: ReceiptIcon, permissions: ['manage_cms'] },
-          { name: 'Industry service pages', href: '/cms/category-marketing', icon: CampaignIcon, permissions: ['manage_cms'] },
-          { name: 'Cross-linking', href: '/cms/cross-linking', icon: LinkIcon, permissions: ['manage_cms'] },
+          {
+            name: 'Industry — Landing & SEO',
+            href: '/cms/category-marketing',
+            icon: CampaignIcon,
+            permissions: ['manage_cms'],
+          },
+          {
+            name: 'Industry — Rate card',
+            href: '/cms/category-marketing?tab=rate-card',
+            icon: ReceiptIcon,
+            permissions: ['manage_cms'],
+          },
+          {
+            name: 'Industry — Cross-linking',
+            href: '/cms/category-marketing?tab=cross-linking',
+            icon: LinkIcon,
+            permissions: ['manage_cms'],
+          },
           { name: 'SEO management', href: '/cms/seo', icon: SearchIcon, permissions: ['manage_cms'] },
         ],
       },
@@ -543,7 +576,7 @@ function filterAdminNavigationByRouteAccess(
       const items = group.items
         .map((item): SidebarItem | null => {
           if (item.hasSubmenu && item.subItems?.length) {
-            const subItems = item.subItems.filter((sub) => checkRouteAccess(sub.href))
+            const subItems = item.subItems.filter((sub) => checkRouteAccess(sub.href.split('?')[0]))
             if (subItems.length === 0) return null
             return { ...item, subItems }
           }
@@ -623,11 +656,12 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   // Auto-open submenu if current path matches (only for nav the user is allowed to see)
   React.useEffect(() => {
     const currentPath = location.pathname
+    const currentSearch = location.search
     activeNavigationGroups.forEach((group) => {
       group.items.forEach((item: SidebarItem) => {
         if (item.hasSubmenu && item.subItems) {
           const hasActiveSubItem = item.subItems.some((sub: SidebarSubItem) =>
-            routeMatchesNav(sub.href, currentPath),
+            routeMatchesNav(sub.href, currentPath, currentSearch),
           )
           if (hasActiveSubItem) {
             setOpenSubmenus((prev) => ({ ...prev, [item.name]: true }))
@@ -635,7 +669,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         }
       })
     })
-  }, [location.pathname, activeNavigationGroups])
+  }, [location.pathname, location.search, activeNavigationGroups])
 
   const handleSubmenuToggle = (menuName: string) => {
     setOpenSubmenus(prev => ({
@@ -689,9 +723,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             <ul className="px-0.5">
               {group.items.map((item: SidebarItem) => {
                 const isActive = Boolean(
-                  (!!item.href && routeMatchesNav(item.href, location.pathname)) ||
+                  (!!item.href && routeMatchesNav(item.href, location.pathname, location.search)) ||
                     (!!item.hasSubmenu &&
-                      item.subItems?.some((sub) => routeMatchesNav(sub.href, location.pathname))),
+                      item.subItems?.some((sub) => routeMatchesNav(sub.href, location.pathname, location.search))),
                 )
                 const hasSubmenu = item.hasSubmenu
                 const isSubmenuOpen = openSubmenus[item.name] || false
@@ -759,7 +793,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                     {hasSubmenu && isSubmenuOpen && sidebarOpen && item.subItems && (
                       <ul className="mt-0.5 space-y-0.5 pl-2.5 pr-0.5">
                         {item.subItems.map((subItem: SidebarSubItem) => {
-                          const isSubActive = routeMatchesNav(subItem.href, location.pathname)
+                          const isSubActive = routeMatchesNav(subItem.href, location.pathname, location.search)
                           const SIcon = subItem.icon
                           return (
                             <li key={subItem.name} className="list-none">

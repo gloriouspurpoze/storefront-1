@@ -49,6 +49,7 @@ import {
   type CategoryMarketingConfig,
   type LocalityGuideCmsFields,
   type LocalSeoCmsFields,
+  type TechnicalSeoCmsFields,
   type ServiceTypeBlock,
   emptyCategoryMarketingConfig,
   emptyLocalityGuideSection,
@@ -64,6 +65,7 @@ import {
   normalizeCategoryMarketingRecord,
 } from '../../types/categoryMarketing'
 import { appToast } from '../../lib/appToast'
+import { useIndustryServicePagesCatalog } from './IndustryServicePagesContext'
 
 type TabKey =
   | 'metadata'
@@ -86,10 +88,17 @@ function charCountColor(len: number, min: number, optimal: number, hard: number)
 }
 
 export default function CategoryMarketingManagement() {
+  const industryHub = useIndustryServicePagesCatalog()
+  const [standaloneCategory, setStandaloneCategory] = useState<string>('ac')
+  const selectedCategory = industryHub?.catalogKey ?? standaloneCategory
+  const setSelectedCategory = (v: string) => {
+    if (industryHub) industryHub.setCatalogKey(v)
+    else setStandaloneCategory(v)
+  }
+
   const [data, setData] = useState<Record<string, CategoryMarketingConfig>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState<string>('ac')
   /** URL locality slug for composite CMS keys, e.g. `mira-bhayandar` → `electric__mira-bhayandar`. */
   const [localitySlugForKey, setLocalitySlugForKey] = useState('')
   const [duplicateSourceKey, setDuplicateSourceKey] = useState('')
@@ -141,6 +150,15 @@ export default function CategoryMarketingManagement() {
           ? { ...base.localityGuide, ...updates.localityGuide }
           : base.localityGuide,
         localSeo: updates.localSeo ? { ...base.localSeo, ...updates.localSeo } : base.localSeo,
+        technicalSeo: updates.technicalSeo
+          ? {
+              ...base.technicalSeo,
+              ...updates.technicalSeo,
+              aggregateRating: updates.technicalSeo.aggregateRating
+                ? { ...base.technicalSeo.aggregateRating, ...updates.technicalSeo.aggregateRating }
+                : base.technicalSeo.aggregateRating,
+            }
+          : base.technicalSeo,
       }
       return { ...prev, [effectiveKey]: next }
     })
@@ -152,6 +170,18 @@ export default function CategoryMarketingManagement() {
 
   const updateLocalSeo = (updates: Partial<LocalSeoCmsFields>) => {
     updateConfig({ localSeo: { ...config.localSeo, ...updates } })
+  }
+
+  const updateTechnicalSeo = (updates: Partial<TechnicalSeoCmsFields>) => {
+    updateConfig({
+      technicalSeo: {
+        ...config.technicalSeo,
+        ...updates,
+        aggregateRating: updates.aggregateRating
+          ? { ...config.technicalSeo.aggregateRating, ...updates.aggregateRating }
+          : config.technicalSeo.aggregateRating,
+      },
+    })
   }
 
   const handleSave = async () => {
@@ -231,11 +261,27 @@ export default function CategoryMarketingManagement() {
   }
 
   return (
-    <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
-      <PageHeader
-        title="Industry service pages"
-        subtitle="Admin is the source of truth: SEO, local pack fields, hero, cards, pricing, FAQs, and JSON-LD inputs all persist on this record. Use [City], [Location], [ServiceName] in copy; set a locality slug for hyperlocal keys (e.g. ac__bandra-west)."
-        action={
+    <Box sx={{ p: industryHub ? 0 : { xs: 2, sm: 3, md: 4 } }}>
+      {!industryHub && (
+        <PageHeader
+          title="Industry service pages"
+          subtitle="Source of truth for industry landings: core meta, technical SEO (canonical, OG/Twitter, robots, hreflang), local pack, schema toggles, answer-engine copy, hero through FAQs. Use [City], [Location], [ServiceName]; composite keys use a locality slug (e.g. ac__bandra-west)."
+          action={
+            <Button
+              variant="contained"
+              startIcon={saving ? <CircularProgress size={18} /> : <CampaignIcon />}
+              onClick={handleSave}
+              disabled={saving}
+              sx={{ borderRadius: 2 }}
+            >
+              Save
+            </Button>
+          }
+        />
+      )}
+
+      {industryHub && (
+        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
           <Button
             variant="contained"
             startIcon={saving ? <CircularProgress size={18} /> : <CampaignIcon />}
@@ -243,32 +289,34 @@ export default function CategoryMarketingManagement() {
             disabled={saving}
             sx={{ borderRadius: 2 }}
           >
-            Save
+            Save landing template
           </Button>
-        }
-      />
+        </Box>
+      )}
 
       <Card sx={{ mb: 3, borderRadius: 2 }}>
         <CardContent>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
-            <FormControl size="small" sx={{ minWidth: 220 }}>
-              <InputLabel>Industry (catalog category)</InputLabel>
-              <Select
-                value={selectedCategory}
-                label="Industry (catalog category)"
-                onChange={(e) => {
-                  setSelectedCategory(e.target.value)
-                  setLocalitySlugForKey('')
-                }}
-                sx={{ borderRadius: 2 }}
-              >
-                {CMS_CATALOG_CATEGORIES.map((opt) => (
-                  <MenuItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            {!industryHub && (
+              <FormControl size="small" sx={{ minWidth: 220 }}>
+                <InputLabel>Industry (catalog category)</InputLabel>
+                <Select
+                  value={selectedCategory}
+                  label="Industry (catalog category)"
+                  onChange={(e) => {
+                    setSelectedCategory(e.target.value)
+                    setLocalitySlugForKey('')
+                  }}
+                  sx={{ borderRadius: 2 }}
+                >
+                  {CMS_CATALOG_CATEGORIES.map((opt) => (
+                    <MenuItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
             <TextField
               size="small"
               sx={{ minWidth: 260, flex: 1 }}
@@ -382,8 +430,8 @@ export default function CategoryMarketingManagement() {
               <Stack spacing={2}>
                 <Typography variant="body2" color="text.secondary">
                   Paste a partial or full marketing object (same shape as the API). Values are merged into{' '}
-                  <strong>{effectiveKey}</strong>; nested <code>leadMagnet</code> and <code>localityGuide</code> are merged
-                  field-by-field. Invalid JSON shows an error toast.
+                  <strong>{effectiveKey}</strong>;                   nested <code>leadMagnet</code>, <code>localityGuide</code>, <code>localSeo</code>, and{' '}
+                  <code>technicalSeo</code> are merged field-by-field. Invalid JSON shows an error toast.
                 </Typography>
                 <TextField
                   fullWidth
@@ -411,6 +459,14 @@ export default function CategoryMarketingManagement() {
                             leadMagnet: { ...base.leadMagnet, ...patch.leadMagnet },
                             localityGuide: { ...base.localityGuide, ...patch.localityGuide },
                             localSeo: { ...base.localSeo, ...patch.localSeo },
+                            technicalSeo: {
+                              ...base.technicalSeo,
+                              ...patch.technicalSeo,
+                              aggregateRating: {
+                                ...base.technicalSeo.aggregateRating,
+                                ...patch.technicalSeo?.aggregateRating,
+                              },
+                            },
                           })
                           return { ...prev, [effectiveKey]: combined }
                         })
@@ -529,6 +585,126 @@ export default function CategoryMarketingManagement() {
                         value={config.primaryKeyword}
                         onChange={(e) => updateConfig({ primaryKeyword: e.target.value })}
                       />
+                      <TextField
+                        fullWidth
+                        label="Hero trust badge (pill beside H1)"
+                        value={(config as any).heroTrustBadge ?? ''}
+                        onChange={(e) => updateConfig({ heroTrustBadge: e.target.value } as any)}
+                        placeholder="e.g. 30-day warranty · Verified pros"
+                        helperText="Shows in the hero as a small trust pill. Supports [City], [Location], [ServiceName]."
+                      />
+                      <TextField
+                        fullWidth
+                        label="Hero chip (highlight line)"
+                        value={(config as any).heroChip ?? ''}
+                        onChange={(e) => updateConfig({ heroChip: e.target.value } as any)}
+                        placeholder="e.g. Same-day slots · Transparent pricing"
+                        helperText="Short non-spam line under the hero intro. Supports [City], [Location], [ServiceName]."
+                      />
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Hero proof points (3 cards)
+                      </Typography>
+                      {(
+                        (Array.isArray((config as any).heroProofPoints) ? (config as any).heroProofPoints : ['']) as string[]
+                      ).map((line, i) => (
+                        <Stack key={`hero-proof-${i}`} direction="row" spacing={1} alignItems="center">
+                          <TextField
+                            fullWidth
+                            size="small"
+                            value={line}
+                            onChange={(e) => {
+                              const base = Array.isArray((config as any).heroProofPoints)
+                                ? ([...(config as any).heroProofPoints] as string[])
+                                : ['']
+                              const next = [...base]
+                              next[i] = e.target.value
+                              updateConfig({ heroProofPoints: next } as any)
+                            }}
+                            placeholder="e.g. Background-verified technicians"
+                          />
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => {
+                              const base = Array.isArray((config as any).heroProofPoints)
+                                ? ([...(config as any).heroProofPoints] as string[])
+                                : ['']
+                              updateConfig({ heroProofPoints: base.filter((_, j) => j !== i) } as any)
+                            }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Stack>
+                      ))}
+                      <Button
+                        size="small"
+                        startIcon={<AddIcon />}
+                        onClick={() =>
+                          updateConfig({
+                            heroProofPoints: [
+                              ...(((config as any).heroProofPoints ?? []) as string[]),
+                              '',
+                            ],
+                          } as any)
+                        }
+                      >
+                        Add proof point
+                      </Button>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', mt: -1 }}>
+                        If empty, consumer will derive proof points from Trust benefits / Ways / Secondary keywords.
+                      </Typography>
+                      <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 1 }}>
+                        Topic chips (replaces static semantic labels)
+                      </Typography>
+                      {(
+                        (Array.isArray((config as any).topicChips) ? (config as any).topicChips : ['']) as string[]
+                      ).map((line, i) => (
+                        <Stack key={`topic-chip-${i}`} direction="row" spacing={1} alignItems="center">
+                          <TextField
+                            fullWidth
+                            size="small"
+                            value={line}
+                            onChange={(e) => {
+                              const base = Array.isArray((config as any).topicChips)
+                                ? ([...(config as any).topicChips] as string[])
+                                : ['']
+                              const next = [...base]
+                              next[i] = e.target.value
+                              updateConfig({ topicChips: next } as any)
+                            }}
+                            placeholder="e.g. fan installation · switch repair"
+                          />
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => {
+                              const base = Array.isArray((config as any).topicChips)
+                                ? ([...(config as any).topicChips] as string[])
+                                : ['']
+                              updateConfig({ topicChips: base.filter((_, j) => j !== i) } as any)
+                            }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Stack>
+                      ))}
+                      <Button
+                        size="small"
+                        startIcon={<AddIcon />}
+                        onClick={() =>
+                          updateConfig({
+                            topicChips: [
+                              ...(((config as any).topicChips ?? []) as string[]),
+                              '',
+                            ],
+                          } as any)
+                        }
+                      >
+                        Add chip
+                      </Button>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', mt: -1 }}>
+                        Consumer uses Topic chips first; if empty, it falls back to Secondary keywords.
+                      </Typography>
                       <Typography variant="subtitle2" color="text.secondary">
                         Secondary keywords
                       </Typography>
@@ -565,6 +741,492 @@ export default function CategoryMarketingManagement() {
                         onClick={() => updateConfig({ secondaryKeywords: [...config.secondaryKeywords, ''] })}
                       >
                         Add keyword
+                      </Button>
+                    </Stack>
+                  </CardContent>
+                </Card>
+
+                <Alert severity="info" sx={{ borderRadius: 2 }}>
+                  <strong>Technical SEO:</strong> the consumer app should map <code>technicalSeo</code> to{' '}
+                  <code>rel=&quot;canonical&quot;</code>, Open Graph / Twitter meta, robots, hreflang{' '}
+                  <code>&lt;link&gt;</code>s, and JSON-LD (WebPage, Service, HowTo, BreadcrumbList, Speakable, VideoObject
+                  when enabled). Pair <strong>OG image alt</strong> with the absolute image under Local SEO → Social
+                  preview.
+                </Alert>
+
+                <Card sx={{ borderRadius: 2 }}>
+                  <CardContent>
+                    <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                      Canonical, Open Graph &amp; Twitter
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Overrides are optional: when empty, the live site should fall back to SEO title / meta description.
+                      Use absolute URLs for canonical and share images.
+                    </Typography>
+                    <Stack spacing={2}>
+                      <TextField
+                        fullWidth
+                        label="Canonical URL"
+                        value={config.technicalSeo.canonicalUrl}
+                        onChange={(e) => updateTechnicalSeo({ canonicalUrl: e.target.value })}
+                        placeholder="https://example.com/services/ac-repair/mumbai"
+                        helperText="One preferred URL for this landing; reduces duplicate signals across params or UTM variants."
+                      />
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                        <TextField
+                          fullWidth
+                          label="Open Graph title (override)"
+                          value={config.technicalSeo.ogTitle}
+                          onChange={(e) => updateTechnicalSeo({ ogTitle: e.target.value })}
+                          placeholder="Same as SEO title if blank"
+                        />
+                        <TextField
+                          fullWidth
+                          label="Open Graph type"
+                          value={config.technicalSeo.ogType}
+                          onChange={(e) => updateTechnicalSeo({ ogType: e.target.value })}
+                          placeholder="website"
+                          helperText="Usually website or article."
+                        />
+                      </Stack>
+                      <TextField
+                        fullWidth
+                        label="Open Graph description (override)"
+                        multiline
+                        rows={2}
+                        value={config.technicalSeo.ogDescription}
+                        onChange={(e) => updateTechnicalSeo({ ogDescription: e.target.value })}
+                        placeholder="Same as meta description if blank"
+                      />
+                      <TextField
+                        fullWidth
+                        label="OG / Twitter image alt text"
+                        value={config.technicalSeo.ogImageAlt}
+                        onChange={(e) => updateTechnicalSeo({ ogImageAlt: e.target.value })}
+                        placeholder="Technician servicing an AC outdoor unit in Mumbai – ProFixer"
+                        helperText="Accessibility and clearer social/AI context for the share image."
+                      />
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Twitter card type</InputLabel>
+                        <Select
+                          label="Twitter card type"
+                          value={config.technicalSeo.twitterCard || 'summary_large_image'}
+                          onChange={(e) =>
+                            updateTechnicalSeo({
+                              twitterCard: e.target.value as TechnicalSeoCmsFields['twitterCard'],
+                            })
+                          }
+                        >
+                          <MenuItem value="summary_large_image">summary_large_image (recommended)</MenuItem>
+                          <MenuItem value="summary">summary</MenuItem>
+                          <MenuItem value="">Default / unset</MenuItem>
+                        </Select>
+                      </FormControl>
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                        <TextField
+                          fullWidth
+                          label="Twitter site (@handle optional)"
+                          value={config.technicalSeo.twitterSite}
+                          onChange={(e) => updateTechnicalSeo({ twitterSite: e.target.value.replace(/^@/, '') })}
+                          placeholder="yourbrand"
+                        />
+                        <TextField
+                          fullWidth
+                          label="Twitter creator (@handle optional)"
+                          value={config.technicalSeo.twitterCreator}
+                          onChange={(e) => updateTechnicalSeo({ twitterCreator: e.target.value.replace(/^@/, '') })}
+                          placeholder="founder_handle"
+                        />
+                      </Stack>
+                    </Stack>
+                  </CardContent>
+                </Card>
+
+                <Card sx={{ borderRadius: 2 }}>
+                  <CardContent>
+                    <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                      Robots, hreflang &amp; breadcrumbs
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Robots string is passed through to <code>&lt;meta name=&quot;robots&quot;&gt;</code> when set.
+                      Hreflang rows power <code>link rel=&quot;alternate&quot;</code> for multilingual / regional
+                      variants.
+                    </Typography>
+                    <Stack spacing={2}>
+                      <TextField
+                        fullWidth
+                        label="Robots meta content"
+                        value={config.technicalSeo.robotsMeta}
+                        onChange={(e) => updateTechnicalSeo({ robotsMeta: e.target.value })}
+                        placeholder="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+                        helperText="Use noindex for thin or duplicate landings only. Rich-result-friendly previews often include max-image-preview:large."
+                      />
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Hreflang alternates
+                      </Typography>
+                      {(config.technicalSeo.hreflangAlternates.length
+                        ? config.technicalSeo.hreflangAlternates
+                        : [{ hreflang: '', href: '' }]
+                      ).map((row, i) => (
+                        <Stack key={i} direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }}>
+                          <TextField
+                            size="small"
+                            label="hreflang"
+                            value={row.hreflang}
+                            onChange={(e) => {
+                              const base = config.technicalSeo.hreflangAlternates.length
+                                ? [...config.technicalSeo.hreflangAlternates]
+                                : [{ hreflang: '', href: '' }]
+                              const next = [...base]
+                              next[i] = { ...next[i], hreflang: e.target.value }
+                              updateTechnicalSeo({ hreflangAlternates: next })
+                            }}
+                            placeholder="en-IN"
+                            sx={{ minWidth: 120 }}
+                          />
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="Absolute URL"
+                            value={row.href}
+                            onChange={(e) => {
+                              const base = config.technicalSeo.hreflangAlternates.length
+                                ? [...config.technicalSeo.hreflangAlternates]
+                                : [{ hreflang: '', href: '' }]
+                              const next = [...base]
+                              next[i] = { ...next[i], href: e.target.value }
+                              updateTechnicalSeo({ hreflangAlternates: next })
+                            }}
+                            placeholder="https://…"
+                          />
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() =>
+                              updateTechnicalSeo({
+                                hreflangAlternates: config.technicalSeo.hreflangAlternates.filter((_, j) => j !== i),
+                              })
+                            }
+                            disabled={
+                              config.technicalSeo.hreflangAlternates.length === 0 ||
+                              (config.technicalSeo.hreflangAlternates.length === 1 &&
+                                !config.technicalSeo.hreflangAlternates[0].hreflang &&
+                                !config.technicalSeo.hreflangAlternates[0].href)
+                            }
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Stack>
+                      ))}
+                      <Button
+                        size="small"
+                        startIcon={<AddIcon />}
+                        onClick={() =>
+                          updateTechnicalSeo({
+                            hreflangAlternates: [
+                              ...config.technicalSeo.hreflangAlternates,
+                              { hreflang: '', href: '' },
+                            ],
+                          })
+                        }
+                      >
+                        Add hreflang row
+                      </Button>
+
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={config.technicalSeo.enableBreadcrumbSchema}
+                            onChange={(e) => updateTechnicalSeo({ enableBreadcrumbSchema: e.target.checked })}
+                          />
+                        }
+                        label="Emit BreadcrumbList JSON-LD (use manual trail below if paths are not inferable)"
+                      />
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Breadcrumb trail (name + URL per item)
+                      </Typography>
+                      {(config.technicalSeo.breadcrumbItems.length
+                        ? config.technicalSeo.breadcrumbItems
+                        : [{ name: '', url: '' }]
+                      ).map((row, i) => (
+                        <Stack key={i} direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }}>
+                          <TextField
+                            size="small"
+                            label="Name"
+                            value={row.name}
+                            onChange={(e) => {
+                              const next = [...config.technicalSeo.breadcrumbItems]
+                              if (!config.technicalSeo.breadcrumbItems.length) next.push({ name: '', url: '' })
+                              next[i] = { ...next[i], name: e.target.value }
+                              updateTechnicalSeo({ breadcrumbItems: next })
+                            }}
+                            placeholder="AC repair"
+                          />
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="URL"
+                            value={row.url}
+                            onChange={(e) => {
+                              const next = [...config.technicalSeo.breadcrumbItems]
+                              if (!config.technicalSeo.breadcrumbItems.length) next.push({ name: '', url: '' })
+                              next[i] = { ...next[i], url: e.target.value }
+                              updateTechnicalSeo({ breadcrumbItems: next })
+                            }}
+                            placeholder="https://…"
+                          />
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() =>
+                              updateTechnicalSeo({
+                                breadcrumbItems: config.technicalSeo.breadcrumbItems.filter((_, j) => j !== i),
+                              })
+                            }
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Stack>
+                      ))}
+                      <Button
+                        size="small"
+                        startIcon={<AddIcon />}
+                        onClick={() =>
+                          updateTechnicalSeo({
+                            breadcrumbItems: [...config.technicalSeo.breadcrumbItems, { name: '', url: '' }],
+                          })
+                        }
+                      >
+                        Add breadcrumb item
+                      </Button>
+                    </Stack>
+                  </CardContent>
+                </Card>
+
+                <Card sx={{ borderRadius: 2 }}>
+                  <CardContent>
+                    <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                      Structured data, entities &amp; answer engines
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Clear entities and factual summaries help Google and LLM-based search cite you accurately. Only use
+                      aggregate rating when it matches visible, genuine reviews.
+                    </Typography>
+                    <Stack spacing={2}>
+                      <TextField
+                        fullWidth
+                        label="Primary schema.org @type hint"
+                        value={config.technicalSeo.schemaPrimaryType}
+                        onChange={(e) => updateTechnicalSeo({ schemaPrimaryType: e.target.value })}
+                        placeholder="ProfessionalService or HomeAndConstructionBusiness"
+                        helperText="Consumer maps this to Service / LocalBusiness typing, not a substitute for valid NAP."
+                      />
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={config.technicalSeo.enableWebPageSchema}
+                            onChange={(e) => updateTechnicalSeo({ enableWebPageSchema: e.target.checked })}
+                          />
+                        }
+                        label="Emit WebPage (or CollectionPage) JSON-LD with name, description, URL"
+                      />
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={config.technicalSeo.enableServiceOfferSchema}
+                            onChange={(e) => updateTechnicalSeo({ enableServiceOfferSchema: e.target.checked })}
+                          />
+                        }
+                        label="Emit Service / hasOfferCatalog style JSON-LD from cards &amp; pricing blocks"
+                      />
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={config.technicalSeo.enableHowToSchema}
+                            onChange={(e) => updateTechnicalSeo({ enableHowToSchema: e.target.checked })}
+                          />
+                        }
+                        label="Emit HowTo JSON-LD from booking steps (Areas & booking tab)"
+                      />
+                      <TextField
+                        fullWidth
+                        multiline
+                        minRows={3}
+                        label="Answer-engine summary"
+                        value={config.technicalSeo.answerEngineSummary}
+                        onChange={(e) => updateTechnicalSeo({ answerEngineSummary: e.target.value })}
+                        placeholder="2–4 factual sentences: who you serve, what’s included, pricing stance, same-day policy."
+                        helperText="Use for a visible “In brief” block and/or speakable text — avoid keyword stuffing."
+                      />
+                      <TextField
+                        fullWidth
+                        label="Content modified date (ISO)"
+                        value={config.technicalSeo.contentModifiedDate}
+                        onChange={(e) => updateTechnicalSeo({ contentModifiedDate: e.target.value })}
+                        placeholder="2026-05-01 or 2026-05-01T12:00:00+05:30"
+                        helperText="Optional dateModified for WebPage when you materially refresh this landing."
+                      />
+                      <Typography variant="subtitle2" color="text.secondary">
+                        knowsAbout / topic entities
+                      </Typography>
+                      {(config.technicalSeo.knowsAbout.length ? config.technicalSeo.knowsAbout : ['']).map((topic, i) => (
+                        <Stack key={i} direction="row" spacing={1} alignItems="center">
+                          <TextField
+                            fullWidth
+                            size="small"
+                            value={topic}
+                            onChange={(e) => {
+                              const base = config.technicalSeo.knowsAbout.length
+                                ? [...config.technicalSeo.knowsAbout]
+                                : ['']
+                              const next = [...base]
+                              next[i] = e.target.value
+                              updateTechnicalSeo({ knowsAbout: next })
+                            }}
+                            placeholder="Air conditioning maintenance or https://en.wikipedia.org/wiki/Air_conditioning"
+                          />
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() =>
+                              updateTechnicalSeo({
+                                knowsAbout: config.technicalSeo.knowsAbout.filter((_, j) => j !== i),
+                              })
+                            }
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Stack>
+                      ))}
+                      <Button
+                        size="small"
+                        startIcon={<AddIcon />}
+                        onClick={() => updateTechnicalSeo({ knowsAbout: [...config.technicalSeo.knowsAbout, ''] })}
+                      >
+                        Add topic
+                      </Button>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Speakable CSS selectors
+                      </Typography>
+                      {(config.technicalSeo.speakableSelectors.length
+                        ? config.technicalSeo.speakableSelectors
+                        : ['']
+                      ).map((sel, i) => (
+                        <Stack key={i} direction="row" spacing={1} alignItems="center">
+                          <TextField
+                            fullWidth
+                            size="small"
+                            value={sel}
+                            onChange={(e) => {
+                              const base = config.technicalSeo.speakableSelectors.length
+                                ? [...config.technicalSeo.speakableSelectors]
+                                : ['']
+                              const next = [...base]
+                              next[i] = e.target.value
+                              updateTechnicalSeo({ speakableSelectors: next })
+                            }}
+                            placeholder=".service-answer-summary, article h1"
+                          />
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() =>
+                              updateTechnicalSeo({
+                                speakableSelectors: config.technicalSeo.speakableSelectors.filter((_, j) => j !== i),
+                              })
+                            }
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Stack>
+                      ))}
+                      <Button
+                        size="small"
+                        startIcon={<AddIcon />}
+                        onClick={() =>
+                          updateTechnicalSeo({
+                            speakableSelectors: [...config.technicalSeo.speakableSelectors, ''],
+                          })
+                        }
+                      >
+                        Add selector
+                      </Button>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Aggregate rating (JSON-LD) — honest values only
+                      </Typography>
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                        <TextField
+                          fullWidth
+                          label="Rating value"
+                          value={config.technicalSeo.aggregateRating.ratingValue}
+                          onChange={(e) =>
+                            updateTechnicalSeo({
+                              aggregateRating: {
+                                ...config.technicalSeo.aggregateRating,
+                                ratingValue: e.target.value,
+                              },
+                            })
+                          }
+                          placeholder="4.8"
+                        />
+                        <TextField
+                          fullWidth
+                          label="Review count"
+                          value={config.technicalSeo.aggregateRating.reviewCount}
+                          onChange={(e) =>
+                            updateTechnicalSeo({
+                              aggregateRating: {
+                                ...config.technicalSeo.aggregateRating,
+                                reviewCount: e.target.value,
+                              },
+                            })
+                          }
+                          placeholder="1200"
+                        />
+                      </Stack>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Video URLs (VideoObject / embed URLs)
+                      </Typography>
+                      {(config.technicalSeo.videoEmbedUrls.length
+                        ? config.technicalSeo.videoEmbedUrls
+                        : ['']
+                      ).map((u, i) => (
+                        <Stack key={i} direction="row" spacing={1} alignItems="center">
+                          <TextField
+                            fullWidth
+                            size="small"
+                            value={u}
+                            onChange={(e) => {
+                              const base = config.technicalSeo.videoEmbedUrls.length
+                                ? [...config.technicalSeo.videoEmbedUrls]
+                                : ['']
+                              const next = [...base]
+                              next[i] = e.target.value
+                              updateTechnicalSeo({ videoEmbedUrls: next })
+                            }}
+                            placeholder="https://www.youtube.com/watch?v=…"
+                          />
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() =>
+                              updateTechnicalSeo({
+                                videoEmbedUrls: config.technicalSeo.videoEmbedUrls.filter((_, j) => j !== i),
+                              })
+                            }
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Stack>
+                      ))}
+                      <Button
+                        size="small"
+                        startIcon={<AddIcon />}
+                        onClick={() =>
+                          updateTechnicalSeo({ videoEmbedUrls: [...config.technicalSeo.videoEmbedUrls, ''] })
+                        }
+                      >
+                        Add video URL
                       </Button>
                     </Stack>
                   </CardContent>
@@ -1400,7 +2062,7 @@ export default function CategoryMarketingManagement() {
                 <Alert severity="info">
                   <Typography variant="body2" component="span">
                     <strong>Service charges</strong> for this industry are maintained in{' '}
-                    <Link to="/cms/rate-card">Rate Card</Link> (same catalog category key). Use spare parts and
+                    <Link to="/cms/category-marketing?tab=rate-card">Rate card</Link> (same catalog category key). Use spare parts and
                     included/excluded lists here so the consumer page can show a full pricing section without duplicating
                     labour/service rows.
                   </Typography>

@@ -128,12 +128,83 @@ export interface LeadMagnetBlock {
   ctaLabel: string
 }
 
+/** Alternate language / region URL for hreflang link tags + consumer JSON-LD. */
+export interface HreflangAlternateBlock {
+  hreflang: string
+  href: string
+}
+
+/** Manual BreadcrumbList items when the consumer cannot infer path (name + absolute URL). */
+export interface BreadcrumbItemBlock {
+  name: string
+  url: string
+}
+
+/** Optional AggregateRating for JSON-LD — only when values reflect real, visible reviews. */
+export interface AggregateRatingCmsFields {
+  ratingValue: string
+  reviewCount: string
+}
+
+/**
+ * Technical / SERP / social / structured-data controls for industry service landings.
+ * Consumer should map these to `<link rel="canonical">`, Open Graph, Twitter cards, robots, hreflang,
+ * WebPage / Service / HowTo / BreadcrumbList / SpeakableSpecification, and entity (`knowsAbout`) fields.
+ */
+export interface TechnicalSeoCmsFields {
+  canonicalUrl: string
+  /** Falls back to `seoTitle` on the consumer when empty. */
+  ogTitle: string
+  /** Falls back to `metaDescription` when empty. */
+  ogDescription: string
+  /** Alt text for share images — use with `localSeo.ogImageOverride` or default OG image. */
+  ogImageAlt: string
+  /** Open Graph type, e.g. `website` or `article` (consumer default: `website`). */
+  ogType: string
+  twitterCard: 'summary' | 'summary_large_image' | ''
+  /** @username without @, e.g. profixer_in */
+  twitterSite: string
+  twitterCreator: string
+  /**
+   * Raw robots meta content, e.g. `index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1`.
+   * Leave empty for consumer default (usually indexable).
+   */
+  robotsMeta: string
+  hreflangAlternates: HreflangAlternateBlock[]
+  /** Topic strings or Wikipedia / Wikidata URLs for `knowsAbout` (topical + AI entity signals). */
+  knowsAbout: string[]
+  /** Primary schema.org type hint, e.g. `ProfessionalService`, `HomeAndConstructionBusiness`. */
+  schemaPrimaryType: string
+  enableHowToSchema: boolean
+  enableBreadcrumbSchema: boolean
+  breadcrumbItems: BreadcrumbItemBlock[]
+  /** CSS selectors for `SpeakableSpecification` (e.g. `.answer-engine-summary`, `article h1`). */
+  speakableSelectors: string[]
+  /** Short factual “answer-first” blurb for AI overviews / visible key-facts (not keyword stuffing). */
+  answerEngineSummary: string
+  /** ISO 8601 date (`YYYY-MM-DD` or full datetime) for `dateModified` on WebPage when applicable. */
+  contentModifiedDate: string
+  aggregateRating: AggregateRatingCmsFields
+  videoEmbedUrls: string[]
+  enableWebPageSchema: boolean
+  enableServiceOfferSchema: boolean
+}
+
 export interface CategoryMarketingConfig {
   seoTitle: string
   metaDescription: string
   urlSlugPattern: string
   primaryKeyword: string
   secondaryKeywords: string[]
+
+  /**
+   * Service page shell (hero + chips) — SEO-controlled, CMS-first.
+   * Consumer should NOT invent fallback marketing copy if these are intentionally empty.
+   */
+  heroTrustBadge: string
+  heroChip: string
+  heroProofPoints: string[]
+  topicChips: string[]
 
   mainHeading: string
   intro: string
@@ -178,6 +249,9 @@ export interface CategoryMarketingConfig {
 
   /** Local pack / map-pack oriented fields — admin is source of truth for consumer structured data. */
   localSeo: LocalSeoCmsFields
+
+  /** Canonical, social meta, robots, hreflang, schema toggles, and AI/entity signals. */
+  technicalSeo: TechnicalSeoCmsFields
 }
 
 export const emptyLeadMagnet = (): LeadMagnetBlock => ({
@@ -226,6 +300,46 @@ export const emptyFaq = (): FaqBlock => ({
 export const emptyRelatedLink = (): RelatedLinkBlock => ({
   label: '',
   url: '',
+})
+
+export const emptyHreflangAlternate = (): HreflangAlternateBlock => ({
+  hreflang: '',
+  href: '',
+})
+
+export const emptyBreadcrumbItem = (): BreadcrumbItemBlock => ({
+  name: '',
+  url: '',
+})
+
+export const emptyAggregateRating = (): AggregateRatingCmsFields => ({
+  ratingValue: '',
+  reviewCount: '',
+})
+
+export const emptyTechnicalSeo = (): TechnicalSeoCmsFields => ({
+  canonicalUrl: '',
+  ogTitle: '',
+  ogDescription: '',
+  ogImageAlt: '',
+  ogType: 'website',
+  twitterCard: 'summary_large_image',
+  twitterSite: '',
+  twitterCreator: '',
+  robotsMeta: '',
+  hreflangAlternates: [],
+  knowsAbout: [],
+  schemaPrimaryType: '',
+  enableHowToSchema: false,
+  enableBreadcrumbSchema: true,
+  breadcrumbItems: [],
+  speakableSelectors: [],
+  answerEngineSummary: '',
+  contentModifiedDate: '',
+  aggregateRating: emptyAggregateRating(),
+  videoEmbedUrls: [],
+  enableWebPageSchema: true,
+  enableServiceOfferSchema: true,
 })
 
 export const emptyLocalityGuideSection = (): LocalityGuideSectionBlock => ({
@@ -280,6 +394,10 @@ export function emptyCategoryMarketingConfig(): CategoryMarketingConfig {
     urlSlugPattern: '',
     primaryKeyword: '',
     secondaryKeywords: [],
+    heroTrustBadge: '',
+    heroChip: '',
+    heroProofPoints: [],
+    topicChips: [],
     mainHeading: '',
     intro: '',
     introLeadMagnetLabel: '',
@@ -307,6 +425,7 @@ export function emptyCategoryMarketingConfig(): CategoryMarketingConfig {
     jsonLdExtra: '',
     localityGuide: emptyLocalityGuide(),
     localSeo: emptyLocalSeo(),
+    technicalSeo: emptyTechnicalSeo(),
   }
 }
 
@@ -399,6 +518,77 @@ function normalizeRelatedLink(raw: unknown): RelatedLinkBlock {
   return {
     label: String(o.label ?? ''),
     url: String(o.url ?? ''),
+  }
+}
+
+function normalizeHreflangAlternate(raw: unknown): HreflangAlternateBlock {
+  if (!raw || typeof raw !== 'object') return emptyHreflangAlternate()
+  const o = raw as Record<string, unknown>
+  return {
+    hreflang: String(o.hreflang ?? o.lang ?? ''),
+    href: String(o.href ?? o.url ?? ''),
+  }
+}
+
+function normalizeBreadcrumbItem(raw: unknown): BreadcrumbItemBlock {
+  if (!raw || typeof raw !== 'object') return emptyBreadcrumbItem()
+  const o = raw as Record<string, unknown>
+  return {
+    name: String(o.name ?? o.label ?? ''),
+    url: String(o.url ?? o.href ?? ''),
+  }
+}
+
+function normalizeAggregateRating(raw: unknown): AggregateRatingCmsFields {
+  if (!raw || typeof raw !== 'object') return emptyAggregateRating()
+  const o = raw as Record<string, unknown>
+  return {
+    ratingValue: String(o.ratingValue ?? o.rating ?? ''),
+    reviewCount: String(o.reviewCount ?? o.reviewCountTotal ?? ''),
+  }
+}
+
+function normalizeTechnicalSeo(raw: unknown): TechnicalSeoCmsFields {
+  const e = emptyTechnicalSeo()
+  if (!raw || typeof raw !== 'object') return e
+  const o = raw as Record<string, unknown>
+  const card = String(o.twitterCard ?? '').trim()
+  let twitterCard: TechnicalSeoCmsFields['twitterCard'] = e.twitterCard
+  if (card === 'summary' || card === 'summary_large_image') twitterCard = card
+  else if (card === '') twitterCard = e.twitterCard
+  const hreflangAlternates = Array.isArray(o.hreflangAlternates)
+    ? (o.hreflangAlternates as unknown[]).map(normalizeHreflangAlternate)
+    : e.hreflangAlternates
+  const breadcrumbItems = Array.isArray(o.breadcrumbItems)
+    ? (o.breadcrumbItems as unknown[]).map(normalizeBreadcrumbItem)
+    : e.breadcrumbItems
+  return {
+    canonicalUrl: String(o.canonicalUrl ?? ''),
+    ogTitle: String(o.ogTitle ?? ''),
+    ogDescription: String(o.ogDescription ?? ''),
+    ogImageAlt: String(o.ogImageAlt ?? ''),
+    ogType: String(o.ogType ?? e.ogType),
+    twitterCard,
+    twitterSite: String(o.twitterSite ?? '').replace(/^@/, ''),
+    twitterCreator: String(o.twitterCreator ?? '').replace(/^@/, ''),
+    robotsMeta: String(o.robotsMeta ?? o.robots ?? ''),
+    hreflangAlternates,
+    knowsAbout: asStringArray(o.knowsAbout).length ? asStringArray(o.knowsAbout) : e.knowsAbout,
+    schemaPrimaryType: String(o.schemaPrimaryType ?? o.schemaType ?? ''),
+    enableHowToSchema: Boolean(o.enableHowToSchema),
+    enableBreadcrumbSchema: o.enableBreadcrumbSchema !== false,
+    breadcrumbItems,
+    speakableSelectors: asStringArray(o.speakableSelectors).length
+      ? asStringArray(o.speakableSelectors)
+      : e.speakableSelectors,
+    answerEngineSummary: String(o.answerEngineSummary ?? o.aiSummary ?? ''),
+    contentModifiedDate: String(o.contentModifiedDate ?? o.dateModified ?? ''),
+    aggregateRating: normalizeAggregateRating(o.aggregateRating),
+    videoEmbedUrls: asStringArray(o.videoEmbedUrls).length
+      ? asStringArray(o.videoEmbedUrls)
+      : e.videoEmbedUrls,
+    enableWebPageSchema: o.enableWebPageSchema !== false,
+    enableServiceOfferSchema: o.enableServiceOfferSchema !== false,
   }
 }
 
@@ -507,6 +697,12 @@ export function mergeCategoryConfig(
     urlSlugPattern: String(p.urlSlugPattern ?? e.urlSlugPattern),
     primaryKeyword: String(p.primaryKeyword ?? e.primaryKeyword),
     secondaryKeywords,
+    heroTrustBadge: String(p.heroTrustBadge ?? e.heroTrustBadge),
+    heroChip: String(p.heroChip ?? e.heroChip),
+    heroProofPoints: asStringArray(p.heroProofPoints).length
+      ? asStringArray(p.heroProofPoints)
+      : e.heroProofPoints,
+    topicChips: asStringArray(p.topicChips).length ? asStringArray(p.topicChips) : e.topicChips,
     mainHeading: String(p.mainHeading ?? e.mainHeading),
     intro: String(p.intro ?? e.intro),
     introLeadMagnetLabel: String(p.introLeadMagnetLabel ?? e.introLeadMagnetLabel),
@@ -556,6 +752,7 @@ export function mergeCategoryConfig(
     jsonLdExtra: String(p.jsonLdExtra ?? e.jsonLdExtra),
     localityGuide: normalizeLocalityGuide(p.localityGuide),
     localSeo: normalizeLocalSeo(p.localSeo),
+    technicalSeo: normalizeTechnicalSeo(p.technicalSeo),
   }
 }
 
@@ -611,6 +808,9 @@ export function mergePreferApiStatic(
     nonEmpty(l.url),
   )
 
+  const heroProofPoints = pickArr(staticBase.heroProofPoints, api.heroProofPoints, nonEmpty)
+  const topicChips = pickArr(staticBase.topicChips, api.topicChips, nonEmpty)
+
   const lmS = staticBase.leadMagnet
   const lmA = api.leadMagnet
   const leadMagnet = {
@@ -651,6 +851,50 @@ export function mergePreferApiStatic(
     ogImageOverride: pickStr(lsS.ogImageOverride, lsA.ogImageOverride),
   }
 
+  const tsS = staticBase.technicalSeo
+  const tsA = api.technicalSeo ?? emptyTechnicalSeo()
+  const knowsAbout = pickArr(tsS.knowsAbout, tsA.knowsAbout, nonEmpty)
+  const speakableSelectors = pickArr(tsS.speakableSelectors, tsA.speakableSelectors, nonEmpty)
+  const videoEmbedUrls = pickArr(tsS.videoEmbedUrls, tsA.videoEmbedUrls, nonEmpty)
+  const hreflangAlternates =
+    tsA.hreflangAlternates.length > 0 && tsA.hreflangAlternates.some((h) => nonEmpty(h.href))
+      ? tsA.hreflangAlternates
+      : tsS.hreflangAlternates
+  const breadcrumbItems =
+    tsA.breadcrumbItems.length > 0 && tsA.breadcrumbItems.some((b) => nonEmpty(b.url))
+      ? tsA.breadcrumbItems
+      : tsS.breadcrumbItems
+  const arS = tsS.aggregateRating
+  const arA = tsA.aggregateRating ?? emptyAggregateRating()
+  const aggregateRating: AggregateRatingCmsFields = {
+    ratingValue: pickStr(arS.ratingValue, arA.ratingValue),
+    reviewCount: pickStr(arS.reviewCount, arA.reviewCount),
+  }
+  const technicalSeo: TechnicalSeoCmsFields = {
+    canonicalUrl: pickStr(tsS.canonicalUrl, tsA.canonicalUrl),
+    ogTitle: pickStr(tsS.ogTitle, tsA.ogTitle),
+    ogDescription: pickStr(tsS.ogDescription, tsA.ogDescription),
+    ogImageAlt: pickStr(tsS.ogImageAlt, tsA.ogImageAlt),
+    ogType: pickStr(tsS.ogType, tsA.ogType),
+    twitterCard: tsA.twitterCard || tsS.twitterCard,
+    twitterSite: pickStr(tsS.twitterSite, tsA.twitterSite),
+    twitterCreator: pickStr(tsS.twitterCreator, tsA.twitterCreator),
+    robotsMeta: pickStr(tsS.robotsMeta, tsA.robotsMeta),
+    hreflangAlternates,
+    knowsAbout,
+    schemaPrimaryType: pickStr(tsS.schemaPrimaryType, tsA.schemaPrimaryType),
+    enableHowToSchema: tsA.enableHowToSchema || tsS.enableHowToSchema,
+    enableBreadcrumbSchema: tsA.enableBreadcrumbSchema || tsS.enableBreadcrumbSchema,
+    breadcrumbItems,
+    speakableSelectors,
+    answerEngineSummary: pickStr(tsS.answerEngineSummary, tsA.answerEngineSummary),
+    contentModifiedDate: pickStr(tsS.contentModifiedDate, tsA.contentModifiedDate),
+    aggregateRating,
+    videoEmbedUrls,
+    enableWebPageSchema: tsA.enableWebPageSchema || tsS.enableWebPageSchema,
+    enableServiceOfferSchema: tsA.enableServiceOfferSchema || tsS.enableServiceOfferSchema,
+  }
+
   return {
     seoTitle: pickStr(staticBase.seoTitle, api.seoTitle),
     metaDescription: pickStr(staticBase.metaDescription, api.metaDescription),
@@ -658,6 +902,10 @@ export function mergePreferApiStatic(
     primaryKeyword: pickStr(staticBase.primaryKeyword, api.primaryKeyword),
     secondaryKeywords:
       api.secondaryKeywords.length > 0 ? api.secondaryKeywords : staticBase.secondaryKeywords,
+    heroTrustBadge: pickStr(staticBase.heroTrustBadge, api.heroTrustBadge),
+    heroChip: pickStr(staticBase.heroChip, api.heroChip),
+    heroProofPoints,
+    topicChips,
     mainHeading: pickStr(staticBase.mainHeading, api.mainHeading),
     intro: pickStr(staticBase.intro, api.intro),
     introLeadMagnetLabel: pickStr(staticBase.introLeadMagnetLabel, api.introLeadMagnetLabel),
@@ -687,6 +935,7 @@ export function mergePreferApiStatic(
     jsonLdExtra: pickStr(staticBase.jsonLdExtra, api.jsonLdExtra),
     localityGuide,
     localSeo,
+    technicalSeo,
   }
 }
 

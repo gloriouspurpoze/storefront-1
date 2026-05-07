@@ -10,12 +10,19 @@ import { CMSService } from '../../services/api'
 import { CMS_CATALOG_CATEGORIES } from '../../constants/cmsCatalogCategories'
 import { appToast } from '../../lib/appToast'
 import { cn } from '../../lib/utils'
+import { useIndustryServicePagesCatalog } from './IndustryServicePagesContext'
 
 export default function CrossLinkingManagement() {
+  const industryHub = useIndustryServicePagesCatalog()
   const [data, setData] = useState<Record<string, string[]>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState<string>('ac')
+  const [standaloneCategory, setStandaloneCategory] = useState<string>('ac')
+  const selectedCategory = industryHub?.catalogKey ?? standaloneCategory
+  const setSelectedCategory = (v: string) => {
+    if (industryHub) industryHub.setCatalogKey(v)
+    else setStandaloneCategory(v)
+  }
   const [newProblem, setNewProblem] = useState('')
 
   useEffect(() => {
@@ -66,39 +73,52 @@ export default function CrossLinkingManagement() {
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8">
-      <PageHeader
-        title="Cross-Linking (Common Problems)"
-        subtitle="Common problems per category for SEO and catalog cross-linking block"
-        action={
+    <div className={cn(!industryHub && 'p-4 sm:p-6 md:p-8')}>
+      {!industryHub && (
+        <PageHeader
+          title="Cross-Linking (Common Problems)"
+          subtitle="Common problems per category for SEO and catalog cross-linking block"
+          action={
+            <Button onClick={handleSave} disabled={saving} className="rounded-md">
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Link2 className="mr-2 h-4 w-4" />}
+              {saving ? 'Saving…' : 'Save'}
+            </Button>
+          }
+        />
+      )}
+
+      {industryHub && (
+        <div className="mb-4 flex justify-end">
           <Button onClick={handleSave} disabled={saving} className="rounded-md">
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Link2 className="mr-2 h-4 w-4" />}
-            {saving ? 'Saving…' : 'Save'}
+            {saving ? 'Saving…' : 'Save cross-links'}
           </Button>
-        }
-      />
+        </div>
+      )}
 
-      <Card className="mb-4 rounded-md">
-        <CardContent className="p-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="space-y-2">
-              <Label htmlFor="cat-select">Category</Label>
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger id="cat-select" className="w-[200px] rounded-md">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CMS_CATALOG_CATEGORIES.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+      {!industryHub && (
+        <Card className="mb-4 rounded-md">
+          <CardContent className="p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="space-y-2">
+                <Label htmlFor="cat-select">Category</Label>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger id="cat-select" className="w-[200px] rounded-md">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CMS_CATALOG_CATEGORIES.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {loading ? (
         <div className="flex min-h-[280px] items-center justify-center">

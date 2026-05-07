@@ -207,21 +207,21 @@ const HUB_SECTIONS: HubSection[] = [
     subtitle: 'Service templates, local SEO signals from admin, internal links, and global SEO records.',
     tiles: [
       {
-        title: 'Rate card',
-        description: 'Category pricing and spare-parts references.',
-        to: '/cms/rate-card',
-        icon: Receipt,
-      },
-      {
         title: 'Industry service pages',
-        description: 'Per-vertical landing templates and modules.',
+        description: 'Landing SEO, rate card, and cross-links in one hub (same catalog key per vertical).',
         to: '/cms/category-marketing',
         icon: Megaphone,
       },
       {
+        title: 'Rate card',
+        description: 'Spare parts & price lines (opens Industry hub).',
+        to: '/cms/category-marketing?tab=rate-card',
+        icon: Receipt,
+      },
+      {
         title: 'Cross-linking',
-        description: 'Related problems and internal link suggestions.',
-        to: '/cms/cross-linking',
+        description: 'Common problems for internal links (opens Industry hub).',
+        to: '/cms/category-marketing?tab=cross-linking',
         icon: Link2,
       },
       {

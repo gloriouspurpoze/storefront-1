@@ -165,9 +165,7 @@ const MenuManagement = lazy(() => import('./pages/cms/MenuManagement'))
 const NewsletterManagement = lazy(() => import('./pages/cms/NewsletterManagement'))
 const EmailTemplatesManagement = lazy(() => import('./pages/cms/EmailTemplatesManagement'))
 const SocialLinksManagement = lazy(() => import('./pages/cms/SocialLinksManagement'))
-const RateCardManagement = lazy(() => import('./pages/cms/RateCardManagement'))
-const CategoryMarketingManagement = lazy(() => import('./pages/cms/CategoryMarketingManagement'))
-const CrossLinkingManagement = lazy(() => import('./pages/cms/CrossLinkingManagement'))
+const IndustryServicePagesHub = lazy(() => import('./pages/cms/IndustryServicePagesHub'))
 
 const MarketingWorkspaceHub = lazy(() =>
   import('./pages/marketing-workspace/MarketingWorkspaceHub').then((m) => ({ default: m.MarketingWorkspaceHub })),
@@ -1133,29 +1131,21 @@ function App() {
                           </RoleBasedRoute>
                         } 
                       />
-                      <Route 
-                        path="/cms/rate-card" 
-                        element={
-                          <RoleBasedRoute permissions={['manage_system_settings']}>
-                            <RateCardManagement />
-                          </RoleBasedRoute>
-                        } 
+                      <Route
+                        path="/cms/rate-card"
+                        element={<Navigate to="/cms/category-marketing?tab=rate-card" replace />}
                       />
-                      <Route 
-                        path="/cms/category-marketing" 
+                      <Route
+                        path="/cms/category-marketing"
                         element={
                           <RoleBasedRoute permissions={['manage_system_settings']}>
-                            <CategoryMarketingManagement />
+                            <IndustryServicePagesHub />
                           </RoleBasedRoute>
-                        } 
+                        }
                       />
-                      <Route 
-                        path="/cms/cross-linking" 
-                        element={
-                          <RoleBasedRoute permissions={['manage_system_settings']}>
-                            <CrossLinkingManagement />
-                          </RoleBasedRoute>
-                        } 
+                      <Route
+                        path="/cms/cross-linking"
+                        element={<Navigate to="/cms/category-marketing?tab=cross-linking" replace />}
                       />
 
                       <Route

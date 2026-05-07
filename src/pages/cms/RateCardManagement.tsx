@@ -31,6 +31,8 @@ import { PageHeader } from '../../components/common/PageHeader'
 import { CMS_CATALOG_CATEGORIES } from '../../constants/cmsCatalogCategories'
 import { appToast } from '../../lib/appToast'
 import { useAppConfirm } from '../../components/providers/AppDialogsProvider'
+import { useIndustryServicePagesCatalog } from './IndustryServicePagesContext'
+import { cn } from '../../lib/utils'
 
 interface RateCardPart {
   name: string
@@ -38,11 +40,17 @@ interface RateCardPart {
 }
 
 export default function RateCardManagement() {
+  const industryHub = useIndustryServicePagesCatalog()
   const confirm = useAppConfirm()
   const [data, setData] = useState<Record<string, RateCardPart[]>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState<string>('ac')
+  const [standaloneCategory, setStandaloneCategory] = useState<string>('ac')
+  const selectedCategory = industryHub?.catalogKey ?? standaloneCategory
+  const setSelectedCategory = (v: string) => {
+    if (industryHub) industryHub.setCatalogKey(v)
+    else setStandaloneCategory(v)
+  }
   const [showForm, setShowForm] = useState(false)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [formPart, setFormPart] = useState<RateCardPart>({ name: '', price: '' })
@@ -128,11 +136,29 @@ export default function RateCardManagement() {
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8">
-      <PageHeader
-        title="Rate Card (Pricing Parts)"
-        subtitle="Category-wise spare parts & pricing for catalog PricingTable"
-        action={
+    <div className={cn(!industryHub && 'p-4 sm:p-6 md:p-8')}>
+      {!industryHub && (
+        <PageHeader
+          title="Rate Card (Pricing Parts)"
+          subtitle="Category-wise spare parts & pricing for catalog PricingTable"
+          action={
+            <Button
+              onClick={() => {
+                setEditingIndex(null)
+                setFormPart({ name: '', price: '' })
+                setShowForm(true)
+              }}
+              className="rounded-md"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add line
+            </Button>
+          }
+        />
+      )}
+
+      {industryHub && (
+        <div className="mb-4 flex justify-end">
           <Button
             onClick={() => {
               setEditingIndex(null)
@@ -144,34 +170,45 @@ export default function RateCardManagement() {
             <Plus className="mr-2 h-4 w-4" />
             Add line
           </Button>
-        }
-      />
+        </div>
+      )}
 
-      <Card className="mb-4 rounded-md">
-        <CardContent className="p-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="rate-cat">Category</Label>
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger id="rate-cat" className="w-[200px] rounded-md">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CMS_CATALOG_CATEGORIES.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+      {!industryHub && (
+        <Card className="mb-4 rounded-md">
+          <CardContent className="p-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="rate-cat">Category</Label>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger id="rate-cat" className="w-[200px] rounded-md">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CMS_CATALOG_CATEGORIES.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button variant="outline" onClick={handleSaveAll} disabled={saving} className="mt-0 self-end sm:mt-auto">
+                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CircleDollarSign className="mr-2 h-4 w-4" />}
+                {saving ? 'Saving…' : 'Save all'}
+              </Button>
             </div>
-            <Button variant="outline" onClick={handleSaveAll} disabled={saving} className="mt-0 self-end sm:mt-auto">
-              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CircleDollarSign className="mr-2 h-4 w-4" />}
-              {saving ? 'Saving…' : 'Save all'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
+
+      {industryHub && (
+        <div className="mb-4 flex justify-end">
+          <Button variant="outline" onClick={handleSaveAll} disabled={saving} className="rounded-md">
+            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CircleDollarSign className="mr-2 h-4 w-4" />}
+            {saving ? 'Saving…' : 'Save rate card'}
+          </Button>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex min-h-[280px] items-center justify-center">
