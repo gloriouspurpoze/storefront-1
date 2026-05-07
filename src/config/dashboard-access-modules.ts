@@ -53,7 +53,7 @@ export const DASHBOARD_ACCESS_MODULES: DashboardAccessModule[] = [
   {
     id: 'operations',
     label: 'Bookings & quotes',
-    description: 'Scheduling and quotes',
+    description: 'Scheduling, quotes, and Industry operations hub (command center, trust, supply, payouts playbook)',
     viewPermissions: ['view_bookings', 'view_quotes'],
     extras: [
       { key: 'book_manage', label: 'Manage bookings', permissions: ['manage_bookings', 'edit_bookings'] },

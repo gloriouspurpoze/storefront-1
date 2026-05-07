@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import {
   IndianRupee,
   ShoppingCart,
@@ -273,6 +274,9 @@ export function Analytics() {
           <Button type="button" variant="outline" className="gap-1" onClick={handleRefresh} disabled={loading}>
             <RefreshCw className="h-4 w-4" />
             Refresh
+          </Button>
+          <Button type="button" variant="outline" className="gap-1" asChild>
+            <Link to="/analytics/funnels">Growth funnels</Link>
           </Button>
           <Button type="button" className="gap-1" onClick={handleExport}>
             <Download className="h-4 w-4" />

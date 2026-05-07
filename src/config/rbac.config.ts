@@ -424,6 +424,60 @@ export const routePermissions: RoutePermission[] = [
     requiredPermissions: ['view_analytics'],
     allowedRoles: ['super_admin', 'admin', 'manager']
   },
+  {
+    path: '/analytics/funnels',
+    requiredPermissions: ['view_analytics'],
+    allowedRoles: ['super_admin', 'admin', 'manager']
+  },
+
+  /** Industry operations — longest paths must win in `matchRouteConfig` */
+  {
+    path: '/operations/command-center',
+    requiredPermissions: ['view_bookings', 'manage_bookings'],
+    requireAll: false,
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+  {
+    path: '/operations/trust',
+    requiredPermissions: ['view_bookings', 'manage_bookings'],
+    requireAll: false,
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+  {
+    path: '/operations/supply-quality',
+    requiredPermissions: ['view_providers', 'edit_providers', 'approve_providers'],
+    requireAll: false,
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+  {
+    path: '/operations/payouts-playbook',
+    requiredPermissions: ['view_payments', 'create_payments', 'refund_payments'],
+    requireAll: false,
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+  {
+    path: '/operations/dispute-cases',
+    requiredPermissions: ['view_bookings', 'manage_bookings', 'edit_bookings'],
+    requireAll: false,
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+  {
+    path: '/operations',
+    requiredPermissions: [
+      'view_bookings',
+      'manage_bookings',
+      'view_providers',
+      'edit_providers',
+      'approve_providers',
+      'view_analytics',
+      'view_payments',
+      'create_payments',
+      'refund_payments',
+      'view_dashboard'
+    ],
+    requireAll: false,
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
   
   // Products
   {

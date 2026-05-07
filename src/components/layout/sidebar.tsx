@@ -23,6 +23,7 @@ import {
   ChevronDown as ExpandMore,
   Building2 as BusinessIcon,
   LifeBuoy as SupportIcon,
+  ShieldAlert as ShieldAlertIcon,
   Bell as NotificationsIcon,
   User as PersonIcon,
   Tag as CategoryIcon,
@@ -69,6 +70,7 @@ import {
   Palette as PaletteIcon,
   Presentation as PresentationIcon,
   History as HistoryIcon,
+  Gauge as GaugeIcon,
 } from 'lucide-react'
 import { useAppSelector, useAppDispatch } from '../../store/hooks'
 import { setChatUnreadMessages } from '../../store/slices/chatInboxSlice'
@@ -222,6 +224,13 @@ const navigationGroups = [
     items: [
       { name: 'Dashboard', href: '/', icon: DashboardIcon, permissions: ['view_dashboard'], badge: null },
       { name: 'Analytics', href: '/analytics', icon: BarChartIcon, permissions: ['view_analytics'], badge: null },
+      {
+        name: 'Growth funnels',
+        href: '/analytics/funnels',
+        icon: TargetIcon,
+        permissions: ['view_analytics'],
+        badge: null,
+      },
     ]
   },
   {
@@ -242,6 +251,20 @@ const navigationGroups = [
     icon: CalendarIcon,
     items: [
       { name: 'Bookings', href: '/bookings', icon: CalendarIcon, permissions: ['view_bookings', 'manage_bookings'], badge: null },
+      {
+        name: 'Industry operations',
+        href: '/operations',
+        icon: GaugeIcon,
+        permissions: ['view_dashboard'],
+        badge: null,
+      },
+      {
+        name: 'Dispute cases',
+        href: '/operations/dispute-cases',
+        icon: ShieldAlertIcon,
+        permissions: ['view_bookings', 'manage_bookings', 'edit_bookings'],
+        badge: null,
+      },
       {
         name: 'Boards',
         href: '/boards',
@@ -265,16 +288,34 @@ const navigationGroups = [
       },
       { name: 'Service requests', href: '/requests', icon: FileTextIcon, permissions: ['view_services', 'manage_services'], badge: null },
       { name: 'Quotes', href: '/quotes', icon: DollarSignIcon, permissions: ['view_quotes'], badge: null },
-      { name: 'Payments', href: '/payments', icon: CreditCardIcon, permissions: ['view_payments', 'manage_payments'], badge: null },
-      { name: 'Invoices', href: '/invoices', icon: ReceiptIcon, permissions: ['view_payments', 'manage_payments'], badge: null },
+      {
+        name: 'Payments',
+        href: '/payments',
+        icon: CreditCardIcon,
+        permissions: ['view_payments', 'create_payments', 'refund_payments'],
+        badge: null,
+      },
+      {
+        name: 'Invoices',
+        href: '/invoices',
+        icon: ReceiptIcon,
+        permissions: ['view_payments', 'create_payments', 'refund_payments'],
+        badge: null,
+      },
       {
         name: 'Invoice appearance',
         href: '/invoices/branding',
         icon: InvoiceBrandingIcon,
-        permissions: ['view_payments', 'manage_payments'],
+        permissions: ['view_payments', 'create_payments', 'refund_payments'],
         badge: null,
       },
-      { name: 'Earnings & Payouts', href: '/payouts', icon: AccountBalanceIcon, permissions: ['view_payments', 'manage_payments'], badge: null },
+      {
+        name: 'Earnings & Payouts',
+        href: '/payouts',
+        icon: AccountBalanceIcon,
+        permissions: ['view_payments', 'create_payments', 'refund_payments'],
+        badge: null,
+      },
       {
         name: 'Finance',
         href: '/finance/overview',
@@ -382,8 +423,27 @@ const navigationGroups = [
         ],
         badge: null,
       },
-      { name: 'Professionals', href: '/professionals', icon: PersonIcon, permissions: ['view_providers', 'manage_providers'], badge: null },
-      { name: 'Provider Applications', href: '/provider-applications', icon: AssignmentIndIcon, permissions: ['view_providers', 'manage_providers'], badge: null },
+      {
+        name: 'Professionals',
+        href: '/professionals',
+        icon: PersonIcon,
+        permissions: ['view_providers', 'edit_providers', 'approve_providers'],
+        badge: null,
+      },
+      {
+        name: 'Workforce dashboard',
+        href: '/professionals/operations',
+        icon: KanbanSquareIcon,
+        permissions: ['view_providers', 'edit_providers', 'approve_providers'],
+        badge: null,
+      },
+      {
+        name: 'Provider Applications',
+        href: '/provider-applications',
+        icon: AssignmentIndIcon,
+        permissions: ['view_providers', 'edit_providers', 'approve_providers'],
+        badge: null,
+      },
     ]
   },
   {
@@ -514,6 +574,13 @@ const navigationGroups = [
         href: '/support/refund-requests',
         icon: WalletIcon,
         permissions: ['refund_payments'],
+        badge: null,
+      },
+      {
+        name: 'Support tickets',
+        href: '/support/tickets',
+        icon: TicketPercent,
+        permissions: ['view_dashboard'],
         badge: null,
       },
       { name: 'Settings', href: '/settings', icon: SettingsIcon, permissions: ['manage_settings'], badge: null },

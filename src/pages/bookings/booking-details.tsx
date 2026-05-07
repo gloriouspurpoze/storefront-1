@@ -149,6 +149,8 @@ interface BookingDetails {
     categories: string[]
   }
   scheduledDate: string
+  /** Raw ISO from API — used for ops checks (e.g. vs professional weekly hours) */
+  scheduledDateIso?: string
   scheduledTime: string
   status: 'pending' | 'confirmed' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
   totalAmount: number
@@ -556,6 +558,12 @@ export function BookingDetails() {
                 day: 'numeric' 
               })
             : 'N/A',
+          scheduledDateIso: (() => {
+            const raw = apiBooking.scheduledDate || apiBooking.scheduled_date
+            if (!raw) return undefined
+            const d = new Date(raw as string)
+            return Number.isNaN(d.getTime()) ? undefined : d.toISOString()
+          })(),
           scheduledTime: apiBooking.scheduledTime || apiBooking.scheduled_time || 'N/A',
           
           status: (apiBooking.status || 'pending') as BookingDetails['status'],
@@ -2960,6 +2968,7 @@ export function BookingDetails() {
         open={assignProfessionalOpen}
         onClose={() => setAssignProfessionalOpen(false)}
         bookingId={id || ''}
+        scheduledDateIso={booking?.scheduledDateIso}
         onAssigned={() => {
           loadBooking()
           setAssignProfessionalOpen(false)

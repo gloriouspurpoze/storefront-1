@@ -3,7 +3,7 @@
  */
 
 import React, { useState, useEffect } from 'react'
-import { Search, User, Star, MapPin, CheckCircle, Loader2 } from 'lucide-react'
+import { Search, User, Star, MapPin, CheckCircle, Loader2, Clock } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -28,11 +28,17 @@ import { cn } from '../../lib/utils'
 import { ProfessionalsService } from '../../services/api/professionals.service'
 import { BookingsService } from '../../services/api/bookings.service'
 import type { Professional } from '../../types/professional.types'
+import {
+  bookingScheduledDayHint,
+  scheduleSummaryLines,
+} from '../../lib/professionalSchedule'
 
 interface AssignProfessionalDialogProps {
   open: boolean
   onClose: () => void
   bookingId: string
+  /** Visit datetime (ISO) — compared to the professional’s weekly hours from the app */
+  scheduledDateIso?: string
   bookingService?: string
   bookingLocation?: string
   onAssigned?: () => void
@@ -68,6 +74,7 @@ export function AssignProfessionalDialog({
   open,
   onClose,
   bookingId,
+  scheduledDateIso,
   onAssigned,
 }: AssignProfessionalDialogProps) {
   const [professionals, setProfessionals] = useState<Professional[]>([])
@@ -183,18 +190,22 @@ export function AssignProfessionalDialog({
           </div>
         )}
 
-        <div className="rounded-md border border-sky-500/30 bg-sky-500/5 px-3 py-2 text-sm">
-          <strong className="text-foreground">Quick assign:</strong>{' '}
-          <Button
-            type="button"
-            size="sm"
-            className="ml-2"
-            onClick={() => void handleAssign('zillur')}
-            disabled={assigning}
-          >
-            Auto-assign Zillur
-          </Button>
-        </div>
+        {scheduledDateIso ? (
+          <div className="flex gap-2 rounded-md border border-muted bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+            <Clock className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <span className="font-medium text-foreground">Scheduled visit: </span>
+              {new Date(scheduledDateIso).toLocaleString(undefined, {
+                weekday: 'short',
+                dateStyle: 'medium',
+                timeStyle: 'short',
+              })}
+              <span className="mt-1 block text-xs">
+                Badges on each professional compare this day to their in-app weekly calendar (not exact times).
+              </span>
+            </div>
+          </div>
+        ) : null}
 
         <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-12">
           <div className="md:col-span-6">
@@ -273,7 +284,12 @@ export function AssignProfessionalDialog({
 
         {!loading && filteredProfessionals.length > 0 && (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredProfessionals.map((professional) => (
+            {filteredProfessionals.map((professional) => {
+              const schedLines = scheduleSummaryLines(professional).slice(0, 3)
+              const dayHint = scheduledDateIso
+                ? bookingScheduledDayHint(scheduledDateIso, professional)
+                : 'unknown'
+              return (
               <Card key={professional._id} className="flex flex-col">
                 <CardContent className="flex-1 space-y-2 pt-4">
                   <div className="flex items-center gap-2">
@@ -322,6 +338,32 @@ export function AssignProfessionalDialog({
                       {professional.address.area}, {professional.address.city}
                     </p>
                   )}
+                  {schedLines.length > 0 ? (
+                    <div className="space-y-0.5 border-t border-border/60 pt-2">
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                        Calendar (from app)
+                      </p>
+                      {schedLines.map((line) => (
+                        <p key={line} className="text-xs text-muted-foreground">
+                          {line}
+                        </p>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">
+                      No weekly calendar on file — check profile defaults or ask the pro to save availability in the app.
+                    </p>
+                  )}
+                  {scheduledDateIso && dayHint === 'open' ? (
+                    <Badge variant="outline" className="border-emerald-500/50 bg-emerald-500/10 text-emerald-900 dark:text-emerald-100">
+                      Scheduled day: open on their calendar
+                    </Badge>
+                  ) : null}
+                  {scheduledDateIso && dayHint === 'closed' ? (
+                    <Badge variant="destructive" className="text-xs font-normal">
+                      Scheduled day: off on their weekly calendar
+                    </Badge>
+                  ) : null}
                   <p className="text-xs text-muted-foreground">
                     {professional.experience} years experience • {professional.completedJobs || 0} jobs
                   </p>
@@ -338,7 +380,8 @@ export function AssignProfessionalDialog({
                   </Button>
                 </CardFooter>
               </Card>
-            ))}
+              )
+            })}
           </div>
         )}
 

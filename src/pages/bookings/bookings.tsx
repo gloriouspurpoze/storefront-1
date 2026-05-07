@@ -161,6 +161,7 @@ export function Bookings() {
   const [assignProfessionalModal, setAssignProfessionalModal] = useState<{
     open: boolean
     bookingId: string | null
+    scheduledDateIso?: string | null
   }>({ open: false, bookingId: null })
 
   const [availableProviders, setAvailableProviders] = useState<any[]>([])
@@ -794,7 +795,19 @@ export function Bookings() {
                                 size="sm"
                                 variant={proName ? 'outline' : 'default'}
                                 className="h-7 min-w-[72px] px-2 text-xs"
-                                onClick={() => setAssignProfessionalModal({ open: true, bookingId: String(row.id) })}
+                                onClick={() => {
+                                  const raw = row.scheduledDate ?? (row as { scheduled_date?: string }).scheduled_date
+                                  let scheduledDateIso: string | null = null
+                                  if (raw) {
+                                    const d = new Date(raw as string)
+                                    if (!Number.isNaN(d.getTime())) scheduledDateIso = d.toISOString()
+                                  }
+                                  setAssignProfessionalModal({
+                                    open: true,
+                                    bookingId: String(row.id),
+                                    scheduledDateIso,
+                                  })
+                                }}
                               >
                                 {proName ? 'Change' : 'Assign'}
                               </Button>
@@ -922,6 +935,7 @@ export function Bookings() {
           open={assignProfessionalModal.open}
           onClose={() => setAssignProfessionalModal({ open: false, bookingId: null })}
           bookingId={assignProfessionalModal.bookingId}
+          scheduledDateIso={assignProfessionalModal.scheduledDateIso ?? undefined}
           onAssigned={() => {
             setAssignProfessionalModal({ open: false, bookingId: null })
             fetchBookings()

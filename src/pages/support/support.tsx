@@ -78,6 +78,13 @@ const FAQ_ITEMS: FAQItem[] = [
     answer:
       'System → System status runs live probes against your configured REACT_APP_API_URL using your current session.',
   },
+  {
+    id: '7',
+    category: 'Operations',
+    question: 'Where do provider dispute and support tickets appear?',
+    answer:
+      'Open Support ticket queue (sidebar System → Support tickets, or Help & support → shortcut). It calls GET /api/feedback-support/support/tickets — same pipeline as the provider app “Report issue” and Profile → Submit support ticket.',
+  },
 ]
 
 export function Support() {
@@ -163,6 +170,11 @@ export function Support() {
             <CardDescription>Jump to operational pages.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
+            <Button variant="outline" className="justify-between font-normal" asChild>
+              <Link to="/support/tickets">
+                Support ticket queue <Badge variant="secondary">feedback-support API</Badge>
+              </Link>
+            </Button>
             <Button variant="outline" className="justify-between font-normal" asChild>
               <Link to="/system-status">
                 System status <Badge variant="secondary">Live checks</Badge>

@@ -65,6 +65,26 @@ export class ProfessionalsService {
   }
 
   /**
+   * GET /professionals/profile — own professional record (JWT: professional or provider).
+   */
+  static async getMyProfile() {
+    return api.get<Professional>('/professionals/profile', {
+      loadingMessage: 'Loading profile...',
+      showSuccessToast: false,
+    })
+  }
+
+  /**
+   * PUT /professionals/profile — update own profile (same JWT).
+   */
+  static async updateMyProfile(data: UpdateProfessionalData) {
+    return api.put<Professional>('/professionals/profile', data, {
+      loadingMessage: 'Saving profile...',
+      successMessage: 'Profile updated successfully!',
+    })
+  }
+
+  /**
    * Get professionals by service provider
    */
   static async getProfessionalsByProvider(providerId: string) {
@@ -161,31 +181,6 @@ export class ProfessionalsService {
     return this.getProfessionals({
       ...query,
       city,
-    })
-  }
-
-  /**
-   * Bulk update professionals
-   */
-  static async bulkUpdateProfessionals(professionalIds: string[], updates: Partial<UpdateProfessionalData>) {
-    return api.put('/professionals/bulk', {
-      professionalIds,
-      updates,
-    }, {
-      loadingMessage: 'Updating professionals...',
-      successMessage: 'Professionals updated successfully!',
-    })
-  }
-
-  /**
-   * Bulk verify professionals
-   */
-  static async bulkVerifyProfessionals(professionalIds: string[]) {
-    return api.post('/professionals/bulk-verify', {
-      professionalIds,
-    }, {
-      loadingMessage: 'Verifying professionals...',
-      successMessage: 'Professionals verified successfully!',
     })
   }
 
@@ -323,19 +318,5 @@ export class ProfessionalsService {
     }
   }
 
-  static async exportProfessionals(query: ProfessionalsQuery = {}) {
-    const params = new URLSearchParams()
-    
-    Object.entries(query).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        params.append(key, value.toString())
-      }
-    })
-
-    return api.get(`/professionals/export${params.toString() ? `?${params.toString()}` : ''}`, {
-      loadingMessage: 'Exporting professionals...',
-      showSuccessToast: false,
-    })
-  }
 }
 

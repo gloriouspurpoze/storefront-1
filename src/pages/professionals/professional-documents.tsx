@@ -23,7 +23,6 @@ import {
   CardContent,
   Typography,
   Button,
-  Grid,
   Stack,
   Chip,
   Alert,
@@ -40,9 +39,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
   Tooltip,
-  LinearProgress,
 } from '@mui/material'
 import {
   Upload as UploadIcon,
@@ -50,15 +47,16 @@ import {
   Download as DownloadIcon,
   Delete as DeleteIcon,
   CheckCircle as VerifiedIcon,
-  Warning as WarningIcon,
-  CalendarToday,
   CloudUpload,
 } from '@mui/icons-material'
 import { useAppDispatch } from '../../store/hooks'
-import { apiClient } from '../../services/apiClient'
 import { addToast } from '../../store/slices/uiSlice'
 import { useDropzone } from 'react-dropzone'
 import { useAppConfirm } from '../../components/providers/AppDialogsProvider'
+import { ProfessionalsService } from '../../services/api/professionals.service'
+import { UploadService } from '../../services/api/upload.service'
+import { extractProfessionalFromGetResponse } from '../../lib/professionalAdmin'
+import type { UpdateProfessionalData } from '../../types/professional.types'
 
 interface Certification {
   _id: string
@@ -69,6 +67,54 @@ interface Certification {
   certificateUrl?: string
   verificationStatus: 'pending' | 'verified' | 'rejected'
   uploadedAt: string
+}
+
+type ApiCert = NonNullable<UpdateProfessionalData['certifications']>[number]
+
+function mapRawCertToUi(c: Record<string, unknown>, index: number): Certification {
+  const id = c._id != null ? String(c._id) : `cert-${index}`
+  const st = String(c.verificationStatus ?? 'pending')
+  const verificationStatus: Certification['verificationStatus'] =
+    st === 'approved' || st === 'verified'
+      ? 'verified'
+      : st === 'rejected'
+        ? 'rejected'
+        : 'pending'
+  return {
+    _id: id,
+    name: String(c.name ?? ''),
+    issuedBy: String(c.issuedBy ?? ''),
+    issuedDate: c.issuedDate != null ? String(c.issuedDate) : undefined,
+    expiryDate: c.expiryDate != null ? String(c.expiryDate) : undefined,
+    certificateUrl: c.certificateUrl != null ? String(c.certificateUrl) : undefined,
+    verificationStatus,
+    uploadedAt: (c.uploadedAt != null ? String(c.uploadedAt) : '') || new Date().toISOString(),
+  }
+}
+
+function rawCertToPutPayload(c: Record<string, unknown>): ApiCert {
+  const st = String(c.verificationStatus ?? 'pending')
+  const verificationStatus: 'pending' | 'approved' | 'rejected' =
+    st === 'approved' || st === 'verified'
+      ? 'approved'
+      : st === 'rejected'
+        ? 'rejected'
+        : 'pending'
+  const out: ApiCert = {
+    name: String(c.name ?? ''),
+    issuedBy: String(c.issuedBy ?? ''),
+    verificationStatus,
+  }
+  if (c.issuedDate) {
+    out.issuedDate = new Date(String(c.issuedDate)).toISOString()
+  }
+  if (c.expiryDate) {
+    out.expiryDate = new Date(String(c.expiryDate)).toISOString()
+  }
+  if (c.certificateUrl) {
+    out.certificateUrl = String(c.certificateUrl)
+  }
+  return out
 }
 
 export function ProfessionalDocuments() {
@@ -93,16 +139,19 @@ export function ProfessionalDocuments() {
   const loadCertifications = async () => {
     try {
       setLoading(true)
-      const response = await apiClient.get('/professionals/certifications') as any
-      if (response?.success || response?.data?.success) {
-        const certs = response.data?.certifications || response.data?.data || response.certifications || []
-        setCertifications(Array.isArray(certs) ? certs : [])
+      const response = await ProfessionalsService.getMyProfile()
+      if (response.success && response.data) {
+        const rawProf = extractProfessionalFromGetResponse(response.data) as Record<string, unknown> | null
+        const rawCerts = rawProf && Array.isArray(rawProf.certifications) ? rawProf.certifications : []
+        setCertifications(
+          (rawCerts as Record<string, unknown>[]).map((row, i) => mapRawCertToUi(row, i)),
+        )
       }
     } catch (error: any) {
       console.error('Error loading certifications:', error)
-      dispatch(addToast({ 
-        message: error.response?.data?.message || 'Failed to load certifications', 
-        severity: 'error' 
+      dispatch(addToast({
+        message: error?.message || 'Failed to load certifications',
+        severity: 'error',
       }))
     } finally {
       setLoading(false)
@@ -135,33 +184,46 @@ export function ProfessionalDocuments() {
 
     try {
       setUploading(true)
-      const uploadFormData = new FormData()
-      uploadFormData.append('file', selectedFile)
-      uploadFormData.append('name', formData.name)
-      uploadFormData.append('issuedBy', formData.issuedBy)
-      if (formData.issuedDate) uploadFormData.append('issuedDate', formData.issuedDate)
-      if (formData.expiryDate) uploadFormData.append('expiryDate', formData.expiryDate)
+      const { url } = await UploadService.uploadImage(selectedFile, 'homeservice/professional_certifications')
 
-      const response = await apiClient.post('/professionals/certifications/upload', uploadFormData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }) as any
-
-      if (response?.success || response?.data?.success) {
-        dispatch(addToast({ 
-          message: 'Certificate uploaded successfully!', 
-          severity: 'success' 
-        }))
-        setUploadDialogOpen(false)
-        setSelectedFile(null)
-        setFormData({ name: '', issuedBy: '', issuedDate: '', expiryDate: '' })
-        loadCertifications()
+      const profileRes = await ProfessionalsService.getMyProfile()
+      if (!profileRes.success || !profileRes.data) {
+        throw new Error('Could not load profile to save certificate')
       }
+      const rawProf = extractProfessionalFromGetResponse(profileRes.data) as Record<string, unknown>
+      const rawCerts = Array.isArray(rawProf.certifications)
+        ? (rawProf.certifications as Record<string, unknown>[])
+        : []
+
+      const nextCert: ApiCert = {
+        name: formData.name.trim(),
+        issuedBy: formData.issuedBy.trim(),
+        certificateUrl: url,
+        verificationStatus: 'pending',
+      }
+      if (formData.issuedDate) {
+        nextCert.issuedDate = new Date(formData.issuedDate).toISOString()
+      }
+      if (formData.expiryDate) {
+        nextCert.expiryDate = new Date(formData.expiryDate).toISOString()
+      }
+
+      await ProfessionalsService.updateMyProfile({
+        certifications: [...rawCerts.map(rawCertToPutPayload), nextCert],
+      })
+
+      dispatch(addToast({
+        message: 'Certificate uploaded successfully!',
+        severity: 'success',
+      }))
+      setUploadDialogOpen(false)
+      setSelectedFile(null)
+      setFormData({ name: '', issuedBy: '', issuedDate: '', expiryDate: '' })
+      loadCertifications()
     } catch (error: any) {
-      dispatch(addToast({ 
-        message: error.response?.data?.message || 'Failed to upload certificate', 
-        severity: 'error' 
+      dispatch(addToast({
+        message: error?.message || 'Failed to upload certificate',
+        severity: 'error',
       }))
     } finally {
       setUploading(false)
@@ -178,16 +240,30 @@ export function ProfessionalDocuments() {
     if (!ok) return
 
     try {
-      await apiClient.delete(`/professionals/certifications/${certId}`) as any
-      dispatch(addToast({ 
-        message: 'Certificate deleted successfully!', 
-        severity: 'success' 
+      const profileRes = await ProfessionalsService.getMyProfile()
+      if (!profileRes.success || !profileRes.data) {
+        throw new Error('Could not load profile')
+      }
+      const rawProf = extractProfessionalFromGetResponse(profileRes.data) as Record<string, unknown>
+      const rawCerts = Array.isArray(rawProf.certifications)
+        ? (rawProf.certifications as Record<string, unknown>[])
+        : []
+      const filtered = rawCerts.filter((c) => String(c._id ?? '') !== certId)
+      if (filtered.length === rawCerts.length) {
+        throw new Error('Certificate not found')
+      }
+      await ProfessionalsService.updateMyProfile({
+        certifications: filtered.map(rawCertToPutPayload),
+      })
+      dispatch(addToast({
+        message: 'Certificate deleted successfully!',
+        severity: 'success',
       }))
       loadCertifications()
     } catch (error: any) {
-      dispatch(addToast({ 
-        message: error.response?.data?.message || 'Failed to delete certificate', 
-        severity: 'error' 
+      dispatch(addToast({
+        message: error?.message || 'Failed to delete certificate',
+        severity: 'error',
       }))
     }
   }

@@ -96,11 +96,18 @@ export const ReviewsService = {
     providerId?: string
     platformServiceId?: string
   }) {
+    const page = params?.page ?? 1
+    const limit = Math.min(100, Math.max(1, params?.limit ?? 50))
     const response = await axios.get<BookingReviewsResponse>(`${API_BASE}/reviews/all`, {
       ...getAuthHeaders(),
-      params: { page: 1, limit: 50, ...params },
-    });
-    return response.data?.data ?? { reviews: [], pagination: { page: 1, limit: 50, total: 0, totalPages: 0 } };
+      params: { ...params, page, limit },
+    })
+    return (
+      response.data?.data ?? {
+        reviews: [],
+        pagination: { page: 1, limit, total: 0, totalPages: 0 },
+      }
+    )
   },
 
   async getCategoryFeedback(params?: { page?: number; limit?: number }) {

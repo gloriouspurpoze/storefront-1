@@ -54,7 +54,7 @@ import {
 import { ProfessionalsService } from '../../services/api/professionals.service'
 import { Professional, UpdateAvailabilityData } from '../../types/professional.types'
 import { getProfessionalCategoryLabel } from '../../constants/professionalCategories'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link as RouterLink } from 'react-router-dom'
 
 export function ProfessionalsManagement() {
   const navigate = useNavigate()
@@ -305,14 +305,25 @@ export function ProfessionalsManagement() {
         title="Professionals"
         subtitle="Manage service professionals (workers/technicians)"
         action={
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleCreate}
-            sx={{ borderRadius: 2 }}
-          >
-            Add Professional
-          </Button>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'flex-end' }}>
+            <Button
+              variant="outlined"
+              startIcon={<DashboardIcon />}
+              component={RouterLink}
+              to="/professionals/operations"
+              sx={{ borderRadius: 2 }}
+            >
+              Workforce dashboard
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleCreate}
+              sx={{ borderRadius: 2 }}
+            >
+              Add Professional
+            </Button>
+          </Box>
         }
       />
 

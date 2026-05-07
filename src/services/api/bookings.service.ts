@@ -16,9 +16,16 @@ export class BookingsService {
    * Get bookings with pagination and filters
    */
   static async getBookings(query: BookingsQuery = {}) {
+    const safeQuery: BookingsQuery = { ...query }
+    if (safeQuery.limit != null) {
+      const n = Number(safeQuery.limit)
+      if (!Number.isFinite(n)) safeQuery.limit = 25
+      else safeQuery.limit = Math.min(100, Math.max(1, Math.floor(n)))
+    }
+
     const params = new URLSearchParams()
-    
-    Object.entries(query).forEach(([key, value]) => {
+
+    Object.entries(safeQuery).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         params.append(key, value.toString())
       }
@@ -702,7 +709,8 @@ export class BookingsService {
       }
     }
 
-    const MAX = 150
+    /** Backend validates limit <= 100 */
+    const MAX = 100
     const wide = await this.getBookings({
       page: 1,
       limit: MAX,

@@ -34,7 +34,35 @@ export interface SupportTicketRow {
   }
 }
 
+export type SupportTicketsPagination = {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
+
 export class SupportTicketsService {
+  /**
+   * All support tickets (admin: full queue). Backend: GET /api/feedback-support/support/tickets
+   */
+  static async listTicketQueue(params?: {
+    page?: number
+    limit?: number
+    status?: string
+    category?: string
+  }) {
+    const q = new URLSearchParams()
+    if (params?.page) q.set('page', String(params.page))
+    if (params?.limit) q.set('limit', String(params.limit ?? 50))
+    if (params?.status) q.set('status', params.status)
+    if (params?.category) q.set('category', params.category)
+    const qs = q.toString()
+    return api.get<{ tickets: SupportTicketRow[]; pagination: SupportTicketsPagination }>(
+      `/feedback-support/support/tickets${qs ? `?${qs}` : ''}`,
+      { showSuccessToast: false },
+    )
+  }
+
   static async listRefundQueue(params?: { page?: number; limit?: number; status?: string }) {
     const q = new URLSearchParams()
     q.set('hasRefund', 'true')

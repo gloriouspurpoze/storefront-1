@@ -15,11 +15,20 @@ function rowId(b: Booking): string {
   return String(b.id || (b as { _id?: string })._id || '')
 }
 
-function pickTime(...candidates: (string | undefined | null)[]): string {
+/** First real timestamp from API fields — never invent "now" (would fake activity). */
+function pickTime(...candidates: (string | undefined | null)[]): string | null {
   for (const c of candidates) {
     if (c && String(c).trim()) return String(c)
   }
-  return new Date().toISOString()
+  return null
+}
+
+function pushWhenTimed(
+  items: ProfessionalHubActivityItem[],
+  row: Omit<ProfessionalHubActivityItem, 'occurredAt'> & { occurredAt: string | null },
+) {
+  if (!row.occurredAt || !String(row.occurredAt).trim()) return
+  items.push({ ...row, occurredAt: String(row.occurredAt) })
 }
 
 /**
@@ -40,7 +49,7 @@ export function buildActivityTimelineFromBookings(bookings: Booking[], limit = 8
     const label = b.bookingNumber || bid
     const cancel = (b.cancellationReason ?? b.cancellation_reason ?? '').toString().trim()
 
-    items.push({
+    pushWhenTimed(items, {
       id: `${bid}-created`,
       occurredAt: pickTime(createdAt, scheduled, updatedAt),
       kind: 'booking',
@@ -50,7 +59,7 @@ export function buildActivityTimelineFromBookings(bookings: Booking[], limit = 8
     })
 
     if (scheduled) {
-      items.push({
+      pushWhenTimed(items, {
         id: `${bid}-scheduled`,
         occurredAt: scheduled,
         kind: 'booking',
@@ -60,8 +69,65 @@ export function buildActivityTimelineFromBookings(bookings: Booking[], limit = 8
       })
     }
 
+    const assignedAt = (b as { assignedAt?: string | null }).assignedAt ?? (b as { assigned_at?: string | null }).assigned_at
+    if (assignedAt && String(assignedAt).trim()) {
+      pushWhenTimed(items, {
+        id: `${bid}-assigned`,
+        occurredAt: String(assignedAt),
+        kind: 'booking',
+        title: 'Assigned to professional',
+        description: label,
+        bookingId: bid,
+      })
+    }
+
+    if (status === 'confirmed') {
+      pushWhenTimed(items, {
+        id: `${bid}-confirmed`,
+        occurredAt: pickTime(updatedAt, scheduled, createdAt),
+        kind: 'booking',
+        title: 'Confirmed with customer',
+        description: label,
+        bookingId: bid,
+      })
+    }
+
+    if (status === 'accepted') {
+      pushWhenTimed(items, {
+        id: `${bid}-accepted`,
+        occurredAt: pickTime(updatedAt, scheduled, createdAt),
+        kind: 'booking',
+        title: 'Professional accepted job',
+        description: label,
+        bookingId: bid,
+      })
+    }
+
+    if (status === 'in_progress') {
+      pushWhenTimed(items, {
+        id: `${bid}-inprogress`,
+        occurredAt: pickTime(updatedAt, scheduled, createdAt),
+        kind: 'booking',
+        title: 'Work in progress',
+        description: label,
+        bookingId: bid,
+      })
+    }
+
+    const pay = (b as { paymentStatus?: string }).paymentStatus
+    if (pay && String(pay).trim() && status === 'completed') {
+      pushWhenTimed(items, {
+        id: `${bid}-pay`,
+        occurredAt: pickTime(completed, updatedAt, scheduled, createdAt),
+        kind: 'booking',
+        title: `Payment: ${pay}`,
+        description: label,
+        bookingId: bid,
+      })
+    }
+
     if (status === 'cancelled' && cancel) {
-      items.push({
+      pushWhenTimed(items, {
         id: `${bid}-cancel`,
         occurredAt: pickTime(updatedAt, scheduled, createdAt),
         kind: 'booking',
@@ -70,7 +136,7 @@ export function buildActivityTimelineFromBookings(bookings: Booking[], limit = 8
         bookingId: bid,
       })
     } else if (status === 'cancelled') {
-      items.push({
+      pushWhenTimed(items, {
         id: `${bid}-cancel-noreason`,
         occurredAt: pickTime(updatedAt, scheduled, createdAt),
         kind: 'booking',
@@ -81,7 +147,7 @@ export function buildActivityTimelineFromBookings(bookings: Booking[], limit = 8
     }
 
     if (status === 'completed') {
-      items.push({
+      pushWhenTimed(items, {
         id: `${bid}-completed`,
         occurredAt: pickTime(completed, updatedAt, scheduled, createdAt),
         kind: 'booking',

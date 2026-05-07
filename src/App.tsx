@@ -30,6 +30,9 @@ const NotFound = lazy(() => import('./pages/NotFound').then((m) => ({ default: m
 
 const SmartDashboard = lazy(() => import('./pages/dashboard/smart-dashboard').then((m) => ({ default: m.SmartDashboard })))
 const Analytics = lazy(() => import('./pages/dashboard/analytics').then((m) => ({ default: m.Analytics })))
+const GrowthFunnelsPage = lazy(() =>
+  import('./pages/analytics/GrowthFunnelsPage').then((m) => ({ default: m.GrowthFunnelsPage })),
+)
 const AdminEarningsOverview = lazy(() => import('./pages/payments/admin-earnings-overview').then((m) => ({ default: m.AdminEarningsOverview })))
 
 const FinanceLayout = lazy(() =>
@@ -102,6 +105,11 @@ const EditProfessional = lazy(() => import('./pages/professionals/edit-professio
 const ProfessionalAdminHub = lazy(() =>
   import('./pages/professionals/professional-admin-hub').then((m) => ({ default: m.ProfessionalAdminHub })),
 )
+const ProfessionalsOperationsDashboard = lazy(() =>
+  import('./pages/professionals/professionals-operations-dashboard').then((m) => ({
+    default: m.ProfessionalsOperationsDashboard,
+  })),
+)
 const ProfessionalDashboard = lazy(() => import('./pages/professionals/professional-dashboard').then((m) => ({ default: m.ProfessionalDashboard })))
 const ProfessionalBookings = lazy(() => import('./pages/bookings/professional-bookings').then((m) => ({ default: m.ProfessionalBookings })))
 const ProfessionalProfile = lazy(() => import('./pages/professionals/professional-profile').then((m) => ({ default: m.ProfessionalProfile })))
@@ -117,6 +125,24 @@ const BookingDetails = lazy(() => import('./pages/bookings/booking-details').the
 const Orders = lazy(() => import('./pages/orders/orders').then((m) => ({ default: m.Orders })))
 const Quotes = lazy(() => import('./pages/operations/quotes').then((m) => ({ default: m.Quotes })))
 const ServiceRequests = lazy(() => import('./pages/operations/service-requests').then((m) => ({ default: m.ServiceRequests })))
+const IndustryOperationsHub = lazy(() =>
+  import('./pages/operations/IndustryOperationsHub').then((m) => ({ default: m.IndustryOperationsHub })),
+)
+const OpsCommandCenterPage = lazy(() =>
+  import('./pages/operations/OpsCommandCenterPage').then((m) => ({ default: m.OpsCommandCenterPage })),
+)
+const TrustDisputesHubPage = lazy(() =>
+  import('./pages/operations/TrustDisputesHubPage').then((m) => ({ default: m.TrustDisputesHubPage })),
+)
+const SupplyQualityPage = lazy(() =>
+  import('./pages/operations/SupplyQualityPage').then((m) => ({ default: m.SupplyQualityPage })),
+)
+const PayoutTransparencyPage = lazy(() =>
+  import('./pages/operations/PayoutTransparencyPage').then((m) => ({ default: m.PayoutTransparencyPage })),
+)
+const DisputeCasesPage = lazy(() =>
+  import('./pages/operations/DisputeCasesPage').then((m) => ({ default: m.DisputeCasesPage })),
+)
 
 const Payments = lazy(() => import('./pages/payments/payments').then((m) => ({ default: m.Payments })))
 const Invoices = lazy(() => import('./pages/payments/invoices').then((m) => ({ default: m.Invoices })))
@@ -146,6 +172,7 @@ const Referrals = lazy(() => import('./pages/marketing/referrals'))
 const Support = lazy(() => import('./pages/support/support'))
 const Reports = lazy(() => import('./pages/support/reports'))
 const RefundRequestsPage = lazy(() => import('./pages/support/RefundRequestsPage'))
+const SupportTicketsQueuePage = lazy(() => import('./pages/support/SupportTicketsQueuePage'))
 
 const CMSDashboard = lazy(() => import('./pages/cms/CMSDashboard'))
 const SiteAppearancePage = lazy(() => import('./pages/cms/SiteAppearancePage'))
@@ -504,6 +531,75 @@ function App() {
                           </RoleBasedRoute>
                         } 
                       />
+
+                      {/* Industry operations (service marketplace CEO spine) */}
+                      <Route
+                        path="/operations/command-center"
+                        element={
+                          <RoleBasedRoute permissions={['view_bookings', 'manage_bookings']}>
+                            <OpsCommandCenterPage />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/operations/trust"
+                        element={
+                          <RoleBasedRoute permissions={['view_bookings', 'manage_bookings']}>
+                            <TrustDisputesHubPage />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/operations/supply-quality"
+                        element={
+                          <RoleBasedRoute
+                            permissions={['view_providers', 'edit_providers', 'approve_providers']}
+                          >
+                            <SupplyQualityPage />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/operations/payouts-playbook"
+                        element={
+                          <RoleBasedRoute
+                            permissions={['view_payments', 'create_payments', 'refund_payments']}
+                          >
+                            <PayoutTransparencyPage />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/operations/dispute-cases"
+                        element={
+                          <RoleBasedRoute
+                            permissions={['view_bookings', 'manage_bookings', 'edit_bookings']}
+                          >
+                            <DisputeCasesPage />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/operations"
+                        element={
+                          <RoleBasedRoute
+                            permissions={[
+                              'view_bookings',
+                              'manage_bookings',
+                              'view_providers',
+                              'edit_providers',
+                              'approve_providers',
+                              'view_analytics',
+                              'view_payments',
+                              'create_payments',
+                              'refund_payments',
+                              'view_dashboard',
+                            ]}
+                          >
+                            <IndustryOperationsHub />
+                          </RoleBasedRoute>
+                        }
+                      />
                       
                       {/* Bookings */}
                       <Route 
@@ -690,6 +786,14 @@ function App() {
                         }
                       />
                       <Route
+                        path="/professionals/operations"
+                        element={
+                          <RoleBasedRoute permissions={['view_providers']}>
+                            <ProfessionalsOperationsDashboard />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
                         path="/professionals/:id"
                         element={
                           <RoleBasedRoute permissions={['view_providers']}>
@@ -816,6 +920,14 @@ function App() {
                             <Analytics />
                           </RoleBasedRoute>
                         } 
+                      />
+                      <Route
+                        path="/analytics/funnels"
+                        element={
+                          <RoleBasedRoute permissions={['view_analytics']}>
+                            <GrowthFunnelsPage />
+                          </RoleBasedRoute>
+                        }
                       />
 
                       {/* CRM */}

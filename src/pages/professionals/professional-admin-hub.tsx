@@ -7,6 +7,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, Link as RouterLink } from 'react-router-dom'
 import {
   Alert,
+  Avatar,
   Box,
   Button,
   Card,
@@ -21,13 +22,25 @@ import {
   InputLabel,
   LinearProgress,
   MenuItem,
+  Paper,
   Select,
   Snackbar,
+  Stack,
   Tab,
   Tabs,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material'
+import {
+  Timeline,
+  TimelineConnector,
+  TimelineContent,
+  TimelineDot,
+  TimelineItem,
+  TimelineOppositeContent,
+  TimelineSeparator,
+} from '@mui/lab'
 import {
   ArrowBack as BackIcon,
   OpenInNew as OpenInNewIcon,
@@ -41,14 +54,31 @@ import { usersService } from '../../services/api/users.service'
 import type { Professional } from '../../types/professional.types'
 import type { Booking, Payment } from '../../types'
 import { buildActivityTimelineFromBookings } from '../../lib/professionalActivity'
+import {
+  BOOKING_STATUSES_FOR_TOTALS,
+  PIPELINE_GROUPS,
+  type PipelineGroup,
+  bookingLifecycleLabel,
+  sumStatusesForGroup,
+} from '../../lib/professionalWorkPipeline'
 import { usePermissions } from '../../hooks/usePermissions'
 import {
   extractProfessionalFromGetResponse,
   normalizeProfessionalFromApi,
   professionalDisplayAccountStatus,
+  professionalDocumentsUpdatePayload,
 } from '../../lib/professionalAdmin'
+import { professionalKycTypeLabel } from '../../constants/professionalKycDocuments'
 import { formatCurrency, formatDate } from '../../lib/utils'
+import { normalizeLedgerPaymentsList } from '../../lib/paymentLedgerNormalize'
 import { getProfessionalCategoryLabel } from '../../constants/professionalCategories'
+import {
+  formatSlotList,
+  normalizeWeeklyAvailability,
+  PROFESSIONAL_WEEKDAY_KEYS,
+  scheduleSummaryLines,
+  weekdayShortLabel,
+} from '../../lib/professionalSchedule'
 
 type TabKey = 'overview' | 'bookings' | 'activity' | 'earnings' | 'reviews' | 'documents' | 'coverage' | 'moderation'
 
@@ -81,6 +111,26 @@ function reviewBookingMongoId(r: Pick<BookingReview, 'bookingId'>): string | nul
   if (!b) return null
   if (typeof b === 'string') return b
   return b._id != null ? String(b._id) : null
+}
+
+function customerDisplayName(b: Booking): string {
+  const c = b.customer
+  if (c?.firstName || c?.lastName) {
+    return `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim()
+  }
+  return (b.customerName && String(b.customerName).trim()) || '—'
+}
+
+function serviceDisplayName(b: Booking): string {
+  if (b.serviceName?.trim()) return b.serviceName.trim()
+  const s0 = b.services?.[0]
+  return s0?.serviceName || s0?.serviceDetails?.name || '—'
+}
+
+function assignedAtDisplay(b: Booking): string {
+  const raw = b.assignedAt ?? b.assigned_at
+  if (!raw || !String(raw).trim()) return '—'
+  return formatDate(String(raw))
 }
 
 export function ProfessionalAdminHub() {
@@ -119,6 +169,7 @@ export function ProfessionalAdminHub() {
   const [blockReason, setBlockReason] = useState('')
   const [modBusy, setModBusy] = useState(false)
   const [reinstateOpen, setReinstateOpen] = useState(false)
+  const [docSavingKey, setDocSavingKey] = useState<string | null>(null)
 
   const [bookingStatusFilter, setBookingStatusFilter] = useState<string>('all')
   const [dateFrom, setDateFrom] = useState('')
@@ -136,6 +187,11 @@ export function ProfessionalAdminHub() {
   const [earningsPayments, setEarningsPayments] = useState<Payment[]>([])
   const [earningsLoading, setEarningsLoading] = useState(false)
   const [earningsHint, setEarningsHint] = useState<string | null>(null)
+
+  /** Per-status totals (lightweight page=1 requests) for pipeline KPIs */
+  const [statusTotals, setStatusTotals] = useState<Partial<Record<string, number>> | null>(null)
+  const [statusTotalsLoading, setStatusTotalsLoading] = useState(false)
+  const [statusTotalsError, setStatusTotalsError] = useState(false)
 
   const loadProfessional = useCallback(async () => {
     if (!id) {
@@ -165,6 +221,36 @@ export function ProfessionalAdminHub() {
   useEffect(() => {
     void loadProfessional()
   }, [loadProfessional])
+
+  const loadStatusTotals = useCallback(async () => {
+    if (!id || !professional) return
+    setStatusTotalsLoading(true)
+    setStatusTotalsError(false)
+    try {
+      const entries = await Promise.all(
+        BOOKING_STATUSES_FOR_TOTALS.map(async (status) => {
+          const { api } = await BookingsService.getBookingsForProfessionalAdmin(id, professional.professionalId, {
+            page: 1,
+            limit: 1,
+            status,
+          })
+          const payload = (api.data || {}) as { pagination?: { total?: number } }
+          const total = payload.pagination?.total ?? 0
+          return [status, total] as const
+        }),
+      )
+      setStatusTotals(Object.fromEntries(entries))
+    } catch {
+      setStatusTotals(null)
+      setStatusTotalsError(true)
+    } finally {
+      setStatusTotalsLoading(false)
+    }
+  }, [id, professional])
+
+  useEffect(() => {
+    if (professional) void loadStatusTotals()
+  }, [professional, loadStatusTotals])
 
   const loadBookings = useCallback(async () => {
     if (!id || !professional) return
@@ -246,13 +332,13 @@ export function ProfessionalAdminHub() {
         professional_id: id,
       })
       if (primary.success && primary.data?.payments?.length) {
-        setEarningsPayments(primary.data.payments)
-        setEarningsHint('Loaded from payments API (professional filter).')
+        setEarningsPayments(normalizeLedgerPaymentsList(primary.data.payments))
+        setEarningsHint(null)
         return
       }
       const ids = bookings.map(bookingRowId).filter(Boolean).slice(0, 24)
       if (ids.length === 0) {
-        setEarningsHint('No bookings in the current list to resolve payment lines. Open Bookings or widen filters.')
+        setEarningsHint('Open the Bookings tab or adjust filters to load assigned jobs; payments are matched from those rows.')
         return
       }
       const batches: Payment[] = []
@@ -264,9 +350,7 @@ export function ProfessionalAdminHub() {
             try {
               const r = await PaymentsService.getPaymentsByBooking(bid)
               if (!r.success || r.data == null) return []
-              const raw = r.data as unknown
-              const list = Array.isArray(raw) ? raw : (raw as { payments?: Payment[] })?.payments ?? []
-              return Array.isArray(list) ? list : []
+              return normalizeLedgerPaymentsList(r.data as unknown)
             } catch {
               return []
             }
@@ -282,8 +366,8 @@ export function ProfessionalAdminHub() {
       setEarningsPayments(Array.from(dedup.values()))
       setEarningsHint(
         primary.success
-          ? 'Payments API had no professional filter match; showing payment lines for visible bookings (merged, de-duplicated).'
-          : 'Showing payment lines loaded per booking (fallback).',
+          ? 'Payments shown per booking on the current list (merged).'
+          : 'Payments loaded per booking on the current list.',
       )
     } catch (e) {
       setEarningsHint(e instanceof Error ? e.message : 'Could not load payments.')
@@ -297,30 +381,45 @@ export function ProfessionalAdminHub() {
   }, [tab, id, loadEarnings])
 
   const loadReviews = useCallback(async () => {
-    if (!id) return
+    if (!id || !professional) return
     setReviewsLoading(true)
     try {
-      const { reviews: raw } = await ReviewsService.getBookingReviews({
-        professionalId: id,
-        page: 1,
-        limit: 200,
-      })
-      const proKeys = new Set([id, professional?._id, professional?.id].filter(Boolean) as string[])
-      const filtered = raw.filter((r) => {
-        const pid = reviewProfessionalMongoId(r)
-        return pid != null && proKeys.has(pid)
-      })
-      setReviews(filtered.length > 0 ? filtered : raw)
+      const proKeys = new Set([id, professional._id, professional.id].filter(Boolean) as string[])
+      const pageSize = 100
+      const collected: BookingReview[] = []
+      const seen = new Set<string>()
+      let page = 1
+      let totalPages = 1
+      while (page <= totalPages && page <= 50) {
+        const { reviews: raw, pagination } = await ReviewsService.getBookingReviews({
+          professionalId: id,
+          page,
+          limit: pageSize,
+        })
+        const tp = pagination?.totalPages
+        if (typeof tp === 'number' && tp >= 1) totalPages = tp
+        for (const r of raw) {
+          const pid = reviewProfessionalMongoId(r)
+          if (pid == null || !proKeys.has(pid)) continue
+          if (seen.has(r._id)) continue
+          seen.add(r._id)
+          collected.push(r)
+        }
+        if (raw.length === 0 || raw.length < pageSize) break
+        page += 1
+      }
+      collected.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      setReviews(collected)
     } catch {
       setReviews([])
     } finally {
       setReviewsLoading(false)
     }
-  }, [id, professional?._id, professional?.id])
+  }, [id, professional])
 
   useEffect(() => {
-    if (tab === 'reviews' && id) void loadReviews()
-  }, [tab, id, loadReviews])
+    if (tab === 'reviews' && id && professional) void loadReviews()
+  }, [tab, id, professional, loadReviews])
 
   useEffect(() => {
     setBookingPage(1)
@@ -356,9 +455,9 @@ export function ProfessionalAdminHub() {
       description: e.description,
       bookingId: e.bookingId,
     }))
-    const merged = [...fromApi, ...fromBookings].sort(
-      (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime(),
-    )
+    const merged = [...fromApi, ...fromBookings]
+      .filter((row) => row.occurredAt && !Number.isNaN(new Date(row.occurredAt).getTime()))
+      .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
     const seen = new Set<string>()
     const out: typeof merged = []
     for (const row of merged) {
@@ -376,6 +475,16 @@ export function ProfessionalAdminHub() {
     return { average: sum / reviews.length, count: reviews.length }
   }, [reviews])
 
+  /** Certifications with real content only (name or uploaded file) — hide empty rows from profile payload */
+  const profileDocuments = useMemo(() => {
+    if (!professional) return []
+    return (professional.certifications || []).filter((c) => {
+      const name = c.name?.trim()
+      const url = c.certificateUrl?.trim()
+      return Boolean(name || url)
+    })
+  }, [professional])
+
   const earningsTotals = useMemo(() => {
     let completed = 0
     for (const p of earningsPayments) {
@@ -385,6 +494,45 @@ export function ProfessionalAdminHub() {
     }
     return { completed, count: earningsPayments.length }
   }, [earningsPayments])
+
+  const pipelineGrandTotal = useMemo(() => {
+    if (!statusTotals) return null
+    return BOOKING_STATUSES_FOR_TOTALS.reduce((s, st) => s + (Number(statusTotals[st]) || 0), 0)
+  }, [statusTotals])
+
+  const handlePipelineStageClick = (group: PipelineGroup) => {
+    setTab('bookings')
+    setBookingStatusFilter(group.drilldownStatus)
+    setBookingPage(1)
+  }
+
+  const kycDocuments = professional?.documents ?? []
+
+  const handleSetKycVerified = async (index: number, verified: boolean) => {
+    if (!id || !professional?.documents?.length || !canModerate) return
+    const key = `kyc-${index}`
+    setDocSavingKey(key)
+    try {
+      const next = professional.documents.map((d, i) => (i === index ? { ...d, isVerified: verified } : d))
+      await ProfessionalsService.updateProfessional(id, {
+        documents: professionalDocumentsUpdatePayload(next),
+      })
+      setSnackbar({
+        open: true,
+        message: verified ? 'Document marked as verified.' : 'Document verification cleared.',
+        severity: 'success',
+      })
+      await loadProfessional()
+    } catch (e) {
+      setSnackbar({
+        open: true,
+        message: e instanceof Error ? e.message : 'Could not update document.',
+        severity: 'error',
+      })
+    } finally {
+      setDocSavingKey(null)
+    }
+  }
 
   const performReinstate = async () => {
     if (!id || !professional) return
@@ -509,11 +657,14 @@ export function ProfessionalAdminHub() {
     <Box sx={{ pb: 4 }}>
       <PageHeader
         title={`${professional.firstName} ${professional.lastName}`}
-        subtitle={`Command center · ${professional.professionalId}`}
+        subtitle="Operations hub — assignment through completion, earnings, compliance, and moderation in one place."
         action={
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'flex-end' }}>
             <Button variant="outlined" startIcon={<BackIcon />} onClick={() => navigate('/professionals')}>
               List
+            </Button>
+            <Button variant="outlined" component={RouterLink} to="/professionals/operations">
+              Workforce dashboard
             </Button>
             <Button
               variant="contained"
@@ -526,15 +677,113 @@ export function ProfessionalAdminHub() {
         }
       />
 
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2, alignItems: 'center' }}>
-        <Chip
-          size="small"
-          label={`Account: ${accountStatus}`}
-          color={accountStatus === 'active' ? 'success' : 'warning'}
-        />
-        <Chip size="small" label={`Verification: ${professional.verificationStatus}`} />
-        <Chip size="small" label={`Availability: ${professional.availability}`} />
-      </Box>
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 2,
+          mb: 2,
+          borderRadius: 2,
+          background: (theme) =>
+            theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : theme.palette.grey[50],
+        }}
+      >
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'center' }}>
+          <Stack direction="row" spacing={2} alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
+            <Avatar
+              src={professional.profileImage}
+              alt=""
+              sx={{ width: 64, height: 64, fontSize: '1.25rem' }}
+            >
+              {(professional.firstName?.[0] ?? '?').toUpperCase()}
+              {(professional.lastName?.[0] ?? '').toUpperCase()}
+            </Avatar>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Pro ID · {professional.professionalId}
+              </Typography>
+              <Typography variant="body2" noWrap title={professional.email}>
+                {professional.email} · {professional.phoneNumber}
+              </Typography>
+              <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mt: 0.75 }}>
+                <Chip
+                  size="small"
+                  label={`Account: ${accountStatus}`}
+                  color={accountStatus === 'active' ? 'success' : 'warning'}
+                />
+                <Chip size="small" label={`Verification: ${professional.verificationStatus}`} />
+                <Chip size="small" label={`Availability: ${professional.availability}`} />
+              </Stack>
+            </Box>
+          </Stack>
+          <Box sx={{ flexShrink: 0 }}>
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+              Lifecycle snapshot
+            </Typography>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Typography variant="h5" component="span">
+                {statusTotalsLoading ? '—' : pipelineGrandTotal ?? '—'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                assignments (all statuses)
+              </Typography>
+              <Tooltip title="Refresh stage counts">
+                <Button size="small" variant="outlined" onClick={() => void loadStatusTotals()} disabled={statusTotalsLoading}>
+                  Refresh
+                </Button>
+              </Tooltip>
+            </Stack>
+          </Box>
+        </Stack>
+
+        {statusTotalsError ? (
+          <Alert severity="warning" sx={{ mt: 2, borderRadius: 2 }}>
+            Could not load assignment counts. Refresh the page or open Bookings to verify workload.
+          </Alert>
+        ) : null}
+
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2, mb: 1 }}>
+          Counts come from bookings assigned to this professional (by status). Select a stage to jump to Bookings with
+          a matching filter.
+        </Typography>
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 1,
+            overflowX: 'auto',
+            pb: 0.5,
+            '&::-webkit-scrollbar': { height: 6 },
+          }}
+        >
+          {PIPELINE_GROUPS.map((group) => {
+            const count = sumStatusesForGroup(statusTotals, group.statuses)
+            return (
+              <Tooltip key={group.id} title={group.description}>
+                <Paper
+                  variant="outlined"
+                  onClick={() => handlePipelineStageClick(group)}
+                  sx={{
+                    minWidth: 140,
+                    p: 1.25,
+                    cursor: 'pointer',
+                    borderRadius: 2,
+                    transition: 'box-shadow 0.15s, border-color 0.15s',
+                    '&:hover': {
+                      borderColor: 'primary.main',
+                      boxShadow: 1,
+                    },
+                  }}
+                >
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    {group.shortLabel}
+                  </Typography>
+                  <Typography variant="h6">{statusTotalsLoading ? '…' : count}</Typography>
+                  <Chip size="small" label={bookingLifecycleLabel(group.drilldownStatus)} sx={{ mt: 0.5 }} color={group.color} variant="outlined" />
+                </Paper>
+              </Tooltip>
+            )
+          })}
+        </Box>
+      </Paper>
 
       <Tabs
         value={tab}
@@ -561,30 +810,50 @@ export function ProfessionalAdminHub() {
             gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
           }}
         >
-          <Card variant="outlined">
+          <Card variant="outlined" sx={{ borderRadius: 2 }}>
             <CardContent>
-              <Typography variant="subtitle2" color="text.secondary">
-                Performance (profile)
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Quality &amp; throughput
               </Typography>
               <Typography variant="h4">{Number(professional.rating || 0).toFixed(1)} ★</Typography>
-              <Typography variant="body2" color="text.secondary">
-                {professional.totalReviews ?? 0} reviews · {professional.completedJobs ?? 0} completed ·{' '}
-                {professional.cancelledJobs ?? 0} cancelled (lifetime counters)
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                {professional.totalReviews ?? 0} reviews on profile · {professional.completedJobs ?? 0} completed jobs ·{' '}
+                {professional.cancelledJobs ?? 0} cancelled (lifetime)
               </Typography>
             </CardContent>
           </Card>
-          <Card variant="outlined">
+          <Card variant="outlined" sx={{ borderRadius: 2 }}>
             <CardContent>
-              <Typography variant="subtitle2" color="text.secondary">
-                Bookings (this fetch)
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Live assignment load
               </Typography>
               {bookingsLoading ? (
                 <LinearProgress sx={{ mt: 1 }} />
               ) : (
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  {bookings.length} loaded · total reported {bookingTotal}
-                  {bookingsLoadMeta ? ` · source: ${bookingsLoadMeta.strategy}` : ''}. Cancelled / reasons appear in
-                  Bookings or Activity.
+                <Typography variant="body2" sx={{ mt: 0.5 }}>
+                  This page: {bookings.length} rows · Total assignments: {bookingTotal}
+                </Typography>
+              )}
+              {statusTotals && !statusTotalsLoading ? (
+                <Box sx={{ mt: 1.5, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                  {BOOKING_STATUSES_FOR_TOTALS.map((st) => (
+                    <Chip
+                      key={st}
+                      size="small"
+                      variant="outlined"
+                      label={`${bookingLifecycleLabel(st)}: ${statusTotals[st] ?? 0}`}
+                      onClick={() => {
+                        setTab('bookings')
+                        setBookingStatusFilter(st)
+                        setBookingPage(1)
+                      }}
+                      sx={{ cursor: 'pointer' }}
+                    />
+                  ))}
+                </Box>
+              ) : (
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+                  {statusTotalsLoading ? 'Loading stage totals…' : 'Stage totals unavailable.'}
                 </Typography>
               )}
               {bookingsLoadMeta?.warning ? (
@@ -594,41 +863,127 @@ export function ProfessionalAdminHub() {
               ) : null}
             </CardContent>
           </Card>
-          <Card variant="outlined">
+          <Card variant="outlined" sx={{ borderRadius: 2 }}>
             <CardContent>
-              <Typography variant="subtitle2" color="text.secondary">
-                Quick links
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Shortcuts
               </Typography>
-              <Button sx={{ mt: 1, mr: 1 }} size="small" onClick={() => setTab('bookings')}>
-                Bookings
-              </Button>
-              <Button sx={{ mt: 1, mr: 1 }} size="small" onClick={() => setTab('activity')}>
-                Activity
-              </Button>
-              <Button sx={{ mt: 1, mr: 1 }} size="small" onClick={() => setTab('moderation')}>
-                Moderation
-              </Button>
-              <Button
-                size="small"
-                component={RouterLink}
-                to={`/bookings?professionalId=${encodeURIComponent(id)}`}
-                endIcon={<OpenInNewIcon sx={{ fontSize: 16 }} />}
-              >
-                All bookings (filter)
-              </Button>
+              <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mt: 0.5 }}>
+                <Button size="small" variant="outlined" onClick={() => setTab('bookings')}>
+                  Bookings
+                </Button>
+                <Button size="small" variant="outlined" onClick={() => setTab('activity')}>
+                  Activity
+                </Button>
+                <Button size="small" variant="outlined" onClick={() => setTab('earnings')}>
+                  Earnings
+                </Button>
+                <Button size="small" variant="outlined" onClick={() => setTab('documents')}>
+                  Documents
+                </Button>
+                <Button size="small" variant="outlined" onClick={() => setTab('moderation')}>
+                  Moderation
+                </Button>
+                <Button
+                  size="small"
+                  variant="contained"
+                  component={RouterLink}
+                  to={`/bookings?professionalId=${encodeURIComponent(id)}`}
+                  endIcon={<OpenInNewIcon sx={{ fontSize: 16 }} />}
+                >
+                  Global list
+                </Button>
+              </Stack>
             </CardContent>
           </Card>
-          <Card variant="outlined" sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}>
+          <Card variant="outlined" sx={{ gridColumn: { xs: '1', md: '1 / -1' }, borderRadius: 2 }}>
             <CardContent>
               <Typography variant="subtitle1" gutterBottom>
-                Summary
+                Calendar &amp; working hours
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+                Synced from the professional app (weekly grid + live status). Use this when assigning leads or judging
+                capacity.
+              </Typography>
+              <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mb: 2 }}>
+                <Chip
+                  size="small"
+                  variant="outlined"
+                  color={
+                    professional.availability === 'available'
+                      ? 'success'
+                      : professional.availability === 'busy'
+                        ? 'warning'
+                        : 'default'
+                  }
+                  label={`Live status: ${professional.availability}`}
+                />
+                <Chip
+                  size="small"
+                  variant="outlined"
+                  label={`Max bookings / day: ${professional.maxBookingsPerDay ?? '—'}`}
+                />
+                {professional.workingHours?.start && professional.workingHours?.end ? (
+                  <Chip
+                    size="small"
+                    variant="outlined"
+                    label={`Legacy band: ${professional.workingHours.start}–${professional.workingHours.end}`}
+                  />
+                ) : null}
+              </Stack>
+              {(() => {
+                const weekly = normalizeWeeklyAvailability(professional.weeklyAvailability)
+                const hasWeekly = PROFESSIONAL_WEEKDAY_KEYS.some((k) => weekly[k].length > 0)
+                const legacyLines = scheduleSummaryLines(professional)
+                return (
+                  <>
+                    {!hasWeekly && legacyLines.length > 0 ? (
+                      <Alert severity="info" sx={{ mb: 2 }}>
+                        Weekly grid not saved in the app yet — showing onboarding-style working days / hours only.
+                      </Alert>
+                    ) : null}
+                    {!hasWeekly && legacyLines.length === 0 ? (
+                      <Alert severity="warning" sx={{ mb: 2 }}>
+                        No calendar data on file. Ask the professional to set availability in the provider app, or edit
+                        defaults in admin profile.
+                      </Alert>
+                    ) : null}
+                    <Box
+                      sx={{
+                        display: 'grid',
+                        gap: 1,
+                        gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+                      }}
+                    >
+                      {PROFESSIONAL_WEEKDAY_KEYS.map((k) => (
+                        <Paper key={k} variant="outlined" sx={{ p: 1.25, borderRadius: 1 }}>
+                          <Typography variant="caption" color="text.secondary">
+                            {weekdayShortLabel(k)}
+                          </Typography>
+                          <Typography variant="body2" sx={{ mt: 0.5 }}>
+                            {formatSlotList(weekly[k])}
+                          </Typography>
+                        </Paper>
+                      ))}
+                    </Box>
+                  </>
+                )
+              })()}
+            </CardContent>
+          </Card>
+          <Card variant="outlined" sx={{ gridColumn: { xs: '1', md: '1 / -1' }, borderRadius: 2 }}>
+            <CardContent>
+              <Typography variant="subtitle1" gutterBottom>
+                Profile summary
               </Typography>
               <Typography variant="body2">
                 Trades: {(professional.categories || []).map((c) => getProfessionalCategoryLabel(c)).join(', ') || '—'}
               </Typography>
-              <Typography variant="body2" sx={{ mt: 1 }}>
-                Email {professional.email} · {professional.phoneNumber}
-              </Typography>
+              {professional.serviceProviderId?.businessName ? (
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Provider: {professional.serviceProviderId.businessName}
+                </Typography>
+              ) : null}
             </CardContent>
           </Card>
         </Box>
@@ -678,14 +1033,14 @@ export function ProfessionalAdminHub() {
               label="From (ISO date)"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
-              placeholder="2026-01-01"
+              placeholder="YYYY-MM-DD"
             />
             <TextField
               size="small"
               label="To (ISO date)"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
-              placeholder="2026-12-31"
+              placeholder="YYYY-MM-DD"
             />
             <Button size="small" variant="outlined" onClick={() => void loadBookings()}>
               Refresh
@@ -696,15 +1051,25 @@ export function ProfessionalAdminHub() {
           ) : (
             <>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Showing {bookings.length} of {bookingTotal} (page {bookingPage}) · resolution:{' '}
-                {bookingsLoadMeta?.strategy ?? '—'}
+                Showing {bookings.length} of {bookingTotal} · Page {bookingPage}
               </Typography>
               <Box sx={{ overflowX: 'auto' }}>
                 <Box component="table" sx={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
                   <Box component="thead">
                     <Box component="tr" sx={{ textAlign: 'left', borderBottom: 1, borderColor: 'divider' }}>
-                      {['Booking', 'Status', 'Scheduled', 'Amount', 'Cancellation / notes', ''].map((h) => (
-                        <Box component="th" key={h || 'a'} sx={{ py: 1, pr: 2, fontWeight: 600 }}>
+                      {[
+                        'Booking',
+                        'Customer',
+                        'Service',
+                        'Status',
+                        'Payment',
+                        'Scheduled',
+                        'Assigned',
+                        'Amount',
+                        'Notes',
+                        '',
+                      ].map((h) => (
+                        <Box component="th" key={h || 'actions'} sx={{ py: 1, pr: 2, fontWeight: 600, whiteSpace: 'nowrap' }}>
                           {h}
                         </Box>
                       ))}
@@ -713,23 +1078,51 @@ export function ProfessionalAdminHub() {
                   <Box component="tbody">
                     {bookings.map((b) => {
                       const bid = bookingRowId(b)
-                      const st = b.status || (b as { status?: string }).status
+                      const st = (b.status || (b as { status?: string }).status || '—') as string
                       const amt = Number(b.totalAmount ?? (b as { total_amount?: number }).total_amount ?? 0)
+                      const pay = b.paymentStatus
                       return (
                         <Box component="tr" key={bid} sx={{ borderBottom: 1, borderColor: 'divider' }}>
                           <Box component="td" sx={{ py: 1, pr: 2, verticalAlign: 'top' }}>
-                            {b.bookingNumber || bid}
+                            <Typography variant="body2" fontWeight={600}>
+                              {b.bookingNumber || bid}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" display="block">
+                              {b.scheduledTime ? `${b.scheduledTime}` : ''}
+                            </Typography>
+                          </Box>
+                          <Box component="td" sx={{ py: 1, pr: 2, verticalAlign: 'top', minWidth: 120 }}>
+                            {customerDisplayName(b)}
+                            {b.customerPhone ? (
+                              <Typography variant="caption" display="block" color="text.secondary">
+                                {b.customerPhone}
+                              </Typography>
+                            ) : null}
+                          </Box>
+                          <Box component="td" sx={{ py: 1, pr: 2, verticalAlign: 'top', maxWidth: 200 }}>
+                            <Typography variant="body2" sx={{ wordBreak: 'break-word' }}>
+                              {serviceDisplayName(b)}
+                            </Typography>
                           </Box>
                           <Box component="td" sx={{ py: 1, pr: 2, verticalAlign: 'top' }}>
                             <Chip size="small" label={st} />
+                            <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.25 }}>
+                              {bookingLifecycleLabel(st)}
+                            </Typography>
                           </Box>
                           <Box component="td" sx={{ py: 1, pr: 2, verticalAlign: 'top' }}>
+                            {pay ? <Chip size="small" variant="outlined" label={pay} /> : '—'}
+                          </Box>
+                          <Box component="td" sx={{ py: 1, pr: 2, verticalAlign: 'top', whiteSpace: 'nowrap' }}>
                             {b.scheduledDate ? formatDate(b.scheduledDate) : '—'}
+                          </Box>
+                          <Box component="td" sx={{ py: 1, pr: 2, verticalAlign: 'top', whiteSpace: 'nowrap' }}>
+                            {assignedAtDisplay(b)}
                           </Box>
                           <Box component="td" sx={{ py: 1, pr: 2, verticalAlign: 'top' }}>
                             {formatCurrency(amt)}
                           </Box>
-                          <Box component="td" sx={{ py: 1, pr: 2, verticalAlign: 'top', maxWidth: 280 }}>
+                          <Box component="td" sx={{ py: 1, pr: 2, verticalAlign: 'top', maxWidth: 220 }}>
                             {cancellationText(b)}
                             {b.notes ? (
                               <Typography variant="caption" display="block" color="text.secondary">
@@ -774,40 +1167,52 @@ export function ProfessionalAdminHub() {
       {tab === 'activity' && (
         <Box>
           {activityLoading ? <LinearProgress sx={{ mb: 2 }} /> : null}
-          <Alert severity="info" sx={{ mb: 2 }}>
-            Timeline merges optional <code>GET /professionals/:id/activity</code> events with booking-derived milestones
-            (created, scheduled, completed, cancellations). For full audit history, implement the activity API on the
-            server.
-          </Alert>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Timeline uses platform activity when the API returns it, plus milestones derived from loaded bookings (only
+            events with real timestamps from the server).
+          </Typography>
           {mergedActivity.length === 0 ? (
             <Typography variant="body2" color="text.secondary">
-              No activity rows yet. Load bookings or add backend activity events.
+              No activity yet. Open Bookings to load assignments, or check back after new updates.
             </Typography>
           ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {mergedActivity.map((row) => (
-                <Card key={row.id} variant="outlined">
-                  <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 1 }}>
+            <Paper variant="outlined" sx={{ p: { xs: 1, sm: 2 }, borderRadius: 2, overflow: 'hidden' }}>
+              <Timeline position="right">
+                {mergedActivity.map((row, idx) => (
+                  <TimelineItem key={row.id}>
+                    <TimelineOppositeContent
+                      color="text.secondary"
+                      sx={{ flex: 0.22, maxWidth: 160, py: 2, fontSize: '0.8rem' }}
+                    >
+                      {formatDate(row.occurredAt)}
+                      <Typography variant="caption" display="block" sx={{ opacity: 0.85 }}>
+                        {row.source === 'platform' ? 'Platform' : 'Booking'}
+                      </Typography>
+                    </TimelineOppositeContent>
+                    <TimelineSeparator>
+                      <TimelineDot
+                        color={row.source === 'platform' ? 'secondary' : 'primary'}
+                        variant="outlined"
+                      />
+                      {idx < mergedActivity.length - 1 ? <TimelineConnector /> : null}
+                    </TimelineSeparator>
+                    <TimelineContent sx={{ py: 2 }}>
                       <Typography variant="subtitle2">{row.title}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {formatDate(row.occurredAt)} · {row.source}
-                      </Typography>
-                    </Box>
-                    {row.description ? (
-                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                        {row.description}
-                      </Typography>
-                    ) : null}
-                    {row.bookingId ? (
-                      <Button size="small" sx={{ mt: 1 }} component={RouterLink} to={`/bookings/${row.bookingId}`}>
-                        Booking details
-                      </Button>
-                    ) : null}
-                  </CardContent>
-                </Card>
-              ))}
-            </Box>
+                      {row.description ? (
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                          {row.description}
+                        </Typography>
+                      ) : null}
+                      {row.bookingId ? (
+                        <Button size="small" sx={{ mt: 1 }} component={RouterLink} to={`/bookings/${row.bookingId}`}>
+                          Open booking
+                        </Button>
+                      ) : null}
+                    </TimelineContent>
+                  </TimelineItem>
+                ))}
+              </Timeline>
+            </Paper>
           )}
         </Box>
       )}
@@ -815,11 +1220,9 @@ export function ProfessionalAdminHub() {
       {tab === 'earnings' && (
         <Box>
           {earningsLoading ? <LinearProgress sx={{ mb: 2 }} /> : null}
-          <Alert severity="info" sx={{ mb: 2 }}>
-            Combines <strong>payments list</strong> (when <code>professional_id</code> filter exists) with{' '}
-            <strong>per-booking payment lines</strong> for visible assignments. Net payouts and platform fees may still
-            require ledger APIs.
-          </Alert>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Payment rows from finance records linked to this professional or to bookings listed below.
+          </Typography>
           {earningsHint ? (
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               {earningsHint}
@@ -844,7 +1247,7 @@ export function ProfessionalAdminHub() {
                 </Typography>
                 <Typography variant="h4">{formatCurrency(bookingStats.completedRevenue)}</Typography>
                 <Typography variant="caption" color="text.secondary">
-                  From booking totals · status counts {JSON.stringify(bookingStats.counts)}
+                  Sum of completed jobs on the current Bookings page only (not full history).
                 </Typography>
               </CardContent>
             </Card>
@@ -902,7 +1305,7 @@ export function ProfessionalAdminHub() {
             </Box>
           ) : !earningsLoading ? (
             <Alert severity="info" sx={{ mt: 2 }}>
-              No payment rows loaded. Ensure bookings are visible, or implement GET /payments?professional_id=…
+              No payment records found for this view.
             </Alert>
           ) : null}
         </Box>
@@ -915,16 +1318,14 @@ export function ProfessionalAdminHub() {
             <Card variant="outlined" sx={{ mb: 2 }}>
               <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
                 <Typography variant="subtitle1">
-                  Average {reviewsSummary.average.toFixed(2)} ★ across {reviewsSummary.count} loaded reviews
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Increase backend limit or add GET /reviews?professionalId= for complete history.
+                  Average {reviewsSummary.average.toFixed(2)} ★ · {reviewsSummary.count}{' '}
+                  {reviewsSummary.count === 1 ? 'review' : 'reviews'} from customers
                 </Typography>
               </CardContent>
             </Card>
           ) : null}
           {!reviewsLoading && reviews.length === 0 ? (
-            <Alert severity="info">No reviews matched this professional (try widening API support for professionalId).</Alert>
+            <Alert severity="info">No customer reviews for this professional yet.</Alert>
           ) : null}
           {!reviewsLoading &&
             reviews.map((r) => {
@@ -965,21 +1366,87 @@ export function ProfessionalAdminHub() {
       {tab === 'documents' && (
         <Box>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            From profile certifications. Upload flows remain on the professional portal unless you add admin doc APIs.
+            Same record as the professional mobile app: <strong>KYC uploads</strong> (identity / compliance) and{' '}
+            <strong>trade certifications</strong> (skills, optional file). Rows appear only after data exists on the
+            server.
           </Typography>
-          {(professional.certifications || []).length === 0 ? (
-            <Alert severity="info">No certifications on file.</Alert>
+
+          <Typography variant="subtitle1" sx={{ mb: 1 }}>
+            Identity &amp; KYC
+          </Typography>
+          {kycDocuments.length === 0 ? (
+            <Alert severity="info" sx={{ mb: 3 }}>
+              No KYC files yet. They are submitted from the professional app (Documents screen) and stored on this
+              profile.
+            </Alert>
           ) : (
-            (professional.certifications || []).map((c, i) => {
+            <Stack spacing={1} sx={{ mb: 3 }}>
+              {kycDocuments.map((doc, index) => (
+                <Card key={doc._id ?? `${doc.type}-${index}`} variant="outlined">
+                  <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <Typography variant="subtitle2">{professionalKycTypeLabel(doc.type)}</Typography>
+                      <Chip
+                        size="small"
+                        label={doc.isVerified ? 'Verified' : 'Pending review'}
+                        color={doc.isVerified ? 'success' : 'warning'}
+                        variant={doc.isVerified ? 'filled' : 'outlined'}
+                      />
+                    </Box>
+                    {doc.documentNumber ? (
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        Reference: {doc.documentNumber}
+                      </Typography>
+                    ) : null}
+                    <Stack direction="row" flexWrap="wrap" gap={1} alignItems="center">
+                      <Button size="small" href={doc.documentUrl} target="_blank" rel="noreferrer">
+                        Open file
+                      </Button>
+                      {canModerate ? (
+                        <>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="success"
+                            disabled={docSavingKey !== null || Boolean(doc.isVerified)}
+                            onClick={() => void handleSetKycVerified(index, true)}
+                          >
+                            {docSavingKey === `kyc-${index}` ? 'Saving…' : 'Mark verified'}
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="warning"
+                            disabled={docSavingKey !== null || !doc.isVerified}
+                            onClick={() => void handleSetKycVerified(index, false)}
+                          >
+                            Clear verification
+                          </Button>
+                        </>
+                      ) : null}
+                    </Stack>
+                  </CardContent>
+                </Card>
+              ))}
+            </Stack>
+          )}
+
+          <Typography variant="subtitle1" sx={{ mb: 1 }}>
+            Trade certifications
+          </Typography>
+          {profileDocuments.length === 0 ? (
+            <Alert severity="info">No trade certifications with a title or file on file.</Alert>
+          ) : (
+            profileDocuments.map((c, i) => {
               const days = daysUntilExpiry(c.expiryDate)
               const expired = days != null && days < 0
               const soon = days != null && days >= 0 && days <= 30
               const v = c.verificationStatus
               return (
-                <Card key={`${c.name}-${i}`} variant="outlined" sx={{ mb: 1 }}>
+                <Card key={`${c.certificateUrl ?? ''}-${c.name ?? ''}-${i}`} variant="outlined" sx={{ mb: 1 }}>
                   <CardContent>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center', mb: 1 }}>
-                      <Typography variant="subtitle1">{c.name}</Typography>
+                      <Typography variant="subtitle1">{c.name?.trim() || 'Uploaded document'}</Typography>
                       {v ? (
                         <Chip
                           size="small"
@@ -994,7 +1461,9 @@ export function ProfessionalAdminHub() {
                         <Chip size="small" label={`Expires in ${days}d`} color="warning" />
                       ) : null}
                     </Box>
-                    <Typography variant="body2">Issued by {c.issuedBy}</Typography>
+                    {c.issuedBy?.trim() ? (
+                      <Typography variant="body2">Issued by {c.issuedBy}</Typography>
+                    ) : null}
                     {c.adminNotes ? (
                       <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                         Admin: {c.adminNotes}
@@ -1069,11 +1538,10 @@ export function ProfessionalAdminHub() {
             <Alert severity="warning">You do not have permission to moderate professionals.</Alert>
           ) : (
             <>
-              <Alert severity="info" sx={{ mb: 2 }}>
-                Suspend and block prefer dedicated POST endpoints; if the server returns 404, the app falls back to
-                deactivating the professional record. When <code>userId</code> is present, login is toggled via users
-                API.
-              </Alert>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Suspend temporarily, block permanently, or reinstate access. Linked login may be disabled when a user
+                account is connected.
+              </Typography>
               <Typography variant="body2" sx={{ mb: 1 }}>
                 Current: <strong>{accountStatus}</strong>
                 {professional.moderationReason ? ` — ${professional.moderationReason}` : ''}
@@ -1119,7 +1587,7 @@ export function ProfessionalAdminHub() {
             fullWidth
             value={suspendUntil}
             onChange={(e) => setSuspendUntil(e.target.value)}
-            placeholder="2026-12-31"
+            placeholder="YYYY-MM-DD"
             sx={{ mt: 2 }}
           />
         </DialogContent>

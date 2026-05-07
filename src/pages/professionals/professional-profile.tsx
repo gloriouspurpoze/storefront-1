@@ -66,6 +66,10 @@ import { ProfessionalsService } from '../../services/api/professionals.service'
 import { Professional } from '../../types/professional.types'
 import { addToast } from '../../store/slices/uiSlice'
 import { getInitials } from '../../lib/utils'
+import {
+  extractProfessionalFromGetResponse,
+  normalizeProfessionalFromApi,
+} from '../../lib/professionalAdmin'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -134,39 +138,29 @@ export function ProfessionalProfile() {
 
   useEffect(() => {
     fetchProfessionalProfile()
-  }, [user?.id])
+  }, [])
 
   const fetchProfessionalProfile = async () => {
     try {
       setLoading(true)
       setError(null)
-      
-      if (!user?.id) {
-        setError('User ID not found')
-        return
-      }
-      
-      // Try to get professional by user ID
-      // Note: This might need to be adjusted based on your API structure
-      const response = await ProfessionalsService.getProfessionals({
-        // `ProfessionalsQuery` doesn't support userId; use search as a best-effort filter
-        search: user.email || user.id,
-        limit: 1,
-      })
-      
+
+      const response = await ProfessionalsService.getMyProfile()
+
       if (response.success && response.data) {
-        const professionals = Array.isArray(response.data) 
-          ? response.data 
-          : (response.data as any).professionals || []
-        
-        if (professionals.length > 0) {
-          const prof = professionals[0] as Professional
+        const raw = extractProfessionalFromGetResponse(response.data)
+        if (!raw || typeof raw !== 'object') {
+          setError('Professional profile not found')
+          return
+        }
+        const prof = normalizeProfessionalFromApi(raw)
+        if (prof && prof._id) {
           setProfessional(prof)
           
           setFormData({
             firstName: prof.firstName || '',
             lastName: prof.lastName || '',
-            email: prof.email || user.email || '',
+            email: prof.email || user?.email || '',
             phoneNumber: prof.phoneNumber || '',
             alternatePhone: prof.alternatePhone || '',
             dateOfBirth: prof.dateOfBirth || '',
@@ -195,8 +189,9 @@ export function ProfessionalProfile() {
         } else {
           setError('Professional profile not found')
         }
+      } else {
+        setError('Professional profile not found')
       }
-      
     } catch (err: any) {
       console.error('Error fetching profile:', err)
       setError(err?.message || 'Failed to load profile')
@@ -238,7 +233,7 @@ export function ProfessionalProfile() {
       setSaving(true)
       setError(null)
       
-      await ProfessionalsService.updateProfessional(professional._id, {
+      await ProfessionalsService.updateMyProfile({
         firstName: formData.firstName,
         lastName: formData.lastName,
         phoneNumber: formData.phoneNumber,

@@ -11,6 +11,30 @@
 /** Account moderation (admin). Backend may return snake_case — normalize in UI when needed. */
 export type ProfessionalAccountStatus = 'active' | 'suspended' | 'blocked'
 
+/** One interval within a weekday (matches fixerprovider / Mongo `weeklyAvailability`) */
+export type ProfessionalCalendarSlot = { start: string; end: string }
+
+export type ProfessionalWeekdayKey =
+  | 'monday'
+  | 'tuesday'
+  | 'wednesday'
+  | 'thursday'
+  | 'friday'
+  | 'saturday'
+  | 'sunday'
+
+export type ProfessionalWeeklyAvailability = Record<ProfessionalWeekdayKey, ProfessionalCalendarSlot[]>
+
+/** KYC files uploaded from fixerprovider (`Professional.documents`) — same payload PUT /professionals/profile */
+export interface ProfessionalVerificationDocument {
+  _id?: string
+  type: string
+  documentUrl: string
+  documentNumber?: string
+  isVerified?: boolean
+  verifiedAt?: string
+}
+
 export interface Professional {
   _id: string
   id: string
@@ -56,6 +80,8 @@ export interface Professional {
     verificationStatus?: 'pending' | 'approved' | 'rejected'
     adminNotes?: string
   }>
+  /** Identity / compliance uploads from the professional app (Mongo `documents`) */
+  documents?: ProfessionalVerificationDocument[]
   experience: number
   expertiseLevel: 'beginner' | 'intermediate' | 'expert'
   
@@ -86,6 +112,8 @@ export interface Professional {
   }
   availability: 'available' | 'busy' | 'offline'
   maxBookingsPerDay?: number
+  /** Weekly calendar from provider app (`weeklyAvailability` in Mongo) */
+  weeklyAvailability?: ProfessionalWeeklyAvailability
   
   // Status & Performance
   isActive: boolean
@@ -117,6 +145,8 @@ export interface Professional {
 }
 
 export interface CreateProfessionalData {
+  /** Sent on admin create; backend creates User + links professionalId when present. */
+  password?: string
   firstName: string
   lastName: string
   email: string
@@ -187,6 +217,7 @@ export interface UpdateProfessionalData extends Partial<CreateProfessionalData> 
   moderationReason?: string
   moderationNotes?: string
   suspendedUntil?: string | null
+  documents?: ProfessionalVerificationDocument[]
 }
 
 export interface ProfessionalsQuery {

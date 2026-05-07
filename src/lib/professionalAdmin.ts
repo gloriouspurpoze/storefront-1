@@ -1,4 +1,37 @@
-import type { Professional, ProfessionalAccountStatus } from '../types/professional.types'
+import type {
+  Professional,
+  ProfessionalAccountStatus,
+  ProfessionalVerificationDocument,
+} from '../types/professional.types'
+import { normalizeWeeklyAvailabilityFromApi } from './professionalSchedule'
+
+/** Normalize Mongo `documents` (fixerprovider KYC uploads) for admin UI */
+export function normalizeVerificationDocuments(raw: unknown): ProfessionalVerificationDocument[] {
+  if (!Array.isArray(raw)) return []
+  const out: ProfessionalVerificationDocument[] = []
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue
+    const d = item as Record<string, unknown>
+    const url = String(d.documentUrl ?? d.document_url ?? '').trim()
+    if (!url) continue
+    const type = String(d.type ?? 'other')
+    out.push({
+      _id: d._id != null ? String(d._id) : undefined,
+      type,
+      documentUrl: url,
+      documentNumber:
+        d.documentNumber != null
+          ? String(d.documentNumber)
+          : d.document_number != null
+            ? String(d.document_number)
+            : undefined,
+      isVerified: Boolean(d.isVerified ?? d.is_verified),
+      verifiedAt:
+        d.verifiedAt != null ? String(d.verifiedAt) : d.verified_at != null ? String(d.verified_at) : undefined,
+    })
+  }
+  return out
+}
 
 /** Unwrap GET /professionals/:id body whether API returns `{ professional }` or the document root */
 export function extractProfessionalFromGetResponse(data: unknown): unknown {
@@ -39,6 +72,12 @@ export function normalizeProfessionalFromApi(raw: unknown): Professional {
     }
   }
 
+  merged.documents = normalizeVerificationDocuments(p.documents ?? p.verification_documents)
+
+  merged.weeklyAvailability = normalizeWeeklyAvailabilityFromApi(
+    p.weeklyAvailability ?? p.time_slots ?? p.timeSlots,
+  )
+
   return merged
 }
 
@@ -46,4 +85,17 @@ export function professionalDisplayAccountStatus(pro: Professional): Professiona
   if (pro.accountStatus) return pro.accountStatus
   if (pro.isActive === false) return pro.suspendedUntil ? 'suspended' : 'blocked'
   return 'active'
+}
+
+/** Payload for PUT /professionals/:id — strips read-only fields; keeps subdocument _id when valid */
+export function professionalDocumentsUpdatePayload(
+  docs: ProfessionalVerificationDocument[],
+): ProfessionalVerificationDocument[] {
+  return docs.map((d) => ({
+    _id: d._id && /^[a-f0-9A-F]{24}$/.test(d._id) ? d._id : undefined,
+    type: d.type,
+    documentUrl: d.documentUrl,
+    documentNumber: d.documentNumber?.trim() || undefined,
+    isVerified: Boolean(d.isVerified),
+  }))
 }
