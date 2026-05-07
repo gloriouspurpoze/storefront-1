@@ -114,6 +114,11 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
 
       'view_finance',
       'manage_finance',
+
+      // Boards (collaborative canvas)
+      'view_boards',
+      'manage_boards',
+      'invite_board_members',
     ]
   },
   
@@ -214,6 +219,11 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
 
       'view_finance',
       'manage_finance',
+
+      // Boards (collaborative canvas)
+      'view_boards',
+      'manage_boards',
+      'invite_board_members',
     ]
   },
   
@@ -280,6 +290,10 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       'view_referrals',
       'edit_referrals',
       'manage_referrals',
+
+      // Boards
+      'view_boards',
+      'invite_board_members',
     ]
   },
 
@@ -327,6 +341,9 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       'edit_coupons',
       'view_referrals',
       'edit_referrals',
+
+      // Boards
+      'view_boards',
     ]
   },
 
@@ -575,6 +592,13 @@ export const routePermissions: RoutePermission[] = [
     path: '/team-work',
     requiredPermissions: ['view_team_tasks'],
     allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+
+  // Boards (collaborative canvas)
+  {
+    path: '/boards',
+    requiredPermissions: ['view_boards'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff'],
   },
 
   {

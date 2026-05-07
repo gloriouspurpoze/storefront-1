@@ -67,6 +67,7 @@ import {
   Target as TargetIcon,
   Mail as MailTemplateIcon,
   Palette as PaletteIcon,
+  Presentation as PresentationIcon,
 } from 'lucide-react'
 import { useAppSelector, useAppDispatch } from '../../store/hooks'
 import { setChatUnreadMessages } from '../../store/slices/chatInboxSlice'
@@ -349,6 +350,13 @@ const navigationGroups = [
     icon: ShoppingCartIcon,
     items: [
       { name: 'Bookings', href: '/bookings', icon: CalendarIcon, permissions: ['view_bookings', 'manage_bookings'], badge: null },
+      {
+        name: 'Boards',
+        href: '/boards',
+        icon: PresentationIcon,
+        permissions: ['view_boards'],
+        badge: null,
+      },
       {
         name: 'Team work',
         href: '/team-work',

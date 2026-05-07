@@ -190,11 +190,16 @@ class ApiBase {
   ): HeadersInit {
     const token = this.getAuthToken()
     const tenantId = store.getState().tenant?.tenantId ?? null
+    const extra = { ...customHeaders }
+    if (omitContentType) {
+      delete (extra as Record<string, string>)['Content-Type']
+      delete (extra as Record<string, string>)['content-type']
+    }
 
     return {
       ...(omitContentType ? {} : { 'Content-Type': 'application/json' }),
       ...(token && { Authorization: `Bearer ${token}` }),
-      ...customHeaders,
+      ...extra,
       ...(tenantId ? { [TENANT_HEADER]: tenantId } : {}),
     }
   }

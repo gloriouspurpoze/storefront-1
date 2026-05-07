@@ -11,6 +11,7 @@ export type QuickNavGroup =
   | 'E-commerce'
   | 'Bazaar'
   | 'Operations'
+  | 'Boards'
   | 'Content & marketing'
   | 'Users & communication'
   | 'System'
@@ -73,6 +74,8 @@ export const QUICK_NAV_ITEMS: QuickNavItem[] = [
   { label: 'Invoice appearance', path: '/invoices/branding', group: 'Operations', keywords: 'logo branding colours gst pdf' },
   { label: 'Earnings & payouts', path: '/payouts', group: 'Operations' },
   { label: 'Chat', path: '/chat', group: 'Operations' },
+
+  { label: 'Boards', path: '/boards', group: 'Boards', keywords: 'whiteboard canvas sticky notes brainstorm meet meeting notes' },
 
   { label: 'CMS overview', path: '/cms', group: 'Content & marketing' },
   { label: 'Homepage', path: '/cms/homepage', group: 'Content & marketing' },

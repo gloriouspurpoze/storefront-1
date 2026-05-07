@@ -8,6 +8,27 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+// Benign Chromium quirk: ResizeObserver often logs this during layout (tldraw, resizable panels, MUI).
+// CRA's overlay listens for window "error"; suppress so it is not treated as fatal.
+function isBenignResizeObserverMessage(message: string): boolean {
+  return /ResizeObserver loop/i.test(message);
+}
+function suppressResizeObserverError(event: Event) {
+  const e = event as ErrorEvent;
+  if (!isBenignResizeObserverMessage(String(e.message || ''))) return;
+  e.stopImmediatePropagation();
+  e.preventDefault();
+}
+window.addEventListener('error', suppressResizeObserverError, true);
+
+const prevOnError = window.onerror;
+window.onerror = (message, source, lineno, colno, error) => {
+  if (typeof message === 'string' && isBenignResizeObserverMessage(message)) {
+    return true;
+  }
+  return prevOnError?.(message, source, lineno, colno, error) ?? false;
+};
+
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );

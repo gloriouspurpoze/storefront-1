@@ -121,6 +121,11 @@ export type Permission =
   /** Create boards, archive, set per-board member roster (who sees which project). */
   | 'manage_team_projects'
 
+  // Collaborative boards (canvas / whiteboard)
+  | 'view_boards'
+  | 'manage_boards'
+  | 'invite_board_members'
+
 export interface RolePermissions {
   role: UserRole
   permissions: Permission[]

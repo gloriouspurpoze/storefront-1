@@ -192,6 +192,15 @@ const MarketingResearchBrainstormPage = lazy(() =>
   import('./pages/marketing-workspace/ResearchBrainstormPage').then((m) => ({ default: m.ResearchBrainstormPage })),
 )
 
+const BoardsHub = lazy(() => import('./pages/boards/BoardsHub').then((m) => ({ default: m.BoardsHub })))
+const BoardRoom = lazy(() => import('./pages/boards/BoardRoomSync').then((m) => ({ default: m.BoardRoomSync })))
+const BoardCanvasRoom = lazy(() =>
+  import('./pages/boards/BoardRoomSync').then((m) => ({ default: m.BoardCanvasFullPage })),
+)
+const AcceptBoardInvite = lazy(() =>
+  import('./pages/boards/AcceptBoardInvite').then((m) => ({ default: m.AcceptBoardInvite })),
+)
+
 /** Gate aligned with `routePermissions` `/marketing` entry in rbac.config. */
 const MARKETING_WORKSPACE_PERMISSIONS: Permission[] = [
   'manage_system_settings',
@@ -224,6 +233,7 @@ function App() {
               {/* Public routes */}
               <Route path="/auth" element={<Auth />} />
               <Route path="/auth/accept-invite" element={<AcceptTeamInvite />} />
+              <Route path="/boards/invites/:token" element={<AcceptBoardInvite />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/unauthorized" element={<Unauthorized />} />
               
@@ -511,6 +521,32 @@ function App() {
                             <BookingDetails />
                           </RoleBasedRoute>
                         } 
+                      />
+
+                      {/* Boards (collaborative canvas) */}
+                      <Route
+                        path="/boards"
+                        element={
+                          <RoleBasedRoute permissions={['view_boards']}>
+                            <BoardsHub />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/boards/:id/canvas"
+                        element={
+                          <RoleBasedRoute permissions={['view_boards']}>
+                            <BoardCanvasRoom />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/boards/:id"
+                        element={
+                          <RoleBasedRoute permissions={['view_boards']}>
+                            <BoardRoom />
+                          </RoleBasedRoute>
+                        }
                       />
                       
                       {/* Payments */}
