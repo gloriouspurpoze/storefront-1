@@ -212,11 +212,13 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
     }
     if (useEmailInvite) {
       const u = formData.username?.trim() || ''
+      const simpleHandleOk = /^[a-zA-Z0-9][a-zA-Z0-9._-]{1,39}$/.test(u)
+      const emailLoginIdOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(u) && u.length <= 254
       if (!u) {
         newErrors.username = 'Username is required'
-      } else if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{1,39}$/.test(u)) {
+      } else if (!simpleHandleOk && !emailLoginIdOk) {
         newErrors.username =
-          '2–40 characters: start with a letter or number, then letters, numbers, . _ -'
+          'Use 2–40 characters (start with a letter or number, then letters, numbers, . _ -), or a valid email (max 254 characters).'
       }
     }
     if (mode === 'create' && !useEmailInvite && !formData.password?.trim()) {
@@ -466,7 +468,7 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
                 id="uf-username"
                 value={formData.username || ''}
                 onChange={(e) => handleChange('username', e.target.value.toLowerCase())}
-                placeholder="e.g. alex.kumar"
+                placeholder="e.g. alex.kumar or name@company.com"
                 autoComplete="off"
                 className={cn(errors.username && 'border-destructive')}
               />
@@ -474,7 +476,8 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
                 <p className="text-xs text-destructive">{errors.username}</p>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  They’ll use this to sign in (not their email). The email field is only for delivering the invite.
+                  Sign-in id: a short handle or a work-style email. Invites are sent to the <strong>Email</strong> field
+                  above (it can be a different address).
                 </p>
               )}
             </div>
@@ -503,7 +506,8 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
               <p className="font-medium text-foreground">Email invitation</p>
               <p className="mt-1">
                 We’ll email this address a <strong>temporary password</strong>, their <strong>username</strong>, and a
-                link to set a final password. They sign in with <strong>username + password</strong> (not email).
+                link to set a final password. They sign in with this <strong>username + password</strong> (not the invite
+                inbox alone — they need the login id you set).
                 Configure SMTP on the API (<code className="rounded bg-muted px-1 text-xs">SMTP_*</code>) for delivery.
               </p>
             </div>

@@ -1,4 +1,4 @@
-import { api } from './base'
+import { api, type RequestConfig } from './base'
 import type {
   Product,
   CreateProductRequest,
@@ -21,6 +21,17 @@ export class ProductsService {
   /**
    * Get products with pagination and filters
    */
+  /** Active finance vendors for catalog product forms (`GET /products/vendors`). */
+  static async listCatalogVendors() {
+    return api.get<{ vendors: Array<{ id: string; name: string; legal_name?: string }> }>(
+      '/products/vendors',
+      {
+        showSuccessToast: false,
+        showErrorToast: false,
+      },
+    )
+  }
+
   static async getProducts(query: ProductsQuery = {}) {
     const params = new URLSearchParams()
     
@@ -56,33 +67,49 @@ export class ProductsService {
   /**
    * Create new product
    */
-  static async createProduct(product: CreateProductRequest) {
+  static async createProduct(
+    product: CreateProductRequest,
+    requestConfig?: Pick<RequestConfig, 'showErrorToast' | 'showSuccessToast'>,
+  ) {
     return api.post<Product>('/products', product, {
       loadingMessage: 'Creating product...',
       successMessage: 'Product created successfully!',
       errorMessage: 'Failed to create product.',
+      showSuccessToast: requestConfig?.showSuccessToast !== false,
+      showErrorToast: requestConfig?.showErrorToast !== false,
     })
   }
 
   /**
    * Create product draft
    */
-  static async createProductDraft(product: CreateProductRequest) {
+  static async createProductDraft(
+    product: CreateProductRequest,
+    requestConfig?: Pick<RequestConfig, 'showErrorToast' | 'showSuccessToast'>,
+  ) {
     return api.post<Product>('/products/draft', product, {
       loadingMessage: 'Saving draft...',
       successMessage: 'Product draft saved successfully!',
       errorMessage: 'Failed to save product draft.',
+      showSuccessToast: requestConfig?.showSuccessToast !== false,
+      showErrorToast: requestConfig?.showErrorToast !== false,
     })
   }
 
   /**
    * Update existing product
    */
-  static async updateProduct(id: string, product: UpdateProductRequest) {
+  static async updateProduct(
+    id: string,
+    product: UpdateProductRequest,
+    requestConfig?: Pick<RequestConfig, 'showErrorToast' | 'showSuccessToast'>,
+  ) {
     return api.put<Product>(`/products/${id}`, product, {
       loadingMessage: 'Updating product...',
       successMessage: 'Product updated successfully!',
       errorMessage: 'Failed to update product.',
+      showSuccessToast: requestConfig?.showSuccessToast !== false,
+      showErrorToast: requestConfig?.showErrorToast !== false,
     })
   }
 

@@ -586,7 +586,10 @@ export type OrderStatus = 'pending' | 'accepted' | 'completed' | 'rejected' | 'c
 export interface Product {
   id: string | number
   provider_id?: string
+  /** Finance vendor (admin catalog) */
+  vendor_id?: string
   category_id?: string | number
+  slug?: string
   name: string
   description: string
   short_description?: string
@@ -611,7 +614,8 @@ export interface Product {
     height: number
     unit?: string
   }
-  images: string[]
+  /** API may return strings or `{ url, alt, ... }` embeds */
+  images: Array<string | { url?: string; secure_url?: string; alt?: string; is_primary?: boolean; order?: number; public_id?: string; publicId?: string }>
   specifications?: Record<string, any>
   features?: string[]
   tags?: string[]
@@ -636,49 +640,76 @@ export interface Product {
   updatedAt?: string // For backward compatibility
 }
 
+/** Product image as expected by APIs that store embedded docs (not raw URL strings). */
+export interface ProductImageEmbedRequest {
+  url: string
+  alt?: string
+  is_primary?: boolean
+  order?: number
+  public_id?: string
+}
+
 export interface CreateProductRequest {
   category_id: string
   name: string
   description: string
   short_description?: string
+  /** URL segment; required by many product schemas */
+  slug: string
   price: number
   original_price?: number
   sku: string
   stock_quantity: number
-  images?: string[]
+  low_stock_threshold?: number
+  images?: ProductImageEmbedRequest[]
   specifications?: { [key: string]: any }
   is_active?: boolean
   is_featured?: boolean
+  is_new?: boolean
   weight?: number
   dimensions?: {
     length: number
     width: number
     height: number
+    unit?: string
   }
   tags?: string[]
+  seo_title?: string
+  seo_description?: string
+  seo_keywords?: string[]
+  /** Finance vendor id (required for admin / super_admin creates) */
+  vendor_id?: string
 }
 
 export interface UpdateProductRequest {
   name?: string
   description?: string
   short_description?: string
+  slug?: string
   price?: number
   original_price?: number
   sku?: string
   stock_quantity?: number
   /** Alert when on-hand quantity is at or below this level (inventory ops). */
   low_stock_threshold?: number
-  images?: string[]
+  /** Prefer embedded objects; some callers still pass legacy URL strings. */
+  images?: ProductImageEmbedRequest[] | string[]
   specifications?: { [key: string]: any }
   is_active?: boolean
   is_featured?: boolean
+  is_new?: boolean
   weight?: number
   dimensions?: {
     length: number
     width: number
     height: number
+    unit?: string
   }
   tags?: string[]
+  seo_title?: string
+  seo_description?: string
+  seo_keywords?: string[]
+  vendor_id?: string
 }
 
 export interface ProductsResponse {

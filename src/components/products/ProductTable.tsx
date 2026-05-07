@@ -10,6 +10,7 @@ import {
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { Product } from '../../types'
 import { formatCurrency, cn } from '../../lib/utils'
+import { getPrimaryProductImageUrl } from '../../lib/productImages'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
@@ -176,7 +177,7 @@ export function ProductTable({ products, onUpdate, onDelete, onAdd, onView, cate
           />
           <div className="flex gap-2 pr-8">
             <img
-              src={product.images && product.images.length > 0 ? product.images[0] : 'https://via.placeholder.com/80'}
+              src={getPrimaryProductImageUrl(product.images) ?? 'https://via.placeholder.com/80'}
               alt={product.name}
               className="h-20 w-20 shrink-0 rounded-md object-cover"
             />
@@ -246,8 +247,12 @@ export function ProductTable({ products, onUpdate, onDelete, onAdd, onView, cate
         <TableCell>
           <div className="flex items-center gap-2">
             <Avatar className="h-12 w-12 rounded-md">
-              {product.images && product.images.length > 0 ? (
-                <AvatarImage src={product.images[0]} alt={product.name} className="object-cover" />
+              {getPrimaryProductImageUrl(product.images) ? (
+                <AvatarImage
+                  src={getPrimaryProductImageUrl(product.images)!}
+                  alt={product.name}
+                  className="object-cover"
+                />
               ) : null}
               <AvatarFallback className="rounded-md">{product.name.charAt(0)}</AvatarFallback>
             </Avatar>

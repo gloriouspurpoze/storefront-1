@@ -68,6 +68,7 @@ import {
   Mail as MailTemplateIcon,
   Palette as PaletteIcon,
   Presentation as PresentationIcon,
+  History as HistoryIcon,
 } from 'lucide-react'
 import { useAppSelector, useAppDispatch } from '../../store/hooks'
 import { setChatUnreadMessages } from '../../store/slices/chatInboxSlice'
@@ -83,6 +84,7 @@ import {
   DRAWER_WIDTH_COLLAPSED_PX,
   DRAWER_WIDTH_EXPANDED_PX,
 } from './layout-constants'
+import { readSidebarRecent, upsertSidebarRecent, type SidebarRecentEntry } from '../../lib/sidebarRecent'
 
 const drawerWidth = DRAWER_WIDTH_EXPANDED_PX
 const collapsedDrawerWidth = DRAWER_WIDTH_COLLAPSED_PX
@@ -188,17 +190,17 @@ const professionalNavigationGroups = [
     ]
   },
   {
-    title: 'Professional',
-    items: [
-      { name: 'Reviews & Ratings', href: '/professional/reviews', icon: StarIcon },
-      { name: 'Documents', href: '/professional/documents', icon: DescriptionIcon },
-    ]
-  },
-  {
     title: 'Communication',
     items: [
       { name: 'Chat', href: '/chat', icon: ChatIcon },
       { name: 'Messages', href: '/messages', icon: MessageIcon },
+    ]
+  },
+  {
+    title: 'Professional',
+    items: [
+      { name: 'Reviews & Ratings', href: '/professional/reviews', icon: StarIcon },
+      { name: 'Documents', href: '/professional/documents', icon: DescriptionIcon },
     ]
   },
   {
@@ -211,8 +213,7 @@ const professionalNavigationGroups = [
 ]
 
 /**
- * Enhanced Navigation Menu Structure
- * Improved organization with better visual hierarchy
+ * Admin navigation: sales → day-to-day ops → commerce → supply-side catalog → growth → people → platform.
  */
 const navigationGroups = [
   {
@@ -237,35 +238,55 @@ const navigationGroups = [
     ]
   },
   {
-    title: 'Catalog',
-    icon: PackageIcon,
+    title: 'Operations',
+    icon: CalendarIcon,
     items: [
-      { name: 'Product categories', href: '/categories/products', icon: InventoryIcon, permissions: ['view_categories', 'manage_categories'], badge: null },
-      { name: 'Service categories', href: '/categories/services', icon: WrenchIcon, permissions: ['view_categories', 'manage_categories'], badge: null },
-      { name: 'Platform services', href: '/platform-services', icon: HomeIcon, permissions: ['view_services', 'manage_services'], badge: null },
+      { name: 'Bookings', href: '/bookings', icon: CalendarIcon, permissions: ['view_bookings', 'manage_bookings'], badge: null },
       {
-        name: 'Marketplace',
-        href: '/marketplace',
-        icon: StorefrontIcon,
-        permissions: [
-          'view_services',
-          'view_categories',
-          'view_bookings',
-          'view_providers',
-          'view_payments',
-          'manage_coupons',
-          'manage_system_settings',
-        ],
+        name: 'Boards',
+        href: '/boards',
+        icon: PresentationIcon,
+        permissions: ['view_boards'],
         badge: null,
       },
-      // { name: 'Products', href: '/products', icon: PackageIcon, permissions: ['view_products', 'manage_products'], badge: null },
-      // { name: 'Providers', href: '/providers', icon: ShieldIcon, permissions: ['view_providers', 'manage_providers'], badge: null },
-      { name: 'Professionals', href: '/professionals', icon: PersonIcon, permissions: ['view_providers', 'manage_providers'], badge: null },
-      { name: 'Provider Applications', href: '/provider-applications', icon: AssignmentIndIcon, permissions: ['view_providers', 'manage_providers'], badge: null },
+      {
+        name: 'Team work',
+        href: '/team-work',
+        icon: KanbanSquareIcon,
+        permissions: ['view_team_tasks', 'manage_team_tasks'],
+        badge: null,
+      },
+      {
+        name: 'Team calendar',
+        href: '/team-work/calendar',
+        icon: TeamCalendarIcon,
+        permissions: ['view_team_tasks', 'manage_team_tasks'],
+        badge: null,
+      },
+      { name: 'Service requests', href: '/requests', icon: FileTextIcon, permissions: ['view_services', 'manage_services'], badge: null },
+      { name: 'Quotes', href: '/quotes', icon: DollarSignIcon, permissions: ['view_quotes'], badge: null },
+      { name: 'Payments', href: '/payments', icon: CreditCardIcon, permissions: ['view_payments', 'manage_payments'], badge: null },
+      { name: 'Invoices', href: '/invoices', icon: ReceiptIcon, permissions: ['view_payments', 'manage_payments'], badge: null },
+      {
+        name: 'Invoice appearance',
+        href: '/invoices/branding',
+        icon: InvoiceBrandingIcon,
+        permissions: ['view_payments', 'manage_payments'],
+        badge: null,
+      },
+      { name: 'Earnings & Payouts', href: '/payouts', icon: AccountBalanceIcon, permissions: ['view_payments', 'manage_payments'], badge: null },
+      {
+        name: 'Finance',
+        href: '/finance/overview',
+        icon: TrendingUpIcon,
+        permissions: ['view_finance'],
+        badge: null,
+      },
+      { name: 'Chat', href: '/chat', icon: ChatIcon, permissions: ['view_messages'], badge: null },
     ]
   },
   {
-    title: 'E-commerce',
+    title: 'Commerce',
     icon: ShoppingBagIcon,
     items: [
       {
@@ -292,12 +313,6 @@ const navigationGroups = [
         badge: null,
       },
       { name: 'Orders', href: '/orders', icon: ShoppingCartIcon, permissions: ['view_orders'], badge: null },
-    ]
-  },
-  {
-    title: 'Bazaar',
-    icon: StorefrontIcon,
-    items: [
       {
         name: 'Offers & listing chats',
         href: '/bazaar',
@@ -346,51 +361,29 @@ const navigationGroups = [
     ]
   },
   {
-    title: 'Operations',
-    icon: ShoppingCartIcon,
+    title: 'Catalog & network',
+    icon: PackageIcon,
     items: [
-      { name: 'Bookings', href: '/bookings', icon: CalendarIcon, permissions: ['view_bookings', 'manage_bookings'], badge: null },
+      { name: 'Product categories', href: '/categories/products', icon: InventoryIcon, permissions: ['view_categories', 'manage_categories'], badge: null },
+      { name: 'Service categories', href: '/categories/services', icon: WrenchIcon, permissions: ['view_categories', 'manage_categories'], badge: null },
+      { name: 'Platform services', href: '/platform-services', icon: HomeIcon, permissions: ['view_services', 'manage_services'], badge: null },
       {
-        name: 'Boards',
-        href: '/boards',
-        icon: PresentationIcon,
-        permissions: ['view_boards'],
+        name: 'Marketplace',
+        href: '/marketplace',
+        icon: StorefrontIcon,
+        permissions: [
+          'view_services',
+          'view_categories',
+          'view_bookings',
+          'view_providers',
+          'view_payments',
+          'manage_coupons',
+          'manage_system_settings',
+        ],
         badge: null,
       },
-      {
-        name: 'Team work',
-        href: '/team-work',
-        icon: KanbanSquareIcon,
-        permissions: ['view_team_tasks', 'manage_team_tasks'],
-        badge: null,
-      },
-      {
-        name: 'Team calendar',
-        href: '/team-work/calendar',
-        icon: TeamCalendarIcon,
-        permissions: ['view_team_tasks', 'manage_team_tasks'],
-        badge: null,
-      },
-      { name: 'Service requests', href: '/requests', icon: FileTextIcon, permissions: ['view_services', 'manage_services'], badge: null },
-      { name: 'Quotes', href: '/quotes', icon: DollarSignIcon, permissions: ['view_quotes'], badge: null },
-      { name: 'Payments', href: '/payments', icon: CreditCardIcon, permissions: ['view_payments', 'manage_payments'], badge: null },
-      { name: 'Invoices', href: '/invoices', icon: ReceiptIcon, permissions: ['view_payments', 'manage_payments'], badge: null },
-      {
-        name: 'Invoice appearance',
-        href: '/invoices/branding',
-        icon: InvoiceBrandingIcon,
-        permissions: ['view_payments', 'manage_payments'],
-        badge: null,
-      },
-      { name: 'Earnings & Payouts', href: '/payouts', icon: AccountBalanceIcon, permissions: ['view_payments', 'manage_payments'], badge: null },
-      {
-        name: 'Finance',
-        href: '/finance/overview',
-        icon: TrendingUpIcon,
-        permissions: ['view_finance'],
-        badge: null,
-      },
-      { name: 'Chat', href: '/chat', icon: ChatIcon, permissions: ['view_messages'], badge: null },
+      { name: 'Professionals', href: '/professionals', icon: PersonIcon, permissions: ['view_providers', 'manage_providers'], badge: null },
+      { name: 'Provider Applications', href: '/provider-applications', icon: AssignmentIndIcon, permissions: ['view_providers', 'manage_providers'], badge: null },
     ]
   },
   {
@@ -495,7 +488,7 @@ const navigationGroups = [
     ],
   },
   {
-    title: 'Users & Communication',
+    title: 'People & messaging',
     icon: UsersIcon,
     items: [
       { name: 'Customers', href: '/users', icon: UsersIcon, permissions: ['view_users', 'manage_users'], badge: null },
@@ -515,6 +508,7 @@ const navigationGroups = [
     icon: SettingsIcon,
     items: [
       { name: 'Reports', href: '/reports', icon: AssessmentIcon, permissions: ['view_reports'], badge: null },
+      { name: 'System Status', href: '/system-status', icon: CloudIcon, permissions: ['view_system_status'], badge: null },
       {
         name: 'Refund requests',
         href: '/support/refund-requests',
@@ -522,7 +516,6 @@ const navigationGroups = [
         permissions: ['refund_payments'],
         badge: null,
       },
-      { name: 'System Status', href: '/system-status', icon: CloudIcon, permissions: ['view_system_status'], badge: null },
       { name: 'Settings', href: '/settings', icon: SettingsIcon, permissions: ['manage_settings'], badge: null },
       { name: 'Help & Support', href: '/support', icon: SupportIcon, permissions: ['view_dashboard'], badge: null },
       {
@@ -564,6 +557,43 @@ interface SidebarGroup {
   title: string
   icon?: React.ElementType
   items: SidebarItem[]
+}
+
+function flattenSidebarNav(groups: SidebarGroup[]): { href: string; name: string; icon: React.ElementType }[] {
+  const out: { href: string; name: string; icon: React.ElementType }[] = []
+  for (const g of groups) {
+    for (const item of g.items) {
+      if (item.hasSubmenu && item.subItems?.length) {
+        for (const sub of item.subItems) {
+          out.push({ href: sub.href, name: sub.name, icon: sub.icon })
+        }
+      } else if (item.href) {
+        out.push({ href: item.href, name: item.name, icon: item.icon })
+      }
+    }
+  }
+  return out
+}
+
+function pickBestNavMatch(
+  items: { href: string; name: string }[],
+  pathname: string,
+  search: string,
+): { href: string; name: string } | null {
+  let best: { href: string; name: string; score: number } | null = null
+  for (const item of items) {
+    if (!routeMatchesNav(item.href, pathname, search)) continue
+    const path = item.href.split('?')[0]
+    let score = path.length
+    if (pathname === path) score += 10_000
+    if (item.href.includes('?')) score += 500
+    score += path.split('/').filter(Boolean).length * 10
+    if (!best || score > best.score) {
+      best = { href: item.href, name: item.name, score }
+    }
+  }
+  if (!best) return null
+  return { href: best.href, name: best.name }
 }
 
 interface SidebarProps {
@@ -661,6 +691,34 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     return filterAdminNavigationByRouteAccess(navigationGroups, checkRouteAccess)
   }, [isProvider, isProfessional, checkRouteAccess])
 
+  const recentUserKey = user?.id ?? 'anon'
+  const flatNav = useMemo(
+    () => flattenSidebarNav(activeNavigationGroups),
+    [activeNavigationGroups],
+  )
+  const recentMetaByHref = useMemo(() => new Map(flatNav.map((f) => [f.href, f])), [flatNav])
+
+  const [recentSnapshot, setRecentSnapshot] = useState<SidebarRecentEntry[]>([])
+
+  useEffect(() => {
+    setRecentSnapshot(readSidebarRecent(recentUserKey))
+  }, [recentUserKey])
+
+  useEffect(() => {
+    const match = pickBestNavMatch(flatNav, location.pathname, location.search)
+    if (!match) return
+    upsertSidebarRecent(recentUserKey, match.href, match.name)
+    setRecentSnapshot(readSidebarRecent(recentUserKey))
+  }, [location.pathname, location.search, flatNav, recentUserKey])
+
+  const recentForDisplay = useMemo(() => {
+    const allowed = new Set(flatNav.map((f) => f.href))
+    return recentSnapshot
+      .filter((r) => allowed.has(r.href))
+      .filter((r) => !routeMatchesNav(r.href, location.pathname, location.search))
+      .slice(0, 5)
+  }, [recentSnapshot, flatNav, location.pathname, location.search])
+
   // Auto-open submenu if current path matches (only for nav the user is allowed to see)
   React.useEffect(() => {
     const currentPath = location.pathname
@@ -715,6 +773,56 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       style={{ width: railW }}
     >
       <nav className="flex-1 space-y-2 overflow-y-auto overflow-x-hidden py-2" aria-label="Main">
+        {sidebarOpen && recentForDisplay.length > 0 && (
+          <div
+            className="mb-3 space-y-0.5 border-b border-border/60 pb-3"
+            role="region"
+            aria-label="Recently visited"
+          >
+            <p className="flex items-center gap-1.5 px-2 py-1 text-[0.65rem] font-bold uppercase tracking-wider text-muted-foreground">
+              <HistoryIcon className="h-3 w-3 shrink-0 opacity-80" aria-hidden />
+              Recent
+            </p>
+            <ul className="px-0.5">
+              {recentForDisplay.map((r) => {
+                const meta = recentMetaByHref.get(r.href)
+                if (!meta) return null
+                const Icon = meta.icon
+                const isRecentActive = routeMatchesNav(r.href, location.pathname, location.search)
+                const navBadgeRaw =
+                  r.href === '/chat' ? (chatUnread > 0 ? chatUnread : null) : null
+                const navBadgeLabel = formatSidebarBadgeValue(navBadgeRaw)
+                return (
+                  <li key={r.href} className="list-none">
+                    <Link
+                      to={r.href}
+                      onClick={isMobile ? onClose : undefined}
+                      className={linkBase(isRecentActive)}
+                      title={r.name}
+                    >
+                      <span className="relative flex w-8 shrink-0 items-center justify-center">
+                        {navBadgeLabel != null && (
+                          <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-0.5 text-[9px] font-bold leading-none text-destructive-foreground">
+                            {navBadgeLabel}
+                          </span>
+                        )}
+                        {renderNavIcon(Icon, isRecentActive)}
+                      </span>
+                      <span
+                        className={cn(
+                          'min-w-0 flex-1 truncate',
+                          isRecentActive ? 'font-semibold' : 'font-medium',
+                        )}
+                      >
+                        {r.name}
+                      </span>
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        )}
         {activeNavigationGroups.map((group, groupIndex) => (
           <div
             key={group.title}

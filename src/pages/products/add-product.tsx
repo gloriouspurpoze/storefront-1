@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import {
   Box,
   Card,
@@ -31,11 +31,18 @@ import {
   CheckCircle as CheckIcon,
   Refresh as RefreshIcon,
 } from '@mui/icons-material'
-import { Product, Category } from '../../types'
+import { Product } from '../../types'
 import { formatCurrency } from '../../lib/utils'
+import { slugify } from '../../lib/slugify'
+import {
+  buildProductCreateBody,
+  buildProductDraftBody,
+  mapProductApiErrorToFormFields,
+  normalizeProductImagesFromApi,
+  type ProductFormLike,
+} from '../../lib/productFormPayload'
 import { ProductsService } from '../../services/api/products.service'
 import { CategoriesService } from '../../services/api/categories.service'
-import { ProvidersService } from '../../services/api/providers.service'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useAppDispatch } from '../../store/hooks'
 import { addToast } from '../../store/slices/uiSlice'
@@ -58,6 +65,8 @@ import {
 interface ProductFormData {
   // Basic Information
   name: string
+  /** URL segment; auto-filled from name unless edited */
+  slug: string
   shortDescription: string
   description: string
   brand: string
@@ -77,7 +86,8 @@ interface ProductFormData {
   // Categorization
   categoryId: string
   subcategoryId: string
-  providerId: string
+  /** Finance vendor (catalog / procurement) */
+  vendorId: string
   tags: string[]
   collections: string[]
   
@@ -175,14 +185,18 @@ function isRichTextEmpty(html: string): boolean {
 }
 
 const ADD_PRODUCT_STEP_ERROR_KEYS: Record<number, string[]> = {
-  0: ['name', 'shortDescription', 'description', 'categoryId'],
+  0: ['name', 'slug', 'shortDescription', 'description', 'categoryId', 'vendorId'],
   1: ['price', 'originalPrice', 'costPrice', 'sku', 'stockQuantity', 'lowStockThreshold'],
   2: ['images', 'seoTitle', 'seoDescription'],
   3: ['weight', 'dimensions', 'handlingTime'],
   4: ['password', 'expiryDate'],
 }
 
-function getAddProductStepErrors(step: number, data: ProductFormData): Record<string, string> {
+function getAddProductStepErrors(
+  step: number,
+  data: ProductFormData,
+  extra?: { brokenImageIds?: string[] },
+): Record<string, string> {
   const e: Record<string, string> = {}
   switch (step) {
     case 0:
@@ -190,6 +204,18 @@ function getAddProductStepErrors(step: number, data: ProductFormData): Record<st
       if (!data.shortDescription.trim()) e.shortDescription = 'Short description is required'
       if (isRichTextEmpty(data.description)) e.description = 'Product description is required'
       if (!String(data.categoryId ?? '').trim()) e.categoryId = 'Category is required'
+      if (!String(data.vendorId ?? '').trim()) e.vendorId = 'Vendor is required'
+      {
+        const derived = slugify(data.name)
+        const s = data.slug.trim()
+        const effectiveSlug = s || derived
+        if (!effectiveSlug) {
+          e.slug = 'Enter a product name to generate a URL slug'
+        }
+        if (s && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(s)) {
+          e.slug = 'Use only letters, numbers, and single hyphens (no spaces).'
+        }
+      }
       break
     case 1:
       if (data.price <= 0) e.price = 'Price must be greater than 0'
@@ -205,6 +231,27 @@ function getAddProductStepErrors(step: number, data: ProductFormData): Record<st
     case 2:
       if (!data.images || data.images.length < 1) {
         e.images = 'At least one product image is required'
+      } else {
+        if (extra?.brokenImageIds?.length) {
+          e.images =
+            'One or more images failed to load in the preview. Remove them or upload again before publishing.'
+        }
+        for (const img of data.images) {
+          const u = String(img?.url ?? '').trim()
+          if (!u) {
+            e.images = 'Each image must finish uploading with a valid URL.'
+            break
+          }
+          try {
+            const parsed = new URL(u)
+            if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+              throw new Error('bad')
+            }
+          } catch {
+            e.images = 'Images must use valid http(s) URLs from your upload.'
+            break
+          }
+        }
       }
       if (data.seoTitle && data.seoTitle.length > 60) {
         e.seoTitle = 'SEO title should be 60 characters or less'
@@ -245,6 +292,7 @@ function getAddProductStepErrors(step: number, data: ProductFormData): Record<st
 const initialFormData: ProductFormData = {
   // Basic Information
   name: '',
+  slug: '',
   shortDescription: '',
   description: '',
   brand: '',
@@ -264,7 +312,7 @@ const initialFormData: ProductFormData = {
   // Categorization
   categoryId: '',
   subcategoryId: '',
-  providerId: '',
+  vendorId: '',
   tags: [],
   collections: [],
   
@@ -346,6 +394,8 @@ export function AddProduct() {
   const dispatch = useAppDispatch()
   const { id } = useParams()
   const location = useLocation()
+  const slugDirtyRef = useRef(false)
+  const [brokenImageIds, setBrokenImageIds] = useState<string[]>([])
   
   const isEditMode = location.pathname.includes('/edit/')
   const isViewMode = location.pathname.includes('/view/')
@@ -356,10 +406,16 @@ export function AddProduct() {
   const [isLoading, setIsLoading] = useState(false)
   const [activeStep, setActiveStep] = useState(0)
   const [categories, setCategories] = useState<any[]>([])
-  const [providers, setProviders] = useState<any[]>([])
+  const [vendors, setVendors] = useState<Array<{ id: string; name: string; legal_name?: string }>>([])
   const [isLoadingData, setIsLoadingData] = useState(true)
 
   const theme = useTheme()
+
+  useEffect(() => {
+    if (slugDirtyRef.current) return
+    const next = slugify(formData.name)
+    setFormData((prev) => (prev.slug === next ? prev : { ...prev, slug: next }))
+  }, [formData.name])
 
   // Fetch product data if editing or viewing
   useEffect(() => {
@@ -374,11 +430,10 @@ export function AddProduct() {
     try {
       setIsLoadingData(true)
       
-      // Fetch product, categories, and providers in parallel
-      const [productResponse, categoryList, providersRes] = await Promise.all([
+      const [productResponse, categoryList, vendorsRes] = await Promise.all([
         ProductsService.getProduct(productId),
         CategoriesService.getCategoriesForProductUIs({ page: 1, limit: 200 }),
-        ProvidersService.getProviders()
+        ProductsService.listCatalogVendors(),
       ])
       
       if (Array.isArray(categoryList) && categoryList.length > 0) {
@@ -387,18 +442,19 @@ export function AddProduct() {
         setCategories([])
       }
       
-      if (providersRes.success && providersRes.data) {
-        const provs = Array.isArray(providersRes.data) ? providersRes.data : providersRes.data.providers || []
-        setProviders(provs)
+      if (vendorsRes.success && vendorsRes.data?.vendors) {
+        setVendors(vendorsRes.data.vendors)
       }
       
       if (productResponse.success && productResponse.data) {
         const product = productResponse.data
     
         // Map product data to form data
+        slugDirtyRef.current = true
         setFormData({
           ...initialFormData,
           name: product.name || '',
+          slug: product.slug || slugify(product.name || ''),
           shortDescription: product.short_description || '',
           description: product.description || '',
           brand: '',
@@ -414,14 +470,19 @@ export function AddProduct() {
           allowBackorder: false,
           categoryId: String(product.category_id ?? ''),
           subcategoryId: String((product as any).subcategory_id ?? ''),
-          providerId: String(product.provider_id ?? ''),
+          vendorId: String((product as { vendor_id?: string }).vendor_id ?? ''),
           tags: product.tags || [],
           collections: [],
           weight: parseFloat(product.weight?.toString() || '0'),
           weightUnit: 'lbs',
           dimensions: product.dimensions ? {
             ...product.dimensions,
-            unit: product.dimensions.unit || 'in'
+            unit:
+              product.dimensions.unit === 'inch' || product.dimensions.unit === 'in'
+                ? 'in'
+                : product.dimensions.unit === 'cm'
+                  ? 'cm'
+                  : 'in',
           } : { length: 0, width: 0, height: 0, unit: 'in' },
           seoTitle: product.seo_title || '',
           seoDescription: product.seo_description || '',
@@ -450,15 +511,7 @@ export function AddProduct() {
           relatedProducts: [],
           crossSellProducts: [],
           upSellProducts: [],
-          images: product.images?.map((url, idx) => ({ 
-            id: idx.toString(), 
-            url, 
-            file: null as any, 
-            preview: url,
-            alt: product.name,
-            isPrimary: idx === 0,
-            order: idx
-          })) || [],
+          images: normalizeProductImagesFromApi(product.images as unknown, product.name || ''),
           videos: [],
           isActive: product.is_active !== undefined ? product.is_active : true,
           visibility: 'public',
@@ -501,20 +554,14 @@ export function AddProduct() {
         setCategories([])
       }
 
-      // Fetch providers
-      const providersResponse = await ProvidersService.getProviders({ 
-        page: 1, 
-        limit: 100,
-        status: 'verified' // Only fetch verified providers
-      })
-      
-      if (providersResponse.success && providersResponse.data) {
-        setProviders(providersResponse.data.providers || [])
+      const vendorsResponse = await ProductsService.listCatalogVendors()
+      if (vendorsResponse.success && vendorsResponse.data?.vendors) {
+        setVendors(vendorsResponse.data.vendors)
       }
     } catch (error) {
       console.error('Error fetching initial data:', error)
       dispatch(addToast({
-        message: 'Failed to load categories and providers. Please refresh the page.',
+        message: 'Failed to load categories and vendors. Please refresh the page.',
         severity: 'error',
         duration: 4000,
       }))
@@ -568,23 +615,34 @@ export function AddProduct() {
   }
 
   const handleNestedInputChange = (parentField: keyof ProductFormData, childField: string) => (
-    event: React.ChangeEvent<HTMLInputElement>
+    eventOrValue: React.ChangeEvent<HTMLInputElement> | string | number
   ) => {
-    const value = event.target.type === 'number' ? Number(event.target.value) || 0 : event.target.value
+    let value: string | number
+    if (eventOrValue != null && typeof eventOrValue === 'object' && 'target' in eventOrValue) {
+      const t = (eventOrValue as React.ChangeEvent<HTMLInputElement>).target
+      value = t.type === 'number' ? Number(t.value) || 0 : t.value
+    } else if (eventOrValue === '' || eventOrValue === null || eventOrValue === undefined) {
+      value = 0
+    } else if (typeof eventOrValue === 'number') {
+      value = Number.isNaN(eventOrValue) ? 0 : eventOrValue
+    } else {
+      const n = Number(eventOrValue)
+      value = Number.isNaN(n) ? 0 : n
+    }
     setFormData((prev: ProductFormData) => ({
       ...prev,
       [parentField]: {
-        ...prev[parentField] as any,
+        ...(prev[parentField] as object),
         [childField]: value,
       },
     }))
     if (parentField === 'dimensions' && errors.dimensions) {
-      setErrors((prev: any) => ({ ...prev, dimensions: undefined }))
+      setErrors((prev: Record<string, string | undefined>) => ({ ...prev, dimensions: undefined }))
     }
   }
 
   const validateStep = (step: number): boolean => {
-    const stepErrs = getAddProductStepErrors(step, formData)
+    const stepErrs = getAddProductStepErrors(step, formData, { brokenImageIds })
     setErrors((prev: any) => {
       const keys = ADD_PRODUCT_STEP_ERROR_KEYS[step] || []
       const next = { ...prev }
@@ -600,7 +658,7 @@ export function AddProduct() {
     const merged: Record<string, string> = {}
     let firstInvalid: number | null = null
     for (let s = 0; s <= 4; s++) {
-      const e = getAddProductStepErrors(s, formData)
+      const e = getAddProductStepErrors(s, formData, { brokenImageIds })
       Object.assign(merged, e)
       if (firstInvalid === null && Object.keys(e).length > 0) {
         firstInvalid = s
@@ -677,43 +735,10 @@ export function AddProduct() {
     setIsLoading(true)
     
     try {
-      // Transform form data to match backend API
-      const productData = {
-        category_id: formData.categoryId.toString(),
-        name: formData.name,
-        description: formData.description,
-        short_description: formData.shortDescription.trim() || undefined,
-        price: formData.price,
-        original_price: formData.originalPrice || undefined,
-        sku: formData.sku,
-        stock_quantity: formData.stockQuantity,
-        images: formData.images.map(img => img.url), // Extract URLs from ImageFile objects
-        specifications: formData.specifications.reduce((acc, spec) => {
-          if (spec.key && spec.value) {
-            acc[spec.key] = spec.value
-          }
-          return acc
-        }, {} as Record<string, string>),
-        is_active: formData.isActive,
-        is_featured: formData.isFeatured,
-        weight: formData.weight || undefined,
-        dimensions: formData.dimensions.length > 0 || formData.dimensions.width > 0 || formData.dimensions.height > 0 
-          ? {
-              length: formData.dimensions.length,
-              width: formData.dimensions.width,
-              height: formData.dimensions.height,
-            }
-          : undefined,
-        tags: formData.tags,
-      }
-
-      console.log('Product data to submit:', productData)
-      
+      const productData = buildProductCreateBody(formData as ProductFormLike)
       let response
       if (isEditMode && id) {
-        // Update existing product
-        response = await ProductsService.updateProduct(id, productData)
-        
+        response = await ProductsService.updateProduct(id, productData, { showErrorToast: false })
         if (response.success) {
           dispatch(addToast({
             message: 'Product updated successfully!',
@@ -723,9 +748,7 @@ export function AddProduct() {
           navigate('/products')
         }
       } else {
-        // Create new product
-        response = await ProductsService.createProduct(productData)
-        
+        response = await ProductsService.createProduct(productData, { showErrorToast: false })
         if (response.success) {
           dispatch(addToast({
             message: 'Product created successfully!',
@@ -735,13 +758,30 @@ export function AddProduct() {
           navigate('/products')
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error saving product:', error)
-      dispatch(addToast({
-        message: isEditMode ? 'Failed to update product.' : 'Failed to create product.',
-        severity: 'error',
-        duration: 4000,
-      }))
+      const msg =
+        error && typeof error === 'object' && 'message' in error
+          ? String((error as { message?: string }).message)
+          : ''
+      const fieldErrs = mapProductApiErrorToFormFields(msg)
+      setErrors((prev: Record<string, string | undefined>) => ({ ...prev, ...fieldErrs }))
+      if (fieldErrs.slug) setActiveStep(0)
+      else if (fieldErrs.images) setActiveStep(2)
+      else if (fieldErrs.categoryId || fieldErrs.vendorId) setActiveStep(0)
+      if (Object.keys(fieldErrs).length === 0) {
+        dispatch(addToast({
+          message: isEditMode ? 'Failed to update product.' : 'Failed to create product.',
+          severity: 'error',
+          duration: 4000,
+        }))
+      } else {
+        dispatch(addToast({
+          message: 'Fix the highlighted fields and try again.',
+          severity: 'error',
+          duration: 5000,
+        }))
+      }
     } finally {
       setIsLoading(false)
     }
@@ -763,64 +803,58 @@ export function AddProduct() {
       setActiveStep(0)
       return
     }
+    if (!String(formData.vendorId ?? '').trim()) {
+      setErrors((prev: any) => ({
+        ...prev,
+        vendorId: 'Select a vendor to save a draft',
+      }))
+      dispatch(
+        addToast({
+          message: 'Select a vendor (Finance directory) before saving a draft.',
+          severity: 'error',
+          duration: 4000,
+        })
+      )
+      setActiveStep(0)
+      return
+    }
 
     setIsLoading(true)
     
     try {
-      // Transform form data to match backend API (same as handleSubmit but for drafts)
-      const productData = {
-        category_id: formData.categoryId.toString(),
-        name: formData.name || 'Draft Product',
-        description: formData.description || '',
-        short_description: formData.shortDescription.trim() || undefined,
-        price: formData.price || 0,
-        original_price: formData.originalPrice || undefined,
-        sku: formData.sku || `DRAFT-${Date.now()}`,
-        stock_quantity: formData.stockQuantity || 0,
-        images: formData.images.map(img => img.url), // Extract URLs from ImageFile objects
-        specifications: formData.specifications.reduce((acc, spec) => {
-          if (spec.key && spec.value) {
-            acc[spec.key] = spec.value
-          }
-          return acc
-        }, {} as Record<string, string>),
-        is_active: false, // Drafts are inactive
-        is_featured: false, // Drafts are never featured
-        weight: formData.weight || undefined,
-        dimensions: formData.dimensions.length > 0 || formData.dimensions.width > 0 || formData.dimensions.height > 0 
-          ? {
-              length: formData.dimensions.length,
-              width: formData.dimensions.width,
-              height: formData.dimensions.height,
-            }
-          : undefined,
-        tags: formData.tags,
-      }
-
-      console.log('Saving draft:', productData)
-      
-      // Use the draft endpoint
-      const response = await ProductsService.createProductDraft(productData)
-      
+      const productData = buildProductDraftBody(formData as ProductFormLike)
+      const response = await ProductsService.createProductDraft(productData, { showErrorToast: false })
       if (response.success) {
-        console.log('Draft saved successfully:', response.data)
-        
         dispatch(addToast({
           message: 'Product draft saved successfully! You can find it in the "Drafts" tab.',
           severity: 'success',
           duration: 5000,
         }))
-        
-        // Navigate back to products page
         navigate('/products')
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error saving draft:', error)
-      dispatch(addToast({
-        message: 'Failed to save draft. Please try again.',
-        severity: 'error',
-        duration: 4000,
-      }))
+      const msg =
+        error && typeof error === 'object' && 'message' in error
+          ? String((error as { message?: string }).message)
+          : ''
+      const fieldErrs = mapProductApiErrorToFormFields(msg)
+      setErrors((prev: Record<string, string | undefined>) => ({ ...prev, ...fieldErrs }))
+      if (fieldErrs.slug) setActiveStep(0)
+      else if (fieldErrs.images) setActiveStep(2)
+      if (Object.keys(fieldErrs).length === 0) {
+        dispatch(addToast({
+          message: 'Failed to save draft. Please try again.',
+          severity: 'error',
+          duration: 4000,
+        }))
+      } else {
+        dispatch(addToast({
+          message: 'Fix the highlighted fields and try saving the draft again.',
+          severity: 'error',
+          duration: 5000,
+        }))
+      }
     } finally {
       setIsLoading(false)
     }
@@ -886,7 +920,7 @@ export function AddProduct() {
           <Box sx={{ textAlign: 'center' }}>
             <CircularProgress size={48} sx={{ mb: 2 }} />
             <Typography variant="h6" color="text.secondary">
-              Loading categories and providers...
+              Loading categories and vendors...
             </Typography>
           </Box>
         </Box>
@@ -937,6 +971,19 @@ export function AddProduct() {
                           disabled={isViewMode}
                           placeholder="e.g., Professional Wireless Headphones"
                           required
+                        />
+
+                        <FormField
+                          label="URL slug"
+                          value={formData.slug}
+                          onChange={(e) => {
+                            slugDirtyRef.current = true
+                            handleInputChange('slug')(e)
+                          }}
+                          error={errors.slug}
+                          helperText="Used in product URLs. Fills from the name until you edit it."
+                          disabled={isViewMode}
+                          placeholder="e.g., professional-wireless-headphones"
                         />
                         
                         <FormField
@@ -1016,15 +1063,22 @@ export function AddProduct() {
                         </Box>
                         
                         <SelectField
-                        label="Provider"
-                          value={formData.providerId}
-                        onChange={handleInputChange('providerId')}
-                          options={providers.length > 0 ? providers.map(provider => ({
-                            value: provider.id,
-                            label: provider.business_name || provider.businessName || 'Unknown Provider'
-                          })) : [{ value: 1, label: 'No providers available' }]}
-                          helperText={providers.length > 0 ? "Select service provider" : "No verified providers found."}
-                          disabled={providers.length === 0 || isViewMode}
+                          label="Vendor"
+                          value={formData.vendorId}
+                          onChange={handleInputChange('vendorId')}
+                          options={vendors.map((v) => ({
+                            value: v.id,
+                            label: v.legal_name?.trim() ? `${v.name} (${v.legal_name})` : v.name,
+                          }))}
+                          error={errors.vendorId}
+                          helperText={
+                            vendors.length > 0
+                              ? 'Supplier from Finance → Directory (procurement / AP).'
+                              : 'No active vendors. Add vendors under Finance → Directory, then refresh.'
+                          }
+                          required
+                          disabled={vendors.length === 0 || isViewMode}
+                          placeholder="Select vendor"
                         />
                       </Stack>
               </CardContent>
@@ -1140,6 +1194,11 @@ export function AddProduct() {
               {activeStep === 2 && (
                 <Fade in={true}>
                   <Stack spacing={3}>
+                    {errors.images && (
+                      <Alert severity="error" sx={{ borderRadius: 1 }}>
+                        {errors.images}
+                      </Alert>
+                    )}
                     <ImageUploadField
                       label="Product Images"
                       value={formData.images}
@@ -1149,10 +1208,12 @@ export function AddProduct() {
                           setErrors((prev: any) => ({ ...prev, images: undefined }))
                         }
                       }}
+                      onBrokenImageIdsChange={setBrokenImageIds}
                       error={errors.images}
+                      required
                       maxFiles={10}
                       maxSize={10}
-                      helperText="Upload high-quality product images (at least one required to publish)"
+                      helperText="Upload high-quality images. We verify each file after upload; fix any that fail to load in the preview."
                     />
 
             <Card>
@@ -1295,6 +1356,22 @@ export function AddProduct() {
                     />
                             </Box>
                           </Box>
+                          <SelectField
+                            label="Dimension unit"
+                            value={formData.dimensions.unit === 'cm' ? 'cm' : 'in'}
+                            onChange={(value: string) =>
+                              setFormData((prev: ProductFormData) => ({
+                                ...prev,
+                                dimensions: { ...prev.dimensions, unit: value === 'cm' ? 'cm' : 'in' },
+                              }))
+                            }
+                            options={[
+                              { value: 'in', label: 'Inches (in)' },
+                              { value: 'cm', label: 'Centimeters (cm)' },
+                            ]}
+                            helperText="Stored as cm or inch for shipping records"
+                            disabled={isViewMode}
+                          />
                         </Stack>
               </CardContent>
             </Card>
@@ -1521,14 +1598,16 @@ export function AddProduct() {
                             <Typography variant="body2" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
                               Visibility: {formData.visibility}
                             </Typography>
-                            {formData.providerId && (
-                              <Typography variant="body2" color="text.secondary">
-                                Provider:{' '}
-                                {providers.find((p) => String(p.id) === String(formData.providerId))?.business_name ||
-                                  providers.find((p) => String(p.id) === String(formData.providerId))?.businessName ||
-                                  '—'}
-                              </Typography>
-                            )}
+                            {formData.vendorId && (() => {
+                              const v = vendors.find((x) => String(x.id) === String(formData.vendorId))
+                              const label =
+                                v?.legal_name?.trim() ? `${v.name} (${v.legal_name})` : v?.name || '—'
+                              return (
+                                <Typography variant="body2" color="text.secondary">
+                                  Vendor: {label}
+                                </Typography>
+                              )
+                            })()}
                           </Box>
                         </Box>
                 </Box>
@@ -1597,7 +1676,11 @@ export function AddProduct() {
                     variant="text"
                     fullWidth
                       startIcon={<RefreshIcon />}
-                    onClick={() => setFormData(initialFormData)}
+                    onClick={() => {
+                      slugDirtyRef.current = false
+                      setBrokenImageIds([])
+                      setFormData(initialFormData)
+                    }}
                   >
                     Reset Form
                   </Button>

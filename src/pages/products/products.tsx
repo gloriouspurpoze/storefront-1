@@ -8,6 +8,7 @@ import { addToast } from '../../store/slices/uiSlice'
 import { ProductsService } from '../../services/api/products.service'
 import { CategoriesService } from '../../services/api/categories.service'
 import { Product } from '../../types'
+import { toProductImageEmbedsForApi } from '../../lib/productFormPayload'
 import { useNavigate } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 
@@ -81,7 +82,7 @@ export function Products() {
         original_price: updatedProduct.original_price,
         sku: updatedProduct.sku,
         stock_quantity: updatedProduct.stock_quantity,
-        images: updatedProduct.images,
+        images: toProductImageEmbedsForApi(updatedProduct.images as unknown, updatedProduct.name),
         is_active: updatedProduct.is_active,
         is_featured: updatedProduct.is_featured,
       })

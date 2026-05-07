@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import {
   CloudUpload,
@@ -54,6 +54,8 @@ export interface ImageUploadFieldProps {
   allowPrimary?: boolean
   folder?: string
   allowFromCloudinary?: boolean
+  /** Fired when the set of images that failed to load in the preview changes */
+  onBrokenImageIdsChange?: (ids: string[]) => void
 }
 
 const StatusIcon = ({ status }: { status?: ImageUploadFieldProps['status'] }) => {
@@ -90,7 +92,12 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
   allowPrimary: _allowPrimary = true,
   folder = 'homeservice',
   allowFromCloudinary = true,
+  onBrokenImageIdsChange,
 }) => {
+  const [brokenIds, setBrokenIds] = useState<Set<string>>(() => new Set())
+  const brokenCallbackRef = useRef(onBrokenImageIdsChange)
+  brokenCallbackRef.current = onBrokenImageIdsChange
+
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -101,6 +108,18 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
   const [cloudinaryLoading, setCloudinaryLoading] = useState(false)
   const [cloudinaryError, setCloudinaryError] = useState<string | null>(null)
   const [deletingPublicId, setDeletingPublicId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const allowed = new Set(value.map((v) => v.id))
+    setBrokenIds((prev) => {
+      const next = new Set(Array.from(prev).filter((id) => allowed.has(id)))
+      return next.size === prev.size ? prev : next
+    })
+  }, [value])
+
+  useEffect(() => {
+    brokenCallbackRef.current?.(Array.from(brokenIds))
+  }, [brokenIds])
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
@@ -114,9 +133,21 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
           const file = acceptedFiles[i]
           setUploadProgress(Math.round(((i + 0.5) / acceptedFiles.length) * 100))
           const uploadResult = await UploadService.uploadImage(file, folder)
+          const rawUrl = String(uploadResult.url ?? '').trim()
+          try {
+            const u = new URL(rawUrl)
+            if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+              throw new Error('Invalid image URL from server')
+            }
+          } catch {
+            setUploadError('Upload succeeded but the image URL was invalid. Try again or contact support.')
+            setUploadProgress(0)
+            setIsUploading(false)
+            return
+          }
           uploaded.push({
             id: Math.random().toString(36).slice(2, 11),
-            url: uploadResult.url,
+            url: rawUrl,
             alt: file.name,
             isPrimary: value.length === 0 && i === 0,
             order: value.length + i,
@@ -331,13 +362,27 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
             {value.map((image) => (
               <Card
                 key={image.id}
-                className="relative overflow-hidden p-0"
+                className={cn(
+                  'relative overflow-hidden p-0',
+                  brokenIds.has(image.id) && 'ring-2 ring-destructive',
+                )}
               >
                 <img
                   src={image.url}
                   alt={image.alt}
                   className="h-[120px] w-full cursor-pointer object-cover"
                   onClick={() => setPreviewImage(image.url)}
+                  onLoad={() => {
+                    setBrokenIds((prev) => {
+                      if (!prev.has(image.id)) return prev
+                      const next = new Set(prev)
+                      next.delete(image.id)
+                      return next
+                    })
+                  }}
+                  onError={() => {
+                    setBrokenIds((prev) => new Set(prev).add(image.id))
+                  }}
                 />
                 {image.isPrimary && _allowPrimary && (
                   <Badge
@@ -377,6 +422,13 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
               </Card>
             ))}
           </div>
+          {brokenIds.size > 0 && (
+            <p className="mt-3 text-sm font-medium text-destructive" role="alert">
+              {brokenIds.size === 1
+                ? 'This image failed to load. Remove it or upload again.'
+                : `${brokenIds.size} images failed to load. Remove them or upload again.`}
+            </p>
+          )}
         </div>
       )}
 

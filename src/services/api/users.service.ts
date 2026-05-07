@@ -40,7 +40,7 @@ export interface CreateUserRequest {
   rbacRole?: UserRole
   rbacPermissionMode?: RbacPermissionMode
   permissions?: Permission[]
-  /** Team invite: login username (stored lowercase); not the email */
+  /** Team invite: login username (stored lowercase); may be a work email distinct from invite `email` */
   username?: string
   /** Dashboard team invite: email temp password + set-password link */
   inviteTeamMember?: boolean
