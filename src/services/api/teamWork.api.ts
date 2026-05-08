@@ -12,6 +12,7 @@ import type {
   TeamWorkListResponse,
   TeamWorkMeta,
   TeamWorkProject,
+  TeamWorkSprint,
   TeamWorkTagCatalogEntry,
 } from '../../types/teamWork.types'
 
@@ -209,6 +210,71 @@ export const teamWorkApi = {
   ): Promise<TeamWorkProject> {
     const d = await sendJson<{ project: Record<string, unknown> }>('PATCH', `/team-work/projects/${id}`, body)
     return mapProject(d.project)
+  },
+
+  async listSprints(projectId: string): Promise<TeamWorkSprint[]> {
+    const d = await getJson<{ sprints: Record<string, unknown>[] }>(`/team-work/projects/${projectId}/sprints`, false)
+    return (d.sprints || []).map((r) => ({
+      id: String(r.id || r._id || ''),
+      projectId: String(r.projectId || projectId),
+      name: String(r.name || ''),
+      goal: r.goal ? String(r.goal) : undefined,
+      startAt: r.startAt ? new Date(r.startAt as string).toISOString() : new Date().toISOString(),
+      endAt: r.endAt ? new Date(r.endAt as string).toISOString() : new Date().toISOString(),
+      state: (r.state as TeamWorkSprint['state']) || 'planned',
+      createdAt: r.createdAt ? new Date(r.createdAt as string).toISOString() : new Date().toISOString(),
+      startedAt: r.startedAt ? new Date(r.startedAt as string).toISOString() : undefined,
+      completedAt: r.completedAt ? new Date(r.completedAt as string).toISOString() : undefined,
+      durationDays: Number(r.durationDays ?? 14),
+    }))
+  },
+
+  async createSprint(
+    projectId: string,
+    body: Pick<TeamWorkSprint, 'name' | 'startAt' | 'endAt' | 'durationDays'> & Partial<Pick<TeamWorkSprint, 'goal'>>,
+  ): Promise<TeamWorkSprint> {
+    const d = await sendJson<{ sprint: Record<string, unknown> }>(
+      'POST',
+      `/team-work/projects/${projectId}/sprints`,
+      body,
+    )
+    const r = d.sprint
+    return {
+      id: String(r.id || r._id || ''),
+      projectId: String(r.projectId || projectId),
+      name: String(r.name || ''),
+      goal: r.goal ? String(r.goal) : undefined,
+      startAt: r.startAt ? new Date(r.startAt as string).toISOString() : new Date().toISOString(),
+      endAt: r.endAt ? new Date(r.endAt as string).toISOString() : new Date().toISOString(),
+      state: (r.state as TeamWorkSprint['state']) || 'planned',
+      createdAt: r.createdAt ? new Date(r.createdAt as string).toISOString() : new Date().toISOString(),
+      startedAt: r.startedAt ? new Date(r.startedAt as string).toISOString() : undefined,
+      completedAt: r.completedAt ? new Date(r.completedAt as string).toISOString() : undefined,
+      durationDays: Number(r.durationDays ?? body.durationDays ?? 14),
+    }
+  },
+
+  async patchSprint(
+    sprintId: string,
+    body: Partial<Pick<TeamWorkSprint, 'name' | 'goal' | 'startAt' | 'endAt' | 'state' | 'durationDays'>>,
+  ): Promise<TeamWorkSprint | null> {
+    const d = await sendJson<{ sprint: Record<string, unknown> | null }>('PATCH', `/team-work/sprints/${sprintId}`, body)
+    if (!d.sprint) return null
+    const r = d.sprint
+    const projectId = String(r.projectId || '')
+    return {
+      id: String(r.id || r._id || ''),
+      projectId,
+      name: String(r.name || ''),
+      goal: r.goal ? String(r.goal) : undefined,
+      startAt: r.startAt ? new Date(r.startAt as string).toISOString() : new Date().toISOString(),
+      endAt: r.endAt ? new Date(r.endAt as string).toISOString() : new Date().toISOString(),
+      state: (r.state as TeamWorkSprint['state']) || 'planned',
+      createdAt: r.createdAt ? new Date(r.createdAt as string).toISOString() : new Date().toISOString(),
+      startedAt: r.startedAt ? new Date(r.startedAt as string).toISOString() : undefined,
+      completedAt: r.completedAt ? new Date(r.completedAt as string).toISOString() : undefined,
+      durationDays: Number(r.durationDays ?? 14),
+    }
   },
 
   async listItems(params?: Record<string, string | undefined>): Promise<TeamWorkListResponse> {

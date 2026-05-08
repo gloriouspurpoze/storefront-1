@@ -75,6 +75,10 @@ self.addEventListener('push', (event) => {
   if (notificationData.data) {
     options.data = { ...options.data, ...notificationData.data };
   }
+  // Web Push payload uses top-level `url` (see NotificationService.sendWebPushNotification)
+  if (notificationData.url) {
+    options.data = { ...options.data, url: notificationData.url };
+  }
 
   event.waitUntil(
     self.registration.showNotification(
@@ -90,19 +94,19 @@ self.addEventListener('notificationclick', (event) => {
 
   event.notification.close();
 
+  const payload = event.notification.data || {};
+  const rawTarget = payload.url || payload.actionUrl || '/';
+  const openUrl =
+    rawTarget.startsWith('http://') || rawTarget.startsWith('https://')
+      ? rawTarget
+      : new URL(rawTarget, self.location.origin).href;
+
   if (event.action === 'explore') {
-    // Handle explore action
-    event.waitUntil(
-      clients.openWindow(notificationData.actionUrl || '/')
-    );
+    event.waitUntil(clients.openWindow(openUrl));
   } else if (event.action === 'close') {
-    // Handle close action
     console.log('Notification closed');
   } else {
-    // Default click action
-    event.waitUntil(
-      clients.openWindow(notificationData.actionUrl || '/')
-    );
+    event.waitUntil(clients.openWindow(openUrl));
   }
 });
 

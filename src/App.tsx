@@ -1089,6 +1089,14 @@ function App() {
                           </RoleBasedRoute>
                         }
                       />
+                      <Route
+                        path="/support/tickets"
+                        element={
+                          <RoleBasedRoute permissions={['view_dashboard']}>
+                            <SupportTicketsQueuePage />
+                          </RoleBasedRoute>
+                        }
+                      />
 
                       {/* Reports - Manager and above */}
                       <Route 

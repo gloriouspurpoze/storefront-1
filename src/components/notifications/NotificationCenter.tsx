@@ -55,8 +55,10 @@ import {
   Build as ServiceIcon,
   RateReview as ReviewIcon,
   Campaign as MarketingIcon,
-  Schedule as ReminderIcon
+  Schedule as ReminderIcon,
+  ViewKanban as TeamWorkIcon
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../../hooks/useNotifications';
 import { PushNotification, NotificationPreferences } from '../../services/api/notifications.service';
 import { formatDistanceToNow } from 'date-fns';
@@ -86,7 +88,8 @@ const notificationIcons: Record<PushNotification['type'], React.ReactElement> = 
   system: <WarningIcon color="error" />,
   general: <InfoIcon color="info" />,
   marketing: <MarketingIcon color="secondary" />,
-  reminder: <ReminderIcon color="info" />
+  reminder: <ReminderIcon color="info" />,
+  team_work_assigned: <TeamWorkIcon color="info" />
 };
 
 const notificationColors: Record<PushNotification['type'], 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info' | 'default'> = {
@@ -109,10 +112,21 @@ const notificationColors: Record<PushNotification['type'], 'primary' | 'secondar
   system: 'error',
   general: 'info',
   marketing: 'secondary',
-  reminder: 'info'
+  reminder: 'info',
+  team_work_assigned: 'info'
 };
 
+function isAbsoluteHttpUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export function NotificationCenter({ open, onClose }: NotificationCenterProps) {
+  const navigate = useNavigate();
   const {
     notifications,
     preferences,
@@ -141,7 +155,18 @@ export function NotificationCenter({ open, onClose }: NotificationCenterProps) {
     }
     
     if (notification.actionUrl) {
-      window.open(notification.actionUrl, '_blank');
+      const raw = notification.actionUrl.trim();
+      if (raw.startsWith('/') && !raw.startsWith('//')) {
+        try {
+          const u = new URL(raw, window.location.origin);
+          navigate(`${u.pathname}${u.search}${u.hash}`);
+          onClose();
+        } catch {
+          /* ignore */
+        }
+      } else if (isAbsoluteHttpUrl(raw)) {
+        window.open(raw, '_blank', 'noopener,noreferrer');
+      }
     }
     
     setSelectedNotification(notification);

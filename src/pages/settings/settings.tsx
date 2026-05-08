@@ -18,6 +18,8 @@ import {
   Bell as NotificationsIcon,
   Palette as PaletteIcon,
   Globe as LanguageIcon,
+  Globe,
+  Bell,
   Share2,
   Settings as SettingsIcon,
   CloudOff,
@@ -29,6 +31,7 @@ import { PushNotificationManager } from '../../components/notifications/PushNoti
 import { SocialPublishSettingsForm } from '../../components/marketing-workspace/SocialPublishSettingsForm'
 import { Badge } from '../../components/ui/badge'
 import { settingsService, type Settings } from '../../services/api/settings.service'
+import { Link } from 'react-router-dom'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -177,6 +180,7 @@ export function Settings() {
     { label: 'Notifications', icon: <NotificationsIcon className="h-4 w-4" /> },
     { label: 'Appearance', icon: <PaletteIcon className="h-4 w-4" /> },
     { label: 'Client Controls', icon: <LanguageIcon className="h-4 w-4" /> },
+    { label: 'Industry', icon: <Globe className="h-4 w-4" /> },
     { label: 'Social publish', icon: <Share2 className="h-4 w-4" /> },
   ]
 
@@ -413,7 +417,21 @@ export function Settings() {
               </div>
 
               <div className="border-t pt-6">
-                <PushNotificationManager />
+                {process.env.REACT_APP_ONESIGNAL_APP_ID ? (
+                  <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm">
+                    <div className="flex items-center gap-2 font-medium">
+                      <Bell className="h-4 w-4 text-primary" aria-hidden />
+                      OneSignal web push is enabled
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      This admin app can use OneSignal for browser push (see <span className="font-mono">REACT_APP_ONESIGNAL_APP_ID</span>).
+                      If you prefer native Web Push (VAPID + service worker), use the section below instead.
+                    </p>
+                  </div>
+                ) : null}
+                <div className="mt-4">
+                  <PushNotificationManager />
+                </div>
               </div>
             </VStack>
           </TabPanel>
@@ -546,8 +564,54 @@ export function Settings() {
             </VStack>
           </TabPanel>
 
-          {/* Live publish (marketing social APIs) */}
+          {/* Industry-level configuration shortcuts */}
           <TabPanel value={tabValue} index={5}>
+            <VStack spacing={6}>
+              <div>
+                <h2 className="text-xl font-semibold mb-2">Industry configuration</h2>
+                <p className="text-sm text-muted-foreground mb-4 max-w-3xl">
+                  Industry-level content and pricing live under CMS (landing pages, rate cards, cross-linking, and SEO). Use these shortcuts to
+                  configure each industry without hunting through menus.
+                </p>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Industry service pages</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm">
+                      <p className="text-muted-foreground">
+                        Manage per-industry landing page copy, SEO blocks, FAQs, and locality sections.
+                      </p>
+                      <Button asChild variant="outline" size="sm">
+                        <Link to="/cms/category-marketing">Open industry pages</Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Rate card & cross-linking</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm">
+                      <p className="text-muted-foreground">
+                        Configure pricing tables and internal linking rules that drive SEO across industries.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button asChild variant="outline" size="sm">
+                          <Link to="/cms/category-marketing?tab=rate-card">Rate card</Link>
+                        </Button>
+                        <Button asChild variant="outline" size="sm">
+                          <Link to="/cms/category-marketing?tab=cross-linking">Cross-linking</Link>
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </VStack>
+          </TabPanel>
+
+          {/* Live publish (marketing social APIs) */}
+          <TabPanel value={tabValue} index={6}>
             <VStack spacing={6}>
               <div>
                 <h2 className="text-xl font-semibold mb-2">Social publish</h2>

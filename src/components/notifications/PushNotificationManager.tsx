@@ -218,6 +218,7 @@ export function PushNotificationManager({
             <li>Service updates</li>
             <li>System announcements</li>
             <li>Payment confirmations</li>
+            <li>Team work assignments (opens the issue in Team Work)</li>
           </ul>
         </div>
       </CardContent>

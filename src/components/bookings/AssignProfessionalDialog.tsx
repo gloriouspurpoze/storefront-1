@@ -195,11 +195,19 @@ export function AssignProfessionalDialog({
             <Clock className="mt-0.5 h-4 w-4 shrink-0" />
             <div>
               <span className="font-medium text-foreground">Scheduled visit: </span>
-              {new Date(scheduledDateIso).toLocaleString(undefined, {
-                weekday: 'short',
-                dateStyle: 'medium',
-                timeStyle: 'short',
-              })}
+              {(() => {
+                const d = new Date(scheduledDateIso)
+                if (Number.isNaN(d.getTime())) return scheduledDateIso
+                // Avoid `dateStyle` / `timeStyle` to prevent runtime errors in older Intl implementations.
+                return d.toLocaleString(undefined, {
+                  weekday: 'short',
+                  year: 'numeric',
+                  month: 'short',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+              })()}
               <span className="mt-1 block text-xs">
                 Badges on each professional compare this day to their in-app weekly calendar (not exact times).
               </span>

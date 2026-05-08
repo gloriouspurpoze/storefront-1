@@ -3,13 +3,11 @@ import { format } from 'date-fns'
 import { Flag, PlayCircle, Plus, StopCircle } from 'lucide-react'
 import type { TeamWorkItem, TeamWorkSprint } from '../../types/teamWork.types'
 import {
-  completeActiveSprintRow,
-  createLocalSprint,
   getActiveSprint,
-  saveSprintsToStorage,
   spillAssignmentsForSprintClose,
-  startPlannedSprint,
 } from '../../lib/teamWorkSprintLocal'
+import { buildSprintWindow } from '../../lib/teamWorkSprintLocal'
+import { teamWorkApi } from '../../services/api/teamWork.api'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
 import { Card, CardContent } from '../ui/card'
@@ -32,7 +30,6 @@ import {
   SelectValue,
 } from '../ui/select'
 type Props = {
-  tenantId: string
   projectId: string | null
   /** Items already merged with sprint assignments (for counts / spillover). */
   items: TeamWorkItem[]
@@ -54,7 +51,6 @@ const DURATION_PRESETS = [
 ] as const
 
 export function TeamWorkSprintPanel({
-  tenantId,
   projectId,
   items,
   canManage,
@@ -78,10 +74,10 @@ export function TeamWorkSprintPanel({
   const planned = useMemo(() => sprints.filter((s) => s.state === 'planned'), [sprints])
   const completed = useMemo(() => sprints.filter((s) => s.state === 'completed').slice(-5).reverse(), [sprints])
 
-  const persistRows = (next: TeamWorkSprint[]) => {
+  const refresh = async () => {
     if (!projectId) return
-    saveSprintsToStorage(tenantId, projectId, next)
-    onSprintsUpdated(next)
+    const rows = await teamWorkApi.listSprints(projectId)
+    onSprintsUpdated(rows)
   }
 
   const openCloseDialog = (sprintId: string) => {
@@ -97,16 +93,19 @@ export function TeamWorkSprintPanel({
       .length
   }, [items, closingSprintId])
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!projectId || !newName.trim()) return
     const duration = Number(newDuration) || 14
-    const row = createLocalSprint(projectId, {
+    const start = new Date(`${newStart}T12:00:00`)
+    const { startIso, endIso } = buildSprintWindow(start, duration)
+    await teamWorkApi.createSprint(projectId, {
       name: newName.trim(),
       goal: newGoal.trim() || undefined,
-      startAt: new Date(`${newStart}T12:00:00`),
+      startAt: startIso,
+      endAt: endIso,
       durationDays: duration,
     })
-    persistRows([...sprints, row])
+    await refresh()
     setCreateOpen(false)
     setNewName('')
     setNewGoal('')
@@ -114,19 +113,19 @@ export function TeamWorkSprintPanel({
     setNewDuration('14')
   }
 
-  const handleStart = (id: string) => {
+  const handleStart = async (id: string) => {
     try {
-      const next = startPlannedSprint(sprints, id)
-      persistRows(next)
+      await teamWorkApi.patchSprint(id, { state: 'active' })
+      await refresh()
     } catch (e) {
       window.alert(e instanceof Error ? e.message : 'Cannot start sprint')
     }
   }
 
-  const handleConfirmClose = () => {
+  const handleConfirmClose = async () => {
     if (!projectId || !closingSprintId) return
-    const rows = completeActiveSprintRow(sprints, closingSprintId)
-    persistRows(rows)
+    await teamWorkApi.patchSprint(closingSprintId, { state: 'completed' })
+    await refresh()
 
     const target =
       spillTarget === '__backlog__'
@@ -152,9 +151,7 @@ export function TeamWorkSprintPanel({
               <div>
                 <p className="text-sm font-semibold">Sprints</p>
                 <p className="mt-0.5 max-w-xl text-xs text-muted-foreground">
-                  Plan fixed-length iterations (Scrum-style). Sprint definitions stay in this browser until your API adds{' '}
-                  <span className="font-mono text-[10px]">/team-work/sprints</span>. Issue placement syncs via{' '}
-                  <span className="font-mono text-[10px]">sprintId</span> when the backend supports it.
+                  Plan fixed-length iterations (Scrum-style). Sprint definitions and state live on the server.
                 </p>
               </div>
             </div>

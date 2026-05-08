@@ -12,7 +12,7 @@ export interface PushNotification {
   iconUrl?: string
   actionUrl?: string
   relatedId?: string
-  relatedType?: 'booking' | 'order' | 'payment' | 'review'
+  relatedType?: 'booking' | 'order' | 'payment' | 'review' | 'team_work'
   data?: Record<string, unknown>
   isRead: boolean
   readAt?: string

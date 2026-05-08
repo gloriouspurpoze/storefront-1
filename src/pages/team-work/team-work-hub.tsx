@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   CalendarPlus,
   ClipboardList,
@@ -61,7 +61,6 @@ import { getProjectTeamUsersForAssignee } from '../../lib/teamWorkProjectTeam'
 import {
   getActiveSprint,
   loadSprintAssignmentsFromStorage,
-  loadSprintsFromStorage,
   mergeSprintOntoItems,
   saveSprintAssignmentsToStorage,
 } from '../../lib/teamWorkSprintLocal'
@@ -93,6 +92,7 @@ function normalizeBoardEmail(email: string | undefined): string {
 }
 
 export function TeamWorkHub() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const { checkPermission } = usePermissions()
   const authUser = useAppSelector((s) => s.auth.user)
   const canManage = checkPermission('manage_team_tasks')
@@ -125,6 +125,31 @@ export function TeamWorkHub() {
   const [tagFilters, setTagFilters] = useState<string[]>([])
   const [createOpen, setCreateOpen] = useState(false)
   const [drawerId, setDrawerId] = useState<string | null>(null)
+
+  const openWorkItemDrawer = useCallback(
+    (id: string | null) => {
+      setDrawerId(id)
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev)
+          if (id) next.set('issue', id)
+          else next.delete('issue')
+          return next
+        },
+        { replace: true },
+      )
+    },
+    [setSearchParams],
+  )
+
+  useEffect(() => {
+    const q = searchParams.get('issue')?.trim() || null
+    if (!q) {
+      setDrawerId(null)
+      return
+    }
+    setDrawerId((d) => (d === q ? d : q))
+  }, [searchParams])
 
   const [newTitle, setNewTitle] = useState('')
   const [newDesc, setNewDesc] = useState('')
@@ -224,8 +249,20 @@ export function TeamWorkHub() {
       setSprintAssignments({})
       return
     }
-    setSprintRows(loadSprintsFromStorage(tenantId, projectId))
+    let cancelled = false
     setSprintAssignments(loadSprintAssignmentsFromStorage(tenantId, projectId))
+    void teamWorkApi
+      .listSprints(projectId)
+      .then((rows) => {
+        if (!cancelled) setSprintRows(rows)
+      })
+      .catch(() => {
+        // If the backend doesn't have sprints enabled, keep the UI alive with no rows.
+        if (!cancelled) setSprintRows([])
+      })
+    return () => {
+      cancelled = true
+    }
   }, [projectId, tenantId])
 
   useEffect(() => {
@@ -472,7 +509,7 @@ export function TeamWorkHub() {
   }
 
   const onChangeProject = (id: string) => {
-    setDrawerId(null)
+    openWorkItemDrawer(null)
     setTagFilters([])
     setSprintViewFilter('__all__')
     setProjectId(id)
@@ -723,7 +760,6 @@ export function TeamWorkHub() {
 
       {projectId ? (
         <TeamWorkSprintPanel
-          tenantId={tenantId}
           projectId={projectId}
           items={mergedItems}
           canManage={canManage}
@@ -916,7 +952,7 @@ export function TeamWorkHub() {
               assigneeMap={assigneeMap}
               sprintNameById={sprintNameById}
               onMoveItem={onMoveItem}
-              onOpenItem={(id) => setDrawerId(id)}
+              onOpenItem={(id) => openWorkItemDrawer(id)}
             />
           ) : (
             <div className="overflow-x-auto rounded-lg border border-border/70">
@@ -994,7 +1030,7 @@ export function TeamWorkHub() {
                           )}
                         </td>
                         <td className="px-3 py-2 text-right">
-                          <Button type="button" size="sm" variant="ghost" className="h-8" onClick={() => setDrawerId(it.id)}>
+                          <Button type="button" size="sm" variant="ghost" className="h-8" onClick={() => openWorkItemDrawer(it.id)}>
                             View
                           </Button>
                         </td>
@@ -1027,11 +1063,11 @@ export function TeamWorkHub() {
         boardItems={mergedItems}
         projectId={projectId}
         meta={meta}
-        onClose={() => setDrawerId(null)}
+        onClose={() => openWorkItemDrawer(null)}
         canManage={canManage}
         onUpdated={() => void load()}
         onDeleted={() => void load()}
-        onNavigateItem={(id) => setDrawerId(id)}
+        onNavigateItem={(id) => openWorkItemDrawer(id)}
         epics={epics.filter((e) => e.id !== drawerId)}
         assigneePoolUsers={teamMembers}
         assigneeMap={assigneeMap}

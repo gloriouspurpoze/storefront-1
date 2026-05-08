@@ -34,7 +34,7 @@ export type TeamWorkPriority = 'lowest' | 'low' | 'medium' | 'high' | 'highest'
 
 export type TeamWorkIssueType = 'task' | 'bug' | 'story' | 'epic'
 
-/** Scrum sprint metadata — stored locally until backend exposes `/team-work/sprints`. */
+/** Scrum sprint metadata (backed by fixer-backend `/team-work/sprints`). */
 export type TeamWorkSprintState = 'planned' | 'active' | 'completed'
 
 export interface TeamWorkSprint {
