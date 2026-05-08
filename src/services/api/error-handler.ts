@@ -107,8 +107,11 @@ export class ErrorHandler {
    * Handle validation errors (400)
    */
   private static handleValidationError(error: ApiError) {
-    let message = 'Please check your input and try again.'
-    
+    let message =
+      error.message && !/^http error/i.test(error.message)
+        ? error.message
+        : 'Please check your input and try again.'
+
     if (error.details && typeof error.details === 'object') {
       const validationErrors = Object.values(error.details).flat()
       if (validationErrors.length > 0) {

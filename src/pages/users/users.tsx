@@ -299,7 +299,7 @@ function UsersPageContent({ mode }: { mode: UsersPageMode }) {
           mode === 'members'
             ? 'admin'
             : ((userData.userType || 'customer') as 'customer' | 'provider' | 'professional')
-        await usersService.createUser({
+        const created = await usersService.createUser({
           email: userData.email!,
           ...(mode === 'members' ? {} : { password: userData.password! }),
           firstName: userData.firstName!,
@@ -320,14 +320,28 @@ function UsersPageContent({ mode }: { mode: UsersPageMode }) {
               }
             : {}),
         })
-        showSnackbar(
-          mode === 'members'
-            ? tenantContextId
-              ? 'Invite sent (if SMTP is configured). User is attached to the active organization — they can sign in without a separate “attach” step.'
-              : 'Invite sent (if SMTP is configured). No organization context in this browser — use Organizations → Attach user, or pick an org first so new staff are tenant-scoped.'
-            : 'User created successfully',
-          mode === 'members' && !tenantContextId ? 'warning' : 'success',
-        )
+        if (mode === 'members') {
+          if (!tenantContextId) {
+            showSnackbar(
+              'No organization context in this browser — use Organizations → Attach user, or pick an org first so new staff are tenant-scoped.',
+              'warning',
+            )
+          } else if (created.inviteEmailSent === false) {
+            showSnackbar(
+              created.serverMessage ||
+                'User was created but the invite email was not delivered. Check SMTP or share credentials manually.',
+              'warning',
+            )
+          } else {
+            showSnackbar(
+              created.serverMessage ||
+                `Invite email sent to ${userData.email!.trim()}. They are attached to the active organization.`,
+              'success',
+            )
+          }
+        } else {
+          showSnackbar(created.serverMessage || 'User created successfully', 'success')
+        }
       } else if (selectedUser) {
         const isDashboardAccount =
           selectedUser.userType === 'admin' || selectedUser.userType === 'super_admin'

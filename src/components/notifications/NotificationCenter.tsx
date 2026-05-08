@@ -131,6 +131,7 @@ export function NotificationCenter({ open, onClose }: NotificationCenterProps) {
     notifications,
     preferences,
     isLoading,
+    error,
     unreadCount,
     markAsRead,
     markAllAsRead,
@@ -250,6 +251,20 @@ export function NotificationCenter({ open, onClose }: NotificationCenterProps) {
               </IconButton>
             </Box>
           </Box>
+
+          {error ? (
+            <Alert
+              severity="error"
+              sx={{ mb: 2 }}
+              action={
+                <Button color="inherit" size="small" onClick={() => void refreshNotifications()}>
+                  Retry
+                </Button>
+              }
+            >
+              {error}
+            </Alert>
+          ) : null}
 
           {/* Filter and Actions */}
           <Box sx={{ mb: 2 }}>

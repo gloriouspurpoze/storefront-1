@@ -259,24 +259,61 @@ class ApiBase {
       } as ApiError
     }
 
-    const data = await response.json()
+    const data = (await response.json()) as Record<string, unknown>
     
     if (!response.ok) {
-      const error = data.error || data
+      const errField = data.error
+      let message = `HTTP error! status: ${response.status}`
+      let code: ApiError['code'] = 'INTERNAL_ERROR'
+      let details: unknown
+
+      if (typeof errField === 'string' && errField.trim()) {
+        message = errField.trim()
+      } else if (errField && typeof errField === 'object') {
+        const o = errField as Record<string, unknown>
+        if (typeof o.message === 'string' && o.message.trim()) message = o.message.trim()
+        if (typeof o.code === 'string' && o.code.trim()) code = o.code as ApiError['code']
+        details = o.details
+      } else if (typeof data.message === 'string' && data.message.trim()) {
+        message = data.message.trim()
+      }
+
+      const errs = data.errors
+      if (Array.isArray(errs) && errs.length > 0) {
+        const parts = errs.map((e: unknown) => {
+          if (typeof e === 'string') return e
+          if (e && typeof e === 'object' && 'msg' in e) return String((e as { msg?: unknown }).msg || '')
+          return ''
+        }).filter(Boolean)
+        if (parts.length) message = parts.join('. ')
+        code = 'VALIDATION_ERROR'
+      }
+
+      if (response.status === 400 && code === 'INTERNAL_ERROR') code = 'VALIDATION_ERROR'
+      if (response.status === 403) code = 'FORBIDDEN'
+      if (response.status === 404) code = 'NOT_FOUND'
+      if (response.status === 409) code = 'CONFLICT'
+      if (response.status === 429) code = 'RATE_LIMITED'
+
       throw {
-        code: error.code || 'INTERNAL_ERROR',
-        message: error.message || `HTTP error! status: ${response.status}`,
-        details: error.details,
+        code,
+        message,
+        details,
         status: response.status,
       } as ApiError
     }
 
+    const metaBlock =
+      data.meta != null && typeof data.meta === 'object'
+        ? { meta: data.meta as Record<string, unknown> }
+        : {}
+
     return {
-      success: data.success,
-      data: data.data,
-      message: data.message || 'Success',
-      timestamp: data.timestamp,
-      ...(data.meta && { meta: data.meta }),
+      success: data.success === true,
+      data: data.data as T,
+      message: typeof data.message === 'string' && data.message.trim() ? data.message.trim() : 'Success',
+      timestamp: typeof data.timestamp === 'string' ? data.timestamp : undefined,
+      ...metaBlock,
     }
   }
 

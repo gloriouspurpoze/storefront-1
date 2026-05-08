@@ -123,8 +123,12 @@ class ApiClient {
         typeof error === 'object' &&
         (error as ApiError).code === 'UNAUTHORIZED'
       if (showErrorToast && !isUnauthorized) {
+        const resolved =
+          error instanceof Error && error.message?.trim()
+            ? error.message.trim()
+            : errorMessage
         store.dispatch(addToast({
-          message: errorMessage,
+          message: resolved,
           severity: 'error',
           duration: 5000,
         }))
@@ -198,7 +202,15 @@ class ApiClient {
           ErrorHandler.handleApiError(apiError, errorMessage)
           throw apiError
         }
-        throw new Error(`Upload failed! status: ${response.status}`)
+        const errBody = (await response.json().catch(() => ({}))) as {
+          error?: string
+          message?: string
+        }
+        const msg =
+          (typeof errBody.error === 'string' && errBody.error) ||
+          (typeof errBody.message === 'string' && errBody.message) ||
+          `Upload failed (HTTP ${response.status})`
+        throw new Error(msg)
       }
 
       const data = await response.json()
@@ -218,8 +230,12 @@ class ApiClient {
         typeof error === 'object' &&
         (error as ApiError).code === 'UNAUTHORIZED'
       if (showErrorToast && !isUnauthorized) {
+        const resolved =
+          error instanceof Error && error.message?.trim()
+            ? error.message.trim()
+            : errorMessage
         store.dispatch(addToast({
-          message: errorMessage,
+          message: resolved,
           severity: 'error',
           duration: 5000,
         }))

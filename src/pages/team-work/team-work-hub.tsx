@@ -23,6 +23,7 @@ import { teamWorkApi } from '../../services/api/teamWork.api'
 import { usersService } from '../../services/api/users.service'
 import type {
   TeamWorkItem,
+  TeamWorkIssueType,
   TeamWorkMeta,
   TeamWorkProject,
   TeamWorkSprint,
@@ -77,6 +78,92 @@ const STATUS_LABELS: Record<TeamWorkStatus, string> = {
   blocked: 'Blocked',
   done: 'Done',
   cancelled: 'Cancelled',
+}
+
+type ListSortKey = 'issueKey' | 'title' | 'status' | 'priority' | 'type' | 'sprint' | 'assignee'
+
+const LIST_COL_STORAGE_KEY = 'fixer-team-work-list-cols-v1'
+
+const DEFAULT_LIST_COL_WIDTHS: Record<string, number> = {
+  key: 136,
+  title: 268,
+  status: 124,
+  priority: 104,
+  type: 92,
+  sprint: 128,
+  assignee: 200,
+  actions: 76,
+}
+
+function loadListColWidths(): Record<string, number> {
+  if (typeof window === 'undefined') return { ...DEFAULT_LIST_COL_WIDTHS }
+  try {
+    const raw = window.localStorage.getItem(LIST_COL_STORAGE_KEY)
+    if (!raw) return { ...DEFAULT_LIST_COL_WIDTHS }
+    const parsed = JSON.parse(raw) as Record<string, number>
+    return { ...DEFAULT_LIST_COL_WIDTHS, ...parsed }
+  } catch {
+    return { ...DEFAULT_LIST_COL_WIDTHS }
+  }
+}
+
+function ResizableTh({
+  width,
+  minWidth,
+  children,
+  onResize,
+  sortable,
+  onSortClick,
+  sortActive,
+  sortDir,
+}: {
+  width: number
+  minWidth: number
+  children: React.ReactNode
+  onResize: (next: number) => void
+  sortable?: boolean
+  onSortClick?: () => void
+  sortActive?: boolean
+  sortDir?: 'asc' | 'desc'
+}) {
+  const onMouseDownResize = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const startX = e.clientX
+    const startW = width
+    const onMove = (ev: MouseEvent) => onResize(Math.max(minWidth, Math.round(startW + ev.clientX - startX)))
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
+
+  return (
+    <th
+      className="relative border-b bg-muted/40 px-1 py-2 text-left text-xs font-medium uppercase text-muted-foreground"
+      style={{ width, minWidth, maxWidth: width }}
+    >
+      <button
+        type="button"
+        className={cn(
+          'flex w-full min-w-0 items-center gap-0.5 text-left font-medium',
+          sortable && 'cursor-pointer select-none hover:text-foreground',
+        )}
+        onClick={sortable ? onSortClick : undefined}
+      >
+        <span className="truncate">{children}</span>
+        {sortActive ? <span className="shrink-0 text-[10px] text-foreground">{sortDir === 'asc' ? '▲' : '▼'}</span> : null}
+      </button>
+      <span
+        role="separator"
+        aria-hidden
+        className="absolute right-0 top-0 z-10 h-full w-1.5 cursor-col-resize hover:bg-primary/25"
+        onMouseDown={onMouseDownResize}
+      />
+    </th>
+  )
 }
 
 function userLabel(u: { username?: string; firstName?: string; lastName?: string; email?: string; id: string }): string {
@@ -183,6 +270,12 @@ export function TeamWorkHub() {
   const [sprintAssignments, setSprintAssignments] = useState<Record<string, string>>({})
   const [sprintViewFilter, setSprintViewFilter] = useState<string>('__all__')
   const [newSprintIdForCreate, setNewSprintIdForCreate] = useState<string>('__none__')
+  const [listSortKey, setListSortKey] = useState<ListSortKey>('issueKey')
+  const [listSortDir, setListSortDir] = useState<'asc' | 'desc'>('asc')
+  const [listFilterStatus, setListFilterStatus] = useState<string>('__all__')
+  const [listFilterPriority, setListFilterPriority] = useState<string>('__all__')
+  const [listFilterType, setListFilterType] = useState<string>('__all__')
+  const [listColWidths, setListColWidths] = useState<Record<string, number>>(loadListColWidths)
 
   const currentProject = useMemo(
     () => projects.find((p) => p.id === projectId) ?? null,
@@ -300,6 +393,83 @@ export function TeamWorkHub() {
     }
     return mergedItems.filter((i) => i.sprintId === sprintViewFilter)
   }, [mergedItems, sprintViewFilter, sprintRows])
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(LIST_COL_STORAGE_KEY, JSON.stringify(listColWidths))
+    } catch {
+      /* ignore */
+    }
+  }, [listColWidths])
+
+  const toggleListSort = useCallback((key: ListSortKey) => {
+    setListSortKey((prevKey) => {
+      if (prevKey === key) {
+        setListSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+        return prevKey
+      }
+      setListSortDir('asc')
+      return key
+    })
+  }, [])
+
+  const listRows = useMemo(() => {
+    let rows = [...visibleItems]
+    if (listFilterStatus !== '__all__') rows = rows.filter((r) => r.status === listFilterStatus)
+    if (listFilterPriority !== '__all__') rows = rows.filter((r) => r.priority === listFilterPriority)
+    if (listFilterType !== '__all__') rows = rows.filter((r) => r.issueType === listFilterType)
+    const dir = listSortDir === 'asc' ? 1 : -1
+    const priOrder: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 }
+    rows.sort((a, b) => {
+      let c = 0
+      switch (listSortKey) {
+        case 'issueKey':
+          c = a.issueKey.localeCompare(b.issueKey)
+          break
+        case 'title':
+          c = a.title.localeCompare(b.title)
+          break
+        case 'status':
+          c = a.status.localeCompare(b.status)
+          break
+        case 'priority':
+          c = (priOrder[a.priority] ?? 9) - (priOrder[b.priority] ?? 9)
+          break
+        case 'type':
+          c = a.issueType.localeCompare(b.issueType)
+          break
+        case 'sprint': {
+          const sa = a.sprintId ? sprintNameById.get(a.sprintId) ?? a.sprintId : ''
+          const sb = b.sprintId ? sprintNameById.get(b.sprintId) ?? b.sprintId : ''
+          c = sa.localeCompare(sb)
+          break
+        }
+        case 'assignee': {
+          const la = assigneeIdsFromItem(a)
+            .map((id) => assigneeMap.get(id) || id)
+            .join(', ')
+          const lb = assigneeIdsFromItem(b)
+            .map((id) => assigneeMap.get(id) || id)
+            .join(', ')
+          c = la.localeCompare(lb)
+          break
+        }
+        default:
+          c = 0
+      }
+      return c * dir
+    })
+    return rows
+  }, [
+    visibleItems,
+    listSortKey,
+    listSortDir,
+    listFilterStatus,
+    listFilterPriority,
+    listFilterType,
+    sprintNameById,
+    assigneeMap,
+  ])
 
   const load = useCallback(
     async (override?: { q?: string }) => {
@@ -872,7 +1042,7 @@ export function TeamWorkHub() {
                   onClick={() => setCreateOpen(true)}
                 >
                   <Plus className="h-4 w-4" />
-                  New issue
+                  New Task
                 </Button>
               ) : null}
             </div>
@@ -955,101 +1125,250 @@ export function TeamWorkHub() {
               onOpenItem={(id) => openWorkItemDrawer(id)}
             />
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-border/70">
-              <table className="w-full min-w-[720px] text-left text-sm">
-                <thead className="border-b bg-muted/40 text-xs uppercase text-muted-foreground">
-                  <tr>
-                    <th className="px-3 py-2 font-medium">Key</th>
-                    <th className="px-3 py-2 font-medium">Title</th>
-                    <th className="px-3 py-2 font-medium">Status</th>
-                    <th className="px-3 py-2 font-medium">Priority</th>
-                    <th className="px-3 py-2 font-medium">Type</th>
-                    <th className="px-3 py-2 font-medium">Sprint</th>
-                    <th className="px-3 py-2 font-medium">Assignee</th>
-                    <th className="px-3 py-2 font-medium" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleItems.map((it) => {
-                    const rowAssignees = assigneeIdsFromItem(it)
-                    const rowLabel = hierarchicalIssueLabel(it, mergedItems)
-                    return (
-                      <tr key={it.id} className="border-b border-border/50 hover:bg-muted/20">
-                        <td className="px-3 py-2">
-                          <div className="font-mono text-xs font-semibold text-primary">{rowLabel}</div>
-                          {rowLabel !== it.issueKey ? (
-                            <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">{it.issueKey}</div>
-                          ) : null}
-                          {it.parentWorkItemId ? (
-                            <Badge variant="secondary" className="mt-1 h-5 px-1.5 text-[10px] font-normal">
-                              Subtask
-                            </Badge>
-                          ) : null}
-                        </td>
-                        <td className="max-w-[280px] px-3 py-2">
-                          <span className="line-clamp-2 font-medium">{it.title}</span>
-                        </td>
-                        <td className="px-3 py-2 capitalize text-muted-foreground">{it.status.replace(/_/g, ' ')}</td>
-                        <td className="px-3 py-2">
-                          <span
-                            className={cn(
-                              'inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize',
-                              PRIORITY_CHIP[it.priority],
-                            )}
-                          >
-                            {priorityLabel(it.priority)}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2 capitalize">{it.issueType}</td>
-                        <td className="max-w-[120px] truncate px-3 py-2 text-xs text-muted-foreground">
-                          {it.sprintId ? sprintNameById.get(it.sprintId) ?? it.sprintId.slice(0, 8) : '—'}
-                        </td>
-                        <td className="px-3 py-2">
-                          {rowAssignees.length ? (
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <div className="flex -space-x-1.5">
-                                {rowAssignees.slice(0, 3).map((aid) => (
-                                  <span
-                                    key={aid}
-                                    className={cn(
-                                      'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ring-2 ring-background',
-                                      assigneeSwatchClass(aid),
-                                    )}
-                                    title={assigneeMap.get(aid) || aid}
-                                  >
-                                    {initialsFromLabel(assigneeMap.get(aid) || aid)}
-                                  </span>
-                                ))}
-                              </div>
-                              <span className="max-w-[160px] truncate text-xs text-foreground/90">
-                                {rowAssignees.map((aid) => assigneeMap.get(aid) || aid).join(', ')}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-xs italic text-muted-foreground">—</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2 text-right">
-                          <Button type="button" size="sm" variant="ghost" className="h-8" onClick={() => openWorkItemDrawer(it.id)}>
-                            View
-                          </Button>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-              {visibleItems.length === 0 ? (
-                <div className="flex flex-col items-center gap-2 py-16 text-center text-muted-foreground">
-                  <ClipboardList className="h-10 w-10 opacity-40" />
-                  <p className="text-sm">No issues match your filters.</p>
-                  {canManage ? (
-                    <Button type="button" variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
-                      Create the first issue
-                    </Button>
-                  ) : null}
+            <div className="space-y-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Table · Status</Label>
+                  <Select value={listFilterStatus} onValueChange={setListFilterStatus}>
+                    <SelectTrigger className="h-9 w-[168px]">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">All statuses</SelectItem>
+                      {statuses.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {STATUS_LABELS[s]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              ) : null}
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Table · Priority</Label>
+                  <Select value={listFilterPriority} onValueChange={setListFilterPriority}>
+                    <SelectTrigger className="h-9 w-[168px]">
+                      <SelectValue placeholder="Priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">All priorities</SelectItem>
+                      {(meta?.priorities ?? ['lowest', 'low', 'medium', 'high', 'highest']).map((p) => (
+                        <SelectItem key={p} value={p}>
+                          {priorityLabel(p)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Table · Type</Label>
+                  <Select value={listFilterType} onValueChange={setListFilterType}>
+                    <SelectTrigger className="h-9 w-[168px]">
+                      <SelectValue placeholder="Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">All types</SelectItem>
+                      {(meta?.issueTypes ?? (['task', 'bug', 'story', 'epic'] as TeamWorkIssueType[])).map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {t}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9"
+                  onClick={() => {
+                    setListFilterStatus('__all__')
+                    setListFilterPriority('__all__')
+                    setListFilterType('__all__')
+                  }}
+                >
+                  Clear table filters
+                </Button>
+              </div>
+
+              <div className="overflow-x-auto rounded-lg border border-border/70">
+                <table className="w-full table-fixed text-left text-sm" style={{ minWidth: 720 }}>
+                  <thead>
+                    <tr>
+                      <ResizableTh
+                        width={listColWidths.key}
+                        minWidth={80}
+                        onResize={(n) => setListColWidths((p) => ({ ...p, key: n }))}
+                        sortable
+                        onSortClick={() => toggleListSort('issueKey')}
+                        sortActive={listSortKey === 'issueKey'}
+                        sortDir={listSortDir}
+                      >
+                        Key
+                      </ResizableTh>
+                      <ResizableTh
+                        width={listColWidths.title}
+                        minWidth={120}
+                        onResize={(n) => setListColWidths((p) => ({ ...p, title: n }))}
+                        sortable
+                        onSortClick={() => toggleListSort('title')}
+                        sortActive={listSortKey === 'title'}
+                        sortDir={listSortDir}
+                      >
+                        Title
+                      </ResizableTh>
+                      <ResizableTh
+                        width={listColWidths.status}
+                        minWidth={88}
+                        onResize={(n) => setListColWidths((p) => ({ ...p, status: n }))}
+                        sortable
+                        onSortClick={() => toggleListSort('status')}
+                        sortActive={listSortKey === 'status'}
+                        sortDir={listSortDir}
+                      >
+                        Status
+                      </ResizableTh>
+                      <ResizableTh
+                        width={listColWidths.priority}
+                        minWidth={80}
+                        onResize={(n) => setListColWidths((p) => ({ ...p, priority: n }))}
+                        sortable
+                        onSortClick={() => toggleListSort('priority')}
+                        sortActive={listSortKey === 'priority'}
+                        sortDir={listSortDir}
+                      >
+                        Priority
+                      </ResizableTh>
+                      <ResizableTh
+                        width={listColWidths.type}
+                        minWidth={72}
+                        onResize={(n) => setListColWidths((p) => ({ ...p, type: n }))}
+                        sortable
+                        onSortClick={() => toggleListSort('type')}
+                        sortActive={listSortKey === 'type'}
+                        sortDir={listSortDir}
+                      >
+                        Type
+                      </ResizableTh>
+                      <ResizableTh
+                        width={listColWidths.sprint}
+                        minWidth={88}
+                        onResize={(n) => setListColWidths((p) => ({ ...p, sprint: n }))}
+                        sortable
+                        onSortClick={() => toggleListSort('sprint')}
+                        sortActive={listSortKey === 'sprint'}
+                        sortDir={listSortDir}
+                      >
+                        Sprint
+                      </ResizableTh>
+                      <ResizableTh
+                        width={listColWidths.assignee}
+                        minWidth={100}
+                        onResize={(n) => setListColWidths((p) => ({ ...p, assignee: n }))}
+                        sortable
+                        onSortClick={() => toggleListSort('assignee')}
+                        sortActive={listSortKey === 'assignee'}
+                        sortDir={listSortDir}
+                      >
+                        Assignee
+                      </ResizableTh>
+                      <th
+                        className="border-b bg-muted/40 px-2 py-2 text-right text-xs font-medium uppercase text-muted-foreground"
+                        style={{ width: listColWidths.actions, minWidth: listColWidths.actions }}
+                      >
+                        <span className="sr-only">Actions</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {listRows.map((it) => {
+                      const rowAssignees = assigneeIdsFromItem(it)
+                      const rowLabel = hierarchicalIssueLabel(it, mergedItems)
+                      return (
+                        <tr key={it.id} className="border-b border-border/50 hover:bg-muted/20">
+                          <td className="overflow-hidden px-2 py-2 align-top">
+                            <div className="font-mono text-xs font-semibold text-primary">{rowLabel}</div>
+                            {rowLabel !== it.issueKey ? (
+                              <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">{it.issueKey}</div>
+                            ) : null}
+                            {it.parentWorkItemId ? (
+                              <Badge variant="secondary" className="mt-1 h-5 px-1.5 text-[10px] font-normal">
+                                Subtask
+                              </Badge>
+                            ) : null}
+                          </td>
+                          <td className="overflow-hidden px-2 py-2 align-top">
+                            <span className="line-clamp-2 font-medium">{it.title}</span>
+                          </td>
+                          <td className="overflow-hidden px-2 py-2 align-top capitalize text-muted-foreground">
+                            {it.status.replace(/_/g, ' ')}
+                          </td>
+                          <td className="overflow-hidden px-2 py-2 align-top">
+                            <span
+                              className={cn(
+                                'inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize',
+                                PRIORITY_CHIP[it.priority],
+                              )}
+                            >
+                              {priorityLabel(it.priority)}
+                            </span>
+                          </td>
+                          <td className="overflow-hidden px-2 py-2 align-top capitalize">{it.issueType}</td>
+                          <td className="overflow-hidden truncate px-2 py-2 align-top text-xs text-muted-foreground">
+                            {it.sprintId ? sprintNameById.get(it.sprintId) ?? it.sprintId.slice(0, 8) : '—'}
+                          </td>
+                          <td className="overflow-hidden px-2 py-2 align-top">
+                            {rowAssignees.length ? (
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <div className="flex -space-x-1.5">
+                                  {rowAssignees.slice(0, 3).map((aid) => (
+                                    <span
+                                      key={aid}
+                                      className={cn(
+                                        'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ring-2 ring-background',
+                                        assigneeSwatchClass(aid),
+                                      )}
+                                      title={assigneeMap.get(aid) || aid}
+                                    >
+                                      {initialsFromLabel(assigneeMap.get(aid) || aid)}
+                                    </span>
+                                  ))}
+                                </div>
+                                <span className="max-w-[min(160px,100%)] truncate text-xs text-foreground/90">
+                                  {rowAssignees.map((aid) => assigneeMap.get(aid) || aid).join(', ')}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-xs italic text-muted-foreground">—</span>
+                            )}
+                          </td>
+                          <td className="px-2 py-2 text-right align-top">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="h-8"
+                              onClick={() => openWorkItemDrawer(it.id)}
+                            >
+                              View
+                            </Button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+                {listRows.length === 0 ? (
+                  <div className="flex flex-col items-center gap-2 py-16 text-center text-muted-foreground">
+                    <ClipboardList className="h-10 w-10 opacity-40" />
+                    <p className="text-sm">No issues match your filters.</p>
+                    {canManage ? (
+                      <Button type="button" variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
+                        Create the first issue
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
             </div>
           )}
         </CardContent>
@@ -1088,10 +1407,10 @@ export function TeamWorkHub() {
       >
         <DialogContent className="max-h-[min(90vh,720px)] max-w-lg overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Create issue</DialogTitle>
-            <DialogDescription className="text-left text-sm text-muted-foreground">
+            <DialogTitle>Create Task</DialogTitle>
+            {/* <DialogDescription className="text-left text-sm text-muted-foreground">
               Set board tags, dates, and workflow fields before creating. Start and due dates appear on the team calendar.
-            </DialogDescription>
+            </DialogDescription> */}
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
@@ -1109,7 +1428,7 @@ export function TeamWorkHub() {
               onChange={setNewDesc}
               placeholder="Context, acceptance criteria, links…"
               height={160}
-              helperText="Same rich description editor as the issue drawer."
+              // helperText="Same rich description editor as the issue drawer."
             />
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
@@ -1218,16 +1537,16 @@ export function TeamWorkHub() {
                     ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">New issues can jump straight into the active or a planned sprint.</p>
+              {/* <p className="text-xs text-muted-foreground">New issues can jump straight into the active or a planned sprint.</p> */}
             </div>
             <div className="space-y-2 rounded-lg border border-border/60 bg-muted/15 p-3">
               <div className="flex items-center gap-2">
                 <Tag className="h-4 w-4 text-muted-foreground" aria-hidden />
                 <Label className="text-base">Tags</Label>
               </div>
-              <p className="text-xs text-muted-foreground">
+              {/* <p className="text-xs text-muted-foreground">
                 Select board tags or add a custom label. Save new names as board presets so filters stay useful for everyone.
-              </p>
+              </p> */}
               <div className="flex flex-wrap gap-1.5">
                 {createCatalogMerged.map((t) => {
                   const on = createTagSlugs.includes(t.slug)
@@ -1310,9 +1629,9 @@ export function TeamWorkHub() {
             </div>
             <div className="space-y-2 rounded-lg border border-border/60 bg-muted/15 p-3">
               <Label>Assignees (optional)</Label>
-              <p className="text-xs text-muted-foreground">
+              {/* <p className="text-xs text-muted-foreground">
                 Pick everyone working this issue — same model as Jira multi-assignee.
-              </p>
+              </p> */}
               <div className="max-h-40 space-y-2 overflow-y-auto pr-1">
                 {adminUsers.map((u) => (
                   <label key={u.id} className="flex cursor-pointer items-center gap-2 text-sm">

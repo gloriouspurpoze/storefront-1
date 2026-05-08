@@ -105,7 +105,9 @@ export const usersService = {
     return mapListUser(raw)
   },
 
-  async createUser(data: CreateUserRequest): Promise<User> {
+  async createUser(
+    data: CreateUserRequest,
+  ): Promise<{ user: User; inviteEmailSent?: boolean; serverMessage?: string }> {
     const body: Record<string, unknown> = {
       email: data.email,
       first_name: data.firstName,
@@ -130,17 +132,31 @@ export const usersService = {
       if (data.tenantId?.trim()) {
         body.tenant_id = data.tenantId.trim()
       }
-      const response = (await apiClient.post('/auth/register/admin', body)) as {
-        data?: { user?: unknown }
+      const response = (await apiClient.post('/auth/register/admin', body, {
+        showSuccessToast: false,
+        showErrorToast: false,
+        showLoading: false,
+      })) as {
+        data?: { user?: unknown; invite_email_sent?: boolean; message?: string }
+        message?: string
       }
-      const userRaw = response?.data?.user
+      const inner = response?.data
+      const userRaw = inner?.user
       if (!userRaw) throw new Error('Invalid create user response')
-      return mapListUser(userRaw)
+      return {
+        user: mapListUser(userRaw),
+        inviteEmailSent: inner?.invite_email_sent,
+        serverMessage: typeof inner?.message === 'string' ? inner.message : response?.message,
+      }
     }
-    const response = (await apiClient.post('/auth/register', body)) as { data?: { user?: unknown } }
+    const response = (await apiClient.post('/auth/register', body, {
+      showSuccessToast: false,
+      showErrorToast: false,
+      showLoading: false,
+    })) as { data?: { user?: unknown }; message?: string }
     const userRaw = response?.data?.user
     if (!userRaw) throw new Error('Invalid create user response')
-    return mapListUser(userRaw)
+    return { user: mapListUser(userRaw), serverMessage: response?.message }
   },
 
   async updateUser(userId: string, data: UpdateUserRequest): Promise<User> {

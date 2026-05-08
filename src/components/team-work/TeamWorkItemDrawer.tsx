@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { format } from 'date-fns'
 import CloseIcon from '@mui/icons-material/Close'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
@@ -16,6 +16,10 @@ import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
 import Divider from '@mui/material/Divider'
 import Drawer from '@mui/material/Drawer'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
 import FormControl from '@mui/material/FormControl'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import FormGroup from '@mui/material/FormGroup'
@@ -30,6 +34,7 @@ import Tab from '@mui/material/Tab'
 import Tabs from '@mui/material/Tabs'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { teamWorkApi } from '../../services/api/teamWork.api'
 import { apiClient } from '../../services/apiClient'
 import type {
@@ -55,6 +60,8 @@ import { RichTextField } from '../forms/RichTextField'
 import { cn } from '../../lib/utils'
 import { sprintIdForTeamWorkApi } from '../../lib/mongoObjectId'
 import { hierarchicalIssueLabel, parentIssueItem, subtasksOfParent } from '../../lib/teamWorkIssueDisplay'
+import { resolveBackendMediaUrl } from '../../lib/apiMediaOrigin'
+import { muiMdUp, useMediaQuery } from '../../hooks/useMediaQuery'
 
 type Props = {
   open: boolean
@@ -118,7 +125,7 @@ async function uploadAttachmentFile(file: File): Promise<TeamWorkAttachment> {
   const url = String(inner?.url || '')
   if (!url) throw new Error('Upload response missing URL')
   return {
-    url,
+    url: resolveBackendMediaUrl(url),
     fileName: String(inner?.fileName || file.name),
     mimeType: inner?.mimeType ? String(inner.mimeType) : file.type || undefined,
     fileSize: inner?.fileSize !== undefined ? Number(inner.fileSize) : file.size,
@@ -191,8 +198,67 @@ export function TeamWorkItemDrawer({
   const [savingCatalog, setSavingCatalog] = useState(false)
   const [subtaskTitle, setSubtaskTitle] = useState('')
   const [creatingSubtask, setCreatingSubtask] = useState(false)
+  const [unsavedCloseOpen, setUnsavedCloseOpen] = useState(false)
 
   const fileRef = useRef<HTMLInputElement>(null)
+  const baselineItemId = useRef<string | null>(null)
+  const baselineRef = useRef<string>('')
+
+  const computeSignature = useCallback(() => {
+    if (!item) return ''
+    const poolIds = new Set(assigneePoolUsers.map((u) => u.id))
+    const cleaned = assigneeUserIds.filter((id) => poolIds.has(id)).slice().sort()
+    const att = attachments
+      .map((a) => a.url)
+      .slice()
+      .sort()
+    return JSON.stringify({
+      title: form.title,
+      description: form.description,
+      status: form.status,
+      priority: form.priority,
+      issueType: form.issueType,
+      labels: (form.labels || []).slice().sort(),
+      startAt: form.startAt ?? null,
+      dueAt: form.dueAt ?? null,
+      epicId: form.epicId ?? null,
+      storyPoints: form.storyPoints ?? null,
+      sprintId: form.sprintId ?? null,
+      assignees: cleaned,
+      attachments: att,
+    })
+  }, [item, form, assigneeUserIds, attachments, assigneePoolUsers])
+
+  useLayoutEffect(() => {
+    baselineItemId.current = null
+  }, [itemId])
+
+  useLayoutEffect(() => {
+    if (!open || !item || loading) return
+    if (baselineItemId.current === item.id) return
+    baselineItemId.current = item.id
+    baselineRef.current = computeSignature()
+  }, [open, item, loading, computeSignature])
+
+  const hasUnsavedEdits = Boolean(
+    item &&
+      (comment.trim().length > 0 ||
+        (canManage && computeSignature() !== baselineRef.current)),
+  )
+
+  const requestClose = () => {
+    if (hasUnsavedEdits) {
+      setUnsavedCloseOpen(true)
+      return
+    }
+    onClose()
+  }
+
+  const discardAndClose = () => {
+    if (item) clearTeamWorkDrawerDraft(tenantId, item.id)
+    setUnsavedCloseOpen(false)
+    onClose()
+  }
 
   const catalogMerged = useMemo(() => {
     const m = new Map<string, TeamWorkTagCatalogEntry>()
@@ -410,8 +476,33 @@ export function TeamWorkItemDrawer({
       onItemSprintPersist?.(item.id, sprintOut)
       clearTeamWorkDrawerDraft(tenantId, item.id)
       onUpdated()
+      queueMicrotask(() => {
+        baselineRef.current = computeSignature()
+      })
     } finally {
       setSaving(false)
+    }
+  }
+
+  const saveThenClose = async () => {
+    if (!item || !canManage) return
+    await save()
+    setUnsavedCloseOpen(false)
+    onClose()
+  }
+
+  const postCommentThenClose = async () => {
+    if (!item || !comment.trim()) return
+    setPosting(true)
+    try {
+      await teamWorkApi.addComment(item.id, comment.trim())
+      setComment('')
+      clearTeamWorkDrawerDraft(tenantId, item.id)
+      onUpdated()
+      setUnsavedCloseOpen(false)
+      onClose()
+    } finally {
+      setPosting(false)
     }
   }
 
@@ -521,8 +612,10 @@ export function TeamWorkItemDrawer({
   const priorities = meta?.priorities ?? []
   const issueTypes = meta?.issueTypes ?? []
 
+  const isWideDrawer = useMediaQuery(muiMdUp)
+
   const drawerPaperSx = {
-    width: { xs: '100%', sm: 'min(100%, 560px)' },
+    width: { xs: '100%', sm: 'min(100%, 640px)', md: 'min(100%, min(960px, 96vw))' },
     maxWidth: '100%',
     bgcolor: 'hsl(var(--background) / 1)',
     borderLeft: '1px solid hsl(var(--border) / 0.6)',
@@ -535,7 +628,7 @@ export function TeamWorkItemDrawer({
       <Drawer
         anchor="right"
         open={open}
-        onClose={onClose}
+        onClose={() => requestClose()}
         slotProps={{
           backdrop: { sx: { bgcolor: 'rgba(0,0,0,0.45)' } },
           paper: { sx: drawerPaperSx },
@@ -639,39 +732,23 @@ export function TeamWorkItemDrawer({
                 </Typography>
               )}
             </Box>
-            <IconButton aria-label="Close" onClick={onClose} size="small">
+            <IconButton aria-label="Close" onClick={() => requestClose()} size="small">
               <CloseIcon fontSize="small" />
             </IconButton>
           </Stack>
         </Box>
 
-        {item ? (
-          <>
-            <Tabs
-              value={tab}
-              onChange={(_, v) => setTab(v)}
-              variant="fullWidth"
-              sx={{ minHeight: 42, flexShrink: 0, borderBottom: 1, borderColor: 'divider', px: 1 }}
-            >
-              <Tab icon={<EditNoteIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Details" sx={{ minHeight: 42 }} />
-              <Tab
-                icon={<CommentIcon sx={{ fontSize: 18 }} />}
-                iconPosition="start"
-                label={`Comments${item.comments?.length ? ` (${item.comments.length})` : ''}`}
-                sx={{ minHeight: 42 }}
-              />
-            </Tabs>
-
-            <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 2, py: 2 }}>
-              {tab === 0 ? (
+        {item
+          ? (() => {
+              const detailsBody = (
                 <Stack spacing={2.5}>
                   <Paper variant="outlined" sx={{ p: 2, bgcolor: 'hsl(var(--muted) / 0.25)' }}>
                     <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 700 }}>
                       People
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                    {/* <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
                       Select everyone responsible — matches Jira-style multiple assignees when the API supports it.
-                    </Typography>
+                    </Typography> */}
                     {canManage && currentUserId ? (
                       <Button
                         size="small"
@@ -865,7 +942,13 @@ export function TeamWorkItemDrawer({
                         {attachments.map((a, idx) => (
                           <Paper key={`${a.url}-${idx}`} variant="outlined" sx={{ px: 1.5, py: 1 }}>
                             <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1}>
-                              <Link href={a.url} target="_blank" rel="noopener noreferrer" variant="body2" sx={{ wordBreak: 'break-all' }}>
+                              <Link
+                                href={resolveBackendMediaUrl(a.url)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                variant="body2"
+                                sx={{ wordBreak: 'break-all' }}
+                              >
                                 {a.fileName}
                               </Link>
                               {canManage ? (
@@ -1105,7 +1188,8 @@ export function TeamWorkItemDrawer({
                     </Stack>
                   ) : null}
                 </Stack>
-              ) : (
+              )
+              const commentsBody = (
                 <Stack spacing={2} sx={{ height: '100%' }}>
                   <Stack spacing={1.5} sx={{ flex: 1, minHeight: 0, overflow: 'auto', pr: 0.5 }}>
                     {(item.comments || []).length === 0 ? (
@@ -1157,11 +1241,103 @@ export function TeamWorkItemDrawer({
                     </Stack>
                   </Paper>
                 </Stack>
-              )}
-            </Box>
-          </>
-        ) : null}
+              )
+              return (
+                <>
+                  {!isWideDrawer ? (
+                    <Tabs
+                      value={tab}
+                      onChange={(_, v) => setTab(v)}
+                      variant="fullWidth"
+                      sx={{ minHeight: 42, flexShrink: 0, borderBottom: 1, borderColor: 'divider', px: 1 }}
+                    >
+                      <Tab icon={<EditNoteIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Details" sx={{ minHeight: 42 }} />
+                      <Tab
+                        icon={<CommentIcon sx={{ fontSize: 18 }} />}
+                        iconPosition="start"
+                        label={`Comments${item.comments?.length ? ` (${item.comments.length})` : ''}`}
+                        sx={{ minHeight: 42 }}
+                      />
+                    </Tabs>
+                  ) : null}
+                  {isWideDrawer ? (
+                    <PanelGroup
+                      direction="horizontal"
+                      autoSaveId="fixer-team-work-drawer-split"
+                      style={{ flex: 1, minHeight: 0, display: 'flex', width: '100%' }}
+                    >
+                      <Panel defaultSize={62} minSize={32} style={{ minWidth: 0 }}>
+                        <Box sx={{ height: '100%', overflow: 'auto', px: 2, py: 2 }}>{detailsBody}</Box>
+                      </Panel>
+                      <PanelResizeHandle
+                        style={{
+                          width: 6,
+                          flexShrink: 0,
+                          background: 'hsl(var(--border) / 0.5)',
+                          cursor: 'col-resize',
+                        }}
+                      />
+                      <Panel defaultSize={38} minSize={26} style={{ minWidth: 0 }}>
+                        <Box
+                          sx={{
+                            height: '100%',
+                            overflow: 'auto',
+                            px: 2,
+                            py: 2,
+                            borderLeft: '1px solid',
+                            borderColor: 'divider',
+                          }}
+                        >
+                          {commentsBody}
+                        </Box>
+                      </Panel>
+                    </PanelGroup>
+                  ) : (
+                    <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 2, py: 2 }}>
+                      {tab === 0 ? detailsBody : commentsBody}
+                    </Box>
+                  )}
+                </>
+              )
+            })()
+          : null}
       </Drawer>
+
+      <Dialog open={unsavedCloseOpen} onClose={() => setUnsavedCloseOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Unsaved changes</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            You have edits or a draft comment that are not saved to the server. Choose how to close this issue.
+            {canManage && comment.trim() ? (
+              <>
+                {' '}
+                <Box component="span" sx={{ fontWeight: 600 }}>
+                  Save & close
+                </Box>{' '}
+                only updates the issue fields — post the comment separately if needed.
+              </>
+            ) : null}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <Button onClick={() => setUnsavedCloseOpen(false)}>Keep editing</Button>
+          <Button color="warning" variant="outlined" onClick={discardAndClose}>
+            Discard
+          </Button>
+          {canManage && item && computeSignature() !== baselineRef.current ? (
+            <Button variant="contained" disabled={saving} onClick={() => void saveThenClose()}>
+              {saving ? <CircularProgress size={18} color="inherit" sx={{ mr: 1 }} /> : null}
+              Save & close
+            </Button>
+          ) : null}
+          {comment.trim() ? (
+            <Button variant="contained" color="secondary" disabled={posting} onClick={() => void postCommentThenClose()}>
+              {posting ? <CircularProgress size={18} color="inherit" sx={{ mr: 1 }} /> : null}
+              Post comment & close
+            </Button>
+          ) : null}
+        </DialogActions>
+      </Dialog>
 
       <ConfirmDialog
         open={deleteOpen}

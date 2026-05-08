@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { NotificationsProvider } from '../../contexts/notifications-context'
 import { Sidebar } from './sidebar'
 import { Header } from './header'
 import { AppBreadcrumbs } from './AppBreadcrumbs'
@@ -23,6 +24,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   }
 
   return (
+    <NotificationsProvider>
     <div className="flex min-h-screen w-full">
       <Header onMenuClick={handleDrawerToggle} />
       <Sidebar open={mobileOpen} onClose={handleDrawerToggle} />
@@ -40,5 +42,6 @@ export function MainLayout({ children }: MainLayoutProps) {
         {children}
       </main>
     </div>
+    </NotificationsProvider>
   )
 }

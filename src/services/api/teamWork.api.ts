@@ -1,6 +1,7 @@
 /**
  * Team work REST client — fixer-backend `/api/team-work/*`.
  */
+import { resolveBackendMediaUrl } from '../../lib/apiMediaOrigin'
 import { apiClient } from '../apiClient'
 import type {
   TeamWorkAttachment,
@@ -102,8 +103,9 @@ function mapReminder(raw: Record<string, unknown>): TeamWorkItemReminderRow {
 }
 
 function mapAttachment(a: Record<string, unknown>): TeamWorkAttachment {
+  const rawUrl = String(a.url || '')
   return {
-    url: String(a.url || ''),
+    url: rawUrl ? resolveBackendMediaUrl(rawUrl) : '',
     fileName: String(a.fileName || a.name || 'attachment'),
     mimeType: a.mimeType ? String(a.mimeType) : undefined,
     fileSize: a.fileSize !== undefined && a.fileSize !== null ? Number(a.fileSize) : undefined,
