@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { format } from 'date-fns'
-import { Flag, PlayCircle, Plus, StopCircle } from 'lucide-react'
+import { Flag, PencilLine, PlayCircle, Plus, StopCircle, Trash2 } from 'lucide-react'
 import type { TeamWorkItem, TeamWorkSprint } from '../../types/teamWork.types'
 import {
   getActiveSprint,
@@ -8,6 +8,7 @@ import {
 } from '../../lib/teamWorkSprintLocal'
 import { buildSprintWindow } from '../../lib/teamWorkSprintLocal'
 import { teamWorkApi } from '../../services/api/teamWork.api'
+import { ConfirmDialog } from '../common/ConfirmDialog'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
 import { Card, CardContent } from '../ui/card'
@@ -41,6 +42,8 @@ type Props = {
   onAssignmentsAfterClose: (assignments: Record<string, string>) => void
   /** Current assignment map (parent state). */
   sprintAssignments: Record<string, string>
+  /** Clear local sprint overlays after a sprint row is removed server-side. */
+  onSprintDeleted?: (sprintId: string) => void
 }
 
 const DURATION_PRESETS = [
@@ -58,6 +61,7 @@ export function TeamWorkSprintPanel({
   sprints,
   onAssignmentsAfterClose,
   sprintAssignments,
+  onSprintDeleted,
 }: Props) {
   const [createOpen, setCreateOpen] = useState(false)
   const [closeOpen, setCloseOpen] = useState(false)
@@ -67,6 +71,19 @@ export function TeamWorkSprintPanel({
   const [newGoal, setNewGoal] = useState('')
   const [newStart, setNewStart] = useState(() => format(new Date(), 'yyyy-MM-dd'))
   const [newDuration, setNewDuration] = useState<string>('14')
+
+  const [editOpen, setEditOpen] = useState(false)
+  const [editTargetId, setEditTargetId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editGoal, setEditGoal] = useState('')
+  const [editStart, setEditStart] = useState('')
+  const [editDuration, setEditDuration] = useState<string>('14')
+  const [savingEdit, setSavingEdit] = useState(false)
+
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deletingSprintId, setDeletingSprintId] = useState<string | null>(null)
+  const [deletingSprintLabel, setDeletingSprintLabel] = useState('')
+  const [deleting, setDeleting] = useState(false)
 
   const [spillTarget, setSpillTarget] = useState<string>('__backlog__')
 
@@ -78,6 +95,76 @@ export function TeamWorkSprintPanel({
     if (!projectId) return
     const rows = await teamWorkApi.listSprints(projectId)
     onSprintsUpdated(rows)
+  }
+
+  const editTarget = useMemo(
+    () => (editTargetId ? sprints.find((s) => s.id === editTargetId) ?? null : null),
+    [editTargetId, sprints],
+  )
+
+  useEffect(() => {
+    if (!editOpen || !editTarget) return
+    setEditName(editTarget.name)
+    setEditGoal(editTarget.goal ?? '')
+    setEditStart(format(new Date(editTarget.startAt), 'yyyy-MM-dd'))
+    setEditDuration(String(editTarget.durationDays || 14))
+  }, [editOpen, editTarget])
+
+  const openEdit = (s: TeamWorkSprint) => {
+    if (s.state === 'completed') return
+    setEditTargetId(s.id)
+    setEditOpen(true)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editTargetId || !editName.trim()) return
+    setSavingEdit(true)
+    try {
+      const duration = Number(editDuration) || 14
+      const start = new Date(`${editStart}T12:00:00`)
+      const { startIso, endIso } = buildSprintWindow(start, duration)
+      await teamWorkApi.patchSprint(editTargetId, {
+        name: editName.trim(),
+        goal: editGoal.trim() || undefined,
+        startAt: startIso,
+        endAt: endIso,
+        durationDays: duration,
+      })
+      await refresh()
+      setEditOpen(false)
+      setEditTargetId(null)
+    } catch (e) {
+      window.alert(e instanceof Error ? e.message : 'Could not update sprint')
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
+  const openDeleteConfirm = (s: TeamWorkSprint) => {
+    if (s.state === 'active') {
+      window.alert('Complete the active sprint before deleting it.')
+      return
+    }
+    setDeletingSprintId(s.id)
+    setDeletingSprintLabel(s.name)
+    setDeleteConfirmOpen(true)
+  }
+
+  const handleConfirmDeleteSprint = async () => {
+    if (!deletingSprintId) return
+    setDeleting(true)
+    try {
+      await teamWorkApi.deleteSprint(deletingSprintId)
+      await refresh()
+      onSprintDeleted?.(deletingSprintId)
+      setDeleteConfirmOpen(false)
+      setDeletingSprintId(null)
+      setDeletingSprintLabel('')
+    } catch (e) {
+      window.alert(e instanceof Error ? e.message : 'Could not delete sprint')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const openCloseDialog = (sprintId: string) => {
@@ -144,14 +231,14 @@ export function TeamWorkSprintPanel({
   return (
     <>
       <Card className="border-border/80 border-dashed bg-muted/10">
-        <CardContent className="flex flex-col gap-4 py-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
+        <CardContent className="flex flex-col gap-3 py-3 sm:py-4">
+          <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="flex items-start gap-2">
               <Flag className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
               <div>
                 <p className="text-sm font-semibold">Sprints</p>
                 <p className="mt-0.5 max-w-xl text-xs text-muted-foreground">
-                  Plan fixed-length iterations (Scrum-style). Sprint definitions and state live on the server.
+                  Fixed-length iterations. Edit dates or remove planned/completed sprints; complete the active sprint before deleting it.
                 </p>
               </div>
             </div>
@@ -175,10 +262,16 @@ export function TeamWorkSprintPanel({
                   {active.goal ? <p className="mt-1 text-sm text-muted-foreground">{active.goal}</p> : null}
                 </div>
                 {canManage ? (
-                  <Button type="button" size="sm" variant="outline" className="gap-1.5" onClick={() => openCloseDialog(active.id)}>
-                    <StopCircle className="h-4 w-4" />
-                    Complete sprint
-                  </Button>
+                  <div className="flex flex-wrap gap-1.5">
+                    <Button type="button" size="sm" variant="secondary" className="gap-1.5" onClick={() => openEdit(active)}>
+                      <PencilLine className="h-4 w-4" />
+                      Edit
+                    </Button>
+                    <Button type="button" size="sm" variant="outline" className="gap-1.5" onClick={() => openCloseDialog(active.id)}>
+                      <StopCircle className="h-4 w-4" />
+                      Complete sprint
+                    </Button>
+                  </div>
                 ) : null}
               </div>
               <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
@@ -208,18 +301,34 @@ export function TeamWorkSprintPanel({
                       </p>
                     </div>
                     {canManage ? (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        className="gap-1"
-                        disabled={Boolean(active)}
-                        onClick={() => handleStart(s.id)}
-                        title={active ? 'Complete the active sprint first' : 'Start this sprint'}
-                      >
-                        <PlayCircle className="h-4 w-4" />
-                        Start
-                      </Button>
+                      <div className="flex flex-wrap gap-1">
+                        <Button type="button" size="sm" variant="outline" className="gap-1" onClick={() => openEdit(s)}>
+                          <PencilLine className="h-4 w-4" />
+                          Edit
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="gap-1 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => openDeleteConfirm(s)}
+                          title="Delete sprint"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          className="gap-1"
+                          disabled={Boolean(active)}
+                          onClick={() => handleStart(s.id)}
+                          title={active ? 'Complete the active sprint first' : 'Start this sprint'}
+                        >
+                          <PlayCircle className="h-4 w-4" />
+                          Start
+                        </Button>
+                      </div>
                     ) : null}
                   </div>
                 ))}
@@ -230,12 +339,29 @@ export function TeamWorkSprintPanel({
           {completed.length > 0 ? (
             <div className="space-y-2">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Recently completed</p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-col gap-2">
                 {completed.map((s) => (
-                  <Badge key={s.id} variant="outline" className="font-normal">
-                    {s.name}
-                    {s.completedAt ? ` · ${format(new Date(s.completedAt), 'MMM d')}` : ''}
-                  </Badge>
+                  <div
+                    key={s.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 bg-muted/20 px-2 py-1.5"
+                  >
+                    <Badge variant="outline" className="border-transparent bg-transparent px-1 font-normal">
+                      {s.name}
+                      {s.completedAt ? ` · ${format(new Date(s.completedAt), 'MMM d')}` : ''}
+                    </Badge>
+                    {canManage ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 gap-1 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={() => openDeleteConfirm(s)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Remove
+                      </Button>
+                    ) : null}
+                  </div>
                 ))}
               </div>
             </div>
@@ -292,6 +418,80 @@ export function TeamWorkSprintPanel({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog
+        open={editOpen}
+        onOpenChange={(v) => {
+          if (!v) {
+            setEditOpen(false)
+            setEditTargetId(null)
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit sprint</DialogTitle>
+            <DialogDescription>
+              Updates name, goal, and schedule. Issues already assigned keep their sprint link unless you move them on the board.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="sp-edit-name">Sprint name</Label>
+              <Input id="sp-edit-name" value={editName} onChange={(e) => setEditName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sp-edit-goal">Goal (optional)</Label>
+              <Textarea id="sp-edit-goal" rows={2} value={editGoal} onChange={(e) => setEditGoal(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="sp-edit-start">Start date</Label>
+                <Input id="sp-edit-start" type="date" value={editStart} onChange={(e) => setEditStart(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Duration</Label>
+                <Select value={editDuration} onValueChange={setEditDuration}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DURATION_PRESETS.map((p) => (
+                      <SelectItem key={p.days} value={String(p.days)}>
+                        {p.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setEditOpen(false)} disabled={savingEdit}>
+              Cancel
+            </Button>
+            <Button type="button" disabled={!editName.trim()} loading={savingEdit} onClick={() => void handleSaveEdit()}>
+              Save sprint
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onCancel={() => {
+          if (deleting) return
+          setDeleteConfirmOpen(false)
+          setDeletingSprintId(null)
+          setDeletingSprintLabel('')
+        }}
+        onConfirm={() => void handleConfirmDeleteSprint()}
+        title="Delete this sprint?"
+        message={`Remove “${deletingSprintLabel}” from this project? Issues may still reference this sprint in the API until you reassign them on the board.`}
+        confirmText="Delete sprint"
+        severity="error"
+        loading={deleting}
+      />
 
       <Dialog open={closeOpen} onOpenChange={setCloseOpen}>
         <DialogContent className="max-w-md">

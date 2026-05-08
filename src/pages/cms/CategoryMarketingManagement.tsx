@@ -252,18 +252,17 @@ export default function CategoryMarketingManagement() {
   }
 
   return (
-    <div>
+    <div className="space-y-4 pb-8">
       {!industryHub && (
         <PageHeader
           title="Industry service pages"
-          subtitle="Source of truth for industry landings: core meta, technical SEO (canonical, OG/Twitter, robots, hreflang), local pack, schema toggles, answer-engine copy, hero through FAQs. Use [City], [Location], [ServiceName]; composite keys use a locality slug (e.g. ac__bandra-west)."
+          subtitle="Industry landing CMS: meta through FAQs, schema toggles, and locality overrides. Tokens: [City], [Location], [ServiceName]. Composite keys: industry__locality slug."
           action={
             <Button
               variant="default"
               leftIcon={saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Megaphone className="h-4 w-4" />}
               onClick={handleSave}
               disabled={saving}
-             
             >
               Save
             </Button>
@@ -271,26 +270,28 @@ export default function CategoryMarketingManagement() {
         />
       )}
 
-      {industryHub && (
-        <div>
+      {industryHub ? (
+        <div className="flex justify-end">
           <Button
             variant="default"
+            size="sm"
             leftIcon={saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Megaphone className="h-4 w-4" />}
             onClick={handleSave}
             disabled={saving}
-           
           >
             Save landing template
           </Button>
         </div>
-      )}
+      ) : null}
 
-      <Card>
-        <CardContent>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-2">
-            {!industryHub && (
-              <div className="min-w-[220px] space-y-2">
-                <Label htmlFor="catalog-category-select">Industry (catalog category)</Label>
+      <Card className="border-border/80 shadow-sm">
+        <CardContent className="space-y-4 py-4">
+          <div className="grid gap-4 md:grid-cols-12 md:items-end">
+            {!industryHub ? (
+              <div className="space-y-1.5 md:col-span-5">
+                <Label htmlFor="catalog-category-select" className="text-xs font-medium text-muted-foreground">
+                  Industry
+                </Label>
                 <Select
                   value={selectedCategory}
                   onValueChange={(v) => {
@@ -298,7 +299,7 @@ export default function CategoryMarketingManagement() {
                     setLocalitySlugForKey('')
                   }}
                 >
-                  <SelectTrigger id="catalog-category-select" className="h-9 w-full sm:w-[280px]">
+                  <SelectTrigger id="catalog-category-select" className="h-9 w-full">
                     <SelectValue placeholder="Select industry" />
                   </SelectTrigger>
                   <SelectContent>
@@ -310,198 +311,241 @@ export default function CategoryMarketingManagement() {
                   </SelectContent>
                 </Select>
               </div>
-            )}
-            <div className="space-y-2">
-                      <Label htmlFor="cmm-f-1">Locality slug (optional)</Label>
-                      <Input id="cmm-f-1" className="h-9 text-sm" value={localitySlugForKey} onChange={(e) => setLocalitySlugForKey(e.target.value)} placeholder="e.g. mira-bhayandar" />
-                      <p className="text-xs text-muted-foreground">Leave empty for industry-wide. With slug, record key is industry__locality (matches public URLs).</p>
-                    </div>
+            ) : null}
+            <div className={cn('space-y-1.5', !industryHub ? 'md:col-span-4' : 'md:col-span-6')}>
+              <Label htmlFor="cmm-f-1" className="text-xs font-medium text-muted-foreground">
+                Locality slug (optional)
+              </Label>
+              <Input
+                id="cmm-f-1"
+                className="h-9 font-mono text-sm"
+                value={localitySlugForKey}
+                onChange={(e) => setLocalitySlugForKey(e.target.value)}
+                placeholder="mira-bhayandar"
+              />
+              <p className="text-[11px] leading-snug text-muted-foreground">
+                Empty = industry-wide record. With slug → key <span className="font-mono">{selectedCategory}__…</span>
+              </p>
+            </div>
+            <div className="flex flex-col justify-end md:col-span-3 md:text-right">
+              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">CMS key</span>
+              <code className="mt-1 break-all rounded-md bg-muted px-2 py-1 text-left text-xs font-semibold md:text-right">
+                {effectiveKey}
+              </code>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Editing CMS key: <strong>{effectiveKey}</strong>
-          </p>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent>
-          <p className="mb-2 text-base font-semibold">
-            Copy from another key
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Duplicate an existing record into <strong>{effectiveKey}</strong> (unsaved until you click Save). Use this to
-            clone <code>electric</code> into <code>electric__mira-bhayandar</code>, then edit the hyperlocal fields.
-          </p>
-          {Object.keys(data).filter((k) => k !== effectiveKey).length === 0 && (
-            <div role="alert" className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/30">
-              No other keys loaded yet—save at least one industry template, or paste JSON below, then pick a hyperlocal
-              slug and merge.
-            </div>
-          )}
-          <div className="flex flex-col flex-wrap gap-4 sm:flex-row sm:items-center sm:gap-2">
-            <div className="min-w-[200px] space-y-2">
-              <Label htmlFor="duplicate-source-select">Source key</Label>
-              <Select
-                value={duplicateSourceKey || '__empty__'}
-                onValueChange={(v) => setDuplicateSourceKey(v === '__empty__' ? '' : v)}
+      <Accordion type="single" collapsible className="rounded-lg border border-border/80 bg-card px-1 shadow-sm">
+        <AccordionItem value="clone-import" className="border-0">
+          <AccordionTrigger className="px-3 py-3 text-sm font-semibold hover:no-underline">
+            Clone from another key · JSON import
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4 px-3 pb-4">
+            <p className="text-sm text-muted-foreground">
+              Duplicate into <strong className="text-foreground">{effectiveKey}</strong> (staged until Save). Typical flow:
+              industry template → add locality slug → merge locality or local SEO only.
+            </p>
+            {Object.keys(data).filter((k) => k !== effectiveKey).length === 0 ? (
+              <div
+                role="alert"
+                className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/30"
               >
-                <SelectTrigger id="duplicate-source-select" className="h-9 w-full sm:w-[260px]">
-                  <SelectValue placeholder="Select a key…" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__empty__">Select a key…</SelectItem>
-                  {Object.keys(data)
-                    .sort((a, b) => a.localeCompare(b))
-                    .filter((k) => k !== effectiveKey)
-                    .map((k) => (
-                      <SelectItem key={k} value={k}>
-                        {k}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Button
-              variant="outline"
-              disabled={!duplicateSourceKey || !data[duplicateSourceKey]}
-              onClick={() => {
-                const src = data[duplicateSourceKey]
-                if (!src) return
-                const full = mergeCategoryConfig(src)
-                setData((prev) => ({
-                  ...prev,
-                  [effectiveKey]: JSON.parse(JSON.stringify(full)) as CategoryMarketingConfig,
-                }))
-                appToast(
-                  `Replaced "${effectiveKey}" with a full copy from "${duplicateSourceKey}". Click Save to persist.`,
-                  'success',
-                )
-              }}
-            >
-              Replace current with full copy
-            </Button>
-            <Button
-              variant="secondary"
-              disabled={!duplicateSourceKey || !data[duplicateSourceKey]}
-              onClick={() => {
-                const src = data[duplicateSourceKey]
-                if (!src) return
-                const full = mergeCategoryConfig(src)
-                updateConfig({
-                  localityGuide: JSON.parse(JSON.stringify(full.localityGuide)) as LocalityGuideCmsFields,
-                })
-                appToast(`Merged locality guide from "${duplicateSourceKey}". Click Save to persist.`, 'success')
-              }}
-            >
-              Merge locality guide only
-            </Button>
-            <Button
-              variant="secondary"
-              disabled={!duplicateSourceKey || !data[duplicateSourceKey]}
-              onClick={() => {
-                const src = data[duplicateSourceKey]
-                if (!src) return
-                const full = mergeCategoryConfig(src)
-                updateConfig({
-                  localSeo: JSON.parse(JSON.stringify(full.localSeo)) as LocalSeoCmsFields,
-                })
-                appToast(`Merged local SEO from "${duplicateSourceKey}". Click Save to persist.`, 'success')
-              }}
-            >
-              Merge local SEO only
-            </Button>
-          </div>
-
-          <Accordion type="single" collapsible defaultValue="import-json" className="mt-2 rounded-md border px-3">
-            <AccordionItem value="import-json" className="border-0">
-              <AccordionTrigger className="py-3 text-sm font-medium hover:no-underline">
-                Import JSON (merge into current key)
-              </AccordionTrigger>
-              <AccordionContent>
-              <div className="flex flex-col gap-4">
-                <p className="text-sm text-muted-foreground">
-                  Paste a partial or full marketing object (same shape as the API). Values are merged into{' '}
-                  <strong>{effectiveKey}</strong>;                   nested <code>leadMagnet</code>, <code>localityGuide</code>, <code>localSeo</code>, and{' '}
-                  <code>technicalSeo</code> are merged field-by-field. Invalid JSON shows an error toast.
-                </p>
-                <div className="space-y-2"><Textarea className="w-full font-mono text-[13px]" rows={8} value={importJsonText} onChange={(e) => setImportJsonText(e.target.value)} />
-                    </div>
-                <div className="flex flex-row flex-wrap gap-2">
-                  <Button
-                    variant="default"
-                    onClick={() => {
-                      try {
-                        const parsed = JSON.parse(importJsonText) as Record<string, unknown>
-                        const patch = mergeCategoryConfig(parsed)
-                        setData((prev) => {
-                          const base = mergeCategoryConfig(
-                            prev[effectiveKey] ?? emptyCategoryMarketingConfig(),
-                          )
-                          const combined = mergeCategoryConfig({
-                            ...base,
-                            ...patch,
-                            leadMagnet: { ...base.leadMagnet, ...patch.leadMagnet },
-                            localityGuide: { ...base.localityGuide, ...patch.localityGuide },
-                            localSeo: { ...base.localSeo, ...patch.localSeo },
-                            technicalSeo: {
-                              ...base.technicalSeo,
-                              ...patch.technicalSeo,
-                              aggregateRating: {
-                                ...base.technicalSeo.aggregateRating,
-                                ...patch.technicalSeo?.aggregateRating,
-                              },
-                            },
-                          })
-                          return { ...prev, [effectiveKey]: combined }
-                        })
-                        appToast(`Merged JSON into "${effectiveKey}". Click Save to persist.`, 'success')
-                      } catch (e) {
-                        appToast(e instanceof Error ? e.message : 'Invalid JSON', 'error')
-                      }
-                    }}
-                  >
-                    Apply merge
-                  </Button>
-                  <Button variant="ghost" onClick={() => setImportJsonText('')}>
-                    Clear
-                  </Button>
-                </div>
+                No other keys loaded yet — save a template once, or use JSON import below.
               </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </CardContent>
-      </Card>
+            ) : null}
+            <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end">
+              <div className="min-w-[200px] flex-1 space-y-1.5">
+                <Label htmlFor="duplicate-source-select" className="text-xs text-muted-foreground">
+                  Source key
+                </Label>
+                <Select
+                  value={duplicateSourceKey || '__empty__'}
+                  onValueChange={(v) => setDuplicateSourceKey(v === '__empty__' ? '' : v)}
+                >
+                  <SelectTrigger id="duplicate-source-select" className="h-9 w-full lg:max-w-xs">
+                    <SelectValue placeholder="Select a key…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__empty__">Select a key…</SelectItem>
+                    {Object.keys(data)
+                      .sort((a, b) => a.localeCompare(b))
+                      .filter((k) => k !== effectiveKey)
+                      .map((k) => (
+                        <SelectItem key={k} value={k}>
+                          {k}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!duplicateSourceKey || !data[duplicateSourceKey]}
+                  onClick={() => {
+                    const src = data[duplicateSourceKey]
+                    if (!src) return
+                    const full = mergeCategoryConfig(src)
+                    setData((prev) => ({
+                      ...prev,
+                      [effectiveKey]: JSON.parse(JSON.stringify(full)) as CategoryMarketingConfig,
+                    }))
+                    appToast(
+                      `Replaced "${effectiveKey}" with a full copy from "${duplicateSourceKey}". Click Save to persist.`,
+                      'success',
+                    )
+                  }}
+                >
+                  Full replace
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={!duplicateSourceKey || !data[duplicateSourceKey]}
+                  onClick={() => {
+                    const src = data[duplicateSourceKey]
+                    if (!src) return
+                    const full = mergeCategoryConfig(src)
+                    updateConfig({
+                      localityGuide: JSON.parse(JSON.stringify(full.localityGuide)) as LocalityGuideCmsFields,
+                    })
+                    appToast(`Merged locality guide from "${duplicateSourceKey}". Save to persist.`, 'success')
+                  }}
+                >
+                  Locality only
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={!duplicateSourceKey || !data[duplicateSourceKey]}
+                  onClick={() => {
+                    const src = data[duplicateSourceKey]
+                    if (!src) return
+                    const full = mergeCategoryConfig(src)
+                    updateConfig({
+                      localSeo: JSON.parse(JSON.stringify(full.localSeo)) as LocalSeoCmsFields,
+                    })
+                    appToast(`Merged local SEO from "${duplicateSourceKey}". Save to persist.`, 'success')
+                  }}
+                >
+                  Local SEO only
+                </Button>
+              </div>
+            </div>
+            <div className="rounded-md border border-border/70 bg-muted/20 p-3">
+              <Label className="text-xs text-muted-foreground">Import JSON (merge into current key)</Label>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Partial or full object; merges nested <code className="text-[11px]">leadMagnet</code>,{' '}
+                <code className="text-[11px]">localityGuide</code>, <code className="text-[11px]">localSeo</code>,{' '}
+                <code className="text-[11px]">technicalSeo</code>.
+              </p>
+              <Textarea
+                className="mt-2 w-full font-mono text-[13px]"
+                rows={6}
+                value={importJsonText}
+                onChange={(e) => setImportJsonText(e.target.value)}
+              />
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={() => {
+                    try {
+                      const parsed = JSON.parse(importJsonText) as Record<string, unknown>
+                      const patch = mergeCategoryConfig(parsed)
+                      setData((prev) => {
+                        const base = mergeCategoryConfig(prev[effectiveKey] ?? emptyCategoryMarketingConfig())
+                        const combined = mergeCategoryConfig({
+                          ...base,
+                          ...patch,
+                          leadMagnet: { ...base.leadMagnet, ...patch.leadMagnet },
+                          localityGuide: { ...base.localityGuide, ...patch.localityGuide },
+                          localSeo: { ...base.localSeo, ...patch.localSeo },
+                          technicalSeo: {
+                            ...base.technicalSeo,
+                            ...patch.technicalSeo,
+                            aggregateRating: {
+                              ...base.technicalSeo.aggregateRating,
+                              ...patch.technicalSeo?.aggregateRating,
+                            },
+                          },
+                        })
+                        return { ...prev, [effectiveKey]: combined }
+                      })
+                      appToast(`Merged JSON into "${effectiveKey}". Save to persist.`, 'success')
+                    } catch (e) {
+                      appToast(e instanceof Error ? e.message : 'Invalid JSON', 'error')
+                    }
+                  }}
+                >
+                  Apply merge
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setImportJsonText('')}>
+                  Clear
+                </Button>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
       {loading ? (
         <div className="flex min-h-[280px] items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="w-full">
-            <div className="overflow-x-auto border-b">
-              <TabsList className="mb-0 inline-flex h-auto min-h-10 w-max min-w-full justify-start gap-0 rounded-none border-0 bg-transparent p-1">
-                <TabsTrigger value="metadata" className="shrink-0">Metadata &amp; SEO</TabsTrigger>
-                <TabsTrigger value="localSeo" className="shrink-0">Local SEO</TabsTrigger>
-                <TabsTrigger value="hero" className="shrink-0">Hero &amp; intro</TabsTrigger>
-                <TabsTrigger value="cards" className="shrink-0">Service cards</TabsTrigger>
-                <TabsTrigger value="detailed" className="shrink-0">Detailed options</TabsTrigger>
-                <TabsTrigger value="trust" className="shrink-0">Trust &amp; experience</TabsTrigger>
-                <TabsTrigger value="areas" className="shrink-0">Areas &amp; booking</TabsTrigger>
-                <TabsTrigger value="pricing" className="shrink-0">Pricing &amp; comparison</TabsTrigger>
-                <TabsTrigger value="faqs" className="shrink-0">FAQs &amp; links</TabsTrigger>
-                <TabsTrigger value="localityGuide" className="shrink-0">Locality guide (SEO)</TabsTrigger>
-                <TabsTrigger value="closing" className="shrink-0">Closing &amp; advanced</TabsTrigger>
+            <div className="overflow-x-auto rounded-lg border border-border/80 bg-muted/20">
+              <TabsList className="mb-0 inline-flex h-auto min-h-9 w-max min-w-full justify-start gap-0.5 rounded-none border-0 bg-transparent p-1">
+                <TabsTrigger value="metadata" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
+                  Metadata &amp; SEO
+                </TabsTrigger>
+                <TabsTrigger value="localSeo" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
+                  Local SEO
+                </TabsTrigger>
+                <TabsTrigger value="hero" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
+                  Hero &amp; intro
+                </TabsTrigger>
+                <TabsTrigger value="cards" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
+                  Service cards
+                </TabsTrigger>
+                <TabsTrigger value="detailed" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
+                  Detailed options
+                </TabsTrigger>
+                <TabsTrigger value="trust" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
+                  Trust
+                </TabsTrigger>
+                <TabsTrigger value="areas" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
+                  Areas &amp; booking
+                </TabsTrigger>
+                <TabsTrigger value="pricing" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
+                  Pricing
+                </TabsTrigger>
+                <TabsTrigger value="faqs" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
+                  FAQs &amp; links
+                </TabsTrigger>
+                <TabsTrigger value="localityGuide" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
+                  Locality guide
+                </TabsTrigger>
+                <TabsTrigger value="closing" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
+                  Closing
+                </TabsTrigger>
               </TabsList>
             </div>
 
-            <TabsContent value="metadata" className="mt-2 px-0 outline-none">
-              <div className="flex flex-col gap-4">
-                <div role="alert" className="rounded-md border border-blue-200 bg-blue-50/80 p-3 text-sm dark:border-blue-900 dark:bg-blue-950/30">
-                  Editorial checklist: one H1 per page (use Main heading on the Hero tab). Use H2 for main sections and H3
-                  for subsections; do not skip levels. Put the primary keyword in the H1, intro, and at least two section
-                  headings. Use [City] or [Location] in copy when the live site substitutes the user&apos;s area.
+            <TabsContent value="metadata" className="mt-3 px-0 outline-none">
+              <div className="flex flex-col gap-3">
+                <div
+                  role="alert"
+                  className="rounded-md border border-blue-200/80 bg-blue-50/70 px-3 py-2 text-xs leading-relaxed dark:border-blue-900 dark:bg-blue-950/30 sm:text-sm"
+                >
+                  <span className="font-medium text-foreground">Editorial flow:</span> one H1 (Hero tab). H2 → sections, H3 →
+                  subsections; no skipped levels. Primary keyword in H1, intro, and ≥2 headings. Use [City] / [Location] where
+                  the site substitutes area.
                 </div>
                 <Card>
                   <CardContent>

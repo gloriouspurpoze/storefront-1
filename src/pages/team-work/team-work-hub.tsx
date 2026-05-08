@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
+  Archive,
   CalendarPlus,
   ClipboardList,
   FolderKanban,
@@ -15,6 +16,7 @@ import {
   UserCircle2,
 } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
+import { ConfirmDialog } from '../../components/common/ConfirmDialog'
 import { TeamWorkBoard } from '../../components/team-work/TeamWorkBoard'
 import { TeamWorkItemDrawer } from '../../components/team-work/TeamWorkItemDrawer'
 import { TeamWorkSprintPanel } from '../../components/team-work/TeamWorkSprintPanel'
@@ -46,6 +48,7 @@ import {
   DialogTitle,
 } from '../../components/ui/dialog'
 import { Label } from '../../components/ui/label'
+import { Textarea } from '../../components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -257,6 +260,10 @@ export function TeamWorkHub() {
   const [creating, setCreating] = useState(false)
 
   const [projectSettingsOpen, setProjectSettingsOpen] = useState(false)
+  const [projectDetailName, setProjectDetailName] = useState('')
+  const [projectDetailDesc, setProjectDetailDesc] = useState('')
+  const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false)
+  const [archiving, setArchiving] = useState(false)
   const [newProjectOpen, setNewProjectOpen] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const [newProjectKey, setNewProjectKey] = useState('')
@@ -281,6 +288,13 @@ export function TeamWorkHub() {
     () => projects.find((p) => p.id === projectId) ?? null,
     [projects, projectId],
   )
+
+  const sortedProjectsForPicker = useMemo(() => {
+    const live = projects.filter((p) => !p.isArchived)
+    const archived = projects.filter((p) => p.isArchived)
+    const byName = (a: TeamWorkProject, b: TeamWorkProject) => a.name.localeCompare(b.name)
+    return [...[...live].sort(byName), ...[...archived].sort(byName)]
+  }, [projects])
 
   const boardTagOptions = useMemo(() => {
     const s = new Set<string>()
@@ -520,7 +534,10 @@ export function TeamWorkHub() {
         if (cancelled) return
         setProjects(list)
         const saved = typeof window !== 'undefined' ? window.localStorage.getItem(projectStorageKey) : null
-        const pick = saved && list.some((p) => p.id === saved) ? saved : list[0]?.id ?? null
+        const pick =
+          saved && list.some((p) => p.id === saved)
+            ? saved
+            : list.find((p) => !p.isArchived)?.id ?? list[0]?.id ?? null
         setProjectId(pick)
         if (pick) window.localStorage.setItem(projectStorageKey, pick)
       } catch {
@@ -601,6 +618,20 @@ export function TeamWorkHub() {
         const next = { ...prev }
         if (sprintId) next[itemId] = sprintId
         else delete next[itemId]
+        if (projectId) saveSprintAssignmentsToStorage(tenantId, projectId, next)
+        return next
+      })
+    },
+    [projectId, tenantId],
+  )
+
+  const handleSprintDeleted = useCallback(
+    (sprintId: string) => {
+      setSprintAssignments((prev) => {
+        const next = { ...prev }
+        for (const [itemId, sid] of Object.entries(next)) {
+          if (sid === sprintId) delete next[itemId]
+        }
         if (projectId) saveSprintAssignmentsToStorage(tenantId, projectId, next)
         return next
       })
@@ -756,8 +787,10 @@ export function TeamWorkHub() {
     }
   }
 
-  const saveBoardAccess = async () => {
+  const saveBoardSettings = async () => {
     if (!currentProject) return
+    const name = projectDetailName.trim()
+    if (!name) return
     setSavingAccess(true)
     try {
       const emailFromMemberId = (id: string): string => {
@@ -768,7 +801,10 @@ export function TeamWorkHub() {
       const memberEmails = Array.from(
         new Set(accessMemberIds.map(emailFromMemberId).filter(Boolean)),
       ) as string[]
+      const description = projectDetailDesc.trim()
       const updated = await teamWorkApi.patchProject(currentProject.id, {
+        name,
+        description: description || undefined,
         memberUserIds: accessMemberIds,
         memberEmails,
       })
@@ -803,8 +839,32 @@ export function TeamWorkHub() {
   useEffect(() => {
     if (projectSettingsOpen && currentProject) {
       setAccessMemberIds([...currentProject.memberUserIds])
+      setProjectDetailName(currentProject.name)
+      setProjectDetailDesc(currentProject.description ?? '')
     }
   }, [projectSettingsOpen, currentProject])
+
+  const archiveCurrentBoard = async () => {
+    if (!currentProject) return
+    setArchiving(true)
+    try {
+      await teamWorkApi.patchProject(currentProject.id, { isArchived: true })
+      const list = await teamWorkApi.listProjects()
+      setProjects(list)
+      setArchiveConfirmOpen(false)
+      setProjectSettingsOpen(false)
+      const nextId = list.find((p) => !p.isArchived)?.id ?? null
+      if (nextId) onChangeProject(nextId)
+      else {
+        setProjectId(null)
+        window.localStorage.removeItem(projectStorageKey)
+      }
+    } catch {
+      /* toast via api client */
+    } finally {
+      setArchiving(false)
+    }
+  }
 
   return (
     <div className="flex flex-col gap-3 p-3 md:p-4">
@@ -830,20 +890,22 @@ export function TeamWorkHub() {
               <Select
                 value={projectId ?? ''}
                 onValueChange={onChangeProject}
-                disabled={!projects.length}
+                    disabled={!sortedProjectsForPicker.length}
               >
                 <SelectTrigger className="w-full min-w-[220px] sm:max-w-md">
                   <SelectValue placeholder="Select a board" />
                 </SelectTrigger>
                 <SelectContent>
-                  {projects.map((p) => {
+                  {sortedProjectsForPicker.map((p) => {
                     const restricted =
                       p.memberUserIds.length > 0 || (p.memberEmails?.length ?? 0) > 0
                     return (
                       <SelectItem key={p.id} value={p.id}>
                         <span className="font-mono text-xs text-muted-foreground">{p.key}</span>{' '}
                         <span className="ml-1">{p.name}</span>
-                        {restricted ? (
+                        {p.isArchived ? (
+                          <span className="ml-2 text-xs text-amber-700 dark:text-amber-500">(archived)</span>
+                        ) : restricted ? (
                           <span className="ml-2 text-xs text-muted-foreground">(restricted)</span>
                         ) : (
                           <span className="ml-2 text-xs text-muted-foreground">(org-wide)</span>
@@ -876,7 +938,7 @@ export function TeamWorkHub() {
                     onClick={() => setProjectSettingsOpen(true)}
                   >
                     <Settings2 className="h-3.5 w-3.5" />
-                    Board access
+                    Board settings
                   </Button>
                 </>
               ) : null}
@@ -937,6 +999,7 @@ export function TeamWorkHub() {
           sprintAssignments={sprintAssignments}
           onSprintsUpdated={setSprintRows}
           onAssignmentsAfterClose={handleSprintCloseAssignments}
+          onSprintDeleted={handleSprintDeleted}
         />
       ) : null}
 
@@ -1717,11 +1780,12 @@ export function TeamWorkHub() {
       </Dialog>
 
       <Dialog open={projectSettingsOpen} onOpenChange={setProjectSettingsOpen}>
-        <DialogContent className="max-h-[85vh] max-w-lg overflow-hidden flex flex-col">
+        <DialogContent className="flex max-h-[85vh] max-w-lg flex-col overflow-hidden">
           <DialogHeader>
-            <DialogTitle>Board access</DialogTitle>
+            <DialogTitle>Project board</DialogTitle>
             <DialogDescription>
-              <span className="font-medium text-foreground">{currentProject?.name}</span> —{' '}
+              Update name and access for{' '}
+              <span className="font-mono text-xs text-foreground">{currentProject?.key}</span>.{' '}
               {currentProject && currentProject.memberUserIds.length === 0 ? (
                 <>Anyone in your organization with team-work access can use this board.</>
               ) : (
@@ -1729,13 +1793,34 @@ export function TeamWorkHub() {
               )}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden py-2">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-xs text-muted-foreground">Select members from your dashboard directory.</p>
+          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto py-2">
+            <div className="space-y-2">
+              <Label htmlFor="board-name">Board name</Label>
+              <Input
+                id="board-name"
+                value={projectDetailName}
+                onChange={(e) => setProjectDetailName(e.target.value)}
+                placeholder="e.g. Platform squad"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="board-desc">Description (optional)</Label>
+              <Textarea
+                id="board-desc"
+                rows={2}
+                className="resize-none text-sm"
+                value={projectDetailDesc}
+                onChange={(e) => setProjectDetailDesc(e.target.value)}
+                placeholder="What this board is for — visible to your team in admin."
+              />
+            </div>
+            <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3">
+              <p className="text-xs font-medium text-muted-foreground">Board access</p>
               <Button type="button" variant="ghost" size="sm" className="h-8 shrink-0" onClick={() => setAccessMemberIds([])}>
                 Clear all (org-wide)
               </Button>
             </div>
+            <p className="text-xs text-muted-foreground">Select members from your dashboard directory.</p>
             <div className="min-h-0 flex-1 overflow-y-auto rounded-md border border-border/70 p-2">
               {sortedMembersForAccess.length === 0 ? (
                 <p className="py-6 text-center text-sm text-muted-foreground">Load the board once to fetch the member directory, or no users were returned.</p>
@@ -1765,17 +1850,44 @@ export function TeamWorkHub() {
               )}
             </div>
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setProjectSettingsOpen(false)}>
-              Cancel
+          <DialogFooter className="flex-col gap-2 border-t border-border/60 pt-3 sm:flex-row sm:items-center sm:justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              className="gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive sm:mr-auto"
+              disabled={!currentProject || currentProject.isArchived || archiving}
+              onClick={() => setArchiveConfirmOpen(true)}
+            >
+              <Archive className="h-4 w-4" aria-hidden />
+              Archive board
             </Button>
-            <Button type="button" onClick={() => void saveBoardAccess()} disabled={savingAccess || !currentProject}>
-              {savingAccess ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Save access
-            </Button>
+            <div className="flex w-full flex-wrap justify-end gap-2 sm:w-auto">
+              <Button type="button" variant="outline" onClick={() => setProjectSettingsOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={() => void saveBoardSettings()}
+                disabled={savingAccess || !currentProject || !projectDetailName.trim()}
+              >
+                {savingAccess ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Save changes
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={archiveConfirmOpen}
+        onCancel={() => !archiving && setArchiveConfirmOpen(false)}
+        onConfirm={() => void archiveCurrentBoard()}
+        title="Archive this project board?"
+        message={`Board “${currentProject?.name ?? ''}” (${currentProject?.key ?? ''}) will be hidden from the default list. You can still open it from the picker if it remains returned by the API.`}
+        confirmText="Archive board"
+        severity="error"
+        loading={archiving}
+      />
 
       <ScheduleMeetingDialog
         open={scheduleMeetingOpen}

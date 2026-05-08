@@ -279,6 +279,10 @@ export const teamWorkApi = {
     }
   },
 
+  async deleteSprint(sprintId: string): Promise<void> {
+    await sendJson<unknown>('DELETE', `/team-work/sprints/${sprintId}`)
+  },
+
   async listItems(params?: Record<string, string | undefined>): Promise<TeamWorkListResponse> {
     const qs = new URLSearchParams()
     if (params) {
