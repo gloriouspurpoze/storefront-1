@@ -1,65 +1,45 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import {
-  Box,
+  Button,
   Card,
   CardContent,
-  Typography,
-  Button,
-  TextField,
-  Grid,
-  Chip,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
+  Input,
+  Label,
+  Textarea,
   Switch,
-  FormControlLabel,
-  Divider,
-  Stack,
-  IconButton,
-  Tooltip,
-  Alert,
-  Snackbar,
-  CircularProgress,
-  Tabs,
-  Tab,
-  Avatar,
-  LinearProgress,
-  Paper,
-  InputAdornment,
-  Stepper,
-  Step,
-  StepLabel,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-} from '@mui/material'
+  Separator,
+  Badge,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui'
 import {
-  ArrowBack as ArrowBackIcon,
-  Save as SaveIcon,
-  Preview as PreviewIcon,
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Business as BusinessIcon,
-  Person as PersonIcon,
-  LocationOn as LocationIcon,
-  Work as WorkIcon,
-  VerifiedUser as VerifiedIcon,
-  AttachMoney as MoneyIcon,
-  Schedule as ScheduleIcon,
-  Star as StarIcon,
-  Info as InfoIcon,
-  CheckCircle as CheckIcon,
-  Description as DescriptionIcon,
-  Upload as UploadIcon,
-  Email as EmailIcon,
-  Phone as PhoneIcon,
-  ContactPage as ContactIcon,
-} from '@mui/icons-material'
+  ArrowLeft,
+  Save,
+  Eye,
+  Plus,
+  Building2,
+  MapPin,
+  Briefcase,
+  ShieldCheck,
+  IndianRupee,
+  Clock,
+  Star,
+  CheckCircle2,
+  FileText,
+  Mail,
+  Phone,
+  Contact,
+  X,
+  Loader2,
+} from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { ProvidersService } from '../../services/api/providers.service'
 import { ImageUploadField, DocumentUploadField, type ImageFile, type DocumentFile } from '../../components/forms'
+import { appToast } from '../../lib/appToast'
+import { cn } from '../../lib/utils'
 
 const VERIFICATION_STATUS = [
   { value: 'pending', label: 'Pending Verification', color: 'warning' as const },
@@ -68,7 +48,13 @@ const VERIFICATION_STATUS = [
 ]
 
 const WORKING_DAYS = [
-  'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
 ]
 
 const TIME_SLOTS = [
@@ -78,56 +64,54 @@ const TIME_SLOTS = [
   { value: 'night', label: 'Night (6:00 PM - 9:00 PM)' },
 ]
 
+const TAB_ITEMS = [
+  { id: 0, label: 'Business Information', short: 'Business', icon: Building2 },
+  { id: 1, label: 'Services & Areas', short: 'Services', icon: Briefcase },
+  { id: 2, label: 'Availability & Pricing', short: 'Availability', icon: Clock },
+  { id: 3, label: 'Verification & Documents', short: 'Verification', icon: ShieldCheck },
+] as const
+
+function statusBadgeClass(color: 'warning' | 'success' | 'error') {
+  if (color === 'warning') return 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100'
+  if (color === 'success') return 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-100'
+  return 'border-red-200 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950/40 dark:text-red-100'
+}
+
 export function CreateProvider() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [previewMode, setPreviewMode] = useState(false)
   const [activeTab, setActiveTab] = useState(0)
-  const [activeStep, setActiveStep] = useState(0)
 
-  // Form state
   const [formData, setFormData] = useState({
-    // Business Information
     business_name: '',
     business_license: '',
     business_email: '',
     business_phone: '',
     business_address: '',
-    business_logo: [] as ImageFile[],  // Changed to ImageFile array
+    business_logo: [] as ImageFile[],
     years_experience: 0,
     bio: '',
-    
-    // Contact Person (if creating with user account)
     contact_first_name: '',
     contact_last_name: '',
     contact_email: '',
     contact_phone: '',
     contact_position: '',
-    
-    // Services & Areas
     services_offered: [] as string[],
     service_categories: [] as string[],
     service_areas: [] as string[],
-    
-    // Availability
     working_days: [] as string[],
     time_slots: [] as string[],
     emergency_service: false,
     same_day_service: false,
-    
-    // Pricing & Payment
     hourly_rate: '',
     minimum_job_charge: '',
     travel_charge: '',
     payment_methods: [] as string[],
-    
-    // Documents & Verification
     verification_status: 'pending' as 'pending' | 'verified' | 'rejected',
-    insurance_document: [] as DocumentFile[],  // Changed to DocumentFile array
-    certification_documents: [] as DocumentFile[],  // Changed to DocumentFile array
+    insurance_document: [] as DocumentFile[],
+    certification_documents: [] as DocumentFile[],
     tax_id: '',
-    
-    // Settings
     is_active: true,
     accept_new_requests: true,
     auto_accept_requests: false,
@@ -135,118 +119,84 @@ export function CreateProvider() {
     notification_phone: '',
   })
 
-  // Dynamic fields
   const [newService, setNewService] = useState('')
   const [newArea, setNewArea] = useState('')
   const [newPaymentMethod, setNewPaymentMethod] = useState('')
-  const [newCertification, setNewCertification] = useState('')
-
-  // Validation errors
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // Snackbar
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success' as 'success' | 'error',
-  })
-
-  const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }))
-    // Clear error for this field
+  const handleInputChange = (field: string, value: unknown) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
     if (errors[field]) {
-      setErrors(prev => {
-        const newErrors = { ...prev }
-        delete newErrors[field]
-        return newErrors
+      setErrors((prev) => {
+        const next = { ...prev }
+        delete next[field]
+        return next
       })
     }
   }
 
   const handleArrayChange = (field: string, value: string[]) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }))
+    setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  // Add/Remove functions for array fields
   const addService = () => {
     if (newService.trim() && !formData.services_offered.includes(newService.trim())) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        services_offered: [...prev.services_offered, newService.trim()]
+        services_offered: [...prev.services_offered, newService.trim()],
       }))
       setNewService('')
     }
   }
 
   const removeService = (service: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      services_offered: prev.services_offered.filter(s => s !== service)
+      services_offered: prev.services_offered.filter((s) => s !== service),
     }))
   }
 
   const addArea = () => {
     if (newArea.trim() && !formData.service_areas.includes(newArea.trim())) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        service_areas: [...prev.service_areas, newArea.trim()]
+        service_areas: [...prev.service_areas, newArea.trim()],
       }))
       setNewArea('')
     }
   }
 
   const removeArea = (area: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      service_areas: prev.service_areas.filter(a => a !== area)
+      service_areas: prev.service_areas.filter((a) => a !== area),
     }))
   }
 
   const addPaymentMethod = () => {
     if (newPaymentMethod.trim() && !formData.payment_methods.includes(newPaymentMethod.trim())) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        payment_methods: [...prev.payment_methods, newPaymentMethod.trim()]
+        payment_methods: [...prev.payment_methods, newPaymentMethod.trim()],
       }))
       setNewPaymentMethod('')
     }
   }
 
   const removePaymentMethod = (method: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      payment_methods: prev.payment_methods.filter(m => m !== method)
+      payment_methods: prev.payment_methods.filter((m) => m !== method),
     }))
   }
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
-
-    // Business Information
-    if (!formData.business_name.trim()) {
-      newErrors.business_name = 'Business name is required'
-    }
-    if (!formData.business_email.trim()) {
-      newErrors.business_email = 'Business email is required'
-    }
-    if (!formData.business_phone.trim()) {
-      newErrors.business_phone = 'Business phone is required'
-    }
-
-    // Services & Areas
-    if (formData.services_offered.length === 0) {
-      newErrors.services_offered = 'At least one service is required'
-    }
-    if (formData.service_areas.length === 0) {
-      newErrors.service_areas = 'At least one service area is required'
-    }
-
+    if (!formData.business_name.trim()) newErrors.business_name = 'Business name is required'
+    if (!formData.business_email.trim()) newErrors.business_email = 'Business email is required'
+    if (!formData.business_phone.trim()) newErrors.business_phone = 'Business phone is required'
+    if (formData.services_offered.length === 0) newErrors.services_offered = 'At least one service is required'
+    if (formData.service_areas.length === 0) newErrors.service_areas = 'At least one service area is required'
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -259,7 +209,6 @@ export function CreateProvider() {
       formData.services_offered.length > 0,
       formData.service_areas.length > 0,
     ]
-
     const optionalFields = [
       formData.business_license,
       formData.bio,
@@ -267,42 +216,33 @@ export function CreateProvider() {
       formData.hourly_rate,
       formData.payment_methods.length > 0,
     ]
-
     const requiredFilled = requiredFields.filter(Boolean).length
     const optionalFilled = optionalFields.filter(Boolean).length
-
-    const requiredWeight = 0.7
-    const optionalWeight = 0.3
-
-    const requiredPercentage = (requiredFilled / requiredFields.length) * requiredWeight
-    const optionalPercentage = (optionalFilled / optionalFields.length) * optionalWeight
-
+    const requiredPercentage = (requiredFilled / requiredFields.length) * 0.7
+    const optionalPercentage = (optionalFilled / optionalFields.length) * 0.3
     return Math.round((requiredPercentage + optionalPercentage) * 100)
   }
 
   const handleSubmit = async (action: 'draft' | 'publish' = 'publish') => {
     if (!validateForm()) {
-      showSnackbar('Please fill in all required fields', 'error')
+      appToast('Please fill in all required fields', 'error')
       return
     }
-
     try {
       setLoading(true)
-
-      // Map form data to API format
       const submitData = {
         business_name: formData.business_name,
         business_license: formData.business_license,
         business_email: formData.business_email,
         business_phone: formData.business_phone,
         business_address: formData.business_address,
-        business_logo: formData.business_logo.length > 0 ? formData.business_logo[0].url : undefined,  // Extract URL from ImageFile
+        business_logo: formData.business_logo.length > 0 ? formData.business_logo[0].url : undefined,
         years_experience: formData.years_experience,
         bio: formData.bio,
         services_offered: formData.services_offered,
         service_areas: formData.service_areas,
-        insurance_document: formData.insurance_document.length > 0 ? formData.insurance_document[0].url : undefined,  // Extract URL from DocumentFile
-        certification_documents: formData.certification_documents.map(doc => doc.url),  // Extract URLs from DocumentFile array
+        insurance_document: formData.insurance_document.length > 0 ? formData.insurance_document[0].url : undefined,
+        certification_documents: formData.certification_documents.map((doc) => doc.url),
         tax_id: formData.tax_id,
         verification_status: action === 'publish' ? formData.verification_status : 'pending',
         is_active: action === 'publish' ? formData.is_active : false,
@@ -318,965 +258,756 @@ export function CreateProvider() {
         auto_accept_requests: formData.auto_accept_requests,
         notification_email: formData.notification_email,
         notification_phone: formData.notification_phone,
-        // Add other fields as needed by your API
       }
-
       await ProvidersService.createProvider(submitData)
-      showSnackbar(`Provider ${action === 'draft' ? 'saved as draft' : 'created'} successfully!`, 'success')
-
-      // Navigate back to providers list
-      setTimeout(() => {
-        navigate('/providers')
-      }, 1500)
-
-    } catch (error: any) {
-      showSnackbar(error.message || `Failed to ${action} provider`, 'error')
+      appToast(`Provider ${action === 'draft' ? 'saved as draft' : 'created'} successfully!`, 'success')
+      setTimeout(() => navigate('/providers'), 1500)
+    } catch (error: unknown) {
+      appToast((error as Error)?.message || `Failed to ${action} provider`, 'error')
     } finally {
       setLoading(false)
     }
   }
 
-  const showSnackbar = (message: string, severity: 'success' | 'error') => {
-    setSnackbar({ open: true, message, severity })
-  }
-
   const completionPercentage = getCompletionPercentage()
-
   const steps = ['Business Info', 'Services & Areas', 'Availability', 'Verification']
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }}>
-      {/* Header */}
-      <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-          <IconButton 
-            onClick={() => navigate('/providers')}
-            sx={{ 
-              bgcolor: 'grey.100',
-              '&:hover': { bgcolor: 'grey.200' }
-            }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="h5" component="h1" sx={{ fontWeight: 600, mb: 0.5 }}>
-              Create New Service Provider
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Add a new service provider to your platform
-            </Typography>
-          </Box>
-        </Box>
+    <div className="p-4 md:p-6">
+      <div className="mb-6">
+        <div className="mb-4 flex items-center gap-3">
+          <Button type="button" variant="outline" size="icon" className="shrink-0 rounded-lg" onClick={() => navigate('/providers')}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Create New Service Provider</h1>
+            <p className="text-sm text-muted-foreground">Add a new service provider to your platform</p>
+          </div>
+        </div>
 
-        {/* Progress Indicator */}
-        <Card sx={{ mb: 2, borderRadius: 2, bgcolor: 'primary.50', border: '1px solid', borderColor: 'primary.200' }}>
-          <CardContent sx={{ py: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-              <Typography variant="subtitle2" fontWeight={600}>
-                Profile Completion
-              </Typography>
-              <Typography variant="h6" fontWeight={700} color="primary.main">
-                {completionPercentage}%
-              </Typography>
-            </Box>
-            <LinearProgress 
-              variant="determinate" 
-              value={completionPercentage} 
-              sx={{ 
-                height: 8, 
-                borderRadius: 4,
-                bgcolor: 'grey.200',
-                '& .MuiLinearProgress-bar': {
-                  borderRadius: 4,
-                }
-              }}
-            />
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+        <Card className="mb-4 rounded-xl border-primary/20 bg-primary/5">
+          <CardContent className="space-y-2 py-4">
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-medium">Profile Completion</span>
+              <span className="text-lg font-bold text-primary">{completionPercentage}%</span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary transition-all"
+                style={{ width: `${Math.min(100, completionPercentage)}%` }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
               {completionPercentage < 100 ? 'Complete all required fields to publish' : 'Ready to publish!'}
-            </Typography>
+            </p>
           </CardContent>
         </Card>
 
-        {/* Stepper */}
-        <Card sx={{ mb: 2, borderRadius: 2 }}>
-          <CardContent sx={{ py: 2 }}>
-            <Stepper activeStep={activeTab} alternativeLabel>
+        <Card className="mb-4 rounded-xl">
+          <CardContent className="py-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               {steps.map((label, index) => (
-                <Step key={label} completed={activeTab > index}>
-                  <StepLabel>{label}</StepLabel>
-                </Step>
+                <div key={label} className="flex min-w-[72px] flex-1 flex-col items-center">
+                  <div
+                    className={cn(
+                      'flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold',
+                      activeTab > index && 'bg-primary text-primary-foreground',
+                      activeTab === index && 'ring-2 ring-primary ring-offset-2',
+                      activeTab < index && 'bg-muted text-muted-foreground'
+                    )}
+                  >
+                    {activeTab > index ? <CheckCircle2 className="h-4 w-4" /> : index + 1}
+                  </div>
+                  <span className="mt-1 hidden text-center text-[10px] text-muted-foreground sm:block sm:text-xs">{label}</span>
+                </div>
               ))}
-            </Stepper>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Action Buttons */}
-        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-          <Button
-            variant="outlined"
-            startIcon={<PreviewIcon />}
-            onClick={() => setPreviewMode(!previewMode)}
-            sx={{ textTransform: 'none' }}
-          >
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button type="button" variant="outline" onClick={() => setPreviewMode(!previewMode)}>
+            <Eye className="mr-2 h-4 w-4" />
             {previewMode ? 'Edit Mode' : 'Preview Mode'}
           </Button>
-          <Button
-            variant="outlined"
-            startIcon={<SaveIcon />}
-            onClick={() => handleSubmit('draft')}
-            disabled={loading}
-            sx={{ textTransform: 'none' }}
-          >
+          <Button type="button" variant="outline" onClick={() => handleSubmit('draft')} disabled={loading}>
+            <Save className="mr-2 h-4 w-4" />
             Save as Draft
           </Button>
-          <Button
-            variant="contained"
-            startIcon={loading ? <CircularProgress size={16} /> : <CheckIcon />}
-            onClick={() => handleSubmit('publish')}
-            disabled={loading || completionPercentage < 70}
-            sx={{ textTransform: 'none' }}
-          >
+          <Button type="button" onClick={() => handleSubmit('publish')} disabled={loading || completionPercentage < 70}>
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
             {loading ? 'Creating...' : 'Create Provider'}
           </Button>
-        </Box>
-      </Box>
+        </div>
+      </div>
 
-      {/* Main Form with Tabs */}
-      <Card sx={{ borderRadius: 2, overflow: 'hidden' }}>
-        {/* Tab Navigation */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs 
-            value={activeTab} 
-            onChange={(e, newValue) => setActiveTab(newValue)}
-            variant="scrollable"
-            scrollButtons="auto"
-          >
-            <Tab 
-              icon={<BusinessIcon />}
-              label="Business Information"
-              iconPosition="start"
-              sx={{ minHeight: 64 }}
-            />
-            <Tab 
-              icon={<WorkIcon />} 
-              label="Services & Areas"
-              iconPosition="start"
-              sx={{ minHeight: 64 }}
-            />
-            <Tab 
-              icon={<ScheduleIcon />}
-              label="Availability & Pricing"
-              iconPosition="start"
-              sx={{ minHeight: 64 }}
-            />
-            <Tab 
-              icon={<VerifiedIcon />}
-              label="Verification & Documents"
-              iconPosition="start"
-              sx={{ minHeight: 64 }}
-            />
-          </Tabs>
-        </Box>
+      <Card className="overflow-hidden rounded-xl">
+        <div className="border-b">
+          <div className="-mb-px flex flex-wrap gap-1 overflow-x-auto p-2">
+            {TAB_ITEMS.map((tab) => {
+              const Icon = tab.icon
+              return (
+                <Button
+                  key={tab.id}
+                  type="button"
+                  variant={activeTab === tab.id ? 'default' : 'ghost'}
+                  size="sm"
+                  className="shrink-0 gap-2 rounded-md"
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="sm:hidden">{tab.short}</span>
+                </Button>
+              )
+            })}
+          </div>
+        </div>
 
-        {/* Tab Content */}
-        <Box sx={{ p: 3 }}>
-          {/* Tab 1: Business Information */}
+        <div className="p-4 md:p-6">
           {activeTab === 0 && (
-            <Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-                <BusinessIcon color="primary" />
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Business Information
-                </Typography>
-              </Box>
-              
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                {/* Business Logo */}
-                <Box>
-                  <ImageUploadField
-                    label="Business Logo"
-                    value={formData.business_logo}
-                    onChange={(images) => handleInputChange('business_logo', images)}
-                    maxFiles={1}
-                    maxSize={5}
-                    helperText="Upload your business logo. Recommended size: 400x400px (1:1 ratio). Max file size: 5MB"
-                    disabled={previewMode}
-                    folder="providers/logos"
-                  />
-                </Box>
+            <div className="space-y-6">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-semibold">Business Information</h2>
+              </div>
 
-                <Divider />
+              <ImageUploadField
+                label="Business Logo"
+                value={formData.business_logo}
+                onChange={(images) => handleInputChange('business_logo', images)}
+                maxFiles={1}
+                maxSize={5}
+                helperText="Upload your business logo. Recommended size: 400x400px (1:1 ratio). Max file size: 5MB"
+                disabled={previewMode}
+                folder="providers/logos"
+              />
 
-                {/* Basic Details */}
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <TextField
-                    fullWidth
-                    label="Business Name *"
-                    value={formData.business_name}
-                    onChange={(e) => handleInputChange('business_name', e.target.value)}
-                    error={!!errors.business_name}
-                    helperText={errors.business_name}
-                    placeholder="e.g., Pro Fix Solutions"
-                    disabled={previewMode}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <BusinessIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
+              <Separator />
 
-                  <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-                    <TextField
-                      fullWidth
-                      label="Business License Number"
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="business_name">Business Name *</Label>
+                  <div className="relative">
+                    <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="business_name"
+                      className="pl-9"
+                      value={formData.business_name}
+                      onChange={(e) => handleInputChange('business_name', e.target.value)}
+                      placeholder="e.g., Pro Fix Solutions"
+                      disabled={previewMode}
+                      aria-invalid={!!errors.business_name}
+                    />
+                  </div>
+                  {errors.business_name && <p className="text-sm text-destructive">{errors.business_name}</p>}
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="business_license">Business License Number</Label>
+                    <Input
+                      id="business_license"
                       value={formData.business_license}
                       onChange={(e) => handleInputChange('business_license', e.target.value)}
                       placeholder="e.g., BL-2024-12345"
                       disabled={previewMode}
-                      sx={{ flex: 1 }}
                     />
-                    <TextField
-                      fullWidth
-                      label="Tax ID / GST Number"
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="tax_id">Tax ID / GST Number</Label>
+                    <Input
+                      id="tax_id"
                       value={formData.tax_id}
                       onChange={(e) => handleInputChange('tax_id', e.target.value)}
                       placeholder="e.g., 29ABCDE1234F1Z5"
                       disabled={previewMode}
-                      sx={{ flex: 1 }}
                     />
-                  </Box>
+                  </div>
+                </div>
 
-                  <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-                    <TextField
-                      fullWidth
-                      label="Business Email *"
-                      type="email"
-                      value={formData.business_email}
-                      onChange={(e) => handleInputChange('business_email', e.target.value)}
-                      error={!!errors.business_email}
-                      helperText={errors.business_email}
-                      placeholder="contact@business.com"
-                      disabled={previewMode}
-                      sx={{ flex: 1 }}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <EmailIcon color="action" />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                    <TextField
-                      fullWidth
-                      label="Business Phone *"
-                      type="tel"
-                      value={formData.business_phone}
-                      onChange={(e) => handleInputChange('business_phone', e.target.value)}
-                      error={!!errors.business_phone}
-                      helperText={errors.business_phone}
-                      placeholder="+91 1234567890"
-                      disabled={previewMode}
-                      sx={{ flex: 1 }}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <PhoneIcon color="action" />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  </Box>
-
-                  <TextField
-                    fullWidth
-                    label="Business Address"
-                    value={formData.business_address}
-                    onChange={(e) => handleInputChange('business_address', e.target.value)}
-                    placeholder="Full business address"
-                    disabled={previewMode}
-                    multiline
-                    rows={2}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <LocationIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-
-                  <TextField
-                    fullWidth
-                    label="Years of Experience"
-                    type="number"
-                    value={formData.years_experience}
-                    onChange={(e) => handleInputChange('years_experience', parseInt(e.target.value) || 0)}
-                    placeholder="0"
-                    disabled={previewMode}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <StarIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-
-                  <TextField
-                    fullWidth
-                    label="About Your Business"
-                    multiline
-                    rows={4}
-                    value={formData.bio}
-                    onChange={(e) => handleInputChange('bio', e.target.value)}
-                    placeholder="Tell us about your business, expertise, and what makes you unique..."
-                    disabled={previewMode}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <DescriptionIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Box>
-
-                <Divider />
-
-                {/* Contact Person */}
-                <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <ContactIcon color="primary" />
-                    Contact Person (Optional)
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-                      <TextField
-                        fullWidth
-                        label="First Name"
-                        value={formData.contact_first_name}
-                        onChange={(e) => handleInputChange('contact_first_name', e.target.value)}
-                        disabled={previewMode}
-                        sx={{ flex: 1 }}
-                      />
-                      <TextField
-                        fullWidth
-                        label="Last Name"
-                        value={formData.contact_last_name}
-                        onChange={(e) => handleInputChange('contact_last_name', e.target.value)}
-                        disabled={previewMode}
-                        sx={{ flex: 1 }}
-                      />
-                    </Box>
-
-                    <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-                      <TextField
-                        fullWidth
-                        label="Email"
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="business_email">Business Email *</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="business_email"
                         type="email"
-                        value={formData.contact_email}
-                        onChange={(e) => handleInputChange('contact_email', e.target.value)}
+                        className="pl-9"
+                        value={formData.business_email}
+                        onChange={(e) => handleInputChange('business_email', e.target.value)}
+                        placeholder="contact@business.com"
                         disabled={previewMode}
-                        sx={{ flex: 1 }}
+                        aria-invalid={!!errors.business_email}
                       />
-                      <TextField
-                        fullWidth
-                        label="Phone"
+                    </div>
+                    {errors.business_email && <p className="text-sm text-destructive">{errors.business_email}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="business_phone">Business Phone *</Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="business_phone"
                         type="tel"
-                        value={formData.contact_phone}
-                        onChange={(e) => handleInputChange('contact_phone', e.target.value)}
+                        className="pl-9"
+                        value={formData.business_phone}
+                        onChange={(e) => handleInputChange('business_phone', e.target.value)}
+                        placeholder="+91 1234567890"
                         disabled={previewMode}
-                        sx={{ flex: 1 }}
+                        aria-invalid={!!errors.business_phone}
                       />
-                    </Box>
+                    </div>
+                    {errors.business_phone && <p className="text-sm text-destructive">{errors.business_phone}</p>}
+                  </div>
+                </div>
 
-                    <TextField
-                      fullWidth
-                      label="Position/Title"
+                <div className="space-y-2">
+                  <Label htmlFor="business_address">Business Address</Label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Textarea
+                      id="business_address"
+                      className="min-h-[72px] pl-9 pt-2"
+                      value={formData.business_address}
+                      onChange={(e) => handleInputChange('business_address', e.target.value)}
+                      placeholder="Full business address"
+                      disabled={previewMode}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="years_experience">Years of Experience</Label>
+                  <div className="relative">
+                    <Star className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="years_experience"
+                      type="number"
+                      className="pl-9"
+                      value={formData.years_experience || ''}
+                      onChange={(e) => handleInputChange('years_experience', parseInt(e.target.value, 10) || 0)}
+                      placeholder="0"
+                      disabled={previewMode}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="bio">About Your Business</Label>
+                  <div className="relative">
+                    <FileText className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Textarea
+                      id="bio"
+                      className="min-h-[100px] pl-9 pt-2"
+                      value={formData.bio}
+                      onChange={(e) => handleInputChange('bio', e.target.value)}
+                      placeholder="Tell us about your business, expertise, and what makes you unique..."
+                      disabled={previewMode}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                  <Contact className="h-4 w-4 text-primary" />
+                  Contact Person (Optional)
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="contact_first_name">First Name</Label>
+                    <Input
+                      id="contact_first_name"
+                      value={formData.contact_first_name}
+                      onChange={(e) => handleInputChange('contact_first_name', e.target.value)}
+                      disabled={previewMode}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="contact_last_name">Last Name</Label>
+                    <Input
+                      id="contact_last_name"
+                      value={formData.contact_last_name}
+                      onChange={(e) => handleInputChange('contact_last_name', e.target.value)}
+                      disabled={previewMode}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="contact_email">Email</Label>
+                    <Input
+                      id="contact_email"
+                      type="email"
+                      value={formData.contact_email}
+                      onChange={(e) => handleInputChange('contact_email', e.target.value)}
+                      disabled={previewMode}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="contact_phone">Phone</Label>
+                    <Input
+                      id="contact_phone"
+                      type="tel"
+                      value={formData.contact_phone}
+                      onChange={(e) => handleInputChange('contact_phone', e.target.value)}
+                      disabled={previewMode}
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="contact_position">Position/Title</Label>
+                    <Input
+                      id="contact_position"
                       value={formData.contact_position}
                       onChange={(e) => handleInputChange('contact_position', e.target.value)}
                       placeholder="e.g., Owner, Manager"
                       disabled={previewMode}
                     />
-                  </Box>
-                </Box>
-              </Box>
+                  </div>
+                </div>
+              </div>
 
-              {/* Navigation Buttons */}
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
-                <Button
-                  variant="contained"
-                  onClick={() => setActiveTab(1)}
-                  sx={{ textTransform: 'none' }}
-                >
+              <div className="flex justify-end pt-2">
+                <Button type="button" onClick={() => setActiveTab(1)}>
                   Next: Services & Areas
                 </Button>
-              </Box>
-            </Box>
+              </div>
+            </div>
           )}
 
-          {/* Tab 2: Services & Areas */}
           {activeTab === 1 && (
-            <Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-                <WorkIcon color="primary" />
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Services & Service Areas
-                </Typography>
-              </Box>
+            <div className="space-y-8">
+              <div className="flex items-center gap-2">
+                <Briefcase className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-semibold">Services & Service Areas</h2>
+              </div>
 
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {/* Services Offered */}
-                <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                    Services Offered *
-                  </Typography>
-                  <Alert severity="info" sx={{ mb: 2 }}>
-                    Add all the services your business provides. Be specific to help customers find you easily.
-                  </Alert>
-                  <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      placeholder="e.g., AC Repair, Plumbing, Electrical"
-                      value={newService}
-                      onChange={(e) => setNewService(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && addService()}
-                      disabled={previewMode}
-                      error={!!errors.services_offered && formData.services_offered.length === 0}
-                    />
-                    <Button
-                      variant="contained"
-                      onClick={addService}
-                      disabled={previewMode || !newService.trim()}
-                      startIcon={<AddIcon />}
-                      sx={{ minWidth: 100 }}
-                    >
-                      Add
-                    </Button>
-                  </Box>
-                  {errors.services_offered && (
-                    <Typography color="error" variant="caption" sx={{ mb: 1, display: 'block' }}>
-                      {errors.services_offered}
-                    </Typography>
+              <div>
+                <p className="mb-2 text-sm font-semibold">Services Offered *</p>
+                <div className="mb-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-950 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
+                  Add all the services your business provides. Be specific to help customers find you easily.
+                </div>
+                <div className="mb-2 flex flex-col gap-2 sm:flex-row">
+                  <Input
+                    placeholder="e.g., AC Repair, Plumbing, Electrical"
+                    value={newService}
+                    onChange={(e) => setNewService(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addService())}
+                    disabled={previewMode}
+                    className={cn(!!errors.services_offered && formData.services_offered.length === 0 && 'border-destructive')}
+                  />
+                  <Button type="button" className="shrink-0 sm:w-28" onClick={addService} disabled={previewMode || !newService.trim()}>
+                    <Plus className="mr-1 h-4 w-4" />
+                    Add
+                  </Button>
+                </div>
+                {errors.services_offered && <p className="mb-2 text-sm text-destructive">{errors.services_offered}</p>}
+                <div className="flex flex-wrap gap-2">
+                  {formData.services_offered.map((service, index) => (
+                    <Badge key={`${service}-${index}`} variant="secondary" className="gap-1 pr-1 font-medium">
+                      {service}
+                      {!previewMode && (
+                        <button
+                          type="button"
+                          className="rounded-sm p-0.5 hover:bg-muted"
+                          onClick={() => removeService(service)}
+                          aria-label={`Remove ${service}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                    </Badge>
+                  ))}
+                  {formData.services_offered.length === 0 && (
+                    <p className="text-sm text-muted-foreground">No services added yet. Add at least one service.</p>
                   )}
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {formData.services_offered.map((service, index) => (
-                      <Chip
-                        key={index}
-                        label={service}
-                        onDelete={previewMode ? undefined : () => removeService(service)}
-                        color="primary"
-                        variant="filled"
-                        sx={{ fontWeight: 500 }}
-                      />
-                    ))}
-                    {formData.services_offered.length === 0 && (
-                      <Typography variant="body2" color="text.secondary">
-                        No services added yet. Add at least one service.
-                      </Typography>
-                    )}
-                  </Box>
-                </Box>
+                </div>
+              </div>
 
-                <Divider />
+              <Separator />
 
-                {/* Service Areas */}
-                <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                    Service Areas *
-                  </Typography>
-                  <Alert severity="info" sx={{ mb: 2 }}>
-                    Specify the locations or neighborhoods where you provide services.
-                  </Alert>
-                  <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      placeholder="e.g., Andheri West, Bandra, Juhu"
-                      value={newArea}
-                      onChange={(e) => setNewArea(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && addArea()}
-                      disabled={previewMode}
-                      error={!!errors.service_areas && formData.service_areas.length === 0}
-                    />
-                    <Button
-                      variant="contained"
-                      onClick={addArea}
-                      disabled={previewMode || !newArea.trim()}
-                      startIcon={<AddIcon />}
-                      sx={{ minWidth: 100 }}
-                    >
-                      Add
-                    </Button>
-                  </Box>
-                  {errors.service_areas && (
-                    <Typography color="error" variant="caption" sx={{ mb: 1, display: 'block' }}>
-                      {errors.service_areas}
-                    </Typography>
+              <div>
+                <p className="mb-2 text-sm font-semibold">Service Areas *</p>
+                <div className="mb-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-950 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
+                  Specify the locations or neighborhoods where you provide services.
+                </div>
+                <div className="mb-2 flex flex-col gap-2 sm:flex-row">
+                  <Input
+                    placeholder="e.g., Andheri West, Bandra, Juhu"
+                    value={newArea}
+                    onChange={(e) => setNewArea(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addArea())}
+                    disabled={previewMode}
+                    className={cn(!!errors.service_areas && formData.service_areas.length === 0 && 'border-destructive')}
+                  />
+                  <Button type="button" className="shrink-0 sm:w-28" onClick={addArea} disabled={previewMode || !newArea.trim()}>
+                    <Plus className="mr-1 h-4 w-4" />
+                    Add
+                  </Button>
+                </div>
+                {errors.service_areas && <p className="mb-2 text-sm text-destructive">{errors.service_areas}</p>}
+                <div className="flex flex-wrap gap-2">
+                  {formData.service_areas.map((area, index) => (
+                    <Badge key={`${area}-${index}`} variant="outline" className="gap-1 pr-1 font-medium">
+                      <MapPin className="h-3 w-3" />
+                      {area}
+                      {!previewMode && (
+                        <button
+                          type="button"
+                          className="rounded-sm p-0.5 hover:bg-muted"
+                          onClick={() => removeArea(area)}
+                          aria-label={`Remove ${area}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                    </Badge>
+                  ))}
+                  {formData.service_areas.length === 0 && (
+                    <p className="text-sm text-muted-foreground">No service areas added yet. Add at least one area.</p>
                   )}
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {formData.service_areas.map((area, index) => (
-                      <Chip
-                        key={index}
-                        label={area}
-                        onDelete={previewMode ? undefined : () => removeArea(area)}
-                        color="secondary"
-                        variant="filled"
-                        icon={<LocationIcon />}
-                        sx={{ fontWeight: 500 }}
-                      />
-                    ))}
-                    {formData.service_areas.length === 0 && (
-                      <Typography variant="body2" color="text.secondary">
-                        No service areas added yet. Add at least one area.
-                      </Typography>
-                    )}
-                  </Box>
-                </Box>
-              </Box>
+                </div>
+              </div>
 
-              {/* Navigation Buttons */}
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
-                <Button
-                  variant="outlined"
-                  onClick={() => setActiveTab(0)}
-                  sx={{ textTransform: 'none' }}
-                >
+              <div className="flex justify-between pt-2">
+                <Button type="button" variant="outline" onClick={() => setActiveTab(0)}>
                   Back
                 </Button>
-                <Button
-                  variant="contained"
-                  onClick={() => setActiveTab(2)}
-                  sx={{ textTransform: 'none' }}
-                >
+                <Button type="button" onClick={() => setActiveTab(2)}>
                   Next: Availability
                 </Button>
-              </Box>
-            </Box>
+              </div>
+            </div>
           )}
 
-          {/* Tab 3: Availability & Pricing */}
           {activeTab === 2 && (
-            <Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-                <ScheduleIcon color="primary" />
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Availability & Pricing
-                </Typography>
-              </Box>
+            <div className="space-y-8">
+              <div className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-semibold">Availability & Pricing</h2>
+              </div>
 
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {/* Working Days */}
-                <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                    Working Days
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {WORKING_DAYS.map((day) => (
-                      <Chip
+              <div>
+                <p className="mb-2 text-sm font-semibold">Working Days</p>
+                <div className="flex flex-wrap gap-2">
+                  {WORKING_DAYS.map((day) => {
+                    const on = formData.working_days.includes(day)
+                    return (
+                      <Button
                         key={day}
-                        label={day}
+                        type="button"
+                        size="sm"
+                        variant={on ? 'default' : 'outline'}
+                        disabled={previewMode}
                         onClick={() => {
-                          if (previewMode) return
-                          const newDays = formData.working_days.includes(day)
-                            ? formData.working_days.filter(d => d !== day)
-                            : [...formData.working_days, day]
+                          const newDays = on ? formData.working_days.filter((d) => d !== day) : [...formData.working_days, day]
                           handleArrayChange('working_days', newDays)
                         }}
-                        color={formData.working_days.includes(day) ? 'primary' : 'default'}
-                        variant={formData.working_days.includes(day) ? 'filled' : 'outlined'}
-                        clickable={!previewMode}
-                        sx={{ fontWeight: 500 }}
+                      >
+                        {day}
+                      </Button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-2 text-sm font-semibold">Available Time Slots</p>
+                <div className="space-y-3">
+                  {TIME_SLOTS.map((slot) => (
+                    <div key={slot.value} className="flex items-center justify-between gap-4 rounded-md border px-3 py-2">
+                      <span className="text-sm">{slot.label}</span>
+                      <Switch
+                        checked={formData.time_slots.includes(slot.value)}
+                        onCheckedChange={(checked) => {
+                          const newSlots = checked
+                            ? [...formData.time_slots, slot.value]
+                            : formData.time_slots.filter((s) => s !== slot.value)
+                          handleArrayChange('time_slots', newSlots)
+                        }}
+                        disabled={previewMode}
                       />
-                    ))}
-                  </Box>
-                </Box>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-                {/* Time Slots */}
-                <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                    Available Time Slots
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {TIME_SLOTS.map((slot) => (
-                      <FormControlLabel
-                        key={slot.value}
-                        control={
-                          <Switch
-                            checked={formData.time_slots.includes(slot.value)}
-                            onChange={(e) => {
-                              const newSlots = e.target.checked
-                                ? [...formData.time_slots, slot.value]
-                                : formData.time_slots.filter(s => s !== slot.value)
-                              handleArrayChange('time_slots', newSlots)
-                            }}
-                            disabled={previewMode}
-                          />
-                        }
-                        label={slot.label}
-                      />
-                    ))}
-                  </Box>
-                </Box>
+              <Separator />
 
-                <Divider />
-
-                {/* Pricing */}
-                <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <MoneyIcon color="primary" />
-                    Pricing Information
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-                      <TextField
-                        fullWidth
-                        label="Hourly Rate (₹)"
+              <div>
+                <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                  <IndianRupee className="h-4 w-4 text-primary" />
+                  Pricing Information
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="hourly_rate">Hourly Rate (₹)</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₹</span>
+                      <Input
+                        id="hourly_rate"
                         type="number"
+                        className="pl-7"
                         value={formData.hourly_rate}
                         onChange={(e) => handleInputChange('hourly_rate', e.target.value)}
                         placeholder="500"
                         disabled={previewMode}
-                        sx={{ flex: 1 }}
-                        InputProps={{
-                          startAdornment: <Typography sx={{ mr: 1 }}>₹</Typography>
-                        }}
                       />
-                      <TextField
-                        fullWidth
-                        label="Minimum Job Charge (₹)"
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="minimum_job_charge">Minimum Job Charge (₹)</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₹</span>
+                      <Input
+                        id="minimum_job_charge"
                         type="number"
+                        className="pl-7"
                         value={formData.minimum_job_charge}
                         onChange={(e) => handleInputChange('minimum_job_charge', e.target.value)}
                         placeholder="300"
                         disabled={previewMode}
-                        sx={{ flex: 1 }}
-                        InputProps={{
-                          startAdornment: <Typography sx={{ mr: 1 }}>₹</Typography>
-                        }}
                       />
-                    </Box>
-
-                    <TextField
-                      fullWidth
-                      label="Travel Charge (₹)"
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 space-y-2">
+                  <Label htmlFor="travel_charge">Travel Charge (₹)</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₹</span>
+                    <Input
+                      id="travel_charge"
                       type="number"
+                      className="pl-7"
                       value={formData.travel_charge}
                       onChange={(e) => handleInputChange('travel_charge', e.target.value)}
                       placeholder="100"
                       disabled={previewMode}
-                      InputProps={{
-                        startAdornment: <Typography sx={{ mr: 1 }}>₹</Typography>
-                      }}
-                      helperText="Charge for traveling to service locations"
                     />
-                  </Box>
-                </Box>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Charge for traveling to service locations</p>
+                </div>
+              </div>
 
-                {/* Payment Methods */}
-                <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                    Accepted Payment Methods
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      placeholder="e.g., Cash, UPI, Card"
-                      value={newPaymentMethod}
-                      onChange={(e) => setNewPaymentMethod(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && addPaymentMethod()}
+              <div>
+                <p className="mb-2 text-sm font-semibold">Accepted Payment Methods</p>
+                <div className="mb-2 flex flex-col gap-2 sm:flex-row">
+                  <Input
+                    placeholder="e.g., Cash, UPI, Card"
+                    value={newPaymentMethod}
+                    onChange={(e) => setNewPaymentMethod(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addPaymentMethod())}
+                    disabled={previewMode}
+                  />
+                  <Button type="button" variant="outline" className="shrink-0 sm:w-28" onClick={addPaymentMethod} disabled={previewMode || !newPaymentMethod.trim()}>
+                    <Plus className="mr-1 h-4 w-4" />
+                    Add
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.payment_methods.map((method, index) => (
+                    <Badge key={`${method}-${index}`} variant="outline" className="gap-1 border-emerald-200 bg-emerald-50 pr-1 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100">
+                      {method}
+                      {!previewMode && (
+                        <button
+                          type="button"
+                          className="rounded-sm p-0.5 hover:bg-emerald-100 dark:hover:bg-emerald-900/50"
+                          onClick={() => removePaymentMethod(method)}
+                          aria-label={`Remove ${method}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <p className="mb-3 text-sm font-semibold">Service Options</p>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-4 rounded-md border px-3 py-2">
+                    <span className="text-sm">Offer Emergency Services</span>
+                    <Switch
+                      checked={formData.emergency_service}
+                      onCheckedChange={(c) => handleInputChange('emergency_service', c)}
                       disabled={previewMode}
                     />
-                    <Button
-                      variant="outlined"
-                      onClick={addPaymentMethod}
-                      disabled={previewMode || !newPaymentMethod.trim()}
-                      startIcon={<AddIcon />}
-                      sx={{ minWidth: 100 }}
-                    >
-                      Add
-                    </Button>
-                  </Box>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {formData.payment_methods.map((method, index) => (
-                      <Chip
-                        key={index}
-                        label={method}
-                        onDelete={previewMode ? undefined : () => removePaymentMethod(method)}
-                        color="success"
-                        variant="outlined"
-                      />
-                    ))}
-                  </Box>
-                </Box>
-
-                <Divider />
-
-                {/* Service Options */}
-                <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                    Service Options
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={formData.emergency_service}
-                          onChange={(e) => handleInputChange('emergency_service', e.target.checked)}
-                          disabled={previewMode}
-                        />
-                      }
-                      label="Offer Emergency Services"
+                  </div>
+                  <div className="flex items-center justify-between gap-4 rounded-md border px-3 py-2">
+                    <span className="text-sm">Offer Same-Day Service</span>
+                    <Switch
+                      checked={formData.same_day_service}
+                      onCheckedChange={(c) => handleInputChange('same_day_service', c)}
+                      disabled={previewMode}
                     />
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={formData.same_day_service}
-                          onChange={(e) => handleInputChange('same_day_service', e.target.checked)}
-                          disabled={previewMode}
-                        />
-                      }
-                      label="Offer Same-Day Service"
+                  </div>
+                  <div className="flex items-center justify-between gap-4 rounded-md border px-3 py-2">
+                    <span className="text-sm">Auto-Accept Service Requests</span>
+                    <Switch
+                      checked={formData.auto_accept_requests}
+                      onCheckedChange={(c) => handleInputChange('auto_accept_requests', c)}
+                      disabled={previewMode}
                     />
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={formData.auto_accept_requests}
-                          onChange={(e) => handleInputChange('auto_accept_requests', e.target.checked)}
-                          disabled={previewMode}
-                        />
-                      }
-                      label="Auto-Accept Service Requests"
-                    />
-                  </Box>
-                </Box>
-              </Box>
+                  </div>
+                </div>
+              </div>
 
-              {/* Navigation Buttons */}
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
-                <Button
-                  variant="outlined"
-                  onClick={() => setActiveTab(1)}
-                  sx={{ textTransform: 'none' }}
-                >
+              <div className="flex justify-between pt-2">
+                <Button type="button" variant="outline" onClick={() => setActiveTab(1)}>
                   Back
                 </Button>
-                <Button
-                  variant="contained"
-                  onClick={() => setActiveTab(3)}
-                  sx={{ textTransform: 'none' }}
-                >
+                <Button type="button" onClick={() => setActiveTab(3)}>
                   Next: Verification
                 </Button>
-              </Box>
-            </Box>
+              </div>
+            </div>
           )}
 
-          {/* Tab 4: Verification & Documents */}
           {activeTab === 3 && (
-            <Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-                <VerifiedIcon color="primary" />
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Verification & Documents
-                </Typography>
-              </Box>
+            <div className="space-y-8">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-semibold">Verification & Documents</h2>
+              </div>
 
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {/* Verification Status */}
-                <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                    Verification Status
-                  </Typography>
-                  <FormControl fullWidth>
-                    <Select
-                      value={formData.verification_status}
-                      onChange={(e) => handleInputChange('verification_status', e.target.value)}
-                      disabled={previewMode}
-                    >
-                      {VERIFICATION_STATUS.map((status) => (
-                        <MenuItem key={status.value} value={status.value}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Chip
-                              label={status.label}
-                              color={status.color}
-                              size="small"
-                            />
-                          </Box>
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                  <Alert severity="warning" sx={{ mt: 2 }}>
-                    New providers start with "Pending" status. Admin can verify after document review.
-                  </Alert>
-                </Box>
-
-                <Divider />
-
-                {/* Documents */}
-                <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                    Documents
-                  </Typography>
-                  
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <DocumentUploadField
-                      label="Insurance Document"
-                      value={formData.insurance_document}
-                      onChange={(documents) => handleInputChange('insurance_document', documents)}
-                      maxFiles={1}
-                      maxSize={10}
-                      helperText="Upload insurance certificate or document (PDF, DOC, or Image). Max file size: 10MB"
-                      disabled={previewMode}
-                      folder="providers/insurance"
-                      required
-                    />
-
-                    <DocumentUploadField
-                      label="Certification Documents (Optional)"
-                      value={formData.certification_documents}
-                      onChange={(documents) => handleInputChange('certification_documents', documents)}
-                      maxFiles={5}
-                      maxSize={10}
-                      helperText="Upload certification documents, licenses, or professional credentials. Max 5 files, 10MB each"
-                      disabled={previewMode}
-                      folder="providers/certifications"
-                    />
-                  </Box>
-                </Box>
-
-                <Divider />
-
-                {/* Settings */}
-                <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                    Provider Settings
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={formData.is_active}
-                          onChange={(e) => handleInputChange('is_active', e.target.checked)}
-                          disabled={previewMode}
-                          color="success"
-                        />
-                      }
-                      label="Active Provider (Can receive service requests)"
-                    />
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={formData.accept_new_requests}
-                          onChange={(e) => handleInputChange('accept_new_requests', e.target.checked)}
-                          disabled={previewMode}
-                        />
-                      }
-                      label="Accept New Requests"
-                    />
-                  </Box>
-                </Box>
-
-                {/* Summary Card */}
-                <Card sx={{ bgcolor: 'success.50', border: '1px solid', borderColor: 'success.200' }}>
-                  <CardContent>
-                    <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2, color: 'success.dark' }}>
-                      📋 Profile Summary
-                    </Typography>
-                    <List dense>
-                      <ListItem>
-                        <ListItemIcon>
-                          <CheckIcon color="success" fontSize="small" />
-                        </ListItemIcon>
-                        <ListItemText 
-                          primary={formData.business_name || 'Business name not set'} 
-                          secondary="Business Name"
-                        />
-                      </ListItem>
-                      <ListItem>
-                        <ListItemIcon>
-                          <CheckIcon color="success" fontSize="small" />
-                        </ListItemIcon>
-                        <ListItemText 
-                          primary={`${formData.services_offered.length} services`} 
-                          secondary="Services Offered"
-                        />
-                      </ListItem>
-                      <ListItem>
-                        <ListItemIcon>
-                          <CheckIcon color="success" fontSize="small" />
-                        </ListItemIcon>
-                        <ListItemText 
-                          primary={`${formData.service_areas.length} areas`} 
-                          secondary="Service Areas"
-                        />
-                      </ListItem>
-                      <ListItem>
-                        <ListItemIcon>
-                          <CheckIcon color="success" fontSize="small" />
-                        </ListItemIcon>
-                        <ListItemText 
-                          primary={`${completionPercentage}% complete`} 
-                          secondary="Profile Completion"
-                        />
-                      </ListItem>
-                    </List>
-                  </CardContent>
-                </Card>
-              </Box>
-
-              {/* Navigation Buttons */}
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
-                <Button
-                  variant="outlined"
-                  onClick={() => setActiveTab(2)}
-                  sx={{ textTransform: 'none' }}
+              <div>
+                <Label className="mb-2 block text-sm font-semibold">Verification Status</Label>
+                <Select
+                  value={formData.verification_status}
+                  onValueChange={(v) => handleInputChange('verification_status', v as typeof formData.verification_status)}
+                  disabled={previewMode}
                 >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {VERIFICATION_STATUS.map((status) => (
+                      <SelectItem key={status.value} value={status.value}>
+                        <Badge variant="outline" className={cn('font-normal', statusBadgeClass(status.color))}>
+                          {status.label}
+                        </Badge>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
+                  New providers start with &quot;Pending&quot; status. Admin can verify after document review.
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <p className="mb-3 text-sm font-semibold">Documents</p>
+                <div className="space-y-4">
+                  <DocumentUploadField
+                    label="Insurance Document"
+                    value={formData.insurance_document}
+                    onChange={(documents) => handleInputChange('insurance_document', documents)}
+                    maxFiles={1}
+                    maxSize={10}
+                    helperText="Upload insurance certificate or document (PDF, DOC, or Image). Max file size: 10MB"
+                    disabled={previewMode}
+                    folder="providers/insurance"
+                    required
+                  />
+                  <DocumentUploadField
+                    label="Certification Documents (Optional)"
+                    value={formData.certification_documents}
+                    onChange={(documents) => handleInputChange('certification_documents', documents)}
+                    maxFiles={5}
+                    maxSize={10}
+                    helperText="Upload certification documents, licenses, or professional credentials. Max 5 files, 10MB each"
+                    disabled={previewMode}
+                    folder="providers/certifications"
+                  />
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <p className="mb-3 text-sm font-semibold">Provider Settings</p>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-4 rounded-md border px-3 py-2">
+                    <span className="text-sm">Active Provider (Can receive service requests)</span>
+                    <Switch
+                      checked={formData.is_active}
+                      onCheckedChange={(c) => handleInputChange('is_active', c)}
+                      disabled={previewMode}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-4 rounded-md border px-3 py-2">
+                    <span className="text-sm">Accept New Requests</span>
+                    <Switch
+                      checked={formData.accept_new_requests}
+                      onCheckedChange={(c) => handleInputChange('accept_new_requests', c)}
+                      disabled={previewMode}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Card className="rounded-xl border-emerald-200 bg-emerald-50/80 dark:border-emerald-900 dark:bg-emerald-950/30">
+                <CardContent className="pt-6">
+                  <p className="mb-3 font-semibold text-emerald-900 dark:text-emerald-100">Profile Summary</p>
+                  <ul className="space-y-3 text-sm">
+                    <li className="flex gap-2">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                      <div>
+                        <p className="font-medium">{formData.business_name || 'Business name not set'}</p>
+                        <p className="text-xs text-muted-foreground">Business Name</p>
+                      </div>
+                    </li>
+                    <li className="flex gap-2">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                      <div>
+                        <p className="font-medium">{formData.services_offered.length} services</p>
+                        <p className="text-xs text-muted-foreground">Services Offered</p>
+                      </div>
+                    </li>
+                    <li className="flex gap-2">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                      <div>
+                        <p className="font-medium">{formData.service_areas.length} areas</p>
+                        <p className="text-xs text-muted-foreground">Service Areas</p>
+                      </div>
+                    </li>
+                    <li className="flex gap-2">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                      <div>
+                        <p className="font-medium">{completionPercentage}% complete</p>
+                        <p className="text-xs text-muted-foreground">Profile Completion</p>
+                      </div>
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+
+              <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
+                <Button type="button" variant="outline" onClick={() => setActiveTab(2)}>
                   Back
                 </Button>
-                <Box sx={{ display: 'flex', gap: 2 }}>
-                  <Button
-                    variant="outlined"
-                    startIcon={<SaveIcon />}
-                    onClick={() => handleSubmit('draft')}
-                    disabled={loading}
-                    sx={{ textTransform: 'none' }}
-                  >
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" onClick={() => handleSubmit('draft')} disabled={loading}>
+                    <Save className="mr-2 h-4 w-4" />
                     Save as Draft
                   </Button>
-                  <Button
-                    variant="contained"
-                    startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <CheckIcon />}
-                    onClick={() => handleSubmit('publish')}
-                    disabled={loading || completionPercentage < 70}
-                    sx={{ textTransform: 'none' }}
-                  >
+                  <Button type="button" onClick={() => handleSubmit('publish')} disabled={loading || completionPercentage < 70}>
+                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
                     {loading ? 'Creating...' : 'Create Provider'}
                   </Button>
-                </Box>
-              </Box>
-            </Box>
+                </div>
+              </div>
+            </div>
           )}
-        </Box>
+        </div>
       </Card>
-
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert severity={snackbar.severity} variant="filled">
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+    </div>
   )
 }
-

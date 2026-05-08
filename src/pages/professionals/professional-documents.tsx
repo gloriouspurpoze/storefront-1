@@ -2,53 +2,18 @@
  * ============================================================================
  * PROFESSIONAL DOCUMENTS & CERTIFICATIONS PAGE
  * ============================================================================
- * Complete document and certification management for professionals
- * 
- * Features:
- * - Upload certificates and documents
- * - View all documents
- * - Track expiry dates
- * - Download documents
- * - Delete documents
- * - Verification status
- * 
- * @author CTO Team
- * @date January 23, 2026
  */
 
 import React, { useState, useEffect } from 'react'
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  Stack,
-  Chip,
-  Alert,
-  CircularProgress,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Tooltip,
-} from '@mui/material'
-import {
-  Upload as UploadIcon,
-  Description as DocumentIcon,
-  Download as DownloadIcon,
-  Delete as DeleteIcon,
-  CheckCircle as VerifiedIcon,
+  Upload,
+  FileText,
+  Download,
+  Trash2,
+  CheckCircle2,
   CloudUpload,
-} from '@mui/icons-material'
+  Loader2,
+} from 'lucide-react'
 import { useAppDispatch } from '../../store/hooks'
 import { addToast } from '../../store/slices/uiSlice'
 import { useDropzone } from 'react-dropzone'
@@ -57,6 +22,30 @@ import { ProfessionalsService } from '../../services/api/professionals.service'
 import { UploadService } from '../../services/api/upload.service'
 import { extractProfessionalFromGetResponse } from '../../lib/professionalAdmin'
 import type { UpdateProfessionalData } from '../../types/professional.types'
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Label,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../../components/ui'
+import { cn } from '../../lib/utils'
 
 interface Certification {
   _id: string
@@ -117,6 +106,21 @@ function rawCertToPutPayload(c: Record<string, unknown>): ApiCert {
   return out
 }
 
+function verificationBadge(status: string) {
+  if (status === 'verified') {
+    return (
+      <Badge variant="success" className="gap-1">
+        <CheckCircle2 className="h-3 w-3" />
+        Verified
+      </Badge>
+    )
+  }
+  if (status === 'rejected') {
+    return <Badge variant="destructive">Rejected</Badge>
+  }
+  return <Badge variant="warning">Pending Review</Badge>
+}
+
 export function ProfessionalDocuments() {
   const dispatch = useAppDispatch()
   const confirm = useAppConfirm()
@@ -143,16 +147,16 @@ export function ProfessionalDocuments() {
       if (response.success && response.data) {
         const rawProf = extractProfessionalFromGetResponse(response.data) as Record<string, unknown> | null
         const rawCerts = rawProf && Array.isArray(rawProf.certifications) ? rawProf.certifications : []
-        setCertifications(
-          (rawCerts as Record<string, unknown>[]).map((row, i) => mapRawCertToUi(row, i)),
-        )
+        setCertifications((rawCerts as Record<string, unknown>[]).map((row, i) => mapRawCertToUi(row, i)))
       }
-    } catch (error: any) {
-      console.error('Error loading certifications:', error)
-      dispatch(addToast({
-        message: error?.message || 'Failed to load certifications',
-        severity: 'error',
-      }))
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to load certifications'
+      dispatch(
+        addToast({
+          message,
+          severity: 'error',
+        }),
+      )
     } finally {
       setLoading(false)
     }
@@ -175,10 +179,12 @@ export function ProfessionalDocuments() {
 
   const handleUpload = async () => {
     if (!selectedFile || !formData.name || !formData.issuedBy) {
-      dispatch(addToast({ 
-        message: 'Please fill in all required fields and select a file', 
-        severity: 'error' 
-      }))
+      dispatch(
+        addToast({
+          message: 'Please fill in all required fields and select a file',
+          severity: 'error',
+        }),
+      )
       return
     }
 
@@ -212,19 +218,24 @@ export function ProfessionalDocuments() {
         certifications: [...rawCerts.map(rawCertToPutPayload), nextCert],
       })
 
-      dispatch(addToast({
-        message: 'Certificate uploaded successfully!',
-        severity: 'success',
-      }))
+      dispatch(
+        addToast({
+          message: 'Certificate uploaded successfully!',
+          severity: 'success',
+        }),
+      )
       setUploadDialogOpen(false)
       setSelectedFile(null)
       setFormData({ name: '', issuedBy: '', issuedDate: '', expiryDate: '' })
       loadCertifications()
-    } catch (error: any) {
-      dispatch(addToast({
-        message: error?.message || 'Failed to upload certificate',
-        severity: 'error',
-      }))
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to upload certificate'
+      dispatch(
+        addToast({
+          message,
+          severity: 'error',
+        }),
+      )
     } finally {
       setUploading(false)
     }
@@ -255,16 +266,21 @@ export function ProfessionalDocuments() {
       await ProfessionalsService.updateMyProfile({
         certifications: filtered.map(rawCertToPutPayload),
       })
-      dispatch(addToast({
-        message: 'Certificate deleted successfully!',
-        severity: 'success',
-      }))
+      dispatch(
+        addToast({
+          message: 'Certificate deleted successfully!',
+          severity: 'success',
+        }),
+      )
       loadCertifications()
-    } catch (error: any) {
-      dispatch(addToast({
-        message: error?.message || 'Failed to delete certificate',
-        severity: 'error',
-      }))
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to delete certificate'
+      dispatch(
+        addToast({
+          message,
+          severity: 'error',
+        }),
+      )
     }
   }
 
@@ -287,257 +303,218 @@ export function ProfessionalDocuments() {
     return new Date(expiryDate) < new Date()
   }
 
-  const getVerificationChip = (status: string) => {
-    const config: any = {
-      verified: { label: 'Verified', color: 'success', icon: <VerifiedIcon /> },
-      pending: { label: 'Pending Review', color: 'warning' },
-      rejected: { label: 'Rejected', color: 'error' },
-    }
-    const c = config[status] || config.pending
-    return <Chip label={c.label} color={c.color} size="small" icon={c.icon} />
-  }
-
   if (loading && certifications.length === 0) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+      </div>
     )
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      {/* Header */}
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-            Documents & Certifications
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Manage your professional certificates and documents
-          </Typography>
-        </Box>
-        <Button
-          variant="contained"
-          startIcon={<UploadIcon />}
-          onClick={() => setUploadDialogOpen(true)}
-        >
-          Upload Certificate
-        </Button>
-      </Box>
+    <TooltipProvider>
+      <div className="p-6">
+        <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <div>
+            <h1 className="mb-1 text-2xl font-bold tracking-tight">Documents & Certifications</h1>
+            <p className="text-muted-foreground">Manage your professional certificates and documents</p>
+          </div>
+          <Button onClick={() => setUploadDialogOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            Upload Certificate
+          </Button>
+        </div>
 
-      {/* Expiring Soon Alert */}
-      {certifications.some(c => isExpiringSoon(c.expiryDate)) && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
-          <Typography variant="body2">
-            You have {certifications.filter(c => isExpiringSoon(c.expiryDate)).length} certificate(s) expiring within 30 days. Please renew them soon.
-          </Typography>
-        </Alert>
-      )}
+        {certifications.some((c) => isExpiringSoon(c.expiryDate)) && (
+          <div
+            role="status"
+            className="mb-6 rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-sm"
+          >
+            You have {certifications.filter((c) => isExpiringSoon(c.expiryDate)).length} certificate(s) expiring within
+            30 days. Please renew them soon.
+          </div>
+        )}
 
-      {/* Certifications Table */}
-      <Card sx={{ borderRadius: 2 }}>
-        <CardContent>
-          {certifications.length === 0 ? (
-            <Box textAlign="center" py={4}>
-              <DocumentIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-              <Typography variant="h6" color="text.secondary" gutterBottom>
-                No Certifications Yet
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Upload your professional certificates to build trust with customers
-              </Typography>
-              <Button
-                variant="contained"
-                startIcon={<UploadIcon />}
-                onClick={() => setUploadDialogOpen(true)}
-              >
-                Upload Your First Certificate
-              </Button>
-            </Box>
-          ) : (
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Certificate Name</TableCell>
-                    <TableCell>Issued By</TableCell>
-                    <TableCell>Issued Date</TableCell>
-                    <TableCell>Expiry Date</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {certifications.map((cert) => (
-                    <TableRow key={cert._id}>
-                      <TableCell>
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <DocumentIcon color="primary" />
-                          <Typography variant="body2" fontWeight={500}>
-                            {cert.name}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell>{cert.issuedBy}</TableCell>
-                      <TableCell>
-                        {cert.issuedDate 
-                          ? new Date(cert.issuedDate).toLocaleDateString()
-                          : 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        <Box display="flex" alignItems="center" gap={1}>
-                          {cert.expiryDate 
-                            ? new Date(cert.expiryDate).toLocaleDateString()
-                            : 'No Expiry'}
-                          {isExpired(cert.expiryDate) && (
-                            <Chip label="Expired" color="error" size="small" />
-                          )}
-                          {isExpiringSoon(cert.expiryDate) && (
-                            <Chip label="Expiring Soon" color="warning" size="small" />
-                          )}
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        {getVerificationChip(cert.verificationStatus)}
-                      </TableCell>
-                      <TableCell>
-                        <Stack direction="row" spacing={1}>
-                          {cert.certificateUrl && (
-                            <Tooltip title="Download">
-                              <IconButton
-                                size="small"
-                                onClick={() => handleDownload(cert)}
-                              >
-                                <DownloadIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-                          <Tooltip title="Delete">
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => handleDelete(cert._id)}
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </Stack>
-                      </TableCell>
+        <Card>
+          <CardContent className="pt-6">
+            {certifications.length === 0 ? (
+              <div className="py-10 text-center">
+                <FileText className="mx-auto mb-4 h-16 w-16 text-muted-foreground opacity-50" />
+                <h2 className="mb-2 text-lg font-semibold text-muted-foreground">No Certifications Yet</h2>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  Upload your professional certificates to build trust with customers
+                </p>
+                <Button onClick={() => setUploadDialogOpen(true)}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload Your First Certificate
+                </Button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Certificate Name</TableHead>
+                      <TableHead>Issued By</TableHead>
+                      <TableHead>Issued Date</TableHead>
+                      <TableHead>Expiry Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </CardContent>
-      </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {certifications.map((cert) => (
+                      <TableRow key={cert._id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 shrink-0 text-primary" />
+                            <span className="font-medium">{cert.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{cert.issuedBy}</TableCell>
+                        <TableCell>
+                          {cert.issuedDate ? new Date(cert.issuedDate).toLocaleDateString() : 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap items-center gap-2">
+                            {cert.expiryDate ? new Date(cert.expiryDate).toLocaleDateString() : 'No Expiry'}
+                            {isExpired(cert.expiryDate) && <Badge variant="destructive">Expired</Badge>}
+                            {isExpiringSoon(cert.expiryDate) && <Badge variant="warning">Expiring Soon</Badge>}
+                          </div>
+                        </TableCell>
+                        <TableCell>{verificationBadge(cert.verificationStatus)}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            {cert.certificateUrl && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button type="button" variant="ghost" size="icon" onClick={() => handleDownload(cert)}>
+                                    <Download className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Download</TooltipContent>
+                              </Tooltip>
+                            )}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => handleDelete(cert._id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Delete</TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-      {/* Upload Dialog */}
-      <Dialog
-        open={uploadDialogOpen}
-        onClose={() => {
-          setUploadDialogOpen(false)
-          setSelectedFile(null)
-          setFormData({ name: '', issuedBy: '', issuedDate: '', expiryDate: '' })
-        }}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Upload Certificate</DialogTitle>
-        <DialogContent>
-          <Stack spacing={3} sx={{ mt: 1 }}>
-            {/* File Upload */}
-            <Box
-              {...getRootProps()}
-              sx={{
-                border: '2px dashed',
-                borderColor: isDragActive ? 'primary.main' : 'grey.300',
-                borderRadius: 2,
-                p: 4,
-                textAlign: 'center',
-                cursor: 'pointer',
-                bgcolor: isDragActive ? 'action.hover' : 'background.paper',
-                transition: 'all 0.2s',
-              }}
-            >
-              <input {...getInputProps()} />
-              <CloudUpload sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-              {selectedFile ? (
-                <Box>
-                  <Typography variant="body1" fontWeight={500}>
-                    {selectedFile.name}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                  </Typography>
-                </Box>
-              ) : (
-                <Box>
-                  <Typography variant="body1" gutterBottom>
-                    {isDragActive ? 'Drop the file here' : 'Drag & drop a file here, or click to select'}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    PDF, PNG, JPG (Max 10MB)
-                  </Typography>
-                </Box>
-              )}
-            </Box>
-
-            {/* Form Fields */}
-            <TextField
-              fullWidth
-              label="Certificate Name *"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-            />
-            <TextField
-              fullWidth
-              label="Issued By *"
-              value={formData.issuedBy}
-              onChange={(e) => setFormData({ ...formData, issuedBy: e.target.value })}
-              placeholder="e.g., Government of India, ABC Institute"
-              required
-            />
-            <TextField
-              fullWidth
-              type="date"
-              label="Issued Date"
-              value={formData.issuedDate}
-              onChange={(e) => setFormData({ ...formData, issuedDate: e.target.value })}
-              InputLabelProps={{ shrink: true }}
-            />
-            <TextField
-              fullWidth
-              type="date"
-              label="Expiry Date"
-              value={formData.expiryDate}
-              onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => {
-              setUploadDialogOpen(false)
+        <Dialog
+          open={uploadDialogOpen}
+          onOpenChange={(open) => {
+            setUploadDialogOpen(open)
+            if (!open) {
               setSelectedFile(null)
               setFormData({ name: '', issuedBy: '', issuedDate: '', expiryDate: '' })
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleUpload}
-            disabled={!selectedFile || !formData.name || !formData.issuedBy || uploading}
-            startIcon={uploading ? <CircularProgress size={16} /> : <UploadIcon />}
-          >
-            {uploading ? 'Uploading...' : 'Upload'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+            }
+          }}
+        >
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Upload Certificate</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div
+                {...getRootProps()}
+                className={cn(
+                  'cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors',
+                  isDragActive ? 'border-primary bg-muted' : 'border-muted-foreground/25',
+                )}
+              >
+                <input {...getInputProps()} />
+                <CloudUpload className="mx-auto mb-2 h-12 w-12 text-muted-foreground" />
+                {selectedFile ? (
+                  <div>
+                    <p className="font-medium">{selectedFile.name}</p>
+                    <p className="text-xs text-muted-foreground">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="mb-1 text-sm">
+                      {isDragActive ? 'Drop the file here' : 'Drag & drop a file here, or click to select'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">PDF, PNG, JPG (Max 10MB)</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cert-name">Certificate Name *</Label>
+                <Input
+                  id="cert-name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="issued-by">Issued By *</Label>
+                <Input
+                  id="issued-by"
+                  value={formData.issuedBy}
+                  onChange={(e) => setFormData({ ...formData, issuedBy: e.target.value })}
+                  placeholder="e.g., Government of India, ABC Institute"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="issued-date">Issued Date</Label>
+                <Input
+                  id="issued-date"
+                  type="date"
+                  value={formData.issuedDate}
+                  onChange={(e) => setFormData({ ...formData, issuedDate: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="expiry-date">Expiry Date</Label>
+                <Input
+                  id="expiry-date"
+                  type="date"
+                  value={formData.expiryDate}
+                  onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setUploadDialogOpen(false)
+                  setSelectedFile(null)
+                  setFormData({ name: '', issuedBy: '', issuedDate: '', expiryDate: '' })
+                }}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleUpload} disabled={!selectedFile || !formData.name || !formData.issuedBy || uploading}>
+                {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                {uploading ? 'Uploading...' : 'Upload'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
   )
 }

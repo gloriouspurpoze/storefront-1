@@ -1,36 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react'
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  IconButton,
-  Alert,
-  useTheme,
-  useMediaQuery,
-  Stack,
-  InputAdornment,
-  Stepper,
-  Step,
-  StepLabel,
-  LinearProgress,
-  Fade,
-  CircularProgress,
-} from '@mui/material'
-import {
-  Save as SaveIcon,
-  ArrowBack as ArrowBackIcon,
-  Inventory as PackageIcon,
-  AttachMoney as DollarIcon,
+  Loader2,
+  ArrowLeft,
+  Package,
+  IndianRupee,
   Image as ImageIcon,
-  Scale as ScaleIcon,
-  Tag as TagIcon,
-  Description as DescriptionIcon,
-  Security as SecurityIcon,
-  CheckCircle as CheckIcon,
-  Refresh as RefreshIcon,
-} from '@mui/icons-material'
+  Scale,
+  Tag,
+  FileText,
+  Shield,
+  CheckCircle2,
+  RefreshCw,
+  Save,
+} from 'lucide-react'
+import { Button } from '../../components/ui/button'
+import { Card, CardContent } from '../../components/ui/card'
+import { cn } from '../../lib/utils'
 import { Product } from '../../types'
 import { formatCurrency } from '../../lib/utils'
 import { slugify } from '../../lib/slugify'
@@ -408,8 +393,6 @@ export function AddProduct() {
   const [categories, setCategories] = useState<any[]>([])
   const [vendors, setVendors] = useState<Array<{ id: string; name: string; legal_name?: string }>>([])
   const [isLoadingData, setIsLoadingData] = useState(true)
-
-  const theme = useTheme()
 
   useEffect(() => {
     if (slugDirtyRef.current) return
@@ -861,107 +844,102 @@ export function AddProduct() {
   }
 
   return (
-    <Box sx={{ flexGrow: 1, bgcolor: 'grey.50', minHeight: '100vh' }}>
+    <div className="min-h-screen flex-1 bg-muted/40">
       {/* Header */}
-      <Box sx={{ 
-        bgcolor: 'white', 
-        borderBottom: 1, 
-        borderColor: 'divider',
-        px: 3,
-        py: 2,
-        mb: 3
-      }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <IconButton 
-              sx={{ mr: 2, color: 'primary.main' }}
-              onClick={() => navigate('/products')}
-            >
-          <ArrowBackIcon />
-        </IconButton>
-        <Box>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5, color: 'text.primary' }}>
+      <div className="mb-6 border-b border-border bg-card px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <Button variant="ghost" size="icon" className="mr-4 text-primary" onClick={() => navigate('/products')} aria-label="Back">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">
                 {isViewMode ? 'View Product' : isEditMode ? 'Edit Product' : 'Create New Product'}
-          </Typography>
-              <Typography variant="body2" color="text.secondary">
+              </h1>
+              <p className="text-sm text-muted-foreground">
                 {isViewMode ? 'View product details and information' : isEditMode ? 'Update product information and details' : 'Build a comprehensive product listing with all necessary details'}
-          </Typography>
-            </Box>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
             {!isViewMode && (
               <>
                 <Button
-                  variant="outlined"
-                  startIcon={<SaveIcon />}
+                  variant="outline"
                   onClick={handleSaveDraft}
                   disabled={isLoading || isLoadingData}
                 >
+                  <Save className="mr-2 h-4 w-4" />
                   {isLoading ? 'Saving...' : 'Save Draft'}
                 </Button>
                 <Button
-                  variant="contained"
-                  startIcon={<SaveIcon />}
                   onClick={handleSubmit}
                   disabled={isLoading || isLoadingData}
-                  sx={{ minWidth: 140 }}
+                  className="min-w-[140px]"
                 >
+                  <Save className="mr-2 h-4 w-4" />
                   {isLoading ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Product' : 'Create Product')}
                 </Button>
               </>
             )}
-          </Box>
-        </Box>
-      </Box>
+          </div>
+        </div>
+      </div>
 
       {/* Loading Initial Data */}
       {isLoadingData && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400, px: 3 }}>
-          <Box sx={{ textAlign: 'center' }}>
-            <CircularProgress size={48} sx={{ mb: 2 }} />
-            <Typography variant="h6" color="text.secondary">
-              Loading categories and vendors...
-            </Typography>
-          </Box>
-        </Box>
+        <div className="flex min-h-[400px] items-center justify-center px-6">
+          <div className="text-center">
+            <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-muted-foreground" />
+            <p className="text-lg text-muted-foreground">Loading categories and vendors...</p>
+          </div>
+        </div>
       )}
 
       {/* Form Content */}
       {!isLoadingData && (
-      <Box sx={{ px: 3 }}>
+      <div className="px-6">
         {/* Progress Stepper */}
-        <Card sx={{ mb: 3, overflow: 'visible' }}>
-          <CardContent sx={{ pb: 2 }}>
-            <Stepper activeStep={activeStep} alternativeLabel>
+        <Card className="mb-6 overflow-visible">
+          <CardContent className="pb-4">
+            <div className="flex flex-wrap justify-center gap-2">
               {steps.map((label, index) => (
-                <Step key={label}>
-                  <StepLabel
-                    onClick={() => goToStep(index)}
-                    sx={{ cursor: isViewMode || !isLoadingData ? 'pointer' : 'default' }}
-                  >
-                    {label}
-                  </StepLabel>
-                </Step>
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => goToStep(index)}
+                  className={cn(
+                    'rounded-full border px-3 py-2 text-left text-xs font-medium transition-colors sm:text-sm',
+                    index === activeStep
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : index < activeStep
+                        ? 'border-emerald-500/50 bg-emerald-500/5 text-emerald-900'
+                        : 'border-border bg-background hover:bg-muted',
+                  )}
+                >
+                  <span className="block text-[10px] uppercase text-muted-foreground">Step {index + 1}</span>
+                  {label}
+                </button>
               ))}
-            </Stepper>
+            </div>
           </CardContent>
         </Card>
 
-        <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', lg: 'row' } }}>
+        <div className="flex flex-col gap-8 lg:flex-row">
         {/* Main Form */}
-          <Box sx={{ flex: { xs: 1, lg: 2 } }}>
-          <Stack spacing={3}>
+          <div className="min-w-0 flex-1 lg:flex-[2]">
+          <div className="flex flex-col gap-6">
               {/* Step 1: Basic Information */}
               {activeStep === 0 && (
-                <Fade in={true}>
+                
             <Card>
               <CardContent>
-                      <Typography variant="h6" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main' }}>
-                  <PackageIcon />
+                      <h2 className="mb-6 flex items-center gap-2 text-lg font-semibold text-primary">
+                  <Package className="h-5 w-5" />
                   Basic Information
-                </Typography>
+                </h2>
                 
-                      <Stack spacing={3}>
+                      <div className="flex flex-col gap-6">
                         <FormField
                       label="Product Name"
                       value={formData.name}
@@ -1011,8 +989,8 @@ export function AddProduct() {
                           disabled={isViewMode}
                         />
                         
-                        <Box sx={{ display: 'flex', gap: 2 }}>
-                          <Box sx={{ flex: 1 }}>
+                        <div className="flex flex-wrap gap-4">
+                          <div className="min-w-[200px] flex-1">
                             <FormField
                               label="Brand"
                               value={formData.brand}
@@ -1021,8 +999,8 @@ export function AddProduct() {
                               helperText="Product brand or manufacturer"
                               disabled={isViewMode}
                             />
-                          </Box>
-                          <Box sx={{ flex: 1 }}>
+                          </div>
+                          <div className="min-w-[200px] flex-1">
                             <FormField
                               label="Model"
                               value={formData.model}
@@ -1031,11 +1009,11 @@ export function AddProduct() {
                               helperText="Product model number"
                               disabled={isViewMode}
                             />
-                          </Box>
-                        </Box>
+                          </div>
+                        </div>
                         
-                        <Box sx={{ display: 'flex', gap: 2 }}>
-                          <Box sx={{ flex: 1 }}>
+                        <div className="flex flex-wrap gap-4">
+                          <div className="min-w-[200px] flex-1">
                             <FormField
                               label="Barcode / UPC"
                               value={formData.barcode}
@@ -1044,8 +1022,8 @@ export function AddProduct() {
                               helperText="Product barcode or UPC code"
                               disabled={isViewMode}
                             />
-                          </Box>
-                          <Box sx={{ flex: 1 }}>
+                          </div>
+                          <div className="min-w-[200px] flex-1">
                         <SelectField
                         label="Category"
                               value={formData.categoryId}
@@ -1059,8 +1037,8 @@ export function AddProduct() {
                               required
                               disabled={categories.length === 0 || isViewMode}
                             />
-                          </Box>
-                        </Box>
+                          </div>
+                        </div>
                         
                         <SelectField
                           label="Vendor"
@@ -1080,25 +1058,25 @@ export function AddProduct() {
                           disabled={vendors.length === 0 || isViewMode}
                           placeholder="Select vendor"
                         />
-                      </Stack>
+                      </div>
               </CardContent>
             </Card>
-                </Fade>
+                
               )}
 
               {/* Step 2: Pricing & Inventory */}
               {activeStep === 1 && (
-                <Fade in={true}>
+                
             <Card>
               <CardContent>
-                      <Typography variant="h6" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main' }}>
-                  <DollarIcon />
+                      <h2 className="mb-6 flex items-center gap-2 text-lg font-semibold text-primary">
+                      <IndianRupee className="h-5 w-5" />
                   Pricing & Inventory
-                </Typography>
+                </h2>
                 
-                      <Stack spacing={3}>
-                        <Box sx={{ display: 'flex', gap: 2 }}>
-                          <Box sx={{ flex: 1 }}>
+                      <div className="flex flex-col gap-6">
+                        <div className="flex flex-wrap gap-4">
+                          <div className="min-w-[200px] flex-1">
                             <FormField
                               label="Selling Price"
                       value={formData.price}
@@ -1109,8 +1087,8 @@ export function AddProduct() {
                               startAdornment="₹"
                               required
                             />
-                          </Box>
-                          <Box sx={{ flex: 1 }}>
+                          </div>
+                          <div className="min-w-[200px] flex-1">
                             <FormField
                       label="Original Price"
                       value={formData.originalPrice}
@@ -1120,8 +1098,8 @@ export function AddProduct() {
                               type="number"
                               startAdornment="₹"
                             />
-                          </Box>
-                          <Box sx={{ flex: 1 }}>
+                          </div>
+                          <div className="min-w-[200px] flex-1">
                             <FormField
                       label="Cost Price"
                       value={formData.costPrice}
@@ -1131,11 +1109,11 @@ export function AddProduct() {
                               type="number"
                               startAdornment="₹"
                             />
-                          </Box>
-                        </Box>
+                          </div>
+                        </div>
                         
-                        <Box sx={{ display: 'flex', gap: 2 }}>
-                          <Box sx={{ flex: 1 }}>
+                        <div className="flex flex-wrap gap-4">
+                          <div className="min-w-[200px] flex-1">
                             <FormField
                       label="SKU"
                       value={formData.sku}
@@ -1145,8 +1123,8 @@ export function AddProduct() {
                       placeholder="e.g., PROD-001"
                               required
                             />
-                          </Box>
-                          <Box sx={{ flex: 1 }}>
+                          </div>
+                          <div className="min-w-[200px] flex-1">
                             <FormField
                       label="Stock Quantity"
                       value={formData.stockQuantity}
@@ -1155,11 +1133,11 @@ export function AddProduct() {
                               helperText="Available inventory"
                               type="number"
                             />
-                          </Box>
-                        </Box>
+                          </div>
+                        </div>
                         
-                        <Box sx={{ display: 'flex', gap: 2 }}>
-                          <Box sx={{ flex: 1 }}>
+                        <div className="flex flex-wrap gap-4">
+                          <div className="min-w-[200px] flex-1">
                             <FormField
                       label="Low Stock Threshold"
                       value={formData.lowStockThreshold}
@@ -1168,8 +1146,8 @@ export function AddProduct() {
                       helperText="Alert when stock falls below this number"
                       type="number"
                     />
-                          </Box>
-                          <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
+                          </div>
+                          <div className="flex min-w-[200px] flex-1 items-center gap-4">
                             <SwitchField
                               label="Track Inventory"
                               value={formData.trackInventory}
@@ -1182,22 +1160,22 @@ export function AddProduct() {
                               onChange={(value: boolean) => setFormData((prev: ProductFormData) => ({ ...prev, allowBackorder: value }))}
                               helperText="Allow orders when out of stock"
                             />
-                          </Box>
-                        </Box>
-                      </Stack>
+                          </div>
+                        </div>
+                      </div>
               </CardContent>
             </Card>
-                </Fade>
+                
               )}
 
               {/* Step 3: Media & SEO */}
               {activeStep === 2 && (
-                <Fade in={true}>
-                  <Stack spacing={3}>
+                
+                  <div className="flex flex-col gap-6">
                     {errors.images && (
-                      <Alert severity="error" sx={{ borderRadius: 1 }}>
+                      <div className="mb-4 rounded-md border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
                         {errors.images}
-                      </Alert>
+                      </div>
                     )}
                     <ImageUploadField
                       label="Product Images"
@@ -1218,11 +1196,11 @@ export function AddProduct() {
 
             <Card>
               <CardContent>
-                        <Typography variant="h6" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main' }}>
+                        <h2 className="mb-6 flex items-center gap-2 text-lg font-semibold text-primary">
                           SEO & Marketing
-                        </Typography>
+                        </h2>
                         
-                        <Stack spacing={3}>
+                        <div className="flex flex-col gap-6">
                           <FormField
                             label="SEO Title"
                             value={formData.seoTitle}
@@ -1257,7 +1235,7 @@ export function AddProduct() {
                             helperText="Add relevant keywords to improve search visibility"
                           />
                           
-                          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                          <div className="flex flex-wrap gap-4">
                             <SwitchField
                               label="Featured Product"
                               value={formData.isFeatured}
@@ -1276,28 +1254,28 @@ export function AddProduct() {
                               onChange={(value: boolean) => setFormData((prev: ProductFormData) => ({ ...prev, isOnSale: value }))}
                               helperText="Show sale badge"
                             />
-                          </Box>
-                        </Stack>
+                          </div>
+                        </div>
                       </CardContent>
                     </Card>
-                  </Stack>
-                </Fade>
+                  </div>
+                
               )}
 
               {/* Step 4: Shipping & Variants */}
               {activeStep === 3 && (
-                <Fade in={true}>
-                  <Stack spacing={3}>
+                
+                  <div className="flex flex-col gap-6">
                     <Card>
                       <CardContent>
-                        <Typography variant="h6" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main' }}>
-                  <ScaleIcon />
+                        <h2 className="mb-6 flex items-center gap-2 text-lg font-semibold text-primary">
+                  <Scale className="h-5 w-5" />
                   Physical Properties
-                </Typography>
+                </h2>
                 
-                        <Stack spacing={3}>
-                          <Box sx={{ display: 'flex', gap: 2 }}>
-                            <Box sx={{ flex: 1 }}>
+                        <div className="flex flex-col gap-6">
+                          <div className="flex flex-wrap gap-4">
+                            <div className="min-w-[200px] flex-1">
                               <FormField
                                 label="Weight"
                       value={formData.weight}
@@ -1307,8 +1285,8 @@ export function AddProduct() {
                                 type="number"
                                 endAdornment={formData.weightUnit}
                               />
-                            </Box>
-                            <Box sx={{ flex: 1 }}>
+                            </div>
+                            <div className="min-w-[200px] flex-1">
                               <SelectField
                                 label="Weight Unit"
                                 value={formData.weightUnit}
@@ -1321,14 +1299,14 @@ export function AddProduct() {
                                 ]}
                                 helperText="Select weight unit"
                               />
-                            </Box>
-                          </Box>
+                            </div>
+                          </div>
                           
-                          <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                          <p className="mb-2 text-sm font-medium">
                             Dimensions
-                          </Typography>
-                          <Box sx={{ display: 'flex', gap: 2 }}>
-                            <Box sx={{ flex: 1 }}>
+                          </p>
+                          <div className="flex flex-wrap gap-4">
+                            <div className="min-w-[200px] flex-1">
                               <FormField
                       label="Length"
                       value={formData.dimensions.length}
@@ -1336,8 +1314,8 @@ export function AddProduct() {
                                 error={errors.dimensions}
                                 type="number"
                               />
-                            </Box>
-                            <Box sx={{ flex: 1 }}>
+                            </div>
+                            <div className="min-w-[200px] flex-1">
                               <FormField
                       label="Width"
                       value={formData.dimensions.width}
@@ -1345,8 +1323,8 @@ export function AddProduct() {
                                 error={errors.dimensions}
                                 type="number"
                               />
-                            </Box>
-                            <Box sx={{ flex: 1 }}>
+                            </div>
+                            <div className="min-w-[200px] flex-1">
                               <FormField
                       label="Height"
                       value={formData.dimensions.height}
@@ -1354,8 +1332,8 @@ export function AddProduct() {
                                 error={errors.dimensions}
                                 type="number"
                     />
-                            </Box>
-                          </Box>
+                            </div>
+                          </div>
                           <SelectField
                             label="Dimension unit"
                             value={formData.dimensions.unit === 'cm' ? 'cm' : 'in'}
@@ -1372,18 +1350,18 @@ export function AddProduct() {
                             helperText="Stored as cm or inch for shipping records"
                             disabled={isViewMode}
                           />
-                        </Stack>
+                        </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardContent>
-                        <Typography variant="h6" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main' }}>
+                        <h2 className="mb-6 flex items-center gap-2 text-lg font-semibold text-primary">
                           Shipping & Handling
-                </Typography>
+                </h2>
                 
-                        <Stack spacing={3}>
-                          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                        <div className="flex flex-col gap-6">
+                          <div className="flex flex-wrap gap-4">
                             <SwitchField
                               label="Requires Shipping"
                               value={formData.requiresShipping}
@@ -1396,10 +1374,10 @@ export function AddProduct() {
                               onChange={(value: boolean) => setFormData((prev: ProductFormData) => ({ ...prev, freeShipping: value }))}
                               helperText="Offer free shipping for this product"
                             />
-                </Box>
+                </div>
                 
-                          <Box sx={{ display: 'flex', gap: 2 }}>
-                            <Box sx={{ flex: 1 }}>
+                          <div className="flex flex-wrap gap-4">
+                            <div className="min-w-[200px] flex-1">
                               <FormField
                                 label="Handling Time (days)"
                                 value={formData.handlingTime}
@@ -1408,8 +1386,8 @@ export function AddProduct() {
                                 helperText="Days to prepare for shipment"
                                 type="number"
                               />
-                </Box>
-                            <Box sx={{ flex: 1 }}>
+                </div>
+                            <div className="min-w-[200px] flex-1">
                               <SelectField
                                 label="Shipping Class"
                                 value={formData.shippingClass}
@@ -1422,20 +1400,20 @@ export function AddProduct() {
                                 ]}
                                 helperText="Select shipping class"
                               />
-                            </Box>
-                          </Box>
-                        </Stack>
+                            </div>
+                          </div>
+                        </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardContent>
-                        <Typography variant="h6" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main' }}>
-                          <TagIcon />
+                        <h2 className="mb-6 flex items-center gap-2 text-lg font-semibold text-primary">
+                          <Tag className="h-5 w-5" />
                           Tags & Collections
-                </Typography>
+                </h2>
                 
-                        <Stack spacing={3}>
+                        <div className="flex flex-col gap-6">
                           <TagField
                             label="Product Tags"
                             value={formData.tags}
@@ -1445,17 +1423,17 @@ export function AddProduct() {
                             maxTags={20}
                             helperText="Add tags to help customers find your product"
                           />
-                </Stack>
+                </div>
               </CardContent>
             </Card>
-          </Stack>
-                </Fade>
+          </div>
+                
               )}
 
               {/* Step 5: Advanced Settings */}
               {activeStep === 4 && (
-                <Fade in={true}>
-          <Stack spacing={3}>
+                
+          <div className="flex flex-col gap-6">
                     <SpecificationField
                       label="Product Specifications"
                       value={formData.specifications}
@@ -1467,23 +1445,23 @@ export function AddProduct() {
 
             <Card>
               <CardContent>
-                        <Typography variant="h6" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main' }}>
-                          <SecurityIcon />
+                        <h2 className="mb-6 flex items-center gap-2 text-lg font-semibold text-primary">
+                          <Shield className="h-5 w-5" />
                           Status & Visibility
-                </Typography>
+                </h2>
                 
-                        <Stack spacing={3}>
-                          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                        <div className="flex flex-col gap-6">
+                          <div className="flex flex-wrap gap-4">
                             <SwitchField
                               label="Product Active"
                               value={formData.isActive}
                               onChange={(value: boolean) => setFormData((prev: ProductFormData) => ({ ...prev, isActive: value }))}
                               helperText="Make product visible to customers"
                             />
-                          </Box>
+                          </div>
                           
-                          <Box sx={{ display: 'flex', gap: 2 }}>
-                            <Box sx={{ flex: 1 }}>
+                          <div className="flex flex-wrap gap-4">
+                            <div className="min-w-[200px] flex-1">
                               <SelectField
                                 label="Visibility"
                                 value={formData.visibility}
@@ -1495,9 +1473,9 @@ export function AddProduct() {
                                 ]}
                                 helperText="Control product visibility"
                               />
-                            </Box>
+                            </div>
                             {formData.visibility === 'password' && (
-                              <Box sx={{ flex: 1 }}>
+                              <div className="min-w-[200px] flex-1">
                                 <FormField
                                   label="Password"
                                   type="password"
@@ -1506,20 +1484,20 @@ export function AddProduct() {
                                   error={errors.password}
                                   helperText="Password to access this product"
                                 />
-                              </Box>
+                              </div>
                             )}
-                          </Box>
+                          </div>
                           
-                          <Box sx={{ display: 'flex', gap: 2 }}>
-                            <Box sx={{ flex: 1 }}>
+                          <div className="flex flex-wrap gap-4">
+                            <div className="min-w-[200px] flex-1">
                               <DateField
                                 label="Publish Date"
                                 value={formData.publishDate}
                                 onChange={handleInputChange('publishDate')}
                                 helperText="When to make product live"
                               />
-                            </Box>
-                            <Box sx={{ flex: 1 }}>
+                            </div>
+                            <div className="min-w-[200px] flex-1">
                               <DateField
                                 label="Expiry Date"
                                 value={formData.expiryDate}
@@ -1527,172 +1505,172 @@ export function AddProduct() {
                                 error={errors.expiryDate}
                                 helperText="When to remove product (optional)"
                               />
-                            </Box>
-                          </Box>
-                </Stack>
+                            </div>
+                          </div>
+                </div>
               </CardContent>
             </Card>
-                  </Stack>
-                </Fade>
+                  </div>
+                
               )}
 
               {/* Step 6: Review & Publish */}
               {activeStep === 5 && (
-                <Fade in={true}>
+                
             <Card>
               <CardContent>
-                      <Typography variant="h6" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main' }}>
-                        <CheckIcon />
+                      <h2 className="mb-6 flex items-center gap-2 text-lg font-semibold text-primary">
+                        <CheckCircle2 className="h-5 w-5" />
                         Review & Publish
-                </Typography>
+                </h2>
                 
-                      <Alert severity="info" sx={{ mb: 3 }}>
+                      <div className="mb-6 rounded-lg border border-sky-500/30 bg-sky-500/10 p-4 text-sm">
                         Review all information before publishing your product. You can always edit these details later.
-                      </Alert>
+                      </div>
                       
-                      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="h6" sx={{ mb: 2 }}>Product Summary</Typography>
-                          <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+                      <div className="flex flex-col gap-6 md:flex-row">
+                        <div className="min-w-[200px] flex-1">
+                          <h3 className="mb-4 text-lg font-semibold">Product Summary</h3>
+                          <div className="rounded-md bg-muted/60 p-4">
+                            <p className="mb-2 text-base font-semibold">
                               {formData.name || 'Untitled Product'}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                            </p>
+                            <p className="mb-1 text-sm text-muted-foreground">
                               Category: {categories.find((c) => String(c.id) === String(formData.categoryId))?.name || '—'}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                            </p>
+                            <p className="mb-1 text-sm text-muted-foreground">
                               SKU: {formData.sku || '—'} · Stock: {formData.stockQuantity ?? 0}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            </p>
+                            <p className="mb-2 text-sm text-muted-foreground">
                               Images: {formData.images?.length ?? 0} · Tags: {formData.tags?.length ?? 0}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                            </p>
+                            <p className="mb-4 text-sm text-muted-foreground">
                               {formData.shortDescription || 'No short description'}
-                            </Typography>
-                            <Typography variant="h6" color="primary" sx={{ fontWeight: 700 }}>
+                            </p>
+                            <p className="text-xl font-bold text-primary">
                               {formatCurrency(formData.price || 0)}
-                            </Typography>
+                            </p>
                             {formData.originalPrice > 0 && formData.originalPrice > (formData.price || 0) && (
-                              <Typography variant="body2" color="text.secondary" sx={{ textDecoration: 'line-through' }}>
+                              <p className="text-sm text-muted-foreground line-through">
                                 {formatCurrency(formData.originalPrice)}
-                              </Typography>
+                              </p>
                             )}
-                          </Box>
-                        </Box>
+                          </div>
+                        </div>
                         
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="h6" sx={{ mb: 2 }}>Status</Typography>
-                          <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                              {formData.isActive ? <CheckIcon color="success" /> : <CheckIcon color="error" />}
-                              <Typography variant="body2">
+                        <div className="min-w-[200px] flex-1">
+                          <h3 className="mb-4 text-lg font-semibold">Status</h3>
+                          <div className="rounded-md bg-muted/60 p-4">
+                            <div className="mb-2 flex items-center gap-2">
+                              <CheckCircle2 className={cn('h-4 w-4', formData.isActive ? 'text-emerald-600' : 'text-destructive')} />
+                              <p className="text-sm">
                                 {formData.isActive ? 'Active' : 'Inactive'}
-                              </Typography>
-                            </Box>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                              {formData.isFeatured ? <CheckIcon color="warning" /> : <CheckIcon color="disabled" />}
-                              <Typography variant="body2">
+                              </p>
+                            </div>
+                            <div className="mb-2 flex items-center gap-2">
+                              <CheckCircle2 className={cn('h-4 w-4', formData.isFeatured ? 'text-amber-500' : 'text-muted-foreground')} />
+                              <p className="text-sm">
                                 {formData.isFeatured ? 'Featured' : 'Not Featured'}
-                              </Typography>
-                            </Box>
-                            <Typography variant="body2" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                              </p>
+                            </div>
+                            <p className="mb-2 block text-sm text-muted-foreground">
                               Visibility: {formData.visibility}
-                            </Typography>
+                            </p>
                             {formData.vendorId && (() => {
                               const v = vendors.find((x) => String(x.id) === String(formData.vendorId))
                               const label =
                                 v?.legal_name?.trim() ? `${v.name} (${v.legal_name})` : v?.name || '—'
                               return (
-                                <Typography variant="body2" color="text.secondary">
+                                <p className="text-sm text-muted-foreground">
                                   Vendor: {label}
-                                </Typography>
+                                </p>
                               )
                             })()}
-                          </Box>
-                        </Box>
-                </Box>
+                          </div>
+                        </div>
+                </div>
               </CardContent>
             </Card>
-                </Fade>
+                
               )}
 
               {/* Navigation Buttons */}
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
+              <div className="mt-8 flex justify-between">
                 <Button
-                  variant="outlined"
+                  variant="outline"
                   onClick={() => setActiveStep(Math.max(0, activeStep - 1))}
                   disabled={activeStep === 0}
                 >
                   Previous
                 </Button>
                   <Button
-                    variant="contained"
                   onClick={handleNext}
                   disabled={activeStep === steps.length - 1}
                 >
                   Next
                   </Button>
-              </Box>
-            </Stack>
-          </Box>
+              </div>
+            </div>
+          </div>
 
           {/* Sidebar */}
-          <Box sx={{ flex: { xs: 1, lg: 1 } }}>
-            <Stack spacing={3}>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-col gap-6">
               {/* Progress Summary */}
               <Card>
                 <CardContent>
-                  <Typography variant="h6" sx={{ mb: 2 }}>
+                  <h3 className="mb-4 text-lg font-semibold">
                     Progress
-                  </Typography>
-                  <LinearProgress 
-                    variant="determinate" 
-                    value={(activeStep + 1) / steps.length * 100} 
-                    sx={{ mb: 2 }}
-                  />
-                  <Typography variant="body2" color="text.secondary">
+                  </h3>
+                  <div className="mb-4 h-2 w-full overflow-hidden rounded-full bg-secondary">
+                    <div
+                      className="h-full bg-primary transition-all"
+                      style={{ width: `${((activeStep + 1) / steps.length) * 100}%` }}
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
                     Step {activeStep + 1} of {steps.length}: {steps[activeStep]}
-                  </Typography>
+                  </p>
                 </CardContent>
               </Card>
 
               {/* Quick Actions */}
               <Card>
                 <CardContent>
-                  <Typography variant="h6" sx={{ mb: 2 }}>
+                  <h3 className="mb-4 text-lg font-semibold">
                     Quick Actions
-                  </Typography>
-                  <Stack spacing={1}>
+                  </h3>
+                  <div className="flex flex-col gap-2">
                   <Button
-                    variant="outlined"
-                    fullWidth
-                    startIcon={<SaveIcon />}
+                    variant="outline"
+                    className="w-full"
                     onClick={handleSaveDraft}
                     disabled={isLoading}
                   >
+                    <Save className="mr-2 h-4 w-4" />
                     {isLoading ? 'Saving...' : 'Save Draft'}
                   </Button>
                   <Button
-                    variant="text"
-                    fullWidth
-                      startIcon={<RefreshIcon />}
-                    onClick={() => {
+                    variant="ghost"
+                    className="w-full"
+                      onClick={() => {
                       slugDirtyRef.current = false
                       setBrokenImageIds([])
                       setFormData(initialFormData)
                     }}
                   >
+                    <RefreshCw className="mr-2 h-4 w-4" />
                     Reset Form
                   </Button>
-                </Stack>
+                </div>
               </CardContent>
             </Card>
-          </Stack>
-          </Box>
-        </Box>
-      </Box>
+          </div>
+          </div>
+        </div>
+      </div>
       )}
-    </Box>
+    </div>
   )
 }
 

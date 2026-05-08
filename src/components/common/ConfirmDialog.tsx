@@ -46,6 +46,7 @@ export function ConfirmDialog({
       onOpenChange={(newOpen) => {
         if (!newOpen && !loading) onCancel()
       }}
+     
     >
       <DialogContent className="max-w-sm sm:max-w-md">
         <DialogHeader>

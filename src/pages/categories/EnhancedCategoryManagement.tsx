@@ -1,76 +1,32 @@
 import React, { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import {
-  Box,
-  Container,
-  Typography,
-  Breadcrumbs,
-  Link,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  IconButton,
-  Tooltip,
-  Snackbar,
-  Alert,
-  CircularProgress,
-  useTheme,
-  alpha,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
-import {
-  Home as HomeIcon,
-  Add as AddIcon,
-  Refresh as RefreshIcon,
-  TrendingUp as TrendingUpIcon,
-  Category as CategoryIcon,
-  Palette as PaletteIcon,
-  Search as SearchIcon,
-  FilterList as FilterIcon,
-  Download as DownloadIcon,
-  Upload as UploadIcon,
-} from '@mui/icons-material'
-import { styled } from '@mui/material/styles'
+  Home,
+  Plus,
+  RefreshCw,
+  TrendingUp,
+  FolderTree,
+  Loader2,
+  AlertTriangle,
+} from 'lucide-react'
 import { Category } from '../../types'
 import { CategoriesService } from '../../services/api/categories.service'
 import EnhancedCategoryList from '../../components/categories/EnhancedCategoryList'
 import EnhancedCategoryForm from '../../components/categories/EnhancedCategoryForm'
 import { useNavigate } from 'react-router-dom'
-
-// Enhanced styling
-const PageContainer = styled(Container)(({ theme }) => ({
-  paddingTop: theme.spacing(4),
-  paddingBottom: theme.spacing(4),
-}))
-
-const HeaderCard = styled(Card)(({ theme }) => ({
-  background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`,
-  border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-  borderRadius: theme.spacing(2),
-  marginBottom: theme.spacing(3),
-}))
-
-const StatsCard = styled(Card)(({ theme }) => ({
-  background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.9)} 0%, ${alpha(theme.palette.primary.main, 0.02)} 100%)`,
-  border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-  borderRadius: theme.spacing(2),
-  transition: 'all 0.3s ease',
-  '&:hover': {
-    transform: 'translateY(-2px)',
-    boxShadow: theme.shadows[4],
-  },
-}))
-
-const ActionButton = styled(Button)(({ theme }) => ({
-  borderRadius: theme.spacing(1.5),
-  textTransform: 'none',
-  fontWeight: 600,
-  padding: theme.spacing(1, 3),
-}))
+import { cn } from '../../lib/utils'
+import {
+  Button,
+  Card,
+  CardContent,
+  Badge,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui'
+import { toast } from '../../components/ui/use-toast'
 
 interface CategoryStats {
   totalCategories: number
@@ -85,11 +41,23 @@ interface CategoryStats {
   totalClicks: number
 }
 
+const statAccent = {
+  primary: 'text-primary',
+  success: 'text-emerald-600 dark:text-emerald-400',
+  info: 'text-sky-600 dark:text-sky-400',
+  warning: 'text-amber-600 dark:text-amber-400',
+} as const
+
+const statIconBg = {
+  primary: 'bg-primary/10 text-primary',
+  success: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+  info: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
+  warning: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+} as const
+
 export default function EnhancedCategoryManagement() {
-  const theme = useTheme()
   const navigate = useNavigate()
-  
-  // State management
+
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<CategoryStats>({
@@ -104,46 +72,36 @@ export default function EnhancedCategoryManagement() {
     totalViews: 0,
     totalClicks: 0,
   })
-  
-  // UI states
+
   const [showCategoryForm, setShowCategoryForm] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null)
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success' as 'success' | 'error' | 'warning' | 'info'
-  })
 
-  // Load categories and stats
   const loadData = async () => {
     setLoading(true)
     try {
-      // Load all categories for stats
       const response = await CategoriesService.getCategories({ limit: 100 })
       const allCategories = response.data.categories
       setCategories(allCategories)
-      
-      // Calculate stats
+
       const newStats: CategoryStats = {
         totalCategories: allCategories.length,
-        activeCategories: allCategories.filter(c => c.isActive).length,
-        inactiveCategories: allCategories.filter(c => !c.isActive).length,
-        serviceCategories: allCategories.filter(c => c.type === 'service').length,
-        productCategories: allCategories.filter(c => c.type === 'product').length,
-        bothCategories: allCategories.filter(c => c.type === 'both').length,
-        rootCategories: allCategories.filter(c => c.level === 0).length,
-        subcategories: allCategories.filter(c => c.level > 0).length,
+        activeCategories: allCategories.filter((c) => c.isActive).length,
+        inactiveCategories: allCategories.filter((c) => !c.isActive).length,
+        serviceCategories: allCategories.filter((c) => c.type === 'service').length,
+        productCategories: allCategories.filter((c) => c.type === 'product').length,
+        bothCategories: allCategories.filter((c) => c.type === 'both').length,
+        rootCategories: allCategories.filter((c) => c.level === 0).length,
+        subcategories: allCategories.filter((c) => c.level > 0).length,
         totalViews: allCategories.reduce((sum, c) => sum + c.viewCount, 0),
         totalClicks: allCategories.reduce((sum, c) => sum + c.clickCount, 0),
       }
       setStats(newStats)
     } catch (error) {
       console.error('Error loading categories:', error)
-      setSnackbar({
-        open: true,
-        message: 'Failed to load categories',
-        severity: 'error'
+      toast({
+        title: 'Failed to load categories',
+        variant: 'destructive',
       })
     } finally {
       setLoading(false)
@@ -154,7 +112,6 @@ export default function EnhancedCategoryManagement() {
     loadData()
   }, [])
 
-  // Handle category actions
   const handleCreateCategory = () => {
     navigate('/categories')
   }
@@ -173,185 +130,138 @@ export default function EnhancedCategoryManagement() {
     setEditingCategory(null)
   }
 
-  const handleCategoryFormSuccess = (category: Category) => {
+  const handleCategoryFormSuccess = (_category: Category) => {
+    const wasEdit = editingCategory !== null
     setShowCategoryForm(false)
     setEditingCategory(null)
-    loadData() // Reload data
-    setSnackbar({
-      open: true,
-      message: editingCategory ? 'Category updated successfully' : 'Category created successfully',
-      severity: 'success'
+    loadData()
+    toast({
+      title: wasEdit ? 'Category updated successfully' : 'Category created successfully',
     })
   }
 
   const handleConfirmDelete = async () => {
     if (!deletingCategory) return
-    
+
     try {
       const response = await CategoriesService.deleteCategory(deletingCategory.id)
       setDeletingCategory(null)
-      loadData() // Reload data
-      setSnackbar({
-        open: true,
-        message: response.message || 'Category deleted successfully',
-        severity: 'success'
+      loadData()
+      toast({
+        title: response.message || 'Category deleted successfully',
       })
     } catch (error) {
       console.error('Error deleting category:', error)
-      setSnackbar({
-        open: true,
-        message: 'Failed to delete category',
-        severity: 'error'
+      toast({
+        title: 'Failed to delete category',
+        variant: 'destructive',
       })
     }
   }
 
-  const handleSnackbarClose = () => {
-    setSnackbar(prev => ({ ...prev, open: false }))
-  }
-
-  // Render stats cards
-  const renderStatsCard = (title: string, value: number, icon: React.ReactNode, color: string) => (
-    <StatsCard>
-      <CardContent>
-        <Box display="flex" alignItems="center" justifyContent="space-between">
-          <Box>
-            <Typography variant="h4" component="div" fontWeight="bold" color={color}>
+  const renderStatsCard = (
+    title: string,
+    value: number,
+    icon: React.ReactNode,
+    accent: keyof typeof statAccent
+  ) => (
+    <Card
+      className={cn(
+        'border-border/60 bg-gradient-to-br from-background/95 to-primary/[0.02]',
+        'transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md'
+      )}
+    >
+      <CardContent className="p-5 pt-6">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className={cn('text-3xl font-bold tabular-nums', statAccent[accent])}>
               {value.toLocaleString()}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {title}
-            </Typography>
-          </Box>
-          <Box
-            sx={{
-              p: 2,
-              borderRadius: 2,
-              background: alpha(color, 0.1),
-              color: color,
-            }}
-          >
-            {icon}
-          </Box>
-        </Box>
+            </p>
+            <p className="text-sm text-muted-foreground">{title}</p>
+          </div>
+          <div className={cn('rounded-xl p-3', statIconBg[accent])}>{icon}</div>
+        </div>
       </CardContent>
-    </StatsCard>
+    </Card>
   )
 
   if (loading) {
     return (
-      <PageContainer>
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress size={60} />
-        </Box>
-      </PageContainer>
+      <div className="mx-auto max-w-7xl px-4 py-10">
+        <div className="flex min-h-[400px] items-center justify-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" aria-hidden />
+          <span className="sr-only">Loading</span>
+        </div>
+      </div>
     )
   }
 
   return (
-    <PageContainer maxWidth="xl">
-      {/* Header */}
-      <HeaderCard>
-        <CardContent>
-          <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-            <Box>
-              <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 1 }}>
-                <Link color="inherit" href="/" display="flex" alignItems="center">
-                  <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" />
-                  Home
-                </Link>
-                <Typography color="text.primary">Category Management</Typography>
-              </Breadcrumbs>
-              <Typography variant="h4" component="h1" fontWeight="bold">
-                Enhanced Category Management
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
+    <div className="mx-auto max-w-7xl px-4 py-8">
+      <Card className="mb-8 border-primary/20 bg-gradient-to-br from-primary/[0.08] to-secondary/[0.04] shadow-sm">
+        <CardContent className="p-6">
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <nav aria-label="Breadcrumb" className="mb-2 text-sm text-muted-foreground">
+                <ol className="flex flex-wrap items-center gap-1.5">
+                  <li>
+                    <Link to="/" className="inline-flex items-center gap-1 hover:text-foreground">
+                      <Home className="h-4 w-4" aria-hidden />
+                      Home
+                    </Link>
+                  </li>
+                  <li aria-hidden>/</li>
+                  <li className="text-foreground">Category Management</li>
+                </ol>
+              </nav>
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Enhanced Category Management</h1>
+              <p className="mt-1 text-muted-foreground">
                 Manage categories with advanced hierarchy, SEO, and analytics features
-              </Typography>
-            </Box>
-            <Box display="flex" gap={2}>
-              <ActionButton
-                variant="outlined"
-                startIcon={<RefreshIcon />}
-                onClick={loadData}
-              >
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" onClick={() => loadData()}>
+                <RefreshCw className="mr-2 h-4 w-4" />
                 Refresh
-              </ActionButton>
-              <ActionButton
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={handleCreateCategory}
-              >
+              </Button>
+              <Button type="button" onClick={handleCreateCategory}>
+                <Plus className="mr-2 h-4 w-4" />
                 Create Category
-              </ActionButton>
-            </Box>
-          </Box>
-          
-          {/* Quick Stats */}
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={3}>
-              {renderStatsCard(
-                'Total Categories',
-                stats.totalCategories,
-                <CategoryIcon />,
-                theme.palette.primary.main
-              )}
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              {renderStatsCard(
-                'Active Categories',
-                stats.activeCategories,
-                <TrendingUpIcon />,
-                theme.palette.success.main
-              )}
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              {renderStatsCard(
-                'Root Categories',
-                stats.rootCategories,
-                <CategoryIcon />,
-                theme.palette.info.main
-              )}
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              {renderStatsCard(
-                'Total Views',
-                stats.totalViews,
-                <TrendingUpIcon />,
-                theme.palette.warning.main
-              )}
-            </Grid>
-          </Grid>
-        </CardContent>
-      </HeaderCard>
+              </Button>
+            </div>
+          </div>
 
-      {/* Category Type Breakdown */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Category Type Breakdown
-          </Typography>
-          <Box display="flex" gap={2} flexWrap="wrap">
-            <Chip
-              label={`Services: ${stats.serviceCategories}`}
-              color="primary"
-              variant="outlined"
-            />
-            <Chip
-              label={`Products: ${stats.productCategories}`}
-              color="secondary"
-              variant="outlined"
-            />
-            <Chip
-              label={`Both: ${stats.bothCategories}`}
-              color="default"
-              variant="outlined"
-            />
-          </Box>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {renderStatsCard('Total Categories', stats.totalCategories, <FolderTree className="h-6 w-6" />, 'primary')}
+            {renderStatsCard(
+              'Active Categories',
+              stats.activeCategories,
+              <TrendingUp className="h-6 w-6" />,
+              'success'
+            )}
+            {renderStatsCard('Root Categories', stats.rootCategories, <FolderTree className="h-6 w-6" />, 'info')}
+            {renderStatsCard('Total Views', stats.totalViews, <TrendingUp className="h-6 w-6" />, 'warning')}
+          </div>
         </CardContent>
       </Card>
 
-      {/* Enhanced Category List */}
+      <Card className="mb-8">
+        <CardContent className="p-6">
+          <h2 className="mb-4 text-lg font-semibold">Category Type Breakdown</h2>
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="outline" className="border-primary/40 px-3 py-1">
+              Services: {stats.serviceCategories}
+            </Badge>
+            <Badge variant="secondary" className="px-3 py-1">
+              Products: {stats.productCategories}
+            </Badge>
+            <Badge variant="outline" className="px-3 py-1">
+              Both: {stats.bothCategories}
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
+
       <EnhancedCategoryList
         onCategoryEdit={handleEditCategory}
         onCategoryDelete={handleDeleteCategory}
@@ -359,53 +269,48 @@ export default function EnhancedCategoryManagement() {
         showStats={true}
       />
 
-      {/* Category Form Dialog */}
       <EnhancedCategoryForm
         open={showCategoryForm}
         onClose={handleCategoryFormClose}
         category={editingCategory}
-        parentCategories={categories.filter(c => c.level < 3)} // Only show categories that can have children
+        parentCategories={categories.filter((c) => c.level < 3)}
         onSuccess={handleCategoryFormSuccess}
       />
 
-      {/* Delete Confirmation Dialog */}
-      {deletingCategory && (
-        <Dialog open={!!deletingCategory} onClose={() => setDeletingCategory(null)}>
-          <DialogTitle>Delete Category</DialogTitle>
-          <DialogContent>
-            <Typography>
-              {`Are you sure you want to delete "${deletingCategory.name}"? Products and services in this category will be moved to another category. Nested categories are kept and moved up one level in the tree. This cannot be undone.`}
-            </Typography>
-            {deletingCategory.childrenCount > 0 && (
-              <Alert severity="warning" sx={{ mt: 2 }}>
-                This category has {deletingCategory.childrenCount} nested categories. They will be reparented, not
-                removed.
-              </Alert>
+      <Dialog open={!!deletingCategory} onOpenChange={(open) => !open && setDeletingCategory(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Category</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <p>
+              {deletingCategory
+                ? `Are you sure you want to delete "${deletingCategory.name}"? Products and services in this category will be moved to another category. Nested categories are kept and moved up one level in the tree. This cannot be undone.`
+                : null}
+            </p>
+            {deletingCategory && deletingCategory.childrenCount > 0 && (
+              <div
+                role="status"
+                className="flex gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-amber-900 dark:text-amber-100"
+              >
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                <p>
+                  This category has {deletingCategory.childrenCount} nested categories. They will be reparented, not
+                  removed.
+                </p>
+              </div>
             )}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setDeletingCategory(null)}>Cancel</Button>
-            <Button onClick={handleConfirmDelete} color="error" variant="contained">
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDeletingCategory(null)}>
+              Cancel
+            </Button>
+            <Button type="button" variant="destructive" onClick={handleConfirmDelete}>
               Delete
             </Button>
-          </DialogActions>
-        </Dialog>
-      )}
-
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleSnackbarClose}
-      >
-        <Alert
-          onClose={handleSnackbarClose}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </PageContainer>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   )
 }

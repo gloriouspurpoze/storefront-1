@@ -4,51 +4,51 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  Chip,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  TableContainer,
-  CircularProgress,
-  Alert,
-  Tabs,
-  Tab,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Stack,
-  Paper,
-  IconButton,
-  Tooltip,
-  TablePagination,
-  Skeleton,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
-import {
   TrendingUp,
-  AttachMoney,
-  PendingActions,
-  CheckCircle,
-  AccountBalance,
-  Refresh,
-  Visibility,
+  IndianRupee,
+  Hourglass,
+  CircleCheck,
+  Landmark,
+  RefreshCw,
+  Eye,
   Check,
   Send,
-  FileDownload,
-} from '@mui/icons-material'
+  Download,
+  Loader2,
+} from 'lucide-react'
 import { apiClient } from '../../services/apiClient'
 import { useAppDispatch } from '../../store/hooks'
 import { addToast } from '../../store/slices/uiSlice'
 import { PageHeader } from '../../components/common/PageHeader'
+import { cn } from '../../lib/utils'
+import { Button } from '../../components/ui/button'
+import { Card, CardContent } from '../../components/ui/card'
+import { Badge } from '../../components/ui/badge'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/table'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
+import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../../components/ui/tooltip'
+import { HStack } from '../../components/ui/spacing'
 
 const ADMIN_EARNINGS = '/earnings/admin'
 
@@ -174,12 +174,11 @@ function professionalLabel(p: Payout): { name: string; phone?: string } {
 }
 
 /** Primary filter per tab; tab 0 & 2 also merge alternate status names (see loadData). */
-const TAB_STATUS = ['requested', 'approved', 'completed'] as const
 const TAB_EXPORT_SLUG = ['awaiting-approval', 'approved', 'completed-paid'] as const
 
 export function AdminEarningsOverview() {
   const dispatch = useAppDispatch()
-  const [activeTab, setActiveTab] = useState(0)
+  const [activeTab, setActiveTab] = useState('0')
   const [loading, setLoading] = useState(true)
   const [summaryLoading, setSummaryLoading] = useState(true)
   const [summary, setSummary] = useState<PlatformSummary | null>(null)
@@ -191,6 +190,8 @@ export function AdminEarningsOverview() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
+
+  const activeTabIdx = Number(activeTab)
 
   useEffect(() => {
     setPage(0)
@@ -232,11 +233,10 @@ export function AdminEarningsOverview() {
       }
 
       let list: Payout[] = []
-      if (activeTab === 0) {
-        // Pro wallet uses "pending" for new requests; some APIs use "requested" — load both
+      if (activeTabIdx === 0) {
         const [pending, requested] = await Promise.all([fetchOne('pending'), fetchOne('requested')])
         list = mergePayoutsById([pending, requested])
-      } else if (activeTab === 1) {
+      } else if (activeTabIdx === 1) {
         list = await fetchOne('approved')
       } else {
         const [completed, paid] = await Promise.all([fetchOne('completed'), fetchOne('paid')])
@@ -262,7 +262,7 @@ export function AdminEarningsOverview() {
       setLoading(false)
       setSummaryLoading(false)
     }
-  }, [activeTab, dispatch])
+  }, [activeTabIdx, dispatch])
 
   useEffect(() => {
     loadData()
@@ -279,9 +279,7 @@ export function AdminEarningsOverview() {
       if (env.success) {
         dispatch(
           addToast({
-            message:
-              env.message ||
-              'Payout approved successfully',
+            message: env.message || 'Payout approved successfully',
             severity: 'success',
           })
         )
@@ -339,42 +337,40 @@ export function AdminEarningsOverview() {
     if (st !== 'requested' && st !== 'pending') return null
     if (!payout.firstApprovedBy) {
       return (
-        <Chip
-          size="small"
-          variant="outlined"
-          color="warning"
-          label={`2 admins · ≥ ₹${PAYOUT_SECOND_APPROVAL_THRESHOLD_RUPEES.toLocaleString('en-IN')}`}
-          sx={{ mt: 0.5, maxWidth: '100%' }}
-        />
+        <Badge variant="outline" className="mt-1 max-w-full border-amber-500/50 bg-amber-500/10 text-amber-950 dark:text-amber-100">
+          2 admins · ≥ ₹{PAYOUT_SECOND_APPROVAL_THRESHOLD_RUPEES.toLocaleString('en-IN')}
+        </Badge>
       )
     }
     if (!payout.secondApprovedBy) {
       return (
-        <Chip
-          size="small"
-          color="warning"
-          label="1/2 — needs second admin"
-          sx={{ mt: 0.5 }}
-        />
+        <Badge variant="warning" className="mt-1">
+          1/2 — needs second admin
+        </Badge>
       )
     }
     return null
   }
 
-  const getStatusChip = (status: string) => {
-    const config: Record<string, { label: string; color: 'info' | 'warning' | 'success' | 'error' | 'default' }> = {
-      pending: { label: 'Pending review', color: 'warning' },
-      requested: { label: 'Requested', color: 'info' },
-      approved: { label: 'Approved', color: 'warning' },
-      processing: { label: 'Processing', color: 'warning' },
-      completed: { label: 'Completed', color: 'success' },
-      paid: { label: 'Paid', color: 'success' },
-      failed: { label: 'Failed', color: 'error' },
-      cancelled: { label: 'Cancelled', color: 'default' },
-      on_hold: { label: 'On hold', color: 'error' },
+  const statusBadge = (status: string) => {
+    const s = (status || '').toLowerCase()
+    const map: Record<string, { label: string; className: string }> = {
+      pending: { label: 'Pending review', className: 'border-orange-500/40 bg-orange-500/10 text-orange-900 dark:text-orange-200' },
+      requested: { label: 'Requested', className: 'border-sky-500/40 bg-sky-500/10 text-sky-900 dark:text-sky-200' },
+      approved: { label: 'Approved', className: 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200' },
+      processing: { label: 'Processing', className: 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200' },
+      completed: { label: 'Completed', className: 'border-green-500/40 bg-green-500/10 text-green-900 dark:text-green-200' },
+      paid: { label: 'Paid', className: 'border-green-500/40 bg-green-500/10 text-green-900 dark:text-green-200' },
+      failed: { label: 'Failed', className: 'border-red-500/40 bg-red-500/10 text-red-900 dark:text-red-200' },
+      cancelled: { label: 'Cancelled', className: 'border-border bg-muted text-muted-foreground' },
+      on_hold: { label: 'On hold', className: 'border-red-500/40 bg-red-500/10 text-red-900 dark:text-red-200' },
     }
-    const c = config[status] || { label: status || '—', color: 'default' as const }
-    return <Chip label={c.label} color={c.color} size="small" />
+    const c = map[s] || { label: status || '—', className: 'border-border bg-muted' }
+    return (
+      <Badge variant="outline" className={cn('text-xs font-medium', c.className)}>
+        {c.label}
+      </Badge>
+    )
   }
 
   const canApprove = (status: string) => status === 'pending' || status === 'requested'
@@ -385,6 +381,8 @@ export function AdminEarningsOverview() {
     () => payouts.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
     [payouts, page, rowsPerPage]
   )
+
+  const totalPages = Math.max(1, Math.ceil(payouts.length / rowsPerPage) || 1)
 
   const exportCsv = () => {
     const headers = [
@@ -417,404 +415,384 @@ export function AdminEarningsOverview() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `payouts-${TAB_EXPORT_SLUG[activeTab]}-${new Date().toISOString().slice(0, 10)}.csv`
+    a.download = `payouts-${TAB_EXPORT_SLUG[activeTabIdx]}-${new Date().toISOString().slice(0, 10)}.csv`
     a.click()
     URL.revokeObjectURL(url)
   }
 
   return (
-    <Box sx={{ p: { xs: 2, sm: 3 } }}>
-      <PageHeader
-        title="Platform Earnings & Payouts"
-        subtitle="GMV, commission, and professional payout lifecycle (request → approve → mark paid)."
-        action={
-          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            <Button
-              variant="outlined"
-              startIcon={<FileDownload />}
-              onClick={exportCsv}
-              disabled={payouts.length === 0}
-              size="small"
-            >
-              Export CSV
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<Refresh />}
-              onClick={() => loadData()}
-              disabled={loading}
-              size="small"
-            >
-              Refresh
-            </Button>
-          </Stack>
-        }
-      />
+    <TooltipProvider delayDuration={200}>
+      <div className="p-4 sm:p-6">
+        <PageHeader
+          title="Platform Earnings & Payouts"
+          subtitle="GMV, commission, and professional payout lifecycle (request → approve → mark paid)."
+          action={
+            <HStack className="flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={exportCsv} disabled={payouts.length === 0}>
+                <Download className="mr-2 h-4 w-4" />
+                Export CSV
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => loadData()} disabled={loading}>
+                <RefreshCw className={cn('mr-2 h-4 w-4', loading && 'animate-spin')} />
+                Refresh
+              </Button>
+            </HStack>
+          }
+        />
 
-      {lastUpdated && (
-        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
-          Last updated: {lastUpdated.toLocaleString()}
-        </Typography>
-      )}
+        {lastUpdated && (
+          <p className="mb-4 text-xs text-muted-foreground">Last updated: {lastUpdated.toLocaleString()}</p>
+        )}
 
-      {loadError && (
-        <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setLoadError(null)}>
-          {loadError}
-        </Alert>
-      )}
-
-      {summaryLoading ? (
-        <Grid container spacing={3} mb={3}>
-          {[1, 2, 3, 4].map((k) => (
-            <Grid item xs={12} md={3} key={k}>
-              <Skeleton variant="rounded" height={140} />
-            </Grid>
-          ))}
-        </Grid>
-      ) : (
-        <Grid container spacing={3} mb={3}>
-          <Grid item xs={12} md={3}>
-            <Card
-              sx={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: 'white',
-              }}
+        {loadError && (
+          <div
+            className="relative mb-4 rounded-md border border-amber-300 bg-amber-50 p-4 pr-10 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
+            role="alert"
+          >
+            <button
+              type="button"
+              className="absolute right-2 top-2 rounded p-1 text-amber-800 hover:bg-amber-200/60 dark:text-amber-200"
+              aria-label="Dismiss"
+              onClick={() => setLoadError(null)}
             >
-              <CardContent>
-                <Box display="flex" alignItems="center" mb={1}>
-                  <AttachMoney sx={{ mr: 1 }} />
-                  <Typography variant="body2">Total Revenue (GMV)</Typography>
-                </Box>
-                <Typography variant="h4" fontWeight="700">
-                  ₹{Number(safeSummary.totalBookingAmount || 0).toLocaleString('en-IN')}
-                </Typography>
-                <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                  From {safeSummary.totalBookings} bookings
-                </Typography>
+              ×
+            </button>
+            {loadError}
+          </div>
+        )}
+
+        {summaryLoading ? (
+          <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[1, 2, 3, 4].map((k) => (
+              <div key={k} className="h-[140px] animate-pulse rounded-lg bg-muted" />
+            ))}
+          </div>
+        ) : (
+          <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Card className="overflow-hidden border-0 bg-gradient-to-br from-indigo-500 to-purple-700 text-white shadow-md">
+              <CardContent className="p-6">
+                <div className="mb-1 flex items-center gap-1">
+                  <IndianRupee className="h-5 w-5 shrink-0" />
+                  <span className="text-sm">Total Revenue (GMV)</span>
+                </div>
+                <p className="text-2xl font-bold sm:text-3xl">₹{Number(safeSummary.totalBookingAmount || 0).toLocaleString('en-IN')}</p>
+                <p className="mt-1 text-xs opacity-90">From {safeSummary.totalBookings} bookings</p>
               </CardContent>
             </Card>
-          </Grid>
 
-          <Grid item xs={12} md={3}>
-            <Card
-              sx={{
-                background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                color: 'white',
-              }}
-            >
-              <CardContent>
-                <Box display="flex" alignItems="center" mb={1}>
-                  <TrendingUp sx={{ mr: 1 }} />
-                  <Typography variant="body2">Platform Commission</Typography>
-                </Box>
-                <Typography variant="h4" fontWeight="700">
+            <Card className="overflow-hidden border-0 bg-gradient-to-br from-fuchsia-500 to-rose-600 text-white shadow-md">
+              <CardContent className="p-6">
+                <div className="mb-1 flex items-center gap-1">
+                  <TrendingUp className="h-5 w-5 shrink-0" />
+                  <span className="text-sm">Platform Commission</span>
+                </div>
+                <p className="text-2xl font-bold sm:text-3xl">
                   ₹{Number(safeSummary.totalPlatformCommission || 0).toLocaleString('en-IN')}
-                </Typography>
-                <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                </p>
+                <p className="mt-1 text-xs opacity-90">
                   {safeSummary.totalBookingAmount
                     ? `${((Number(safeSummary.totalPlatformCommission) / Number(safeSummary.totalBookingAmount)) * 100).toFixed(1)}% of GMV`
                     : '—'}
-                </Typography>
+                </p>
               </CardContent>
             </Card>
-          </Grid>
 
-          <Grid item xs={12} md={3}>
-            <Card
-              sx={{
-                background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-                color: 'white',
-              }}
-            >
-              <CardContent>
-                <Box display="flex" alignItems="center" mb={1}>
-                  <PendingActions sx={{ mr: 1 }} />
-                  <Typography variant="body2">Pending Payouts (amount)</Typography>
-                </Box>
-                <Typography variant="h4" fontWeight="700">
-                  ₹{Number(safeSummary.pendingPayouts || 0).toLocaleString('en-IN')}
-                </Typography>
-                <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                  Outstanding to professionals
-                </Typography>
+            <Card className="overflow-hidden border-0 bg-gradient-to-br from-sky-400 to-cyan-400 text-white shadow-md">
+              <CardContent className="p-6">
+                <div className="mb-1 flex items-center gap-1">
+                  <Hourglass className="h-5 w-5 shrink-0" />
+                  <span className="text-sm">Pending Payouts (amount)</span>
+                </div>
+                <p className="text-2xl font-bold sm:text-3xl">₹{Number(safeSummary.pendingPayouts || 0).toLocaleString('en-IN')}</p>
+                <p className="mt-1 text-xs opacity-90">Outstanding to professionals</p>
               </CardContent>
             </Card>
-          </Grid>
 
-          <Grid item xs={12} md={3}>
-            <Card
-              sx={{
-                background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-                color: 'white',
-              }}
-            >
-              <CardContent>
-                <Box display="flex" alignItems="center" mb={1}>
-                  <CheckCircle sx={{ mr: 1 }} />
-                  <Typography variant="body2">Total Paid Out</Typography>
-                </Box>
-                <Typography variant="h4" fontWeight="700">
-                  ₹{Number(safeSummary.paidPayouts || 0).toLocaleString('en-IN')}
-                </Typography>
-                <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                  Completed transfers
-                </Typography>
+            <Card className="overflow-hidden border-0 bg-gradient-to-br from-emerald-400 to-teal-400 text-white shadow-md">
+              <CardContent className="p-6">
+                <div className="mb-1 flex items-center gap-1">
+                  <CircleCheck className="h-5 w-5 shrink-0" />
+                  <span className="text-sm">Total Paid Out</span>
+                </div>
+                <p className="text-2xl font-bold sm:text-3xl">₹{Number(safeSummary.paidPayouts || 0).toLocaleString('en-IN')}</p>
+                <p className="mt-1 text-xs opacity-90">Completed transfers</p>
               </CardContent>
             </Card>
-          </Grid>
-        </Grid>
-      )}
+          </div>
+        )}
 
-      <Grid container spacing={2} mb={3}>
-        <Grid item xs={12} md={3}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Professional earnings (total)
-            </Typography>
-            <Typography variant="h6" fontWeight="600">
-              ₹{Number(safeSummary.totalProfessionalEarnings || 0).toLocaleString('en-IN')}
-            </Typography>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Pending customer payments
-            </Typography>
-            <Typography variant="h6" fontWeight="600" color="warning.main">
-              ₹{Number(safeSummary.pendingPayments || 0).toLocaleString('en-IN')}
-            </Typography>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Cash in hand (platform)
-            </Typography>
-            <Typography variant="h6" fontWeight="600" color="success.main">
-              ₹{Number(safeSummary.cashInHand || 0).toLocaleString('en-IN')}
-            </Typography>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Outstanding to providers
-            </Typography>
-            <Typography variant="h6" fontWeight="600">
-              ₹{Number(safeSummary.outstandingToProvider || 0).toLocaleString('en-IN')}
-            </Typography>
-          </Paper>
-        </Grid>
-      </Grid>
+        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-sm text-muted-foreground">Professional earnings (total)</p>
+              <p className="text-lg font-semibold">₹{Number(safeSummary.totalProfessionalEarnings || 0).toLocaleString('en-IN')}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-sm text-muted-foreground">Pending customer payments</p>
+              <p className="text-lg font-semibold text-orange-600 dark:text-orange-400">
+                ₹{Number(safeSummary.pendingPayments || 0).toLocaleString('en-IN')}
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-sm text-muted-foreground">Cash in hand (platform)</p>
+              <p className="text-lg font-semibold text-green-600 dark:text-green-400">
+                ₹{Number(safeSummary.cashInHand || 0).toLocaleString('en-IN')}
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-sm text-muted-foreground">Outstanding to providers</p>
+              <p className="text-lg font-semibold">₹{Number(safeSummary.outstandingToProvider || 0).toLocaleString('en-IN')}</p>
+            </CardContent>
+          </Card>
+        </div>
 
-      <Paper sx={{ mb: 2 }}>
-        <Tabs
-          value={activeTab}
-          onChange={(_, v) => setActiveTab(v)}
-          variant="fullWidth"
-          sx={{ borderBottom: 1, borderColor: 'divider' }}
-        >
-          <Tab icon={<PendingActions />} iconPosition="start" label="Awaiting approval" />
-          <Tab icon={<AccountBalance />} iconPosition="start" label="Approved" />
-          <Tab icon={<CheckCircle />} iconPosition="start" label="Completed" />
-        </Tabs>
-      </Paper>
+        <Card className="mb-4 overflow-hidden">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid h-auto w-full grid-cols-3 rounded-none border-b bg-transparent p-0">
+              <TabsTrigger value="0" className="rounded-none py-3 data-[state=active]:border-b-2 data-[state=active]:border-primary">
+                <Hourglass className="mr-2 h-4 w-4" />
+                Awaiting approval
+              </TabsTrigger>
+              <TabsTrigger value="1" className="rounded-none py-3 data-[state=active]:border-b-2 data-[state=active]:border-primary">
+                <Landmark className="mr-2 h-4 w-4" />
+                Approved
+              </TabsTrigger>
+              <TabsTrigger value="2" className="rounded-none py-3 data-[state=active]:border-b-2 data-[state=active]:border-primary">
+                <CircleCheck className="mr-2 h-4 w-4" />
+                Completed
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </Card>
 
-      {activeTab === 0 && (
-        <Alert severity="info" sx={{ mb: 2 }}>
-          Payout batches of{' '}
-          <strong>₹{PAYOUT_SECOND_APPROVAL_THRESHOLD_RUPEES.toLocaleString('en-IN')}</strong> or more require{' '}
-          <strong>two different</strong> admin approvals before they appear under Approved. The Approve button stays
-          available until both steps are done.
-        </Alert>
-      )}
+        {activeTabIdx === 0 && (
+          <div
+            className="mb-4 rounded-md border border-sky-200 bg-sky-50 p-4 text-sm dark:border-sky-900 dark:bg-sky-950/40"
+            role="status"
+          >
+            Payout batches of <strong>₹{PAYOUT_SECOND_APPROVAL_THRESHOLD_RUPEES.toLocaleString('en-IN')}</strong> or more
+            require <strong>two different</strong> admin approvals before they appear under Approved. The Approve button stays
+            available until both steps are done.
+          </div>
+        )}
 
-      <Card>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            {activeTab === 0
-              ? 'Awaiting approval (pending & requested)'
-              : activeTab === 1
-                ? 'Approved payouts'
-                : 'Completed & paid payouts'}
-          </Typography>
-          {loading ? (
-            <Box display="flex" justifyContent="center" py={4}>
-              <CircularProgress />
-            </Box>
-          ) : payouts.length > 0 ? (
-            <>
-              <TableContainer>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Reference</TableCell>
-                      <TableCell>Professional</TableCell>
-                      <TableCell>Requested</TableCell>
-                      <TableCell align="right">Gross</TableCell>
-                      <TableCell align="right">TDS</TableCell>
-                      <TableCell align="right">Net</TableCell>
-                      <TableCell>Method</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell align="right">Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {paginatedPayouts.map((payout) => {
-                      const prof = professionalLabel(payout)
-                      return (
-                        <TableRow key={payout._id} hover>
-                          <TableCell>
-                            <Typography fontWeight="600">{payout.payoutReference}</Typography>
-                          </TableCell>
-                          <TableCell>
-                            {prof.name}
-                            {prof.phone && (
-                              <Typography variant="caption" display="block" color="text.secondary">
-                                {prof.phone}
-                              </Typography>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {payout.requestedAt
-                              ? new Date(payout.requestedAt).toLocaleString('en-IN')
-                              : '—'}
-                          </TableCell>
-                          <TableCell align="right">
-                            ₹{Number(payout.grossAmount ?? 0).toLocaleString('en-IN')}
-                          </TableCell>
-                          <TableCell align="right">
-                            ₹{Number(payout.tdsAmount ?? 0).toLocaleString('en-IN')}
-                          </TableCell>
-                          <TableCell align="right">
-                            <Typography fontWeight="600" color="success.main">
+        <Card>
+          <CardContent className="p-4 sm:p-6">
+            <h2 className="mb-4 text-lg font-semibold">
+              {activeTabIdx === 0
+                ? 'Awaiting approval (pending & requested)'
+                : activeTabIdx === 1
+                  ? 'Approved payouts'
+                  : 'Completed & paid payouts'}
+            </h2>
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+              </div>
+            ) : payouts.length > 0 ? (
+              <>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Reference</TableHead>
+                        <TableHead>Professional</TableHead>
+                        <TableHead>Requested</TableHead>
+                        <TableHead className="text-right">Gross</TableHead>
+                        <TableHead className="text-right">TDS</TableHead>
+                        <TableHead className="text-right">Net</TableHead>
+                        <TableHead>Method</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedPayouts.map((payout) => {
+                        const prof = professionalLabel(payout)
+                        return (
+                          <TableRow key={payout._id}>
+                            <TableCell className="font-semibold">{payout.payoutReference}</TableCell>
+                            <TableCell>
+                              {prof.name}
+                              {prof.phone && <span className="mt-0.5 block text-xs text-muted-foreground">{prof.phone}</span>}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {payout.requestedAt
+                                ? new Date(payout.requestedAt).toLocaleString('en-IN')
+                                : '—'}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              ₹{Number(payout.grossAmount ?? 0).toLocaleString('en-IN')}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              ₹{Number(payout.tdsAmount ?? 0).toLocaleString('en-IN')}
+                            </TableCell>
+                            <TableCell className="text-right font-semibold text-green-600 tabular-nums dark:text-green-400">
                               ₹{Number(payout.netAmount ?? 0).toLocaleString('en-IN')}
-                            </Typography>
-                          </TableCell>
-                          <TableCell sx={{ textTransform: 'uppercase' }}>
-                            {(payout.payoutMethod || '').replace(/_/g, ' ')}
-                            {payout.payoutMethod === 'bank_transfer' && payout.bankDetails && (
-                              <Tooltip
-                                title={`${payout.bankDetails.accountNumber ?? ''} · ${payout.bankDetails.ifscCode ?? ''}`}
-                              >
-                                <IconButton size="small" aria-label="Bank details">
-                                  <Visibility fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            )}
-                            {(payout.payoutMethod === 'upi' || payout.payoutMethod === 'paytm') && payout.upiId && (
-                              <Typography variant="caption" display="block">
-                                {payout.upiId}
-                              </Typography>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Box>
-                              {getStatusChip(payout.status)}
-                              {dualApprovalHint(payout)}
-                            </Box>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Stack direction="row" spacing={1} justifyContent="flex-end">
-                              {activeTab === 0 && canApprove(payout.status) && (
-                                <Button
-                                  size="small"
-                                  variant="contained"
-                                  color="success"
-                                  startIcon={<Check />}
-                                  onClick={() => handleApprovePayout(payout._id)}
-                                >
-                                  {payoutAwaitingSecondAdmin(payout) ? 'Approve (2 of 2)' : 'Approve'}
-                                </Button>
+                            </TableCell>
+                            <TableCell className="uppercase">
+                              <span className="text-sm">{(payout.payoutMethod || '').replace(/_/g, ' ')}</span>
+                              {payout.payoutMethod === 'bank_transfer' && payout.bankDetails && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="ml-1 h-8 w-8" type="button" aria-label="Bank details">
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {payout.bankDetails.accountNumber ?? ''} · {payout.bankDetails.ifscCode ?? ''}
+                                  </TooltipContent>
+                                </Tooltip>
                               )}
-                              {activeTab === 1 && payout.status === 'approved' && (
-                                <Button
-                                  size="small"
-                                  variant="contained"
-                                  startIcon={<Send />}
-                                  onClick={() => {
-                                    setSelectedPayout(payout)
-                                    setCompleteDialogOpen(true)
-                                  }}
-                                >
-                                  Mark paid
-                                </Button>
+                              {(payout.payoutMethod === 'upi' || payout.payoutMethod === 'paytm') && payout.upiId && (
+                                <span className="mt-0.5 block text-xs normal-case text-muted-foreground">{payout.upiId}</span>
                               )}
-                            </Stack>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-              <TablePagination
-                component="div"
-                count={payouts.length}
-                page={page}
-                onPageChange={(_, p) => setPage(p)}
-                rowsPerPage={rowsPerPage}
-                onRowsPerPageChange={(e) => {
-                  setRowsPerPage(parseInt(e.target.value, 10))
-                  setPage(0)
-                }}
-                rowsPerPageOptions={[5, 10, 25, 50]}
-              />
-            </>
-          ) : (
-            <Alert severity="info">
-              No payouts in this queue. New professional requests usually appear as{' '}
-              <strong>pending</strong> or <strong>requested</strong> on the first tab.
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
-
-      <Dialog
-        open={completeDialogOpen}
-        onClose={() => setCompleteDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Mark payout as paid</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 2 }}>
-            {selectedPayout && (
-              <Box mb={3}>
-                <Typography variant="body2" gutterBottom>
-                  <strong>Reference:</strong> {selectedPayout.payoutReference}
-                </Typography>
-                <Typography variant="body2" gutterBottom>
-                  <strong>Professional:</strong> {professionalLabel(selectedPayout).name}
-                </Typography>
-                <Typography variant="body2" gutterBottom>
-                  <strong>Amount:</strong> ₹
-                  {Number(selectedPayout.netAmount ?? 0).toLocaleString('en-IN')}
-                </Typography>
-                <Typography variant="body2" gutterBottom>
-                  <strong>Method:</strong> {(selectedPayout.payoutMethod || '').toUpperCase().replace(/_/g, ' ')}
-                </Typography>
-              </Box>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col items-start gap-1">
+                                {statusBadge(payout.status)}
+                                {dualApprovalHint(payout)}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex flex-wrap justify-end gap-2">
+                                {activeTabIdx === 0 && canApprove(payout.status) && (
+                                  <Button
+                                    size="sm"
+                                    className="bg-green-600 hover:bg-green-700"
+                                    type="button"
+                                    onClick={() => handleApprovePayout(payout._id)}
+                                  >
+                                    <Check className="mr-1 h-4 w-4" />
+                                    {payoutAwaitingSecondAdmin(payout) ? 'Approve (2 of 2)' : 'Approve'}
+                                  </Button>
+                                )}
+                                {activeTabIdx === 1 && payout.status === 'approved' && (
+                                  <Button
+                                    size="sm"
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedPayout(payout)
+                                      setCompleteDialogOpen(true)
+                                    }}
+                                  >
+                                    <Send className="mr-1 h-4 w-4" />
+                                    Mark paid
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span>Rows per page</span>
+                    <select
+                      className="rounded-md border border-input bg-background px-2 py-1 text-sm"
+                      value={rowsPerPage}
+                      onChange={(e) => {
+                        setRowsPerPage(parseInt(e.target.value, 10))
+                        setPage(0)
+                      }}
+                    >
+                      {[5, 10, 25, 50].map((n) => (
+                        <option key={n} value={n}>
+                          {n}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      type="button"
+                      disabled={page <= 0}
+                      onClick={() => setPage((p) => Math.max(0, p - 1))}
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-sm tabular-nums">
+                      Page {page + 1} of {totalPages} ({payouts.length} total)
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      type="button"
+                      disabled={page + 1 >= totalPages}
+                      onClick={() => setPage((p) => p + 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div
+                className="rounded-md border border-sky-200 bg-sky-50 p-4 text-sm dark:border-sky-900 dark:bg-sky-950/40"
+                role="status"
+              >
+                No payouts in this queue. New professional requests usually appear as <strong>pending</strong> or{' '}
+                <strong>requested</strong> on the first tab.
+              </div>
             )}
+          </CardContent>
+        </Card>
 
-            <TextField
-              fullWidth
-              label="Transaction reference / UTR"
-              value={transactionRef}
-              onChange={(e) => setTransactionRef(e.target.value)}
-              placeholder="Bank UTR or transfer ID"
-              helperText="Required for audit trail and reconciliation."
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setCompleteDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleCompletePayout}>
-            Confirm paid
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+        <Dialog open={completeDialogOpen} onOpenChange={setCompleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Mark payout as paid</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              {selectedPayout && (
+                <div className="space-y-2 text-sm">
+                  <p>
+                    <strong>Reference:</strong> {selectedPayout.payoutReference}
+                  </p>
+                  <p>
+                    <strong>Professional:</strong> {professionalLabel(selectedPayout).name}
+                  </p>
+                  <p>
+                    <strong>Amount:</strong> ₹{Number(selectedPayout.netAmount ?? 0).toLocaleString('en-IN')}
+                  </p>
+                  <p>
+                    <strong>Method:</strong> {(selectedPayout.payoutMethod || '').toUpperCase().replace(/_/g, ' ')}
+                  </p>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="txn-ref">Transaction reference / UTR</Label>
+                <Input
+                  id="txn-ref"
+                  value={transactionRef}
+                  onChange={(e) => setTransactionRef(e.target.value)}
+                  placeholder="Bank UTR or transfer ID"
+                />
+                <p className="text-xs text-muted-foreground">Required for audit trail and reconciliation.</p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setCompleteDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={handleCompletePayout}>
+                Confirm paid
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
   )
 }

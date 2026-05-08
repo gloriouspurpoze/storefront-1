@@ -1,34 +1,34 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import {
-  Drawer,
-  Box,
-  Typography,
-  IconButton,
-  Stack,
-  Chip,
-  Divider,
   Button,
-  TextField,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
+  Input,
+  Label,
   Table,
   TableBody,
   TableCell,
   TableHead,
+  TableHeader,
   TableRow,
+  Badge,
+  HStack,
+  VStack,
+  Separator,
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  CircularProgress,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
-import CloseIcon from '@mui/icons-material/Close'
-import RefreshIcon from '@mui/icons-material/Refresh'
-import LocalShippingIcon from '@mui/icons-material/LocalShipping'
-import PaymentsIcon from '@mui/icons-material/Payments'
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui'
+import { X, RefreshCw, Truck, CreditCard, Loader2 } from 'lucide-react'
 import {
   OrdersService,
   type Order,
@@ -58,32 +58,24 @@ const PAYMENT_FLOW: Record<PaymentStatus, PaymentStatus[]> = {
 function addressBlock(title: string, a?: Order['shippingAddress']) {
   if (!a) {
     return (
-      <Box>
-        <Typography variant="caption" color="text.secondary" fontWeight={600}>
-          {title}
-        </Typography>
-        <Typography variant="body2">—</Typography>
-      </Box>
+      <div>
+        <p className="text-xs font-semibold text-muted-foreground">{title}</p>
+        <p className="text-sm">—</p>
+      </div>
     )
   }
   return (
-    <Box>
-      <Typography variant="caption" color="text.secondary" fontWeight={600}>
-        {title}
-      </Typography>
-      <Typography variant="body2">
+    <div>
+      <p className="text-xs font-semibold text-muted-foreground">{title}</p>
+      <p className="text-sm">
         {a.firstName} {a.lastName}
-      </Typography>
-      <Typography variant="body2" color="text.secondary">
-        {a.address}
-      </Typography>
-      <Typography variant="body2" color="text.secondary">
+      </p>
+      <p className="text-sm text-muted-foreground">{a.address}</p>
+      <p className="text-sm text-muted-foreground">
         {a.city}, {a.state} {a.zipCode}, {a.country}
-      </Typography>
-      <Typography variant="body2" color="text.secondary">
-        {a.phone}
-      </Typography>
-    </Box>
+      </p>
+      <p className="text-sm text-muted-foreground">{a.phone}</p>
+    </div>
   )
 }
 
@@ -219,306 +211,307 @@ export function OrderDetailDrawer({ open, orderId, onClose, onUpdated, canEdit }
 
   return (
     <>
-      <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: { xs: '100%', sm: 520, md: 640 } } }}>
-        <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: 1, borderColor: 'divider' }}>
-          <Typography variant="h6" fontWeight={700}>
-            Order detail
-          </Typography>
-          <Stack direction="row" spacing={0.5}>
-            <IconButton aria-label="Refresh" onClick={() => void load()} disabled={!orderId || loading}>
-              <RefreshIcon />
-            </IconButton>
-            <IconButton aria-label="Close" onClick={onClose}>
-              <CloseIcon />
-            </IconButton>
-          </Stack>
-        </Box>
+      <Sheet
+        open={open}
+        onOpenChange={(next) => {
+          if (!next) onClose()
+        }}
+      >
+        <SheetContent
+          hideClose
+          className="flex w-full flex-col overflow-hidden p-0 sm:max-w-lg md:max-w-2xl"
+        >
+          <SheetHeader className="flex shrink-0 flex-row items-center justify-between space-y-0 border-b border-border p-4 text-left">
+            <SheetTitle>Order detail</SheetTitle>
+            <HStack spacing={1}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Refresh"
+                onClick={() => void load()}
+                disabled={!orderId || loading}
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+              <Button type="button" variant="ghost" size="icon" aria-label="Close" onClick={onClose}>
+                <X className="h-4 w-4" />
+              </Button>
+            </HStack>
+          </SheetHeader>
 
-        <Box sx={{ p: 2, overflowY: 'auto', pb: 4 }}>
-          {loading && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-              <CircularProgress />
-            </Box>
-          )}
+          <div className="min-h-0 flex-1 overflow-y-auto p-4 pb-10">
+            {loading && (
+              <div className="flex justify-center py-16">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            )}
 
-          {!loading && order && (
-            <Stack spacing={2}>
-              <Stack direction="row" flexWrap="wrap" gap={1} alignItems="center">
-                <Typography variant="subtitle1" fontWeight={700}>
-                  {order.orderNumber}
-                </Typography>
-                <Chip size="small" label={order.status} color="primary" variant="outlined" sx={{ textTransform: 'capitalize' }} />
-                <Chip
-                  size="small"
-                  label={order.paymentStatus}
-                  color={order.paymentStatus === 'paid' ? 'success' : 'default'}
-                  sx={{ textTransform: 'capitalize' }}
-                />
-              </Stack>
+            {!loading && order && (
+              <VStack spacing={4} className="w-full">
+                <HStack spacing={2} className="flex-wrap items-center">
+                  <h3 className="text-lg font-bold">{order.orderNumber}</h3>
+                  <Badge variant="outline" className="capitalize">
+                    {order.status}
+                  </Badge>
+                  <Badge variant={order.paymentStatus === 'paid' ? 'success' : 'secondary'} className="capitalize">
+                    {order.paymentStatus}
+                  </Badge>
+                </HStack>
 
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="caption" color="text.secondary">
-                    Customer
-                  </Typography>
-                  <Typography variant="body2" fontWeight={600}>
-                    {order.customer
-                      ? `${order.customer.firstName} ${order.customer.lastName}`
-                      : `User ${order.userId}`}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {order.customer?.email || '—'}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {order.customer?.phone || '—'}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="caption" color="text.secondary">
-                    Placed / updated
-                  </Typography>
-                  <Typography variant="body2">{formatDate(order.createdAt)}</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Updated {formatDate(order.updatedAt)}
-                  </Typography>
-                  {order.estimatedDeliveryAt && (
-                    <Typography variant="body2" color="text.secondary">
-                      Est. delivery {formatDate(order.estimatedDeliveryAt)}
-                    </Typography>
-                  )}
-                </Grid>
-              </Grid>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Customer</p>
+                    <p className="text-sm font-semibold">
+                      {order.customer
+                        ? `${order.customer.firstName} ${order.customer.lastName}`
+                        : `User ${order.userId}`}
+                    </p>
+                    <p className="text-sm text-muted-foreground">{order.customer?.email || '—'}</p>
+                    <p className="text-sm text-muted-foreground">{order.customer?.phone || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Placed / updated</p>
+                    <p className="text-sm">{formatDate(order.createdAt)}</p>
+                    <p className="text-sm text-muted-foreground">Updated {formatDate(order.updatedAt)}</p>
+                    {order.estimatedDeliveryAt && (
+                      <p className="text-sm text-muted-foreground">
+                        Est. delivery {formatDate(order.estimatedDeliveryAt)}
+                      </p>
+                    )}
+                  </div>
+                </div>
 
-              <Divider />
+                <Separator />
 
-              <Grid container spacing={2}>
-                <Grid item xs={6} sm={4}>
-                  <Typography variant="caption" color="text.secondary">
-                    Items subtotal
-                  </Typography>
-                  <Typography variant="body1" fontWeight={600}>
-                    {formatCurrency(order.items.reduce((s, i) => s + i.total, 0))}
-                  </Typography>
-                </Grid>
-                <Grid item xs={6} sm={4}>
-                  <Typography variant="caption" color="text.secondary">
-                    Shipping / tax
-                  </Typography>
-                  <Typography variant="body2">
-                    {formatCurrency(order.shippingAmount)} / {formatCurrency(order.taxAmount)}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <Typography variant="caption" color="text.secondary">
-                    Total
-                  </Typography>
-                  <Typography variant="body1" fontWeight={700}>
-                    {formatCurrency(order.totalAmount)}
-                  </Typography>
-                  {order.discountAmount > 0 && (
-                    <Typography variant="caption" color="success.main">
-                      Discount {formatCurrency(order.discountAmount)}
-                      {order.couponCode ? ` (${order.couponCode})` : ''}
-                    </Typography>
-                  )}
-                </Grid>
-              </Grid>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Items subtotal</p>
+                    <p className="text-base font-semibold">
+                      {formatCurrency(order.items.reduce((s, i) => s + i.total, 0))}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Shipping / tax</p>
+                    <p className="text-sm">
+                      {formatCurrency(order.shippingAmount)} / {formatCurrency(order.taxAmount)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Total</p>
+                    <p className="text-lg font-bold">{formatCurrency(order.totalAmount)}</p>
+                    {order.discountAmount > 0 && (
+                      <p className="text-xs text-emerald-600">
+                        Discount {formatCurrency(order.discountAmount)}
+                        {order.couponCode ? ` (${order.couponCode})` : ''}
+                      </p>
+                    )}
+                  </div>
+                </div>
 
-              <Typography variant="subtitle2" fontWeight={700}>
-                Line items
-              </Typography>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Product</TableCell>
-                    <TableCell align="right">Qty</TableCell>
-                    <TableCell align="right">Price</TableCell>
-                    <TableCell align="right">Line</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {order.items.map((item, idx) => (
-                    <TableRow key={`${item.productId}-${idx}`}>
-                      <TableCell>
-                        <Typography variant="body2">{item.name}</Typography>
-                        {item.product?.category && (
-                          <Typography variant="caption" color="text.secondary">
-                            {[item.product.category, item.product.subcategory].filter(Boolean).join(' · ')}
-                          </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell align="right">{item.quantity}</TableCell>
-                      <TableCell align="right">{formatCurrency(item.price)}</TableCell>
-                      <TableCell align="right">{formatCurrency(item.total)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                <h4 className="font-semibold">Line items</h4>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Product</TableHead>
+                        <TableHead className="text-right">Qty</TableHead>
+                        <TableHead className="text-right">Price</TableHead>
+                        <TableHead className="text-right">Line</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {order.items.map((item, idx) => (
+                        <TableRow key={`${item.productId}-${idx}`}>
+                          <TableCell>
+                            <p className="text-sm">{item.name}</p>
+                            {item.product?.category && (
+                              <p className="text-xs text-muted-foreground">
+                                {[item.product.category, item.product.subcategory].filter(Boolean).join(' · ')}
+                              </p>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">{item.quantity}</TableCell>
+                          <TableCell className="text-right tabular-nums">{formatCurrency(item.price)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{formatCurrency(item.total)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
 
-              <Divider />
+                <Separator />
 
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   {addressBlock('Ship to', order.shippingAddress)}
-                </Grid>
-                <Grid item xs={12} md={6}>
                   {addressBlock('Bill to', order.billingAddress || order.shippingAddress)}
-                </Grid>
-              </Grid>
+                </div>
 
-              <Typography variant="subtitle2" fontWeight={700}>
-                Payment & logistics
-              </Typography>
-              <Stack spacing={1}>
-                <Typography variant="body2">
-                  <PaymentsIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'text-bottom' }} />
-                  {order.paymentMethod || '—'} {order.paymentId ? `· ${order.paymentId}` : ''}
-                </Typography>
-                <Typography variant="body2">
-                  <LocalShippingIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'text-bottom' }} />
-                  Tracking: {order.trackingNumber || '—'}
-                </Typography>
-                {order.shippedAt && (
-                  <Typography variant="caption" color="text.secondary">
-                    Shipped {formatDate(order.shippedAt)}
-                  </Typography>
+                <h4 className="font-semibold">Payment & logistics</h4>
+                <VStack spacing={2}>
+                  <p className="flex items-center gap-2 text-sm">
+                    <CreditCard className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    {order.paymentMethod || '—'} {order.paymentId ? `· ${order.paymentId}` : ''}
+                  </p>
+                  <p className="flex items-center gap-2 text-sm">
+                    <Truck className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    Tracking: {order.trackingNumber || '—'}
+                  </p>
+                  {order.shippedAt && (
+                    <p className="text-xs text-muted-foreground">Shipped {formatDate(order.shippedAt)}</p>
+                  )}
+                  {order.deliveredAt && (
+                    <p className="text-xs text-muted-foreground">Delivered {formatDate(order.deliveredAt)}</p>
+                  )}
+                </VStack>
+
+                {order.notes && (
+                  <div>
+                    <h4 className="mb-1 font-semibold">Notes</h4>
+                    <p className="whitespace-pre-wrap text-sm">{order.notes}</p>
+                  </div>
                 )}
-                {order.deliveredAt && (
-                  <Typography variant="caption" color="text.secondary">
-                    Delivered {formatDate(order.deliveredAt)}
-                  </Typography>
+
+                {canEdit && (
+                  <>
+                    <Separator />
+                    <h4 className="font-semibold">Operations</h4>
+
+                    <VStack spacing={4}>
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                        <div className="min-w-0 flex-1">
+                          <Label className="mb-1">Tracking number</Label>
+                          <Input
+                            value={trackingDraft}
+                            onChange={(e) => setTrackingDraft(e.target.value)}
+                            disabled={order.status === 'cancelled' || order.status === 'refunded'}
+                          />
+                        </div>
+                        <Button type="button" onClick={() => void saveTracking()} disabled={acting}>
+                          Save tracking
+                        </Button>
+                      </div>
+
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                        <div className="w-full sm:w-48">
+                          <Label className="mb-1">Next fulfillment step</Label>
+                          <Select
+                            value={nextStatus || undefined}
+                            onValueChange={(v) => setNextStatus(v as OrderStatus)}
+                            disabled={allowedStatuses.length === 0}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select…" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {allowedStatuses.map((s) => (
+                                <SelectItem key={s} value={s}>
+                                  {s}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <Label className="mb-1">Internal note (optional)</Label>
+                          <Input value={statusNote} onChange={(e) => setStatusNote(e.target.value)} />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => void applyStatus()}
+                          disabled={acting || !nextStatus}
+                        >
+                          Apply status
+                        </Button>
+                      </div>
+
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                        <div className="w-full sm:w-52">
+                          <Label className="mb-1">Payment status</Label>
+                          <Select
+                            value={nextPayment || undefined}
+                            onValueChange={(v) => setNextPayment(v as PaymentStatus)}
+                            disabled={allowedPayments.length === 0}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select…" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {allowedPayments.map((p) => (
+                                <SelectItem key={p} value={p}>
+                                  {p}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => void applyPayment()}
+                          disabled={acting || !nextPayment}
+                        >
+                          Update payment
+                        </Button>
+                      </div>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border-destructive text-destructive hover:bg-destructive/10"
+                        disabled={
+                          acting ||
+                          order.status === 'cancelled' ||
+                          order.status === 'delivered' ||
+                          order.status === 'shipped'
+                        }
+                        onClick={() => setCancelOpen(true)}
+                      >
+                        Cancel order (admin)
+                      </Button>
+                    </VStack>
+                  </>
                 )}
-              </Stack>
+              </VStack>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
 
-              {order.notes && (
-                <Box>
-                  <Typography variant="subtitle2" fontWeight={700}>
-                    Notes
-                  </Typography>
-                  <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-                    {order.notes}
-                  </Typography>
-                </Box>
-              )}
-
-              {canEdit && (
-                <>
-                  <Divider sx={{ my: 1 }} />
-                  <Typography variant="subtitle2" fontWeight={700}>
-                    Operations
-                  </Typography>
-
-                  <Stack spacing={2}>
-                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'flex-end' }}>
-                      <TextField
-                        label="Tracking number"
-                        fullWidth
-                        size="small"
-                        value={trackingDraft}
-                        onChange={(e) => setTrackingDraft(e.target.value)}
-                        disabled={order.status === 'cancelled' || order.status === 'refunded'}
-                      />
-                      <Button variant="contained" onClick={() => void saveTracking()} disabled={acting}>
-                        Save tracking
-                      </Button>
-                    </Stack>
-
-                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'flex-end' }}>
-                      <FormControl size="small" sx={{ minWidth: 180 }} disabled={allowedStatuses.length === 0}>
-                        <InputLabel>Next fulfillment step</InputLabel>
-                        <Select
-                          label="Next fulfillment step"
-                          value={nextStatus}
-                          onChange={(e) => setNextStatus(e.target.value as OrderStatus)}
-                        >
-                          <MenuItem value="">
-                            <em>Select…</em>
-                          </MenuItem>
-                          {allowedStatuses.map((s) => (
-                            <MenuItem key={s} value={s}>
-                              {s}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                      <TextField
-                        label="Internal note (optional)"
-                        size="small"
-                        sx={{ flex: 1 }}
-                        value={statusNote}
-                        onChange={(e) => setStatusNote(e.target.value)}
-                      />
-                      <Button variant="outlined" onClick={() => void applyStatus()} disabled={acting || !nextStatus}>
-                        Apply status
-                      </Button>
-                    </Stack>
-
-                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'flex-end' }}>
-                      <FormControl size="small" sx={{ minWidth: 200 }} disabled={allowedPayments.length === 0}>
-                        <InputLabel>Payment status</InputLabel>
-                        <Select
-                          label="Payment status"
-                          value={nextPayment}
-                          onChange={(e) => setNextPayment(e.target.value as PaymentStatus)}
-                        >
-                          <MenuItem value="">
-                            <em>Select…</em>
-                          </MenuItem>
-                          {allowedPayments.map((p) => (
-                            <MenuItem key={p} value={p}>
-                              {p}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                      <Button variant="outlined" onClick={() => void applyPayment()} disabled={acting || !nextPayment}>
-                        Update payment
-                      </Button>
-                    </Stack>
-
-                    <Button
-                      color="error"
-                      variant="outlined"
-                      disabled={
-                        acting ||
-                        order.status === 'cancelled' ||
-                        order.status === 'delivered' ||
-                        order.status === 'shipped'
-                      }
-                      onClick={() => setCancelOpen(true)}
-                    >
-                      Cancel order (admin)
-                    </Button>
-                  </Stack>
-                </>
-              )}
-            </Stack>
-          )}
-        </Box>
-      </Drawer>
-
-      <Dialog open={cancelOpen} onClose={() => !acting && setCancelOpen(false)}>
-        <DialogTitle>Cancel this order?</DialogTitle>
+      <Dialog
+        open={cancelOpen}
+        onOpenChange={(o) => {
+          if (!acting) setCancelOpen(o)
+        }}
+      >
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          <DialogHeader>
+            <DialogTitle>Cancel this order?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
             Stock will be restored. Only allowed before shipped/delivered.
-          </Typography>
-          <TextField
-            autoFocus
-            fullWidth
-            label="Reason (optional)"
-            value={cancelReason}
-            onChange={(e) => setCancelReason(e.target.value)}
-          />
+          </p>
+          <div>
+            <Label htmlFor="cancel-reason" className="mb-1">
+              Reason (optional)
+            </Label>
+            <Input
+              id="cancel-reason"
+              autoFocus
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setCancelOpen(false)} disabled={acting}>
+              Back
+            </Button>
+            <Button type="button" variant="destructive" onClick={() => void confirmCancel()} disabled={acting}>
+              Confirm cancel
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setCancelOpen(false)} disabled={acting}>
-            Back
-          </Button>
-          <Button color="error" variant="contained" onClick={() => void confirmCancel()} disabled={acting}>
-            Confirm cancel
-          </Button>
-        </DialogActions>
       </Dialog>
     </>
   )

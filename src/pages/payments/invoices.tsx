@@ -3,7 +3,7 @@
  * INVOICES PAGE - COMPREHENSIVE BILLING MANAGEMENT
  * ============================================================================
  * Professional invoicing system for administrators
- * 
+ *
  * @author CTO Team
  * @date November 9, 2025
  */
@@ -11,64 +11,77 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  Chip,
-  TextField,
-  InputAdornment,
-  Tab,
-  Tabs,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-  Menu,
-  MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Avatar,
-  Stack,
-  Divider,
-  Paper,
-  Alert,
-  CircularProgress,
-  Tooltip,
-  alpha,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
-import {
-  Search as SearchIcon,
-  FilterList as FilterIcon,
-  MoreVert as MoreIcon,
-  Receipt as ReceiptIcon,
-  AttachMoney as MoneyIcon,
-  TrendingUp as TrendingUpIcon,
-  Person as PersonIcon,
-  CalendarToday as CalendarIcon,
-  FileDownload as DownloadIcon,
-  Email as EmailIcon,
-  Refresh as RefreshIcon,
-  Add as AddIcon,
-  Visibility as ViewIcon,
-  CheckCircle as PaidIcon,
-  CheckCircle as CheckCircleIcon,
-  Schedule as ScheduleIcon,
-  Cancel as CancelledIcon,
-  Description as InvoiceIcon,
-} from '@mui/icons-material'
+  Search,
+  Filter,
+  MoreVertical,
+  Receipt,
+  IndianRupee,
+  Calendar,
+  Download,
+  Mail,
+  RefreshCw,
+  Plus,
+  Eye,
+  CheckCircle2,
+  Clock,
+  Ban,
+  FileText,
+} from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { StandardTable, type StandardTableColumn } from '../../components/common'
 import { InvoicesService } from '../../services/api/invoices.service'
 import type { Invoice } from '../../services/api/invoices.service'
 import { appToast } from '../../lib/appToast'
+import { cn } from '../../lib/utils'
+import { Button } from '../../components/ui/button'
+import { Card, CardContent } from '../../components/ui/card'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
+import { Badge } from '../../components/ui/badge'
+import { Avatar, AvatarFallback } from '../../components/ui/avatar'
+import { HStack } from '../../components/ui/spacing'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/table'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../../components/ui/dropdown-menu'
+import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs'
+import { Separator } from '../../components/ui/separator'
+
+function statusTone(
+  status: string
+): { badge: string; Icon: React.FC<{ className?: string }> } {
+  switch (String(status).toLowerCase()) {
+    case 'paid':
+      return { badge: 'border-green-500/45 bg-green-500/10 text-green-800 dark:text-green-300', Icon: CheckCircle2 }
+    case 'pending':
+    case 'issued':
+      return { badge: 'border-orange-500/45 bg-orange-500/10 text-orange-900 dark:text-orange-200', Icon: Clock }
+    case 'partially_paid':
+      return { badge: 'border-sky-500/45 bg-sky-500/10 text-sky-900 dark:text-sky-200', Icon: Clock }
+    case 'refunded':
+    case 'cancelled':
+      return { badge: 'border-neutral-500/45 bg-neutral-500/10 text-neutral-700 dark:text-neutral-300', Icon: Ban }
+    default:
+      return { badge: 'border-border bg-muted/80 text-muted-foreground', Icon: Clock }
+  }
+}
 
 export function Invoices() {
   const navigate = useNavigate()
@@ -76,14 +89,11 @@ export function Invoices() {
   const [filteredInvoices, setFilteredInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  
-  // Filters and search
+
   const [searchQuery, setSearchQuery] = useState('')
-  const [activeTab, setActiveTab] = useState(0)
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+  const [activeTab, setActiveTab] = useState('0')
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null)
-  
-  // Dialog states
+
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false)
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false)
   const [bookingIdForGenerate, setBookingIdForGenerate] = useState('')
@@ -94,7 +104,6 @@ export function Invoices() {
   const [bulkBookingsText, setBulkBookingsText] = useState('')
   const [bulkBookingsRunning, setBulkBookingsRunning] = useState(false)
 
-  // Statistics
   const [stats, setStats] = useState({
     totalPaidAmount: 0,
     totalPendingAmount: 0,
@@ -175,7 +184,6 @@ export function Invoices() {
   const applyFilters = () => {
     let filtered = [...invoices]
 
-    // Apply search
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter((invoice) => {
@@ -190,46 +198,31 @@ export function Invoices() {
       })
     }
 
-    // Apply tab filters
-    const getPaymentStatus = (inv: Invoice) => inv.paymentStatus ?? (inv as any).payment_status ?? ((inv as any).status === 'paid' ? 'paid' : 'pending')
+    const getPaymentStatus = (inv: Invoice) =>
+      inv.paymentStatus ?? (inv as any).payment_status ?? ((inv as any).status === 'paid' ? 'paid' : 'pending')
     switch (activeTab) {
-      case 1:
-        filtered = filtered.filter(inv => getPaymentStatus(inv) === 'paid')
+      case '1':
+        filtered = filtered.filter((inv) => getPaymentStatus(inv) === 'paid')
         break
-      case 2:
-        filtered = filtered.filter(inv => getPaymentStatus(inv) === 'pending')
+      case '2':
+        filtered = filtered.filter((inv) => getPaymentStatus(inv) === 'pending')
         break
-      case 3:
-        filtered = filtered.filter(inv => getPaymentStatus(inv) === 'refunded')
+      case '3':
+        filtered = filtered.filter((inv) => getPaymentStatus(inv) === 'refunded')
         break
     }
 
     setFilteredInvoices(filtered)
   }
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, invoice: Invoice) => {
-    setAnchorEl(event.currentTarget)
+  const openDetails = (invoice: Invoice) => {
     setSelectedInvoice(invoice)
-  }
-
-  const handleMenuClose = () => {
-    setAnchorEl(null)
-  }
-
-  const handleViewDetails = () => {
     setDetailsDialogOpen(true)
-    handleMenuClose()
   }
 
-  const handleDownloadPDF = async () => {
-    if (!selectedInvoice) return
-    
-    handleMenuClose()
+  const downloadPdfFor = async (invoice: Invoice) => {
     try {
-      const r = await InvoicesService.downloadInvoicePDF(
-        selectedInvoice._id,
-        (selectedInvoice as any).invoiceNumber
-      )
+      const r = await InvoicesService.downloadInvoicePDF(invoice._id, (invoice as any).invoiceNumber)
       if (!r?.success) {
         appToast((r as any)?.error || 'Download failed', 'error')
       } else {
@@ -303,12 +296,9 @@ export function Invoices() {
     appToast(`Bulk generate: ${ok} OK, ${fail} failed (${unique.length} booking IDs).`, fail ? 'warning' : 'success')
   }
 
-  const handleEmailInvoice = async () => {
-    if (!selectedInvoice) return
-    
-    handleMenuClose()
+  const emailInvoiceFor = async (invoice: Invoice) => {
     try {
-      await InvoicesService.emailInvoiceToCustomer(selectedInvoice._id)
+      await InvoicesService.emailInvoiceToCustomer(invoice._id)
     } catch (error: any) {
       console.error('Failed to email invoice:', error)
     }
@@ -333,37 +323,6 @@ export function Invoices() {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (String(status).toLowerCase()) {
-      case 'paid':
-        return { color: '#4CAF50', bg: alpha('#4CAF50', 0.1) }
-      case 'pending':
-      case 'issued':
-        return { color: '#FF9800', bg: alpha('#FF9800', 0.1) }
-      case 'partially_paid':
-        return { color: '#2196F3', bg: alpha('#2196F3', 0.1) }
-      case 'refunded':
-      case 'cancelled':
-        return { color: '#9E9E9E', bg: alpha('#9E9E9E', 0.1) }
-      default:
-        return { color: '#757575', bg: alpha('#757575', 0.1) }
-    }
-  }
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return <PaidIcon />
-      case 'pending':
-        return <ScheduleIcon />
-      case 'refunded':
-        return <CancelledIcon />
-      default:
-        return <ScheduleIcon />
-    }
-  }
-
-  // Indian Rupee (INR) – industry standard for India
   const formatCurrency = (amount: number, currency = 'INR') => {
     if (amount == null) return '—'
     const num = Number(amount)
@@ -384,18 +343,21 @@ export function Invoices() {
     })
   }
 
-  // Normalize API invoice to a consistent shape (backend may send total, invoiceDate, status, billingTo)
   const normalizeInvoice = (inv: any): Invoice => {
     const totalAmount = inv.total ?? inv.totalAmount ?? 0
     const status = inv.status ?? inv.paymentStatus ?? 'issued'
     const paymentStatus = status === 'paid' ? 'paid' : status === 'refunded' ? 'refunded' : 'pending'
-    const customer = inv.customerId ?? (inv.billingTo ? {
-      _id: '',
-      firstName: (inv.billingTo.name || '').split(' ')[0] || 'Customer',
-      lastName: (inv.billingTo.name || '').split(' ').slice(1).join(' ') || '',
-      email: inv.billingTo.email || '',
-      phone: inv.billingTo.phone,
-    } : null)
+    const customer = inv.customerId
+      ? inv.customerId
+      : inv.billingTo
+        ? {
+            _id: '',
+            firstName: (inv.billingTo.name || '').split(' ')[0] || 'Customer',
+            lastName: (inv.billingTo.name || '').split(' ').slice(1).join(' ') || '',
+            email: inv.billingTo.email || '',
+            phone: inv.billingTo.phone,
+          }
+        : null
     const items = (inv.items || []).map((item: any) => ({
       description: item.description || 'Service',
       quantity: item.quantity ?? 1,
@@ -427,13 +389,9 @@ export function Invoices() {
       sortable: true,
       render: (_, inv) => (
         <>
-          <Typography variant="body2" fontWeight="600">
-            {inv.invoiceNumber}
-          </Typography>
+          <span className="text-sm font-semibold">{inv.invoiceNumber}</span>
           {inv.bookingId && (
-            <Typography variant="caption" color="text.secondary" display="block">
-              Booking: {inv.bookingId}
-            </Typography>
+            <span className="mt-0.5 block text-xs text-muted-foreground">Booking: {inv.bookingId}</span>
           )}
         </>
       ),
@@ -452,17 +410,18 @@ export function Invoices() {
         const c = inv.customerId as any
         const name = c ? `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() : (inv as any).billingTo?.name ?? '—'
         const email = c?.email ?? (inv as any).billingTo?.email ?? ''
-        if (!name && !email) return <Typography variant="body2" color="text.secondary">—</Typography>
+        if (!name && !email) return <span className="text-sm text-muted-foreground">—</span>
+        const initial = (name || '?')[0]?.toUpperCase() ?? '?'
         return (
-          <Box display="flex" alignItems="center" gap={1}>
-            <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
-              {(name || '?')[0]}
+          <div className="flex items-center gap-2">
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="bg-primary text-xs text-primary-foreground">{initial}</AvatarFallback>
             </Avatar>
-            <Box>
-              <Typography variant="body2" fontWeight="500">{name || '—'}</Typography>
-              {email && <Typography variant="caption" color="text.secondary" display="block">{email}</Typography>}
-            </Box>
-          </Box>
+            <div>
+              <span className="text-sm font-medium">{name || '—'}</span>
+              {email && <span className="block text-xs text-muted-foreground">{email}</span>}
+            </div>
+          </div>
         )
       },
     },
@@ -471,10 +430,10 @@ export function Invoices() {
       label: 'Invoice Date',
       sortable: true,
       render: (_, inv) => (
-        <Box display="flex" alignItems="center" gap={0.5}>
-          <CalendarIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-          <Typography variant="body2">{formatDate(inv.issuedDate ?? (inv as any).invoiceDate)}</Typography>
-        </Box>
+        <div className="flex items-center gap-1">
+          <Calendar className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <span className="text-sm">{formatDate(inv.issuedDate ?? (inv as any).invoiceDate)}</span>
+        </div>
       ),
     },
     {
@@ -483,11 +442,9 @@ export function Invoices() {
       sortable: true,
       render: (_, inv) =>
         inv.dueDate ? (
-          <Typography variant="body2">{formatDate(inv.dueDate)}</Typography>
+          <span className="text-sm">{formatDate(inv.dueDate)}</span>
         ) : (
-          <Typography variant="body2" color="text.secondary">
-            N/A
-          </Typography>
+          <span className="text-sm text-muted-foreground">N/A</span>
         ),
     },
     {
@@ -499,12 +456,12 @@ export function Invoices() {
         const total = inv.totalAmount ?? (inv as any).total ?? 0
         const due = (inv as any).amountDue
         return (
-          <Box sx={{ textAlign: 'right' }}>
-            <Typography variant="body2" fontWeight="600">{formatCurrency(total)}</Typography>
+          <div className="text-right">
+            <span className="text-sm font-semibold">{formatCurrency(total)}</span>
             {due != null && Number(due) > 0 && (
-              <Typography variant="caption" color="text.secondary">Due: {formatCurrency(Number(due))}</Typography>
+              <span className="mt-0.5 block text-xs text-muted-foreground">Due: {formatCurrency(Number(due))}</span>
             )}
-          </Box>
+          </div>
         )
       },
     },
@@ -514,36 +471,35 @@ export function Invoices() {
       sortable: true,
       valueGetter: (inv) => inv.paymentStatus ?? (inv as any).payment_status ?? (inv as any).status ?? '',
       render: (_, inv) => {
-        const status = String(
+        const raw = String(
           inv.paymentStatus ?? (inv as any).payment_status ?? (inv as any).status ?? 'issued'
         )
-        const display = status === 'issued' ? 'Pending' : status.replace('_', ' ')
-        const config = getStatusColor(status === 'issued' ? 'pending' : status)
+        const display = raw === 'issued' ? 'Pending' : raw.replace('_', ' ')
+        const key = raw === 'issued' ? 'pending' : raw
+        const { badge, Icon } = statusTone(key)
         return (
-          <Chip
-            label={display}
-            size="small"
-            icon={getStatusIcon(status === 'issued' ? 'pending' : status)}
-            sx={{ bgcolor: config.bg, color: config.color, fontWeight: 600 }}
-          />
+          <Badge variant="outline" className={cn('gap-1 font-semibold', badge)}>
+            <Icon className="h-3.5 w-3.5" />
+            {display}
+          </Badge>
         )
       },
     },
   ]
 
   return (
-    <Box sx={{ p: 3 }}>
+    <div className="p-4 sm:p-6">
       <PageHeader
         title="Invoices"
         subtitle="Manage and track all billing documents"
-        icon={<ReceiptIcon />}
+        icon={<Receipt className="h-7 w-7" />}
         action={
-          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" justifyContent="flex-end">
-            <Button variant="outlined" onClick={() => navigate('/invoices/branding')}>
+          <HStack className="flex-wrap justify-end gap-2">
+            <Button variant="outline" onClick={() => navigate('/invoices/branding')}>
               Invoice appearance
             </Button>
             <Button
-              variant="outlined"
+              variant="outline"
               onClick={() => {
                 setSelectedIds([])
                 navigate('/invoices/create')
@@ -551,178 +507,128 @@ export function Invoices() {
             >
               Create manual invoice
             </Button>
-            <Button variant="outlined" onClick={() => setBulkBookingsOpen(true)}>
+            <Button variant="outline" onClick={() => setBulkBookingsOpen(true)}>
               Multiple from bookings
             </Button>
             <Button
-              variant="contained"
-              startIcon={<AddIcon />}
+              className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700"
               onClick={() => setGenerateDialogOpen(true)}
-              sx={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              }}
             >
+              <Plus className="mr-2 h-4 w-4" />
               One from booking
             </Button>
-          </Stack>
+          </HStack>
         }
       />
 
-      {/* Stats Cards – Total Paid Amount, Total Pending Amount, counts */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card
-            sx={{
-              background: 'linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%)',
-              color: 'white',
-            }}
-          >
-            <CardContent>
-              <Box display="flex" justifyContent="space-between" alignItems="center">
-                <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9, mb: 1 }}>
-                    Total Paid Amount
-                  </Typography>
-                  <Typography variant="h4" fontWeight="700">
-                    {formatCurrency(stats.totalPaidAmount)}
-                  </Typography>
-                  <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                    {stats.paidInvoices} invoice{stats.paidInvoices !== 1 ? 's' : ''} paid
-                  </Typography>
-                </Box>
-                <PaidIcon sx={{ fontSize: 48, opacity: 0.3 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="overflow-hidden border-0 bg-gradient-to-br from-green-600 to-green-800 text-white shadow-md">
+          <CardContent className="flex items-start justify-between p-6">
+            <div>
+              <p className="mb-1 text-sm opacity-90">Total Paid Amount</p>
+              <p className="text-2xl font-bold sm:text-3xl">{formatCurrency(stats.totalPaidAmount)}</p>
+              <p className="mt-1 text-xs opacity-90">
+                {stats.paidInvoices} invoice{stats.paidInvoices !== 1 ? 's' : ''} paid
+              </p>
+            </div>
+            <CheckCircle2 className="h-12 w-12 shrink-0 opacity-30" />
+          </CardContent>
+        </Card>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <Card
-            sx={{
-              background: 'linear-gradient(135deg, #FF9800 0%, #E65100 100%)',
-              color: 'white',
-            }}
-          >
-            <CardContent>
-              <Box display="flex" justifyContent="space-between" alignItems="center">
-                <Box>
-                  <Typography variant="body2" sx={{ opacity: 0.9, mb: 1 }}>
-                    Total Pending Amount
-                  </Typography>
-                  <Typography variant="h4" fontWeight="700">
-                    {formatCurrency(stats.totalPendingAmount)}
-                  </Typography>
-                  <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                    {stats.pendingInvoices} invoice{stats.pendingInvoices !== 1 ? 's' : ''} pending
-                  </Typography>
-                </Box>
-                <ScheduleIcon sx={{ fontSize: 48, opacity: 0.3 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+        <Card className="overflow-hidden border-0 bg-gradient-to-br from-orange-500 to-orange-800 text-white shadow-md">
+          <CardContent className="flex items-start justify-between p-6">
+            <div>
+              <p className="mb-1 text-sm opacity-90">Total Pending Amount</p>
+              <p className="text-2xl font-bold sm:text-3xl">{formatCurrency(stats.totalPendingAmount)}</p>
+              <p className="mt-1 text-xs opacity-90">
+                {stats.pendingInvoices} invoice{stats.pendingInvoices !== 1 ? 's' : ''} pending
+              </p>
+            </div>
+            <Clock className="h-12 w-12 shrink-0 opacity-30" />
+          </CardContent>
+        </Card>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box display="flex" justifyContent="space-between" alignItems="center">
-                <Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    Total Invoices
-                  </Typography>
-                  <Typography variant="h4" fontWeight="700">
-                    {stats.totalInvoices}
-                  </Typography>
-                </Box>
-                <InvoiceIcon sx={{ fontSize: 48, color: '#2196F3', opacity: 0.3 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+        <Card>
+          <CardContent className="flex items-start justify-between p-6">
+            <div>
+              <p className="mb-1 text-sm text-muted-foreground">Total Invoices</p>
+              <p className="text-2xl font-bold sm:text-3xl">{stats.totalInvoices}</p>
+            </div>
+            <FileText className="h-12 w-12 shrink-0 text-sky-500/30" />
+          </CardContent>
+        </Card>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box display="flex" justifyContent="space-between" alignItems="center">
-                <Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    Summary
-                  </Typography>
-                  <Typography variant="body2" fontWeight="600" color="success.main">
-                    Paid: {formatCurrency(stats.totalPaidAmount)}
-                  </Typography>
-                  <Typography variant="body2" fontWeight="600" color="warning.main">
-                    Pending: {formatCurrency(stats.totalPendingAmount)}
-                  </Typography>
-                </Box>
-                <MoneyIcon sx={{ fontSize: 48, color: '#9E9E9E', opacity: 0.3 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+        <Card>
+          <CardContent className="flex items-start justify-between p-6">
+            <div>
+              <p className="mb-1 text-sm text-muted-foreground">Summary</p>
+              <p className="text-sm font-semibold text-green-600 dark:text-green-400">Paid: {formatCurrency(stats.totalPaidAmount)}</p>
+              <p className="text-sm font-semibold text-orange-600 dark:text-orange-400">
+                Pending: {formatCurrency(stats.totalPendingAmount)}
+              </p>
+            </div>
+            <IndianRupee className="h-12 w-12 shrink-0 text-muted-foreground/30" />
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* Search and Filters */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box display="flex" gap={2} flexWrap="wrap">
-            <TextField
-              placeholder="Search by invoice number, customer name, or email..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              sx={{ flex: 1, minWidth: 300 }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <Button
-              variant="outlined"
-              startIcon={<RefreshIcon />}
-              onClick={loadInvoices}
-            >
+      <Card className="mb-6">
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex flex-wrap gap-2">
+            <div className="relative min-w-[280px] flex-1">
+              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                className="pl-9"
+                placeholder="Search by invoice number, customer name, or email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <Button variant="outline" onClick={loadInvoices}>
+              <RefreshCw className="mr-2 h-4 w-4" />
               Refresh
             </Button>
             <Button
-              variant="outlined"
-              startIcon={<DownloadIcon />}
+              variant="outline"
               disabled={selectedIds.length === 0 || bulkDownloading}
               onClick={handleDownloadSelectedPdfs}
             >
+              <Download className="mr-2 h-4 w-4" />
               {bulkDownloading ? 'Downloading…' : `Download PDFs (${selectedIds.length})`}
             </Button>
-            <Button
-              variant="outlined"
-              startIcon={<FilterIcon />}
-            >
+            <Button variant="outline" type="button">
+              <Filter className="mr-2 h-4 w-4" />
               Advanced Filters
             </Button>
-          </Box>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Tabs and Table */}
       <Card>
-        <Tabs
-          value={activeTab}
-          onChange={(_, newValue) => setActiveTab(newValue)}
-          sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}
-        >
-          <Tab label="All Invoices" />
-          <Tab label="Paid" />
-          <Tab label="Pending" />
-          <Tab label="Refunded" />
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-none border-b bg-transparent p-0 sm:grid-cols-4">
+            <TabsTrigger value="0" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+              All Invoices
+            </TabsTrigger>
+            <TabsTrigger value="1" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+              Paid
+            </TabsTrigger>
+            <TabsTrigger value="2" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+              Pending
+            </TabsTrigger>
+            <TabsTrigger value="3" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+              Refunded
+            </TabsTrigger>
+          </TabsList>
         </Tabs>
-
         {error ? (
-          <Box p={3}>
-            <Alert severity="error">{error}</Alert>
-          </Box>
+          <div className="p-6">
+            <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-100">
+              {error}
+            </div>
+          </div>
         ) : (
-          <Box sx={{ px: 2, pb: 2 }}>
+          <div className="px-2 pb-4 pt-2 sm:px-4">
             <StandardTable<Invoice>
               columns={invoiceColumns}
               data={filteredInvoices}
@@ -735,254 +641,247 @@ export function Invoices() {
               rowsPerPageOptions={[25, 50, 100, 200, 500]}
               emptyMessage="No invoices found"
               emptyDescription={
-                searchQuery || activeTab !== 0
+                searchQuery || activeTab !== '0'
                   ? 'Try adjusting your filters'
                   : 'Generate your first invoice to get started'
               }
               error={null}
               showSearch={false}
               renderActions={(invoice) => (
-                <IconButton
-                  size="small"
-                  onClick={(e) => handleMenuOpen(e, invoice)}
-                >
-                  <MoreIcon />
-                </IconButton>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => openDetails(invoice)}>
+                      <Eye className="mr-2 h-4 w-4" />
+                      View Details
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => void downloadPdfFor(invoice)}>
+                      <Download className="mr-2 h-4 w-4" />
+                      Download PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => void emailInvoiceFor(invoice)}>
+                      <Mail className="mr-2 h-4 w-4" />
+                      Email to Customer
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
               size="small"
               minHeight={380}
             />
-          </Box>
+          </div>
         )}
       </Card>
 
-      {/* Actions Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-      >
-        <MenuItem onClick={handleViewDetails}>
-          <ViewIcon sx={{ mr: 1, fontSize: 20 }} />
-          View Details
-        </MenuItem>
-        <MenuItem onClick={handleDownloadPDF}>
-          <DownloadIcon sx={{ mr: 1, fontSize: 20 }} />
-          Download PDF
-        </MenuItem>
-        <MenuItem onClick={handleEmailInvoice}>
-          <EmailIcon sx={{ mr: 1, fontSize: 20 }} />
-          Email to Customer
-        </MenuItem>
-      </Menu>
-
-      {/* Invoice Details Dialog – industry standard (INR, GST, paid/due) */}
-      <Dialog
-        open={detailsDialogOpen}
-        onClose={() => setDetailsDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          <Typography variant="h6" fontWeight="600">
-            Invoice Details
-          </Typography>
-        </DialogTitle>
-        <DialogContent dividers>
-          {selectedInvoice && (() => {
-            const inv = selectedInvoice as any
-            const cust = inv.customerId ?? inv.billingTo
-            const customerName = cust ? (cust.firstName && cust.lastName ? `${cust.firstName} ${cust.lastName}` : cust.name || '—') : '—'
-            const customerEmail = cust?.email ?? ''
-            const items = inv.items || []
-            const subtotal = inv.subtotal ?? 0
-            const totalTax = inv.totalTax ?? inv.tax ?? 0
-            const total = inv.total ?? inv.totalAmount ?? 0
-            const amountPaid = inv.amountPaid ?? 0
-            const amountDue = inv.amountDue ?? 0
-            const taxBreakdown = inv.taxBreakdown
-            return (
-              <Stack spacing={2}>
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>Invoice Number</Typography>
-                  <Typography variant="body1" fontWeight="600">{inv.invoiceNumber}</Typography>
-                  {inv.bookingId && (
-                    <Typography variant="caption" color="text.secondary">Booking: {inv.bookingId}</Typography>
-                  )}
-                </Box>
-                <Divider />
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>Bill To</Typography>
-                  <Typography variant="body1">{customerName}</Typography>
-                  {customerEmail && <Typography variant="body2" color="text.secondary">{customerEmail}</Typography>}
-                  {cust?.phone && <Typography variant="body2" color="text.secondary">{cust.phone}</Typography>}
-                  {cust?.addressLine1 && <Typography variant="caption" display="block">{cust.addressLine1}, {cust.city} {cust.pincode}</Typography>}
-                </Box>
-                <Divider />
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>Line Items</Typography>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Description</TableCell>
-                        <TableCell align="center">Qty</TableCell>
-                        <TableCell align="right">Unit Price</TableCell>
-                        <TableCell align="right">Amount</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {items.map((item: any, index: number) => (
-                        <TableRow key={index}>
-                          <TableCell>{item.description}</TableCell>
-                          <TableCell align="center">{item.quantity ?? 1}</TableCell>
-                          <TableCell align="right">{formatCurrency(item.unitPrice)}</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 600 }}>
-                            {formatCurrency(item.total ?? item.amount ?? (item.unitPrice ?? 0) * (item.quantity ?? 1))}
-                          </TableCell>
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Invoice Details</DialogTitle>
+          </DialogHeader>
+          {selectedInvoice &&
+            (() => {
+              const inv = selectedInvoice as any
+              const cust = inv.customerId ?? inv.billingTo
+              const customerName = cust
+                ? cust.firstName && cust.lastName
+                  ? `${cust.firstName} ${cust.lastName}`
+                  : cust.name || '—'
+                : '—'
+              const customerEmail = cust?.email ?? ''
+              const lineItems = inv.items || []
+              const subtotal = inv.subtotal ?? 0
+              const totalTax = inv.totalTax ?? inv.tax ?? 0
+              const total = inv.total ?? inv.totalAmount ?? 0
+              const amountPaid = inv.amountPaid ?? 0
+              const amountDue = inv.amountDue ?? 0
+              const taxBreakdown = inv.taxBreakdown
+              return (
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-xs font-medium uppercase text-muted-foreground">Invoice Number</p>
+                    <p className="font-semibold">{inv.invoiceNumber}</p>
+                    {inv.bookingId && (
+                      <span className="text-xs text-muted-foreground">Booking: {inv.bookingId}</span>
+                    )}
+                  </div>
+                  <Separator />
+                  <div>
+                    <p className="text-xs font-medium uppercase text-muted-foreground">Bill To</p>
+                    <p>{customerName}</p>
+                    {customerEmail && <p className="text-sm text-muted-foreground">{customerEmail}</p>}
+                    {cust?.phone && <p className="text-sm text-muted-foreground">{cust.phone}</p>}
+                    {cust?.addressLine1 && (
+                      <p className="text-xs">
+                        {cust.addressLine1}, {cust.city} {cust.pincode}
+                      </p>
+                    )}
+                  </div>
+                  <Separator />
+                  <div>
+                    <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Line Items</p>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Description</TableHead>
+                          <TableHead className="text-center">Qty</TableHead>
+                          <TableHead className="text-right">Unit Price</TableHead>
+                          <TableHead className="text-right">Amount</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </Box>
-                <Divider />
-                <Box>
-                  <Stack spacing={1}>
-                    <Box display="flex" justifyContent="space-between">
-                      <Typography variant="body2">Subtotal</Typography>
-                      <Typography variant="body2">{formatCurrency(subtotal)}</Typography>
-                    </Box>
+                      </TableHeader>
+                      <TableBody>
+                        {lineItems.map((item: any, index: number) => (
+                          <TableRow key={index}>
+                            <TableCell>{item.description}</TableCell>
+                            <TableCell className="text-center">{item.quantity ?? 1}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
+                            <TableCell className="text-right font-semibold">
+                              {formatCurrency(
+                                item.total ?? item.amount ?? (item.unitPrice ?? 0) * (item.quantity ?? 1)
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  <Separator />
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Subtotal</span>
+                      <span>{formatCurrency(subtotal)}</span>
+                    </div>
                     {(inv.discount ?? 0) > 0 && (
-                      <Box display="flex" justifyContent="space-between">
-                        <Typography variant="body2">Discount</Typography>
-                        <Typography variant="body2" color="error">-{formatCurrency(inv.discount)}</Typography>
-                      </Box>
+                      <div className="flex justify-between text-sm">
+                        <span>Discount</span>
+                        <span className="text-destructive">-{formatCurrency(inv.discount)}</span>
+                      </div>
                     )}
                     {totalTax > 0 && (
                       <>
                         {taxBreakdown && (taxBreakdown.cgst != null || taxBreakdown.sgst != null) && (
-                          <Box display="flex" justifyContent="space-between">
-                            <Typography variant="caption" color="text.secondary">GST (CGST + SGST)</Typography>
-                            <Typography variant="caption">{formatCurrency(taxBreakdown.totalGst ?? totalTax)}</Typography>
-                          </Box>
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>GST (CGST + SGST)</span>
+                            <span>{formatCurrency(taxBreakdown.totalGst ?? totalTax)}</span>
+                          </div>
                         )}
-                        <Box display="flex" justifyContent="space-between">
-                          <Typography variant="body2">Tax (GST)</Typography>
-                          <Typography variant="body2">{formatCurrency(totalTax)}</Typography>
-                        </Box>
+                        <div className="flex justify-between text-sm">
+                          <span>Tax (GST)</span>
+                          <span>{formatCurrency(totalTax)}</span>
+                        </div>
                       </>
                     )}
-                    <Divider />
-                    <Box display="flex" justifyContent="space-between">
-                      <Typography variant="body1" fontWeight="700">Total</Typography>
-                      <Typography variant="body1" fontWeight="700">{formatCurrency(total)}</Typography>
-                    </Box>
-                    <Box display="flex" justifyContent="space-between">
-                      <Typography variant="body2" color="success.main">Amount Paid</Typography>
-                      <Typography variant="body2" fontWeight="600">{formatCurrency(amountPaid)}</Typography>
-                    </Box>
-                    <Box display="flex" justifyContent="space-between">
-                      <Typography variant="body2" color="text.secondary">Amount Due</Typography>
-                      <Typography variant="body2" fontWeight="600">{formatCurrency(amountDue)}</Typography>
-                    </Box>
-                  </Stack>
-                </Box>
-                {inv.notes && (
-                  <>
-                    <Divider />
-                    <Box>
-                      <Typography variant="subtitle2" color="text.secondary" gutterBottom>Notes</Typography>
-                      <Typography variant="body2">{inv.notes}</Typography>
-                    </Box>
-                  </>
-                )}
-              </Stack>
-            )
-          })()}
+                    <Separator />
+                    <div className="flex justify-between text-base font-bold">
+                      <span>Total</span>
+                      <span>{formatCurrency(total)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-green-600 dark:text-green-400">Amount Paid</span>
+                      <span className="font-semibold">{formatCurrency(amountPaid)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Amount Due</span>
+                      <span className="font-semibold">{formatCurrency(amountDue)}</span>
+                    </div>
+                  </div>
+                  {inv.notes && (
+                    <>
+                      <Separator />
+                      <div>
+                        <p className="text-xs font-medium uppercase text-muted-foreground">Notes</p>
+                        <p className="text-sm">{inv.notes}</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )
+            })()}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDetailsDialogOpen(false)}>
+              Close
+            </Button>
+            <Button type="button" onClick={() => selectedInvoice && void downloadPdfFor(selectedInvoice)}>
+              <Download className="mr-2 h-4 w-4" />
+              Download PDF
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDetailsDialogOpen(false)}>Close</Button>
-          <Button
-            variant="contained"
-            startIcon={<DownloadIcon />}
-            onClick={handleDownloadPDF}
-          >
-            Download PDF
-          </Button>
-        </DialogActions>
       </Dialog>
 
-      {/* Generate Invoice Dialog */}
-      <Dialog
-        open={generateDialogOpen}
-        onClose={() => !generateSubmitting && setGenerateDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <InvoiceIcon color="primary" />
-          Generate invoice from booking
-        </DialogTitle>
+      <Dialog open={generateDialogOpen} onOpenChange={(o) => !generateSubmitting && setGenerateDialogOpen(o)}>
         <DialogContent>
-          <Alert severity="info" sx={{ mt: 1, mb: 2 }}>
-            Enter a booking ID. The server will create or refresh the invoice for that booking (same flow as when a job completes).
-          </Alert>
-          <TextField
-            fullWidth
-            label="Booking ID"
-            placeholder="MongoDB ObjectId of the booking"
-            value={bookingIdForGenerate}
-            onChange={(e) => setBookingIdForGenerate(e.target.value)}
-            disabled={generateSubmitting}
-            sx={{ mt: 1 }}
-            helperText="You can copy this from the Bookings screen or booking details URL."
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setGenerateDialogOpen(false)} disabled={generateSubmitting}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleGenerateFromBooking}
-            disabled={generateSubmitting || !bookingIdForGenerate.trim()}
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Generate invoice from booking
+            </DialogTitle>
+          </DialogHeader>
+          <div
+            className="rounded-md border border-sky-200 bg-sky-50 p-3 text-sm dark:border-sky-900 dark:bg-sky-950/40"
+            role="status"
           >
-            {generateSubmitting ? 'Generating…' : 'Generate'}
-          </Button>
-        </DialogActions>
+            Enter a booking ID. The server will create or refresh the invoice for that booking (same flow as when a job
+            completes).
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="booking-gen">Booking ID</Label>
+            <Input
+              id="booking-gen"
+              placeholder="MongoDB ObjectId of the booking"
+              value={bookingIdForGenerate}
+              onChange={(e) => setBookingIdForGenerate(e.target.value)}
+              disabled={generateSubmitting}
+            />
+            <p className="text-xs text-muted-foreground">You can copy this from the Bookings screen or booking details URL.</p>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={generateSubmitting} onClick={() => setGenerateDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={generateSubmitting || !bookingIdForGenerate.trim()}
+              onClick={handleGenerateFromBooking}
+            >
+              {generateSubmitting ? 'Generating…' : 'Generate'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={bulkBookingsOpen}
-        onClose={() => !bulkBookingsRunning && setBulkBookingsOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Generate multiple invoices from bookings</DialogTitle>
+      <Dialog open={bulkBookingsOpen} onOpenChange={(o) => !bulkBookingsRunning && setBulkBookingsOpen(o)}>
         <DialogContent>
-          <Alert severity="info" sx={{ mb: 2 }}>
-            Paste one booking Mongo ID per line (or separate with spaces/commas). The server runs the same
-            flow as &quot;One from booking&quot; for each ID. Skips invalid lines.
-          </Alert>
-          <TextField
-            fullWidth
-            multiline
-            minRows={8}
+          <DialogHeader>
+            <DialogTitle>Generate multiple invoices from bookings</DialogTitle>
+          </DialogHeader>
+          <div
+            className="rounded-md border border-sky-200 bg-sky-50 p-3 text-sm dark:border-sky-900 dark:bg-sky-950/40"
+            role="status"
+          >
+            Paste one booking Mongo ID per line (or separate with spaces/commas). The server runs the same flow as
+            &quot;One from booking&quot; for each ID. Skips invalid lines.
+          </div>
+          <textarea
+            className="flex min-h-[200px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             value={bulkBookingsText}
             onChange={(e) => setBulkBookingsText(e.target.value)}
             disabled={bulkBookingsRunning}
-            placeholder="507f1f77bcf86cd799439011&#10;507f191e810c19729de860ea"
+            placeholder={'507f1f77bcf86cd799439011\n507f191e810c19729de860ea'}
           />
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={bulkBookingsRunning} onClick={() => setBulkBookingsOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" disabled={bulkBookingsRunning} onClick={handleBulkGenerateFromBookings}>
+              {bulkBookingsRunning ? 'Running…' : 'Generate all'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setBulkBookingsOpen(false)} disabled={bulkBookingsRunning}>
-            Cancel
-          </Button>
-          <Button variant="contained" onClick={handleBulkGenerateFromBookings} disabled={bulkBookingsRunning}>
-            {bulkBookingsRunning ? 'Running…' : 'Generate all'}
-          </Button>
-        </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   )
 }
-

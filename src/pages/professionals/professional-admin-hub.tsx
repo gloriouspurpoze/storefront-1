@@ -5,46 +5,39 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, Link as RouterLink } from 'react-router-dom'
+import { ArrowLeft, ExternalLink, Loader2 } from 'lucide-react'
 import {
-  Alert,
   Avatar,
-  Box,
+  AvatarFallback,
+  AvatarImage,
+  Badge,
   Button,
   Card,
   CardContent,
-  Chip,
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  Divider,
-  FormControl,
-  InputLabel,
-  LinearProgress,
-  MenuItem,
-  Paper,
+  Input,
+  Label,
   Select,
-  Snackbar,
-  Stack,
-  Tab,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Separator,
   Tabs,
-  TextField,
+  TabsList,
+  TabsTrigger,
+  Textarea,
   Tooltip,
-  Typography,
-} from '@mui/material'
-import {
-  Timeline,
-  TimelineConnector,
-  TimelineContent,
-  TimelineDot,
-  TimelineItem,
-  TimelineOppositeContent,
-  TimelineSeparator,
-} from '@mui/lab'
-import {
-  ArrowBack as BackIcon,
-  OpenInNew as OpenInNewIcon,
-} from '@mui/icons-material'
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+  useToast,
+} from '../../components/ui'
+import { cn } from '../../lib/utils'
 import { PageHeader } from '../../components/common/PageHeader'
 import { ProfessionalsService } from '../../services/api/professionals.service'
 import { BookingsService } from '../../services/api/bookings.service'
@@ -79,6 +72,41 @@ import {
   scheduleSummaryLines,
   weekdayShortLabel,
 } from '../../lib/professionalSchedule'
+
+function pipelineStageBadgeVariant(
+  color: PipelineGroup['color'],
+): 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' {
+  if (color === 'success') return 'success'
+  if (color === 'warning') return 'warning'
+  if (color === 'error') return 'destructive'
+  if (color === 'primary' || color === 'info' || color === 'secondary') return 'secondary'
+  return 'outline'
+}
+
+function HubAlert({
+  variant = 'info',
+  className,
+  children,
+}: {
+  variant?: 'info' | 'warning' | 'error'
+  className?: string
+  children: React.ReactNode
+}) {
+  const styles =
+    variant === 'info'
+      ? 'border-border bg-muted/50 text-foreground'
+      : variant === 'warning'
+        ? 'border-amber-500/40 bg-amber-500/10 text-amber-950 dark:text-amber-50'
+        : 'border-destructive/40 bg-destructive/10 text-destructive'
+  return (
+    <div
+      role={variant === 'info' ? 'status' : 'alert'}
+      className={cn('rounded-lg border p-3 text-sm', styles, className)}
+    >
+      {children}
+    </div>
+  )
+}
 
 type TabKey = 'overview' | 'bookings' | 'activity' | 'earnings' | 'reviews' | 'documents' | 'coverage' | 'moderation'
 
@@ -156,11 +184,7 @@ export function ProfessionalAdminHub() {
   >([])
   const [reviewsLoading, setReviewsLoading] = useState(false)
 
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
-    open: false,
-    message: '',
-    severity: 'success',
-  })
+  const { toast } = useToast()
 
   const [suspendOpen, setSuspendOpen] = useState(false)
   const [blockOpen, setBlockOpen] = useState(false)
@@ -517,17 +541,14 @@ export function ProfessionalAdminHub() {
       await ProfessionalsService.updateProfessional(id, {
         documents: professionalDocumentsUpdatePayload(next),
       })
-      setSnackbar({
-        open: true,
-        message: verified ? 'Document marked as verified.' : 'Document verification cleared.',
-        severity: 'success',
+      toast({
+        title: verified ? 'Document marked as verified.' : 'Document verification cleared.',
       })
       await loadProfessional()
     } catch (e) {
-      setSnackbar({
-        open: true,
-        message: e instanceof Error ? e.message : 'Could not update document.',
-        severity: 'error',
+      toast({
+        title: e instanceof Error ? e.message : 'Could not update document.',
+        variant: 'destructive',
       })
     } finally {
       setDocSavingKey(null)
@@ -547,13 +568,12 @@ export function ProfessionalAdminHub() {
         }
       }
       setReinstateOpen(false)
-      setSnackbar({ open: true, message: 'Professional reinstated.', severity: 'success' })
+      toast({ title: 'Professional reinstated.' })
       await loadProfessional()
     } catch (e) {
-      setSnackbar({
-        open: true,
-        message: e instanceof Error ? e.message : 'Reinstate failed',
-        severity: 'error',
+      toast({
+        title: e instanceof Error ? e.message : 'Reinstate failed',
+        variant: 'destructive',
       })
     } finally {
       setModBusy(false)
@@ -562,7 +582,7 @@ export function ProfessionalAdminHub() {
 
   const handleSuspendConfirm = async () => {
     if (!id || !suspendReason.trim()) {
-      setSnackbar({ open: true, message: 'Reason is required.', severity: 'error' })
+      toast({ title: 'Reason is required.', variant: 'destructive' })
       return
     }
     setModBusy(true)
@@ -581,13 +601,12 @@ export function ProfessionalAdminHub() {
       setSuspendOpen(false)
       setSuspendReason('')
       setSuspendUntil('')
-      setSnackbar({ open: true, message: 'Professional suspended.', severity: 'success' })
+      toast({ title: 'Professional suspended.' })
       await loadProfessional()
     } catch (e) {
-      setSnackbar({
-        open: true,
-        message: e instanceof Error ? e.message : 'Suspend failed',
-        severity: 'error',
+      toast({
+        title: e instanceof Error ? e.message : 'Suspend failed',
+        variant: 'destructive',
       })
     } finally {
       setModBusy(false)
@@ -596,7 +615,7 @@ export function ProfessionalAdminHub() {
 
   const handleBlockConfirm = async () => {
     if (!id || !blockReason.trim()) {
-      setSnackbar({ open: true, message: 'Reason is required.', severity: 'error' })
+      toast({ title: 'Reason is required.', variant: 'destructive' })
       return
     }
     setModBusy(true)
@@ -611,13 +630,12 @@ export function ProfessionalAdminHub() {
       }
       setBlockOpen(false)
       setBlockReason('')
-      setSnackbar({ open: true, message: 'Professional blocked.', severity: 'success' })
+      toast({ title: 'Professional blocked.' })
       await loadProfessional()
     } catch (e) {
-      setSnackbar({
-        open: true,
-        message: e instanceof Error ? e.message : 'Block failed',
-        severity: 'error',
+      toast({
+        title: e instanceof Error ? e.message : 'Block failed',
+        variant: 'destructive',
       })
     } finally {
       setModBusy(false)
@@ -626,311 +644,283 @@ export function ProfessionalAdminHub() {
 
   if (!id) {
     return (
-      <Box sx={{ p: 2 }}>
-        <Alert severity="error">Invalid route.</Alert>
-      </Box>
+      <div className="p-2">
+        <HubAlert variant="error">Invalid route.</HubAlert>
+      </div>
     )
   }
 
   if (loadingPro && !professional) {
     return (
-      <Box sx={{ p: 2 }}>
-        <LinearProgress />
-      </Box>
+      <div className="p-2">
+        <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
+          <div className="h-full w-1/3 animate-pulse bg-primary" />
+        </div>
+      </div>
     )
   }
 
   if (proError || !professional) {
     return (
-      <Box sx={{ p: 2 }}>
-        <Button startIcon={<BackIcon />} onClick={() => navigate('/professionals')} sx={{ mb: 2 }}>
+      <div className="p-2">
+        <Button variant="outline" className="mb-2 gap-2" onClick={() => navigate('/professionals')}>
+          <ArrowLeft className="h-4 w-4" />
           Back to professionals
         </Button>
-        <Alert severity="error">{proError || 'Professional not found'}</Alert>
-      </Box>
+        <HubAlert variant="error">{proError || 'Professional not found'}</HubAlert>
+      </div>
     )
   }
 
   const accountStatus = professionalDisplayAccountStatus(professional)
 
   return (
-    <Box sx={{ pb: 4 }}>
+    <TooltipProvider>
+    <div className="pb-4">
       <PageHeader
         title={`${professional.firstName} ${professional.lastName}`}
         subtitle="Operations hub — assignment through completion, earnings, compliance, and moderation in one place."
         action={
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'flex-end' }}>
-            <Button variant="outlined" startIcon={<BackIcon />} onClick={() => navigate('/professionals')}>
-              List
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button variant="outline" asChild>
+              <RouterLink to="/professionals" className="gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                List
+              </RouterLink>
             </Button>
-            <Button variant="outlined" component={RouterLink} to="/professionals/operations">
-              Workforce dashboard
+            <Button variant="outline" asChild>
+              <RouterLink to="/professionals/operations">Workforce dashboard</RouterLink>
             </Button>
-            <Button
-              variant="contained"
-              component={RouterLink}
-              to={`/professionals/edit/${professional._id}`}
-            >
-              Edit profile
+            <Button asChild>
+              <RouterLink to={`/professionals/edit/${professional._id}`}>Edit profile</RouterLink>
             </Button>
-          </Box>
+          </div>
         }
       />
 
-      <Paper
-        variant="outlined"
-        sx={{
-          p: 2,
-          mb: 2,
-          borderRadius: 2,
-          background: (theme) =>
-            theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : theme.palette.grey[50],
-        }}
-      >
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'center' }}>
-          <Stack direction="row" spacing={2} alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
-            <Avatar
-              src={professional.profileImage}
-              alt=""
-              sx={{ width: 64, height: 64, fontSize: '1.25rem' }}
-            >
-              {(professional.firstName?.[0] ?? '?').toUpperCase()}
-              {(professional.lastName?.[0] ?? '').toUpperCase()}
-            </Avatar>
-            <Box sx={{ minWidth: 0 }}>
-              <Typography variant="subtitle2" color="text.secondary">
-                Pro ID · {professional.professionalId}
-              </Typography>
-              <Typography variant="body2" noWrap title={professional.email}>
-                {professional.email} · {professional.phoneNumber}
-              </Typography>
-              <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mt: 0.75 }}>
-                <Chip
-                  size="small"
-                  label={`Account: ${accountStatus}`}
-                  color={accountStatus === 'active' ? 'success' : 'warning'}
-                />
-                <Chip size="small" label={`Verification: ${professional.verificationStatus}`} />
-                <Chip size="small" label={`Availability: ${professional.availability}`} />
-              </Stack>
-            </Box>
-          </Stack>
-          <Box sx={{ flexShrink: 0 }}>
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
-              Lifecycle snapshot
-            </Typography>
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Typography variant="h5" component="span">
-                {statusTotalsLoading ? '—' : pipelineGrandTotal ?? '—'}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                assignments (all statuses)
-              </Typography>
-              <Tooltip title="Refresh stage counts">
-                <Button size="small" variant="outlined" onClick={() => void loadStatusTotals()} disabled={statusTotalsLoading}>
-                  Refresh
-                </Button>
-              </Tooltip>
-            </Stack>
-          </Box>
-        </Stack>
+      <Card className="mb-2 bg-muted/30">
+        <CardContent className="space-y-4 p-4">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center">
+            <div className="flex min-w-0 flex-1 flex-row items-center gap-4">
+              <Avatar className="h-16 w-16">
+                {professional.profileImage ? (
+                  <AvatarImage src={professional.profileImage} alt="" />
+                ) : null}
+                <AvatarFallback className="text-lg">
+                  {(professional.firstName?.[0] ?? '?').toUpperCase()}
+                  {(professional.lastName?.[0] ?? '').toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <p className="text-sm text-muted-foreground">Pro ID · {professional.professionalId}</p>
+                <p className="truncate text-sm" title={professional.email}>
+                  {professional.email} · {professional.phoneNumber}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  <Badge variant={accountStatus === 'active' ? 'success' : 'warning'}>
+                    Account: {accountStatus}
+                  </Badge>
+                  <Badge variant="outline">Verification: {professional.verificationStatus}</Badge>
+                  <Badge variant="outline">Availability: {professional.availability}</Badge>
+                </div>
+              </div>
+            </div>
+            <div className="shrink-0">
+              <p className="mb-1 block text-xs text-muted-foreground">Lifecycle snapshot</p>
+              <div className="flex flex-row items-center gap-2">
+                <span className="text-2xl font-semibold tracking-tight">
+                  {statusTotalsLoading ? '—' : pipelineGrandTotal ?? '—'}
+                </span>
+                <span className="text-sm text-muted-foreground">assignments (all statuses)</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => void loadStatusTotals()}
+                        disabled={statusTotalsLoading}
+                      >
+                        Refresh
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>Refresh stage counts</TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
+          </div>
 
-        {statusTotalsError ? (
-          <Alert severity="warning" sx={{ mt: 2, borderRadius: 2 }}>
-            Could not load assignment counts. Refresh the page or open Bookings to verify workload.
-          </Alert>
-        ) : null}
+          {statusTotalsError ? (
+            <HubAlert variant="warning" className="mt-2">
+              Could not load assignment counts. Refresh the page or open Bookings to verify workload.
+            </HubAlert>
+          ) : null}
 
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2, mb: 1 }}>
-          Counts come from bookings assigned to this professional (by status). Select a stage to jump to Bookings with
-          a matching filter.
-        </Typography>
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 1,
-            overflowX: 'auto',
-            pb: 0.5,
-            '&::-webkit-scrollbar': { height: 6 },
-          }}
-        >
-          {PIPELINE_GROUPS.map((group) => {
-            const count = sumStatusesForGroup(statusTotals, group.statuses)
-            return (
-              <Tooltip key={group.id} title={group.description}>
-                <Paper
-                  variant="outlined"
-                  onClick={() => handlePipelineStageClick(group)}
-                  sx={{
-                    minWidth: 140,
-                    p: 1.25,
-                    cursor: 'pointer',
-                    borderRadius: 2,
-                    transition: 'box-shadow 0.15s, border-color 0.15s',
-                    '&:hover': {
-                      borderColor: 'primary.main',
-                      boxShadow: 1,
-                    },
-                  }}
-                >
-                  <Typography variant="caption" color="text.secondary" display="block">
-                    {group.shortLabel}
-                  </Typography>
-                  <Typography variant="h6">{statusTotalsLoading ? '…' : count}</Typography>
-                  <Chip size="small" label={bookingLifecycleLabel(group.drilldownStatus)} sx={{ mt: 0.5 }} color={group.color} variant="outlined" />
-                </Paper>
-              </Tooltip>
-            )
-          })}
-        </Box>
-      </Paper>
+          <p className="mb-2 mt-4 block text-xs text-muted-foreground">
+            Counts come from bookings assigned to this professional (by status). Select a stage to jump to Bookings
+            with a matching filter.
+          </p>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {PIPELINE_GROUPS.map((group) => {
+              const count = sumStatusesForGroup(statusTotals, group.statuses)
+              return (
+                <Tooltip key={group.id}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => handlePipelineStageClick(group)}
+                      className="min-w-[140px] shrink-0 rounded-lg border border-border bg-background p-3 text-left transition-colors hover:border-primary hover:shadow-sm"
+                    >
+                      <span className="block text-xs text-muted-foreground">{group.shortLabel}</span>
+                      <span className="text-xl font-semibold">{statusTotalsLoading ? '…' : count}</span>
+                      <Badge variant={pipelineStageBadgeVariant(group.color)} className="mt-1">
+                        {bookingLifecycleLabel(group.drilldownStatus)}
+                      </Badge>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>{group.description}</TooltipContent>
+                </Tooltip>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
-      <Tabs
-        value={tab}
-        onChange={(_, v) => setTab(v as TabKey)}
-        variant="scrollable"
-        scrollButtons="auto"
-        sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}
-      >
-        <Tab label="Overview" value="overview" />
-        <Tab label="Bookings" value="bookings" />
-        <Tab label="Activity" value="activity" />
-        <Tab label="Earnings" value="earnings" />
-        <Tab label="Reviews" value="reviews" />
-        <Tab label="Documents" value="documents" />
-        <Tab label="Coverage" value="coverage" />
-        <Tab label="Moderation" value="moderation" />
+      <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="mb-2 w-full">
+        <div className="overflow-x-auto border-b border-border">
+          <TabsList className="inline-flex h-auto min-h-10 w-max min-w-full flex-wrap justify-start gap-1 rounded-none bg-transparent p-0">
+            <TabsTrigger value="overview" className="shrink-0">
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="bookings" className="shrink-0">
+              Bookings
+            </TabsTrigger>
+            <TabsTrigger value="activity" className="shrink-0">
+              Activity
+            </TabsTrigger>
+            <TabsTrigger value="earnings" className="shrink-0">
+              Earnings
+            </TabsTrigger>
+            <TabsTrigger value="reviews" className="shrink-0">
+              Reviews
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="shrink-0">
+              Documents
+            </TabsTrigger>
+            <TabsTrigger value="coverage" className="shrink-0">
+              Coverage
+            </TabsTrigger>
+            <TabsTrigger value="moderation" className="shrink-0">
+              Moderation
+            </TabsTrigger>
+          </TabsList>
+        </div>
       </Tabs>
 
       {tab === 'overview' && (
-        <Box
-          sx={{
-            display: 'grid',
-            gap: 2,
-            gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
-          }}
-        >
-          <Card variant="outlined" sx={{ borderRadius: 2 }}>
-            <CardContent>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                Quality &amp; throughput
-              </Typography>
-              <Typography variant="h4">{Number(professional.rating || 0).toFixed(1)} ★</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card>
+            <CardContent className="pt-6">
+              <h3 className="text-sm font-medium text-muted-foreground">Quality &amp; throughput</h3>
+              <p className="mt-2 text-3xl font-semibold tracking-tight">{Number(professional.rating || 0).toFixed(1)} ★</p>
+              <p className="mt-2 text-sm text-muted-foreground">
                 {professional.totalReviews ?? 0} reviews on profile · {professional.completedJobs ?? 0} completed jobs ·{' '}
                 {professional.cancelledJobs ?? 0} cancelled (lifetime)
-              </Typography>
+              </p>
             </CardContent>
           </Card>
-          <Card variant="outlined" sx={{ borderRadius: 2 }}>
-            <CardContent>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                Live assignment load
-              </Typography>
+          <Card>
+            <CardContent className="pt-6">
+              <h3 className="text-sm font-medium text-muted-foreground">Live assignment load</h3>
               {bookingsLoading ? (
-                <LinearProgress sx={{ mt: 1 }} />
+                <Loader2 className="mt-2 h-5 w-5 animate-spin text-muted-foreground" aria-hidden />
               ) : (
-                <Typography variant="body2" sx={{ mt: 0.5 }}>
-                  This page: {bookings.length} rows · Total assignments: {bookingTotal}
-                </Typography>
+                <p className="mt-2 text-sm">This page: {bookings.length} rows · Total assignments: {bookingTotal}</p>
               )}
               {statusTotals && !statusTotalsLoading ? (
-                <Box sx={{ mt: 1.5, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                <div className="mt-3 flex flex-wrap gap-1">
                   {BOOKING_STATUSES_FOR_TOTALS.map((st) => (
-                    <Chip
+                    <Badge
                       key={st}
-                      size="small"
-                      variant="outlined"
-                      label={`${bookingLifecycleLabel(st)}: ${statusTotals[st] ?? 0}`}
+                      variant="outline"
+                      className="cursor-pointer"
                       onClick={() => {
                         setTab('bookings')
                         setBookingStatusFilter(st)
                         setBookingPage(1)
                       }}
-                      sx={{ cursor: 'pointer' }}
-                    />
+                    >
+                      {bookingLifecycleLabel(st)}: {statusTotals[st] ?? 0}
+                    </Badge>
                   ))}
-                </Box>
+                </div>
               ) : (
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+                <p className="mt-2 block text-xs text-muted-foreground">
                   {statusTotalsLoading ? 'Loading stage totals…' : 'Stage totals unavailable.'}
-                </Typography>
+                </p>
               )}
               {bookingsLoadMeta?.warning ? (
-                <Alert severity="warning" sx={{ mt: 2 }}>
+                <HubAlert variant="warning" className="mt-2">
                   {bookingsLoadMeta.warning}
-                </Alert>
+                </HubAlert>
               ) : null}
             </CardContent>
           </Card>
-          <Card variant="outlined" sx={{ borderRadius: 2 }}>
-            <CardContent>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                Shortcuts
-              </Typography>
-              <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mt: 0.5 }}>
-                <Button size="small" variant="outlined" onClick={() => setTab('bookings')}>
+          <Card>
+            <CardContent className="pt-6">
+              <h3 className="text-sm font-medium text-muted-foreground">Shortcuts</h3>
+              <div className="mt-2 flex flex-wrap gap-1">
+                <Button size="sm" variant="outline" onClick={() => setTab('bookings')}>
                   Bookings
                 </Button>
-                <Button size="small" variant="outlined" onClick={() => setTab('activity')}>
+                <Button size="sm" variant="outline" onClick={() => setTab('activity')}>
                   Activity
                 </Button>
-                <Button size="small" variant="outlined" onClick={() => setTab('earnings')}>
+                <Button size="sm" variant="outline" onClick={() => setTab('earnings')}>
                   Earnings
                 </Button>
-                <Button size="small" variant="outlined" onClick={() => setTab('documents')}>
+                <Button size="sm" variant="outline" onClick={() => setTab('documents')}>
                   Documents
                 </Button>
-                <Button size="small" variant="outlined" onClick={() => setTab('moderation')}>
+                <Button size="sm" variant="outline" onClick={() => setTab('moderation')}>
                   Moderation
                 </Button>
-                <Button
-                  size="small"
-                  variant="contained"
-                  component={RouterLink}
-                  to={`/bookings?professionalId=${encodeURIComponent(id)}`}
-                  endIcon={<OpenInNewIcon sx={{ fontSize: 16 }} />}
-                >
-                  Global list
+                <Button size="sm" asChild>
+                  <RouterLink to={`/bookings?professionalId=${encodeURIComponent(id)}`} className="inline-flex items-center gap-1">
+                    Global list
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </RouterLink>
                 </Button>
-              </Stack>
+              </div>
             </CardContent>
           </Card>
-          <Card variant="outlined" sx={{ gridColumn: { xs: '1', md: '1 / -1' }, borderRadius: 2 }}>
-            <CardContent>
-              <Typography variant="subtitle1" gutterBottom>
-                Calendar &amp; working hours
-              </Typography>
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+          <Card className="md:col-span-3">
+            <CardContent className="pt-6">
+              <h3 className="text-base font-semibold leading-none">Calendar &amp; working hours</h3>
+              <p className="mb-4 mt-2 block text-xs text-muted-foreground">
                 Synced from the professional app (weekly grid + live status). Use this when assigning leads or judging
                 capacity.
-              </Typography>
-              <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mb: 2 }}>
-                <Chip
-                  size="small"
-                  variant="outlined"
-                  color={
+              </p>
+              <div className="mb-4 flex flex-wrap gap-2">
+                <Badge
+                  variant={
                     professional.availability === 'available'
                       ? 'success'
                       : professional.availability === 'busy'
                         ? 'warning'
-                        : 'default'
+                        : 'outline'
                   }
-                  label={`Live status: ${professional.availability}`}
-                />
-                <Chip
-                  size="small"
-                  variant="outlined"
-                  label={`Max bookings / day: ${professional.maxBookingsPerDay ?? '—'}`}
-                />
+                >
+                  Live status: {professional.availability}
+                </Badge>
+                <Badge variant="outline">Max bookings / day: {professional.maxBookingsPerDay ?? '—'}</Badge>
                 {professional.workingHours?.start && professional.workingHours?.end ? (
-                  <Chip
-                    size="small"
-                    variant="outlined"
-                    label={`Legacy band: ${professional.workingHours.start}–${professional.workingHours.end}`}
-                  />
+                  <Badge variant="outline">
+                    Legacy band: {professional.workingHours.start}–{professional.workingHours.end}
+                  </Badge>
                 ) : null}
-              </Stack>
+              </div>
               {(() => {
                 const weekly = normalizeWeeklyAvailability(professional.weeklyAvailability)
                 const hasWeekly = PROFESSIONAL_WEEKDAY_KEYS.some((k) => weekly[k].length > 0)
@@ -938,125 +928,105 @@ export function ProfessionalAdminHub() {
                 return (
                   <>
                     {!hasWeekly && legacyLines.length > 0 ? (
-                      <Alert severity="info" sx={{ mb: 2 }}>
+                      <HubAlert className="mb-2">
                         Weekly grid not saved in the app yet — showing onboarding-style working days / hours only.
-                      </Alert>
+                      </HubAlert>
                     ) : null}
                     {!hasWeekly && legacyLines.length === 0 ? (
-                      <Alert severity="warning" sx={{ mb: 2 }}>
+                      <HubAlert variant="warning" className="mb-2">
                         No calendar data on file. Ask the professional to set availability in the provider app, or edit
                         defaults in admin profile.
-                      </Alert>
+                      </HubAlert>
                     ) : null}
-                    <Box
-                      sx={{
-                        display: 'grid',
-                        gap: 1,
-                        gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
-                      }}
-                    >
+                    <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-4">
                       {PROFESSIONAL_WEEKDAY_KEYS.map((k) => (
-                        <Paper key={k} variant="outlined" sx={{ p: 1.25, borderRadius: 1 }}>
-                          <Typography variant="caption" color="text.secondary">
-                            {weekdayShortLabel(k)}
-                          </Typography>
-                          <Typography variant="body2" sx={{ mt: 0.5 }}>
-                            {formatSlotList(weekly[k])}
-                          </Typography>
-                        </Paper>
+                        <div key={k} className="rounded-md border border-border p-3">
+                          <p className="text-xs text-muted-foreground">{weekdayShortLabel(k)}</p>
+                          <p className="mt-1 text-sm">{formatSlotList(weekly[k])}</p>
+                        </div>
                       ))}
-                    </Box>
+                    </div>
                   </>
                 )
               })()}
             </CardContent>
           </Card>
-          <Card variant="outlined" sx={{ gridColumn: { xs: '1', md: '1 / -1' }, borderRadius: 2 }}>
-            <CardContent>
-              <Typography variant="subtitle1" gutterBottom>
-                Profile summary
-              </Typography>
-              <Typography variant="body2">
+          <Card className="md:col-span-3">
+            <CardContent className="pt-6">
+              <h3 className="text-base font-semibold leading-none">Profile summary</h3>
+              <p className="mt-2 text-sm">
                 Trades: {(professional.categories || []).map((c) => getProfessionalCategoryLabel(c)).join(', ') || '—'}
-              </Typography>
+              </p>
               {professional.serviceProviderId?.businessName ? (
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  Provider: {professional.serviceProviderId.businessName}
-                </Typography>
+                <p className="mt-2 text-sm text-muted-foreground">Provider: {professional.serviceProviderId.businessName}</p>
               ) : null}
             </CardContent>
           </Card>
-        </Box>
+        </div>
       )}
 
       {tab === 'bookings' && (
-        <Box>
+        <div>
           {bookingsLoadMeta?.warning ? (
-            <Alert severity="warning" sx={{ mb: 2 }}>
+            <HubAlert variant="warning" className="mb-2">
               {bookingsLoadMeta.warning}
-            </Alert>
+            </HubAlert>
           ) : null}
-          {bookingsError && (
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              {bookingsError}
-            </Alert>
-          )}
-          <Box
-            sx={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 2,
-              mb: 2,
-              alignItems: 'flex-end',
-            }}
-          >
-            <FormControl size="small" sx={{ minWidth: 160 }}>
-              <InputLabel id="hub-booking-status">Status</InputLabel>
-              <Select
-                labelId="hub-booking-status"
-                label="Status"
-                value={bookingStatusFilter}
-                onChange={(e) => setBookingStatusFilter(e.target.value)}
-              >
-                <MenuItem value="all">All</MenuItem>
-                <MenuItem value="pending">Pending</MenuItem>
-                <MenuItem value="confirmed">Confirmed</MenuItem>
-                <MenuItem value="scheduled">Scheduled</MenuItem>
-                <MenuItem value="accepted">Accepted</MenuItem>
-                <MenuItem value="in_progress">In progress</MenuItem>
-                <MenuItem value="completed">Completed</MenuItem>
-                <MenuItem value="cancelled">Cancelled</MenuItem>
+          {bookingsError && <HubAlert variant="warning" className="mb-2">{bookingsError}</HubAlert>}
+          <div className="mb-4 flex flex-wrap items-end gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="hub-booking-status">Status</Label>
+              <Select value={bookingStatusFilter} onValueChange={setBookingStatusFilter}>
+                <SelectTrigger id="hub-booking-status" className="w-[180px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="confirmed">Confirmed</SelectItem>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="accepted">Accepted</SelectItem>
+                  <SelectItem value="in_progress">In progress</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
               </Select>
-            </FormControl>
-            <TextField
-              size="small"
-              label="From (ISO date)"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              placeholder="YYYY-MM-DD"
-            />
-            <TextField
-              size="small"
-              label="To (ISO date)"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              placeholder="YYYY-MM-DD"
-            />
-            <Button size="small" variant="outlined" onClick={() => void loadBookings()}>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="hub-date-from">From (ISO date)</Label>
+              <Input
+                id="hub-date-from"
+                className="w-[160px]"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                placeholder="YYYY-MM-DD"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="hub-date-to">To (ISO date)</Label>
+              <Input
+                id="hub-date-to"
+                className="w-[160px]"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                placeholder="YYYY-MM-DD"
+              />
+            </div>
+            <Button size="sm" variant="outline" type="button" onClick={() => void loadBookings()}>
               Refresh
             </Button>
-          </Box>
+          </div>
           {bookingsLoading ? (
-            <LinearProgress />
+            <Loader2 className="mb-2 h-6 w-6 animate-spin text-muted-foreground" aria-hidden />
           ) : (
             <>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              <p className="mb-2 text-sm text-muted-foreground">
                 Showing {bookings.length} of {bookingTotal} · Page {bookingPage}
-              </Typography>
-              <Box sx={{ overflowX: 'auto' }}>
-                <Box component="table" sx={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-                  <Box component="thead">
-                    <Box component="tr" sx={{ textAlign: 'left', borderBottom: 1, borderColor: 'divider' }}>
+              </p>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-left">
                       {[
                         'Booking',
                         'Customer',
@@ -1069,263 +1039,225 @@ export function ProfessionalAdminHub() {
                         'Notes',
                         '',
                       ].map((h) => (
-                        <Box component="th" key={h || 'actions'} sx={{ py: 1, pr: 2, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                        <th key={h || 'actions'} className="whitespace-nowrap py-2 pr-4 font-semibold">
                           {h}
-                        </Box>
+                        </th>
                       ))}
-                    </Box>
-                  </Box>
-                  <Box component="tbody">
+                    </tr>
+                  </thead>
+                  <tbody>
                     {bookings.map((b) => {
                       const bid = bookingRowId(b)
                       const st = (b.status || (b as { status?: string }).status || '—') as string
                       const amt = Number(b.totalAmount ?? (b as { total_amount?: number }).total_amount ?? 0)
                       const pay = b.paymentStatus
                       return (
-                        <Box component="tr" key={bid} sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                          <Box component="td" sx={{ py: 1, pr: 2, verticalAlign: 'top' }}>
-                            <Typography variant="body2" fontWeight={600}>
-                              {b.bookingNumber || bid}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" display="block">
-                              {b.scheduledTime ? `${b.scheduledTime}` : ''}
-                            </Typography>
-                          </Box>
-                          <Box component="td" sx={{ py: 1, pr: 2, verticalAlign: 'top', minWidth: 120 }}>
+                        <tr key={bid} className="border-b border-border">
+                          <td className="align-top py-2 pr-4">
+                            <p className="font-semibold">{b.bookingNumber || bid}</p>
+                            <p className="text-xs text-muted-foreground">{b.scheduledTime ? `${b.scheduledTime}` : ''}</p>
+                          </td>
+                          <td className="min-w-[120px] align-top py-2 pr-4">
                             {customerDisplayName(b)}
-                            {b.customerPhone ? (
-                              <Typography variant="caption" display="block" color="text.secondary">
-                                {b.customerPhone}
-                              </Typography>
-                            ) : null}
-                          </Box>
-                          <Box component="td" sx={{ py: 1, pr: 2, verticalAlign: 'top', maxWidth: 200 }}>
-                            <Typography variant="body2" sx={{ wordBreak: 'break-word' }}>
-                              {serviceDisplayName(b)}
-                            </Typography>
-                          </Box>
-                          <Box component="td" sx={{ py: 1, pr: 2, verticalAlign: 'top' }}>
-                            <Chip size="small" label={st} />
-                            <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.25 }}>
-                              {bookingLifecycleLabel(st)}
-                            </Typography>
-                          </Box>
-                          <Box component="td" sx={{ py: 1, pr: 2, verticalAlign: 'top' }}>
-                            {pay ? <Chip size="small" variant="outlined" label={pay} /> : '—'}
-                          </Box>
-                          <Box component="td" sx={{ py: 1, pr: 2, verticalAlign: 'top', whiteSpace: 'nowrap' }}>
+                            {b.customerPhone ? <p className="text-xs text-muted-foreground">{b.customerPhone}</p> : null}
+                          </td>
+                          <td className="max-w-[200px] align-top py-2 pr-4 break-words">
+                            {serviceDisplayName(b)}
+                          </td>
+                          <td className="align-top py-2 pr-4">
+                            <Badge>{st}</Badge>
+                            <p className="mt-1 text-xs text-muted-foreground">{bookingLifecycleLabel(st)}</p>
+                          </td>
+                          <td className="align-top py-2 pr-4">
+                            {pay ? (
+                              <Badge variant="outline">{pay}</Badge>
+                            ) : (
+                              '—'
+                            )}
+                          </td>
+                          <td className="whitespace-nowrap align-top py-2 pr-4">
                             {b.scheduledDate ? formatDate(b.scheduledDate) : '—'}
-                          </Box>
-                          <Box component="td" sx={{ py: 1, pr: 2, verticalAlign: 'top', whiteSpace: 'nowrap' }}>
-                            {assignedAtDisplay(b)}
-                          </Box>
-                          <Box component="td" sx={{ py: 1, pr: 2, verticalAlign: 'top' }}>
-                            {formatCurrency(amt)}
-                          </Box>
-                          <Box component="td" sx={{ py: 1, pr: 2, verticalAlign: 'top', maxWidth: 220 }}>
+                          </td>
+                          <td className="whitespace-nowrap align-top py-2 pr-4">{assignedAtDisplay(b)}</td>
+                          <td className="align-top py-2 pr-4">{formatCurrency(amt)}</td>
+                          <td className="max-w-[220px] align-top py-2 pr-4">
                             {cancellationText(b)}
-                            {b.notes ? (
-                              <Typography variant="caption" display="block" color="text.secondary">
-                                {b.notes}
-                              </Typography>
-                            ) : null}
-                          </Box>
-                          <Box component="td" sx={{ py: 1, verticalAlign: 'top' }}>
+                            {b.notes ? <p className="text-xs text-muted-foreground">{b.notes}</p> : null}
+                          </td>
+                          <td className="align-top py-2">
                             {bid ? (
-                              <Button size="small" component={RouterLink} to={`/bookings/${bid}`}>
-                                Details
+                              <Button size="sm" variant="link" className="h-auto p-0" asChild>
+                                <RouterLink to={`/bookings/${bid}`}>Details</RouterLink>
                               </Button>
                             ) : null}
-                          </Box>
-                        </Box>
+                          </td>
+                        </tr>
                       )
                     })}
-                  </Box>
-                </Box>
-              </Box>
-              <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-3 flex gap-2">
                 <Button
-                  size="small"
+                  size="sm"
+                  variant="outline"
                   disabled={bookingPage <= 1}
                   onClick={() => setBookingPage((p) => Math.max(1, p - 1))}
                 >
                   Previous
                 </Button>
                 <Button
-                  size="small"
+                  size="sm"
+                  variant="outline"
                   disabled={bookingPage * bookingLimit >= bookingTotal}
                   onClick={() => setBookingPage((p) => p + 1)}
                 >
                   Next
                 </Button>
-              </Box>
+              </div>
             </>
           )}
-        </Box>
+        </div>
       )}
 
       {tab === 'activity' && (
-        <Box>
-          {activityLoading ? <LinearProgress sx={{ mb: 2 }} /> : null}
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <div>
+          {activityLoading ? <Loader2 className="mb-2 h-6 w-6 animate-spin text-muted-foreground" aria-hidden /> : null}
+          <p className="mb-4 text-sm text-muted-foreground">
             Timeline uses platform activity when the API returns it, plus milestones derived from loaded bookings (only
             events with real timestamps from the server).
-          </Typography>
+          </p>
           {mergedActivity.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">
+            <p className="text-sm text-muted-foreground">
               No activity yet. Open Bookings to load assignments, or check back after new updates.
-            </Typography>
+            </p>
           ) : (
-            <Paper variant="outlined" sx={{ p: { xs: 1, sm: 2 }, borderRadius: 2, overflow: 'hidden' }}>
-              <Timeline position="right">
+            <div className="overflow-hidden rounded-lg border border-border p-3 sm:p-4">
+              <div className="relative border-l border-border pl-4">
                 {mergedActivity.map((row, idx) => (
-                  <TimelineItem key={row.id}>
-                    <TimelineOppositeContent
-                      color="text.secondary"
-                      sx={{ flex: 0.22, maxWidth: 160, py: 2, fontSize: '0.8rem' }}
-                    >
-                      {formatDate(row.occurredAt)}
-                      <Typography variant="caption" display="block" sx={{ opacity: 0.85 }}>
-                        {row.source === 'platform' ? 'Platform' : 'Booking'}
-                      </Typography>
-                    </TimelineOppositeContent>
-                    <TimelineSeparator>
-                      <TimelineDot
-                        color={row.source === 'platform' ? 'secondary' : 'primary'}
-                        variant="outlined"
-                      />
-                      {idx < mergedActivity.length - 1 ? <TimelineConnector /> : null}
-                    </TimelineSeparator>
-                    <TimelineContent sx={{ py: 2 }}>
-                      <Typography variant="subtitle2">{row.title}</Typography>
-                      {row.description ? (
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                          {row.description}
-                        </Typography>
-                      ) : null}
-                      {row.bookingId ? (
-                        <Button size="small" sx={{ mt: 1 }} component={RouterLink} to={`/bookings/${row.bookingId}`}>
-                          Open booking
-                        </Button>
-                      ) : null}
-                    </TimelineContent>
-                  </TimelineItem>
+                  <div key={row.id} className="relative pb-8 pl-2 last:pb-0">
+                    <span
+                      className={
+                        'absolute -left-[9px] top-1.5 h-3 w-3 rounded-full border-2 border-background ring-1 ring-border ' +
+                        (row.source === 'platform' ? 'bg-secondary' : 'bg-primary')
+                      }
+                    />
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-6">
+                      <div className="shrink-0 text-xs text-muted-foreground sm:max-w-[160px] sm:text-sm">
+                        <div>{formatDate(row.occurredAt)}</div>
+                        <div className="opacity-85">{row.source === 'platform' ? 'Platform' : 'Booking'}</div>
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-1 pt-0.5">
+                        <p className="text-sm font-semibold leading-snug">{row.title}</p>
+                        {row.description ? (
+                          <p className="text-sm text-muted-foreground">{row.description}</p>
+                        ) : null}
+                        {row.bookingId ? (
+                          <Button variant="link" className="h-auto p-0 text-sm" asChild>
+                            <RouterLink to={`/bookings/${row.bookingId}`}>Open booking</RouterLink>
+                          </Button>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
                 ))}
-              </Timeline>
-            </Paper>
+              </div>
+            </div>
           )}
-        </Box>
+        </div>
       )}
 
       {tab === 'earnings' && (
-        <Box>
-          {earningsLoading ? <LinearProgress sx={{ mb: 2 }} /> : null}
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <div>
+          {earningsLoading ? <Loader2 className="mb-2 h-6 w-6 animate-spin text-muted-foreground" aria-hidden /> : null}
+          <p className="mb-4 text-sm text-muted-foreground">
             Payment rows from finance records linked to this professional or to bookings listed below.
-          </Typography>
-          {earningsHint ? (
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {earningsHint}
-            </Typography>
-          ) : null}
-          <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' } }}>
-            <Card variant="outlined">
-              <CardContent>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Completed payments (loaded)
-                </Typography>
-                <Typography variant="h4">{formatCurrency(earningsTotals.completed)}</Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {earningsTotals.count} payment rows
-                </Typography>
+          </p>
+          {earningsHint ? <p className="mb-4 text-sm text-muted-foreground">{earningsHint}</p> : null}
+          <div className="mb-4 grid gap-4 md:grid-cols-3">
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-sm text-muted-foreground">Completed payments (loaded)</p>
+                <p className="mt-2 text-3xl font-semibold">{formatCurrency(earningsTotals.completed)}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{earningsTotals.count} payment rows</p>
               </CardContent>
             </Card>
-            <Card variant="outlined">
-              <CardContent>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Completed job value (bookings list)
-                </Typography>
-                <Typography variant="h4">{formatCurrency(bookingStats.completedRevenue)}</Typography>
-                <Typography variant="caption" color="text.secondary">
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-sm text-muted-foreground">Completed job value (bookings list)</p>
+                <p className="mt-2 text-3xl font-semibold">{formatCurrency(bookingStats.completedRevenue)}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
                   Sum of completed jobs on the current Bookings page only (not full history).
-                </Typography>
+                </p>
               </CardContent>
             </Card>
-            <Card variant="outlined">
-              <CardContent>
-                <Button size="small" variant="outlined" onClick={() => void loadEarnings()} disabled={earningsLoading}>
+            <Card>
+              <CardContent className="flex items-center pt-6">
+                <Button size="sm" variant="outline" onClick={() => void loadEarnings()} disabled={earningsLoading}>
                   Refresh payments
                 </Button>
               </CardContent>
             </Card>
-          </Box>
+          </div>
           {earningsPayments.length > 0 ? (
-            <Box sx={{ overflowX: 'auto', mt: 2 }}>
-              <Box component="table" sx={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <Box component="thead">
-                  <Box component="tr" sx={{ borderBottom: 1, borderColor: 'divider', textAlign: 'left' }}>
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full border-collapse text-[13px]">
+                <thead>
+                  <tr className="border-b border-border text-left">
                     {['When', 'Status', 'Amount', 'Method', 'Booking', 'Service'].map((h) => (
-                      <Box component="th" key={h} sx={{ py: 1, pr: 2, fontWeight: 600 }}>
+                      <th key={h} className="py-2 pr-4 font-semibold">
                         {h}
-                      </Box>
+                      </th>
                     ))}
-                  </Box>
-                </Box>
-                <Box component="tbody">
+                  </tr>
+                </thead>
+                <tbody>
                   {earningsPayments.map((p) => (
-                    <Box component="tr" key={p.id || `${p.bookingId}-${p.transactionId}`} sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                      <Box component="td" sx={{ py: 1, pr: 2, verticalAlign: 'top' }}>
+                    <tr key={p.id || `${p.bookingId}-${p.transactionId}`} className="border-b border-border">
+                      <td className="align-top py-2 pr-4">
                         {p.completedAt ? formatDate(p.completedAt) : formatDate(p.createdAt)}
-                      </Box>
-                      <Box component="td" sx={{ py: 1, pr: 2, verticalAlign: 'top' }}>
-                        <Chip size="small" label={p.status} />
-                      </Box>
-                      <Box component="td" sx={{ py: 1, pr: 2, verticalAlign: 'top' }}>
-                        {formatCurrency(Number(p.amount) || 0)}
-                      </Box>
-                      <Box component="td" sx={{ py: 1, pr: 2, verticalAlign: 'top' }}>
-                        {p.paymentMethod || '—'}
-                      </Box>
-                      <Box component="td" sx={{ py: 1, pr: 2, verticalAlign: 'top' }}>
+                      </td>
+                      <td className="align-top py-2 pr-4">
+                        <Badge>{p.status}</Badge>
+                      </td>
+                      <td className="align-top py-2 pr-4">{formatCurrency(Number(p.amount) || 0)}</td>
+                      <td className="align-top py-2 pr-4">{p.paymentMethod || '—'}</td>
+                      <td className="align-top py-2 pr-4">
                         {p.bookingId ? (
-                          <Button size="small" component={RouterLink} to={`/bookings/${p.bookingId}`}>
-                            {p.bookingId}
+                          <Button size="sm" variant="link" className="h-auto p-0" asChild>
+                            <RouterLink to={`/bookings/${p.bookingId}`}>{p.bookingId}</RouterLink>
                           </Button>
                         ) : (
                           '—'
                         )}
-                      </Box>
-                      <Box component="td" sx={{ py: 1, verticalAlign: 'top' }}>
-                        {p.serviceName || p.service || '—'}
-                      </Box>
-                    </Box>
+                      </td>
+                      <td className="align-top py-2">{p.serviceName || p.service || '—'}</td>
+                    </tr>
                   ))}
-                </Box>
-              </Box>
-            </Box>
+                </tbody>
+              </table>
+            </div>
           ) : !earningsLoading ? (
-            <Alert severity="info" sx={{ mt: 2 }}>
-              No payment records found for this view.
-            </Alert>
+            <HubAlert className="mt-2">No payment records found for this view.</HubAlert>
           ) : null}
-        </Box>
+        </div>
       )}
 
       {tab === 'reviews' && (
-        <Box>
-          {reviewsLoading ? <LinearProgress /> : null}
+        <div>
+          {reviewsLoading ? <Loader2 className="mb-2 h-6 w-6 animate-spin text-muted-foreground" aria-hidden /> : null}
           {reviewsSummary ? (
-            <Card variant="outlined" sx={{ mb: 2 }}>
-              <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
-                <Typography variant="subtitle1">
+            <Card className="mb-4">
+              <CardContent className="py-4">
+                <p className="text-lg font-semibold leading-tight">
                   Average {reviewsSummary.average.toFixed(2)} ★ · {reviewsSummary.count}{' '}
                   {reviewsSummary.count === 1 ? 'review' : 'reviews'} from customers
-                </Typography>
+                </p>
               </CardContent>
             </Card>
           ) : null}
           {!reviewsLoading && reviews.length === 0 ? (
-            <Alert severity="info">No customer reviews for this professional yet.</Alert>
+            <HubAlert>No customer reviews for this professional yet.</HubAlert>
           ) : null}
           {!reviewsLoading &&
             reviews.map((r) => {
@@ -1340,83 +1272,75 @@ export function ProfessionalAdminHub() {
                 : [line0?.serviceName, line0?.variantName].filter(Boolean).join(' · ')
               const bid = reviewBookingMongoId(r)
               return (
-                <Card key={r._id} variant="outlined" sx={{ mb: 1 }}>
+                <Card key={r._id} className="mb-3">
                   <CardContent>
-                    <Typography variant="subtitle1">
+                    <p className="text-lg font-semibold leading-tight">
                       {r.rating} ★ · {formatDate(r.createdAt)}
-                    </Typography>
-                    <Typography variant="body2">{r.comment || '—'}</Typography>
+                    </p>
+                    <p className="mt-1 text-sm">{r.comment || '—'}</p>
                     {serviceCaption ? (
-                      <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
-                        {serviceCaption}
-                      </Typography>
+                      <p className="mt-2 block text-xs text-muted-foreground">{serviceCaption}</p>
                     ) : null}
                     {bid ? (
-                      <Button size="small" sx={{ mt: 1 }} component={RouterLink} to={`/bookings/${bid}`}>
-                        Open booking
+                      <Button size="sm" variant="link" className="mt-2 h-auto p-0" asChild>
+                        <RouterLink to={`/bookings/${bid}`}>Open booking</RouterLink>
                       </Button>
                     ) : null}
                   </CardContent>
                 </Card>
               )
             })}
-        </Box>
+        </div>
       )}
 
       {tab === 'documents' && (
-        <Box>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <div>
+          <p className="mb-4 text-sm text-muted-foreground">
             Same record as the professional mobile app: <strong>KYC uploads</strong> (identity / compliance) and{' '}
             <strong>trade certifications</strong> (skills, optional file). Rows appear only after data exists on the
             server.
-          </Typography>
+          </p>
 
-          <Typography variant="subtitle1" sx={{ mb: 1 }}>
-            Identity &amp; KYC
-          </Typography>
+          <h3 className="mb-2 text-lg font-semibold">Identity &amp; KYC</h3>
           {kycDocuments.length === 0 ? (
-            <Alert severity="info" sx={{ mb: 3 }}>
-              No KYC files yet. They are submitted from the professional app (Documents screen) and stored on this
-              profile.
-            </Alert>
+            <HubAlert className="mb-6">
+              No KYC files yet. They are submitted from the professional app (Documents screen) and stored on this profile.
+            </HubAlert>
           ) : (
-            <Stack spacing={1} sx={{ mb: 3 }}>
+            <div className="mb-6 space-y-3">
               {kycDocuments.map((doc, index) => (
-                <Card key={doc._id ?? `${doc.type}-${index}`} variant="outlined">
-                  <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <Typography variant="subtitle2">{professionalKycTypeLabel(doc.type)}</Typography>
-                      <Chip
-                        size="small"
-                        label={doc.isVerified ? 'Verified' : 'Pending review'}
-                        color={doc.isVerified ? 'success' : 'warning'}
-                        variant={doc.isVerified ? 'filled' : 'outlined'}
-                      />
-                    </Box>
+                <Card key={doc._id ?? `${doc.type}-${index}`}>
+                  <CardContent className="py-4">
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <span className="font-medium">{professionalKycTypeLabel(doc.type)}</span>
+                      <Badge variant={doc.isVerified ? 'success' : 'outline'}>
+                        {doc.isVerified ? 'Verified' : 'Pending review'}
+                      </Badge>
+                    </div>
                     {doc.documentNumber ? (
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                        Reference: {doc.documentNumber}
-                      </Typography>
+                      <p className="mb-2 text-sm text-muted-foreground">Reference: {doc.documentNumber}</p>
                     ) : null}
-                    <Stack direction="row" flexWrap="wrap" gap={1} alignItems="center">
-                      <Button size="small" href={doc.documentUrl} target="_blank" rel="noreferrer">
-                        Open file
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={doc.documentUrl} target="_blank" rel="noreferrer">
+                          Open file
+                        </a>
                       </Button>
                       {canModerate ? (
                         <>
                           <Button
-                            size="small"
-                            variant="outlined"
-                            color="success"
+                            size="sm"
+                            variant="outline"
+                            className="border-green-600 text-green-700 hover:bg-green-50 dark:hover:bg-green-950"
                             disabled={docSavingKey !== null || Boolean(doc.isVerified)}
                             onClick={() => void handleSetKycVerified(index, true)}
                           >
                             {docSavingKey === `kyc-${index}` ? 'Saving…' : 'Mark verified'}
                           </Button>
                           <Button
-                            size="small"
-                            variant="outlined"
-                            color="warning"
+                            size="sm"
+                            variant="outline"
+                            className="border-amber-600 text-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950"
                             disabled={docSavingKey !== null || !doc.isVerified}
                             onClick={() => void handleSetKycVerified(index, false)}
                           >
@@ -1424,18 +1348,16 @@ export function ProfessionalAdminHub() {
                           </Button>
                         </>
                       ) : null}
-                    </Stack>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
-            </Stack>
+            </div>
           )}
 
-          <Typography variant="subtitle1" sx={{ mb: 1 }}>
-            Trade certifications
-          </Typography>
+          <h3 className="mb-2 text-lg font-semibold">Trade certifications</h3>
           {profileDocuments.length === 0 ? (
-            <Alert severity="info">No trade certifications with a title or file on file.</Alert>
+            <HubAlert>No trade certifications with a title or file on file.</HubAlert>
           ) : (
             profileDocuments.map((c, i) => {
               const days = daysUntilExpiry(c.expiryDate)
@@ -1443,219 +1365,235 @@ export function ProfessionalAdminHub() {
               const soon = days != null && days >= 0 && days <= 30
               const v = c.verificationStatus
               return (
-                <Card key={`${c.certificateUrl ?? ''}-${c.name ?? ''}-${i}`} variant="outlined" sx={{ mb: 1 }}>
+                <Card key={`${c.certificateUrl ?? ''}-${c.name ?? ''}-${i}`} className="mb-3">
                   <CardContent>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center', mb: 1 }}>
-                      <Typography variant="subtitle1">{c.name?.trim() || 'Uploaded document'}</Typography>
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <span className="text-lg font-semibold">{c.name?.trim() || 'Uploaded document'}</span>
                       {v ? (
-                        <Chip
-                          size="small"
-                          label={`Review: ${v}`}
-                          color={v === 'approved' ? 'success' : v === 'rejected' ? 'error' : 'warning'}
-                        />
+                        <Badge
+                          variant={
+                            v === 'approved' ? 'success' : v === 'rejected' ? 'destructive' : 'warning'
+                          }
+                        >
+                          Review: {v}
+                        </Badge>
                       ) : (
-                        <Chip size="small" label="Review: not set" variant="outlined" />
+                        <Badge variant="outline">Review: not set</Badge>
                       )}
-                      {expired ? <Chip size="small" label="Expired" color="error" /> : null}
-                      {!expired && soon ? (
-                        <Chip size="small" label={`Expires in ${days}d`} color="warning" />
+                      {expired ? (
+                        <Badge variant="destructive">Expired</Badge>
                       ) : null}
-                    </Box>
-                    {c.issuedBy?.trim() ? (
-                      <Typography variant="body2">Issued by {c.issuedBy}</Typography>
-                    ) : null}
+                      {!expired && soon ? <Badge variant="warning">Expires in {days}d</Badge> : null}
+                    </div>
+                    {c.issuedBy?.trim() ? <p className="text-sm">Issued by {c.issuedBy}</p> : null}
                     {c.adminNotes ? (
-                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                        Admin: {c.adminNotes}
-                      </Typography>
+                      <p className="mt-1 text-sm text-muted-foreground">Admin: {c.adminNotes}</p>
                     ) : null}
-                    <Typography variant="caption" display="block" color="text.secondary">
+                    <p className="mt-1 block text-xs text-muted-foreground">
                       {c.issuedDate ? `Issued ${c.issuedDate}` : ''}{' '}
                       {c.expiryDate ? `· Expires ${c.expiryDate}` : ''}
-                    </Typography>
+                    </p>
                     {c.certificateUrl ? (
-                      <Button size="small" href={c.certificateUrl} target="_blank" rel="noreferrer">
-                        Open file
+                      <Button size="sm" variant="outline" className="mt-2" asChild>
+                        <a href={c.certificateUrl} target="_blank" rel="noreferrer">
+                          Open file
+                        </a>
                       </Button>
                     ) : (
-                      <Chip size="small" label="No file URL" variant="outlined" sx={{ mt: 1 }} />
+                      <Badge variant="outline" className="mt-2">
+                        No file URL
+                      </Badge>
                     )}
                   </CardContent>
                 </Card>
               )
             })
           )}
-        </Box>
+        </div>
       )}
 
       {tab === 'coverage' && (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Card variant="outlined">
-            <CardContent>
-              <Typography variant="subtitle1" gutterBottom>
-                Base address
-              </Typography>
-              <Typography variant="body2">
+        <div className="flex flex-col gap-4">
+          <Card>
+            <CardContent className="pt-6">
+              <h3 className="text-base font-semibold leading-none">Base address</h3>
+              <p className="mt-3 text-sm">
                 {professional.address?.street ? `${professional.address.street}, ` : ''}
                 {professional.address?.area}, {professional.address?.city}, {professional.address?.state}{' '}
                 {professional.address?.pincode}
-              </Typography>
+              </p>
             </CardContent>
           </Card>
-          <Card variant="outlined">
-            <CardContent>
-              <Typography variant="subtitle1" gutterBottom>
-                Service areas
-              </Typography>
+          <Card>
+            <CardContent className="pt-6">
+              <h3 className="text-base font-semibold leading-none">Service areas</h3>
               {(professional.serviceAreas || []).length === 0 ? (
-                <Typography variant="body2" color="text.secondary">
-                  None listed
-                </Typography>
+                <p className="mt-3 text-sm text-muted-foreground">None listed</p>
               ) : (
                 (professional.serviceAreas || []).map((a, idx) => (
-                  <Box key={`${a.city}-${idx}`} sx={{ mb: 1 }}>
-                    <Typography variant="subtitle2">{a.city}</Typography>
-                    {a.areas?.length ? (
-                      <Typography variant="body2">Areas: {a.areas.join(', ')}</Typography>
-                    ) : null}
-                    {a.pincodes?.length ? (
-                      <Typography variant="body2">Pincodes: {a.pincodes.join(', ')}</Typography>
-                    ) : null}
-                    {a.radius != null ? (
-                      <Typography variant="body2">Radius: {a.radius} km</Typography>
-                    ) : null}
-                  </Box>
+                  <div key={`${a.city}-${idx}`} className="mb-3 mt-3 first:mt-0">
+                    <p className="font-medium">{a.city}</p>
+                    {a.areas?.length ? <p className="text-sm">Areas: {a.areas.join(', ')}</p> : null}
+                    {a.pincodes?.length ? <p className="text-sm">Pincodes: {a.pincodes.join(', ')}</p> : null}
+                    {a.radius != null ? <p className="text-sm">Radius: {a.radius} km</p> : null}
+                  </div>
                 ))
               )}
             </CardContent>
           </Card>
-        </Box>
+        </div>
       )}
 
       {tab === 'moderation' && (
-        <Box>
+        <div>
           {!canModerate ? (
-            <Alert severity="warning">You do not have permission to moderate professionals.</Alert>
+            <HubAlert variant="warning">You do not have permission to moderate professionals.</HubAlert>
           ) : (
             <>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              <p className="mb-4 text-sm text-muted-foreground">
                 Suspend temporarily, block permanently, or reinstate access. Linked login may be disabled when a user
                 account is connected.
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1 }}>
+              </p>
+              <p className="mb-2 text-sm">
                 Current: <strong>{accountStatus}</strong>
                 {professional.moderationReason ? ` — ${professional.moderationReason}` : ''}
-              </Typography>
+              </p>
               {professional.suspendedUntil ? (
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                <p className="mb-4 text-sm text-muted-foreground">
                   Suspended until: {formatDate(professional.suspendedUntil)}
-                </Typography>
+                </p>
               ) : null}
-              <Divider sx={{ my: 2 }} />
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                <Button variant="outlined" color="warning" onClick={() => setSuspendOpen(true)} disabled={modBusy}>
+              <Separator className="my-4" />
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  className="border-amber-600 text-amber-800"
+                  onClick={() => setSuspendOpen(true)}
+                  disabled={modBusy}
+                >
                   Suspend
                 </Button>
-                <Button variant="outlined" color="error" onClick={() => setBlockOpen(true)} disabled={modBusy}>
+                <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/10" onClick={() => setBlockOpen(true)} disabled={modBusy}>
                   Block
                 </Button>
-                <Button variant="contained" color="success" onClick={() => setReinstateOpen(true)} disabled={modBusy}>
+                <Button
+                  className="bg-green-600 text-white hover:bg-green-700"
+                  onClick={() => setReinstateOpen(true)}
+                  disabled={modBusy}
+                >
                   Reinstate
                 </Button>
-              </Box>
+              </div>
             </>
           )}
-        </Box>
+        </div>
       )}
 
-      <Dialog open={suspendOpen} onClose={() => !modBusy && setSuspendOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Suspend professional</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Reason (required)"
-            fullWidth
-            multiline
-            minRows={2}
-            value={suspendReason}
-            onChange={(e) => setSuspendReason(e.target.value)}
-          />
-          <TextField
-            margin="dense"
-            label="Until (optional, ISO date)"
-            fullWidth
-            value={suspendUntil}
-            onChange={(e) => setSuspendUntil(e.target.value)}
-            placeholder="YYYY-MM-DD"
-            sx={{ mt: 2 }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSuspendOpen(false)} disabled={modBusy}>
-            Cancel
-          </Button>
-          <Button onClick={() => void handleSuspendConfirm()} variant="contained" color="warning" disabled={modBusy}>
-            Confirm suspend
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog open={reinstateOpen} onClose={() => !modBusy && setReinstateOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Reinstate professional?</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2">
-            This restores marketplace access (and login when linked). Confirm this account should be active again.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setReinstateOpen(false)} disabled={modBusy}>
-            Cancel
-          </Button>
-          <Button onClick={() => void performReinstate()} variant="contained" color="success" disabled={modBusy}>
-            Confirm reinstate
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog open={blockOpen} onClose={() => !modBusy && setBlockOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Block professional</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Reason (required)"
-            fullWidth
-            multiline
-            minRows={3}
-            value={blockReason}
-            onChange={(e) => setBlockReason(e.target.value)}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setBlockOpen(false)} disabled={modBusy}>
-            Cancel
-          </Button>
-          <Button onClick={() => void handleBlockConfirm()} variant="contained" color="error" disabled={modBusy}>
-            Confirm block
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={5000}
-        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      <Dialog
+        open={suspendOpen}
+        onOpenChange={(open) => {
+          if (!open && !modBusy) setSuspendOpen(false)
+        }}
       >
-        <Alert
-          severity={snackbar.severity}
-          onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Suspend professional</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="suspend-reason">Reason (required)</Label>
+              <Textarea
+                id="suspend-reason"
+                autoFocus
+                rows={3}
+                value={suspendReason}
+                onChange={(e) => setSuspendReason(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="suspend-until">Until (optional, ISO date)</Label>
+              <Input
+                id="suspend-until"
+                value={suspendUntil}
+                onChange={(e) => setSuspendUntil(e.target.value)}
+                placeholder="YYYY-MM-DD"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setSuspendOpen(false)} disabled={modBusy}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-amber-600 text-white hover:bg-amber-700"
+              onClick={() => void handleSuspendConfirm()}
+              disabled={modBusy}
+            >
+              Confirm suspend
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={reinstateOpen}
+        onOpenChange={(open) => {
+          if (!open && !modBusy) setReinstateOpen(false)
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reinstate professional?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            This restores marketplace access (and login when linked). Confirm this account should be active again.
+          </p>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setReinstateOpen(false)} disabled={modBusy}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-green-600 text-white hover:bg-green-700"
+              onClick={() => void performReinstate()}
+              disabled={modBusy}
+            >
+              Confirm reinstate
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={blockOpen}
+        onOpenChange={(open) => {
+          if (!open && !modBusy) setBlockOpen(false)
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Block professional</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1.5 py-2">
+            <Label htmlFor="block-reason">Reason (required)</Label>
+            <Textarea
+              id="block-reason"
+              autoFocus
+              rows={4}
+              value={blockReason}
+              onChange={(e) => setBlockReason(e.target.value)}
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setBlockOpen(false)} disabled={modBusy}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={() => void handleBlockConfirm()} disabled={modBusy}>
+              Confirm block
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+    </TooltipProvider>
   )
 }

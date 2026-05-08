@@ -1,41 +1,15 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  TextField,
-  Typography,
-  MenuItem,
-  Stack,
-  IconButton,
-  Alert,
-  Divider,
-  ToggleButton,
-  ToggleButtonGroup,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  FormControlLabel,
-  Checkbox,
-  Stepper,
-  Step,
-  StepLabel,
-  Paper,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
-import {
-  ArrowBack as ArrowBackIcon,
-  Add as AddIcon,
-  Remove as RemoveIcon,
-  ReceiptLong as ReceiptLongIcon,
-  Download as DownloadIcon,
-  NavigateNext as NextIcon,
-  NavigateBefore as BackIcon,
-  Summarize as PreviewIcon,
-} from '@mui/icons-material'
+  ArrowLeft,
+  Plus,
+  Minus,
+  Receipt,
+  Download,
+  ChevronRight,
+  ChevronLeft,
+  ClipboardList,
+} from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import {
   InvoicesService,
@@ -52,6 +26,29 @@ import {
   type BackendPaymentMethod,
   paymentMethodLabel,
 } from '../../lib/invoicePaymentMethod'
+import { cn } from '../../lib/utils'
+import { Button } from '../../components/ui/button'
+import { Card, CardContent } from '../../components/ui/card'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
+import { Textarea } from '../../components/ui/textarea'
+import { Checkbox } from '../../components/ui/checkbox'
+import { Separator } from '../../components/ui/separator'
+import { HStack, VStack } from '../../components/ui/spacing'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog'
 
 const OBJ_ID = /^[a-f0-9]{24}$/i
 
@@ -276,11 +273,11 @@ export function InvoiceCreate() {
   }
 
   const billingAddressLines = useMemo(() => {
-    const lines: string[] = [billingTo.addressLine1, billingTo.addressLine2]
+    const lineList: string[] = [billingTo.addressLine1, billingTo.addressLine2]
       .map((s) => s.trim())
       .filter(Boolean)
-    lines.push(`${billingTo.city.trim()}, ${billingTo.state.trim()} – ${billingTo.pincode.trim()}`)
-    return lines
+    lineList.push(`${billingTo.city.trim()}, ${billingTo.state.trim()} – ${billingTo.pincode.trim()}`)
+    return lineList
   }, [billingTo])
 
   const doSubmit = async () => {
@@ -382,81 +379,80 @@ export function InvoiceCreate() {
     navigate('/invoices')
   }
 
+  const templateOpts = type === 'provider_payout' ? PDF_TEMPLATES_VENDOR : PDF_TEMPLATES_CUSTOMER
+
   return (
-    <Box
-      component="form"
+    <form
+      className="min-h-screen bg-muted/30 pb-8 dark:bg-zinc-950"
       onSubmit={(e) => {
         e.preventDefault()
         if (activeStep < 2) return
         void doSubmit()
       }}
-      sx={{
-        minHeight: '100vh',
-        bgcolor: (t) => (t.palette.mode === 'dark' ? 'grey.900' : 'grey.50'),
-        pb: 4,
-      }}
     >
-      <Box sx={{ maxWidth: 1000, mx: 'auto', p: { xs: 2, sm: 3 } }}>
+      <div className="mx-auto max-w-[1000px] p-4 sm:p-6">
         <PageHeader
           title="Create tax invoice"
           subtitle="GST-compliant manual billing — services &amp; products, app users or walk-in customers. Aligned with fixer-backend /api/invoices/generate and PDFService."
-          icon={<ReceiptLongIcon fontSize="large" />}
+          icon={<Receipt className="h-8 w-8" />}
           action={
-            <Button
-              startIcon={<ArrowBackIcon />}
-              onClick={() => navigate('/invoices')}
-              variant="outlined"
-            >
+            <Button type="button" variant="outline" onClick={() => navigate('/invoices')}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
               Invoices
             </Button>
           }
         />
 
-        <Paper
-          elevation={0}
-          sx={{ p: 2, mb: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}
-        >
-          <Stepper activeStep={activeStep} alternativeLabel>
-            {STEPS.map((label) => (
-              <Step key={label}>
-                <StepLabel
-                  optional={
-                    label === 'Preview & issue' ? (
-                      <Typography variant="caption" color="text.secondary">
-                        Review + issue
-                      </Typography>
-                    ) : undefined
-                  }
-                >
-                  {label}
-                </StepLabel>
-              </Step>
-            ))}
-          </Stepper>
-        </Paper>
+        <Card className="mb-4 border-border">
+          <CardContent className="pt-6">
+            <ol className="flex flex-wrap items-start justify-center gap-4 md:gap-8">
+              {STEPS.map((label, i) => (
+                <li key={label} className="flex max-w-[140px] flex-col items-center gap-1 text-center">
+                  <span
+                    className={cn(
+                      'flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold',
+                      i === activeStep && 'bg-primary text-primary-foreground',
+                      i < activeStep && 'bg-primary/25 text-primary',
+                      i > activeStep && 'bg-muted text-muted-foreground'
+                    )}
+                  >
+                    {i + 1}
+                  </span>
+                  <span className="text-xs text-muted-foreground">{label}</span>
+                  {label === 'Preview & issue' && (
+                    <span className="text-[10px] text-muted-foreground">Review + issue</span>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </CardContent>
+        </Card>
 
         {activeStep === 0 && (
-          <Stack spacing={2.5}>
-            <Alert severity="info" icon={<PreviewIcon fontSize="inherit" />} sx={{ py: 1.5 }}>
-              Walk-in: no User ID. Platform: link to Mongo <code>User._id</code>. Optional{' '}
-              <code>REACT_APP_INVOICE_OFFLINE_GUEST_USER_ID</code> for backend systems that need a
-              placeholder id.
-            </Alert>
+          <VStack className="gap-6">
+            <div
+              className="flex gap-3 rounded-md border border-sky-200 bg-sky-50 p-4 text-sm dark:border-sky-900 dark:bg-sky-950/40"
+              role="status"
+            >
+              <ClipboardList className="mt-0.5 h-5 w-5 shrink-0 text-sky-700 dark:text-sky-200" />
+              <p>
+                Walk-in: no User ID. Platform: link to Mongo <code className="rounded bg-white/60 px-1 dark:bg-black/30">User._id</code>.
+                Optional{' '}
+                <code className="rounded bg-white/60 px-1 dark:bg-black/30">REACT_APP_INVOICE_OFFLINE_GUEST_USER_ID</code> for
+                backend systems that need a placeholder id.
+              </p>
+            </div>
 
-            <Card variant="outlined">
-              <CardContent>
-                <Typography variant="overline" color="primary" fontWeight={700}>
-                  Document
-                </Typography>
-                <Grid container spacing={2} sx={{ mt: 0.5 }}>
-                  <Grid item xs={12} md={8}>
-                    <TextField
-                      label="Invoice class"
-                      select
-                      fullWidth
+            <Card>
+              <CardContent className="space-y-4 pt-6">
+                <p className="text-xs font-bold uppercase text-primary">Document</p>
+                <div className="grid gap-4 md:grid-cols-1">
+                  <div className="space-y-2 md:max-w-xl">
+                    <Label htmlFor="inv-class">Invoice class</Label>
+                    <Select
                       value={type}
-                      onChange={(e) => {
-                        const t = e.target.value as ManualInvoicePayload['type']
+                      onValueChange={(v) => {
+                        const t = v as ManualInvoicePayload['type']
                         setType(t)
                         if (t === 'product') {
                           setItems((rows) =>
@@ -481,401 +477,386 @@ export function InvoiceCreate() {
                         }
                       }}
                     >
-                      {INVOICE_TYPES.map((t) => (
-                        <MenuItem key={t.value} value={t.value}>
-                          {t.label}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
-                      {INVOICE_TYPES.find((x) => x.value === type)?.hint}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={12} md={8}>
-                    <TextField
-                      label="PDF template"
-                      select
-                      fullWidth
-                      value={pdfTemplate}
-                      onChange={(e) => setPdfTemplate(e.target.value as InvoicePdfTemplateId)}
-                    >
-                      {(type === 'provider_payout' ? PDF_TEMPLATES_VENDOR : PDF_TEMPLATES_CUSTOMER).map((opt) => (
-                        <MenuItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
-                      {
-                        (type === 'provider_payout' ? PDF_TEMPLATES_VENDOR : PDF_TEMPLATES_CUSTOMER).find(
-                          (x) => x.value === pdfTemplate
-                        )?.hint
-                      }
-                    </Typography>
-                  </Grid>
-                </Grid>
+                      <SelectTrigger id="inv-class">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {INVOICE_TYPES.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>
+                            {t.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">{INVOICE_TYPES.find((x) => x.value === type)?.hint}</p>
+                  </div>
+                  <div className="space-y-2 md:max-w-xl">
+                    <Label htmlFor="pdf-template">PDF template</Label>
+                    <Select value={pdfTemplate} onValueChange={(v) => setPdfTemplate(v as InvoicePdfTemplateId)}>
+                      <SelectTrigger id="pdf-template">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {templateOpts.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      {templateOpts.find((x) => x.value === pdfTemplate)?.hint}
+                    </p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
-            <Card variant="outlined">
-              <CardContent>
-                <Typography variant="overline" color="primary" fontWeight={700}>
-                  Customer
-                </Typography>
-                <ToggleButtonGroup
-                  color="primary"
-                  value={customerMode}
-                  exclusive
-                  onChange={(_, v) => v && setCustomerMode(v)}
-                  sx={{ my: 2, display: 'flex', flexWrap: 'wrap' }}
-                >
-                  <ToggleButton value="offline">Walk-in / offline</ToggleButton>
-                  <ToggleButton value="platform">Platform (User ID)</ToggleButton>
-                </ToggleButtonGroup>
-                <Grid container spacing={2}>
+            <Card>
+              <CardContent className="space-y-4 pt-6">
+                <p className="text-xs font-bold uppercase text-primary">Customer</p>
+                <div className="inline-flex rounded-md border border-border bg-background p-1">
+                  <Button
+                    type="button"
+                    variant={customerMode === 'offline' ? 'default' : 'ghost'}
+                    size="sm"
+                    className="rounded-sm"
+                    onClick={() => setCustomerMode('offline')}
+                  >
+                    Walk-in / offline
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={customerMode === 'platform' ? 'default' : 'ghost'}
+                    size="sm"
+                    className="rounded-sm"
+                    onClick={() => setCustomerMode('platform')}
+                  >
+                    Platform (User ID)
+                  </Button>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
                   {customerMode === 'platform' ? (
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
+                    <div className="space-y-2 md:col-span-1">
+                      <Label htmlFor="cust-id">Customer user ID (MongoDB)</Label>
+                      <Input
+                        id="cust-id"
                         required
-                        label="Customer user ID (MongoDB)"
                         value={customerId}
                         onChange={(e) => setCustomerId(e.target.value.trim())}
                         placeholder="24 hex characters"
-                        helperText="For CRM and portal"
                       />
-                    </Grid>
+                      <p className="text-xs text-muted-foreground">For CRM and portal</p>
+                    </div>
                   ) : (
-                    <Grid item xs={12}>
-                      <Alert severity="success" variant="outlined" sx={{ py: 0.5 }}>
-                        {OFFLINE_GUEST
-                          ? 'Backend linkage will use the configured guest user id.'
-                          : 'Backend may require REACT_APP_INVOICE_OFFLINE_GUEST_USER_ID in .env.'}
-                      </Alert>
-                    </Grid>
+                    <div className="rounded-md border border-emerald-200 bg-emerald-50/80 p-3 text-sm md:col-span-2 dark:border-emerald-900 dark:bg-emerald-950/30">
+                      {OFFLINE_GUEST
+                        ? 'Backend linkage will use the configured guest user id.'
+                        : 'Backend may require REACT_APP_INVOICE_OFFLINE_GUEST_USER_ID in .env.'}
+                    </div>
                   )}
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Your reference (LPO, work order, ticket)"
+                  <div className="space-y-2 md:col-span-1">
+                    <Label htmlFor="cust-ref">Your reference (LPO, work order, ticket)</Label>
+                    <Input
+                      id="cust-ref"
                       value={customerReference}
                       onChange={(e) => setCustomerReference(e.target.value)}
                     />
-                  </Grid>
-                </Grid>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
-            <Card variant="outlined">
-              <CardContent>
-                <Typography variant="overline" color="primary" fontWeight={700}>
-                  Bill to — place of supply
-                </Typography>
-                <Grid container spacing={2} sx={{ mt: 0.5 }}>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      required
-                      label="Legal / billing name"
-                      value={billingTo.name}
-                      onChange={(e) => setBill('name', e.target.value)}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      required
-                      label="Phone"
-                      value={billingTo.phone}
-                      onChange={(e) => setBill('phone', e.target.value)}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
+            <Card>
+              <CardContent className="space-y-4 pt-6">
+                <p className="text-xs font-bold uppercase text-primary">Bill to — place of supply</p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2 sm:col-span-1">
+                    <Label htmlFor="bill-name">Legal / billing name</Label>
+                    <Input id="bill-name" required value={billingTo.name} onChange={(e) => setBill('name', e.target.value)} />
+                  </div>
+                  <div className="space-y-2 sm:col-span-1">
+                    <Label htmlFor="bill-phone">Phone</Label>
+                    <Input id="bill-phone" required value={billingTo.phone} onChange={(e) => setBill('phone', e.target.value)} />
+                  </div>
+                  <div className="space-y-2 sm:col-span-1">
+                    <Label htmlFor="bill-email">Email (for sending PDF)</Label>
+                    <Input
+                      id="bill-email"
                       type="email"
-                      label="Email (for sending PDF)"
                       value={billingTo.email}
                       onChange={(e) => setBill('email', e.target.value)}
                     />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Customer GSTIN (B2B)"
-                      value={billingTo.gstin}
-                      onChange={(e) => setBill('gstin', e.target.value)}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
+                  </div>
+                  <div className="space-y-2 sm:col-span-1">
+                    <Label htmlFor="bill-gstin">Customer GSTIN (B2B)</Label>
+                    <Input id="bill-gstin" value={billingTo.gstin} onChange={(e) => setBill('gstin', e.target.value)} />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="addr1">Address line 1</Label>
+                    <Input
+                      id="addr1"
                       required
-                      label="Address line 1"
                       value={billingTo.addressLine1}
                       onChange={(e) => setBill('addressLine1', e.target.value)}
                     />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Address line 2"
-                      value={billingTo.addressLine2}
-                      onChange={(e) => setBill('addressLine2', e.target.value)}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <TextField fullWidth label="City" value={billingTo.city} onChange={(e) => setBill('city', e.target.value)} />
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <TextField
-                      fullWidth
-                      required
-                      label="State (place of supply)"
-                      value={billingTo.state}
-                      onChange={(e) => setBill('state', e.target.value)}
-                      helperText={`Your company is configured in preview as: ${COMPANY_STATE}`}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <TextField fullWidth label="Pincode" value={billingTo.pincode} onChange={(e) => setBill('pincode', e.target.value)} />
-                  </Grid>
-                </Grid>
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="addr2">Address line 2</Label>
+                    <Input id="addr2" value={billingTo.addressLine2} onChange={(e) => setBill('addressLine2', e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="city">City</Label>
+                    <Input id="city" value={billingTo.city} onChange={(e) => setBill('city', e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="state">State (place of supply)</Label>
+                    <Input id="state" required value={billingTo.state} onChange={(e) => setBill('state', e.target.value)} />
+                    <p className="text-xs text-muted-foreground">Your company is configured in preview as: {COMPANY_STATE}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="pin">Pincode</Label>
+                    <Input id="pin" value={billingTo.pincode} onChange={(e) => setBill('pincode', e.target.value)} />
+                  </div>
+                </div>
               </CardContent>
             </Card>
-          </Stack>
+          </VStack>
         )}
 
         {activeStep === 1 && (
-          <Stack spacing={2.5}>
-            <Card variant="outlined">
-              <CardContent>
-                <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1} mb={2}>
+          <VStack className="gap-6">
+            <Card>
+              <CardContent className="pt-6">
+                <HStack className="mb-4 flex-wrap items-start justify-between gap-2">
                   <div>
-                    <Typography variant="h6" fontWeight={600}>
-                      Line items
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Ex‑GST unit rates. GST is computed per line (18%) like fixer-backend InvoiceService; invoice discount
-                      is applied to the final total.
-                    </Typography>
+                    <h3 className="font-semibold">Line items</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Ex‑GST unit rates. GST is computed per line (18%) like fixer-backend InvoiceService; invoice discount is
+                      applied to the final total.
+                    </p>
                   </div>
-                  <Button type="button" startIcon={<AddIcon />} onClick={addItem} variant="outlined" size="small">
+                  <Button type="button" variant="outline" size="sm" onClick={addItem}>
+                    <Plus className="mr-2 h-4 w-4" />
                     Add line
                   </Button>
-                </Box>
-                <Stack spacing={2}>
+                </HStack>
+                <VStack className="gap-4">
                   {items.map((row, index) => {
                     const kind = row.lineKind || defaultLineKind
                     const catOptions = lineCategoriesFor(kind)
                     return (
-                      <Box key={index}>
-                        <Grid container spacing={1} alignItems="flex-start">
-                          <Grid item xs={12} md={3}>
-                            <TextField
-                              fullWidth
-                              size="small"
-                              label="Description"
+                      <div key={index}>
+                        <div className="grid grid-cols-12 gap-2">
+                          <div className="col-span-12 md:col-span-3">
+                            <Label className="text-xs" htmlFor={`desc-${index}`}>
+                              Description
+                            </Label>
+                            <Input
+                              id={`desc-${index}`}
+                              className="mt-1"
                               value={row.description}
                               onChange={(e) => setItem(index, 'description', e.target.value)}
                             />
-                          </Grid>
-                          <Grid item xs={4} md={2}>
-                            <TextField
-                              fullWidth
-                              size="small"
+                          </div>
+                          <div className="col-span-4 md:col-span-2">
+                            <Label className="text-xs" htmlFor={`qty-${index}`}>
+                              Qty
+                            </Label>
+                            <Input
+                              id={`qty-${index}`}
+                              className="mt-1"
                               type="number"
-                              label="Qty"
-                              inputProps={{ min: 0.001, step: 0.01 }}
+                              min={0.001}
+                              step={0.01}
                               value={row.quantity}
                               onChange={(e) => setItem(index, 'quantity', parseFloat(e.target.value) || 0)}
                             />
-                          </Grid>
-                          <Grid item xs={4} md={2}>
-                            <TextField
-                              fullWidth
-                              size="small"
+                          </div>
+                          <div className="col-span-4 md:col-span-2">
+                            <Label className="text-xs" htmlFor={`unit-${index}`}>
+                              Unit (₹ ex‑GST)
+                            </Label>
+                            <Input
+                              id={`unit-${index}`}
+                              className="mt-1"
                               type="number"
-                              label="Unit (₹ ex‑GST)"
-                              inputProps={{ min: 0, step: 0.01 }}
+                              min={0}
+                              step={0.01}
                               value={row.unitPrice}
                               onChange={(e) => setItem(index, 'unitPrice', parseFloat(e.target.value) || 0)}
                             />
-                          </Grid>
-                          <Grid item xs={4} md={2}>
-                            <TextField
-                              fullWidth
-                              size="small"
-                              select
-                              label="Type"
+                          </div>
+                          <div className="col-span-4 md:col-span-2">
+                            <Label className="text-xs" htmlFor={`lk-${index}`}>
+                              Type
+                            </Label>
+                            <Select
                               value={kind}
-                              onChange={(e) => setItem(index, 'lineKind', e.target.value as 'product' | 'service')}
+                              onValueChange={(v) => setItem(index, 'lineKind', v as 'product' | 'service')}
                             >
-                              <MenuItem value="service">Service (SAC)</MenuItem>
-                              <MenuItem value="product">Goods (HSN)</MenuItem>
-                            </TextField>
-                          </Grid>
-                          <Grid item xs={6} md={2}>
-                            <TextField
-                              fullWidth
-                              size="small"
-                              select
-                              label="Category"
+                              <SelectTrigger id={`lk-${index}`} className="mt-1">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="service">Service (SAC)</SelectItem>
+                                <SelectItem value="product">Goods (HSN)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="col-span-6 md:col-span-2">
+                            <Label className="text-xs" htmlFor={`cat-${index}`}>
+                              Category
+                            </Label>
+                            <Select
                               value={row.category || (kind === 'product' ? 'product' : 'electrical')}
-                              onChange={(e) => setItem(index, 'category', e.target.value)}
+                              onValueChange={(v) => setItem(index, 'category', v)}
                             >
-                              {catOptions.map((c) => (
-                                <MenuItem key={c.value} value={c.value}>
-                                  {c.label}
-                                </MenuItem>
-                              ))}
-                            </TextField>
-                          </Grid>
-                          <Grid item xs={6} md={1} sx={{ display: 'flex', justifyContent: 'center' }}>
-                            <IconButton
+                              <SelectTrigger id={`cat-${index}`} className="mt-1">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {catOptions.map((c) => (
+                                  <SelectItem key={c.value} value={c.value}>
+                                    {c.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="col-span-6 flex items-end justify-center md:col-span-1">
+                            <Button
                               type="button"
-                              size="small"
+                              variant="ghost"
+                              size="icon"
+                              className="h-9 w-9"
                               aria-label="Remove line"
                               onClick={() => removeItem(index)}
                               disabled={items.length <= 1}
                             >
-                              <RemoveIcon />
-                            </IconButton>
-                          </Grid>
-                        </Grid>
-                        {index < items.length - 1 && <Divider sx={{ mt: 2 }} />}
-                      </Box>
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        {index < items.length - 1 && <Separator className="mt-4" />}
+                      </div>
                     )
                   })}
-                </Stack>
+                </VStack>
               </CardContent>
             </Card>
 
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Typography fontWeight={600} gutterBottom>
-                      Links
-                    </Typography>
-                    <Stack spacing={2}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="Service booking (optional)"
-                        value={bookingId}
-                        onChange={(e) => setBookingId(e.target.value.trim())}
-                        placeholder="24-char id"
-                        helperText="Tie to a home-service booking"
-                      />
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="Store order (optional)"
-                        value={orderId}
-                        onChange={(e) => setOrderId(e.target.value.trim())}
-                        placeholder="24-char id"
-                        helperText="Tie to an e-commerce order"
-                      />
-                    </Stack>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Typography fontWeight={600} gutterBottom>
-                      Collection &amp; terms
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      select
-                      label="Payment method"
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card>
+                <CardContent className="space-y-4 pt-6">
+                  <p className="font-semibold">Links</p>
+                  <div className="space-y-2">
+                    <Label htmlFor="booking">Service booking (optional)</Label>
+                    <Input
+                      id="booking"
+                      value={bookingId}
+                      onChange={(e) => setBookingId(e.target.value.trim())}
+                      placeholder="24-char id"
+                    />
+                    <p className="text-xs text-muted-foreground">Tie to a home-service booking</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="order">Store order (optional)</Label>
+                    <Input id="order" value={orderId} onChange={(e) => setOrderId(e.target.value.trim())} placeholder="24-char id" />
+                    <p className="text-xs text-muted-foreground">Tie to an e-commerce order</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="space-y-4 pt-6">
+                  <p className="font-semibold">Collection &amp; terms</p>
+                  <div className="space-y-2">
+                    <Label htmlFor="pay-method">Payment method</Label>
+                    <Select
                       value={paymentMethod}
-                      onChange={(e) => setPaymentMethod(e.target.value as BackendPaymentMethod)}
-                      helperText="Must match server enum (avoids 500 on save)"
-                      sx={{ mb: 2 }}
+                      onValueChange={(v) => setPaymentMethod(v as BackendPaymentMethod)}
                     >
-                      {PAYMENT_METHOD_CHOICES.map((c) => (
-                        <MenuItem key={c.value} value={c.value}>
-                          {c.label}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                    <TextField
-                      fullWidth
-                      size="small"
+                      <SelectTrigger id="pay-method">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PAYMENT_METHOD_CHOICES.map((c) => (
+                          <SelectItem key={c.value} value={c.value}>
+                            {c.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">Must match server enum (avoids 500 on save)</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="disc">Invoice discount (₹) — after tax, per server</Label>
+                    <Input
+                      id="disc"
                       type="number"
-                      label="Invoice discount (₹) — after tax, per server"
+                      min={0}
+                      step={0.01}
                       value={discount}
                       onChange={(e) => setDiscount(e.target.value)}
-                      inputProps={{ min: 0, step: 0.01 }}
                     />
-                    <TextField
-                      fullWidth
-                      size="small"
-                      multiline
-                      minRows={2}
-                      label="Notes (PDF)"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      sx={{ mt: 2 }}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Notes (PDF)</Label>
+                    <Textarea id="notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+                  </div>
+                  <div className="flex items-center gap-2 pt-1">
+                    <Checkbox
+                      id="email-after"
+                      checked={emailAfterCreate}
+                      onCheckedChange={(c) => setEmailAfterCreate(c === true)}
                     />
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={emailAfterCreate}
-                          onChange={(e) => setEmailAfterCreate(e.target.checked)}
-                        />
-                      }
-                      label="Email client after create"
-                      sx={{ mt: 1 }}
-                    />
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid item xs={12} md={6} sx={{ ml: { md: 'auto' } }}>
-                <Card sx={{ bgcolor: (t) => (t.palette.mode === 'dark' ? 'grey.900' : 'primary.50') }}>
-                  <CardContent>
-                    <Typography fontWeight={700} gutterBottom color="primary">
-                      Live summary (matches backend)
-                    </Typography>
-                    <Stack spacing={0.5}>
-                      <Line label={applyGstPreview ? 'Taxable (lines)' : 'Line amounts'} v={subtotal} />
-                      {applyGstPreview ? (
-                        <Line label="GST 18% (lines)" v={totalTax} />
-                      ) : (
-                        <Line label="GST on document" v={0} muted />
-                      )}
-                      <Line label="Less discount" v={-discountN} muted />
-                      <Divider />
-                      <Line label={applyGstPreview ? 'Net payable' : 'Total payable'} v={grandTotal} bold />
-                    </Stack>
-                  </CardContent>
-                </Card>
-              </Grid>
-            </Grid>
-          </Stack>
+                    <Label htmlFor="email-after" className="text-sm font-normal">
+                      Email client after create
+                    </Label>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-primary/20 bg-primary/5 md:col-span-2">
+                <CardContent className="space-y-2 pt-6">
+                  <p className="font-bold text-primary">Live summary (matches backend)</p>
+                  <Line label={applyGstPreview ? 'Taxable (lines)' : 'Line amounts'} v={subtotal} />
+                  {applyGstPreview ? (
+                    <Line label="GST 18% (lines)" v={totalTax} />
+                  ) : (
+                    <Line label="GST on document" v={0} muted />
+                  )}
+                  <Line label="Less discount" v={-discountN} muted />
+                  <Separator />
+                  <Line label={applyGstPreview ? 'Net payable' : 'Total payable'} v={grandTotal} bold />
+                </CardContent>
+              </Card>
+            </div>
+          </VStack>
         )}
 
         {activeStep === 2 && (
-          <Box>
-            <Alert severity="success" sx={{ mb: 2 }}>
+          <div>
+            <div
+              className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm dark:border-emerald-900 dark:bg-emerald-950/30"
+              role="status"
+            >
               Check customer name, state (place of supply), amounts, and payment mode. Issuing will call{' '}
-              <code>POST /api/invoices/generate</code> (admin) and then PDF generation, same as online flows. Logo and
-              colours follow{' '}
-              <Link to="/invoices/branding" style={{ fontWeight: 600 }}>
+              <code className="rounded bg-white/60 px-1 dark:bg-black/30">POST /api/invoices/generate</code> (admin) and then PDF
+              generation, same as online flows. Logo and colours follow{' '}
+              <Link to="/invoices/branding" className="font-semibold underline">
                 Invoice appearance
               </Link>{' '}
               for this preview.
-            </Alert>
+            </div>
             {type === 'provider_payout' && (
-              <Alert severity="warning" variant="outlined" sx={{ mb: 2 }}>
-                Vendor / payout: the grid below is a <strong>customer-style</strong> line preview only. The issued PDF
-                uses the <strong>vendor settlement</strong> layout from your PDF template selection (GST banner or
-                standard payout statement).
-              </Alert>
+              <div
+                className="mb-4 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm dark:border-amber-800 dark:bg-amber-950/40"
+                role="status"
+              >
+                Vendor / payout: the grid below is a <strong>customer-style</strong> line preview only. The issued PDF uses the{' '}
+                <strong>vendor settlement</strong> layout from your PDF template selection (GST banner or standard payout
+                statement).
+              </div>
             )}
             <InvoicePreviewPanel
               branding={invoiceBranding}
@@ -900,73 +881,74 @@ export function InvoiceCreate() {
               notes={notes}
               companyStateLabel={COMPANY_STATE}
             />
-          </Box>
+          </div>
         )}
 
-        <Paper
-          elevation={2}
-          sx={{
-            p: 2,
-            mt: 3,
-            position: 'sticky',
-            bottom: 16,
-            zIndex: 3,
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 1,
-            border: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <Button type="button" onClick={handleBack} disabled={activeStep === 0} startIcon={<BackIcon />}>
-            Back
-          </Button>
-          {activeStep < 2 && (
-            <Button type="button" variant="contained" onClick={handleNext} endIcon={<NextIcon />}>
-              {activeStep === 0 ? 'Continue' : 'Review preview'}
+        <Card className="sticky bottom-4 z-10 mt-6 shadow-md">
+          <CardContent className="flex flex-wrap items-center justify-between gap-2 py-4">
+            <Button type="button" variant="outline" onClick={handleBack} disabled={activeStep === 0}>
+              <ChevronLeft className="mr-2 h-4 w-4" />
+              Back
             </Button>
-          )}
-          {activeStep === 2 && (
-            <Button type="submit" variant="contained" size="large" disabled={submitting} endIcon={<ReceiptLongIcon />}>
-              {submitting ? 'Issuing…' : 'Issue invoice'}
-            </Button>
-          )}
-        </Paper>
-      </Box>
+            {activeStep < 2 && (
+              <Button type="button" onClick={handleNext}>
+                {activeStep === 0 ? 'Continue' : 'Review preview'}
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            )}
+            {activeStep === 2 && (
+              <Button type="submit" size="lg" disabled={submitting}>
+                {submitting ? 'Issuing…' : 'Issue invoice'}
+                <Receipt className="ml-2 h-4 w-4" />
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
-      <Dialog open={successOpen} onClose={doneSuccess} fullWidth maxWidth="sm">
-        <DialogTitle>Invoice issued</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            PDF is on the server. You can also download a copy for walk-in handover.
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ flexWrap: 'wrap', gap: 1, px: 2, pb: 2 }}>
-          <Button onClick={doneSuccess} color="inherit">
-            List
-          </Button>
-          {createdInvoiceId && (
-            <Button startIcon={<DownloadIcon />} variant="contained" onClick={handleDownload}>
-              Download PDF
+      <Dialog open={successOpen} onOpenChange={(open) => { if (!open) doneSuccess() }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Invoice issued</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">PDF is on the server. You can also download a copy for walk-in handover.</p>
+          <DialogFooter className="flex-wrap gap-2">
+            <Button type="button" variant="secondary" onClick={doneSuccess}>
+              List
             </Button>
-          )}
-        </DialogActions>
+            {createdInvoiceId && (
+              <Button type="button" onClick={handleDownload}>
+                <Download className="mr-2 h-4 w-4" />
+                Download PDF
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
-    </Box>
+    </form>
   )
 }
 
 function Line({ label, v, bold, muted }: { label: string; v: number; bold?: boolean; muted?: boolean }) {
   return (
-    <Box display="flex" justifyContent="space-between" alignItems="center">
-      <Typography variant="body2" color={muted ? 'text.secondary' : 'text.primary'} fontWeight={bold ? 700 : 500}>
+    <div className="flex items-center justify-between gap-2">
+      <span
+        className={cn(
+          'text-sm',
+          muted ? 'text-muted-foreground' : 'text-foreground',
+          bold ? 'font-bold' : 'font-medium'
+        )}
+      >
         {label}
-      </Typography>
-      <Typography variant="body2" color={bold ? 'primary' : 'text.primary'} fontWeight={bold ? 800 : 500} sx={{ fontFeatureSettings: '"tnum"' }}>
+      </span>
+      <span
+        className={cn(
+          'tabular-nums text-sm font-semibold',
+          bold ? 'text-lg font-bold text-primary' : 'text-foreground'
+        )}
+      >
         ₹{v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-      </Typography>
-    </Box>
+      </span>
+    </div>
   )
 }

@@ -4,26 +4,8 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link as RouterLink } from 'react-router-dom'
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  LinearProgress,
-  Paper,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Typography,
-} from '@mui/material'
-import { OpenInNew as OpenInNewIcon } from '@mui/icons-material'
+import { Link } from 'react-router-dom'
+import { ExternalLink, Loader2 } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { BookingsService } from '../../services/api/bookings.service'
 import { ProfessionalsService } from '../../services/api/professionals.service'
@@ -36,6 +18,18 @@ import {
   metricsPerProfessional,
   type ProfessionalFleetMetrics,
 } from '../../lib/professionalsFleetAnalytics'
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui'
 
 function pullBookings(res: Awaited<ReturnType<typeof BookingsService.getBookings>>): Booking[] {
   if (res && typeof res === 'object' && 'success' in res && res.success === false) return []
@@ -47,6 +41,33 @@ function formatHours(h: number | null | undefined): string {
   if (h == null || Number.isNaN(h)) return '—'
   if (h < 24) return `${h.toFixed(1)} h`
   return `${(h / 24).toFixed(1)} d`
+}
+
+function InfoAlert({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      role="status"
+      className="mb-2 rounded-lg border border-blue-500/40 bg-blue-500/10 px-4 py-3 text-sm text-foreground"
+    >
+      {children}
+    </div>
+  )
+}
+
+function ErrorAlert({ children }: { children: React.ReactNode }) {
+  return (
+    <div role="alert" className="mb-2 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      {children}
+    </div>
+  )
+}
+
+function WarnAlert({ children }: { children: React.ReactNode }) {
+  return (
+    <div role="status" className="mt-2 rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-sm">
+      {children}
+    </div>
+  )
 }
 
 export function ProfessionalsOperationsDashboard() {
@@ -65,9 +86,7 @@ export function ProfessionalsOperationsDashboard() {
       const [statsRes, prosRes, ...statusResults] = await Promise.all([
         ProfessionalsService.getProfessionalStats().catch(() => null),
         ProfessionalsService.getProfessionals({ page: 1, limit: 100 }),
-        ...FLEET_BOOKING_SAMPLE_STATUSES.map((status) =>
-          BookingsService.getBookings({ page: 1, limit: 100, status }),
-        ),
+        ...FLEET_BOOKING_SAMPLE_STATUSES.map((status) => BookingsService.getBookings({ page: 1, limit: 100, status })),
       ])
 
       if (statsRes && statsRes.data) {
@@ -76,7 +95,9 @@ export function ProfessionalsOperationsDashboard() {
         setStats(null)
       }
 
-      const proPayload = prosRes.data as { professionals?: Professional[]; pagination?: { total?: number } } | undefined
+      const proPayload = prosRes.data as
+        | { professionals?: Professional[]; pagination?: { total?: number } }
+        | undefined
       const list = proPayload?.professionals ?? []
       setProfessionals(list)
       setProTotal(proPayload?.pagination?.total ?? list.length)
@@ -116,225 +137,185 @@ export function ProfessionalsOperationsDashboard() {
     })
   }, [rows])
 
-  const activeNow = useMemo(
-    () => rows.reduce((s, r) => s + r.activeJobs, 0),
-    [rows],
-  )
-  const pipelineAll = useMemo(
-    () => rows.reduce((s, r) => s + r.pipelineJobs, 0),
-    [rows],
-  )
+  const activeNow = useMemo(() => rows.reduce((s, r) => s + r.activeJobs, 0), [rows])
+  const pipelineAll = useMemo(() => rows.reduce((s, r) => s + r.pipelineJobs, 0), [rows])
 
   return (
-    <Box sx={{ pb: 4 }}>
+    <div className="pb-8">
       <PageHeader
         title="Workforce operations"
         subtitle="Cross-professional workload, pipeline health, turnaround samples, and roster quality — without opening each hub."
         action={
-          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            <Button variant="outlined" onClick={() => void load()} disabled={loading}>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" variant="outline" onClick={() => void load()} disabled={loading}>
               Refresh
             </Button>
-            <Button variant="contained" component={RouterLink} to="/professionals" endIcon={<OpenInNewIcon sx={{ fontSize: 18 }} />}>
-              Directory
+            <Button asChild>
+              <Link to="/professionals" className="inline-flex items-center gap-1">
+                Directory
+                <ExternalLink className="h-4 w-4" />
+              </Link>
             </Button>
-            <Button variant="outlined" component={RouterLink} to="/bookings">
-              All bookings
+            <Button type="button" variant="outline" asChild>
+              <Link to="/bookings">All bookings</Link>
             </Button>
-          </Stack>
+          </div>
         }
       />
 
-      <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
+      <InfoAlert>
         Booking analytics use up to <strong>100 rows per status</strong> (API maximum), merged uniquely. Global counts
-        are a <strong>sample</strong>, not full history. For one professional, open their{' '}
-        <strong>operations hub</strong> for deeper filters.
-      </Alert>
+        are a <strong>sample</strong>, not full history. For one professional, open their <strong>operations hub</strong>{' '}
+        for deeper filters.
+      </InfoAlert>
 
-      {loading && <LinearProgress sx={{ mb: 2 }} />}
+      {loading && (
+        <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Loading…
+        </div>
+      )}
 
-      {error ? (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      ) : null}
+      {error ? <ErrorAlert>{error}</ErrorAlert> : null}
 
-      <Box
-        sx={{
-          display: 'grid',
-          gap: 2,
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' },
-          mb: 3,
-        }}
-      >
-        <Card variant="outlined" sx={{ borderRadius: 2 }}>
-          <CardContent>
-            <Typography variant="subtitle2" color="text.secondary">
-              Roster (loaded)
-            </Typography>
-            <Typography variant="h4">{professionals.length}</Typography>
-            <Typography variant="caption" color="text.secondary">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">Roster (loaded)</p>
+            <p className="text-3xl font-semibold tracking-tight">{professionals.length}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
               of {proTotal} total professionals · first page
-            </Typography>
+            </p>
           </CardContent>
         </Card>
-        <Card variant="outlined" sx={{ borderRadius: 2 }}>
-          <CardContent>
-            <Typography variant="subtitle2" color="text.secondary">
-              Assigned jobs (sample)
-            </Typography>
-            <Typography variant="h4">{fleetAgg?.assignedInSample ?? '—'}</Typography>
-            <Typography variant="caption" color="text.secondary">
-              Unique bookings with a professional in merged sample
-            </Typography>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">Assigned jobs (sample)</p>
+            <p className="text-3xl font-semibold tracking-tight">{fleetAgg?.assignedInSample ?? '—'}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Unique bookings with a professional in merged sample</p>
           </CardContent>
         </Card>
-        <Card variant="outlined" sx={{ borderRadius: 2 }}>
-          <CardContent>
-            <Typography variant="subtitle2" color="text.secondary">
-              Active on job (sample)
-            </Typography>
-            <Typography variant="h4">{activeNow}</Typography>
-            <Typography variant="caption" color="text.secondary">
-              Accepted + in progress · loaded roster only
-            </Typography>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">Active on job (sample)</p>
+            <p className="text-3xl font-semibold tracking-tight">{activeNow}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Accepted + in progress · loaded roster only</p>
           </CardContent>
         </Card>
-        <Card variant="outlined" sx={{ borderRadius: 2 }}>
-          <CardContent>
-            <Typography variant="subtitle2" color="text.secondary">
-              Pipeline queue (sample)
-            </Typography>
-            <Typography variant="h4">{pipelineAll}</Typography>
-            <Typography variant="caption" color="text.secondary">
-              Pending + confirmed + scheduled · loaded roster
-            </Typography>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">Pipeline queue (sample)</p>
+            <p className="text-3xl font-semibold tracking-tight">{pipelineAll}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Pending + confirmed + scheduled · loaded roster</p>
           </CardContent>
         </Card>
-      </Box>
+      </div>
 
       {stats ? (
-        <Box
-          sx={{
-            display: 'grid',
-            gap: 2,
-            gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
-            mb: 3,
-          }}
-        >
-          <Card variant="outlined" sx={{ borderRadius: 2 }}>
-            <CardContent>
-              <Typography variant="subtitle2" color="text.secondary">
-                Fleet rating (API)
-              </Typography>
-              <Typography variant="h5">{Number(stats.averageRating || 0).toFixed(2)} ★ avg</Typography>
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+        <div className="mb-6 grid gap-4 md:grid-cols-3">
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-sm text-muted-foreground">Fleet rating (API)</p>
+              <p className="text-xl font-semibold">{Number(stats.averageRating || 0).toFixed(2)} ★ avg</p>
+              <p className="mt-1 text-xs text-muted-foreground">
                 {stats.verifiedProfessionals ?? '—'} verified · {stats.availableProfessionals ?? '—'} marked available
-              </Typography>
+              </p>
             </CardContent>
           </Card>
-          <Card variant="outlined" sx={{ borderRadius: 2 }}>
-            <CardContent>
-              <Typography variant="subtitle2" color="text.secondary">
-                Unassigned in sample
-              </Typography>
-              <Typography variant="h5">{fleetAgg?.unassignedInSample ?? '—'}</Typography>
-              <Typography variant="caption" color="text.secondary">
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-sm text-muted-foreground">Unassigned in sample</p>
+              <p className="text-xl font-semibold">{fleetAgg?.unassignedInSample ?? '—'}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
                 Bookings in sample with no professional id — assign from bookings list
-              </Typography>
+              </p>
             </CardContent>
           </Card>
-          <Card variant="outlined" sx={{ borderRadius: 2 }}>
-            <CardContent>
-              <Typography variant="subtitle2" color="text.secondary">
-                Avg turnaround (completed in sample)
-              </Typography>
-              <Typography variant="h5">{formatHours(fleetAgg?.globalAvgCompletionHours)}</Typography>
-              <Typography variant="caption" color="text.secondary">
-                Created → completed, when both timestamps exist
-              </Typography>
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-sm text-muted-foreground">Avg turnaround (completed in sample)</p>
+              <p className="text-xl font-semibold">{formatHours(fleetAgg?.globalAvgCompletionHours)}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Created → completed, when both timestamps exist</p>
             </CardContent>
           </Card>
-        </Box>
+        </div>
       ) : null}
 
       {fleetAgg?.byStatus && Object.keys(fleetAgg.byStatus).length > 0 ? (
-        <Paper variant="outlined" sx={{ p: 2, mb: 3, borderRadius: 2 }}>
-          <Typography variant="subtitle1" gutterBottom>
-            Sample mix by status
-          </Typography>
-          <Stack direction="row" flexWrap="wrap" gap={0.75}>
-            {Object.entries(fleetAgg.byStatus)
-              .sort((a, b) => (b[1] || 0) - (a[1] || 0))
-              .map(([st, n]) => (
-                <Chip key={st} size="small" label={`${st}: ${n}`} variant="outlined" />
-              ))}
-          </Stack>
-        </Paper>
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <p className="mb-2 font-medium">Sample mix by status</p>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(fleetAgg.byStatus)
+                .sort((a, b) => (b[1] || 0) - (a[1] || 0))
+                .map(([st, n]) => (
+                  <Badge key={st} variant="outline" className="font-normal">
+                    {st}: {n}
+                  </Badge>
+                ))}
+            </div>
+          </CardContent>
+        </Card>
       ) : null}
 
-      <Typography variant="h6" sx={{ mb: 1 }}>
-        Per professional
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      <h2 className="mb-1 text-lg font-semibold">Per professional</h2>
+      <p className="mb-4 text-sm text-muted-foreground">
         Sorted by active jobs, then pipeline. <strong>Workload</strong> counts assignments in the merged sample only.
         Profile <strong>completed</strong> / <strong>cancelled</strong> are lifetime counters from the API.
-      </Typography>
+      </p>
 
-      <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
-        <Table size="small" sx={{ minWidth: 960 }}>
-          <TableHead>
+      <div className="overflow-x-auto rounded-md border">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell>Professional</TableCell>
-              <TableCell align="right">Rating</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell align="right">Active</TableCell>
-              <TableCell align="right">Pipeline</TableCell>
-              <TableCell align="right">Sample load</TableCell>
-              <TableCell align="right">Avg complete</TableCell>
-              <TableCell align="right">Lifetime done</TableCell>
-              <TableCell align="right">Lifetime cancelled</TableCell>
-              <TableCell />
+              <TableHead>Professional</TableHead>
+              <TableHead className="text-right">Rating</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Active</TableHead>
+              <TableHead className="text-right">Pipeline</TableHead>
+              <TableHead className="text-right">Sample load</TableHead>
+              <TableHead className="text-right">Avg complete</TableHead>
+              <TableHead className="text-right">Lifetime done</TableHead>
+              <TableHead className="text-right">Lifetime cancelled</TableHead>
+              <TableHead className="w-[1%]" />
             </TableRow>
-          </TableHead>
+          </TableHeader>
           <TableBody>
             {sortedRows.map((r) => {
               const p = r.professional
               const hubId = p._id || p.id
               return (
-                <TableRow key={hubId} hover>
+                <TableRow key={String(hubId)}>
                   <TableCell>
-                    <Typography variant="body2" fontWeight={600}>
+                    <div className="font-medium">
                       {p.firstName} {p.lastName}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" display="block">
-                      {p.professionalId}
-                    </Typography>
+                    </div>
+                    <div className="text-xs text-muted-foreground">{p.professionalId}</div>
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell className="text-right">
                     {Number(p.rating || 0).toFixed(1)} ★
-                    <Typography variant="caption" display="block" color="text.secondary">
-                      {p.totalReviews ?? 0} rev
-                    </Typography>
+                    <div className="text-xs text-muted-foreground">{p.totalReviews ?? 0} rev</div>
                   </TableCell>
                   <TableCell>
-                    <Stack spacing={0.5}>
-                      <Chip size="small" label={fleetWorkloadLabel(r)} variant="outlined" />
-                      <Typography variant="caption" color="text.secondary">
+                    <div className="flex flex-col gap-0.5">
+                      <Badge variant="outline" className="w-fit font-normal">
+                        {fleetWorkloadLabel(r)}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground capitalize">
                         {p.availability} · {p.verificationStatus}
-                      </Typography>
-                    </Stack>
+                      </span>
+                    </div>
                   </TableCell>
-                  <TableCell align="right">{r.activeJobs}</TableCell>
-                  <TableCell align="right">{r.pipelineJobs}</TableCell>
-                  <TableCell align="right">{r.workloadTotal}</TableCell>
-                  <TableCell align="right">{formatHours(r.avgCompletionHours)}</TableCell>
-                  <TableCell align="right">{p.completedJobs ?? 0}</TableCell>
-                  <TableCell align="right">{p.cancelledJobs ?? 0}</TableCell>
-                  <TableCell align="right">
+                  <TableCell className="text-right">{r.activeJobs}</TableCell>
+                  <TableCell className="text-right">{r.pipelineJobs}</TableCell>
+                  <TableCell className="text-right">{r.workloadTotal}</TableCell>
+                  <TableCell className="text-right">{formatHours(r.avgCompletionHours)}</TableCell>
+                  <TableCell className="text-right">{p.completedJobs ?? 0}</TableCell>
+                  <TableCell className="text-right">{p.cancelledJobs ?? 0}</TableCell>
+                  <TableCell className="text-right">
                     {hubId ? (
-                      <Button size="small" component={RouterLink} to={`/professionals/${hubId}`}>
-                        Hub
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link to={`/professionals/${hubId}`}>Hub</Link>
                       </Button>
                     ) : null}
                   </TableCell>
@@ -343,13 +324,11 @@ export function ProfessionalsOperationsDashboard() {
             })}
           </TableBody>
         </Table>
-      </TableContainer>
+      </div>
 
       {!loading && sortedRows.length === 0 ? (
-        <Alert severity="warning" sx={{ mt: 2 }}>
-          No professionals returned. Check permissions or API.
-        </Alert>
+        <WarnAlert>No professionals returned. Check permissions or API.</WarnAlert>
       ) : null}
-    </Box>
+    </div>
   )
 }

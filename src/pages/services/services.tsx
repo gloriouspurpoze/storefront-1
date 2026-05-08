@@ -1,45 +1,44 @@
 import React, { useState, useEffect } from 'react'
 import {
-  Box,
+  Button,
   Card,
   CardContent,
-  Typography,
-  Button,
-  Alert,
-  Snackbar,
-  TextField,
-  InputAdornment,
-  FormControl,
-  InputLabel,
+  Input,
+  Label,
+  Badge,
   Select,
-  MenuItem,
-  Stack,
-  IconButton,
-  Menu,
-  Chip,
-  Tooltip,
-  Paper,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui'
 import {
-  Add as AddIcon,
-  Search as SearchIcon,
-  MoreVert as MoreVertIcon,
-  Visibility as ViewIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Assignment as AssignIcon,
-  CheckCircle as CompleteIcon,
-  Cancel as CancelIcon,
-  LocationOn as LocationIcon,
-  AttachMoney as MoneyIcon,
-} from '@mui/icons-material'
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../../components/ui/dropdown-menu'
+import {
+  Plus,
+  Search,
+  MoreVertical,
+  Eye,
+  Pencil,
+  Trash2,
+  ClipboardList,
+  CheckCircle2,
+  CircleOff,
+  MapPin,
+  Timer,
+} from 'lucide-react'
 import { ConfirmDialog } from '../../components/common/ConfirmDialog'
 import { StandardTable, type StandardTableColumn } from '../../components/common'
 import { servicesService, ServiceRequest, CreateServiceRequest, UpdateServiceRequest } from '../../services/api/services.service'
 import { ServiceRequestFormDialog } from '../../components/services/ServiceRequestFormDialog'
 import { ServiceRequestDetailsDialog } from '../../components/services/ServiceRequestDetailsDialog'
 import { formatCurrency } from '../../lib/utils'
+import { appToast } from '../../lib/appToast'
+import { cn } from '../../lib/utils'
 
 interface ServiceStats {
   total: number
@@ -48,6 +47,36 @@ interface ServiceStats {
   inProgress: number
   completed: number
   cancelled: number
+}
+
+function statusBadgeClass(status: string) {
+  switch (status) {
+    case 'open':
+      return 'border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-100'
+    case 'assigned':
+      return 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100'
+    case 'in_progress':
+      return 'border-violet-200 bg-violet-50 text-violet-900 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-100'
+    case 'completed':
+      return 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-100'
+    case 'cancelled':
+      return 'border-red-200 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950/40 dark:text-red-100'
+    default:
+      return 'border-border bg-muted/50 text-foreground'
+  }
+}
+
+function urgencyBadgeClass(urgency: string) {
+  switch (urgency) {
+    case 'low':
+      return 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-100'
+    case 'medium':
+      return 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100'
+    case 'high':
+      return 'border-red-200 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950/40 dark:text-red-100'
+    default:
+      return 'border-border bg-muted/50 text-foreground'
+  }
 }
 
 export function Services() {
@@ -59,27 +88,13 @@ export function Services() {
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [totalCount, setTotalCount] = useState(0)
-  
-  // Dialogs
+
   const [formDialogOpen, setFormDialogOpen] = useState(false)
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
   const [selectedService, setSelectedService] = useState<ServiceRequest | null>(null)
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
-  const [menuService, setMenuService] = useState<ServiceRequest | null>(null)
   const [formLoading, setFormLoading] = useState(false)
-
-  // Notifications
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean
-    message: string
-    severity: 'success' | 'error' | 'info' | 'warning'
-  }>({
-    open: false,
-    message: '',
-    severity: 'success',
-  })
 
   const [stats, setStats] = useState<ServiceStats>({
     total: 0,
@@ -90,18 +105,12 @@ export function Services() {
     cancelled: 0,
   })
 
-  // Fetch services
   useEffect(() => {
     let isMounted = true
-    
     const loadData = async () => {
-      if (isMounted) {
-        await Promise.all([fetchServices(), fetchStats()])
-      }
+      if (isMounted) await Promise.all([fetchServices(), fetchStats()])
     }
-    
-    loadData()
-    
+    void loadData()
     return () => {
       isMounted = false
     }
@@ -110,26 +119,19 @@ export function Services() {
   const fetchServices = async () => {
     try {
       setLoading(true)
-      const params: any = {
+      const params: Record<string, unknown> = {
         page: page + 1,
         limit: rowsPerPage,
       }
-      
-      if (selectedStatus !== 'all') {
-        params.status = selectedStatus
-      }
-      if (selectedUrgency !== 'all') {
-        params.urgency = selectedUrgency
-      }
-      if (searchTerm) {
-        params.search = searchTerm
-      }
+      if (selectedStatus !== 'all') params.status = selectedStatus
+      if (selectedUrgency !== 'all') params.urgency = selectedUrgency
+      if (searchTerm) params.search = searchTerm
 
       const response = await servicesService.getServices(params)
       setServices(response.serviceRequests || [])
       setTotalCount(response.pagination?.total || 0)
-    } catch (error: any) {
-      showSnackbar(error.message || 'Failed to fetch service requests', 'error')
+    } catch (error: unknown) {
+      appToast((error as Error)?.message || 'Failed to fetch service requests', 'error')
     } finally {
       setLoading(false)
     }
@@ -146,25 +148,14 @@ export function Services() {
         completed: response.completedRequests || 0,
         cancelled: response.cancelledRequests || 0,
       })
-    } catch (error) {
-      console.error('Failed to fetch stats:', error)
+    } catch {
+      console.error('Failed to fetch stats')
     }
-  }
-
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, service: ServiceRequest) => {
-    setAnchorEl(event.currentTarget)
-    setMenuService(service)
-  }
-
-  const handleMenuClose = () => {
-    setAnchorEl(null)
-    setMenuService(null)
   }
 
   const handleView = (service: ServiceRequest) => {
     setSelectedService(service)
     setDetailsDialogOpen(true)
-    handleMenuClose()
   }
 
   const handleCreate = () => {
@@ -177,25 +168,22 @@ export function Services() {
     setFormMode('edit')
     setSelectedService(service)
     setFormDialogOpen(true)
-    handleMenuClose()
   }
 
   const handleDelete = (service: ServiceRequest) => {
     setSelectedService(service)
     setDeleteDialogOpen(true)
-    handleMenuClose()
   }
 
   const confirmDelete = async () => {
     if (!selectedService) return
-
     try {
       await servicesService.deleteService(selectedService.id)
-      showSnackbar('Service request deleted successfully', 'success')
+      appToast('Service request deleted successfully', 'success')
       fetchServices()
       fetchStats()
-    } catch (error: any) {
-      showSnackbar(error.message || 'Failed to delete service request', 'error')
+    } catch (error: unknown) {
+      appToast((error as Error)?.message || 'Failed to delete service request', 'error')
     } finally {
       setDeleteDialogOpen(false)
       setSelectedService(null)
@@ -207,16 +195,16 @@ export function Services() {
     try {
       if (formMode === 'create') {
         await servicesService.createService(data as CreateServiceRequest)
-        showSnackbar('Service request created successfully', 'success')
+        appToast('Service request created successfully', 'success')
       } else if (formMode === 'edit' && selectedService) {
         await servicesService.updateService(selectedService.id, data as UpdateServiceRequest)
-        showSnackbar('Service request updated successfully', 'success')
+        appToast('Service request updated successfully', 'success')
       }
       setFormDialogOpen(false)
       fetchServices()
       fetchStats()
-    } catch (error: any) {
-      showSnackbar(error.message || `Failed to ${formMode} service request`, 'error')
+    } catch (error: unknown) {
+      appToast((error as Error)?.message || `Failed to ${formMode} service request`, 'error')
     } finally {
       setFormLoading(false)
     }
@@ -224,50 +212,14 @@ export function Services() {
 
   const handleStatusChange = async (service: ServiceRequest, newStatus: string) => {
     try {
-      await servicesService.updateServiceStatus(service.id, newStatus as any)
-      showSnackbar(`Service request status updated to ${newStatus}`, 'success')
+      await servicesService.updateServiceStatus(service.id, newStatus as 'open' | 'assigned' | 'in_progress' | 'completed' | 'cancelled')
+      appToast(`Service request status updated to ${newStatus}`, 'success')
       fetchServices()
       fetchStats()
-    } catch (error: any) {
-      showSnackbar(error.message || 'Failed to update status', 'error')
-    }
-    handleMenuClose()
-  }
-
-  const showSnackbar = (message: string, severity: 'success' | 'error' | 'info' | 'warning') => {
-    setSnackbar({ open: true, message, severity })
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'open':
-        return 'info'
-      case 'assigned':
-        return 'warning'
-      case 'in_progress':
-        return 'primary'
-      case 'completed':
-        return 'success'
-      case 'cancelled':
-        return 'error'
-      default:
-        return 'default'
+    } catch (error: unknown) {
+      appToast((error as Error)?.message || 'Failed to update status', 'error')
     }
   }
-
-  const getUrgencyColor = (urgency: string) => {
-    switch (urgency) {
-      case 'low':
-        return 'success'
-      case 'medium':
-        return 'warning'
-      case 'high':
-        return 'error'
-      default:
-        return 'default'
-    }
-  }
-
 
   const filteredServices = services
 
@@ -277,32 +229,33 @@ export function Services() {
       label: 'Title',
       sortable: true,
       render: (_, s) => (
-        <>
-          <Typography variant="body2" fontWeight="500">
-            {s.title}
-          </Typography>
-          <Typography variant="caption" color="textSecondary" noWrap sx={{ maxWidth: 200, display: 'block' }}>
-            {s.description}
-          </Typography>
-        </>
+        <div>
+          <p className="text-sm font-medium">{s.title}</p>
+          <p className="max-w-[200px] truncate text-xs text-muted-foreground">{s.description}</p>
+        </div>
       ),
     },
     {
       id: 'service_type',
       label: 'Service Type',
       sortable: true,
-      render: (_, s) => <Chip label={s.service_type} size="small" />,
+      render: (_, s) => (
+        <Badge variant="secondary" className="font-normal">
+          {s.service_type}
+        </Badge>
+      ),
     },
     {
       id: 'location',
       label: 'Location',
       render: (_, s) => (
-        <Stack direction="row" spacing={0.5} alignItems="center">
-          <LocationIcon fontSize="small" color="action" />
-          <Typography variant="body2">
-            {s.location?.city ?? (s as any).location?.city ?? '—'}, {s.location?.state ?? (s as any).location?.state ?? '—'}
-          </Typography>
-        </Stack>
+        <div className="flex items-center gap-1 text-sm">
+          <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <span>
+            {s.location?.city ?? (s as { location?: { city?: string } }).location?.city ?? '—'},{' '}
+            {s.location?.state ?? (s as { location?: { state?: string } }).location?.state ?? '—'}
+          </span>
+        </div>
       ),
     },
     {
@@ -310,20 +263,18 @@ export function Services() {
       label: 'Urgency',
       sortable: true,
       render: (_, s) => (
-        <Chip
-          label={(s.urgency ?? '').toUpperCase()}
-          size="small"
-          color={getUrgencyColor(s.urgency ?? '') as any}
-        />
+        <Badge variant="outline" className={cn('font-normal', urgencyBadgeClass(s.urgency ?? ''))}>
+          {(s.urgency ?? '').toUpperCase()}
+        </Badge>
       ),
     },
     {
       id: 'budget',
       label: 'Budget',
       render: (_, s) => (
-        <Typography variant="body2">
+        <span className="text-sm">
           {formatCurrency(Number(s.budget_min ?? 0))} - {formatCurrency(Number(s.budget_max ?? 0))}
-        </Typography>
+        </span>
       ),
     },
     {
@@ -331,11 +282,9 @@ export function Services() {
       label: 'Status',
       sortable: true,
       render: (_, s) => (
-        <Chip
-          label={String(s.status ?? '').replace('_', ' ').toUpperCase()}
-          size="small"
-          color={getStatusColor(s.status ?? '') as any}
-        />
+        <Badge variant="outline" className={cn('font-normal capitalize', statusBadgeClass(s.status ?? ''))}>
+          {String(s.status ?? '').replace('_', ' ')}
+        </Badge>
       ),
     },
     {
@@ -344,148 +293,125 @@ export function Services() {
       sortable: true,
       valueGetter: (s) => s.created_at ?? '',
       render: (_, s) => (
-        <Typography variant="body2">
-          {s.created_at ? new Date(s.created_at).toLocaleDateString() : '—'}
-        </Typography>
+        <span className="text-sm">{s.created_at ? new Date(s.created_at).toLocaleDateString() : '—'}</span>
       ),
     },
   ]
 
+  const statCardClass = (tone: 'default' | 'sky' | 'amber' | 'violet' | 'emerald' | 'red') => {
+    const map = {
+      default: 'border-border bg-card',
+      sky: 'border-sky-200 bg-sky-500 text-white dark:border-sky-800 dark:bg-sky-700',
+      amber: 'border-amber-200 bg-amber-500 text-white dark:border-amber-800 dark:bg-amber-700',
+      violet: 'border-violet-200 bg-violet-500 text-white dark:border-violet-800 dark:bg-violet-700',
+      emerald: 'border-emerald-200 bg-emerald-500 text-white dark:border-emerald-800 dark:bg-emerald-700',
+      red: 'border-red-200 bg-red-500 text-white dark:border-red-800 dark:bg-red-700',
+    }
+    return cn('rounded-xl border shadow-sm', map[tone])
+  }
+
   return (
-    <Box sx={{ p: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1">
-          Service Requests
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleCreate}
-        >
+    <div className="p-4 md:p-6">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Service Requests</h1>
+        <Button onClick={handleCreate}>
+          <Plus className="mr-2 h-4 w-4" />
           Create Service Request
         </Button>
-      </Box>
+      </div>
 
-      {/* Statistics Cards */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={2}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom variant="body2">
-                Total Requests
-              </Typography>
-              <Typography variant="h4">{stats.total}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ bgcolor: 'info.light' }}>
-            <CardContent>
-              <Typography color="white" gutterBottom variant="body2">
-                Open
-              </Typography>
-              <Typography variant="h4" color="white">{stats.open}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ bgcolor: 'warning.light' }}>
-            <CardContent>
-              <Typography color="white" gutterBottom variant="body2">
-                Assigned
-              </Typography>
-              <Typography variant="h4" color="white">{stats.assigned}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ bgcolor: 'primary.light' }}>
-            <CardContent>
-              <Typography color="white" gutterBottom variant="body2">
-                In Progress
-              </Typography>
-              <Typography variant="h4" color="white">{stats.inProgress}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ bgcolor: 'success.light' }}>
-            <CardContent>
-              <Typography color="white" gutterBottom variant="body2">
-                Completed
-              </Typography>
-              <Typography variant="h4" color="white">{stats.completed}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ bgcolor: 'error.light' }}>
-            <CardContent>
-              <Typography color="white" gutterBottom variant="body2">
-                Cancelled
-              </Typography>
-              <Typography variant="h4" color="white">{stats.cancelled}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+        <Card className={statCardClass('default')}>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">Total Requests</p>
+            <p className="text-2xl font-bold tabular-nums">{stats.total}</p>
+          </CardContent>
+        </Card>
+        <Card className={statCardClass('sky')}>
+          <CardContent className="pt-6">
+            <p className="text-sm opacity-90">Open</p>
+            <p className="text-2xl font-bold tabular-nums">{stats.open}</p>
+          </CardContent>
+        </Card>
+        <Card className={statCardClass('amber')}>
+          <CardContent className="pt-6">
+            <p className="text-sm opacity-90">Assigned</p>
+            <p className="text-2xl font-bold tabular-nums">{stats.assigned}</p>
+          </CardContent>
+        </Card>
+        <Card className={statCardClass('violet')}>
+          <CardContent className="pt-6">
+            <p className="text-sm opacity-90">In Progress</p>
+            <p className="text-2xl font-bold tabular-nums">{stats.inProgress}</p>
+          </CardContent>
+        </Card>
+        <Card className={statCardClass('emerald')}>
+          <CardContent className="pt-6">
+            <p className="text-sm opacity-90">Completed</p>
+            <p className="text-2xl font-bold tabular-nums">{stats.completed}</p>
+          </CardContent>
+        </Card>
+        <Card className={statCardClass('red')}>
+          <CardContent className="pt-6">
+            <p className="text-sm opacity-90">Cancelled</p>
+            <p className="text-2xl font-bold tabular-nums">{stats.cancelled}</p>
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* Filters */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                placeholder="Search by title, description, or location..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  value={selectedStatus}
-                  label="Status"
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                >
-                  <MenuItem value="all">All Status</MenuItem>
-                  <MenuItem value="open">Open</MenuItem>
-                  <MenuItem value="assigned">Assigned</MenuItem>
-                  <MenuItem value="in_progress">In Progress</MenuItem>
-                  <MenuItem value="completed">Completed</MenuItem>
-                  <MenuItem value="cancelled">Cancelled</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth>
-                <InputLabel>Urgency</InputLabel>
-                <Select
-                  value={selectedUrgency}
-                  label="Urgency"
-                  onChange={(e) => setSelectedUrgency(e.target.value)}
-                >
-                  <MenuItem value="all">All Urgency</MenuItem>
-                  <MenuItem value="low">Low</MenuItem>
-                  <MenuItem value="medium">Medium</MenuItem>
-                  <MenuItem value="high">High</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={2}>
+      <Card className="mb-6 rounded-xl">
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-12 md:items-end">
+            <div className="md:col-span-4">
+              <Label className="sr-only" htmlFor="service-search">
+                Search
+              </Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="service-search"
+                  className="pl-9"
+                  placeholder="Search by title, description, or location..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="grid gap-2 md:col-span-3">
+              <Label>Status</Label>
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="open">Open</SelectItem>
+                  <SelectItem value="assigned">Assigned</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2 md:col-span-3">
+              <Label>Urgency</Label>
+              <Select value={selectedUrgency} onValueChange={setSelectedUrgency}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Urgency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Urgency</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="md:col-span-2">
               <Button
-                fullWidth
-                variant="outlined"
+                type="button"
+                variant="outline"
+                className="w-full"
                 onClick={() => {
                   setSearchTerm('')
                   setSelectedStatus('all')
@@ -494,14 +420,13 @@ export function Services() {
               >
                 Clear Filters
               </Button>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Table */}
-      <Card>
-        <CardContent>
+      <Card className="rounded-xl">
+        <CardContent className="pt-6">
           <StandardTable<ServiceRequest>
             columns={serviceColumns}
             data={filteredServices}
@@ -519,9 +444,46 @@ export function Services() {
             }}
             rowsPerPageOptions={[5, 10, 25, 50]}
             renderActions={(service) => (
-              <IconButton size="small" onClick={(e) => handleMenuOpen(e, service)}>
-                <MoreVertIcon />
-              </IconButton>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Row actions">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => handleView(service)}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    View Details
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleEdit(service)}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit Request
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => void handleStatusChange(service, 'assigned')}>
+                    <ClipboardList className="mr-2 h-4 w-4" />
+                    Assign
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => void handleStatusChange(service, 'in_progress')}>
+                    <Timer className="mr-2 h-4 w-4" />
+                    Mark In Progress
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => void handleStatusChange(service, 'completed')}>
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                    Mark Completed
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => void handleStatusChange(service, 'cancelled')}>
+                    <CircleOff className="mr-2 h-4 w-4" />
+                    Cancel
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => handleDelete(service)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
             size="small"
             minHeight={360}
@@ -529,43 +491,6 @@ export function Services() {
         </CardContent>
       </Card>
 
-      {/* Action Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-      >
-        <MenuItem onClick={() => menuService && handleView(menuService)}>
-          <ViewIcon sx={{ mr: 1 }} fontSize="small" />
-          View Details
-        </MenuItem>
-        <MenuItem onClick={() => menuService && handleEdit(menuService)}>
-          <EditIcon sx={{ mr: 1 }} fontSize="small" />
-          Edit Request
-        </MenuItem>
-        <MenuItem onClick={() => menuService && handleStatusChange(menuService, 'assigned')}>
-          <AssignIcon sx={{ mr: 1 }} fontSize="small" />
-          Assign
-        </MenuItem>
-        <MenuItem onClick={() => menuService && handleStatusChange(menuService, 'in_progress')}>
-          <EditIcon sx={{ mr: 1 }} fontSize="small" />
-          Mark In Progress
-        </MenuItem>
-        <MenuItem onClick={() => menuService && handleStatusChange(menuService, 'completed')}>
-          <CompleteIcon sx={{ mr: 1 }} fontSize="small" />
-          Mark Completed
-        </MenuItem>
-        <MenuItem onClick={() => menuService && handleStatusChange(menuService, 'cancelled')}>
-          <CancelIcon sx={{ mr: 1 }} fontSize="small" />
-          Cancel
-        </MenuItem>
-        <MenuItem onClick={() => menuService && handleDelete(menuService)} sx={{ color: 'error.main' }}>
-          <DeleteIcon sx={{ mr: 1 }} fontSize="small" />
-          Delete
-        </MenuItem>
-      </Menu>
-
-      {/* Form Dialog for Create/Edit */}
       <ServiceRequestFormDialog
         open={formDialogOpen}
         mode={formMode}
@@ -578,7 +503,6 @@ export function Services() {
         loading={formLoading}
       />
 
-      {/* Details Dialog */}
       <ServiceRequestDetailsDialog
         open={detailsDialogOpen}
         service={selectedService}
@@ -589,7 +513,6 @@ export function Services() {
         onEdit={handleEdit}
       />
 
-      {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         open={deleteDialogOpen}
         title="Delete Service Request"
@@ -600,22 +523,6 @@ export function Services() {
           setSelectedService(null)
         }}
       />
-
-      {/* Snackbar for notifications */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+    </div>
   )
 }

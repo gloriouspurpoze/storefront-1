@@ -1,55 +1,71 @@
 import React, { useState, useEffect } from 'react'
 import {
-  Box,
+  Button,
   Card,
   CardContent,
-  Typography,
-  Button,
-  Chip,
+  Badge,
   Avatar,
-  LinearProgress,
-  IconButton,
-  Paper,
-  Stack,
-  Divider,
-  Alert,
+  AvatarFallback,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  CircularProgress,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
+  Separator,
+} from '../../components/ui'
 import {
-  CheckCircle as CheckIcon,
-  Cancel as CancelIcon,
-  Schedule as PendingIcon,
-  TrendingUp as TrendingUpIcon,
-  Star as StarIcon,
-  Build as BuildIcon,
-  Assignment as AssignmentIcon,
-  AttachMoney as MoneyIcon,
-  CalendarToday as CalendarIcon,
-  LocationOn as LocationIcon,
-  Phone as PhoneIcon,
-  Email as EmailIcon,
-  Edit as EditIcon,
-  Notifications as NotificationIcon,
-} from '@mui/icons-material'
+  CheckCircle2,
+  XCircle,
+  Clock,
+  TrendingUp,
+  Star,
+  Wrench,
+  ClipboardList,
+  IndianRupee,
+  Calendar,
+  MapPin,
+  Phone,
+  Mail,
+  Pencil,
+  Bell,
+  Loader2,
+} from 'lucide-react'
 import { useAppSelector } from '../../store/hooks'
 import { useNavigate } from 'react-router-dom'
 import { BookingsService } from '../../services/api/bookings.service'
 import type { Booking } from '../../types'
+import { cn } from '../../lib/utils'
+
+function StatusBadge({ status }: { status: string }) {
+  const s = status?.toLowerCase() ?? ''
+  const map: Record<string, { label: string; className: string; Icon: typeof Clock }> = {
+    pending: { label: status, className: 'border-amber-200 bg-amber-50 text-amber-800', Icon: Clock },
+    accepted: { label: status, className: 'border-sky-200 bg-sky-50 text-sky-800', Icon: ClipboardList },
+    'in-progress': { label: status, className: 'border-violet-200 bg-violet-50 text-violet-800', Icon: Wrench },
+    completed: { label: status, className: 'border-emerald-200 bg-emerald-50 text-emerald-800', Icon: CheckCircle2 },
+    cancelled: { label: status, className: 'border-red-200 bg-red-50 text-red-800', Icon: XCircle },
+  }
+  const cfg = map[s] ?? {
+    label: status,
+    className: 'border-muted bg-muted/50 text-foreground',
+    Icon: ClipboardList,
+  }
+  const Icon = cfg.Icon
+  return (
+    <Badge variant="outline" className={cn('gap-1 capitalize', cfg.className)}>
+      <Icon className="h-3 w-3" />
+      {cfg.label}
+    </Badge>
+  )
+}
 
 export function ProviderDashboard() {
   const navigate = useNavigate()
   const { user } = useAppSelector((state) => state.auth)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  
-  // Real state from API
+
   const [stats, setStats] = useState({
     totalBookings: 0,
     completedBookings: 0,
@@ -61,7 +77,6 @@ export function ProviderDashboard() {
     responseRate: 0,
   })
 
-  // Real recent bookings from API
   const [recentBookings, setRecentBookings] = useState<Booking[]>([])
 
   useEffect(() => {
@@ -72,8 +87,7 @@ export function ProviderDashboard() {
     try {
       setLoading(true)
       setError(null)
-      
-      // Fetch provider stats
+
       const statsRes = await BookingsService.getProviderBookingStats()
       if (statsRes.success && statsRes.data) {
         const s: any = statsRes.data
@@ -88,18 +102,16 @@ export function ProviderDashboard() {
           responseRate: s.responseRate || 0,
         })
       }
-      
-      // Fetch recent bookings (limit 3 for dashboard)
-      const bookingsRes = await BookingsService.getProviderBookings({ 
+
+      const bookingsRes = await BookingsService.getProviderBookings({
         limit: 3,
-        page: 1 
+        page: 1,
       })
       if (bookingsRes.success && bookingsRes.data) {
         setRecentBookings(bookingsRes.data.bookings || [])
       } else {
         setRecentBookings([])
       }
-      
     } catch (err: any) {
       console.error('Error fetching dashboard data:', err)
       setError(err?.message || 'Failed to load dashboard data')
@@ -108,437 +120,298 @@ export function ProviderDashboard() {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'warning'
-      case 'accepted':
-        return 'info'
-      case 'in-progress':
-        return 'primary'
-      case 'completed':
-        return 'success'
-      case 'cancelled':
-        return 'error'
-      default:
-        return 'default'
-    }
-  }
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return <PendingIcon fontSize="small" />
-      case 'completed':
-        return <CheckIcon fontSize="small" />
-      case 'cancelled':
-        return <CancelIcon fontSize="small" />
-      default:
-        return <AssignmentIcon fontSize="small" />
-    }
-  }
+  const completionPct =
+    stats.totalBookings > 0 ? Math.round((stats.completedBookings / stats.totalBookings) * 100) : 0
 
   return (
-    <Box>
-      {/* Page Header */}
-      <Box sx={{ mb: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Box>
-            <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-              Welcome back, {user?.firstName || 'Provider'}! 👋
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Here's what's happening with your services today
-            </Typography>
-          </Box>
-          <Button
-            variant="contained"
-            startIcon={<EditIcon />}
-            onClick={() => navigate('/provider/profile')}
-            sx={{ borderRadius: 2 }}
-          >
-            Edit Profile
-          </Button>
-        </Box>
-      </Box>
+    <div className="space-y-6">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
+            Welcome back, {user?.firstName || 'Provider'}!
+          </h1>
+          <p className="mt-1 text-muted-foreground">Here&apos;s what&apos;s happening with your services today</p>
+        </div>
+        <Button className="rounded-lg" onClick={() => navigate('/provider/profile')}>
+          <Pencil className="mr-2 h-4 w-4" />
+          Edit Profile
+        </Button>
+      </div>
 
-      {/* Loading State */}
       {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-          <CircularProgress />
-        </Box>
+        <div className="flex justify-center py-16">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        </div>
       )}
 
-      {/* Error State */}
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
+        <div
+          role="alert"
+          className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <span>{error}</span>
+            <button type="button" className="text-destructive underline" onClick={() => setError(null)}>
+              Dismiss
+            </button>
+          </div>
+        </div>
       )}
 
-      {/* Dashboard Content */}
       {!loading && !error && (
         <>
-          {/* Alert for pending bookings */}
           {stats.pendingBookings > 0 && (
-            <Alert severity="info" icon={<NotificationIcon />} sx={{ mb: 3 }}>
-              You have <strong>{stats.pendingBookings} pending booking{stats.pendingBookings > 1 ? 's' : ''}</strong> waiting for your response!
-            </Alert>
+            <div
+              className="flex items-start gap-3 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-800 dark:bg-sky-950/50 dark:text-sky-100"
+              role="status"
+            >
+              <Bell className="mt-0.5 h-5 w-5 shrink-0" />
+              <span>
+                You have{' '}
+                <strong>
+                  {stats.pendingBookings} pending booking{stats.pendingBookings > 1 ? 's' : ''}
+                </strong>{' '}
+                waiting for your response!
+              </span>
+            </div>
           )}
 
-      {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%', borderRadius: 2 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                <Box
-                  sx={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 2,
-                    bgcolor: 'primary.light',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <AssignmentIcon sx={{ color: 'primary.main' }} />
-                </Box>
-                <Chip label="+12%" color="success" size="small" />
-              </Box>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                {stats.totalBookings}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Total Bookings
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%', borderRadius: 2 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                <Box
-                  sx={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 2,
-                    bgcolor: 'success.light',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <CheckIcon sx={{ color: 'success.main' }} />
-                </Box>
-                <Chip label="+8%" color="success" size="small" />
-              </Box>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                {stats.completedBookings}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Completed Jobs
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%', borderRadius: 2 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                <Box
-                  sx={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 2,
-                    bgcolor: 'warning.light',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <MoneyIcon sx={{ color: 'warning.main' }} />
-                </Box>
-                <Chip label="+15%" color="success" size="small" />
-              </Box>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                ${stats?.totalEarnings?.toLocaleString()}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Total Earnings
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%', borderRadius: 2 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                <Box
-                  sx={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 2,
-                    bgcolor: 'info.light',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <StarIcon sx={{ color: 'info.main' }} />
-                </Box>
-                <Chip label={`${stats.totalReviews} reviews`} size="small" />
-              </Box>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                {stats.averageRating.toFixed(1)}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Average Rating
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      <Grid container spacing={3}>
-        {/* Recent Bookings */}
-        <Grid item xs={12} lg={8}>
-          <Card sx={{ borderRadius: 2 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Recent Bookings
-                </Typography>
-                <Button 
-                  variant="outlined" 
-                  size="small"
-                  onClick={() => navigate('/provider/bookings')}
-                  sx={{ borderRadius: 1.5 }}
-                >
-                  View All
-                </Button>
-              </Box>
-
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Customer</TableCell>
-                      <TableCell>Service</TableCell>
-                      <TableCell>Date & Time</TableCell>
-                      <TableCell>Amount</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell align="right">Action</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {recentBookings.map((booking) => (
-                      <TableRow key={booking.id} hover>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Avatar sx={{ width: 32, height: 32 }}>
-                              {booking.customerName?.charAt(0) || 'C'}
-                            </Avatar>
-                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                              {booking.customerName || 'N/A'}
-                            </Typography>
-                          </Box>
-                        </TableCell>
-                        <TableCell>{booking.serviceName || booking.serviceRequest?.title || 'N/A'}</TableCell>
-                        <TableCell>
-                          <Typography variant="body2">{booking.scheduledDate || 'N/A'}</Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {booking.scheduledTime || ''}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            ${booking.totalAmount ?? booking.estimatedCost ?? 0}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={booking.status}
-                            color={getStatusColor(booking.status)}
-                            size="small"
-                            icon={getStatusIcon(booking.status)}
-                            sx={{ textTransform: 'capitalize' }}
-                          />
-                        </TableCell>
-                        <TableCell align="right">
-                          <Button size="small" variant="outlined" onClick={() => navigate('/provider/bookings')}>
-                            View
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {recentBookings.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                          <Typography variant="body2" color="text.secondary">
-                            No recent bookings
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                title: 'Total Bookings',
+                value: stats.totalBookings,
+                sub: '+12%',
+                icon: ClipboardList,
+                iconBg: 'bg-primary/15 text-primary',
+                chip: 'default' as const,
+              },
+              {
+                title: 'Completed Jobs',
+                value: stats.completedBookings,
+                sub: '+8%',
+                icon: CheckCircle2,
+                iconBg: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
+                chip: 'success' as const,
+              },
+              {
+                title: 'Total Earnings',
+                value: `$${stats?.totalEarnings?.toLocaleString()}`,
+                sub: '+15%',
+                icon: IndianRupee,
+                iconBg: 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
+                chip: 'success' as const,
+              },
+              {
+                title: 'Average Rating',
+                value: stats.averageRating.toFixed(1),
+                sub: `${stats.totalReviews} reviews`,
+                icon: Star,
+                iconBg: 'bg-sky-500/15 text-sky-700 dark:text-sky-400',
+                chip: 'reviews' as const,
+              },
+            ].map((card) => (
+              <Card key={card.title} className="h-full rounded-xl">
+                <CardContent className="pt-6">
+                  <div className="mb-3 flex items-center justify-between">
+                    <div
+                      className={cn('flex h-12 w-12 items-center justify-center rounded-lg', card.iconBg)}
+                    >
+                      <card.icon className="h-6 w-6" />
+                    </div>
+                    {card.chip === 'reviews' ? (
+                      <Badge variant="secondary" className="text-xs">
+                        {card.sub}
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
+                        {card.sub}
+                      </Badge>
                     )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </CardContent>
-          </Card>
-        </Grid>
+                  </div>
+                  <p className="text-2xl font-bold tabular-nums">{card.value}</p>
+                  <p className="text-sm text-muted-foreground">{card.title}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
-        {/* Provider Info & Performance */}
-        <Grid item xs={12} lg={4}>
-          <Stack spacing={3}>
-            {/* Provider Info Card */}
-            <Card sx={{ borderRadius: 2 }}>
-              <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                  Provider Information
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                  <Avatar sx={{ width: 64, height: 64, bgcolor: 'primary.main' }}>
-                    {user?.firstName?.charAt(0) || 'P'}
-                  </Avatar>
-                  <Box>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                      {user?.firstName} {user?.lastName}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Service Provider
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Stack spacing={2}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <EmailIcon fontSize="small" color="action" />
-                    <Typography variant="body2">{user?.email || 'N/A'}</Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <PhoneIcon fontSize="small" color="action" />
-                    <Typography variant="body2">{user?.phone || 'N/A'}</Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <LocationIcon fontSize="small" color="action" />
-                    <Typography variant="body2">Service Area: City Area</Typography>
-                  </Box>
-                </Stack>
-              </CardContent>
-            </Card>
-
-            {/* Performance Card */}
-            <Card sx={{ borderRadius: 2 }}>
-              <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
-                  Performance Metrics
-                </Typography>
-
-                <Stack spacing={3}>
-                  <Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Response Rate
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {stats.responseRate}%
-                      </Typography>
-                    </Box>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={stats.responseRate} 
-                      sx={{ height: 8, borderRadius: 1 }}
-                    />
-                  </Box>
-
-                  <Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Completion Rate
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {Math.round((stats.completedBookings / stats.totalBookings) * 100)}%
-                      </Typography>
-                    </Box>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={(stats.completedBookings / stats.totalBookings) * 100}
-                      sx={{ height: 8, borderRadius: 1 }}
-                      color="success"
-                    />
-                  </Box>
-
-                  <Divider />
-
-                  <Box sx={{ textAlign: 'center', py: 2 }}>
-                    <Typography variant="h3" sx={{ fontWeight: 700, color: 'primary.main', mb: 0.5 }}>
-                      {stats.averageRating}
-                    </Typography>
-                    <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5, mb: 1 }}>
-                      {[...Array(5)].map((_, index) => (
-                        <StarIcon
-                          key={index}
-                          sx={{
-                            color: index < Math.floor(stats.averageRating) ? 'warning.main' : 'action.disabled',
-                            fontSize: 20,
-                          }}
-                        />
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <Card className="rounded-xl lg:col-span-2">
+              <CardContent className="pt-6">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="text-lg font-semibold">Recent Bookings</h2>
+                  <Button variant="outline" size="sm" className="rounded-md" onClick={() => navigate('/provider/bookings')}>
+                    View All
+                  </Button>
+                </div>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Service</TableHead>
+                        <TableHead>Date & Time</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {recentBookings.map((booking) => (
+                        <TableRow key={booking.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-8 w-8">
+                                <AvatarFallback className="text-xs">
+                                  {booking.customerName?.charAt(0) || 'C'}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="font-medium">{booking.customerName || 'N/A'}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="max-w-[180px] truncate">
+                            {booking.serviceName || booking.serviceRequest?.title || 'N/A'}
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">{booking.scheduledDate || 'N/A'}</div>
+                            <div className="text-xs text-muted-foreground">{booking.scheduledTime || ''}</div>
+                          </TableCell>
+                          <TableCell className="font-semibold tabular-nums">
+                            ${booking.totalAmount ?? booking.estimatedCost ?? 0}
+                          </TableCell>
+                          <TableCell>
+                            <StatusBadge status={booking.status} />
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="outline" size="sm" onClick={() => navigate('/provider/bookings')}>
+                              View
+                            </Button>
+                          </TableCell>
+                        </TableRow>
                       ))}
-                    </Box>
-                    <Typography variant="body2" color="text.secondary">
-                      Based on {stats.totalReviews} reviews
-                    </Typography>
-                  </Box>
-                </Stack>
+                      {recentBookings.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                            No recent bookings
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
 
-            {/* Quick Actions */}
-            <Card sx={{ borderRadius: 2, bgcolor: 'primary.main', color: 'white' }}>
-              <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                  Quick Actions
-                </Typography>
-                <Stack spacing={1.5}>
-                  <Button
-                    variant="contained"
-                    fullWidth
-                    sx={{ 
-                      bgcolor: 'white', 
-                      color: 'primary.main',
-                      '&:hover': { bgcolor: 'grey.100' }
-                    }}
-                    onClick={() => navigate('/provider/bookings')}
-                  >
-                    View All Bookings
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    fullWidth
-                    sx={{ 
-                      borderColor: 'white', 
-                      color: 'white',
-                      '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.1)' }
-                    }}
-                    onClick={() => navigate('/provider/profile')}
-                  >
-                    Update Profile
-                  </Button>
-                </Stack>
-              </CardContent>
-            </Card>
-          </Stack>
-        </Grid>
-      </Grid>
-      </>
+            <div className="flex flex-col gap-6">
+              <Card className="rounded-xl">
+                <CardContent className="pt-6">
+                  <h2 className="mb-4 text-lg font-semibold">Provider Information</h2>
+                  <div className="mb-4 flex items-center gap-3">
+                    <Avatar className="h-16 w-16">
+                      <AvatarFallback className="bg-primary text-lg text-primary-foreground">
+                        {user?.firstName?.charAt(0) || 'P'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-semibold">
+                        {user?.firstName} {user?.lastName}
+                      </p>
+                      <p className="text-sm text-muted-foreground">Service Provider</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <span>{user?.email || 'N/A'}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <span>{user?.phone || 'N/A'}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      <span>Service Area: City Area</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-xl">
+                <CardContent className="pt-6">
+                  <h2 className="mb-4 text-lg font-semibold">Performance Metrics</h2>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="mb-1 flex justify-between text-sm">
+                        <span className="text-muted-foreground">Response Rate</span>
+                        <span className="font-medium">{stats.responseRate}%</span>
+                      </div>
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-primary transition-all"
+                          style={{ width: `${Math.min(100, stats.responseRate)}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="mb-1 flex justify-between text-sm">
+                        <span className="text-muted-foreground">Completion Rate</span>
+                        <span className="font-medium">{completionPct}%</span>
+                      </div>
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-emerald-500 transition-all"
+                          style={{ width: `${Math.min(100, completionPct)}%` }}
+                        />
+                      </div>
+                    </div>
+                    <Separator />
+                    <div className="py-2 text-center">
+                      <p className="text-3xl font-bold text-primary">{stats.averageRating}</p>
+                      <div className="mt-1 flex justify-center gap-0.5">
+                        {[...Array(5)].map((_, index) => (
+                          <Star
+                            key={index}
+                            className={cn(
+                              'h-5 w-5',
+                              index < Math.floor(stats.averageRating)
+                                ? 'fill-amber-400 text-amber-400'
+                                : 'text-muted-foreground/30'
+                            )}
+                          />
+                        ))}
+                      </div>
+                      <p className="mt-1 text-sm text-muted-foreground">Based on {stats.totalReviews} reviews</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-xl border-primary bg-primary text-primary-foreground">
+                <CardContent className="pt-6">
+                  <h2 className="mb-3 text-lg font-semibold">Quick Actions</h2>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      variant="secondary"
+                      className="w-full bg-background text-foreground hover:bg-background/90"
+                      onClick={() => navigate('/provider/bookings')}
+                    >
+                      View All Bookings
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full border-primary-foreground/40 bg-transparent text-primary-foreground hover:bg-primary-foreground/10"
+                      onClick={() => navigate('/provider/profile')}
+                    >
+                      Update Profile
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </>
       )}
-    </Box>
+    </div>
   )
 }
-

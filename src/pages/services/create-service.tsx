@@ -1,65 +1,58 @@
 import React, { useState, useEffect } from 'react'
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  TextField,
-  Grid,
-  Chip,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Switch,
-  FormControlLabel,
-  Divider,
-  Stack,
-  Paper,
-  Alert,
-  Snackbar,
-  CircularProgress,
-  IconButton,
-  Tooltip,
-  Tabs,
-  Tab,
-  Checkbox,
-  FormGroup,
-  FormControlLabel as MuiFormControlLabel,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-} from '@mui/material'
-import {
-  ArrowBack as ArrowBackIcon,
-  Save as SaveIcon,
-  Preview as PreviewIcon,
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Upload as UploadIcon,
-  Star as StarIcon,
-  Schedule as ScheduleIcon,
-  AttachMoney as MoneyIcon,
-  Category as CategoryIcon,
-  Description as DescriptionIcon,
-  Tag as TagIcon,
-  Info as InfoIcon,
-  CalendarToday as CalendarIcon,
-  LocationOn as LocationIcon,
-  Build as BuildIcon,
-  ExpandMore as ExpandMoreIcon,
-  ArrowUpward as ArrowUpIcon,
-  ArrowDownward as ArrowDownIcon,
-  CheckCircleOutline as CheckIcon,
-  CancelOutlined as CrossIcon,
-  LightbulbOutlined as LightbulbIcon,
-  VerifiedUserOutlined as ShieldIcon,
-  HelpOutlineOutlined as HelpIcon,
-  Timeline as TimelineIcon,
-} from '@mui/icons-material'
+  Loader2,
+  ArrowLeft,
+  Save,
+  Eye,
+  Plus,
+  Trash2,
+  Upload,
+  Star,
+  IndianRupee,
+  Info,
+  Calendar,
+  MapPin,
+  Wrench,
+  ArrowUp,
+  ArrowDown,
+  CircleCheck,
+  CircleX,
+  Lightbulb,
+  ShieldCheck,
+  CircleHelp,
+  ListOrdered,
+  X,
+} from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { platformServicesService, PlatformService } from '../../services/api/platformServices.service'
+import { Button } from '../../components/ui/button'
+import { Card, CardContent } from '../../components/ui/card'
+import { Input } from '../../components/ui/input'
+import { Textarea } from '../../components/ui/textarea'
+import { Label } from '../../components/ui/label'
+import { Badge } from '../../components/ui/badge'
+import { Checkbox } from '../../components/ui/checkbox'
+import { Switch } from '../../components/ui/switch'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select'
+import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '../../components/ui/accordion'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui/tooltip'
+import { appToast } from '../../lib/appToast'
+import { platformServicesService } from '../../services/api/platformServices.service'
 import { CategoriesService } from '../../services/api/categories.service'
 import { SubcategoriesService } from '../../services/api/subcategories.service'
 import { ProvidersService } from '../../services/api/providers.service'
@@ -227,12 +220,6 @@ export function CreateService() {
     answer: ''
   })
 
-  // Snackbar
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success' as 'success' | 'error',
-  })
 
   // Create subcategory inline (for selected category)
   const [newSubcategoryName, setNewSubcategoryName] = useState('')
@@ -503,22 +490,22 @@ export function CreateService() {
       setLoading(true)
 
       if (!formData.name?.trim()) {
-        showSnackbar('Service name is required', 'error')
+        appToast('Service name is required', 'error')
         setActiveTab(0)
         return
       }
       if (!formData.category) {
-        showSnackbar('Please select a category', 'error')
+        appToast('Please select a category', 'error')
         setActiveTab(0)
         return
       }
       if (!formData.subcategory) {
-        showSnackbar('Please select a subcategory', 'error')
+        appToast('Please select a subcategory', 'error')
         setActiveTab(0)
         return
       }
       if (!formData.description?.trim()) {
-        showSnackbar('Description is required', 'error')
+        appToast('Description is required', 'error')
         setActiveTab(0)
         return
       }
@@ -587,14 +574,14 @@ export function CreateService() {
 
       if (isEditMode && id) {
         await platformServicesService.updateService(id, submitData)
-        showSnackbar('Service updated successfully!', 'success')
+        appToast('Service updated successfully!', 'success')
       } else {
         if (action === 'draft') {
           await platformServicesService.saveAsDraft(submitData)
-          showSnackbar('Service saved as draft successfully!', 'success')
+          appToast('Service saved as draft successfully!', 'success')
         } else {
           await platformServicesService.createService(submitData)
-          showSnackbar('Service published successfully!', 'success')
+          appToast('Service published successfully!', 'success')
         }
       }
 
@@ -605,15 +592,12 @@ export function CreateService() {
         error?.message ??
         (error?.errors ? error.errors.map((e: any) => e.message || e.msg).join(', ') : null) ??
         `Failed to ${isEditMode ? 'update' : action} service`
-      showSnackbar(String(message), 'error')
+      appToast(String(message), 'error')
     } finally {
       setLoading(false)
     }
   }
 
-  const showSnackbar = (message: string, severity: 'success' | 'error') => {
-    setSnackbar({ open: true, message, severity })
-  }
 
   // Load service data if in edit mode
   useEffect(() => {
@@ -725,9 +709,9 @@ export function CreateService() {
           icon: service.icon || '',
         })
         
-        showSnackbar('Service loaded successfully', 'success')
+        appToast('Service loaded successfully', 'success')
       } catch (error: any) {
-        showSnackbar(error.message || 'Failed to load service', 'error')
+        appToast(error.message || 'Failed to load service', 'error')
         // Navigate back if service not found
         setTimeout(() => navigate('/platform-services'), 2000)
       } finally {
@@ -770,7 +754,7 @@ export function CreateService() {
         setCategories(roots.length > 0 ? roots : list)
       } catch (error) {
         console.error('Error fetching categories:', error)
-        showSnackbar('Failed to load categories', 'error')
+        appToast('Failed to load categories', 'error')
         setCategories([])
       } finally {
         setLoadingCategories(false)
@@ -795,7 +779,7 @@ export function CreateService() {
         }
       } catch (error) {
         console.error('Error fetching providers:', error)
-        showSnackbar('Failed to load providers', 'error')
+        appToast('Failed to load providers', 'error')
       } finally {
         setLoadingProviders(false)
       }
@@ -820,7 +804,7 @@ export function CreateService() {
         }
       } catch (error) {
         console.error('Error fetching products:', error)
-        showSnackbar('Failed to load products', 'error')
+        appToast('Failed to load products', 'error')
       } finally {
         setLoadingProducts(false)
       }
@@ -850,7 +834,7 @@ export function CreateService() {
       setSubcategories(normalized)
     } catch (error) {
       console.error('Error fetching subcategories:', error)
-      showSnackbar('Failed to load subcategories', 'error')
+      appToast('Failed to load subcategories', 'error')
     } finally {
       setLoadingSubcategories(false)
     }
@@ -863,11 +847,11 @@ export function CreateService() {
   const handleCreateSubcategory = async () => {
     const name = newSubcategoryName.trim()
     if (!name) {
-      showSnackbar('Enter a subcategory name', 'error')
+      appToast('Enter a subcategory name', 'error')
       return
     }
     if (!formData.category) {
-      showSnackbar('Select a category first', 'error')
+      appToast('Select a category first', 'error')
       return
     }
     const parentCategory = categories.find((c) => getCategoryId(c) === formData.category)
@@ -891,257 +875,247 @@ export function CreateService() {
         setSubcategories((prev) => [...prev, { ...created, id: newId, name: created.name ?? name }])
         handleInputChange('subcategory', newId)
         setNewSubcategoryName('')
-        showSnackbar(`Subcategory "${name}" created under ${parentCategory?.name ?? 'category'}`, 'success')
+        appToast(`Subcategory "${name}" created under ${parentCategory?.name ?? 'category'}`, 'success')
       } else {
         await fetchSubcategoriesForCategory(formData.category)
-        showSnackbar('Subcategory created', 'success')
+        appToast('Subcategory created', 'success')
       }
     } catch (error: any) {
       console.error('Error creating subcategory:', error)
-      showSnackbar(error?.message ?? 'Failed to create subcategory', 'error')
+      appToast(error?.message ?? 'Failed to create subcategory', 'error')
     } finally {
       setCreatingSubcategory(false)
     }
   }
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }}>
+    <div className="p-4 md:p-6">
       {/* Loading indicator for edit mode */}
       {loadingService && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
-          <Box sx={{ textAlign: 'center' }}>
-            <CircularProgress size={48} />
-            <Typography variant="body1" sx={{ mt: 2 }}>Loading service data...</Typography>
-          </Box>
-        </Box>
+        <div className="flex min-h-[50vh] items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="mx-auto h-12 w-12 animate-spin text-muted-foreground" />
+            <p className="mt-2 text-sm">Loading service data...</p>
+          </div>
+        </div>
       )}
       
       {!loadingService && (
         <>
           {/* Header */}
-          <Box sx={{ mb: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-              <IconButton 
-                onClick={() => navigate('/platform-services')}
-                sx={{ 
-                  bgcolor: 'grey.100',
-                  '&:hover': { bgcolor: 'grey.200' }
-                }}
-              >
-                <ArrowBackIcon />
-              </IconButton>
-              <Box>
-                <Typography variant="h5" component="h1" sx={{ fontWeight: 600, mb: 0.5 }}>
-                  {isEditMode ? 'Edit Service' : 'Create New Service'}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {isEditMode ? 'Update service details and settings' : 'Add a new service to your platform'}
-                </Typography>
-              </Box>
-            </Box>
-
-            {/* Action Buttons */}
-            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+          <div className="mb-6">
+            <div className="mb-4 flex items-center gap-2">
               <Button
-                variant="outlined"
-                startIcon={<PreviewIcon />}
+                variant="outline"
+                size="icon"
+                onClick={() => navigate('/platform-services')}
+                className="bg-muted hover:bg-muted/80"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div>
+                <h1 className="mb-0.5 text-2xl font-semibold">
+                  {isEditMode ? 'Edit Service' : 'Create New Service'}
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  {isEditMode ? 'Update service details and settings' : 'Add a new service to your platform'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                leftIcon={<Eye className="h-4 w-4" />}
                 onClick={() => setPreviewMode(!previewMode)}
-                sx={{ textTransform: 'none' }}
               >
                 {previewMode ? 'Edit Mode' : 'Preview Mode'}
               </Button>
               <Button
-                variant="contained"
-                startIcon={loading ? <CircularProgress size={16} /> : <SaveIcon />}
+                loading={loading}
+                leftIcon={!loading ? <Save className="h-4 w-4" /> : undefined}
                 onClick={() => handleSubmit('publish')}
                 disabled={loading || !formData.name?.trim() || !formData.category || !formData.subcategory || !formData.description?.trim()}
-                sx={{ textTransform: 'none' }}
               >
                 {loading ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Service' : 'Create Service')}
               </Button>
-            </Box>
-          </Box>
+            </div>
+          </div>
 
       {/* Main Form with Tabs */}
-      <Card sx={{ borderRadius: 2, overflow: 'hidden' }}>
-        {/* Tab Navigation */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs 
-            value={activeTab} 
-            onChange={(e, newValue) => setActiveTab(newValue)}
-            variant="scrollable"
-            scrollButtons="auto"
+      <Card className="overflow-hidden rounded-lg border shadow-sm">
+        <div className="overflow-x-auto border-b">
+          <Tabs
+            value={String(activeTab)}
+            onValueChange={(v) => setActiveTab(Number(v))}
+            className="w-full"
           >
-            <Tab 
-            icon={<InfoIcon />}
-            label="Basic Info"
-            iconPosition="start"
-              sx={{ minHeight: 64 }}
-            />
-            <Tab 
-              icon={<MoneyIcon />} 
-            label="Pricing"
-              iconPosition="start"
-              sx={{ minHeight: 64 }}
-          />
-            <Tab 
-            icon={<CalendarIcon />}
-            label="Availability"
-              iconPosition="start"
-              sx={{ minHeight: 64 }}
-          />
-            <Tab 
-            icon={<StarIcon />}
-            label="Features & Requirements"
-            iconPosition="start"
-              sx={{ minHeight: 64 }}
-            />
-            <Tab 
-              icon={<BuildIcon />} 
-            label="Product Options"
-              iconPosition="start"
-              sx={{ minHeight: 64 }}
-          />
-            <Tab 
-            icon={<LocationIcon />}
-            label="Service Areas"
-              iconPosition="start"
-              sx={{ minHeight: 64 }}
-          />
-            <Tab 
-              icon={<TimelineIcon />} 
-              label="Our Process"
-              iconPosition="start"
-              sx={{ minHeight: 64 }}
-            />
-            <Tab 
-              icon={<CheckIcon />} 
-              label="Include & Exclude"
-              iconPosition="start"
-              sx={{ minHeight: 64 }}
-            />
-            <Tab 
-              icon={<LightbulbIcon />} 
-              label="Notes & Promises"
-              iconPosition="start"
-              sx={{ minHeight: 64 }}
-            />
-            <Tab 
-              icon={<HelpIcon />} 
-              label="FAQs"
-              iconPosition="start"
-              sx={{ minHeight: 64 }}
-            />
+            <TabsList className="h-auto min-h-[4rem] w-full flex-wrap justify-start gap-0 rounded-none border-0 bg-transparent p-1">
+              <TabsTrigger value="0" className="gap-2 data-[state=active]:bg-muted sm:min-h-16">
+                <Info className="h-4 w-4 shrink-0" />
+                Basic Info
+              </TabsTrigger>
+              <TabsTrigger value="1" className="gap-2 data-[state=active]:bg-muted sm:min-h-16">
+                <IndianRupee className="h-4 w-4 shrink-0" />
+                Pricing
+              </TabsTrigger>
+              <TabsTrigger value="2" className="gap-2 data-[state=active]:bg-muted sm:min-h-16">
+                <Calendar className="h-4 w-4 shrink-0" />
+                Availability
+              </TabsTrigger>
+              <TabsTrigger value="3" className="gap-2 data-[state=active]:bg-muted sm:min-h-16">
+                <Star className="h-4 w-4 shrink-0" />
+                Features & Requirements
+              </TabsTrigger>
+              <TabsTrigger value="4" className="gap-2 data-[state=active]:bg-muted sm:min-h-16">
+                <Wrench className="h-4 w-4 shrink-0" />
+                Product Options
+              </TabsTrigger>
+              <TabsTrigger value="5" className="gap-2 data-[state=active]:bg-muted sm:min-h-16">
+                <MapPin className="h-4 w-4 shrink-0" />
+                Service Areas
+              </TabsTrigger>
+              <TabsTrigger value="6" className="gap-2 data-[state=active]:bg-muted sm:min-h-16">
+                <ListOrdered className="h-4 w-4 shrink-0" />
+                Our Process
+              </TabsTrigger>
+              <TabsTrigger value="7" className="gap-2 data-[state=active]:bg-muted sm:min-h-16">
+                <CircleCheck className="h-4 w-4 shrink-0" />
+                Include & Exclude
+              </TabsTrigger>
+              <TabsTrigger value="8" className="gap-2 data-[state=active]:bg-muted sm:min-h-16">
+                <Lightbulb className="h-4 w-4 shrink-0" />
+                Notes & Promises
+              </TabsTrigger>
+              <TabsTrigger value="9" className="gap-2 data-[state=active]:bg-muted sm:min-h-16">
+                <CircleHelp className="h-4 w-4 shrink-0" />
+                FAQs
+              </TabsTrigger>
+            </TabsList>
           </Tabs>
-        </Box>
+        </div>
 
         {/* Tab Content */}
-        <Box sx={{ p: 3 }}>
+        <div className="p-6">
           {/* Basic Information Tab — Mandatory fields first, then optional (pre-filled) */}
           {activeTab === 0 && (
-            <Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Fill the 4 required fields below to create your service. All other fields have sensible defaults and can be changed later.
-              </Typography>
+            <div>
+              <p className="mb-6 text-sm text-muted-foreground">
+                Fill the 4 required fields below to create your service. All other fields have sensible defaults and
+                can be changed later.
+              </p>
 
-              {/* ——— Required (mandatory) ——— */}
-              <Paper variant="outlined" sx={{ p: 3, mb: 3, bgcolor: 'primary.50', borderColor: 'primary.200' }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Chip label="Required" size="small" color="primary" />
+              <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 p-6">
+                <p className="mb-4 flex items-center gap-2 text-base font-bold">
+                  <Badge>Required</Badge>
                   Basic info
-                </Typography>
-                <Stack spacing={2.5}>
-                  <TextField
-                    fullWidth
-                    label="Service Name"
-                    value={formData.name}
-                    onChange={(e) => handleNameChange(e.target.value)}
-                    placeholder="e.g., Switch & Socket Repair"
-                    required
-                    disabled={previewMode}
-                    helperText="Clear name customers will see"
-                  />
-                  <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-                    <FormControl fullWidth required sx={{ flex: 1 }}>
-                      <InputLabel>Category</InputLabel>
+                </p>
+                <div className="flex flex-col gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="service-name">Service Name</Label>
+                    <Input
+                      id="service-name"
+                      value={formData.name}
+                      onChange={(e) => handleNameChange(e.target.value)}
+                      placeholder="e.g., Switch & Socket Repair"
+                      disabled={previewMode}
+                      className="w-full"
+                    />
+                    <p className="text-xs text-muted-foreground">Clear name customers will see</p>
+                  </div>
+
+                  <div className="flex flex-col gap-4 md:flex-row">
+                    <div className="flex-1 space-y-2">
+                      <Label>Category</Label>
                       <Select
-                        value={formData.category}
-                        label="Category"
-                        onChange={(e) => {
-                          handleInputChange('category', e.target.value)
+                        value={formData.category || undefined}
+                        onValueChange={(v) => {
+                          handleInputChange('category', v)
                           handleInputChange('subcategory', '')
                         }}
                         disabled={previewMode || loadingCategories}
-                        renderValue={(v) => {
-                          if (!v) return ''
-                          const cat = categories.find((c) => getCategoryId(c) === v)
-                          return cat?.name ?? v
-                        }}
                       >
-                        {loadingCategories ? (
-                          <MenuItem disabled><CircularProgress size={16} /> Loading...</MenuItem>
-                        ) : categories.length === 0 ? (
-                          <MenuItem disabled>No categories available</MenuItem>
-                        ) : (
-                          categories.map((cat) => (
-                            <MenuItem key={getCategoryId(cat)} value={getCategoryId(cat)}>{cat.name}</MenuItem>
-                          ))
-                        )}
+                        <SelectTrigger className="w-full">
+                          <SelectValue
+                            placeholder={
+                              loadingCategories
+                                ? 'Loading...'
+                                : categories.length === 0
+                                  ? 'No categories'
+                                  : 'Select category'
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((cat) => (
+                            <SelectItem key={getCategoryId(cat)} value={getCategoryId(cat)}>
+                              {cat.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
-                    </FormControl>
-                    <FormControl fullWidth required sx={{ flex: 1 }}>
-                      <InputLabel>Subcategory</InputLabel>
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <Label>Subcategory</Label>
                       <Select
-                        value={formData.subcategory}
-                        label="Subcategory"
-                        onChange={(e) => handleInputChange('subcategory', e.target.value)}
+                        value={formData.subcategory || undefined}
+                        onValueChange={(v) => handleInputChange('subcategory', v)}
                         disabled={previewMode || !formData.category || loadingSubcategories}
-                        renderValue={(v) => {
-                          if (!v) return ''
-                          const sub = subcategories.find((s) => getCategoryId(s) === v)
-                          return sub?.name ?? v
-                        }}
                       >
-                        {loadingSubcategories ? (
-                          <MenuItem disabled><CircularProgress size={16} /> Loading...</MenuItem>
-                        ) : subcategories.length === 0 ? (
-                          <MenuItem disabled>{formData.category ? 'No subcategories' : 'Select category first'}</MenuItem>
-                        ) : (
-                          subcategories.map((sub) => (
-                            <MenuItem key={getCategoryId(sub)} value={getCategoryId(sub)}>{sub.name}</MenuItem>
-                          ))
-                        )}
+                        <SelectTrigger className="w-full">
+                          <SelectValue
+                            placeholder={
+                              loadingSubcategories
+                                ? 'Loading...'
+                                : formData.category
+                                  ? 'Select subcategory'
+                                  : 'Select category first'
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {subcategories.map((sub) => (
+                            <SelectItem key={getCategoryId(sub)} value={getCategoryId(sub)}>
+                              {sub.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
-                    </FormControl>
-                  </Box>
+                    </div>
+                  </div>
+
                   {formData.category && (
-                    <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: 'background.paper' }}>
-                      <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-                        Need a new subcategory?
-                      </Typography>
-                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="flex-end">
-                        <TextField
-                          size="small"
-                          placeholder="e.g. Socket, Switch"
-                          value={newSubcategoryName}
-                          onChange={(e) => setNewSubcategoryName(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleCreateSubcategory())}
-                          disabled={creatingSubcategory || previewMode}
-                          sx={{ flex: 1, minWidth: 140 }}
-                          label="New subcategory name"
-                        />
+                    <div className="rounded-md border bg-background p-3">
+                      <p className="mb-2 block text-xs text-muted-foreground">Need a new subcategory?</p>
+                      <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-end">
+                        <div className="min-w-[140px] flex-1 space-y-2">
+                          <Label htmlFor="new-subcat">New subcategory name</Label>
+                          <Input
+                            id="new-subcat"
+                            placeholder="e.g. Socket, Switch"
+                            value={newSubcategoryName}
+                            onChange={(e) => setNewSubcategoryName(e.target.value)}
+                            onKeyDown={(e) =>
+                              e.key === 'Enter' && (e.preventDefault(), handleCreateSubcategory())
+                            }
+                            disabled={creatingSubcategory || previewMode}
+                          />
+                        </div>
                         <Button
-                          variant="outlined"
-                          size="small"
-                          startIcon={creatingSubcategory ? <CircularProgress size={14} /> : <AddIcon />}
+                          variant="outline"
+                          size="sm"
+                          loading={creatingSubcategory}
+                          leftIcon={!creatingSubcategory ? <Plus className="h-4 w-4" /> : undefined}
                           onClick={handleCreateSubcategory}
                           disabled={creatingSubcategory || !newSubcategoryName.trim() || previewMode}
+                          className="shrink-0"
                         >
                           {creatingSubcategory ? 'Creating…' : 'Add'}
                         </Button>
-                      </Stack>
-                    </Box>
+                      </div>
+                    </div>
                   )}
+
                   <RichTextField
                     label="Description"
                     value={formData.description}
@@ -1152,18 +1126,17 @@ export function CreateService() {
                     height={200}
                     helperText="Required. Detailed description helps customers and SEO."
                   />
-                </Stack>
-              </Paper>
+                </div>
+              </div>
 
-              {/* ——— Service Images (important, always visible) ——— */}
-              <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <UploadIcon color="primary" />
+              <div className="mb-6 rounded-lg border bg-card p-6">
+                <p className="mb-1 flex items-center gap-2 text-base font-bold">
+                  <Upload className="h-5 w-5 text-primary" />
                   Service Images
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                </p>
+                <p className="mb-4 text-sm text-muted-foreground">
                   Add at least one image so customers can see the service. First image is used as the main image.
-                </Typography>
+                </p>
                 <ImageUploadField
                   label="Upload Service Images"
                   value={formData.images}
@@ -1176,1477 +1149,1260 @@ export function CreateService() {
                   helperText="Up to 5 images. Recommended size: 800×600px. Max 5MB each. First image = primary."
                   error={formData.images.length === 0 ? 'Add at least one image for a better listing' : undefined}
                 />
-              </Paper>
+              </div>
 
-              {/* ——— Featured & Popular (Basic Info) ——— */}
-              <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
-                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
-                  Visibility
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={formData.is_featured}
-                        onChange={(e) => handleInputChange('is_featured', e.target.checked)}
-                        disabled={previewMode}
-                        color="primary"
-                      />
-                    }
-                    label="Featured"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={formData.is_popular}
-                        onChange={(e) => handleInputChange('is_popular', e.target.checked)}
-                        disabled={previewMode}
-                        color="primary"
-                      />
-                    }
-                    label="Popular"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={formData.is_active}
-                        onChange={(e) => handleInputChange('is_active', e.target.checked)}
-                        disabled={previewMode}
-                        color="primary"
-                      />
-                    }
-                    label="Active"
-                  />
-                </Box>
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                  Featured services appear in highlighted sections; popular in &quot;Popular&quot; listings. Inactive services are hidden from customers.
-                </Typography>
-              </Paper>
-
-              {/* ——— Optional (pre-filled with defaults) ——— */}
-              <Accordion defaultExpanded={false} sx={{ '&:before': { display: 'none' }, boxShadow: 0 }}>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Optional details (pre-filled with defaults — edit if needed)
-                  </Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <Stack spacing={2.5}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="URL Slug (optional)"
-                      value={formData.slug}
-                      onChange={(e) => handleInputChange('slug', e.target.value)}
-                      placeholder="Auto-generated from name"
+              <div className="mb-6 rounded-lg border bg-card p-6">
+                <p className="mb-4 block text-sm font-medium text-muted-foreground">Visibility</p>
+                <div className="flex flex-wrap items-center gap-6">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={formData.is_featured}
+                      onCheckedChange={(v) => handleInputChange('is_featured', v)}
                       disabled={previewMode}
-                      helperText="Leave blank to auto-generate from service name"
-                      InputProps={{ sx: { fontFamily: 'monospace' } }}
                     />
-                    <FormControl fullWidth size="small">
-                      <InputLabel>Service Provider (optional)</InputLabel>
-                      <Select
-                        value={formData.provider_id}
-                        label="Service Provider (optional)"
-                        onChange={(e) => handleInputChange('provider_id', e.target.value)}
-                        disabled={previewMode || loadingProviders}
-                      >
-                        <MenuItem value=""><em>Platform managed</em></MenuItem>
-                        {providers?.map((p) => (
-                          <MenuItem key={p.id} value={p.id}>{p.business_name}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                    <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-                      <FormControl fullWidth size="small" sx={{ flex: 1 }}>
-                        <InputLabel>Service type</InputLabel>
-                        <Select
-                          value={formData.service_type}
-                          label="Service type"
-                          onChange={(e) => handleInputChange('service_type', e.target.value)}
+                    <Label>Featured</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={formData.is_popular}
+                      onCheckedChange={(v) => handleInputChange('is_popular', v)}
+                      disabled={previewMode}
+                    />
+                    <Label>Popular</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={formData.is_active}
+                      onCheckedChange={(v) => handleInputChange('is_active', v)}
+                      disabled={previewMode}
+                    />
+                    <Label>Active</Label>
+                  </div>
+                </div>
+                <p className="mt-2 block text-xs text-muted-foreground">
+                  Featured services appear in highlighted sections; popular in &quot;Popular&quot; listings. Inactive
+                  services are hidden from customers.
+                </p>
+              </div>
+
+              <Accordion type="single" collapsible className="rounded-md border">
+                <AccordionItem value="optional-details" className="border-0 px-4">
+                  <AccordionTrigger className="py-3 text-left text-sm font-medium text-muted-foreground no-underline hover:no-underline">
+                    Optional details (pre-filled with defaults — edit if needed)
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="flex flex-col gap-4 pb-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="slug">URL Slug (optional)</Label>
+                        <Input
+                          id="slug"
+                          value={formData.slug}
+                          onChange={(e) => handleInputChange('slug', e.target.value)}
+                          placeholder="Auto-generated from name"
                           disabled={previewMode}
+                          className="w-full font-mono text-sm"
+                        />
+                        <p className="text-xs text-muted-foreground">Leave blank to auto-generate from service name</p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Service Provider (optional)</Label>
+                        <Select
+                          value={formData.provider_id || 'platform'}
+                          onValueChange={(v) => handleInputChange('provider_id', v === 'platform' ? '' : v)}
+                          disabled={previewMode || loadingProviders}
                         >
-                          {PRICE_TYPES.map((t) => (
-                            <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>
-                          ))}
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Platform managed" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="platform">Platform managed</SelectItem>
+                            {providers?.map((p) => (
+                              <SelectItem key={p.id} value={p.id}>
+                                {p.business_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
                         </Select>
-                      </FormControl>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="Duration"
-                        value={formData.duration}
-                        onChange={(e) => handleInputChange('duration', e.target.value)}
-                        placeholder="e.g. 60 mins"
-                        disabled={previewMode}
-                        sx={{ flex: 1 }}
-                      />
-                    </Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Featured, Popular and Active toggles are in Basic Info above.
-                    </Typography>
-                  </Stack>
-                </AccordionDetails>
+                      </div>
+
+                      <div className="flex flex-col gap-4 md:flex-row">
+                        <div className="flex-1 space-y-2">
+                          <Label>Service type</Label>
+                          <Select
+                            value={formData.service_type}
+                            onValueChange={(v) =>
+                              handleInputChange('service_type', v as 'fixed' | 'hourly' | 'consultation')
+                            }
+                            disabled={previewMode}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {PRICE_TYPES.map((t) => (
+                                <SelectItem key={t.value} value={t.value}>
+                                  {t.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          <Label htmlFor="duration-field">Duration</Label>
+                          <Input
+                            id="duration-field"
+                            value={formData.duration}
+                            onChange={(e) => handleInputChange('duration', e.target.value)}
+                            placeholder="e.g. 60 mins"
+                            disabled={previewMode}
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Featured, Popular and Active toggles are in Basic Info above.
+                      </p>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
               </Accordion>
-            </Box>
+            </div>
           )}
 
           {/* Pricing Tab */}
           {activeTab === 1 && (
-            <Box>
-              <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-            Pricing Configuration
-          </Typography>
-              
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                {/* Base Price (Fixed) */}
+            <div>
+              <h2 className="mb-6 text-lg font-semibold">Pricing Configuration</h2>
+
+              <div className="flex flex-col gap-6">
                 {formData.service_type === 'fixed' && (
-                <TextField
-                  fullWidth
-                    label="Base Price (₹) *"
-                    type="number"
-                    value={formData.base_price}
-                    onChange={(e) => handleInputChange('base_price', e.target.value)}
-                  placeholder="299"
-                    disabled={previewMode}
-                    InputProps={{
-                      startAdornment: <Typography sx={{ mr: 1 }}>₹</Typography>
-                    }}
-                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="base-price">Base Price (₹) *</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                        ₹
+                      </span>
+                      <Input
+                        id="base-price"
+                        type="number"
+                        value={formData.base_price}
+                        onChange={(e) => handleInputChange('base_price', e.target.value)}
+                        placeholder="299"
+                        disabled={previewMode}
+                        className="w-full pl-8"
+                      />
+                    </div>
+                  </div>
                 )}
 
-                {/* Hourly Rate */}
                 {formData.service_type === 'hourly' && (
-                  <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-                  <TextField
-                    fullWidth
-                      label="Hourly Rate (₹) *"
-                      type="number"
-                      value={formData.hourly_rate}
-                      onChange={(e) => handleInputChange('hourly_rate', e.target.value)}
-                    placeholder="199"
-                      disabled={previewMode}
-                      InputProps={{
-                        startAdornment: <Typography sx={{ mr: 1 }}>₹</Typography>
-                      }}
-                  />
-                  <TextField
-                      fullWidth
-                    label="Minimum Hours"
-                    type="number"
-                      value={formData.min_hours}
-                      onChange={(e) => handleInputChange('min_hours', e.target.value)}
-                    placeholder="2"
-                      disabled={previewMode}
-                  />
-                  <TextField
-                      fullWidth
-                    label="Maximum Hours"
-                    type="number"
-                      value={formData.max_hours}
-                      onChange={(e) => handleInputChange('max_hours', e.target.value)}
-                    placeholder="8"
-                      disabled={previewMode}
-                  />
-                  </Box>
-            )}
-
-                {/* Consultation Fee */}
-                {formData.service_type === 'consultation' && (
-                <TextField
-                  fullWidth
-                    label="Consultation Fee (₹) *"
-                    type="number"
-                    value={formData.consultation_fee}
-                    onChange={(e) => handleInputChange('consultation_fee', e.target.value)}
-                  placeholder="999"
-                    disabled={previewMode}
-                    InputProps={{
-                      startAdornment: <Typography sx={{ mr: 1 }}>₹</Typography>
-                    }}
-                />
-            )}
-
-                {/* GST */}
-                <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-              <TextField
-                    fullWidth
-                label="GST (%)"
-                type="number"
-                    value={formData.gst_percentage}
-                    onChange={(e) => handleInputChange('gst_percentage', parseFloat(e.target.value) || 0)}
-                    disabled={previewMode}
-                    sx={{ flex: 1 }}
-                  />
-              <FormControlLabel
-                control={
-                      <Switch
-                        checked={formData.tax_included}
-                        onChange={(e) => handleInputChange('tax_included', e.target.checked)}
+                  <div className="flex flex-col gap-4 md:flex-row">
+                    <div className="flex-1 space-y-2">
+                      <Label htmlFor="hourly">Hourly Rate (₹) *</Label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                          ₹
+                        </span>
+                        <Input
+                          id="hourly"
+                          type="number"
+                          value={formData.hourly_rate}
+                          onChange={(e) => handleInputChange('hourly_rate', e.target.value)}
+                          placeholder="199"
+                          disabled={previewMode}
+                          className="w-full pl-8"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <Label htmlFor="min-h">Minimum Hours</Label>
+                      <Input
+                        id="min-h"
+                        type="number"
+                        value={formData.min_hours}
+                        onChange={(e) => handleInputChange('min_hours', e.target.value)}
+                        placeholder="2"
                         disabled={previewMode}
-                  />
-                }
-                label="Tax included in price"
-                    sx={{ flex: 1, mt: 2 }}
-                  />
-                </Box>
-              </Box>
-            </Box>
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <Label htmlFor="max-h">Maximum Hours</Label>
+                      <Input
+                        id="max-h"
+                        type="number"
+                        value={formData.max_hours}
+                        onChange={(e) => handleInputChange('max_hours', e.target.value)}
+                        placeholder="8"
+                        disabled={previewMode}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {formData.service_type === 'consultation' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="consult">Consultation Fee (₹) *</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                        ₹
+                      </span>
+                      <Input
+                        id="consult"
+                        type="number"
+                        value={formData.consultation_fee}
+                        onChange={(e) => handleInputChange('consultation_fee', e.target.value)}
+                        placeholder="999"
+                        disabled={previewMode}
+                        className="w-full pl-8"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-4 md:flex-row md:items-end">
+                  <div className="flex-1 space-y-2">
+                    <Label htmlFor="gst">GST (%)</Label>
+                    <Input
+                      id="gst"
+                      type="number"
+                      value={formData.gst_percentage}
+                      onChange={(e) =>
+                        handleInputChange('gst_percentage', parseFloat(e.target.value) || 0)
+                      }
+                      disabled={previewMode}
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="flex flex-1 items-center gap-2 pb-2">
+                    <Switch
+                      checked={formData.tax_included}
+                      onCheckedChange={(v) => handleInputChange('tax_included', v)}
+                      disabled={previewMode}
+                    />
+                    <Label>Tax included in price</Label>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Availability Tab */}
           {activeTab === 2 && (
-            <Box>
-              <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-            Service Availability
-          </Typography>
-              
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                {/* Working Days */}
-                <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                Working Days
-              </Typography>
-                  <FormGroup row>
+            <div>
+              <h2 className="mb-6 text-lg font-semibold">Service Availability</h2>
+
+              <div className="flex flex-col gap-6">
+                <div>
+                  <p className="mb-3 text-sm font-semibold">Working Days</p>
+                  <div className="flex flex-wrap gap-4">
                     {WORKING_DAYS.map((day) => (
-                      <MuiFormControlLabel
-                        key={day}
-                      control={
+                      <div key={day} className="flex items-center gap-2">
                         <Checkbox
-                            checked={formData.working_days.includes(day)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                                handleArrayChange('working_days', [...formData.working_days, day])
+                          id={`day-${day}`}
+                          checked={formData.working_days.includes(day)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              handleArrayChange('working_days', [...formData.working_days, day])
                             } else {
-                                handleArrayChange('working_days', formData.working_days.filter(d => d !== day))
+                              handleArrayChange(
+                                'working_days',
+                                formData.working_days.filter((d) => d !== day),
+                              )
                             }
                           }}
-                            disabled={previewMode}
+                          disabled={previewMode}
                         />
-                      }
-                      label={day}
-                    />
+                        <Label htmlFor={`day-${day}`} className="font-normal">
+                          {day}
+                        </Label>
+                      </div>
                     ))}
-                  </FormGroup>
-                </Box>
+                  </div>
+                </div>
 
-                {/* Time Slots */}
-                <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                Available Time Slots
-              </Typography>
-                  <FormGroup>
+                <div>
+                  <p className="mb-3 text-sm font-semibold">Available Time Slots</p>
+                  <div className="flex flex-col gap-2">
                     {TIME_SLOTS.map((slot) => (
-                      <MuiFormControlLabel
-                        key={slot.value}
-                      control={
+                      <div key={slot.value} className="flex items-center gap-2">
                         <Checkbox
-                            checked={formData.time_slots.includes(slot.value)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                                handleArrayChange('time_slots', [...formData.time_slots, slot.value])
+                          id={`slot-${slot.value}`}
+                          checked={formData.time_slots.includes(slot.value)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              handleArrayChange('time_slots', [...formData.time_slots, slot.value])
                             } else {
-                                handleArrayChange('time_slots', formData.time_slots.filter(s => s !== slot.value))
-                              }
-                            }}
-                            disabled={previewMode}
-                          />
-                        }
-                        label={slot.label}
-                      />
+                              handleArrayChange(
+                                'time_slots',
+                                formData.time_slots.filter((s) => s !== slot.value),
+                              )
+                            }
+                          }}
+                          disabled={previewMode}
+                        />
+                        <Label htmlFor={`slot-${slot.value}`} className="font-normal">
+                          {slot.label}
+                        </Label>
+                      </div>
                     ))}
-                  </FormGroup>
-                </Box>
+                  </div>
+                </div>
 
-                {/* Booking Settings */}
-                <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-              <TextField
-                    fullWidth
-                label="Advance Booking (hours)"
-                type="number"
-                    value={formData.advance_booking_hours}
-                    onChange={(e) => handleInputChange('advance_booking_hours', parseInt(e.target.value) || 0)}
-                    disabled={previewMode}
-                    sx={{ flex: 1 }}
-                  />
-                  <TextField
-                fullWidth
-                    label="Emergency Charge (₹)"
-                    type="number"
-                    value={formData.emergency_charge}
-                    onChange={(e) => handleInputChange('emergency_charge', e.target.value)}
-                    placeholder="200"
-                    disabled={previewMode}
-                    sx={{ flex: 1 }}
-                  />
-                </Box>
+                <div className="flex flex-col gap-4 md:flex-row">
+                  <div className="flex-1 space-y-2">
+                    <Label htmlFor="adv-hours">Advance Booking (hours)</Label>
+                    <Input
+                      id="adv-hours"
+                      type="number"
+                      value={formData.advance_booking_hours}
+                      onChange={(e) =>
+                        handleInputChange('advance_booking_hours', parseInt(e.target.value, 10) || 0)
+                      }
+                      disabled={previewMode}
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <Label htmlFor="em-charge">Emergency Charge (₹)</Label>
+                    <Input
+                      id="em-charge"
+                      type="number"
+                      value={formData.emergency_charge}
+                      onChange={(e) => handleInputChange('emergency_charge', e.target.value)}
+                      placeholder="200"
+                      disabled={previewMode}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
 
-                <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-              <FormControlLabel
-                control={
-                      <Switch
-                        checked={formData.same_day_booking}
-                        onChange={(e) => handleInputChange('same_day_booking', e.target.checked)}
-                        disabled={previewMode}
-                  />
-                }
-                label="Allow Same-day Booking"
-              />
-              <FormControlLabel
-                control={
-                      <Switch
-                        checked={formData.emergency_service}
-                        onChange={(e) => handleInputChange('emergency_service', e.target.checked)}
-                        disabled={previewMode}
-                  />
-                }
-                label="Emergency Service Available"
-              />
-                </Box>
-              </Box>
-            </Box>
+                <div className="flex flex-wrap gap-6">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={formData.same_day_booking}
+                      onCheckedChange={(v) => handleInputChange('same_day_booking', v)}
+                      disabled={previewMode}
+                    />
+                    <Label>Allow Same-day Booking</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={formData.emergency_service}
+                      onCheckedChange={(v) => handleInputChange('emergency_service', v)}
+                      disabled={previewMode}
+                    />
+                    <Label>Emergency Service Available</Label>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Features & Requirements Tab */}
           {activeTab === 3 && (
-            <Box>
-              <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-            Features & Requirements
-          </Typography>
-              
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {/* Features */}
-                <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                Service Features
-              </Typography>
-                  <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-              {formData.features.map((feature, index) => (
-                      <Chip
+            <div>
+              <h2 className="mb-6 text-lg font-semibold">Features & Requirements</h2>
+
+              <div className="flex flex-col gap-8">
+                <div>
+                  <p className="mb-3 text-sm font-semibold">Service Features</p>
+                  <div className="mb-2 flex flex-wrap gap-2">
+                    {formData.features.map((feature, index) => (
+                      <Badge
                         key={index}
-                        label={feature}
-                        onDelete={previewMode ? undefined : () => removeFeature(feature)}
-                        color="primary"
-                        variant="outlined"
-                      />
+                        variant="outline"
+                        className="inline-flex items-center gap-1 border-primary/40 py-1 pl-2 pr-1"
+                      >
+                        {feature}
+                        {!previewMode && (
+                          <button
+                            type="button"
+                            className="rounded p-0.5 hover:bg-muted"
+                            onClick={() => removeFeature(feature)}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        )}
+                      </Badge>
                     ))}
-                  </Box>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                  <TextField
-                      size="small"
-                    placeholder="e.g., Switch replacement"
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="e.g., Switch replacement"
                       value={newFeature}
                       onChange={(e) => setNewFeature(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && addFeature()}
+                      onKeyDown={(e) => e.key === 'Enter' && addFeature()}
                       disabled={previewMode}
-                      sx={{ flexGrow: 1 }}
+                      className="max-w-md flex-1"
                     />
                     <Button
-                      variant="outlined"
+                      variant="outline"
+                      size="sm"
                       onClick={addFeature}
                       disabled={previewMode || !newFeature.trim()}
-                      size="small"
                     >
                       Add
-              </Button>
-                  </Box>
-                </Box>
+                    </Button>
+                  </div>
+                </div>
 
-                {/* Requirements */}
-                <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                Customer Requirements
-              </Typography>
-                  <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-              {formData.requirements.map((requirement, index) => (
-                      <Chip
+                <div>
+                  <p className="mb-3 text-sm font-semibold">Customer Requirements</p>
+                  <div className="mb-2 flex flex-wrap gap-2">
+                    {formData.requirements.map((requirement, index) => (
+                      <Badge
                         key={index}
-                        label={requirement}
-                        onDelete={previewMode ? undefined : () => removeRequirement(requirement)}
-                        color="secondary"
-                        variant="outlined"
-                      />
+                        variant="outline"
+                        className="inline-flex items-center gap-1 border-muted py-1 pl-2 pr-1"
+                      >
+                        {requirement}
+                        {!previewMode && (
+                          <button
+                            type="button"
+                            className="rounded p-0.5 hover:bg-muted"
+                            onClick={() => removeRequirement(requirement)}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        )}
+                      </Badge>
                     ))}
-                  </Box>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                  <TextField
-                      size="small"
-                    placeholder="e.g., Clear workspace"
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="e.g., Clear workspace"
                       value={newRequirement}
                       onChange={(e) => setNewRequirement(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && addRequirement()}
+                      onKeyDown={(e) => e.key === 'Enter' && addRequirement()}
                       disabled={previewMode}
-                      sx={{ flexGrow: 1 }}
+                      className="max-w-md flex-1"
                     />
                     <Button
-                      variant="outlined"
+                      variant="outline"
+                      size="sm"
                       onClick={addRequirement}
                       disabled={previewMode || !newRequirement.trim()}
-                      size="small"
                     >
                       Add
-              </Button>
-                  </Box>
-                </Box>
-              </Box>
-            </Box>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Product Options Tab */}
           {activeTab === 4 && (
             <>
-             <Box>
-              <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-            Product Options
-          </Typography>
-              
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                {/* Existing Products */}
-                {formData.product_options.map((product, index) => (
-                  <Card key={index} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                      <Typography variant="subtitle1" fontWeight="600">
-                        {product.name}
-                      </Typography>
-                      <IconButton
-                        size="small" 
-                        onClick={() => removeProduct(index)}
-                        disabled={previewMode}
-                        color="error"
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Box>
-                    <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-                        <TextField
-                        size="small"
-                          label="Product Name"
-                          value={product.name}
-                        disabled={previewMode}
-                        sx={{ flex: 1 }}
-                      />
-                        <TextField
-                        size="small"
-                          label="Price (₹)"
+              <div>
+                <h2 className="mb-6 text-lg font-semibold">Product Options</h2>
+
+                <div className="flex flex-col gap-6">
+                  {formData.product_options.map((product, index) => (
+                    <Card key={index} className="border p-4">
+                      <div className="mb-3 flex items-start justify-between">
+                        <p className="font-semibold">{product.name}</p>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => removeProduct(index)}
+                          disabled={previewMode}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="flex flex-col gap-4 md:flex-row">
+                        <div className="flex-1 space-y-2">
+                          <Label>Product Name</Label>
+                          <Input value={product.name} disabled={previewMode} className="w-full" readOnly />
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          <Label>Price (₹)</Label>
+                          <Input type="number" value={product.price} disabled={previewMode} className="w-full" readOnly />
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          <Label>Brand</Label>
+                          <Input value={product.brand} disabled={previewMode} className="w-full" readOnly />
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          <Label>Warranty</Label>
+                          <Input value={product.warranty} disabled={previewMode} className="w-full" readOnly />
+                        </div>
+                      </div>
+                      <div className="mt-4 space-y-2">
+                        <Label>Description</Label>
+                        <Textarea value={product.description} disabled={previewMode} rows={2} className="w-full" readOnly />
+                      </div>
+                    </Card>
+                  ))}
+
+                  <Card className="border-2 border-dashed p-4">
+                    <p className="mb-4 text-sm font-semibold">Add New Product Option</p>
+                    <div className="mb-4 flex flex-col gap-4 md:flex-row">
+                      <div className="flex-1 space-y-2">
+                        <Label htmlFor="np-name">Product Name</Label>
+                        <Input
+                          id="np-name"
+                          value={newProduct.name}
+                          onChange={(e) => setNewProduct((prev) => ({ ...prev, name: e.target.value }))}
+                          disabled={previewMode}
+                          className="w-full"
+                        />
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <Label htmlFor="np-price">Price (₹)</Label>
+                        <Input
+                          id="np-price"
                           type="number"
-                          value={product.price}
+                          value={newProduct.price}
+                          onChange={(e) => setNewProduct((prev) => ({ ...prev, price: e.target.value }))}
+                          disabled={previewMode}
+                          className="w-full"
+                        />
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <Label htmlFor="np-brand">Brand</Label>
+                        <Input
+                          id="np-brand"
+                          value={newProduct.brand}
+                          onChange={(e) => setNewProduct((prev) => ({ ...prev, brand: e.target.value }))}
+                          disabled={previewMode}
+                          className="w-full"
+                        />
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <Label htmlFor="np-warranty">Warranty</Label>
+                        <Input
+                          id="np-warranty"
+                          value={newProduct.warranty}
+                          onChange={(e) => setNewProduct((prev) => ({ ...prev, warranty: e.target.value }))}
+                          disabled={previewMode}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                    <div className="mb-4 space-y-2">
+                      <Label htmlFor="np-desc">Description</Label>
+                      <Textarea
+                        id="np-desc"
+                        value={newProduct.description}
+                        onChange={(e) => setNewProduct((prev) => ({ ...prev, description: e.target.value }))}
                         disabled={previewMode}
-                        sx={{ flex: 1 }}
+                        rows={2}
+                        className="w-full"
                       />
-                        <TextField
-                        size="small"
-                          label="Brand"
-                          value={product.brand}
-                        disabled={previewMode}
-                        sx={{ flex: 1 }}
-                      />
-                        <TextField
-                        size="small"
-                          label="Warranty"
-                          value={product.warranty}
-                        disabled={previewMode}
-                        sx={{ flex: 1 }}
-                      />
-                    </Box>
-                        <TextField
-                      size="small"
-                          label="Description"
-                          multiline
-                          rows={2}
-                          value={product.description}
-                      disabled={previewMode}
-                      sx={{ mt: 2 }}
-                    />
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={addProduct}
+                      disabled={previewMode || !newProduct.name.trim()}
+                      leftIcon={<Plus className="h-4 w-4" />}
+                    >
+                      Add Product
+                    </Button>
                   </Card>
-                ))}
+                </div>
+              </div>
 
-                {/* Add New Product */}
-                <Card sx={{ p: 2, border: '2px dashed', borderColor: 'divider' }}>
-                  <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                    Add New Product Option
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' }, mb: 2 }}>
-                    <TextField
-                      size="small"
-                      label="Product Name"
-                      value={newProduct.name}
-                      onChange={(e) => setNewProduct(prev => ({ ...prev, name: e.target.value }))}
-                      disabled={previewMode}
-                      sx={{ flex: 1 }}
-                    />
-                    <TextField
-                      size="small"
-                      label="Price (₹)"
-                      type="number"
-                      value={newProduct.price}
-                      onChange={(e) => setNewProduct(prev => ({ ...prev, price: e.target.value }))}
-                      disabled={previewMode}
-                      sx={{ flex: 1 }}
-                    />
-                    <TextField
-                      size="small"
-                      label="Brand"
-                      value={newProduct.brand}
-                      onChange={(e) => setNewProduct(prev => ({ ...prev, brand: e.target.value }))}
-                      disabled={previewMode}
-                      sx={{ flex: 1 }}
-                    />
-                    <TextField
-                      size="small"
-                      label="Warranty"
-                      value={newProduct.warranty}
-                      onChange={(e) => setNewProduct(prev => ({ ...prev, warranty: e.target.value }))}
-                      disabled={previewMode}
-                      sx={{ flex: 1 }}
-                    />
-                  </Box>
-                  <TextField
-                    size="small"
-                    label="Description"
-                    multiline
-                    rows={2}
-                    value={newProduct.description}
-                    onChange={(e) => setNewProduct(prev => ({ ...prev, description: e.target.value }))}
-                    disabled={previewMode}
-                    sx={{ mb: 2 }}
-                  />
-              <Button
-                variant="outlined"
-                    onClick={addProduct}
-                    disabled={previewMode || !newProduct.name.trim()}
-                startIcon={<AddIcon />}
-              >
-                    Add Product
-              </Button>
-                </Card>
-              </Box>
-            </Box>
-
-              {/* Product Selection */}
-              <Box>
-              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                Associated Products (Optional)
-              </Typography>
-              <FormControl fullWidth>
-                <InputLabel>Select Products</InputLabel>
-                <Select
-                  multiple
-                  value={formData.selected_products}
-                  label="Select Products"
-                  onChange={(e) => handleInputChange('selected_products', e.target.value)}
-                  disabled={previewMode || loadingProducts}
-                  renderValue={(selected) => (
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                      {(selected as string[]).map((value) => {
-                        const product = products.find(p => p.id === value)
-                        return (
-                          <Chip
-                            key={value}
-                            label={product?.name || value}
-                            size="small"
-                          />
-                        )
-                      })}
-                    </Box>
-                  )}
-                >
+              <div className="mt-8 space-y-3">
+                <p className="text-sm font-semibold">Associated Products (Optional)</p>
+                <div className="max-h-48 space-y-2 overflow-y-auto rounded-md border border-input p-3">
                   {loadingProducts ? (
-                    <MenuItem disabled>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <CircularProgress size={16} />
-                        Loading products...
-                      </Box>
-                    </MenuItem>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading products...
+                    </div>
                   ) : products.length === 0 ? (
-                    <MenuItem disabled>No products available</MenuItem>
+                    <p className="text-sm text-muted-foreground">No products available</p>
                   ) : (
                     products.map((product) => (
-                      <MenuItem key={product.id} value={product.id}>
-                        <Checkbox checked={formData.selected_products.indexOf(product.id) > -1} />
-                        {product.name} - ₹{product.price}
-                      </MenuItem>
+                      <div key={product.id} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`assoc-${product.id}`}
+                          checked={formData.selected_products.includes(product.id)}
+                          onCheckedChange={(c) => {
+                            const set = new Set(formData.selected_products)
+                            if (c) set.add(product.id)
+                            else set.delete(product.id)
+                            handleInputChange('selected_products', Array.from(set))
+                          }}
+                          disabled={previewMode}
+                        />
+                        <Label htmlFor={`assoc-${product.id}`} className="font-normal">
+                          {product.name} - ₹{product.price}
+                        </Label>
+                      </div>
                     ))
                   )}
-                </Select>
-              </FormControl>
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                Link products that can be used or sold with this service
-              </Typography>
-            </Box>
+                </div>
+                {formData.selected_products.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {formData.selected_products.map((id) => {
+                      const p = products.find((x) => x.id === id)
+                      return (
+                        <Badge key={id} variant="secondary">
+                          {p?.name || id}
+                        </Badge>
+                      )
+                    })}
+                  </div>
+                )}
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Link products that can be used or sold with this service
+                </p>
+              </div>
             </>
-           
           )}
 
           {/* Service Areas Tab */}
           {activeTab === 5 && (
-            <Box>
-              <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-            Service Areas
-          </Typography>
-              
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                {/* Existing Service Areas */}
+            <div>
+              <h2 className="mb-6 text-lg font-semibold">Service Areas</h2>
+
+              <div className="flex flex-col gap-6">
                 {formData.service_areas.map((area, index) => (
-                  <Card key={index} sx={{ p: 2, bgcolor: 'grey.50' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Box>
-                        <Typography variant="subtitle1" fontWeight="600">
-                          {area.name}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                  <Card key={index} className="bg-muted/40 p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold">{area.name}</p>
+                        <p className="text-sm text-muted-foreground">
                           Base price multiplier: {area.multiplier}x
-                        </Typography>
-                      </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Chip
-                          label={area.active ? 'Active' : 'Inactive'} 
-                          size="small"
-                          color={area.active ? 'success' : 'default'} 
-                        />
-                        <IconButton
-                          size="small" 
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={area.active ? 'default' : 'secondary'}>
+                          {area.active ? 'Active' : 'Inactive'}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive"
                           onClick={() => removeServiceArea(index)}
                           disabled={previewMode}
-                          color="error"
                         >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Box>
-                    </Box>
-                </Card>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
                 ))}
 
-                {/* Add New Service Area */}
-                <Card sx={{ p: 2, border: '2px dashed', borderColor: 'divider' }}>
-                  <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                    Add New Service Area
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' }, mb: 2 }}>
-                    <TextField
-                      size="small"
-                      label="Area Name"
-                      value={newServiceArea.name}
-                      onChange={(e) => setNewServiceArea(prev => ({ ...prev, name: e.target.value }))}
-                      disabled={previewMode}
-                      sx={{ flex: 1 }}
-                    />
-                    <TextField
-                      size="small"
-                      label="Price Multiplier"
-                      type="number"
-                      value={newServiceArea.multiplier}
-                      onChange={(e) => setNewServiceArea(prev => ({ ...prev, multiplier: parseFloat(e.target.value) || 1.0 }))}
-                      disabled={previewMode}
-                      sx={{ flex: 1 }}
-                    />
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={newServiceArea.active}
-                          onChange={(e) => setNewServiceArea(prev => ({ ...prev, active: e.target.checked }))}
-                          disabled={previewMode}
-                        />
-                      }
-                      label="Active"
-                      sx={{ flex: 1 }}
-                    />
-                  </Box>
-              <Button
-                    variant="outlined"
+                <Card className="border-2 border-dashed p-4">
+                  <p className="mb-4 text-sm font-semibold">Add New Service Area</p>
+                  <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-end">
+                    <div className="flex-1 space-y-2">
+                      <Label htmlFor="sa-name">Area Name</Label>
+                      <Input
+                        id="sa-name"
+                        value={newServiceArea.name}
+                        onChange={(e) => setNewServiceArea((prev) => ({ ...prev, name: e.target.value }))}
+                        disabled={previewMode}
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <Label htmlFor="sa-mult">Price Multiplier</Label>
+                      <Input
+                        id="sa-mult"
+                        type="number"
+                        value={newServiceArea.multiplier}
+                        onChange={(e) =>
+                          setNewServiceArea((prev) => ({
+                            ...prev,
+                            multiplier: parseFloat(e.target.value) || 1.0,
+                          }))
+                        }
+                        disabled={previewMode}
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="flex flex-1 items-center gap-2 pb-2">
+                      <Switch
+                        checked={newServiceArea.active}
+                        onCheckedChange={(v) => setNewServiceArea((prev) => ({ ...prev, active: v }))}
+                        disabled={previewMode}
+                      />
+                      <Label>Active</Label>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
                     onClick={addServiceArea}
                     disabled={previewMode || !newServiceArea.name.trim()}
-                startIcon={<AddIcon />}
-              >
-                Add Service Area
-              </Button>
+                    leftIcon={<Plus className="h-4 w-4" />}
+                  >
+                    Add Service Area
+                  </Button>
                 </Card>
-              </Box>
-            </Box>
+              </div>
+            </div>
           )}
 
           {/* Our Process Tab */}
           {activeTab === 6 && (
-            <Box>
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <TimelineIcon color="primary" />
+            <div>
+              <div className="mb-6">
+                <h2 className="mb-1 flex items-center gap-2 text-lg font-bold">
+                  <ListOrdered className="h-6 w-6 text-primary" />
                   Our Process
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
+                </h2>
+                <p className="text-sm text-muted-foreground">
                   Define the step-by-step process customers can expect. This builds trust and sets clear expectations.
-                </Typography>
-              </Box>
-              
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                {/* Existing Process Steps */}
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-6">
                 {formData.our_process.length > 0 ? (
                   formData.our_process.map((step, index) => (
-                    <Card key={index} sx={{ 
-                      p: 3,
-                      border: '2px solid',
-                      borderColor: 'primary.light',
-                      borderRadius: 3,
-                      position: 'relative',
-                      overflow: 'visible',
-                      background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-                    }}>
-                      <Box sx={{ 
-                        position: 'absolute',
-                        top: -15,
-                        left: 20,
-                        width: 40,
-                        height: 40,
-                        borderRadius: '50%',
-                        bgcolor: 'primary.main',
-                        color: 'white',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 700,
-                        fontSize: '1.2rem',
-                        boxShadow: 3,
-                      }}>
+                    <Card
+                      key={index}
+                      className="relative overflow-visible border-2 border-primary/30 bg-gradient-to-br from-slate-50 to-slate-200 p-6 shadow-sm"
+                    >
+                      <div className="absolute -top-4 left-5 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-lg font-bold text-primary-foreground shadow-md">
                         {step.step}
-                      </Box>
-                      
-                      <Box sx={{ mt: 2 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
-                          <Typography variant="h6" fontWeight="700" color="primary.dark">
-                            {step.title}
-                          </Typography>
-                          <Box sx={{ display: 'flex', gap: 1 }}>
-                            <Tooltip title="Move up">
-                              <IconButton
-                                size="small"
-                                onClick={() => moveProcessStep(index, 'up')}
-                                disabled={previewMode || index === 0}
-                                sx={{ bgcolor: 'white' }}
-                              >
-                                <ArrowUpIcon fontSize="small" />
-                              </IconButton>
+                      </div>
+
+                      <div className="mt-4">
+                        <div className="mb-3 flex items-start justify-between gap-2">
+                          <h3 className="text-base font-bold text-primary">{step.title}</h3>
+                          <div className="flex gap-1">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-8 w-8 bg-background"
+                                  onClick={() => moveProcessStep(index, 'up')}
+                                  disabled={previewMode || index === 0}
+                                >
+                                  <ArrowUp className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Move up</TooltipContent>
                             </Tooltip>
-                            <Tooltip title="Move down">
-                              <IconButton
-                                size="small"
-                                onClick={() => moveProcessStep(index, 'down')}
-                                disabled={previewMode || index === formData.our_process.length - 1}
-                                sx={{ bgcolor: 'white' }}
-                              >
-                                <ArrowDownIcon fontSize="small" />
-                              </IconButton>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-8 w-8 bg-background"
+                                  onClick={() => moveProcessStep(index, 'down')}
+                                  disabled={previewMode || index === formData.our_process.length - 1}
+                                >
+                                  <ArrowDown className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Move down</TooltipContent>
                             </Tooltip>
-                            <Tooltip title="Remove step">
-                              <IconButton
-                                size="small"
-                                onClick={() => removeProcessStep(index)}
-                                disabled={previewMode}
-                                color="error"
-                                sx={{ bgcolor: 'white' }}
-                              >
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-8 w-8 bg-background text-destructive hover:text-destructive"
+                                  onClick={() => removeProcessStep(index)}
+                                  disabled={previewMode}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Remove step</TooltipContent>
                             </Tooltip>
-                          </Box>
-                        </Box>
-                        <Typography variant="body2" color="text.primary" sx={{ lineHeight: 1.7 }}>
-                          {step.description}
-                        </Typography>
-                      </Box>
+                          </div>
+                        </div>
+                        <p className="text-sm leading-relaxed text-foreground">{step.description}</p>
+                      </div>
                     </Card>
                   ))
                 ) : (
-                  <Paper sx={{ 
-                    p: 4, 
-                    textAlign: 'center', 
-                    border: '2px dashed', 
-                    borderColor: 'grey.300',
-                    borderRadius: 3,
-                    bgcolor: 'grey.50'
-                  }}>
-                    <TimelineIcon sx={{ fontSize: 48, color: 'grey.400', mb: 2 }} />
-                    <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
-                      No process steps added yet
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                  <div className="rounded-xl border-2 border-dashed border-muted-foreground/30 bg-muted/30 p-10 text-center">
+                    <ListOrdered className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                    <p className="mb-1 font-medium text-muted-foreground">No process steps added yet</p>
+                    <p className="text-sm text-muted-foreground">
                       Add step-by-step instructions to help customers understand your workflow
-                    </Typography>
-                  </Paper>
+                    </p>
+                  </div>
                 )}
 
-                {/* Add New Process Step */}
-                <Card sx={{ 
-                  p: 3, 
-                  border: '2px dashed', 
-                  borderColor: 'primary.main',
-                  borderRadius: 3,
-                  bgcolor: 'primary.50'
-                }}>
-                  <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <AddIcon color="primary" />
+                <Card className="border-2 border-dashed border-primary/40 bg-primary/5 p-6">
+                  <p className="mb-4 flex items-center gap-2 text-base font-bold">
+                    <Plus className="h-5 w-5 text-primary" />
                     Add New Process Step
-                  </Typography>
-                  <Grid container spacing={2}>
-                    <Grid size={{ xs: 12 }}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="Step Title"
+                  </p>
+                  <div className="grid gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="step-title">Step Title</Label>
+                      <Input
+                        id="step-title"
                         value={newProcessStep.title}
-                        onChange={(e) => setNewProcessStep(prev => ({ ...prev, title: e.target.value }))}
+                        onChange={(e) => setNewProcessStep((prev) => ({ ...prev, title: e.target.value }))}
                         disabled={previewMode}
                         placeholder="e.g., Schedule Appointment"
-                        sx={{ bgcolor: 'white' }}
+                        className="bg-background"
                       />
-                    </Grid>
-                    <Grid size={{ xs: 12 }}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="Step Description"
-                        multiline
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="step-desc">Step Description</Label>
+                      <Textarea
+                        id="step-desc"
                         rows={3}
                         value={newProcessStep.description}
-                        onChange={(e) => setNewProcessStep(prev => ({ ...prev, description: e.target.value }))}
+                        onChange={(e) => setNewProcessStep((prev) => ({ ...prev, description: e.target.value }))}
                         disabled={previewMode}
                         placeholder="Describe what happens in this step..."
-                        sx={{ bgcolor: 'white' }}
+                        className="bg-background"
                       />
-                    </Grid>
-                    <Grid size={{ xs: 12 }}>
-                      <Button
-                        variant="contained"
-                        onClick={addProcessStep}
-                        disabled={previewMode || !newProcessStep.title.trim() || !newProcessStep.description.trim()}
-                        startIcon={<AddIcon />}
-                        fullWidth
-                        size="large"
-                      >
-                        Add Process Step
-                      </Button>
-                    </Grid>
-                  </Grid>
+                    </div>
+                    <Button
+                      onClick={addProcessStep}
+                      disabled={
+                        previewMode || !newProcessStep.title.trim() || !newProcessStep.description.trim()
+                      }
+                      leftIcon={<Plus className="h-4 w-4" />}
+                      className="w-full sm:w-auto"
+                      size="lg"
+                    >
+                      Add Process Step
+                    </Button>
+                  </div>
                 </Card>
-              </Box>
-            </Box>
+              </div>
+            </div>
           )}
 
           {/* Include & Exclude Tab */}
           {activeTab === 7 && (
-            <Box>
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <CheckIcon color="success" />
-                  What's Included & Excluded
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Clearly define what is and isn't included in your service to avoid misunderstandings.
-                </Typography>
-              </Box>
-              
-              <Grid container spacing={3}>
-                {/* What's Included */}
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <Card sx={{ 
-                    height: '100%', 
-                    border: '2px solid', 
-                    borderColor: 'success.light',
-                    borderRadius: 3,
-                    overflow: 'hidden'
-                  }}>
-                    <Box sx={{ 
-                      p: 2, 
-                      bgcolor: 'success.main', 
-                      color: 'white',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1
-                    }}>
-                      <CheckIcon />
-                      <Typography variant="h6" fontWeight="700">
-                        What's Included
-                      </Typography>
-                      <Chip 
-                        label={formData.whats_included.length} 
-                        size="small" 
-                        sx={{ 
-                          bgcolor: 'rgba(255,255,255,0.3)', 
-                          color: 'white',
-                          fontWeight: 600
-                        }} 
-                      />
-                    </Box>
-                    <CardContent>
-                      <Box sx={{ mb: 2, minHeight: 200 }}>
-                        {formData.whats_included.length > 0 ? (
-                          <Stack spacing={1}>
-                            {formData.whats_included.map((item, index) => (
-                              <Paper key={index} sx={{ p: 1.5, display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'success.50' }}>
-                                <CheckIcon color="success" fontSize="small" />
-                                <Typography variant="body2" sx={{ flex: 1 }}>
-                                  {item}
-                                </Typography>
-                                <IconButton
-                                  size="small"
-                                  onClick={() => removeIncluded(index)}
-                                  disabled={previewMode}
-                                  color="error"
-                                >
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </Paper>
-                            ))}
-                          </Stack>
-                        ) : (
-                          <Box sx={{ 
-                            height: 200, 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'center',
-                            border: '2px dashed',
-                            borderColor: 'grey.300',
-                            borderRadius: 2,
-                            bgcolor: 'grey.50'
-                          }}>
-                            <Typography variant="body2" color="text.secondary">
-                              No items added yet
-                            </Typography>
-                          </Box>
-                        )}
-                      </Box>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <TextField
-                          size="small"
-                          fullWidth
-                          placeholder="e.g., All materials and labor"
-                          value={newIncluded}
-                          onChange={(e) => setNewIncluded(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && addIncluded()}
-                          disabled={previewMode}
-                        />
-                        <Button
-                          variant="contained"
-                          onClick={addIncluded}
-                          disabled={previewMode || !newIncluded.trim()}
-                          color="success"
-                        >
-                          <AddIcon />
-                        </Button>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
+            <div>
+              <div className="mb-6">
+                <h2 className="mb-1 flex items-center gap-2 text-lg font-bold">
+                  <CircleCheck className="h-6 w-6 text-emerald-600" />
+                  What&apos;s Included & Excluded
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Clearly define what is and isn&apos;t included in your service to avoid misunderstandings.
+                </p>
+              </div>
 
-                {/* What's Excluded */}
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <Card sx={{ 
-                    height: '100%', 
-                    border: '2px solid', 
-                    borderColor: 'error.light',
-                    borderRadius: 3,
-                    overflow: 'hidden'
-                  }}>
-                    <Box sx={{ 
-                      p: 2, 
-                      bgcolor: 'error.main', 
-                      color: 'white',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1
-                    }}>
-                      <CrossIcon />
-                      <Typography variant="h6" fontWeight="700">
-                        What's Excluded
-                      </Typography>
-                      <Chip 
-                        label={formData.whats_excluded.length} 
-                        size="small" 
-                        sx={{ 
-                          bgcolor: 'rgba(255,255,255,0.3)', 
-                          color: 'white',
-                          fontWeight: 600
-                        }} 
+              <div className="grid gap-6 md:grid-cols-2">
+                <Card className="flex h-full flex-col overflow-hidden border-2 border-emerald-500/40">
+                  <div className="flex items-center gap-2 bg-emerald-600 p-4 text-white">
+                    <CircleCheck className="h-5 w-5" />
+                    <span className="flex-1 text-lg font-bold">What&apos;s Included</span>
+                    <Badge variant="secondary" className="bg-white/30 text-white hover:bg-white/40">
+                      {formData.whats_included.length}
+                    </Badge>
+                  </div>
+                  <CardContent className="flex flex-1 flex-col p-4">
+                    <div className="mb-4 min-h-[200px]">
+                      {formData.whats_included.length > 0 ? (
+                        <div className="space-y-2">
+                          {formData.whats_included.map((item, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center gap-2 rounded-md bg-emerald-50 p-3 dark:bg-emerald-950/30"
+                            >
+                              <CircleCheck className="h-4 w-4 shrink-0 text-emerald-600" />
+                              <p className="flex-1 text-sm">{item}</p>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
+                                onClick={() => removeIncluded(index)}
+                                disabled={previewMode}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex h-[200px] items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/30">
+                          <p className="text-sm text-muted-foreground">No items added yet</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="e.g., All materials and labor"
+                        value={newIncluded}
+                        onChange={(e) => setNewIncluded(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && addIncluded()}
+                        disabled={previewMode}
+                        className="flex-1"
                       />
-                    </Box>
-                    <CardContent>
-                      <Box sx={{ mb: 2, minHeight: 200 }}>
-                        {formData.whats_excluded.length > 0 ? (
-                          <Stack spacing={1}>
-                            {formData.whats_excluded.map((item, index) => (
-                              <Paper key={index} sx={{ p: 1.5, display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'error.50' }}>
-                                <CrossIcon color="error" fontSize="small" />
-                                <Typography variant="body2" sx={{ flex: 1 }}>
-                                  {item}
-                                </Typography>
-                                <IconButton
-                                  size="small"
-                                  onClick={() => removeExcluded(index)}
-                                  disabled={previewMode}
-                                  color="error"
-                                >
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </Paper>
-                            ))}
-                          </Stack>
-                        ) : (
-                          <Box sx={{ 
-                            height: 200, 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'center',
-                            border: '2px dashed',
-                            borderColor: 'grey.300',
-                            borderRadius: 2,
-                            bgcolor: 'grey.50'
-                          }}>
-                            <Typography variant="body2" color="text.secondary">
-                              No items added yet
-                            </Typography>
-                          </Box>
-                        )}
-                      </Box>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <TextField
-                          size="small"
-                          fullWidth
-                          placeholder="e.g., Structural repairs"
-                          value={newExcluded}
-                          onChange={(e) => setNewExcluded(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && addExcluded()}
-                          disabled={previewMode}
-                        />
-                        <Button
-                          variant="contained"
-                          onClick={addExcluded}
-                          disabled={previewMode || !newExcluded.trim()}
-                          color="error"
-                        >
-                          <AddIcon />
-                        </Button>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
-            </Box>
+                      <Button
+                        className="bg-emerald-600 hover:bg-emerald-700"
+                        onClick={addIncluded}
+                        disabled={previewMode || !newIncluded.trim()}
+                        size="icon"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="flex h-full flex-col overflow-hidden border-2 border-red-500/40">
+                  <div className="flex items-center gap-2 bg-red-600 p-4 text-white">
+                    <CircleX className="h-5 w-5" />
+                    <span className="flex-1 text-lg font-bold">What&apos;s Excluded</span>
+                    <Badge variant="secondary" className="bg-white/30 text-white hover:bg-white/40">
+                      {formData.whats_excluded.length}
+                    </Badge>
+                  </div>
+                  <CardContent className="flex flex-1 flex-col p-4">
+                    <div className="mb-4 min-h-[200px]">
+                      {formData.whats_excluded.length > 0 ? (
+                        <div className="space-y-2">
+                          {formData.whats_excluded.map((item, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center gap-2 rounded-md bg-red-50 p-3 dark:bg-red-950/30"
+                            >
+                              <CircleX className="h-4 w-4 shrink-0 text-red-600" />
+                              <p className="flex-1 text-sm">{item}</p>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
+                                onClick={() => removeExcluded(index)}
+                                disabled={previewMode}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex h-[200px] items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/30">
+                          <p className="text-sm text-muted-foreground">No items added yet</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="e.g., Structural repairs"
+                        value={newExcluded}
+                        onChange={(e) => setNewExcluded(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && addExcluded()}
+                        disabled={previewMode}
+                        className="flex-1"
+                      />
+                      <Button
+                        variant="destructive"
+                        onClick={addExcluded}
+                        disabled={previewMode || !newExcluded.trim()}
+                        size="icon"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           )}
 
           {/* Notes & Promises Tab */}
           {activeTab === 8 && (
-            <Box>
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <LightbulbIcon color="warning" />
+            <div>
+              <div className="mb-6">
+                <h2 className="mb-1 flex items-center gap-2 text-lg font-bold">
+                  <Lightbulb className="h-6 w-6 text-amber-500" />
                   Important Notes & Our Promises
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
+                </h2>
+                <p className="text-sm text-muted-foreground">
                   Add important notes and service commitments to build customer confidence.
-                </Typography>
-              </Box>
-              
-              <Grid container spacing={3}>
-                {/* Please Note */}
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <Card sx={{ 
-                    height: '100%', 
-                    border: '2px solid', 
-                    borderColor: 'warning.light',
-                    borderRadius: 3,
-                    overflow: 'hidden'
-                  }}>
-                    <Box sx={{ 
-                      p: 2, 
-                      bgcolor: 'warning.main', 
-                      color: 'white',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1
-                    }}>
-                      <LightbulbIcon />
-                      <Typography variant="h6" fontWeight="700">
-                        Please Note
-                      </Typography>
-                      <Chip 
-                        label={formData.please_note.length} 
-                        size="small" 
-                        sx={{ 
-                          bgcolor: 'rgba(255,255,255,0.3)', 
-                          color: 'white',
-                          fontWeight: 600
-                        }} 
-                      />
-                    </Box>
-                    <CardContent>
-                      <Box sx={{ mb: 2, minHeight: 250 }}>
-                        {formData.please_note.length > 0 ? (
-                          <Stack spacing={1.5}>
-                            {formData.please_note.map((note, index) => (
-                              <Paper key={index} sx={{ p: 2, bgcolor: 'warning.50', borderLeft: '4px solid', borderColor: 'warning.main' }}>
-                                <Box sx={{ display: 'flex', alignItems: 'start', gap: 1 }}>
-                                  <LightbulbIcon color="warning" fontSize="small" sx={{ mt: 0.5 }} />
-                                  <Typography variant="body2" sx={{ flex: 1, lineHeight: 1.6 }}>
-                                    {note}
-                                  </Typography>
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => removeNote(index)}
-                                    disabled={previewMode}
-                                  >
-                                    <DeleteIcon fontSize="small" />
-                                  </IconButton>
-                                </Box>
-                              </Paper>
-                            ))}
-                          </Stack>
-                        ) : (
-                          <Box sx={{ 
-                            height: 250, 
-                            display: 'flex', 
-                            flexDirection: 'column',
-                            alignItems: 'center', 
-                            justifyContent: 'center',
-                            border: '2px dashed',
-                            borderColor: 'grey.300',
-                            borderRadius: 2,
-                            bgcolor: 'grey.50',
-                            gap: 1
-                          }}>
-                            <LightbulbIcon sx={{ fontSize: 48, color: 'grey.400' }} />
-                            <Typography variant="body2" color="text.secondary">
-                              No notes added yet
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              Add important information customers should know
-                            </Typography>
-                          </Box>
-                        )}
-                      </Box>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <TextField
-                          size="small"
-                          fullWidth
-                          multiline
-                          rows={2}
-                          placeholder="e.g., 24-hour advance booking required"
-                          value={newNote}
-                          onChange={(e) => setNewNote(e.target.value)}
-                          disabled={previewMode}
-                        />
-                        <Button
-                          variant="contained"
-                          onClick={addNote}
-                          disabled={previewMode || !newNote.trim()}
-                          color="warning"
-                          sx={{ minWidth: 56 }}
-                        >
-                          <AddIcon />
-                        </Button>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
+                </p>
+              </div>
 
-                {/* Our Promises */}
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <Card sx={{ 
-                    height: '100%', 
-                    border: '2px solid', 
-                    borderColor: 'info.light',
-                    borderRadius: 3,
-                    overflow: 'hidden'
-                  }}>
-                    <Box sx={{ 
-                      p: 2, 
-                      bgcolor: 'info.main', 
-                      color: 'white',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1
-                    }}>
-                      <ShieldIcon />
-                      <Typography variant="h6" fontWeight="700">
-                        Our Promises
-                      </Typography>
-                      <Chip 
-                        label={formData.our_promises.length} 
-                        size="small" 
-                        sx={{ 
-                          bgcolor: 'rgba(255,255,255,0.3)', 
-                          color: 'white',
-                          fontWeight: 600
-                        }} 
+              <div className="grid gap-6 md:grid-cols-2">
+                <Card className="flex h-full flex-col overflow-hidden border-2 border-amber-500/40">
+                  <div className="flex items-center gap-2 bg-amber-500 p-4 text-white">
+                    <Lightbulb className="h-5 w-5" />
+                    <span className="flex-1 text-lg font-bold">Please Note</span>
+                    <Badge variant="secondary" className="bg-white/30 text-white hover:bg-white/40">
+                      {formData.please_note.length}
+                    </Badge>
+                  </div>
+                  <CardContent className="flex flex-1 flex-col p-4">
+                    <div className="mb-4 min-h-[250px]">
+                      {formData.please_note.length > 0 ? (
+                        <div className="space-y-3">
+                          {formData.please_note.map((note, index) => (
+                            <div
+                              key={index}
+                              className="flex gap-2 rounded-md border-l-4 border-amber-500 bg-amber-50 p-3 dark:bg-amber-950/20"
+                            >
+                              <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                              <p className="flex-1 text-sm leading-relaxed">{note}</p>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 shrink-0"
+                                onClick={() => removeNote(index)}
+                                disabled={previewMode}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex h-[250px] flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/30">
+                          <Lightbulb className="h-12 w-12 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground">No notes added yet</p>
+                          <p className="text-xs text-muted-foreground">
+                            Add important information customers should know
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Textarea
+                        placeholder="e.g., 24-hour advance booking required"
+                        value={newNote}
+                        onChange={(e) => setNewNote(e.target.value)}
+                        disabled={previewMode}
+                        rows={2}
+                        className="min-w-0 flex-1"
                       />
-                    </Box>
-                    <CardContent>
-                      <Box sx={{ mb: 2, minHeight: 250 }}>
-                        {formData.our_promises.length > 0 ? (
-                          <Stack spacing={1.5}>
-                            {formData.our_promises.map((promise, index) => (
-                              <Paper key={index} sx={{ p: 2, bgcolor: 'info.50', borderLeft: '4px solid', borderColor: 'info.main' }}>
-                                <Box sx={{ display: 'flex', alignItems: 'start', gap: 1 }}>
-                                  <ShieldIcon color="info" fontSize="small" sx={{ mt: 0.5 }} />
-                                  <Typography variant="body2" sx={{ flex: 1, fontWeight: 500, lineHeight: 1.6 }}>
-                                    {promise}
-                                  </Typography>
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => removePromise(index)}
-                                    disabled={previewMode}
-                                  >
-                                    <DeleteIcon fontSize="small" />
-                                  </IconButton>
-                                </Box>
-                              </Paper>
-                            ))}
-                          </Stack>
-                        ) : (
-                          <Box sx={{ 
-                            height: 250, 
-                            display: 'flex', 
-                            flexDirection: 'column',
-                            alignItems: 'center', 
-                            justifyContent: 'center',
-                            border: '2px dashed',
-                            borderColor: 'grey.300',
-                            borderRadius: 2,
-                            bgcolor: 'grey.50',
-                            gap: 1
-                          }}>
-                            <ShieldIcon sx={{ fontSize: 48, color: 'grey.400' }} />
-                            <Typography variant="body2" color="text.secondary">
-                              No promises added yet
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              Build trust with service commitments
-                            </Typography>
-                          </Box>
-                        )}
-                      </Box>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <TextField
-                          size="small"
-                          fullWidth
-                          multiline
-                          rows={2}
-                          placeholder="e.g., 100% Satisfaction Guaranteed"
-                          value={newPromise}
-                          onChange={(e) => setNewPromise(e.target.value)}
-                          disabled={previewMode}
-                        />
-                        <Button
-                          variant="contained"
-                          onClick={addPromise}
-                          disabled={previewMode || !newPromise.trim()}
-                          color="info"
-                          sx={{ minWidth: 56 }}
-                        >
-                          <AddIcon />
-                        </Button>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
-            </Box>
+                      <Button
+                        className="min-w-14 bg-amber-500 hover:bg-amber-600"
+                        onClick={addNote}
+                        disabled={previewMode || !newNote.trim()}
+                        size="icon"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="flex h-full flex-col overflow-hidden border-2 border-sky-500/40">
+                  <div className="flex items-center gap-2 bg-sky-600 p-4 text-white">
+                    <ShieldCheck className="h-5 w-5" />
+                    <span className="flex-1 text-lg font-bold">Our Promises</span>
+                    <Badge variant="secondary" className="bg-white/30 text-white hover:bg-white/40">
+                      {formData.our_promises.length}
+                    </Badge>
+                  </div>
+                  <CardContent className="flex flex-1 flex-col p-4">
+                    <div className="mb-4 min-h-[250px]">
+                      {formData.our_promises.length > 0 ? (
+                        <div className="space-y-3">
+                          {formData.our_promises.map((promise, index) => (
+                            <div
+                              key={index}
+                              className="flex gap-2 rounded-md border-l-4 border-sky-600 bg-sky-50 p-3 dark:bg-sky-950/20"
+                            >
+                              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
+                              <p className="flex-1 text-sm font-medium leading-relaxed">{promise}</p>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 shrink-0"
+                                onClick={() => removePromise(index)}
+                                disabled={previewMode}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex h-[250px] flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/30">
+                          <ShieldCheck className="h-12 w-12 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground">No promises added yet</p>
+                          <p className="text-xs text-muted-foreground">Build trust with service commitments</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Textarea
+                        placeholder="e.g., 100% Satisfaction Guaranteed"
+                        value={newPromise}
+                        onChange={(e) => setNewPromise(e.target.value)}
+                        disabled={previewMode}
+                        rows={2}
+                        className="min-w-0 flex-1"
+                      />
+                      <Button
+                        className="min-w-14 bg-sky-600 hover:bg-sky-700"
+                        onClick={addPromise}
+                        disabled={previewMode || !newPromise.trim()}
+                        size="icon"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           )}
 
           {/* FAQs Tab */}
           {activeTab === 9 && (
-            <Box>
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <HelpIcon color="secondary" />
+            <div>
+              <div className="mb-6">
+                <h2 className="mb-1 flex items-center gap-2 text-lg font-bold">
+                  <CircleHelp className="h-6 w-6 text-muted-foreground" />
                   Frequently Asked Questions
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
+                </h2>
+                <p className="text-sm text-muted-foreground">
                   Answer common customer questions to reduce support inquiries and build confidence.
-                </Typography>
-              </Box>
-              
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                {/* Existing FAQs */}
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-6">
                 {formData.faqs.length > 0 ? (
-                  formData.faqs.map((faq, index) => (
-                    <Accordion 
-                      key={index}
-                      defaultExpanded
-                      sx={{ 
-                        border: '1px solid',
-                        borderColor: 'secondary.light',
-                        borderRadius: '12px !important',
-                        '&:before': { display: 'none' },
-                        boxShadow: 2,
-                      }}
-                    >
-                      <AccordionSummary 
-                        expandIcon={<ExpandMoreIcon />}
-                        sx={{
-                          bgcolor: 'secondary.50',
-                          borderRadius: '12px 12px 0 0',
-                          '&.Mui-expanded': {
-                            minHeight: 48,
-                          }
-                        }}
+                  <Accordion
+                    type="multiple"
+                    defaultValue={formData.faqs.map((_, i) => String(i))}
+                    className="space-y-3"
+                  >
+                    {formData.faqs.map((faq, index) => (
+                      <AccordionItem
+                        key={index}
+                        value={String(index)}
+                        className="rounded-xl border border-border bg-card px-4 shadow-sm"
                       >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, pr: 2 }}>
-                          <Box sx={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: '50%',
-                            bgcolor: 'secondary.main',
-                            color: 'white',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '0.875rem',
-                            fontWeight: 700,
-                            flexShrink: 0
-                          }}>
-                            Q{index + 1}
-                          </Box>
-                          <Typography variant="subtitle1" fontWeight="600" sx={{ flex: 1 }}>
-                            {faq.question}
-                          </Typography>
-                          <IconButton
-                            size="small"
+                        <div className="flex items-stretch gap-2">
+                          <AccordionTrigger className="flex-1 py-3 hover:no-underline [&[data-state=open]>svg]:rotate-180">
+                            <div className="flex flex-1 items-center gap-2 text-left">
+                              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-bold text-secondary-foreground">
+                                Q{index + 1}
+                              </span>
+                              <span className="font-medium">{faq.question}</span>
+                            </div>
+                          </AccordionTrigger>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="mt-2 shrink-0 self-start text-destructive hover:text-destructive"
                             onClick={(e) => {
+                              e.preventDefault()
                               e.stopPropagation()
                               removeFaq(index)
                             }}
                             disabled={previewMode}
-                            color="error"
                           >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
-                      </AccordionSummary>
-                      <AccordionDetails sx={{ p: 3, bgcolor: 'background.paper' }}>
-                        <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <AccordionContent className="border-t pb-4 pt-2 text-sm leading-relaxed text-muted-foreground">
                           {faq.answer}
-                        </Typography>
-                      </AccordionDetails>
-                    </Accordion>
-                  ))
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
                 ) : (
-                  <Paper sx={{ 
-                    p: 6, 
-                    textAlign: 'center', 
-                    border: '2px dashed', 
-                    borderColor: 'grey.300',
-                    borderRadius: 3,
-                    bgcolor: 'grey.50'
-                  }}>
-                    <HelpIcon sx={{ fontSize: 64, color: 'grey.400', mb: 2 }} />
-                    <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
-                      No FAQs added yet
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                  <div className="rounded-xl border-2 border-dashed border-muted-foreground/30 bg-muted/30 p-12 text-center">
+                    <CircleHelp className="mx-auto mb-4 h-16 w-16 text-muted-foreground" />
+                    <p className="mb-1 font-medium text-muted-foreground">No FAQs added yet</p>
+                    <p className="text-sm text-muted-foreground">
                       Add frequently asked questions to help customers make informed decisions
-                    </Typography>
-                  </Paper>
+                    </p>
+                  </div>
                 )}
 
-                {/* Add New FAQ */}
-                <Card sx={{ 
-                  p: 3, 
-                  border: '2px dashed', 
-                  borderColor: 'secondary.main',
-                  borderRadius: 3,
-                  bgcolor: 'secondary.50'
-                }}>
-                  <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <AddIcon color="secondary" />
+                <Card className="border-2 border-dashed border-muted-foreground/40 bg-muted/20 p-6">
+                  <p className="mb-4 flex items-center gap-2 text-base font-bold">
+                    <Plus className="h-5 w-5" />
                     Add New FAQ
-                  </Typography>
-                  <Grid container spacing={2}>
-                    <Grid size={{ xs: 12 }}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="Question"
+                  </p>
+                  <div className="grid gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="faq-q">Question</Label>
+                      <Input
+                        id="faq-q"
                         value={newFaq.question}
-                        onChange={(e) => setNewFaq(prev => ({ ...prev, question: e.target.value }))}
+                        onChange={(e) => setNewFaq((prev) => ({ ...prev, question: e.target.value }))}
                         disabled={previewMode}
                         placeholder="e.g., How long does the service take?"
-                        sx={{ bgcolor: 'white' }}
+                        className="bg-background"
                       />
-                    </Grid>
-                    <Grid size={{ xs: 12 }}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="Answer"
-                        multiline
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="faq-a">Answer</Label>
+                      <Textarea
+                        id="faq-a"
                         rows={4}
                         value={newFaq.answer}
-                        onChange={(e) => setNewFaq(prev => ({ ...prev, answer: e.target.value }))}
+                        onChange={(e) => setNewFaq((prev) => ({ ...prev, answer: e.target.value }))}
                         disabled={previewMode}
                         placeholder="Provide a detailed answer..."
-                        sx={{ bgcolor: 'white' }}
+                        className="bg-background"
                       />
-                    </Grid>
-                    <Grid size={{ xs: 12 }}>
-                      <Button
-                        variant="contained"
-                        onClick={addFaq}
-                        disabled={previewMode || !newFaq.question.trim() || !newFaq.answer.trim()}
-                        startIcon={<AddIcon />}
-                        fullWidth
-                        size="large"
-                        color="secondary"
-                      >
-                        Add FAQ
-                      </Button>
-                    </Grid>
-                  </Grid>
+                    </div>
+                    <Button
+                      onClick={addFaq}
+                      disabled={previewMode || !newFaq.question.trim() || !newFaq.answer.trim()}
+                      leftIcon={<Plus className="h-4 w-4" />}
+                      size="lg"
+                      className="w-full sm:w-auto"
+                      variant="secondary"
+                    >
+                      Add FAQ
+                    </Button>
+                  </div>
                 </Card>
-              </Box>
-            </Box>
+              </div>
+            </div>
           )}
-        </Box>
+        </div>
 
         {/* Form Actions */}
-        <Box sx={{ p: 3, bgcolor: 'grey.50', borderTop: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between' }}>
+        <div className="flex flex-col gap-3 border-t bg-muted/40 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <Button variant="outline" leftIcon={<ArrowLeft className="h-4 w-4" />} onClick={() => navigate('/platform-services')}>
+            Back to Services
+          </Button>
+          <div className="flex flex-wrap gap-2">
             <Button
-              variant="outlined"
-            startIcon={<ArrowBackIcon />}
-            onClick={() => navigate('/platform-services')}
-            sx={{ textTransform: 'none' }}
+              variant="outline"
+              onClick={() => handleSubmit('draft')}
+              disabled={
+                loading ||
+                !formData.name?.trim() ||
+                !formData.category ||
+                !formData.subcategory ||
+                !formData.description?.trim()
+              }
             >
-              Back to Services
+              Save as Draft
             </Button>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button
-                variant="outlined"
-                onClick={() => handleSubmit('draft')}
-                disabled={loading || !formData.name?.trim() || !formData.category || !formData.subcategory || !formData.description?.trim()}
-                sx={{ textTransform: 'none' }}
-              >
-                Save as Draft
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={loading ? <CircularProgress size={16} /> : <SaveIcon />}
-                onClick={() => handleSubmit('publish')}
-                disabled={loading || !formData.name?.trim() || !formData.category || !formData.subcategory || !formData.description?.trim()}
-                sx={{ textTransform: 'none' }}
-              >
-                {loading ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Service' : 'Publish Service')}
-              </Button>
-            </Box>
-          </Box>
-        </Card>
+            <Button
+              loading={loading}
+              leftIcon={!loading ? <Save className="h-4 w-4" /> : undefined}
+              onClick={() => handleSubmit('publish')}
+              disabled={
+                loading ||
+                !formData.name?.trim() ||
+                !formData.category ||
+                !formData.subcategory ||
+                !formData.description?.trim()
+              }
+            >
+              {loading
+                ? isEditMode
+                  ? 'Updating...'
+                  : 'Creating...'
+                : isEditMode
+                  ? 'Update Service'
+                  : 'Publish Service'}
+            </Button>
+          </div>
+        </div>
+      </Card>
 
-        {/* Snackbar */}
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={6000}
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-        >
-          <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
-        </Snackbar>
         </>
       )}
-    </Box>
+    </div>
   )
 }

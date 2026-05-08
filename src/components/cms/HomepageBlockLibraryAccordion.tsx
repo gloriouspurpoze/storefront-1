@@ -1,15 +1,12 @@
 import React, { useState } from 'react'
+import { Copy } from 'lucide-react'
+import { Button } from '../ui/button'
 import {
   Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  Alert,
-  Box,
-  Button,
-  Stack,
-  Typography,
-} from '@mui/material'
-import { ExpandMore as ExpandMoreIcon, ContentCopy as CopyIcon } from '@mui/icons-material'
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '../ui/accordion'
 import { HOMEPAGE_BLOCK_LIBRARY, getHomepagePresetBundle } from '../../lib/homepageSectionBlockLibrary'
 
 export function HomepageBlockLibraryAccordion() {
@@ -26,110 +23,88 @@ export function HomepageBlockLibraryAccordion() {
   }
 
   return (
-    <Accordion defaultExpanded={false} sx={{ mb: 3 }}>
-      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Box>
-          <Typography variant="subtitle1" fontWeight={700}>
-            Section block library (schema-based)
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Each homepage section type expects a defined content shape on the public site—no free-form page builder.
-          </Typography>
-        </Box>
-      </AccordionSummary>
-      <AccordionDetails>
-        <Alert severity="info" sx={{ mb: 2 }}>
-          Use these schemas when syncing CMS with your storefront. Apply presets below as API payloads or seed scripts.
-        </Alert>
-        <Stack spacing={1} sx={{ mb: 2 }}>
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<CopyIcon />}
-            onClick={() =>
-              void copy(
-                'bundle',
-                JSON.stringify(getHomepagePresetBundle(), null, 2),
-              )
-            }
-          >
-            Copy full preset bundle (JSON)
-          </Button>
-          {copied === 'bundle' && (
-            <Typography variant="caption" color="success.main">
-              Copied preset bundle.
-            </Typography>
-          )}
-          {copied === 'error' && (
-            <Typography variant="caption" color="error">
-              Clipboard unavailable.
-            </Typography>
-          )}
-        </Stack>
-        <Stack spacing={1}>
-          {HOMEPAGE_BLOCK_LIBRARY.map((block) => (
-            <Accordion key={block.type} disableGutters elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 1 }}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Box>
-                  <Typography variant="subtitle2" fontWeight={600}>
-                    {block.label}{' '}
-                    <Typography component="span" variant="caption" color="primary">
-                      ({block.type})
-                    </Typography>
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {block.description}
-                  </Typography>
-                </Box>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Stack spacing={1}>
-                  <Button
-                    size="small"
-                    variant="text"
-                    startIcon={<CopyIcon />}
-                    onClick={() =>
-                      void copy(
-                        block.type,
-                        JSON.stringify(block.contentSchema, null, 2),
-                      )
-                    }
-                  >
-                    Copy content schema
-                  </Button>
-                  <Button
-                    size="small"
-                    variant="text"
-                    startIcon={<CopyIcon />}
-                    onClick={() =>
-                      void copy(
-                        `${block.type}-preset`,
-                        JSON.stringify(block.defaultSnippet, null, 2),
-                      )
-                    }
-                  >
-                    Copy default snippet
-                  </Button>
-                  <Box
-                    component="pre"
-                    sx={{
-                      m: 0,
-                      maxHeight: 220,
-                      overflow: 'auto',
-                      p: 1.5,
-                      borderRadius: 1,
-                      bgcolor: 'action.hover',
-                      fontSize: '0.75rem',
-                    }}
-                  >
-                    {JSON.stringify(block.contentSchema, null, 2)}
-                  </Box>
-                </Stack>
-              </AccordionDetails>
-            </Accordion>
-          ))}
-        </Stack>
-      </AccordionDetails>
+    <Accordion type="single" collapsible className="mb-6 w-full">
+      <AccordionItem value="homepage-block-library" className="rounded-md border px-4">
+        <AccordionTrigger className="hover:no-underline">
+          <div className="text-left">
+            <p className="text-sm font-bold">Section block library (schema-based)</p>
+            <p className="text-sm font-normal text-muted-foreground">
+              Each homepage section type expects a defined content shape on the public site—no free-form page
+              builder.
+            </p>
+          </div>
+        </AccordionTrigger>
+        <AccordionContent>
+          <div className="mb-3 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm dark:border-blue-900/50 dark:bg-blue-950/40">
+            Use these schemas when syncing CMS with your storefront. Apply presets below as API payloads or seed
+            scripts.
+          </div>
+          <div className="mb-4 flex flex-col gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              leftIcon={<Copy className="h-4 w-4" />}
+              className="w-fit"
+              onClick={() => void copy('bundle', JSON.stringify(getHomepagePresetBundle(), null, 2))}
+            >
+              Copy full preset bundle (JSON)
+            </Button>
+            {copied === 'bundle' && (
+              <p className="text-xs font-medium text-green-600 dark:text-green-500">Copied preset bundle.</p>
+            )}
+            {copied === 'error' && (
+              <p className="text-xs font-medium text-destructive">Clipboard unavailable.</p>
+            )}
+          </div>
+          <Accordion type="multiple" className="w-full space-y-2">
+            {HOMEPAGE_BLOCK_LIBRARY.map((block) => (
+              <AccordionItem key={block.type} value={block.type} className="rounded-md border px-3">
+                <AccordionTrigger className="py-3 hover:no-underline">
+                  <div className="text-left">
+                    <p className="text-sm font-semibold">
+                      {block.label}{' '}
+                      <span className="font-normal text-xs text-primary">({block.type})</span>
+                    </p>
+                    <p className="text-xs font-normal text-muted-foreground">{block.description}</p>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="flex flex-col gap-2 pb-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-auto justify-start px-2"
+                      leftIcon={<Copy className="h-4 w-4" />}
+                      onClick={() =>
+                        void copy(block.type, JSON.stringify(block.contentSchema, null, 2))
+                      }
+                    >
+                      Copy content schema
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-auto justify-start px-2"
+                      leftIcon={<Copy className="h-4 w-4" />}
+                      onClick={() =>
+                        void copy(
+                          `${block.type}-preset`,
+                          JSON.stringify(block.defaultSnippet, null, 2),
+                        )
+                      }
+                    >
+                      Copy default snippet
+                    </Button>
+                    <pre className="max-h-[220px] overflow-auto rounded-md bg-muted p-3 text-xs leading-relaxed">
+                      {JSON.stringify(block.contentSchema, null, 2)}
+                    </pre>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </AccordionContent>
+      </AccordionItem>
     </Accordion>
   )
 }

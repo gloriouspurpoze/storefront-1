@@ -11,66 +11,59 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  Chip,
-  Avatar,
-  Divider,
-  IconButton,
-  Card,
-  CardContent,
-  CircularProgress,
-  Alert,
-  Snackbar,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Stack,
-  Tooltip,
-  alpha,
-  Table,
+  Button as ShadcnButton,
+  Card as ShCard,
+  CardContent as ShCardContent,
+  Input,
+  Label,
+  Textarea,
+  Badge,
+  Avatar as ShAvatar,
+  AvatarImage,
+  AvatarFallback,
+  Separator,
+  Dialog as ShDialog,
+  DialogContent as ShDialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle as ShDialogTitle,
+  Table as ShTable,
   TableBody,
-  TableCell,
-  TableContainer,
+  TableCell as ShTableCell,
   TableHead,
-  TableRow,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
+  TableRow as ShTableRow,
+  Tooltip as ShTooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../../components/ui'
 import {
-  ArrowBack,
-  Edit,
-  Delete,
+  ArrowLeft,
+  Pencil,
+  Trash2,
   Phone,
-  Email,
-  LocationOn,
-  CalendarToday,
-  AccessTime,
-  AttachMoney,
+  Mail,
+  MapPin,
+  Calendar,
+  Clock,
   CheckCircle,
-  Cancel,
+  XCircle,
   Navigation,
-  AssignmentInd,
+  UserCheck,
   Star,
-  Verified,
-  Home,
-  Schedule,
-  PlayArrow,
-  AccountBalanceWallet,
-  TrendingUp,
+  BadgeCheck,
+  CalendarClock,
+  Play,
+  Wallet,
   Info,
-  Payment,
-  Person,
-  Business,
+  CreditCard,
+  User,
   Receipt,
   History,
-  MoreVert,
-  PhotoCamera,
-  StickyNote2Outlined,
-} from '@mui/icons-material'
+  Camera,
+  StickyNote,
+  Loader2,
+} from 'lucide-react'
 import { AssignProfessionalDialog } from '../../components/bookings/AssignProfessionalDialog'
 import { BookingsService } from '../../services/api/bookings.service'
 import { ProfessionalsService } from '../../services/api/professionals.service'
@@ -79,6 +72,457 @@ import { apiClient } from '../../services/apiClient'
 import { useAppSelector, useAppDispatch } from '../../store/hooks'
 import { addToast } from '../../store/slices/uiSlice'
 import { isLikelyImageUrl, parseBookingNotesContent } from '../../lib/parseBookingNotesContent'
+import { appToast } from '../../lib/appToast'
+import { cn } from '../../lib/utils'
+
+/** rgba() from #RRGGBB + opacity (replaces legacy alpha helper) */
+function muiAlpha(hex: string, opacity: number): string {
+  const h = hex.replace('#', '')
+  if (h.length !== 6) return `rgba(0,0,0,${opacity})`
+  const r = parseInt(h.slice(0, 2), 16)
+  const g = parseInt(h.slice(2, 4), 16)
+  const b = parseInt(h.slice(4, 6), 16)
+  return `rgba(${r},${g},${b},${opacity})`
+}
+
+const DialogActions = DialogFooter
+
+function Card(props: any) {
+  const { sx: _s, ...r } = props
+  return <ShCard {...r} />
+}
+
+function CardContent(props: any) {
+  const { sx: _s, ...r } = props
+  return <ShCardContent {...r} />
+}
+
+function Table(props: any) {
+  const { size: _z, sx: _s, ...r } = props
+  return <ShTable {...r} />
+}
+
+function TableRow(props: any) {
+  const { sx: _s, ...r } = props
+  return <ShTableRow {...r} />
+}
+
+function TableCell(props: any) {
+  const { sx: _s, ...r } = props
+  return <ShTableCell {...r} />
+}
+
+function Box(props: any) {
+  const {
+    sx: _s,
+    component: C = 'div',
+    children,
+    bgcolor,
+    display,
+    flexDirection,
+    alignItems,
+    justifyContent,
+    alignContent,
+    flexWrap,
+    gap,
+    p,
+    px,
+    py,
+    pt,
+    pb,
+    pl,
+    pr,
+    m,
+    mb,
+    mt,
+    ml,
+    mr,
+    mx,
+    my,
+    flex,
+    flexShrink,
+    minWidth,
+    maxWidth,
+    borderRadius,
+    overflow,
+    border,
+    borderColor,
+    borderWidth,
+    width,
+    height,
+    position,
+    zIndex,
+    top,
+    right,
+    bottom,
+    left,
+    ...rest
+  } = props
+  const sp = (n: any) => (typeof n === 'number' ? `${n * 8}px` : n)
+  const style: React.CSSProperties = {
+    ...(bgcolor != null ? { backgroundColor: bgcolor as string } : {}),
+    ...(display ? { display } : {}),
+    ...(flexDirection ? { flexDirection } : {}),
+    ...(alignItems ? { alignItems } : {}),
+    ...(justifyContent ? { justifyContent } : {}),
+    ...(alignContent ? { alignContent } : {}),
+    ...(flexWrap ? { flexWrap } : {}),
+    ...(gap != null ? { gap: sp(gap) as any } : {}),
+    ...(p != null ? { padding: sp(p) as any } : {}),
+    ...(px != null ? { paddingLeft: sp(px) as any, paddingRight: sp(px) as any } : {}),
+    ...(py != null ? { paddingTop: sp(py) as any, paddingBottom: sp(py) as any } : {}),
+    ...(pt != null ? { paddingTop: sp(pt) as any } : {}),
+    ...(pb != null ? { paddingBottom: sp(pb) as any } : {}),
+    ...(pl != null ? { paddingLeft: sp(pl) as any } : {}),
+    ...(pr != null ? { paddingRight: sp(pr) as any } : {}),
+    ...(m != null ? { margin: sp(m) as any } : {}),
+    ...(mb != null ? { marginBottom: sp(mb) as any } : {}),
+    ...(mt != null ? { marginTop: sp(mt) as any } : {}),
+    ...(ml != null ? { marginLeft: sp(ml) as any } : {}),
+    ...(mr != null ? { marginRight: sp(mr) as any } : {}),
+    ...(mx != null ? { marginLeft: sp(mx) as any, marginRight: sp(mx) as any } : {}),
+    ...(my != null ? { marginTop: sp(my) as any, marginBottom: sp(my) as any } : {}),
+    ...(flex != null ? { flex } : {}),
+    ...(flexShrink != null ? { flexShrink } : {}),
+    ...(minWidth != null ? { minWidth: minWidth as any } : {}),
+    ...(maxWidth != null ? { maxWidth: maxWidth as any } : {}),
+    ...(borderRadius != null
+      ? { borderRadius: typeof borderRadius === 'number' ? `${borderRadius * 8}px` : (borderRadius as any) }
+      : {}),
+    ...(overflow ? { overflow } : {}),
+    ...(border ? { border: border as any } : {}),
+    ...(borderColor ? { borderColor: borderColor as any } : {}),
+    ...(borderWidth ? { borderWidth: borderWidth as any } : {}),
+    ...(width ? { width: width as any } : {}),
+    ...(height ? { height: height as any } : {}),
+    ...(position ? { position } : {}),
+    ...(zIndex != null ? { zIndex } : {}),
+    ...(top != null ? { top: sp(top) as any } : {}),
+    ...(right != null ? { right: sp(right) as any } : {}),
+    ...(bottom != null ? { bottom: sp(bottom) as any } : {}),
+    ...(left != null ? { left: sp(left) as any } : {}),
+  }
+  return (
+    <C style={style} {...rest}>
+      {children}
+    </C>
+  )
+}
+
+function Typography({ sx: _s, variant: _v, color: _c, gutterBottom: _g, component: C = 'p', children, ...props }: any) {
+  return <C {...props}>{children}</C>
+}
+
+function Stack({
+  sx: _s,
+  direction = 'column',
+  spacing = 2,
+  alignItems,
+  flexWrap,
+  children,
+  ...rest
+}: any) {
+  const gapPx = typeof spacing === 'number' ? spacing * 8 : 16
+  const dir: 'row' | 'column' =
+    direction === 'row' || direction === 'row-reverse' ? (direction === 'row-reverse' ? 'row' : 'row') : 'column'
+  return (
+    <div
+      {...rest}
+      style={{
+        display: 'flex',
+        flexDirection: dir,
+        alignItems,
+        flexWrap,
+        gap: gapPx,
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
+function Grid({ container, item, spacing = 3, children, xs, sm, md, ...rest }: any) {
+  if (container) {
+    const gap = spacing === 3 ? 'gap-6' : spacing === 2.5 ? 'gap-5' : 'gap-4'
+    return (
+      <div className={cn('grid grid-cols-12', gap)} {...rest}>
+        {children}
+      </div>
+    )
+  }
+  if (item) {
+    return (
+      <div
+        className={cn(
+          'min-w-0',
+          xs === 12 && 'col-span-12',
+          sm === 6 && 'col-span-12 sm:col-span-6',
+          sm === 4 && 'col-span-12 sm:col-span-4',
+          md === 8 && 'col-span-12 lg:col-span-8',
+          md === 4 && 'col-span-12 lg:col-span-4',
+        )}
+        {...rest}
+      >
+        {children}
+      </div>
+    )
+  }
+  return <div {...rest}>{children}</div>
+}
+
+function Paper({ sx: _s, variant: _v, children, ...rest }: any) {
+  return (
+    <div className="rounded-lg border border-border bg-card text-card-foreground" {...rest}>
+      {children}
+    </div>
+  )
+}
+
+function Chip({ label, icon, children, sx: _s, size: _z, color, variant, ...rest }: any) {
+  const text = label ?? children
+  const variantBadge: 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' =
+    color === 'success'
+      ? 'success'
+      : color === 'warning'
+        ? 'warning'
+        : color === 'error'
+          ? 'destructive'
+          : color === 'primary' && variant === 'outlined'
+            ? 'outline'
+            : color === 'primary'
+              ? 'default'
+              : 'secondary'
+  return (
+    <Badge variant={variantBadge} {...rest}>
+      {icon ? <span className="mr-1 inline-flex [&>svg]:h-3 [&>svg]:w-3">{icon}</span> : null}
+      {text}
+    </Badge>
+  )
+}
+
+function Alert({ severity, children, sx: _s, icon, ...rest }: any) {
+  return (
+    <div
+      role="alert"
+      className={cn(
+        'rounded-md border p-3 text-sm',
+        severity === 'error' && 'border-destructive/40 bg-destructive/10 text-destructive',
+        severity === 'warning' && 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-100',
+        severity === 'success' && 'border-emerald-500/40 bg-emerald-500/10 text-emerald-900 dark:text-emerald-100',
+        (severity === 'info' || !severity) && 'border-sky-500/40 bg-sky-500/10',
+      )}
+      {...rest}
+    >
+      {icon ? <span className="mr-2 inline-flex">{icon}</span> : null}
+      {children}
+    </div>
+  )
+}
+
+function TextField({
+  label,
+  multiline,
+  rows,
+  minRows,
+  value,
+  onChange,
+  fullWidth,
+  sx: _s,
+  size: _sz,
+  helperText,
+  InputProps,
+  inputProps,
+  disabled,
+  type,
+  id,
+  placeholder,
+  ...rest
+}: any) {
+  const fid = id ?? (typeof label === 'string' ? label.replace(/\s+/g, '-').toLowerCase() : 'field')
+  const startAdornment = InputProps?.startAdornment
+  if (multiline) {
+    return (
+      <div className={cn('space-y-1.5', fullWidth && 'w-full')}>
+        {label ? <Label htmlFor={fid}>{label}</Label> : null}
+        <Textarea
+          id={fid}
+          rows={rows ?? minRows ?? 3}
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          placeholder={placeholder}
+          className="w-full"
+          {...rest}
+        />
+        {helperText ? <p className="text-xs text-muted-foreground">{helperText}</p> : null}
+      </div>
+    )
+  }
+  return (
+    <div className={cn('space-y-1.5', fullWidth && 'w-full')}>
+      {label ? <Label htmlFor={fid}>{label}</Label> : null}
+      <div className="relative">
+        {startAdornment ? (
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2">{startAdornment}</span>
+        ) : null}
+        <Input
+          id={fid}
+          type={type}
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          className={cn('w-full', startAdornment && 'pl-8')}
+          {...inputProps}
+          {...rest}
+        />
+      </div>
+      {helperText ? <p className="text-xs text-muted-foreground">{helperText}</p> : null}
+    </div>
+  )
+}
+
+function IconButton({ sx: _s, children, ...rest }: any) {
+  return (
+    <ShadcnButton type="button" variant="ghost" size="icon" {...rest}>
+      {children}
+    </ShadcnButton>
+  )
+}
+
+function CircularProgress({ size = 40, thickness: _thickness }: { size?: number; thickness?: number }) {
+  return (
+    <Loader2
+      className="animate-spin text-muted-foreground"
+      style={{ width: size, height: size }}
+      aria-hidden
+    />
+  )
+}
+
+function TableContainer({ component: _c, sx: _s, variant: _v, children, ...rest }: any) {
+  return (
+    <div className="overflow-x-auto rounded-md border border-border" {...rest}>
+      {children}
+    </div>
+  )
+}
+
+function TooltipMui({ title, children }: any) {
+  return (
+    <TooltipProvider>
+      <ShTooltip>
+        <TooltipTrigger asChild>{children}</TooltipTrigger>
+        <TooltipContent>{title}</TooltipContent>
+      </ShTooltip>
+    </TooltipProvider>
+  )
+}
+const Tooltip = TooltipMui
+
+function Avatar({ children, src, sx: _s, ...rest }: any) {
+  return (
+    <ShAvatar {...rest}>
+      {src ? <AvatarImage src={src} alt="" /> : null}
+      <AvatarFallback>{children}</AvatarFallback>
+    </ShAvatar>
+  )
+}
+
+function Button({
+  variant,
+  color,
+  startIcon,
+  children,
+  sx: _s,
+  component,
+  href,
+  target,
+  rel,
+  fullWidth,
+  size,
+  disabled,
+  onClick,
+  type,
+  ...rest
+}: any) {
+  let v: 'default' | 'outline' | 'destructive' | 'ghost' | 'secondary' = 'default'
+  if (variant === 'outlined') v = 'outline'
+  else if (variant === 'text') v = 'ghost'
+  else if (variant === 'contained') v = color === 'error' ? 'destructive' : 'default'
+  const inner = (
+    <>
+      {startIcon ? <span className="mr-2 inline-flex shrink-0 [&>svg]:h-4 [&>svg]:w-4">{startIcon}</span> : null}
+      {children}
+    </>
+  )
+  if (component === 'a' && href) {
+    return (
+      <ShadcnButton variant={v} disabled={disabled} className={cn(fullWidth && 'w-full', size === 'small' && 'h-8')} asChild {...rest}>
+        <a href={href} target={target} rel={rel}>
+          {inner}
+        </a>
+      </ShadcnButton>
+    )
+  }
+  return (
+    <ShadcnButton
+      type={type ?? 'button'}
+      variant={v}
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(fullWidth && 'w-full', size === 'small' && 'h-8')}
+      {...rest}
+    >
+      {inner}
+    </ShadcnButton>
+  )
+}
+
+function DialogTitle({ children, ...rest }: any) {
+  return (
+    <DialogHeader>
+      <ShDialogTitle className="text-left" {...rest}>
+        {children}
+      </ShDialogTitle>
+    </DialogHeader>
+  )
+}
+
+function DialogContent({ children, sx: _s, ...rest }: any) {
+  return (
+    <div className="grid gap-4 py-2" {...rest}>
+      {children}
+    </div>
+  )
+}
+
+function Dialog({
+  open,
+  onClose,
+  children,
+  maxWidth,
+  fullWidth,
+}: {
+  open: boolean
+  onClose?: () => void
+  children?: React.ReactNode
+  maxWidth?: string
+  fullWidth?: boolean
+}) {
+  return (
+    <ShDialog open={open} onOpenChange={(next) => !next && onClose?.()}>
+      <ShDialogContent
+        className={cn(
+          'max-h-[90vh] overflow-y-auto',
+          maxWidth === 'sm' && 'max-w-md',
+          fullWidth && 'w-[min(95vw,32rem)]',
+        )}
+      >
+        {children}
+      </ShDialogContent>
+    </ShDialog>
+  )
+}
 
 // Line item from API (services[] or items[])
 interface BookingServiceItem {
@@ -403,7 +847,6 @@ export function BookingDetails() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' })
   const [actionDialog, setActionDialog] = useState(false)
   const [action, setAction] = useState<'accept' | 'start' | 'complete' | null>(null)
   const [actionNotes, setActionNotes] = useState('')
@@ -689,7 +1132,7 @@ export function BookingDetails() {
 
   const handleCancelBooking = async () => {
     if (!cancelReason.trim()) {
-      setSnackbar({ open: true, message: 'Please provide a cancellation reason', severity: 'error' })
+      appToast('Please provide a cancellation reason', 'error')
       return
     }
     
@@ -697,7 +1140,7 @@ export function BookingDetails() {
       if (id) {
         const response = await BookingsService.cancelBooking(id, cancelReason)
         if (response.success) {
-          setSnackbar({ open: true, message: 'Booking cancelled successfully', severity: 'success' })
+          appToast('Booking cancelled successfully', 'success')
           setCancelDialogOpen(false)
           setTimeout(() => loadBooking(), 1000)
         } else {
@@ -705,7 +1148,7 @@ export function BookingDetails() {
         }
       }
     } catch (err: any) {
-      setSnackbar({ open: true, message: err.message || 'Failed to cancel booking', severity: 'error' })
+      appToast(err.message || 'Failed to cancel booking', 'error')
     }
   }
 
@@ -714,7 +1157,7 @@ export function BookingDetails() {
       if (id) {
         const response = await BookingsService.deleteBooking(id)
         if (response.success) {
-          setSnackbar({ open: true, message: 'Booking deleted successfully', severity: 'success' })
+          appToast('Booking deleted successfully', 'success')
           setDeleteDialogOpen(false)
           setTimeout(() => navigate('/bookings'), 1500)
         } else {
@@ -722,12 +1165,8 @@ export function BookingDetails() {
         }
       }
     } catch (err: any) {
-      setSnackbar({ open: true, message: err.message || 'Failed to delete booking', severity: 'error' })
+      appToast(err.message || 'Failed to delete booking', 'error')
     }
-  }
-
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false })
   }
 
   const refreshAdminEarningByBooking = async () => {
@@ -751,11 +1190,11 @@ export function BookingDetails() {
     if (!id || !booking) return
     const amt = Number(adminRefundAmount)
     if (!Number.isFinite(amt) || amt <= 0) {
-      setSnackbar({ open: true, message: 'Enter a valid refund amount', severity: 'error' })
+      appToast('Enter a valid refund amount', 'error')
       return
     }
     if (!adminRefundReason.trim()) {
-      setSnackbar({ open: true, message: 'Reason is required', severity: 'error' })
+      appToast('Reason is required', 'error')
       return
     }
     setAdminRefundBusy(true)
@@ -763,10 +1202,10 @@ export function BookingDetails() {
       await BookingsService.recordAdminPartialRefund(id, amt, adminRefundReason.trim())
       setAdminRefundAmount('')
       setAdminRefundReason('')
-      setSnackbar({ open: true, message: 'Partial refund recorded on booking', severity: 'success' })
+      appToast('Partial refund recorded on booking', 'success')
       await loadBooking()
     } catch (err: any) {
-      setSnackbar({ open: true, message: err?.message || 'Failed to record refund', severity: 'error' })
+      appToast(err?.message || 'Failed to record refund', 'error')
     } finally {
       setAdminRefundBusy(false)
     }
@@ -785,7 +1224,7 @@ export function BookingDetails() {
       await refreshAdminEarningByBooking()
       await loadBooking()
     } catch (err: any) {
-      setSnackbar({ open: true, message: err?.message || 'Verify failed', severity: 'error' })
+      appToast(err?.message || 'Verify failed', 'error')
     }
   }
 
@@ -793,7 +1232,7 @@ export function BookingDetails() {
     const eid = earningData?.earning?._id || earningData?.earning?.id
     if (!eid) return
     if (open && !disputeReason.trim()) {
-      setSnackbar({ open: true, message: 'Enter a short reason to open a dispute', severity: 'error' })
+      appToast('Enter a short reason to open a dispute', 'error')
       return
     }
     setDisputeBusy(true)
@@ -810,7 +1249,7 @@ export function BookingDetails() {
       await refreshAdminEarningByBooking()
       await loadBooking()
     } catch (err: any) {
-      setSnackbar({ open: true, message: err?.message || 'Dispute update failed', severity: 'error' })
+      appToast(err?.message || 'Dispute update failed', 'error')
     } finally {
       setDisputeBusy(false)
     }
@@ -955,13 +1394,14 @@ export function BookingDetails() {
       }
       
       if (response.success) {
-        setSnackbar({ 
-          open: true, 
-          message: action === 'accept' ? 'Booking accepted successfully!' 
-            : action === 'start' ? 'Work started successfully!' 
-            : 'Booking completed successfully!', 
-          severity: 'success' 
-        })
+        appToast(
+          action === 'accept'
+            ? 'Booking accepted successfully!'
+            : action === 'start'
+              ? 'Work started successfully!'
+              : 'Booking completed successfully!',
+          'success',
+        )
         await loadBooking()
         setActionDialog(false)
         setAction(null)
@@ -971,7 +1411,7 @@ export function BookingDetails() {
       }
     } catch (error: any) {
       console.error('Action failed:', error)
-      setSnackbar({ open: true, message: error.message || 'Failed to update booking', severity: 'error' })
+      appToast(error.message || 'Failed to update booking', 'error')
       setActionDialog(false)
       setAction(null)
       setActionNotes('')
@@ -1057,7 +1497,7 @@ export function BookingDetails() {
                     transition: 'all 0.2s ease',
                   }}
                 >
-                  <ArrowBack />
+                  <ArrowLeft />
                 </IconButton>
               </Tooltip>
               <Box>
@@ -1120,7 +1560,7 @@ export function BookingDetails() {
             <>
               <Button
                 variant="contained"
-                startIcon={<Edit />}
+                startIcon={<Pencil />}
                 onClick={() => navigate(`/bookings/${id}/edit`)}
                 sx={{ 
                   borderRadius: 2,
@@ -1141,7 +1581,7 @@ export function BookingDetails() {
               <Button
                 variant="contained"
                 color="primary"
-                startIcon={<AssignmentInd />}
+                startIcon={<UserCheck />}
                 onClick={() => setAssignProfessionalOpen(true)}
                 sx={{ 
                   borderRadius: 2,
@@ -1162,7 +1602,7 @@ export function BookingDetails() {
               <Button
                 variant="outlined"
                 color="warning"
-                startIcon={<Cancel />}
+                startIcon={<XCircle />}
                 onClick={() => setCancelDialogOpen(true)}
                 disabled={booking.status === 'cancelled' || booking.status === 'completed'}
                 sx={{ 
@@ -1184,7 +1624,7 @@ export function BookingDetails() {
               <Button
                 variant="outlined"
                 color="error"
-                startIcon={<Delete />}
+                startIcon={<Trash2 />}
                 onClick={() => setDeleteDialogOpen(true)}
                 sx={{ 
                   borderRadius: 2,
@@ -1227,7 +1667,7 @@ export function BookingDetails() {
                   <Button
                     variant="outlined"
                     color="error"
-                    startIcon={<Cancel />}
+                    startIcon={<XCircle />}
                     onClick={() => setCancelDialogOpen(true)}
                     sx={{ borderRadius: 2, px: 3, py: 1.2, fontWeight: 600, textTransform: 'none', borderWidth: 2 }}
                   >
@@ -1239,7 +1679,7 @@ export function BookingDetails() {
                 <Button
                   variant="contained"
                   color="primary"
-                  startIcon={<PlayArrow />}
+                  startIcon={<Play />}
                   onClick={() => {
                     setAction('start')
                     setActionDialog(true)
@@ -1309,7 +1749,7 @@ export function BookingDetails() {
                   <Button
                     variant="contained"
                     color="primary"
-                    startIcon={<Payment />}
+                    startIcon={<CreditCard />}
                     onClick={() => {
                       setPaymentAmount(booking.totalAmount.toString())
                       setPaymentReceivedDialog(true)
@@ -1354,7 +1794,7 @@ export function BookingDetails() {
                     <Button
                       variant="outlined"
                       color="error"
-                      startIcon={<Cancel />}
+                      startIcon={<XCircle />}
                       onClick={() => setCancelDialogOpen(true)}
                       sx={{ 
                         borderRadius: 2,
@@ -1378,7 +1818,7 @@ export function BookingDetails() {
                   <Button
                     variant="contained"
                     color="primary"
-                    startIcon={<PlayArrow />}
+                    startIcon={<Play />}
                     onClick={() => {
                       setAction('start')
                       setActionDialog(true)
@@ -1483,7 +1923,7 @@ export function BookingDetails() {
                     <Button
                       variant="contained"
                       color="primary"
-                      startIcon={<Payment />}
+                      startIcon={<CreditCard />}
                       onClick={() => {
                         setPaymentAmount(booking.totalAmount.toString())
                         setPaymentReceivedDialog(true)
@@ -1576,15 +2016,15 @@ export function BookingDetails() {
                     <Typography variant="h5" fontWeight="700" color="text.primary">
                       {booking.customer.firstName} {booking.customer.lastName}
                     </Typography>
-                    <Verified sx={{ fontSize: 20, color: 'success.main' }} />
+                    <BadgeCheck className="h-5 w-5 text-green-600" />
                   </Box>
                   {(booking.customer.totalBookings != null && booking.customer.totalBookings > 0) && (
                     <Chip
-                      icon={<Person />}
+                      icon={<User className="h-4 w-4" />}
                       label={`${booking.customer.totalBookings} Previous Bookings`}
                       size="small"
                       sx={{
-                        bgcolor: alpha('#4CAF50', 0.1),
+                        bgcolor: muiAlpha('#4CAF50', 0.1),
                         color: 'success.dark',
                         fontWeight: 600,
                         height: 24,
@@ -1594,7 +2034,7 @@ export function BookingDetails() {
                 </Box>
               </Box>
 
-              <Divider sx={{ mb: 3 }} />
+              <Separator className="mb-3" />
 
               <Grid container spacing={2.5}>
                 <Grid item xs={12} sm={6}>
@@ -1603,14 +2043,14 @@ export function BookingDetails() {
                     alignItems="center" 
                     gap={2} 
                     p={2} 
-                    bgcolor={alpha('#2196F3', 0.08)} 
+                    bgcolor={muiAlpha('#2196F3', 0.08)} 
                     borderRadius={2.5}
                     sx={{
                       border: '1px solid',
-                      borderColor: alpha('#2196F3', 0.2),
+                      borderColor: muiAlpha('#2196F3', 0.2),
                       transition: 'all 0.2s ease',
                       '&:hover': {
-                        bgcolor: alpha('#2196F3', 0.12),
+                        bgcolor: muiAlpha('#2196F3', 0.12),
                         transform: 'translateX(4px)',
                       }
                     }}
@@ -1626,7 +2066,7 @@ export function BookingDetails() {
                         justifyContent: 'center',
                       }}
                     >
-                      <Phone sx={{ fontSize: 22 }} />
+                      <Phone className="h-[22px] w-[22px]" />
                     </Box>
                     <Box>
                       <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
@@ -1644,14 +2084,14 @@ export function BookingDetails() {
                     alignItems="center" 
                     gap={2} 
                     p={2} 
-                    bgcolor={alpha('#2196F3', 0.08)} 
+                    bgcolor={muiAlpha('#2196F3', 0.08)} 
                     borderRadius={2.5}
                     sx={{
                       border: '1px solid',
-                      borderColor: alpha('#2196F3', 0.2),
+                      borderColor: muiAlpha('#2196F3', 0.2),
                       transition: 'all 0.2s ease',
                       '&:hover': {
-                        bgcolor: alpha('#2196F3', 0.12),
+                        bgcolor: muiAlpha('#2196F3', 0.12),
                         transform: 'translateX(4px)',
                       }
                     }}
@@ -1667,7 +2107,7 @@ export function BookingDetails() {
                         justifyContent: 'center',
                       }}
                     >
-                      <Email sx={{ fontSize: 22 }} />
+                      <Mail className="h-[22px] w-[22px]" />
                     </Box>
                     <Box flex={1} minWidth={0}>
                       <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
@@ -1710,13 +2150,13 @@ export function BookingDetails() {
                     justifyContent: 'center',
                   }}
                 >
-                  <Schedule sx={{ fontSize: 24 }} />
+                  <CalendarClock className="h-6 w-6" />
                 </Box>
                 <Typography variant="h6" fontWeight="700" color="text.primary">
                   Service & Order Items
                 </Typography>
               </Box>
-              <Divider sx={{ mb: 3 }} />
+              <Separator className="mb-3" />
               
               <Box mb={3}>
                 <Typography variant="h5" color="primary.main" fontWeight="700" gutterBottom>
@@ -1726,7 +2166,7 @@ export function BookingDetails() {
                   label={booking.service.category} 
                   size="medium" 
                   sx={{ 
-                    bgcolor: alpha('#2196F3', 0.1),
+                    bgcolor: muiAlpha('#2196F3', 0.1),
                     color: 'primary.dark',
                     fontWeight: 600,
                     height: 28,
@@ -1736,10 +2176,10 @@ export function BookingDetails() {
               </Box>
 
               {booking.services && booking.services.length > 0 ? (
-                <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, mb: 3 }}>
+                <TableContainer>
                   <Table size="small">
                     <TableHead>
-                      <TableRow sx={{ bgcolor: alpha('#2196F3', 0.08) }}>
+                      <TableRow sx={{ bgcolor: muiAlpha('#2196F3', 0.08) }}>
                         <TableCell sx={{ fontWeight: 700 }}>Service</TableCell>
                         <TableCell align="center" sx={{ fontWeight: 700 }}>Qty</TableCell>
                         <TableCell align="right" sx={{ fontWeight: 700 }}>Unit Price</TableCell>
@@ -1776,20 +2216,20 @@ export function BookingDetails() {
                 <Grid item xs={12} sm={4}>
                   <Box 
                     p={2.5}
-                    bgcolor={alpha('#FF9800', 0.08)}
+                    bgcolor={muiAlpha('#FF9800', 0.08)}
                     borderRadius={2.5}
                     sx={{
                       border: '1px solid',
-                      borderColor: alpha('#FF9800', 0.2),
+                      borderColor: muiAlpha('#FF9800', 0.2),
                       transition: 'all 0.2s ease',
                       '&:hover': {
-                        bgcolor: alpha('#FF9800', 0.12),
+                        bgcolor: muiAlpha('#FF9800', 0.12),
                         transform: 'scale(1.02)',
                       }
                     }}
                   >
                     <Box display="flex" alignItems="center" gap={1.5} mb={1}>
-                      <CalendarToday sx={{ color: '#FF9800', fontSize: 24 }} />
+                      <Calendar className="h-6 w-6 text-orange-500" />
                       <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
                         Date
                       </Typography>
@@ -1802,20 +2242,20 @@ export function BookingDetails() {
                 <Grid item xs={12} sm={4}>
                   <Box 
                     p={2.5}
-                    bgcolor={alpha('#9C27B0', 0.08)}
+                    bgcolor={muiAlpha('#9C27B0', 0.08)}
                     borderRadius={2.5}
                     sx={{
                       border: '1px solid',
-                      borderColor: alpha('#9C27B0', 0.2),
+                      borderColor: muiAlpha('#9C27B0', 0.2),
                       transition: 'all 0.2s ease',
                       '&:hover': {
-                        bgcolor: alpha('#9C27B0', 0.12),
+                        bgcolor: muiAlpha('#9C27B0', 0.12),
                         transform: 'scale(1.02)',
                       }
                     }}
                   >
                     <Box display="flex" alignItems="center" gap={1.5} mb={1}>
-                      <AccessTime sx={{ color: '#9C27B0', fontSize: 24 }} />
+                      <Clock className="h-6 w-6 text-purple-600" />
                       <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
                         Time
                       </Typography>
@@ -1828,20 +2268,20 @@ export function BookingDetails() {
                 <Grid item xs={12} sm={4}>
                   <Box 
                     p={2.5}
-                    bgcolor={alpha('#4CAF50', 0.08)}
+                    bgcolor={muiAlpha('#4CAF50', 0.08)}
                     borderRadius={2.5}
                     sx={{
                       border: '1px solid',
-                      borderColor: alpha('#4CAF50', 0.2),
+                      borderColor: muiAlpha('#4CAF50', 0.2),
                       transition: 'all 0.2s ease',
                       '&:hover': {
-                        bgcolor: alpha('#4CAF50', 0.12),
+                        bgcolor: muiAlpha('#4CAF50', 0.12),
                         transform: 'scale(1.02)',
                       }
                     }}
                   >
                     <Box display="flex" alignItems="center" gap={1.5} mb={1}>
-                      <Schedule sx={{ color: '#4CAF50', fontSize: 24 }} />
+                      <CalendarClock className="h-6 w-6 text-green-600" />
                       <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
                         Duration
                       </Typography>
@@ -1883,7 +2323,7 @@ export function BookingDetails() {
                       justifyContent: 'center',
                     }}
                   >
-                    <LocationOn sx={{ fontSize: 24 }} />
+                    <MapPin className="h-6 w-6" />
                   </Box>
                   <Typography variant="h6" fontWeight="700" color="text.primary">
                     Service Location
@@ -1910,20 +2350,20 @@ export function BookingDetails() {
                   Navigate
                 </Button>
               </Box>
-              <Divider sx={{ mb: 3 }} />
+              <Separator className="mb-3" />
               
               <Box 
                 display="flex" 
                 gap={3}
                 p={2.5}
-                bgcolor={alpha('#F44336', 0.05)}
+                bgcolor={muiAlpha('#F44336', 0.05)}
                 borderRadius={2.5}
                 sx={{
                   border: '1px solid',
-                  borderColor: alpha('#F44336', 0.15),
+                  borderColor: muiAlpha('#F44336', 0.15),
                 }}
               >
-                <LocationOn sx={{ color: 'error.main', fontSize: 40, flexShrink: 0 }} />
+                <MapPin className="h-10 w-10 shrink-0 text-destructive" />
                 <Box flex={1}>
                   {(booking.address.firstName || booking.address.lastName) && (
                     <Typography variant="body2" color="text.secondary" mb={0.5}>
@@ -1944,20 +2384,20 @@ export function BookingDetails() {
                   )}
                   {booking.address.phone && (
                     <Typography variant="body2" color="text.secondary" display="flex" alignItems="center" gap={0.5} mt={1}>
-                      <Phone sx={{ fontSize: 16 }} /> {booking.address.phone}
+                      <Phone className="h-4 w-4" />{booking.address.phone}
                     </Typography>
                   )}
                   {booking.address.landmark && (
                     <Box 
                       mt={1.5}
                       p={1.5}
-                      bgcolor={alpha('#FF9800', 0.1)}
+                      bgcolor={muiAlpha('#FF9800', 0.1)}
                       borderRadius={1.5}
                       display="inline-flex"
                       alignItems="center"
                       gap={1}
                     >
-                      <LocationOn sx={{ fontSize: 16, color: '#FF9800' }} />
+                      <MapPin className="h-4 w-4 text-orange-500" />
                       <Typography variant="caption" color="text.secondary" fontWeight="600">
                         Landmark: {booking.address.landmark}
                       </Typography>
@@ -1970,18 +2410,10 @@ export function BookingDetails() {
 
           {/* Notes & context — professional log strips duplicated evidence; rich render for any remaining URLs */}
           {(booking.customerNotes || professionalNotesForAdminDisplay(booking.notes || '')) && (
-            <Card
-              sx={{
-                mt: 3,
-                borderRadius: 2,
-                border: '1px solid',
-                borderColor: 'divider',
-                boxShadow: (theme) => theme.shadows[1],
-              }}
-            >
-              <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+            <ShCard className="mt-6 rounded-lg border border-border shadow-sm">
+              <ShCardContent className="p-4 sm:p-6">
                 <Stack direction="row" alignItems="flex-start" spacing={1.5} mb={2}>
-                  <StickyNote2Outlined sx={{ fontSize: 28, color: 'primary.main', mt: 0.25 }} />
+                  <StickyNote className="mt-1 h-7 w-7 shrink-0 text-primary" />
                   <Box flex={1}>
                     <Typography variant="h6" fontWeight={700}>
                       Notes & context
@@ -1992,18 +2424,10 @@ export function BookingDetails() {
                     </Typography>
                   </Box>
                 </Stack>
-                <Divider sx={{ mb: 2 }} />
+                <Separator className="mb-2" />
                 <Stack spacing={2.5}>
                   {professionalNotesForAdminDisplay(booking.notes || '') ? (
-                    <Paper
-                      variant="outlined"
-                      sx={{
-                        p: 2.5,
-                        borderRadius: 2,
-                        bgcolor: (theme) => alpha(theme.palette.text.primary, 0.02),
-                        borderColor: 'divider',
-                      }}
-                    >
+                    <Paper className="rounded-lg border border-border bg-muted/30 p-4">
                       <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={0.8}>
                         Booking & professional
                       </Typography>
@@ -2013,17 +2437,9 @@ export function BookingDetails() {
                     </Paper>
                   ) : null}
                   {booking.customerNotes ? (
-                    <Paper
-                      variant="outlined"
-                      sx={{
-                        p: 2.5,
-                        borderRadius: 2,
-                        bgcolor: (theme) => alpha(theme.palette.warning.main, 0.06),
-                        borderColor: (theme) => alpha(theme.palette.warning.main, 0.28),
-                      }}
-                    >
+                    <Paper className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
                       <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-                        <Person sx={{ fontSize: 20, color: 'warning.dark' }} />
+                        <User className="h-5 w-5 text-amber-700" />
                         <Typography variant="overline" color="warning.dark" fontWeight={700} letterSpacing={0.8}>
                           Customer instructions
                         </Typography>
@@ -2038,8 +2454,8 @@ export function BookingDetails() {
                     </Paper>
                   ) : null}
                 </Stack>
-              </CardContent>
-            </Card>
+              </ShCardContent>
+            </ShCard>
           )}
 
           {/* Professional-submitted photo evidence (pre-start + completion) — surfaced for admin oversight */}
@@ -2067,7 +2483,7 @@ export function BookingDetails() {
                       justifyContent: 'center',
                     }}
                   >
-                    <PhotoCamera sx={{ fontSize: 24 }} />
+                    <Camera className="h-6 w-6" />
                   </Box>
                   <Box>
                     <Typography variant="h6" fontWeight="700" color="text.primary">
@@ -2078,7 +2494,7 @@ export function BookingDetails() {
                     </Typography>
                   </Box>
                 </Box>
-                <Divider sx={{ mb: 2 }} />
+                <Separator className="mb-2" />
                 {booking.preStartSelfieUrl ? (
                   <Box mb={2}>
                     <Typography variant="subtitle2" color="text.secondary" fontWeight="600" mb={1}>
@@ -2186,13 +2602,13 @@ export function BookingDetails() {
                       justifyContent: 'center',
                     }}
                   >
-                    <History sx={{ fontSize: 24 }} />
+                    <History className="h-6 w-6" />
                   </Box>
                   <Typography variant="h6" fontWeight="700" color="text.primary">
                     Activity Timeline
                   </Typography>
                 </Box>
-                <Divider sx={{ mb: 3 }} />
+                <Separator className="mb-3" />
                 
                 <Stack spacing={2}>
                   {booking.activity.map((activity, index) => (
@@ -2209,7 +2625,7 @@ export function BookingDetails() {
                           top: 8,
                           bottom: index < booking.activity.length - 1 ? -16 : 0,
                           width: 2,
-                          bgcolor: alpha('#9C27B0', 0.2),
+                          bgcolor: muiAlpha('#9C27B0', 0.2),
                         },
                         '&::after': {
                           content: '""',
@@ -2227,11 +2643,11 @@ export function BookingDetails() {
                     >
                       <Box
                         p={2}
-                        bgcolor={alpha('#9C27B0', 0.05)}
+                        bgcolor={muiAlpha('#9C27B0', 0.05)}
                         borderRadius={2}
                         sx={{
                           border: '1px solid',
-                          borderColor: alpha('#9C27B0', 0.15),
+                          borderColor: muiAlpha('#9C27B0', 0.15),
                         }}
                       >
                         <Typography variant="subtitle2" fontWeight="700" color="text.primary" mb={0.5}>
@@ -2283,13 +2699,13 @@ export function BookingDetails() {
                     justifyContent: 'center',
                   }}
                 >
-                  <AssignmentInd sx={{ fontSize: 24 }} />
+                  <UserCheck className="h-6 w-6" />
                 </Box>
                 <Typography variant="h6" fontWeight="700" color="text.primary">
                   Assigned Professional
                 </Typography>
               </Box>
-              <Divider sx={{ mb: 3 }} />
+              <Separator className="mb-3" />
               
               {booking.professional ? (
                 <Box>
@@ -2313,7 +2729,7 @@ export function BookingDetails() {
                         {professionalDisplayName}
                       </Typography>
                       <Box display="flex" alignItems="center" gap={1} mb={1}>
-                        <Star sx={{ fontSize: 20, color: '#FFA726' }} />
+                        <Star className="h-5 w-5 text-amber-500" />
                         <Typography variant="body1" fontWeight="700" color="text.primary">
                           {Number(booking.professional.rating).toFixed(1)}
                         </Typography>
@@ -2331,23 +2747,23 @@ export function BookingDetails() {
                       gap={2} 
                       mb={2.5} 
                       p={2} 
-                      bgcolor={alpha('#2196F3', 0.08)} 
+                      bgcolor={muiAlpha('#2196F3', 0.08)} 
                       borderRadius={2.5}
                       sx={{
                         border: '1px solid',
-                        borderColor: alpha('#2196F3', 0.2),
+                        borderColor: muiAlpha('#2196F3', 0.2),
                       }}
                     >
                       {booking.professional.phone ? (
                         <>
-                          <Phone sx={{ fontSize: 22, color: 'primary.main' }} />
+                          <Phone className="h-[22px] w-[22px] text-primary" />
                           <Typography variant="body1" fontWeight="600">
                             {booking.professional.phone}
                           </Typography>
                         </>
                       ) : (
                         <>
-                          <Email sx={{ fontSize: 22, color: 'primary.main' }} />
+                          <Mail className="h-[22px] w-[22px] text-primary" />
                           <Typography variant="body1" fontWeight="600">
                             {booking.professional.email}
                           </Typography>
@@ -2368,7 +2784,7 @@ export function BookingDetails() {
                             label={cat} 
                             size="small"
                             sx={{
-                              bgcolor: alpha('#2196F3', 0.1),
+                              bgcolor: muiAlpha('#2196F3', 0.1),
                               color: 'primary.dark',
                               fontWeight: 600,
                               height: 28,
@@ -2384,7 +2800,7 @@ export function BookingDetails() {
                   severity="info"
                   sx={{
                     borderRadius: 2,
-                    bgcolor: alpha('#2196F3', 0.05),
+                    bgcolor: muiAlpha('#2196F3', 0.05),
                   }}
                 >
                   No professional assigned yet
@@ -2409,7 +2825,7 @@ export function BookingDetails() {
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   Partial refunds are recorded on the booking for accounting; they do not call a payment gateway.
                 </Typography>
-                <Divider sx={{ mb: 2 }} />
+                <Separator className="mb-2" />
                 {booking.status === 'pending' && booking.acceptDeadlineAt && (
                   <Alert severity="info" sx={{ mb: 2 }}>
                     <strong>Accept-by (assign SLA)</strong>
@@ -2483,7 +2899,7 @@ export function BookingDetails() {
                     type="number"
                     size="small"
                     value={adminRefundAmount}
-                    onChange={(e) => setAdminRefundAmount(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAdminRefundAmount(e.target.value)}
                     fullWidth
                     inputProps={{ min: 0 }}
                   />
@@ -2491,7 +2907,7 @@ export function BookingDetails() {
                     label="Reason (required)"
                     size="small"
                     value={adminRefundReason}
-                    onChange={(e) => setAdminRefundReason(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setAdminRefundReason(e.target.value)}
                     fullWidth
                     multiline
                     minRows={2}
@@ -2535,13 +2951,13 @@ export function BookingDetails() {
                     justifyContent: 'center',
                   }}
                 >
-                  <Receipt sx={{ fontSize: 24 }} />
+                  <Receipt className="h-6 w-6" />
                 </Box>
                 <Typography variant="h6" fontWeight="700" color="text.primary">
                   Payment Details
                 </Typography>
               </Box>
-              <Divider sx={{ mb: 3 }} />
+              <Separator className="mb-3" />
               
               <Stack spacing={2.5}>
                 <Box 
@@ -2549,7 +2965,7 @@ export function BookingDetails() {
                   justifyContent="space-between" 
                   alignItems="center"
                   p={1.5}
-                  bgcolor={alpha('#2196F3', 0.05)}
+                  bgcolor={muiAlpha('#2196F3', 0.05)}
                   borderRadius={1.5}
                 >
                   <Typography variant="body2" color="text.secondary" fontWeight="600">
@@ -2565,7 +2981,7 @@ export function BookingDetails() {
                     justifyContent="space-between" 
                     alignItems="center"
                     p={1.5}
-                    bgcolor={alpha('#4CAF50', 0.08)}
+                    bgcolor={muiAlpha('#4CAF50', 0.08)}
                     borderRadius={1.5}
                   >
                     <Typography variant="body2" color="text.secondary" fontWeight="600">
@@ -2581,7 +2997,7 @@ export function BookingDetails() {
                   justifyContent="space-between" 
                   alignItems="center"
                   p={2}
-                  bgcolor={alpha('#FF9800', 0.05)}
+                  bgcolor={muiAlpha('#FF9800', 0.05)}
                   borderRadius={2}
                 >
                   <Typography variant="body2" color="text.secondary" fontWeight="600">
@@ -2603,7 +3019,7 @@ export function BookingDetails() {
                     justifyContent="space-between" 
                     alignItems="center"
                     p={2}
-                    bgcolor={alpha('#9C27B0', 0.05)}
+                    bgcolor={muiAlpha('#9C27B0', 0.05)}
                     borderRadius={2}
                   >
                     <Typography variant="body2" color="text.secondary" fontWeight="600">
@@ -2613,7 +3029,7 @@ export function BookingDetails() {
                       label={String(booking.paymentMethod).replace(/_/g, ' ')}
                       size="small"
                       sx={{
-                        bgcolor: alpha('#9C27B0', 0.1),
+                        bgcolor: muiAlpha('#9C27B0', 0.1),
                         color: '#9C27B0',
                         fontWeight: 600,
                         textTransform: 'capitalize',
@@ -2627,7 +3043,7 @@ export function BookingDetails() {
                     justifyContent="space-between" 
                     alignItems="center"
                     p={2}
-                    bgcolor={alpha('#2196F3', 0.05)}
+                    bgcolor={muiAlpha('#2196F3', 0.05)}
                     borderRadius={2}
                   >
                     <Typography variant="body2" color="text.secondary" fontWeight="600">
@@ -2653,7 +3069,7 @@ export function BookingDetails() {
               <Stack spacing={1.5}>
                 {booking.assignedAt && (
                   <Box display="flex" alignItems="center" gap={1}>
-                    <AssignmentInd sx={{ fontSize: 18, color: 'text.secondary' }} />
+                    <UserCheck className="h-[18px] w-[18px] text-muted-foreground" />
                     <Typography variant="body2">
                       Assigned on {new Date(booking.assignedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
                     </Typography>
@@ -2661,7 +3077,7 @@ export function BookingDetails() {
                 )}
                 {booking.completedDate && (
                   <Box display="flex" alignItems="center" gap={1}>
-                    <CheckCircle sx={{ fontSize: 18, color: 'success.main' }} />
+                    <CheckCircle className="h-[18px] w-[18px] text-green-600" />
                     <Typography variant="body2">
                       Completed on {new Date(booking.completedDate).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
                     </Typography>
@@ -2669,7 +3085,7 @@ export function BookingDetails() {
                 )}
                 {booking.status === 'cancelled' && booking.cancellationReason && (
                   <Box display="flex" alignItems="flex-start" gap={1}>
-                    <Cancel sx={{ fontSize: 18, color: 'error.main', mt: 0.25 }} />
+                    <XCircle className="mt-0.5 h-[18px] w-[18px] text-destructive" />
                     <Typography variant="body2" color="text.secondary">
                       <strong>Reason:</strong> {booking.cancellationReason}
                     </Typography>
@@ -2695,13 +3111,13 @@ export function BookingDetails() {
               <CardContent sx={{ p: 3.5 }}>
                 <Box display="flex" alignItems="center" gap={1.5} mb={3}>
                   <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: '#4CAF50', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Receipt sx={{ fontSize: 24 }} />
+                    <Receipt className="h-6 w-6" />
                   </Box>
                   <Typography variant="h6" fontWeight="700" color="text.primary">
                     Invoice
                   </Typography>
                 </Box>
-                <Divider sx={{ mb: 3 }} />
+                <Separator className="mb-3" />
                 <Stack spacing={1.5}>
                   {booking.invoice.invoiceNumber && (
                     <Box display="flex" justifyContent="space-between" alignItems="center">
@@ -2771,25 +3187,25 @@ export function BookingDetails() {
                       justifyContent: 'center',
                     }}
                   >
-                    <AccountBalanceWallet sx={{ fontSize: 24 }} />
+                    <Wallet className="h-6 w-6" />
                   </Box>
                   <Typography variant="h6" fontWeight="700" color="text.primary">
                     Payment & earnings
                   </Typography>
                   <Chip label="Admin view" size="small" color="primary" variant="outlined" />
                 </Box>
-                <Divider sx={{ mb: 3 }} />
+                <Separator className="mb-3" />
                 {earningData?.earning ? (
                   <Stack spacing={2}>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" p={1.5} bgcolor={alpha('#2196F3', 0.06)} borderRadius={1.5}>
+                    <Box display="flex" justifyContent="space-between" alignItems="center" p={1.5} bgcolor={muiAlpha('#2196F3', 0.06)} borderRadius={1.5}>
                       <Typography variant="body2" color="text.secondary" fontWeight="600">Booking amount</Typography>
                       <Typography variant="body1" fontWeight="700">₹{Number(earningData.earning.bookingAmount || 0).toLocaleString()}</Typography>
                     </Box>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" p={1.5} bgcolor={alpha('#4CAF50', 0.08)} borderRadius={1.5}>
+                    <Box display="flex" justifyContent="space-between" alignItems="center" p={1.5} bgcolor={muiAlpha('#4CAF50', 0.08)} borderRadius={1.5}>
                       <Typography variant="body2" color="text.secondary" fontWeight="600">Platform commission (pending receivable)</Typography>
                       <Typography variant="body1" fontWeight="700" color="success.main">₹{Number(earningData.earning.platformCommission || 0).toLocaleString()}</Typography>
                     </Box>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" p={1.5} bgcolor={alpha('#FF9800', 0.08)} borderRadius={1.5}>
+                    <Box display="flex" justifyContent="space-between" alignItems="center" p={1.5} bgcolor={muiAlpha('#FF9800', 0.08)} borderRadius={1.5}>
                       <Typography variant="body2" color="text.secondary" fontWeight="600">Professional earnings</Typography>
                       <Typography variant="body1" fontWeight="700">₹{Number(earningData.earning.professionalEarnings || 0).toLocaleString()}</Typography>
                     </Box>
@@ -2832,7 +3248,7 @@ export function BookingDetails() {
                       size="small"
                       label="Dispute note (required to open)"
                       value={disputeReason}
-                      onChange={(e) => setDisputeReason(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDisputeReason(e.target.value)}
                       fullWidth
                       sx={{ mt: 1 }}
                       disabled={disputeBusy}
@@ -2891,12 +3307,12 @@ export function BookingDetails() {
                 <Card sx={{ borderRadius: 3, bgcolor: 'success.50', border: '1px solid', borderColor: 'success.200' }}>
                   <CardContent sx={{ p: 3 }}>
                     <Box display="flex" alignItems="center" gap={1} mb={2}>
-                      <CheckCircle color="success" />
+                      <CheckCircle className="h-6 w-6 text-green-600" />
                       <Typography variant="h6" fontWeight="600" color="success.dark">
                         Payment Review
                       </Typography>
                     </Box>
-                    <Divider sx={{ mb: 2 }} />
+                    <Separator className="mb-2" />
                     <Grid container spacing={3}>
                       <Grid item xs={12} sm={6}>
                         <Box>
@@ -2987,7 +3403,7 @@ export function BookingDetails() {
             rows={3}
             label="Cancellation Reason"
             value={cancelReason}
-            onChange={(e) => setCancelReason(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCancelReason(e.target.value)}
             sx={{ mt: 2 }}
           />
         </DialogContent>
@@ -3070,7 +3486,7 @@ export function BookingDetails() {
                   rows={3}
                   label="Notes (Optional)"
                   value={actionNotes}
-                  onChange={(e) => setActionNotes(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setActionNotes(e.target.value)}
                   sx={{ mt: 2 }}
                   placeholder={action === 'complete' ? 'Add completion notes...' : 'Add any notes...'}
                 />
@@ -3128,7 +3544,7 @@ export function BookingDetails() {
         >
           <DialogTitle>
             <Box display="flex" alignItems="center" gap={1}>
-              <AccountBalanceWallet color="success" />
+              <Wallet className="h-5 w-5 text-green-600" />
               <Typography variant="h6">Booking Completed!</Typography>
             </Box>
           </DialogTitle>
@@ -3151,14 +3567,14 @@ export function BookingDetails() {
                     <Typography variant="h6" fontWeight="600">₹{earningsInfo.bookingAmount}</Typography>
                   </Box>
                   
-                  <Divider />
+                  <Separator />
                   
                   <Box display="flex" justifyContent="space-between" alignItems="center">
                     <Typography variant="body1" color="text.secondary">Platform Commission (10%)</Typography>
                     <Typography variant="body1" color="error.main">-₹{earningsInfo.platformCommission.toFixed(2)}</Typography>
                   </Box>
                   
-                  <Divider />
+                  <Separator />
                   
                   <Box display="flex" justifyContent="space-between" alignItems="center" pt={1}>
                     <Typography variant="h6" fontWeight="700">Your Earnings</Typography>
@@ -3216,7 +3632,7 @@ export function BookingDetails() {
         >
           <DialogTitle>
             <Box display="flex" alignItems="center" gap={1}>
-              <Payment color="success" />
+              <CreditCard className="h-5 w-5 text-green-600" />
               <Typography variant="h6">Mark Payment Received</Typography>
             </Box>
           </DialogTitle>
@@ -3241,11 +3657,11 @@ export function BookingDetails() {
               label="Amount Received"
               type="number"
               value={paymentAmount}
-              onChange={(e) => setPaymentAmount(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPaymentAmount(e.target.value)}
               sx={{ mb: 2 }}
               helperText="Enter the amount you received from the customer"
               InputProps={{
-                startAdornment: <Typography sx={{ mr: 1 }}>₹</Typography>
+                startAdornment: <span className="mr-1 text-muted-foreground">₹</span>,
               }}
             />
 
@@ -3255,7 +3671,7 @@ export function BookingDetails() {
               rows={3}
               label="Payment Notes (Optional)"
               value={paymentNotes}
-              onChange={(e) => setPaymentNotes(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPaymentNotes(e.target.value)}
               placeholder="Add any notes about the payment (e.g., payment method, transaction reference, etc.)"
             />
           </DialogContent>
@@ -3289,11 +3705,7 @@ export function BookingDetails() {
                       message: 'Payment marked as received! Customer and admin have been notified.',
                       severity: 'success'
                     }))
-                    setSnackbar({
-                      open: true,
-                      message: 'Payment marked as received successfully!',
-                      severity: 'success'
-                    })
+                    appToast('Payment marked as received successfully!', 'success')
                     setPaymentReceivedDialog(false)
                     setPaymentAmount('')
                     setPaymentNotes('')
@@ -3303,11 +3715,7 @@ export function BookingDetails() {
                   }
                 } catch (error: any) {
                   console.error('Failed to mark payment as received:', error)
-                  setSnackbar({
-                    open: true,
-                    message: error.message || 'Failed to mark payment as received',
-                    severity: 'error'
-                  })
+                  appToast(error.message || 'Failed to mark payment as received', 'error')
                 }
               }}
               disabled={!paymentAmount || parseFloat(paymentAmount) <= 0}
@@ -3318,16 +3726,6 @@ export function BookingDetails() {
         </Dialog>
       )}
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Box>
   )
 }

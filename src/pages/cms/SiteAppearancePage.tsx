@@ -1,23 +1,19 @@
 import React, { useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
+import { Loader2, Palette } from 'lucide-react'
+import { PageHeader } from '../../components/common/PageHeader'
 import {
-  Alert,
-  Box,
   Button,
   Card,
   CardContent,
-  FormControl,
-  InputLabel,
-  MenuItem,
+  Input,
+  Label,
   Select,
-  Stack,
-  TextField,
-  Typography,
-  CircularProgress,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
-import { Palette as PaletteIcon } from '@mui/icons-material'
-import { PageHeader } from '../../components/common/PageHeader'
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui'
 import { publicSiteThemeService } from '../../services/api/publicSiteTheme.service'
 import {
   DEFAULT_PUBLIC_SITE_THEME,
@@ -25,6 +21,7 @@ import {
   type SiteRadiusPreset,
   type SiteSpacingDensity,
 } from '../../types/publicSiteTheme.types'
+import { cn } from '../../lib/utils'
 
 const FONT_PRESETS = [
   { label: 'Inter + DM Sans', heading: '"DM Sans", system-ui, sans-serif', body: '"Inter", system-ui, sans-serif' },
@@ -33,10 +30,7 @@ const FONT_PRESETS = [
 ]
 
 const THEME_PRESETS: { name: string; patch: Partial<PublicSiteThemeTokens> }[] = [
-  {
-    name: 'ProFixer default',
-    patch: {},
-  },
+  { name: 'ProFixer default', patch: {} },
   {
     name: 'Emerald marketplace',
     patch: {
@@ -105,237 +99,200 @@ export default function SiteAppearancePage() {
     }
   }
 
+  const previewRadius =
+    theme.borderRadius === 'sm' ? '0.25rem' : theme.borderRadius === 'lg' ? '0.75rem' : '0.375rem'
+  const previewPadding =
+    theme.sectionSpacing === 'compact' ? '1rem' : theme.sectionSpacing === 'spacious' ? '2.5rem' : '1.5rem'
+
   return (
-    <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
+    <div className="p-4 sm:p-6 md:p-8">
       <PageHeader
         title="Site appearance"
         subtitle="Public-site design tokens (colors, type, radius, spacing). Storefront should read these from your API when available."
         action={
-          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            <Button variant="outlined" size="small" component={RouterLink} to="/cms/homepage">
-              Homepage sections
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <RouterLink to="/cms/homepage">Homepage sections</RouterLink>
             </Button>
-            <Button variant="contained" size="small" disabled={saving} onClick={() => void handleSave()}>
-              {saving ? <CircularProgress size={18} color="inherit" sx={{ mr: 1 }} /> : null}
+            <Button size="sm" disabled={saving} onClick={() => void handleSave()}>
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden /> : null}
               Save tokens
             </Button>
-          </Stack>
+          </div>
         }
       />
 
       {loading ? (
-        <Box display="flex" justifyContent="center" py={6}>
-          <CircularProgress />
-        </Box>
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden />
+        </div>
       ) : (
         <>
-          <Alert severity="info" sx={{ mb: 3 }}>
+          <div
+            role="status"
+            className="mb-6 rounded-md border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-100"
+          >
             Backend endpoint <strong>/cms/public-site-theme</strong> is optional. Without it, tokens persist per tenant in
             this browser so teams can prototype; wire the same JSON to profixer.in or your SSR theme injector.
-          </Alert>
+          </div>
 
           {saveHint && (
-            <Alert severity={saveHint.includes('failed') ? 'error' : 'success'} sx={{ mb: 2 }}>
+            <div
+              className={cn(
+                'mb-4 rounded-md border p-3 text-sm',
+                saveHint.includes('failed')
+                  ? 'border-destructive/50 bg-destructive/10 text-destructive'
+                  : 'border-green-200 bg-green-50 text-green-900 dark:border-green-900 dark:bg-green-950/40 dark:text-green-100',
+              )}
+            >
               {saveHint}
-            </Alert>
+            </div>
           )}
 
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-            Loaded from: <strong>{source}</strong>
-          </Typography>
+          <p className="mb-4 text-xs text-muted-foreground">
+            Loaded from: <strong className="text-foreground">{source}</strong>
+          </p>
 
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-                <PaletteIcon color="primary" />
-                <Typography variant="h6">Quick presets</Typography>
-              </Stack>
-              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          <Card className="mb-6">
+            <CardContent className="space-y-4 pt-6">
+              <div className="mb-2 flex items-center gap-2">
+                <Palette className="h-5 w-5 text-primary" aria-hidden />
+                <h2 className="text-lg font-semibold tracking-tight">Quick presets</h2>
+              </div>
+              <div className="flex flex-wrap gap-2">
                 {THEME_PRESETS.map((p) => (
-                  <Button key={p.name} size="small" variant="outlined" onClick={() => applyPreset(p.patch)}>
+                  <Button key={p.name} type="button" size="sm" variant="outline" onClick={() => applyPreset(p.patch)}>
                     {p.name}
                   </Button>
                 ))}
-              </Stack>
+              </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 2 }}>
-                Tokens
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Primary"
-                    type="color"
-                    value={theme.primaryColor}
-                    onChange={(e) => setTheme((t) => ({ ...t, primaryColor: e.target.value }))}
-                    InputLabelProps={{ shrink: true }}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Accent"
-                    type="color"
-                    value={theme.accentColor}
-                    onChange={(e) => setTheme((t) => ({ ...t, accentColor: e.target.value }))}
-                    InputLabelProps={{ shrink: true }}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Background"
-                    type="color"
-                    value={theme.backgroundColor}
-                    onChange={(e) => setTheme((t) => ({ ...t, backgroundColor: e.target.value }))}
-                    InputLabelProps={{ shrink: true }}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Surface"
-                    type="color"
-                    value={theme.surfaceColor}
-                    onChange={(e) => setTheme((t) => ({ ...t, surfaceColor: e.target.value }))}
-                    InputLabelProps={{ shrink: true }}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Text"
-                    type="color"
-                    value={theme.textColor}
-                    onChange={(e) => setTheme((t) => ({ ...t, textColor: e.target.value }))}
-                    InputLabelProps={{ shrink: true }}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Muted text"
-                    type="color"
-                    value={theme.mutedTextColor}
-                    onChange={(e) => setTheme((t) => ({ ...t, mutedTextColor: e.target.value }))}
-                    InputLabelProps={{ shrink: true }}
-                  />
-                </Grid>
+            <CardContent className="space-y-6 pt-6">
+              <h2 className="text-lg font-semibold tracking-tight">Tokens</h2>
 
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                    Typography presets
-                  </Typography>
-                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
-                    {FONT_PRESETS.map((fp) => (
-                      <Button
-                        key={fp.label}
-                        size="small"
-                        variant="outlined"
-                        onClick={() => setTheme((t) => ({ ...t, fontHeading: fp.heading, fontBody: fp.body }))}
-                      >
-                        {fp.label}
-                      </Button>
-                    ))}
-                  </Stack>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Font stack — headings"
-                        value={theme.fontHeading}
-                        onChange={(e) => setTheme((t) => ({ ...t, fontHeading: e.target.value }))}
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Font stack — body"
-                        value={theme.fontBody}
-                        onChange={(e) => setTheme((t) => ({ ...t, fontBody: e.target.value }))}
-                      />
-                    </Grid>
-                  </Grid>
-                </Grid>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+                {(
+                  [
+                    ['primaryColor', 'Primary'],
+                    ['accentColor', 'Accent'],
+                    ['backgroundColor', 'Background'],
+                    ['surfaceColor', 'Surface'],
+                    ['textColor', 'Text'],
+                    ['mutedTextColor', 'Muted text'],
+                  ] as const
+                ).map(([key, label]) => (
+                  <div key={key} className="space-y-2">
+                    <Label htmlFor={key}>{label}</Label>
+                    <Input
+                      id={key}
+                      type="color"
+                      className="h-12 cursor-pointer p-1"
+                      value={theme[key]}
+                      onChange={(e) => setTheme((t) => ({ ...t, [key]: e.target.value }))}
+                    />
+                  </div>
+                ))}
+              </div>
 
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth>
-                    <InputLabel id="radius-label">Corner radius</InputLabel>
-                    <Select
-                      labelId="radius-label"
-                      label="Corner radius"
-                      value={theme.borderRadius}
-                      onChange={(e) =>
-                        setTheme((t) => ({ ...t, borderRadius: e.target.value as SiteRadiusPreset }))
-                      }
+              <div className="space-y-3">
+                <p className="text-sm font-medium">Typography presets</p>
+                <div className="flex flex-wrap gap-2">
+                  {FONT_PRESETS.map((fp) => (
+                    <Button
+                      key={fp.label}
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setTheme((t) => ({ ...t, fontHeading: fp.heading, fontBody: fp.body }))}
                     >
-                      <MenuItem value="sm">Small</MenuItem>
-                      <MenuItem value="md">Medium</MenuItem>
-                      <MenuItem value="lg">Large</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
+                      {fp.label}
+                    </Button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="font-heading">Font stack — headings</Label>
+                    <Input
+                      id="font-heading"
+                      value={theme.fontHeading}
+                      onChange={(e) => setTheme((t) => ({ ...t, fontHeading: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="font-body">Font stack — body</Label>
+                    <Input
+                      id="font-body"
+                      value={theme.fontBody}
+                      onChange={(e) => setTheme((t) => ({ ...t, fontBody: e.target.value }))}
+                    />
+                  </div>
+                </div>
+              </div>
 
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth>
-                    <InputLabel id="spacing-label">Section spacing</InputLabel>
-                    <Select
-                      labelId="spacing-label"
-                      label="Section spacing"
-                      value={theme.sectionSpacing}
-                      onChange={(e) =>
-                        setTheme((t) => ({
-                          ...t,
-                          sectionSpacing: e.target.value as SiteSpacingDensity,
-                        }))
-                      }
-                    >
-                      <MenuItem value="compact">Compact</MenuItem>
-                      <MenuItem value="comfortable">Comfortable</MenuItem>
-                      <MenuItem value="spacious">Spacious</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                    Live preview (approximate)
-                  </Typography>
-                  <Box
-                    sx={{
-                      borderRadius:
-                        theme.borderRadius === 'sm' ? 1 : theme.borderRadius === 'lg' ? 3 : 2,
-                      p:
-                        theme.sectionSpacing === 'compact'
-                          ? 2
-                          : theme.sectionSpacing === 'spacious'
-                            ? 5
-                            : 3,
-                      bgcolor: theme.surfaceColor,
-                      color: theme.textColor,
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      backgroundImage: `linear-gradient(135deg, ${theme.primaryColor}22, ${theme.accentColor}18)`,
-                    }}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="radius">Corner radius</Label>
+                  <Select
+                    value={theme.borderRadius}
+                    onValueChange={(v) => setTheme((t) => ({ ...t, borderRadius: v as SiteRadiusPreset }))}
                   >
-                    <Typography sx={{ fontFamily: theme.fontHeading, fontWeight: 700, fontSize: '1.25rem' }}>
-                      Section headline
-                    </Typography>
-                    <Typography sx={{ fontFamily: theme.fontBody, color: theme.mutedTextColor, mt: 1 }}>
-                      Body copy uses your muted and surface tokens.
-                    </Typography>
-                  </Box>
-                </Grid>
-              </Grid>
+                    <SelectTrigger id="radius">
+                      <SelectValue placeholder="Corner radius" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sm">Small</SelectItem>
+                      <SelectItem value="md">Medium</SelectItem>
+                      <SelectItem value="lg">Large</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="spacing">Section spacing</Label>
+                  <Select
+                    value={theme.sectionSpacing}
+                    onValueChange={(v) =>
+                      setTheme((t) => ({ ...t, sectionSpacing: v as SiteSpacingDensity }))
+                    }
+                  >
+                    <SelectTrigger id="spacing">
+                      <SelectValue placeholder="Section spacing" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="compact">Compact</SelectItem>
+                      <SelectItem value="comfortable">Comfortable</SelectItem>
+                      <SelectItem value="spacious">Spacious</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Live preview (approximate)</p>
+                <div
+                  className="border border-border"
+                  style={{
+                    borderRadius: previewRadius,
+                    padding: previewPadding,
+                    backgroundColor: theme.surfaceColor,
+                    color: theme.textColor,
+                    backgroundImage: `linear-gradient(135deg, ${theme.primaryColor}22, ${theme.accentColor}18)`,
+                  }}
+                >
+                  <p className="text-xl font-bold" style={{ fontFamily: theme.fontHeading }}>
+                    Section headline
+                  </p>
+                  <p className="mt-2 text-sm" style={{ fontFamily: theme.fontBody, color: theme.mutedTextColor }}>
+                    Body copy uses your muted and surface tokens.
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </>
       )}
-    </Box>
+    </div>
   )
 }

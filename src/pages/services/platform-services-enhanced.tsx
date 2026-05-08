@@ -1,87 +1,73 @@
 import React, { useState, useEffect } from 'react'
 import {
-  Box,
+  Button,
   Card,
   CardContent,
-  Typography,
-  Button,
-  TextField,
-  InputAdornment,
-  Grid,
-  Chip,
-  IconButton,
-  Menu,
-  MenuItem,
+  Input,
+  Label,
+  Badge,
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  TablePagination,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  FormControl,
-  InputLabel,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Select,
-  Snackbar,
-  Alert,
-  Switch,
-  FormControlLabel,
-  Stack,
-  Paper,
-  Avatar,
-  Tooltip,
-  Badge,
-  Divider,
-  ToggleButton,
-  ToggleButtonGroup,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Tabs,
-  Tab,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-} from '@mui/material'
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  Separator,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../../components/ui'
 import {
-  Add as AddIcon,
-  Search as SearchIcon,
-  MoreVert as MoreVertIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Visibility as ViewIcon,
-  Star as StarIcon,
-  Close as CloseIcon,
-  FilterList as FilterIcon,
-  ViewModule as GridViewIcon,
-  ViewList as ListViewIcon,
-  TrendingUp as TrendingUpIcon,
-  Schedule as ScheduleIcon,
-  AttachMoney as MoneyIcon,
-  Category as CategoryIcon,
-  Tune as TuneIcon,
-  ContentCopy as CopyIcon,
-  CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
-} from '@mui/icons-material'
-import { platformServicesService, PlatformService } from '../../services/api/platformServices.service'
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../../components/ui/dropdown-menu'
+import {
+  Plus,
+  Search,
+  LayoutGrid,
+  List,
+  MoreVertical,
+  Eye,
+  Pencil,
+  Trash2,
+  Copy,
+  Star,
+  X,
+  Filter,
+  CheckCircle2,
+  CircleOff,
+  TrendingUp,
+} from 'lucide-react'
+import { platformServicesService, PlatformService, type GetPlatformServicesParams } from '../../services/api/platformServices.service'
 import { CategoriesService } from '../../services/api/categories.service'
 import { ConfirmDialog } from '../../components/common/ConfirmDialog'
 import { useNavigate } from 'react-router-dom'
-import { formatCurrency } from '../../lib/utils'
+import { appToast } from '../../lib/appToast'
+import { formatCurrency, cn } from '../../lib/utils'
 
-const CATEGORIES = [
-  'home_repair',
-  'home_improvement',
-  'cleaning',
-  'outdoor',
-  'maintenance',
-  'installation',
-]
+const CATEGORIES = ['home_repair', 'home_improvement', 'cleaning', 'outdoor', 'maintenance', 'installation']
 
-/** API may return number or (legacy) string; keeps TS happy vs `!== ''` on number. */
 function hasDisplayableBasePrice(v: number | string | undefined | null): boolean {
   if (v == null) return false
   if (typeof v === 'string' && v.trim() === '') return false
@@ -92,6 +78,381 @@ function hasDisplayableBasePrice(v: number | string | undefined | null): boolean
 function displayBasePrice(v: number | string | undefined | null): string {
   if (!hasDisplayableBasePrice(v)) return 'N/A'
   return formatCurrency(Number(v))
+}
+
+function getCategoryDisplayName(categoryNameById: Record<string, string>, categoryId: string | undefined) {
+  if (!categoryId) return 'Uncategorized'
+  const name = categoryNameById[String(categoryId).toLowerCase()]
+  return name || categoryId
+}
+
+type PreviewTab = 'overview' | 'pricing' | 'features' | 'availability' | 'products'
+
+function ServicePreviewDialog({
+  open,
+  onClose,
+  service,
+  categoryNameById,
+  onEdit,
+}: {
+  open: boolean
+  onClose: () => void
+  service: PlatformService | null
+  categoryNameById: Record<string, string>
+  onEdit: (s: PlatformService) => void
+}) {
+  const [tab, setTab] = useState<PreviewTab>('overview')
+  useEffect(() => {
+    if (open) setTab('overview')
+  }, [open, service?.id])
+
+  if (!service) return null
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[90vh] max-w-3xl gap-0 overflow-hidden p-0">
+        <DialogHeader className="space-y-0 bg-gradient-to-r from-sky-600 to-indigo-700 px-6 py-4 text-primary-foreground">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <DialogTitle className="text-xl font-bold text-white">{service.name}</DialogTitle>
+              <p className="text-sm text-white/90">Service Preview</p>
+            </div>
+            <Button type="button" variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={onClose}>
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+        </DialogHeader>
+
+        {service.image && (
+          <div
+            className="h-48 w-full bg-muted bg-cover bg-center"
+            style={{ backgroundImage: `url(${service.image})` }}
+          />
+        )}
+
+        <Tabs value={tab} onValueChange={(v) => setTab(v as PreviewTab)} className="px-0">
+          <div className="border-b px-4">
+            <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-transparent py-2">
+              {(
+                [
+                  ['overview', 'Overview'],
+                  ['pricing', 'Pricing & Details'],
+                  ['features', 'Features'],
+                  ['availability', 'Availability'],
+                  ['products', 'Products'],
+                ] as const
+              ).map(([id, label]) => (
+                <TabsTrigger key={id} value={id} className="text-xs sm:text-sm">
+                  {label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
+
+          <div className="max-h-[min(50vh,480px)] overflow-y-auto px-6 py-4">
+            <TabsContent value="overview" className="mt-0 space-y-4">
+              <div>
+                <p className="mb-1 text-sm font-semibold text-primary">Description</p>
+                <div className="rounded-lg bg-muted/50 p-3 text-sm">{service.description}</div>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Card className="border">
+                  <CardContent className="pt-4">
+                    <p className="mb-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400">Pricing</p>
+                    <p className="text-2xl font-bold text-emerald-600">{displayBasePrice(service.base_price)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      GST: {service.gst_percentage}% {service.tax_included ? '(included)' : '(extra)'}
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card className="border">
+                  <CardContent className="pt-4">
+                    <p className="mb-2 text-sm font-semibold text-amber-700 dark:text-amber-400">Statistics</p>
+                    <div className="flex gap-6">
+                      <div>
+                        <p className="text-2xl font-bold">{service.total_requests || 0}</p>
+                        <p className="text-xs text-muted-foreground">Requests</p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Star className="h-5 w-5 text-amber-500" />
+                        <p className="text-2xl font-bold">
+                          {service.average_rating ? Number(service.average_rating).toFixed(1) : '0.0'}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              <Card className="border">
+                <CardContent className="pt-4">
+                  <p className="mb-2 text-sm font-semibold">Status & Settings</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant={service.is_active ? 'default' : 'secondary'}>
+                      {service.is_active ? 'Active' : 'Inactive'}
+                    </Badge>
+                    <Badge variant="outline" className="capitalize">
+                      {service.status}
+                    </Badge>
+                    {service.is_featured && (
+                      <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-900">
+                        <Star className="mr-1 h-3 w-3" />
+                        Featured
+                      </Badge>
+                    )}
+                    {service.is_popular && <Badge variant="secondary">Popular</Badge>}
+                    {service.emergency_service && <Badge variant="destructive">Emergency Service</Badge>}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="pricing" className="mt-0 space-y-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Card className="border">
+                  <CardContent className="space-y-2 pt-4 text-sm">
+                    <p className="font-semibold text-primary">Service Information</p>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Category</p>
+                      <p className="font-medium">{getCategoryDisplayName(categoryNameById, service.category)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Service Type</p>
+                      <p className="font-medium">{service.service_type}</p>
+                    </div>
+                    {service.duration && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Duration</p>
+                        <p className="font-medium">{service.duration}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+                <Card className="border">
+                  <CardContent className="space-y-2 pt-4 text-sm">
+                    <p className="font-semibold text-emerald-700 dark:text-emerald-400">Pricing Details</p>
+                    {hasDisplayableBasePrice(service.base_price) && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Base Price</p>
+                        <p className="font-medium">{displayBasePrice(service.base_price)}</p>
+                      </div>
+                    )}
+                    {!!service.hourly_rate && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Hourly Rate</p>
+                        <p className="font-medium">₹{Number(service.hourly_rate).toFixed(2)}/hour</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs text-muted-foreground">GST</p>
+                      <p className="font-medium">
+                        {service.gst_percentage}% {service.tax_included ? '(included)' : '(extra)'}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="features" className="mt-0 space-y-4">
+              <div>
+                <p className="mb-2 text-sm font-semibold text-primary">Features</p>
+                {service.features?.length ? (
+                  <div className="flex flex-wrap gap-2">
+                    {service.features.map((f, i) => (
+                      <Badge key={i} variant="outline">
+                        {f}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No features added</p>
+                )}
+              </div>
+              <Separator />
+              <div>
+                <p className="mb-2 text-sm font-semibold">Requirements</p>
+                {service.requirements?.length ? (
+                  <ul className="space-y-2">
+                    {service.requirements.map((req, i) => (
+                      <li key={i} className="flex gap-2 text-sm">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                        <span>{req}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No requirements specified</p>
+                )}
+              </div>
+              <Separator />
+              <div>
+                <p className="mb-2 text-sm font-semibold text-sky-700 dark:text-sky-400">Tags</p>
+                {service.tags?.length ? (
+                  <div className="flex flex-wrap gap-2">
+                    {service.tags.map((t, i) => (
+                      <Badge key={i} variant="secondary">
+                        {t}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No tags added</p>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="availability" className="mt-0 space-y-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Card className="border">
+                  <CardContent className="pt-4">
+                    <p className="mb-2 text-sm font-semibold">Working Days</p>
+                    {service.working_days?.length ? (
+                      <div className="flex flex-wrap gap-2">
+                        {service.working_days.map((d, i) => (
+                          <Badge key={i}>{d}</Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Not specified</p>
+                    )}
+                  </CardContent>
+                </Card>
+                <Card className="border">
+                  <CardContent className="pt-4">
+                    <p className="mb-2 text-sm font-semibold">Time Slots</p>
+                    {service.time_slots?.length ? (
+                      <div className="flex flex-wrap gap-2">
+                        {service.time_slots.map((s, i) => (
+                          <Badge key={i} variant="secondary">
+                            {s}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Not specified</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+              <Card className="border">
+                <CardContent className="space-y-3 pt-4 text-sm">
+                  <p className="font-semibold">Booking Settings</p>
+                  <div className="flex justify-between gap-2">
+                    <span>Advance Booking</span>
+                    <Badge variant="outline">{service.advance_booking_hours ?? 24} hours</Badge>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span>Same-day Booking</span>
+                    <Badge variant={service.same_day_booking ? 'default' : 'secondary'}>
+                      {service.same_day_booking ? 'Yes' : 'No'}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span>Emergency Service</span>
+                    <Badge variant={service.emergency_service ? 'destructive' : 'secondary'}>
+                      {service.emergency_service ? 'Available' : 'Not Available'}
+                    </Badge>
+                  </div>
+                  {!!service.emergency_charge && (
+                    <div className="flex justify-between gap-2">
+                      <span>Emergency Charge</span>
+                      <span className="font-medium">₹{Number(service.emergency_charge).toFixed(2)}</span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="products" className="mt-0 space-y-4">
+              <div>
+                <p className="mb-2 text-sm font-semibold">Product Options</p>
+                {service.product_options?.length ? (
+                  <div className="space-y-3">
+                    {service.product_options.map((product: Record<string, unknown>, idx: number) => (
+                      <Card key={idx} className="border">
+                        <CardContent className="space-y-2 pt-4 text-sm">
+                          <div className="flex items-start justify-between gap-2">
+                            <span className="font-semibold">{String(product.name ?? '')}</span>
+                            {product.price != null && product.price !== '' && (
+                              <Badge className="shrink-0">{formatCurrency(Number(product.price))}</Badge>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            {product.brand != null && String(product.brand).length > 0 && (
+                              <div>
+                                <p className="text-xs text-muted-foreground">Brand</p>
+                                <p>{String(product.brand)}</p>
+                              </div>
+                            )}
+                            {product.warranty != null && String(product.warranty).length > 0 && (
+                              <div>
+                                <p className="text-xs text-muted-foreground">Warranty</p>
+                                <p>{String(product.warranty)}</p>
+                              </div>
+                            )}
+                          </div>
+                          {product.description != null && String(product.description).length > 0 && (
+                            <div>
+                              <p className="text-xs text-muted-foreground">Description</p>
+                              <p>{String(product.description)}</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No product options added</p>
+                )}
+              </div>
+              <Separator />
+              <div>
+                <p className="mb-2 text-sm font-semibold">Service Areas</p>
+                {service.service_areas?.length ? (
+                  <div className="space-y-2">
+                    {(service.service_areas as { name?: string; multiplier?: number; active?: boolean }[]).map(
+                      (area, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-sm"
+                        >
+                          <span className="font-medium">{area.name}</span>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">{area.multiplier}x</Badge>
+                            <Badge variant={area.active ? 'default' : 'secondary'}>
+                              {area.active ? 'Active' : 'Inactive'}
+                            </Badge>
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No service areas defined</p>
+                )}
+              </div>
+            </TabsContent>
+          </div>
+        </Tabs>
+
+        <DialogFooter className="border-t bg-muted/30 px-6 py-3 sm:justify-end">
+          <Button type="button" variant="outline" onClick={onClose}>
+            Close
+          </Button>
+          <Button
+            type="button"
+            onClick={() => {
+              onClose()
+              onEdit(service)
+            }}
+          >
+            <Pencil className="mr-2 h-4 w-4" />
+            Edit Service
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
 }
 
 export function PlatformServicesEnhanced() {
@@ -106,32 +467,12 @@ export function PlatformServicesEnhanced() {
   const [totalCount, setTotalCount] = useState(0)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
   const [showFilters, setShowFilters] = useState(false)
-  // Category id -> name (lowercase id for lookup; API returns lowercase ids)
   const [categoryNameById, setCategoryNameById] = useState<Record<string, string>>({})
-
-  // Dialogs
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false)
-  const [previewTab, setPreviewTab] = useState(0)
   const [selectedService, setSelectedService] = useState<PlatformService | null>(null)
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
-  const [menuService, setMenuService] = useState<PlatformService | null>(null)
+  const [stats, setStats] = useState({ total: 0, active: 0, featured: 0 })
 
-  // Snackbar
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success' as 'success' | 'error',
-  })
-
-  // Stats
-  const [stats, setStats] = useState({
-    total: 0,
-    active: 0,
-    featured: 0,
-  })
-
-  // Fetch categories for name lookup (API returns category as id string)
   useEffect(() => {
     let isMounted = true
     const loadLookups = async () => {
@@ -143,7 +484,7 @@ export function PlatformServicesEnhanced() {
         }).catch(() => [] as { id: string; name: string }[])
         if (!isMounted) return
         const byId: Record<string, string> = {}
-        ;(Array.isArray(cats) ? cats : []).forEach((c: any) => {
+        ;(Array.isArray(cats) ? cats : []).forEach((c: { id?: string; _id?: string; name?: string; title?: string }) => {
           const id = (c?.id ?? c?._id ?? '').toString().toLowerCase()
           const name = (c?.name ?? c?.title ?? '').toString().trim()
           if (id) byId[id] = name || id
@@ -153,21 +494,18 @@ export function PlatformServicesEnhanced() {
         // ignore
       }
     }
-    loadLookups()
-    return () => { isMounted = false }
+    void loadLookups()
+    return () => {
+      isMounted = false
+    }
   }, [])
 
   useEffect(() => {
     let isMounted = true
-    
     const loadData = async () => {
-      if (isMounted) {
-        await Promise.all([fetchServices(), fetchStats()])
-      }
+      if (isMounted) await Promise.all([fetchServices(), fetchStats()])
     }
-    
-    loadData()
-    
+    void loadData()
     return () => {
       isMounted = false
     }
@@ -176,34 +514,24 @@ export function PlatformServicesEnhanced() {
   const fetchServices = async () => {
     try {
       setLoading(true)
-      const params: any = {
+      const params: Record<string, unknown> = {
         page: page + 1,
         limit: rowsPerPage,
       }
+      if (selectedCategory !== 'all') params.category = selectedCategory
+      if (selectedStatus !== 'all') params.is_active = selectedStatus === 'active'
+      if (searchTerm) params.search = searchTerm
 
-      if (selectedCategory !== 'all') {
-        params.category = selectedCategory
-      }
-
-      if (selectedStatus !== 'all') {
-        params.is_active = selectedStatus === 'active'
-      }
-
-      if (searchTerm) {
-        params.search = searchTerm
-      }
-
-      const response = await platformServicesService.getServices(params)
-      
-      if (response && response.services) {
+      const response = await platformServicesService.getServices(params as GetPlatformServicesParams)
+      if (response?.services) {
         setServices(response.services)
         setTotalCount(response.pagination?.total || 0)
       } else {
         setServices([])
         setTotalCount(0)
       }
-    } catch (error: any) {
-      showSnackbar(error.message || 'Failed to fetch services', 'error')
+    } catch (error: unknown) {
+      appToast((error as Error)?.message || 'Failed to fetch services', 'error')
     } finally {
       setLoading(false)
     }
@@ -212,7 +540,6 @@ export function PlatformServicesEnhanced() {
   const fetchStats = async () => {
     try {
       const statsData = await platformServicesService.getServiceStats()
-      
       if (statsData) {
         setStats({
           total: statsData.total_services || 0,
@@ -220,53 +547,36 @@ export function PlatformServicesEnhanced() {
           featured: statsData.featured_services || 0,
         })
       }
-    } catch (error) {
+    } catch {
       setStats({ total: 0, active: 0, featured: 0 })
     }
   }
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, service: PlatformService) => {
-    setAnchorEl(event.currentTarget)
-    setMenuService(service)
-  }
-
-  const handleMenuClose = () => {
-    setAnchorEl(null)
-    setMenuService(null)
-  }
-
-  const handleCreate = () => {
-    navigate('/platform-services/create')
-  }
+  const handleCreate = () => navigate('/platform-services/create')
 
   const handleEdit = (service: PlatformService) => {
-    // Navigate to edit page with service ID
     navigate(`/platform-services/edit/${service.id}`)
-    handleMenuClose()
   }
 
   const handlePreview = (service: PlatformService) => {
     setSelectedService(service)
     setPreviewDialogOpen(true)
-    handleMenuClose()
   }
 
   const handleDelete = (service: PlatformService) => {
     setSelectedService(service)
     setDeleteDialogOpen(true)
-    handleMenuClose()
   }
 
   const confirmDelete = async () => {
     if (!selectedService) return
-
     try {
       await platformServicesService.deleteService(selectedService.id)
-      showSnackbar('Service deleted successfully', 'success')
+      appToast('Service deleted successfully', 'success')
       fetchServices()
       fetchStats()
-    } catch (error: any) {
-      showSnackbar(error.message || 'Failed to delete service', 'error')
+    } catch (error: unknown) {
+      appToast((error as Error)?.message || 'Failed to delete service', 'error')
     } finally {
       setDeleteDialogOpen(false)
       setSelectedService(null)
@@ -275,57 +585,45 @@ export function PlatformServicesEnhanced() {
 
   const handleToggleActive = async (service: PlatformService) => {
     try {
-      await platformServicesService.updateService(service.id, {
-        is_active: !service.is_active
-      })
-      showSnackbar(`Service ${!service.is_active ? 'activated' : 'deactivated'} successfully`, 'success')
+      await platformServicesService.updateService(service.id, { is_active: !service.is_active })
+      appToast(`Service ${!service.is_active ? 'activated' : 'deactivated'} successfully`, 'success')
       fetchServices()
       fetchStats()
-    } catch (error: any) {
-      showSnackbar(error.message || 'Failed to update service', 'error')
+    } catch (error: unknown) {
+      appToast((error as Error)?.message || 'Failed to update service', 'error')
     }
   }
 
   const handleToggleFeatured = async (service: PlatformService) => {
     try {
-      await platformServicesService.updateService(service.id, {
-        is_featured: !service.is_featured
-      })
-      showSnackbar(`Service ${!service.is_featured ? 'featured' : 'unfeatured'} successfully`, 'success')
+      await platformServicesService.updateService(service.id, { is_featured: !service.is_featured })
+      appToast(`Service ${!service.is_featured ? 'featured' : 'unfeatured'} successfully`, 'success')
       fetchServices()
       fetchStats()
-    } catch (error: any) {
-      showSnackbar(error.message || 'Failed to update service', 'error')
+    } catch (error: unknown) {
+      appToast((error as Error)?.message || 'Failed to update service', 'error')
     }
-  }
-
-  const getCategoryDisplayName = (categoryId: string | undefined) => {
-    if (!categoryId) return 'Uncategorized'
-    const name = categoryNameById[String(categoryId).toLowerCase()]
-    return name || categoryId
   }
 
   const handleDuplicate = async (service: PlatformService) => {
     try {
-      const { id, slug, created_at, updated_at, ...serviceData } = service
+      const { id: _id, slug: _slug, created_at: _c, updated_at: _u, ...serviceData } = service as PlatformService & {
+        created_at?: string
+        updated_at?: string
+      }
       await platformServicesService.createService({
-        ...serviceData,
+        ...(serviceData as object),
         name: `${service.name} (Copy)`,
         slug: `${service.slug}-copy`,
         is_active: false,
-        status: 'draft' as const
-      })
-      showSnackbar('Service duplicated successfully', 'success')
+        status: 'draft',
+      } as Parameters<typeof platformServicesService.createService>[0])
+      appToast('Service duplicated successfully', 'success')
       fetchServices()
       fetchStats()
-    } catch (error: any) {
-      showSnackbar(error.message || 'Failed to duplicate service', 'error')
+    } catch (error: unknown) {
+      appToast((error as Error)?.message || 'Failed to duplicate service', 'error')
     }
-  }
-
-
-  const showSnackbar = (message: string, severity: 'success' | 'error') => {
-    setSnackbar({ open: true, message, severity })
   }
 
   const clearFilters = () => {
@@ -334,1064 +632,431 @@ export function PlatformServicesEnhanced() {
     setSelectedStatus('all')
   }
 
+  const rangeStart = totalCount === 0 ? 0 : page * rowsPerPage + 1
+  const rangeEnd = Math.min((page + 1) * rowsPerPage, totalCount)
+
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }}>
-      {/* Compact Header */}
-      <Box sx={{ mb: 3 }}>
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          mb: 2,
-          flexWrap: 'wrap',
-          gap: 2
-        }}>
-          <Box>
-            <Typography 
-              variant="h5" 
-              component="h1" 
-              sx={{ 
-                fontWeight: 600,
-                color: 'text.primary',
-                mb: 0.5
-              }}
-            >
-              Platform Services
-            </Typography>
-            <Typography 
-              variant="body2" 
-              color="text.secondary"
-            >
-              Manage your service offerings
-            </Typography>
-          </Box>
-          <Stack direction="row" spacing={1}>
-            <ToggleButtonGroup
-              value={viewMode}
-              exclusive
-              onChange={(e, newMode) => newMode && setViewMode(newMode)}
-              size="small"
-            >
-              <ToggleButton value="list">
-                <ListViewIcon fontSize="small" />
-              </ToggleButton>
-              <ToggleButton value="grid">
-                <GridViewIcon fontSize="small" />
-              </ToggleButton>
-            </ToggleButtonGroup>
-            <Button 
-              variant="contained" 
-              startIcon={<AddIcon />} 
-              onClick={handleCreate}
-              sx={{
-                minWidth: 140,
-                height: 36,
-                borderRadius: 2,
-                textTransform: 'none',
-                fontWeight: 500,
-              }}
-            >
-              Add Service
-            </Button>
-          </Stack>
-        </Box>
-        
-        {/* Compact Stats */}
-        <Grid container spacing={2} sx={{ mb: 2 }}>
-          <Grid size={{ xs: 6, sm: 3 }}>
-            <Card sx={{ 
-              height: '100%',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: 'white',
-              borderRadius: 2,
-            }}>
-              <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <Typography variant="h6" sx={{ fontSize: '1rem', mr: 1 }}>📊</Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.9, fontSize: '0.75rem' }}>
-                    Total
-                  </Typography>
-                </Box>
-                <Typography variant="h4" sx={{ fontWeight: 700, fontSize: '1.5rem' }}>
-                  {stats.total}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          <Grid size={{ xs: 6, sm: 3 }}>
-            <Card sx={{ 
-              height: '100%',
-              background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
-              color: 'white',
-              borderRadius: 2,
-            }}>
-              <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <Typography variant="h6" sx={{ fontSize: '1rem', mr: 1 }}>✅</Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.9, fontSize: '0.75rem' }}>
-                    Active
-                  </Typography>
-                </Box>
-                <Typography variant="h4" sx={{ fontWeight: 700, fontSize: '1.5rem' }}>
-                  {stats.active}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          <Grid size={{ xs: 6, sm: 3 }}>
-            <Card sx={{ 
-              height: '100%',
-              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-              color: 'white',
-              borderRadius: 2,
-            }}>
-              <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <Typography variant="h6" sx={{ fontSize: '1rem', mr: 1 }}>⭐</Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.9, fontSize: '0.75rem' }}>
-                    Featured
-                  </Typography>
-                </Box>
-                <Typography variant="h4" sx={{ fontWeight: 700, fontSize: '1.5rem' }}>
-                  {stats.featured}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid size={{ xs: 6, sm: 3 }}>
-            <Card sx={{ 
-              height: '100%',
-              background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-              color: 'white',
-              borderRadius: 2,
-            }}>
-              <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <Typography variant="h6" sx={{ fontSize: '1rem', mr: 1 }}>📈</Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.9, fontSize: '0.75rem' }}>
-                    Growth
-                  </Typography>
-                </Box>
-                <Typography variant="h4" sx={{ fontWeight: 700, fontSize: '1.5rem' }}>
-                  +12%
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-      </Box>
-
-      {/* Compact Filters */}
-      <Card sx={{ mb: 3, borderRadius: 2 }}>
-        <CardContent sx={{ p: 2 }}>
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between',
-            mb: 2
-          }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <FilterIcon fontSize="small" color="action" />
-              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                Filters
-              </Typography>
-            </Box>
-            <Button
-              size="small"
-              onClick={() => setShowFilters(!showFilters)}
-              sx={{ textTransform: 'none', minWidth: 'auto' }}
-            >
-              {showFilters ? 'Hide' : 'Show'} Filters
-            </Button>
-          </Box>
-          
-          {showFilters && (
-            <Grid container spacing={2}>
-              <Grid size={{ xs: 12, md: 4 }}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Search services..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon fontSize="small" color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-              
-              <Grid size={{ xs: 12, md: 3 }}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Category</InputLabel>
-                  <Select
-                    value={selectedCategory}
-                    label="Category"
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                  >
-                    <MenuItem value="all">All Categories</MenuItem>
-                    {CATEGORIES.map((cat) => (
-                      <MenuItem key={cat} value={cat}>
-                        {(cat || '').replace('_', ' ').toUpperCase()}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              
-              <Grid size={{ xs: 12, md: 3 }}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    value={selectedStatus}
-                    label="Status"
-                    onChange={(e) => setSelectedStatus(e.target.value)}
-                  >
-                    <MenuItem value="all">All Status</MenuItem>
-                    <MenuItem value="active">Active</MenuItem>
-                    <MenuItem value="inactive">Inactive</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              
-              <Grid size={{ xs: 12, md: 2 }}>
+    <TooltipProvider delayDuration={300}>
+      <div className="p-4 md:p-6">
+        <div className="mb-6">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Platform Services</h1>
+              <p className="text-sm text-muted-foreground">Manage your service offerings</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex rounded-lg border p-0.5">
                 <Button
-                  fullWidth
-                  size="small"
-                  variant="outlined"
-                  onClick={clearFilters}
-                  sx={{ textTransform: 'none' }}
+                  type="button"
+                  size="sm"
+                  variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                  className="h-8 px-2"
+                  onClick={() => setViewMode('list')}
+                  aria-pressed={viewMode === 'list'}
                 >
-                  Clear
+                  <List className="h-4 w-4" />
                 </Button>
-              </Grid>
-            </Grid>
-          )}
-        </CardContent>
-      </Card>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                  className="h-8 px-2"
+                  onClick={() => setViewMode('grid')}
+                  aria-pressed={viewMode === 'grid'}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+              </div>
+              <Button className="h-9 min-w-[140px]" onClick={handleCreate}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Service
+              </Button>
+            </div>
+          </div>
 
-      {/* Services Content */}
-      {viewMode === 'list' ? (
-        <Card sx={{ borderRadius: 2 }}>
-          <TableContainer>
+          <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <Card className="overflow-hidden rounded-xl border-0 bg-gradient-to-br from-indigo-500 to-purple-700 text-white">
+              <CardContent className="p-4">
+                <p className="text-xs opacity-90">📊 Total</p>
+                <p className="text-2xl font-bold">{stats.total}</p>
+              </CardContent>
+            </Card>
+            <Card className="overflow-hidden rounded-xl border-0 bg-gradient-to-br from-emerald-500 to-teal-400 text-white">
+              <CardContent className="p-4">
+                <p className="text-xs opacity-90">✅ Active</p>
+                <p className="text-2xl font-bold">{stats.active}</p>
+              </CardContent>
+            </Card>
+            <Card className="overflow-hidden rounded-xl border-0 bg-gradient-to-br from-fuchsia-500 to-rose-500 text-white">
+              <CardContent className="p-4">
+                <p className="text-xs opacity-90">⭐ Featured</p>
+                <p className="text-2xl font-bold">{stats.featured}</p>
+              </CardContent>
+            </Card>
+            <Card className="overflow-hidden rounded-xl border-0 bg-gradient-to-br from-sky-400 to-cyan-400 text-white">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-1 text-xs opacity-90">
+                  <TrendingUp className="h-3.5 w-3.5" />
+                  Growth
+                </div>
+                <p className="text-2xl font-bold">+12%</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        <Card className="mb-6 rounded-xl">
+          <CardContent className="space-y-3 pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-semibold">Filters</span>
+              </div>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setShowFilters(!showFilters)}>
+                {showFilters ? 'Hide' : 'Show'} Filters
+              </Button>
+            </div>
+            {showFilters && (
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-12 md:items-end">
+                <div className="md:col-span-4">
+                  <Label className="sr-only" htmlFor="ps-search">
+                    Search
+                  </Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="ps-search"
+                      className="h-9 pl-9"
+                      placeholder="Search services..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-1 md:col-span-3">
+                  <Label className="text-xs">Category</Label>
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {CATEGORIES.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat.replace(/_/g, ' ').toUpperCase()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-1 md:col-span-3">
+                  <Label className="text-xs">Status</Label>
+                  <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="md:col-span-2">
+                  <Button type="button" variant="outline" className="w-full" size="sm" onClick={clearFilters}>
+                    Clear
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {viewMode === 'list' ? (
+          <Card className="rounded-xl">
             <Table>
-              <TableHead>
-                <TableRow sx={{ bgcolor: 'grey.50' }}>
-                  <TableCell sx={{ fontWeight: 600, py: 2 }}>Service</TableCell>
-                  <TableCell sx={{ fontWeight: 600, py: 2 }}>Category</TableCell>
-                  <TableCell sx={{ fontWeight: 600, py: 2 }}>Price</TableCell>
-                  <TableCell sx={{ fontWeight: 600, py: 2 }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 600, py: 2 }}>Rating</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 600, py: 2 }}>Actions</TableCell>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead>Service</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Rating</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Loading services...
-                      </Typography>
+                    <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                      Loading services...
                     </TableCell>
                   </TableRow>
                 ) : services.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                      <Box sx={{ textAlign: 'center' }}>
-                        <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
-                          No services found
-                        </Typography>
-                        <Button 
-                          variant="contained" 
-                          startIcon={<AddIcon />} 
-                          onClick={handleCreate}
-                          size="small"
-                        >
+                    <TableCell colSpan={6} className="py-10">
+                      <div className="flex flex-col items-center gap-3 text-center">
+                        <p className="font-medium text-muted-foreground">No services found</p>
+                        <Button size="sm" onClick={handleCreate}>
+                          <Plus className="mr-2 h-4 w-4" />
                           Create Service
                         </Button>
-                      </Box>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (
                   services.map((service) => (
-                    <TableRow 
-                      key={service.id} 
-                      hover
-                      sx={{ 
-                        '&:hover': {
-                          bgcolor: 'primary.50',
-                        }
-                      }}
-                    >
-                      <TableCell sx={{ py: 2 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <Avatar
-                            src={service.image}
-                            sx={{ 
-                              width: 40, 
-                              height: 40,
-                              bgcolor: 'primary.100',
-                              color: 'primary.main'
-                            }}
-                          >
-                            {service.name.charAt(0)}
+                    <TableRow key={service.id} className="hover:bg-muted/40">
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10">
+                            {service.image ? <AvatarImage src={service.image} alt="" /> : null}
+                            <AvatarFallback className="bg-primary/10 text-primary">{service.name.charAt(0)}</AvatarFallback>
                           </Avatar>
-                          <Box>
-                            <Typography variant="body2" fontWeight="600" sx={{ mb: 0.5 }}>
-                              {service.name}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {service.slug}
-                            </Typography>
-                          </Box>
-                        </Box>
+                          <div>
+                            <p className="text-sm font-semibold">{service.name}</p>
+                            <p className="text-xs text-muted-foreground">{service.slug}</p>
+                          </div>
+                        </div>
                       </TableCell>
-                      <TableCell sx={{ py: 2 }}>
-                        <Chip 
-                          label={getCategoryDisplayName(service.category)} 
-                          size="small" 
-                          sx={{ 
-                            fontWeight: 500,
-                            bgcolor: 'primary.100',
-                            color: 'primary.700'
-                          }} 
-                        />
+                      <TableCell>
+                        <Badge variant="secondary" className="font-normal">
+                          {getCategoryDisplayName(categoryNameById, service.category)}
+                        </Badge>
                       </TableCell>
-                      <TableCell sx={{ py: 2 }}>
-                        <Typography variant="body2" fontWeight="500">
-                          {displayBasePrice(service.base_price)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell sx={{ py: 2 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Chip
-                            label={service.is_active ? 'Active' : 'Inactive'}
-                            size="small"
-                            color={service.is_active ? 'success' : 'default'}
-                            onClick={() => handleToggleActive(service)}
-                            sx={{ 
-                              fontWeight: 500,
-                              cursor: 'pointer',
-                              '&:hover': {
-                                opacity: 0.8,
-                                transform: 'scale(1.05)'
-                              },
-                              transition: 'all 0.2s'
-                            }}
-                          />
-                          <Tooltip title={service.is_featured ? 'Remove from featured' : 'Mark as featured'}>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleToggleFeatured(service)}
-                              sx={{
-                                color: service.is_featured ? 'warning.main' : 'action.disabled',
-                                '&:hover': {
-                                  bgcolor: 'warning.50'
-                                }
-                              }}
-                            >
-                              <StarIcon fontSize="small" />
-                            </IconButton>
+                      <TableCell className="font-medium">{displayBasePrice(service.base_price)}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Badge
+                            variant={service.is_active ? 'default' : 'secondary'}
+                            className="cursor-pointer transition-opacity hover:opacity-90"
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => void handleToggleActive(service)}
+                            onKeyDown={(e) => e.key === 'Enter' && void handleToggleActive(service)}
+                          >
+                            {service.is_active ? 'Active' : 'Inactive'}
+                          </Badge>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className={cn('h-8 w-8', service.is_featured && 'text-amber-500')}
+                                onClick={() => void handleToggleFeatured(service)}
+                              >
+                                <Star className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{service.is_featured ? 'Remove from featured' : 'Mark as featured'}</TooltipContent>
                           </Tooltip>
-                        </Box>
+                        </div>
                       </TableCell>
-                      <TableCell sx={{ py: 2 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <StarIcon fontSize="small" color="warning" />
-                          <Typography variant="body2" fontWeight="500">
-                            {service.average_rating ? Number(service.average_rating).toFixed(1) : '0.0'}
-                          </Typography>
-                        </Box>
+                      <TableCell>
+                        <div className="flex items-center gap-1 text-sm">
+                          <Star className="h-4 w-4 text-amber-500" />
+                          {service.average_rating ? Number(service.average_rating).toFixed(1) : '0.0'}
+                        </div>
                       </TableCell>
-                      <TableCell align="right" sx={{ py: 2 }}>
-                        <IconButton 
-                          size="small" 
-                          onClick={(e) => handleMenuOpen(e, service)}
-                        >
-                          <MoreVertIcon />
-                        </IconButton>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Actions">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-52">
+                            <DropdownMenuItem onClick={() => handlePreview(service)}>
+                              <Eye className="mr-2 h-4 w-4 text-sky-600" />
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEdit(service)}>
+                              <Pencil className="mr-2 h-4 w-4 text-amber-600" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => void handleDuplicate(service)}>
+                              <Copy className="mr-2 h-4 w-4 text-primary" />
+                              Duplicate
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => void handleToggleActive(service)}>
+                              {service.is_active ? (
+                                <>
+                                  <CircleOff className="mr-2 h-4 w-4 text-destructive" />
+                                  Deactivate
+                                </>
+                              ) : (
+                                <>
+                                  <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-600" />
+                                  Activate
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => void handleToggleFeatured(service)}>
+                              <Star className="mr-2 h-4 w-4" />
+                              {service.is_featured ? 'Unfeature' : 'Feature'}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(service)}>
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))
                 )}
               </TableBody>
             </Table>
-          </TableContainer>
-          <TablePagination
-            component="div"
-            count={totalCount}
-            page={page}
-            onPageChange={(e, newPage) => setPage(newPage)}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={(e) => {
-              setRowsPerPage(parseInt(e.target.value, 10))
-              setPage(0)
-            }}
-            rowsPerPageOptions={[5, 10, 25, 50]}
-          />
-        </Card>
-      ) : (
-        <Grid container spacing={2}>
-          {services.map((service) => (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={service.id}>
-              <Card 
-                sx={{ 
-                  height: '100%',
-                  borderRadius: 2,
-                  '&:hover': {
-                    boxShadow: 4,
-                    transform: 'translateY(-2px)',
-                    transition: 'all 0.2s ease-in-out'
-                  }
-                }}
-              >
-                <CardContent sx={{ p: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Avatar
-                        src={service.image}
-                        sx={{ 
-                          width: 40, 
-                          height: 40,
-                          bgcolor: 'primary.100',
-                          color: 'primary.main'
-                        }}
-                      >
-                        {service.name.charAt(0)}
-                      </Avatar>
-                      <Box>
-                        <Typography variant="subtitle2" fontWeight="600" sx={{ mb: 0.5 }}>
-                          {service.name}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {getCategoryDisplayName(service.category)}
-                        </Typography>
-                      </Box>
-                    </Box>
-                    <IconButton 
-                      size="small" 
-                      onClick={(e) => handleMenuOpen(e, service)}
-                    >
-                      <MoreVertIcon />
-                    </IconButton>
-                  </Box>
-
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2, minHeight: 40 }}>
-                    {service.short_description || service.description?.substring(0, 100) + '...'}
-                  </Typography>
-
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                    <Typography variant="h6" color="primary.main" fontWeight="600">
-                      {displayBasePrice(service.base_price)}
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <StarIcon fontSize="small" color="warning" />
-                      <Typography variant="caption" fontWeight="500">
-                        {service.average_rating ? Number(service.average_rating).toFixed(1) : '0.0'}
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Chip
-                      label={service.is_active ? 'Active' : 'Inactive'}
-                      size="small"
-                      color={service.is_active ? 'success' : 'default'}
-                      sx={{ fontWeight: 500 }}
-                    />
-                    {service.is_featured && (
-                      <Tooltip title="Featured">
-                        <StarIcon color="warning" fontSize="small" />
-                      </Tooltip>
-                    )}
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      )}
-
-      {/* Action Menu */}
-      <Menu 
-        anchorEl={anchorEl} 
-        open={Boolean(anchorEl)} 
-        onClose={handleMenuClose}
-        PaperProps={{
-          elevation: 3,
-          sx: {
-            borderRadius: 2,
-            minWidth: 180,
-            mt: 1,
-          }
-        }}
-      >
-        <MenuItem 
-          onClick={() => menuService && handlePreview(menuService)}
-          sx={{ py: 1.5, px: 2 }}
-        >
-          <ViewIcon sx={{ mr: 1.5, color: 'info.main' }} fontSize="small" />
-          <Typography variant="body2" fontWeight={500}>View Details</Typography>
-        </MenuItem>
-        <MenuItem 
-          onClick={() => menuService && handleEdit(menuService)}
-          sx={{ py: 1.5, px: 2 }}
-        >
-          <EditIcon sx={{ mr: 1.5, color: 'warning.main' }} fontSize="small" />
-          <Typography variant="body2" fontWeight={500}>Edit</Typography>
-        </MenuItem>
-        <MenuItem 
-          onClick={() => menuService && handleDuplicate(menuService)}
-          sx={{ py: 1.5, px: 2 }}
-        >
-          <CopyIcon sx={{ mr: 1.5, color: 'primary.main' }} fontSize="small" />
-          <Typography variant="body2" fontWeight={500}>Duplicate</Typography>
-        </MenuItem>
-        <Divider sx={{ my: 0.5 }} />
-        <MenuItem 
-          onClick={() => menuService && handleToggleActive(menuService)}
-          sx={{ py: 1.5, px: 2 }}
-        >
-          {menuService?.is_active ? (
-            <>
-              <CancelIcon sx={{ mr: 1.5, color: 'error.main' }} fontSize="small" />
-              <Typography variant="body2" fontWeight={500}>Deactivate</Typography>
-            </>
-          ) : (
-            <>
-              <CheckCircleIcon sx={{ mr: 1.5, color: 'success.main' }} fontSize="small" />
-              <Typography variant="body2" fontWeight={500}>Activate</Typography>
-            </>
-          )}
-        </MenuItem>
-        <MenuItem 
-          onClick={() => menuService && handleToggleFeatured(menuService)}
-          sx={{ py: 1.5, px: 2 }}
-        >
-          <StarIcon sx={{ mr: 1.5, color: menuService?.is_featured ? 'action.disabled' : 'warning.main' }} fontSize="small" />
-          <Typography variant="body2" fontWeight={500}>
-            {menuService?.is_featured ? 'Unfeature' : 'Feature'}
-          </Typography>
-        </MenuItem>
-        <Divider sx={{ my: 0.5 }} />
-        <MenuItem 
-          onClick={() => menuService && handleDelete(menuService)} 
-          sx={{ py: 1.5, px: 2 }}
-        >
-          <DeleteIcon sx={{ mr: 1.5, color: 'error.main' }} fontSize="small" />
-          <Typography variant="body2" fontWeight={500} color="error.main">Delete</Typography>
-        </MenuItem>
-      </Menu>
-
-
-      {/* Preview Dialog */}
-      <Dialog 
-        open={previewDialogOpen} 
-        onClose={() => setPreviewDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          elevation: 24,
-          sx: { borderRadius: 3, overflow: 'hidden' }
-        }}
-      >
-        <DialogTitle 
-          sx={{ 
-            pb: 2,
-            pt: 3,
-            px: 4,
-            background: (theme) => `linear-gradient(135deg, ${theme.palette.info.main} 0%, ${theme.palette.info.dark} 100%)`,
-            color: 'white',
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Box>
-              <Typography variant="h5" component="div" sx={{ fontWeight: 700, mb: 0.5 }}>
-                {selectedService?.name}
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Service Preview
-              </Typography>
-            </Box>
-            <IconButton
-              onClick={() => setPreviewDialogOpen(false)}
-              sx={{ color: 'white' }}
-            >
-              <CloseIcon />
-            </IconButton>
-          </Box>
-        </DialogTitle>
-
-        <DialogContent sx={{ p: 0 }}>
-          {selectedService && (
-            <Box>
-              {selectedService.image && (
-                <Box 
-                  sx={{ 
-                    width: '100%', 
-                    height: 200, 
-                    backgroundImage: `url(${selectedService.image})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
+            <div className="flex flex-col gap-3 border-t px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>Rows per page</span>
+                <Select
+                  value={String(rowsPerPage)}
+                  onValueChange={(v) => {
+                    setRowsPerPage(Number(v))
+                    setPage(0)
                   }}
-                />
-              )}
-
-              {/* Tabs for different sections */}
-              <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                <Tabs 
-                  value={previewTab} 
-                  onChange={(e, newValue) => setPreviewTab(newValue)}
-                  variant="scrollable"
-                  scrollButtons="auto"
                 >
-                  <Tab label="Overview" />
-                  <Tab label="Pricing & Details" />
-                  <Tab label="Features" />
-                  <Tab label="Availability" />
-                  <Tab label="Products" />
-                </Tabs>
-              </Box>
-
-              <Box sx={{ p: 3 }}>
-                {/* Overview Tab */}
-                {previewTab === 0 && (
-                  <Grid container spacing={2}>
-                    <Grid size={{ xs: 12 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'primary.main' }}>
-                        Description
-                      </Typography>
-                      <Typography variant="body2" sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
-                        {selectedService.description}
-                      </Typography>
-                    </Grid>
-
-                    <Grid size={{ xs: 12, sm: 6 }}>
-                      <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, height: '100%' }}>
-                        <CardContent>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: 'success.main' }}>
-                            Pricing
-                          </Typography>
-                          <Typography variant="h4" sx={{ fontWeight: 700, color: 'success.main', mb: 1 }}>
-                            {displayBasePrice(selectedService.base_price)}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            GST: {selectedService.gst_percentage}% {selectedService.tax_included ? '(included)' : '(extra)'}
-                          </Typography>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-
-                    <Grid size={{ xs: 12, sm: 6 }}>
-                      <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, height: '100%' }}>
-                        <CardContent>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: 'warning.main' }}>
-                            Statistics
-                          </Typography>
-                          <Box sx={{ display: 'flex', gap: 3 }}>
-                            <Box>
-                              <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                                {selectedService.total_requests || 0}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                Requests
-                              </Typography>
-                            </Box>
-                            <Box>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <StarIcon sx={{ color: 'warning.main', fontSize: 20 }} />
-                                <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                                  {selectedService.average_rating ? Number(selectedService.average_rating).toFixed(1) : '0.0'}
-                                </Typography>
-                              </Box>
-                              <Typography variant="caption" color="text.secondary">
-                                Rating
-                              </Typography>
-                            </Box>
-                          </Box>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-
-                    <Grid size={{ xs: 12 }}>
-                      <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                        <CardContent>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>
-                            Status & Settings
-                          </Typography>
-                          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                            <Chip 
-                              label={selectedService.is_active ? 'Active' : 'Inactive'} 
-                              color={selectedService.is_active ? 'success' : 'default'} 
-                              size="small"
-                            />
-                            <Chip 
-                              label={selectedService.status} 
-                              color={selectedService.status === 'published' ? 'primary' : 'default'} 
-                              size="small"
-                            />
-                            {selectedService.is_featured && (
-                              <Chip label="Featured" color="warning" size="small" icon={<StarIcon />} />
-                            )}
-                            {selectedService.is_popular && (
-                              <Chip label="Popular" color="secondary" size="small" />
-                            )}
-                            {selectedService.emergency_service && (
-                              <Chip label="Emergency Service" color="error" size="small" />
-                            )}
-                          </Box>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  </Grid>
-                )}
-
-                {/* Pricing & Details Tab */}
-                {previewTab === 1 && (
-                  <Grid container spacing={2}>
-                    <Grid size={{ xs: 12, sm: 6 }}>
-                      <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                        <CardContent>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: 'primary.main' }}>
-                            Service Information
-                          </Typography>
-                          <Stack spacing={1.5}>
-                            <Box>
-                              <Typography variant="caption" color="text.secondary">Category</Typography>
-                              <Typography variant="body2" fontWeight={500}>{getCategoryDisplayName(selectedService.category)}</Typography>
-                            </Box>
-                            <Box>
-                              <Typography variant="caption" color="text.secondary">Service Type</Typography>
-                              <Typography variant="body2" fontWeight={500}>{selectedService.service_type}</Typography>
-                            </Box>
-                            {selectedService.duration && (
-                              <Box>
-                                <Typography variant="caption" color="text.secondary">Duration</Typography>
-                                <Typography variant="body2" fontWeight={500}>{selectedService.duration}</Typography>
-                              </Box>
-                            )}
-                          </Stack>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-
-                    <Grid size={{ xs: 12, sm: 6 }}>
-                      <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                        <CardContent>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: 'success.main' }}>
-                            Pricing Details
-                          </Typography>
-                          <Stack spacing={1.5}>
-                            {hasDisplayableBasePrice(selectedService.base_price) && (
-                              <Box>
-                                <Typography variant="caption" color="text.secondary">Base Price</Typography>
-                                <Typography variant="body2" fontWeight={500}>
-                                  {displayBasePrice(selectedService.base_price)}
-                                </Typography>
-                              </Box>
-                            )}
-                            {selectedService.hourly_rate && (
-                              <Box>
-                                <Typography variant="caption" color="text.secondary">Hourly Rate</Typography>
-                                <Typography variant="body2" fontWeight={500}>₹{Number(selectedService.hourly_rate).toFixed(2)}/hour</Typography>
-                              </Box>
-                            )}
-                            <Box>
-                              <Typography variant="caption" color="text.secondary">GST</Typography>
-                              <Typography variant="body2" fontWeight={500}>
-                                {selectedService.gst_percentage}% {selectedService.tax_included ? '(included)' : '(extra)'}
-                              </Typography>
-                            </Box>
-                          </Stack>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  </Grid>
-                )}
-
-                {/* Features Tab */}
-                {previewTab === 2 && (
-                  <Grid container spacing={2}>
-                    <Grid size={{ xs: 12 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: 'primary.main' }}>
-                        Features
-                      </Typography>
-                      {selectedService.features && selectedService.features.length > 0 ? (
-                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                          {selectedService.features.map((feature, idx) => (
-                            <Chip key={idx} label={feature} size="small" color="primary" variant="outlined" />
-                          ))}
-                        </Box>
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">No features added</Typography>
+                  <SelectTrigger className="h-8 w-[72px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[5, 10, 25, 50].map((n) => (
+                      <SelectItem key={n} value={String(n)}>
+                        {n}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="hidden sm:inline">
+                  {totalCount === 0 ? '0–0' : `${rangeStart}–${rangeEnd}`} of {totalCount}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
+                  Previous
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={(page + 1) * rowsPerPage >= totalCount || totalCount === 0}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {loading && <div className="col-span-full py-12 text-center text-muted-foreground">Loading...</div>}
+            {!loading && services.length === 0 && (
+              <Card className="col-span-full rounded-xl border-dashed py-12 text-center">
+                <p className="mb-3 text-muted-foreground">No services found</p>
+                <Button size="sm" onClick={handleCreate}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Service
+                </Button>
+              </Card>
+            )}
+            {!loading &&
+              services.map((service) => (
+                <Card
+                  key={service.id}
+                  className="rounded-xl transition-shadow hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <CardContent className="space-y-3 pt-5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-10 w-10">
+                          {service.image ? <AvatarImage src={service.image} alt="" /> : null}
+                          <AvatarFallback className="bg-primary/10 text-primary">{service.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold">{service.name}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {getCategoryDisplayName(categoryNameById, service.category)}
+                          </p>
+                        </div>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-52">
+                          <DropdownMenuItem onClick={() => handlePreview(service)}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEdit(service)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => void handleDuplicate(service)}>
+                            <Copy className="mr-2 h-4 w-4" />
+                            Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => void handleDelete(service)} className="text-destructive">
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    <p className="line-clamp-3 min-h-[3.5rem] text-sm text-muted-foreground">
+                      {service.short_description || (service.description ? `${service.description.slice(0, 100)}…` : '—')}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-lg font-semibold text-primary">{displayBasePrice(service.base_price)}</p>
+                      <div className="flex items-center gap-1 text-xs font-medium">
+                        <Star className="h-3.5 w-3.5 text-amber-500" />
+                        {service.average_rating ? Number(service.average_rating).toFixed(1) : '0.0'}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Badge variant={service.is_active ? 'default' : 'secondary'}>{service.is_active ? 'Active' : 'Inactive'}</Badge>
+                      {service.is_featured && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Star className="h-4 w-4 fill-amber-400 text-amber-500" />
+                          </TooltipTrigger>
+                          <TooltipContent>Featured</TooltipContent>
+                        </Tooltip>
                       )}
-                    </Grid>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            }
+          </div>
+        )}
 
-                    <Grid size={{ xs: 12 }}>
-                      <Divider />
-                    </Grid>
+        <ServicePreviewDialog
+          open={previewDialogOpen}
+          onClose={() => setPreviewDialogOpen(false)}
+          service={selectedService}
+          categoryNameById={categoryNameById}
+          onEdit={(s) => handleEdit(s)}
+        />
 
-                    <Grid size={{ xs: 12 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: 'secondary.main' }}>
-                        Requirements
-                      </Typography>
-                      {selectedService.requirements && selectedService.requirements.length > 0 ? (
-                        <List dense>
-                          {selectedService.requirements.map((req, idx) => (
-                            <ListItem key={idx}>
-                              <ListItemIcon>
-                                <CheckCircleIcon color="success" fontSize="small" />
-                              </ListItemIcon>
-                              <ListItemText primary={req} />
-                            </ListItem>
-                          ))}
-                        </List>
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">No requirements specified</Typography>
-                      )}
-                    </Grid>
-
-                    <Grid size={{ xs: 12 }}>
-                      <Divider />
-                    </Grid>
-
-                    <Grid size={{ xs: 12 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: 'info.main' }}>
-                        Tags
-                      </Typography>
-                      {selectedService.tags && selectedService.tags.length > 0 ? (
-                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                          {selectedService.tags.map((tag, idx) => (
-                            <Chip key={idx} label={tag} size="small" variant="filled" />
-                          ))}
-                        </Box>
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">No tags added</Typography>
-                      )}
-                    </Grid>
-                  </Grid>
-                )}
-
-                {/* Availability Tab */}
-                {previewTab === 3 && (
-                  <Grid container spacing={2}>
-                    <Grid size={{ xs: 12, sm: 6 }}>
-                      <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                        <CardContent>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>
-                            Working Days
-                          </Typography>
-                          {selectedService.working_days && selectedService.working_days.length > 0 ? (
-                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                              {selectedService.working_days.map((day, idx) => (
-                                <Chip key={idx} label={day} size="small" color="primary" />
-                              ))}
-                            </Box>
-                          ) : (
-                            <Typography variant="body2" color="text.secondary">Not specified</Typography>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </Grid>
-
-                    <Grid size={{ xs: 12, sm: 6 }}>
-                      <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                        <CardContent>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>
-                            Time Slots
-                          </Typography>
-                          {selectedService.time_slots && selectedService.time_slots.length > 0 ? (
-                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                              {selectedService.time_slots.map((slot, idx) => (
-                                <Chip key={idx} label={slot} size="small" color="secondary" />
-                              ))}
-                            </Box>
-                          ) : (
-                            <Typography variant="body2" color="text.secondary">Not specified</Typography>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </Grid>
-
-                    <Grid size={{ xs: 12 }}>
-                      <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                        <CardContent>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>
-                            Booking Settings
-                          </Typography>
-                          <Stack spacing={1.5}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <Typography variant="body2">Advance Booking</Typography>
-                              <Chip label={`${selectedService.advance_booking_hours || 24} hours`} size="small" />
-                            </Box>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <Typography variant="body2">Same-day Booking</Typography>
-                              <Chip 
-                                label={selectedService.same_day_booking ? 'Yes' : 'No'} 
-                                size="small" 
-                                color={selectedService.same_day_booking ? 'success' : 'default'}
-                              />
-                            </Box>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <Typography variant="body2">Emergency Service</Typography>
-                              <Chip 
-                                label={selectedService.emergency_service ? 'Available' : 'Not Available'} 
-                                size="small" 
-                                color={selectedService.emergency_service ? 'error' : 'default'}
-                              />
-                            </Box>
-                            {selectedService.emergency_charge && (
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Typography variant="body2">Emergency Charge</Typography>
-                                <Typography variant="body2" fontWeight={500}>₹{Number(selectedService.emergency_charge).toFixed(2)}</Typography>
-                              </Box>
-                            )}
-                          </Stack>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  </Grid>
-                )}
-
-                {/* Products Tab */}
-                {previewTab === 4 && (
-                  <Grid container spacing={2}>
-                    <Grid size={{ xs: 12 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>
-                        Product Options
-                      </Typography>
-                      {selectedService.product_options && selectedService.product_options.length > 0 ? (
-                        <Stack spacing={2}>
-                          {selectedService.product_options.map((product: any, idx: number) => (
-                            <Card key={idx} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                              <CardContent>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1 }}>
-                                  <Typography variant="subtitle2" fontWeight={600}>{product.name}</Typography>
-                                  {product.price && (
-                                    <Chip label={formatCurrency(Number(product.price))} size="small" color="success" />
-                                  )}
-                                </Box>
-                                <Grid container spacing={1}>
-                                  {product.brand && (
-                                    <Grid size={{ xs: 6 }}>
-                                      <Typography variant="caption" color="text.secondary">Brand</Typography>
-                                      <Typography variant="body2">{product.brand}</Typography>
-                                    </Grid>
-                                  )}
-                                  {product.warranty && (
-                                    <Grid size={{ xs: 6 }}>
-                                      <Typography variant="caption" color="text.secondary">Warranty</Typography>
-                                      <Typography variant="body2">{product.warranty}</Typography>
-                                    </Grid>
-                                  )}
-                                  {product.description && (
-                                    <Grid size={{ xs: 12 }}>
-                                      <Typography variant="caption" color="text.secondary">Description</Typography>
-                                      <Typography variant="body2">{product.description}</Typography>
-                                    </Grid>
-                                  )}
-                                </Grid>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </Stack>
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">No product options added</Typography>
-                      )}
-                    </Grid>
-
-                    <Grid size={{ xs: 12 }}>
-                      <Divider sx={{ my: 2 }} />
-                    </Grid>
-
-                    <Grid size={{ xs: 12 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>
-                        Service Areas
-                      </Typography>
-                      {selectedService.service_areas && selectedService.service_areas.length > 0 ? (
-                        <Stack spacing={1}>
-                          {selectedService.service_areas.map((area: any, idx: number) => (
-                            <Box 
-                              key={idx} 
-                              sx={{ 
-                                display: 'flex', 
-                                justifyContent: 'space-between', 
-                                alignItems: 'center',
-                                p: 1.5,
-                                bgcolor: 'grey.50',
-                                borderRadius: 1
-                              }}
-                            >
-                              <Typography variant="body2" fontWeight={500}>{area.name}</Typography>
-                              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                                <Chip label={`${area.multiplier}x`} size="small" />
-                                <Chip 
-                                  label={area.active ? 'Active' : 'Inactive'} 
-                                  size="small" 
-                                  color={area.active ? 'success' : 'default'}
-                                />
-                              </Box>
-                            </Box>
-                          ))}
-                        </Stack>
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">No service areas defined</Typography>
-                      )}
-                    </Grid>
-                  </Grid>
-                )}
-              </Box>
-            </Box>
-          )}
-        </DialogContent>
-
-        <DialogActions sx={{ p: 2, bgcolor: 'grey.50', gap: 1 }}>
-          <Button 
-            onClick={() => setPreviewDialogOpen(false)}
-            sx={{ textTransform: 'none', fontWeight: 600 }}
-          >
-            Close
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<EditIcon />}
-            onClick={() => {
-              setPreviewDialogOpen(false)
-              selectedService && handleEdit(selectedService)
-            }}
-            sx={{ textTransform: 'none', fontWeight: 600 }}
-          >
-            Edit Service
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Delete Dialog */}
-      <ConfirmDialog
-        open={deleteDialogOpen}
-        title="Delete Service"
-        message={`Are you sure you want to delete "${selectedService?.name}"?`}
-        onConfirm={confirmDelete}
-        onCancel={() => {
-          setDeleteDialogOpen(false)
-          setSelectedService(null)
-        }}
-      />
-
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      >
-        <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
-      </Snackbar>
-    </Box>
+        <ConfirmDialog
+          open={deleteDialogOpen}
+          title="Delete Service"
+          message={`Are you sure you want to delete "${selectedService?.name}"?`}
+          onConfirm={confirmDelete}
+          onCancel={() => {
+            setDeleteDialogOpen(false)
+            setSelectedService(null)
+          }}
+        />
+      </div>
+    </TooltipProvider>
   )
 }

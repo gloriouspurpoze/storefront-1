@@ -1,48 +1,43 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import {
-  Box,
-  Paper,
-  Typography,
-  TextField,
-  InputAdornment,
+  Button,
+  Card,
+  CardContent,
+  Input,
+  Label,
+  Badge,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  TablePagination,
-  Chip,
-  Button,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  ToggleButton,
-  ToggleButtonGroup,
-  Alert,
-  Skeleton,
-  IconButton,
-  Tooltip,
-  useTheme,
-  alpha,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui'
 import {
-  Search as SearchIcon,
-  Inventory2 as InventoryIcon,
-  WarningAmber as LowStockIcon,
-  RemoveShoppingCart as OutIcon,
-  Edit as EditIcon,
-  Add as AddIcon,
-} from '@mui/icons-material'
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../../components/ui/tooltip'
+import { Search, Package, AlertTriangle, ShoppingCart, Pencil, Plus, Loader2 } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { ProductsService } from '../../services/api/products.service'
 import type { Product } from '../../types'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useAppDispatch } from '../../store/hooks'
 import { addToast } from '../../store/slices/uiSlice'
+import { cn } from '../../lib/utils'
 
 type StockFilter = 'all' | 'in_stock' | 'low' | 'out'
 
@@ -54,12 +49,7 @@ function stockStatus(product: Product): 'out' | 'low' | 'ok' {
   return 'ok'
 }
 
-/**
- * Operations-style inventory: on-hand quantities, low-stock thresholds, quick adjustments.
- * Aligns with common commerce admin patterns (Shopify / BigCommerce–style stock list).
- */
 export default function InventoryManagement() {
-  const theme = useTheme()
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const { checkPermission } = usePermissions()
@@ -184,247 +174,284 @@ export default function InventoryManagement() {
     }
   }
 
-  const statusChip = (p: Product) => {
+  const statusBadge = (p: Product) => {
     const s = stockStatus(p)
     if (s === 'out')
-      return <Chip size="small" icon={<OutIcon />} label="Out of stock" color="error" variant="outlined" />
+      return (
+        <Badge variant="outline" className="gap-1 border-red-200 bg-red-50 text-red-900 dark:border-red-900 dark:bg-red-950/40">
+          <ShoppingCart className="h-3 w-3" />
+          Out of stock
+        </Badge>
+      )
     if (s === 'low')
-      return <Chip size="small" icon={<LowStockIcon />} label="Low stock" color="warning" variant="outlined" />
-    return <Chip size="small" label="In stock" color="success" variant="outlined" />
+      return (
+        <Badge variant="outline" className="gap-1 border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40">
+          <AlertTriangle className="h-3 w-3" />
+          Low stock
+        </Badge>
+      )
+    return <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900">In stock</Badge>
   }
 
+  const rangeStart = total === 0 ? 0 : page * rowsPerPage + 1
+  const rangeEnd = Math.min((page + 1) * rowsPerPage, total)
+
+  const kpiCards = [
+    { label: filter === 'all' ? 'SKUs (this page)' : 'SKUs (filtered)', value: kpis.skus, className: 'text-primary' },
+    { label: 'Units on hand', value: kpis.units.toLocaleString(), className: 'text-sky-600' },
+    { label: 'Low stock', value: kpis.low, className: 'text-amber-600' },
+    { label: 'Out of stock', value: kpis.out, className: 'text-red-600' },
+  ]
+
   return (
-    <Box sx={{ p: { xs: 2, sm: 3 } }}>
-      <PageHeader
-        title="Inventory"
-        subtitle="On-hand quantities, low-stock alerts, and quick adjustments — without opening the full product editor."
-        icon={<InventoryIcon color="primary" sx={{ fontSize: 40 }} />}
-        action={
-          <Button variant="contained" startIcon={<AddIcon />} component={RouterLink} to="/products/add">
-            Add product
-          </Button>
-        }
-      />
+    <TooltipProvider>
+      <div className="p-4 sm:p-6">
+        <PageHeader
+          title="Inventory"
+          subtitle="On-hand quantities, low-stock alerts, and quick adjustments — without opening the full product editor."
+          icon={<Package className="h-10 w-10 text-primary" />}
+          action={
+            <Button asChild>
+              <RouterLink to="/products/add">
+                <Plus className="mr-2 h-4 w-4" />
+                Add product
+              </RouterLink>
+            </Button>
+          }
+        />
 
-      <Alert severity="info" sx={{ mt: 2, mb: 2, maxWidth: 960 }}>
-        <strong>How teams use this:</strong> filter by low or out-of-stock, adjust on-hand counts after receiving goods or cycle counts, and set
-        reorder alerts via the low-stock threshold. Full merchandising (price, images) stays under <strong>Products</strong>.
-      </Alert>
+        <div className="mt-4 mb-4 max-w-3xl rounded-lg border border-sky-200 bg-sky-50/80 px-3 py-2 text-sm text-sky-950 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
+          <strong>How teams use this:</strong> filter by low or out-of-stock, adjust on-hand counts after receiving goods or cycle counts, and set
+          reorder alerts via the low-stock threshold. Full merchandising (price, images) stays under <strong>Products</strong>.
+        </div>
 
-      {!canAdjust && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          You have view-only access. Ask an admin for <strong>edit products</strong> or <strong>manage product inventory</strong> to change
-          quantities.
-        </Alert>
-      )}
+        {!canAdjust && (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/30">
+            You have view-only access. Ask an admin for <strong>edit products</strong> or <strong>manage product inventory</strong> to change
+            quantities.
+          </div>
+        )}
 
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        {[
-          { label: filter === 'all' ? 'SKUs (this page)' : 'SKUs (filtered)', value: kpis.skus, color: theme.palette.primary.main },
-          { label: 'Units on hand', value: kpis.units.toLocaleString(), color: theme.palette.info.main },
-          { label: 'Low stock', value: kpis.low, color: theme.palette.warning.main },
-          { label: 'Out of stock', value: kpis.out, color: theme.palette.error.main },
-        ].map((k) => (
-          <Grid item xs={6} md={3} key={k.label}>
-            <Paper
-              elevation={0}
-              sx={{
-                p: 2,
-                border: `1px solid ${alpha(theme.palette.divider, 0.9)}`,
-                borderRadius: 2,
-              }}
-            >
-              <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                {k.label}
-              </Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800, color: k.color, mt: 0.5 }}>
-                {loading ? '—' : k.value}
-              </Typography>
-            </Paper>
-          </Grid>
-        ))}
-      </Grid>
+        <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+          {kpiCards.map((k) => (
+            <Card key={k.label} className="rounded-xl border shadow-sm">
+              <CardContent className="pt-5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{k.label}</p>
+                <p className={cn('mt-1 text-2xl font-bold tabular-nums', k.className)}>{loading ? '—' : k.value}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
 
-      <Paper elevation={0} sx={{ border: `1px solid ${alpha(theme.palette.divider, 0.9)}`, borderRadius: 2, p: 2 }}>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', mb: 2 }}>
-          <TextField
-            size="small"
-            placeholder="Search SKU or product name…"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
+        <Card className="rounded-xl border p-4 shadow-sm">
+          <div className="mb-4 flex flex-wrap items-end gap-2">
+            <div className="relative min-w-[200px] flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                className="pl-9"
+                placeholder="Search SKU or product name…"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    setAppliedSearch(searchInput)
+                    setPage(0)
+                  }
+                }}
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
                 setAppliedSearch(searchInput)
                 setPage(0)
-              }
-            }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon fontSize="small" />
-                </InputAdornment>
-              ),
-            }}
-            sx={{ minWidth: 260, flex: 1 }}
-          />
-          <Button
-            variant="outlined"
-            onClick={() => {
-              setAppliedSearch(searchInput)
-              setPage(0)
-            }}
-          >
-            Search
-          </Button>
-          <Box sx={{ flexGrow: 1 }} />
-          <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>
-            Stock status
-          </Typography>
-          <ToggleButtonGroup
-            size="small"
-            exclusive
-            value={filter}
-            onChange={(_, v) => v && setFilter(v)}
-          >
-            <ToggleButton value="all">All</ToggleButton>
-            <ToggleButton value="in_stock">Healthy</ToggleButton>
-            <ToggleButton value="low">Low</ToggleButton>
-            <ToggleButton value="out">Out</ToggleButton>
-          </ToggleButtonGroup>
-        </Box>
+              }}
+            >
+              Search
+            </Button>
+            <div className="ml-auto flex flex-wrap items-center gap-2">
+              <span className="text-xs text-muted-foreground">Stock status</span>
+              <div className="flex rounded-lg border p-0.5">
+                {(
+                  [
+                    ['all', 'All'],
+                    ['in_stock', 'Healthy'],
+                    ['low', 'Low'],
+                    ['out', 'Out'],
+                  ] as const
+                ).map(([val, label]) => (
+                  <Button
+                    key={val}
+                    type="button"
+                    size="sm"
+                    variant={filter === val ? 'secondary' : 'ghost'}
+                    className="h-8 px-2 text-xs"
+                    onClick={() => setFilter(val)}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
 
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Product</TableCell>
-                <TableCell>SKU</TableCell>
-                <TableCell align="right">On hand</TableCell>
-                <TableCell align="right">Low at</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading
-                ? Array.from({ length: 8 }).map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell colSpan={6}>
-                        <Skeleton variant="rounded" height={36} />
-                      </TableCell>
-                    </TableRow>
-                  ))
-                : filteredByStatus.map((p) => (
-                    <TableRow key={p.id} hover>
-                      <TableCell>
-                        <Typography fontWeight={600}>{p.name}</Typography>
-                        {p.category?.name && (
-                          <Typography variant="caption" color="text.secondary">
-                            {p.category.name}
-                          </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" fontFamily="monospace">
-                          {p.sku || '—'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-                          {Number(p.stock_quantity) || 0}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">{p.low_stock_threshold ?? 5}</TableCell>
-                      <TableCell>{statusChip(p)}</TableCell>
-                      <TableCell align="right">
-                        <Tooltip title="Full product edit">
-                          <IconButton size="small" onClick={() => navigate(`/products/edit/${p.id}`)} aria-label="Edit product">
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        {canAdjust && (
-                          <Button size="small" onClick={() => openAdjust(p)}>
-                            Adjust
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        {!loading && filteredByStatus.length === 0 && (
-          <Box sx={{ py: 4, textAlign: 'center' }}>
-            <Typography color="text.secondary">No rows match this filter. Try another status or search.</Typography>
-          </Box>
-        )}
-        {filter !== 'all' && !loading && (
-          <Alert severity="warning" sx={{ mt: 1 }}>
-            Status filters apply to the <strong>current page</strong> of results. Increase &quot;rows per page&quot; or refine search to cover more
-            SKUs.
-          </Alert>
-        )}
-        {filter === 'all' ? (
-          <TablePagination
-            component="div"
-            count={total}
-            page={page}
-            onPageChange={(_, p) => setPage(p)}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={(e) => {
-              setRowsPerPage(parseInt(e.target.value, 10))
-              setPage(0)
-            }}
-            rowsPerPageOptions={[10, 25, 50, 100]}
-          />
-        ) : (
-          <Box sx={{ py: 1.5, px: 1 }}>
-            <Typography variant="caption" color="text.secondary">
-              Showing {filteredByStatus.length} row(s) after status filter on this page (pagination applies when &quot;All&quot; is selected).
-            </Typography>
-          </Box>
-        )}
-      </Paper>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/40">
+                  <TableHead>Product</TableHead>
+                  <TableHead>SKU</TableHead>
+                  <TableHead className="text-right">On hand</TableHead>
+                  <TableHead className="text-right">Low at</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading
+                  ? Array.from({ length: 8 }).map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell colSpan={6}>
+                          <div className="h-9 animate-pulse rounded-md bg-muted" />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  : filteredByStatus.map((p) => (
+                      <TableRow key={p.id} className="hover:bg-muted/30">
+                        <TableCell>
+                          <p className="font-semibold">{p.name}</p>
+                          {p.category?.name && <p className="text-xs text-muted-foreground">{p.category.name}</p>}
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-mono text-sm">{p.sku || '—'}</span>
+                        </TableCell>
+                        <TableCell className="text-right font-bold tabular-nums">{Number(p.stock_quantity) || 0}</TableCell>
+                        <TableCell className="text-right">{p.low_stock_threshold ?? 5}</TableCell>
+                        <TableCell>{statusBadge(p)}</TableCell>
+                        <TableCell className="text-right">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/products/edit/${p.id}`)} aria-label="Edit product">
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Full product edit</TooltipContent>
+                          </Tooltip>
+                          {canAdjust && (
+                            <Button type="button" variant="outline" size="sm" className="ml-1" onClick={() => openAdjust(p)}>
+                              Adjust
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+              </TableBody>
+            </Table>
+          </div>
 
-      <Dialog open={adjustOpen} onClose={() => !saving && setAdjustOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Adjust stock</DialogTitle>
-        <DialogContent>
-          {activeProduct && (
-            <>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                {activeProduct.name}
-              </Typography>
-              <TextField
-                fullWidth
-                margin="dense"
-                label="Quantity on hand"
-                type="number"
-                inputProps={{ min: 0 }}
-                value={qtyDraft}
-                onChange={(e) => setQtyDraft(e.target.value)}
-              />
-              <TextField
-                fullWidth
-                margin="dense"
-                label="Low-stock alert threshold"
-                type="number"
-                inputProps={{ min: 0 }}
-                helperText="Alert when on-hand quantity is at or below this number."
-                value={thresholdDraft}
-                onChange={(e) => setThresholdDraft(e.target.value)}
-              />
-            </>
+          {!loading && filteredByStatus.length === 0 && (
+            <div className="py-8 text-center text-sm text-muted-foreground">No rows match this filter. Try another status or search.</div>
           )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAdjustOpen(false)} disabled={saving}>
-            Cancel
-          </Button>
-          <Button variant="contained" onClick={() => void saveAdjust()} disabled={saving}>
-            {saving ? 'Saving…' : 'Save'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+
+          {filter !== 'all' && !loading && (
+            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/30">
+              Status filters apply to the <strong>current page</strong> of results. Increase &quot;rows per page&quot; or refine search to cover more
+              SKUs.
+            </div>
+          )}
+
+          {filter === 'all' ? (
+            <div className="mt-4 flex flex-col gap-3 border-t pt-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                <span>Rows per page</span>
+                <Select
+                  value={String(rowsPerPage)}
+                  onValueChange={(v) => {
+                    setRowsPerPage(Number(v))
+                    setPage(0)
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-[80px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[10, 25, 50, 100].map((n) => (
+                      <SelectItem key={n} value={String(n)}>
+                        {n}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="hidden sm:inline">
+                  {total === 0 ? '0–0' : `${rangeStart}–${rangeEnd}`} of {total}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
+                  Previous
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={(page + 1) * rowsPerPage >= total || total === 0}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-3 px-1 text-xs text-muted-foreground">
+              Showing {filteredByStatus.length} row(s) after status filter on this page (pagination applies when &quot;All&quot; is selected).
+            </p>
+          )}
+        </Card>
+
+        <Dialog open={adjustOpen} onOpenChange={(o) => !o && !saving && setAdjustOpen(false)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Adjust stock</DialogTitle>
+            </DialogHeader>
+            {activeProduct && (
+              <div className="space-y-4 py-2">
+                <p className="text-sm text-muted-foreground">{activeProduct.name}</p>
+                <div className="space-y-2">
+                  <Label htmlFor="qty-hand">Quantity on hand</Label>
+                  <Input
+                    id="qty-hand"
+                    type="number"
+                    min={0}
+                    value={qtyDraft}
+                    onChange={(e) => setQtyDraft(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="qty-threshold">Low-stock alert threshold</Label>
+                  <Input
+                    id="qty-threshold"
+                    type="number"
+                    min={0}
+                    value={thresholdDraft}
+                    onChange={(e) => setThresholdDraft(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">Alert when on-hand quantity is at or below this number.</p>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setAdjustOpen(false)} disabled={saving}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={() => void saveAdjust()} disabled={saving}>
+                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {saving ? 'Saving…' : 'Save'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
   )
 }

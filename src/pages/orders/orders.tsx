@@ -1,36 +1,37 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import {
-  Box,
+  Button,
   Card,
   CardContent,
-  Typography,
-  Button,
-  TextField,
-  InputAdornment,
-  Chip,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Stack,
-  CircularProgress,
-  Alert,
+  Input,
+  Badge,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  TablePagination,
-  IconButton,
+  HStack,
   Tooltip,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
-import SearchIcon from '@mui/icons-material/Search'
-import RefreshIcon from '@mui/icons-material/Refresh'
-import VisibilityIcon from '@mui/icons-material/Visibility'
-import DownloadIcon from '@mui/icons-material/Download'
-import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined'
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui'
+import {
+  Search,
+  RefreshCw,
+  Eye,
+  Download,
+  ShoppingCart,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react'
 import {
   OrdersService,
   type Order,
@@ -39,7 +40,7 @@ import {
   type PaymentStatus,
   type OrdersQuery,
 } from '../../services/api/orders.service'
-import { formatCurrency, formatDate, getInitials } from '../../lib/utils'
+import { formatCurrency, formatDate, getInitials, cn } from '../../lib/utils'
 import { PageHeader } from '../../components/common/PageHeader'
 import { OrderDetailDrawer } from './OrderDetailDrawer'
 import { usePermissions } from '../../hooks/usePermissions'
@@ -58,14 +59,17 @@ const STATUS_OPTIONS: Array<OrderStatus | 'all'> = [
 
 const PAYMENT_OPTIONS: Array<PaymentStatus | 'all'> = ['all', 'pending', 'paid', 'failed', 'refunded']
 
-const fulfillmentColor: Record<OrderStatus, 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'> = {
+const fulfillmentBadgeVariant: Record<
+  OrderStatus,
+  'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning'
+> = {
   pending: 'warning',
-  confirmed: 'info',
-  processing: 'info',
-  shipped: 'primary',
+  confirmed: 'secondary',
+  processing: 'secondary',
+  shipped: 'default',
   delivered: 'success',
-  cancelled: 'error',
-  refunded: 'default',
+  cancelled: 'destructive',
+  refunded: 'secondary',
 }
 
 function csvEscape(s: string): string {
@@ -82,6 +86,14 @@ function downloadCsv(filename: string, rows: string[][]) {
   a.download = filename
   a.click()
   URL.revokeObjectURL(url)
+}
+
+function paymentBadgeVariant(
+  s: PaymentStatus,
+): 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' {
+  if (s === 'paid') return 'success'
+  if (s === 'failed' || s === 'refunded') return 'destructive'
+  return 'outline'
 }
 
 export function Orders() {
@@ -224,316 +236,317 @@ export function Orders() {
   }
 
   const byStatus = stats?.byStatus
+  const totalPages = Math.max(1, Math.ceil(total / rowsPerPage) || 1)
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
+    <div className="min-w-0 flex-1">
       <PageHeader
         title="Orders"
         subtitle="E‑commerce fulfillment queue — search customers, update shipment steps, and reconcile payments."
         action={
-          <Stack direction="row" spacing={1}>
-            <Button variant="outlined" startIcon={<RefreshIcon />} onClick={handleRefresh} disabled={loading}>
+          <HStack spacing={2} className="flex-wrap">
+            <Button type="button" variant="outline" onClick={handleRefresh} disabled={loading}>
+              <RefreshCw className="mr-2 h-4 w-4" />
               Refresh
             </Button>
-            <Button variant="outlined" startIcon={<DownloadIcon />} onClick={exportCsv} disabled={!orders.length}>
+            <Button type="button" variant="outline" onClick={exportCsv} disabled={!orders.length}>
+              <Download className="mr-2 h-4 w-4" />
               Export CSV
             </Button>
-          </Stack>
+          </HStack>
         }
       />
 
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={6} sm={4} md={2}>
-          <Card variant="outlined">
-            <CardContent sx={{ py: 2 }}>
-              <Typography variant="caption" color="text.secondary">
-                All orders
-              </Typography>
-              <Typography variant="h5" fontWeight={700}>
-                {statsLoading ? '—' : stats?.totalOrders ?? '—'}
-              </Typography>
+      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-6">
+        {[
+          { label: 'All orders', value: statsLoading ? '—' : (stats?.totalOrders ?? '—') },
+          { label: 'Paid revenue', value: statsLoading ? '—' : formatCurrency(stats?.totalRevenue ?? 0) },
+          { label: 'AOV (paid)', value: statsLoading ? '—' : formatCurrency(stats?.averageOrderValue ?? 0) },
+          {
+            label: 'Pending / processing',
+            value: statsLoading
+              ? '—'
+              : (byStatus?.pending ?? 0) + (byStatus?.confirmed ?? 0) + (byStatus?.processing ?? 0),
+          },
+          { label: 'Shipped', value: statsLoading ? '—' : (byStatus?.shipped ?? '—') },
+          { label: 'Delivered', value: statsLoading ? '—' : (byStatus?.delivered ?? '—') },
+        ].map(({ label, value }) => (
+          <Card key={label} className="border-border">
+            <CardContent className="py-4">
+              <p className="text-xs text-muted-foreground">{label}</p>
+              <p className="text-xl font-bold tabular-nums">{value}</p>
             </CardContent>
           </Card>
-        </Grid>
-        <Grid item xs={6} sm={4} md={2}>
-          <Card variant="outlined">
-            <CardContent sx={{ py: 2 }}>
-              <Typography variant="caption" color="text.secondary">
-                Paid revenue
-              </Typography>
-              <Typography variant="h5" fontWeight={700}>
-                {statsLoading ? '—' : formatCurrency(stats?.totalRevenue ?? 0)}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={6} sm={4} md={2}>
-          <Card variant="outlined">
-            <CardContent sx={{ py: 2 }}>
-              <Typography variant="caption" color="text.secondary">
-                AOV (paid)
-              </Typography>
-              <Typography variant="h5" fontWeight={700}>
-                {statsLoading ? '—' : formatCurrency(stats?.averageOrderValue ?? 0)}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={6} sm={4} md={2}>
-          <Card variant="outlined">
-            <CardContent sx={{ py: 2 }}>
-              <Typography variant="caption" color="text.secondary">
-                Pending / processing
-              </Typography>
-              <Typography variant="h5" fontWeight={700}>
-                {statsLoading
-                  ? '—'
-                  : (byStatus?.pending ?? 0) + (byStatus?.confirmed ?? 0) + (byStatus?.processing ?? 0)}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={6} sm={4} md={2}>
-          <Card variant="outlined">
-            <CardContent sx={{ py: 2 }}>
-              <Typography variant="caption" color="text.secondary">
-                Shipped
-              </Typography>
-              <Typography variant="h5" fontWeight={700}>
-                {statsLoading ? '—' : byStatus?.shipped ?? '—'}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={6} sm={4} md={2}>
-          <Card variant="outlined">
-            <CardContent sx={{ py: 2 }}>
-              <Typography variant="caption" color="text.secondary">
-                Delivered
-              </Typography>
-              <Typography variant="h5" fontWeight={700}>
-                {statsLoading ? '—' : byStatus?.delivered ?? '—'}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+        ))}
+      </div>
 
-      <Card sx={{ mb: 2 }}>
-        <CardContent>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Search order #, email, phone, name, or Mongo id…"
-                value={searchInput}
-                onChange={(e) => {
-                  setSearchInput(e.target.value)
+      <Card className="mb-4">
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 items-end gap-4 md:grid-cols-12">
+            <div className="md:col-span-4">
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Search</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  className="pl-9"
+                  placeholder="Search order #, email, phone, name, or Mongo id…"
+                  value={searchInput}
+                  onChange={(e) => {
+                    setSearchInput(e.target.value)
+                    setPage(0)
+                  }}
+                />
+              </div>
+            </div>
+            <div className="md:col-span-2">
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Fulfillment</label>
+              <Select
+                value={statusFilter}
+                onValueChange={(v) => {
+                  setStatusFilter(v)
                   setPage(0)
                 }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon fontSize="small" />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={2}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Fulfillment</InputLabel>
-                <Select
-                  label="Fulfillment"
-                  value={statusFilter}
-                  onChange={(e) => {
-                    setStatusFilter(e.target.value)
-                    setPage(0)
-                  }}
-                >
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
                   {STATUS_OPTIONS.map((s) => (
-                    <MenuItem key={s} value={s}>
+                    <SelectItem key={s} value={s}>
                       {s === 'all' ? 'All statuses' : s}
-                    </MenuItem>
+                    </SelectItem>
                   ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={2}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Payment</InputLabel>
-                <Select
-                  label="Payment"
-                  value={paymentFilter}
-                  onChange={(e) => {
-                    setPaymentFilter(e.target.value)
-                    setPage(0)
-                  }}
-                >
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="md:col-span-2">
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Payment</label>
+              <Select
+                value={paymentFilter}
+                onValueChange={(v) => {
+                  setPaymentFilter(v)
+                  setPage(0)
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Payment" />
+                </SelectTrigger>
+                <SelectContent>
                   {PAYMENT_OPTIONS.map((p) => (
-                    <MenuItem key={p} value={p}>
+                    <SelectItem key={p} value={p}>
                       {p === 'all' ? 'All payments' : p}
-                    </MenuItem>
+                    </SelectItem>
                   ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={6} sm={6} md={2}>
-              <TextField
-                fullWidth
-                size="small"
-                label="From"
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="md:col-span-2">
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">From</label>
+              <Input
                 type="date"
-                InputLabelProps={{ shrink: true }}
                 value={startDate}
                 onChange={(e) => {
                   setStartDate(e.target.value)
                   setPage(0)
                 }}
               />
-            </Grid>
-            <Grid item xs={6} sm={6} md={2}>
-              <TextField
-                fullWidth
-                size="small"
-                label="To"
+            </div>
+            <div className="md:col-span-2">
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">To</label>
+              <Input
                 type="date"
-                InputLabelProps={{ shrink: true }}
                 value={endDate}
                 onChange={(e) => {
                   setEndDate(e.target.value)
                   setPage(0)
                 }}
               />
-            </Grid>
-            <Grid item xs={12}>
-              <Button size="small" onClick={clearFilters}>
+            </div>
+            <div className="md:col-span-12">
+              <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
                 Clear filters
               </Button>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <div
+          role="alert"
+          className="mb-4 rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        >
           {error}
-        </Alert>
+        </div>
       )}
 
-      <Card variant="outlined">
-        <TableContainer sx={{ maxHeight: 'min(70vh, 640px)' }}>
-          <Table stickyHeader size="small">
-            <TableHead>
+      <Card className="border-border">
+        <div className="max-h-[min(70vh,640px)] overflow-auto rounded-md border border-border">
+          <Table>
+            <TableHeader className="sticky top-0 z-10 bg-background">
               <TableRow>
-                <TableCell>Order</TableCell>
-                <TableCell>Customer</TableCell>
-                <TableCell align="right">Items</TableCell>
-                <TableCell align="right">Total</TableCell>
-                <TableCell>Payment</TableCell>
-                <TableCell>Fulfillment</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableHead>Order</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead className="text-right">Items</TableHead>
+                <TableHead className="text-right">Total</TableHead>
+                <TableHead>Payment</TableHead>
+                <TableHead>Fulfillment</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {loading && (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
-                    <CircularProgress size={28} />
+                  <TableCell colSpan={7} className="py-12 text-center">
+                    <Loader2 className="mx-auto h-7 w-7 animate-spin text-muted-foreground" />
                   </TableCell>
                 </TableRow>
               )}
               {!loading && orders.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
-                    <ShoppingCartOutlinedIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
-                    <Typography color="text.secondary">No orders match your filters.</Typography>
+                  <TableCell colSpan={7} className="py-16 text-center">
+                    <ShoppingCart className="mx-auto mb-2 h-12 w-12 text-muted-foreground/40" />
+                    <p className="text-muted-foreground">No orders match your filters.</p>
                   </TableCell>
                 </TableRow>
               )}
               {!loading &&
                 orders.map((order) => (
-                  <TableRow key={order.id} hover sx={{ cursor: 'pointer' }} onClick={() => openDrawer(order.id)}>
+                  <TableRow
+                    key={order.id}
+                    className="cursor-pointer"
+                    onClick={() => openDrawer(order.id)}
+                  >
                     <TableCell>
-                      <Typography variant="body2" fontWeight={600}>
-                        {order.orderNumber}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {formatDate(order.createdAt)}
-                      </Typography>
+                      <p className="text-sm font-semibold">{order.orderNumber}</p>
+                      <p className="text-xs text-muted-foreground">{formatDate(order.createdAt)}</p>
                     </TableCell>
                     <TableCell>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Box
-                          sx={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: '50%',
-                            bgcolor: 'action.hover',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            typography: 'caption',
-                            fontWeight: 700,
-                          }}
+                      <HStack spacing={3} className="items-center">
+                        <div
+                          className={cn(
+                            'flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold',
+                          )}
                         >
                           {order.customer
                             ? getInitials(`${order.customer.firstName} ${order.customer.lastName}`)
                             : '?'}
-                        </Box>
-                        <Box>
-                          <Typography variant="body2">
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm">
                             {order.customer
                               ? `${order.customer.firstName} ${order.customer.lastName}`
                               : order.userId
                                 ? String(order.userId).slice(-6)
                                 : '—'}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">
                             {order.customer?.email || order.customer?.phone || '—'}
-                          </Typography>
-                        </Box>
-                      </Stack>
+                          </p>
+                        </div>
+                      </HStack>
                     </TableCell>
-                    <TableCell align="right">{order.items?.length ?? 0}</TableCell>
-                    <TableCell align="right">{formatCurrency(order.totalAmount)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{order.items?.length ?? 0}</TableCell>
+                    <TableCell className="text-right font-medium tabular-nums">
+                      {formatCurrency(order.totalAmount)}
+                    </TableCell>
                     <TableCell>
-                      <Chip size="small" label={order.paymentStatus} sx={{ textTransform: 'capitalize' }} />
+                      <Badge variant={paymentBadgeVariant(order.paymentStatus)} className="capitalize">
+                        {order.paymentStatus}
+                      </Badge>
                     </TableCell>
                     <TableCell>
-                      <Chip
-                        size="small"
-                        label={order.status}
-                        color={fulfillmentColor[order.status]}
-                        variant={order.status === 'delivered' ? 'filled' : 'outlined'}
-                        sx={{ textTransform: 'capitalize' }}
-                      />
+                      <Badge
+                        variant={fulfillmentBadgeVariant[order.status]}
+                        className={cn(
+                          'capitalize',
+                          order.status !== 'delivered' && 'border border-current bg-transparent',
+                        )}
+                      >
+                        {order.status}
+                      </Badge>
                     </TableCell>
-                    <TableCell align="right" onClick={(e) => e.stopPropagation()}>
-                      <Tooltip title="View details">
-                        <IconButton size="small" onClick={() => openDrawer(order.id)}>
-                          <VisibilityIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
+                    <TableCell
+                      className="text-right"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                      }}
+                    >
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => openDrawer(order.id)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>View details</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </TableCell>
                   </TableRow>
                 ))}
             </TableBody>
           </Table>
-        </TableContainer>
-        <TablePagination
-          component="div"
-          rowsPerPageOptions={[10, 25, 50, 100]}
-          count={total}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={(_, p) => setPage(p)}
-          onRowsPerPageChange={(e) => {
-            setRowsPerPage(parseInt(e.target.value, 10))
-            setPage(0)
-          }}
-        />
+        </div>
+        <div className="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Rows per page</span>
+            <Select
+              value={String(rowsPerPage)}
+              onValueChange={(v) => {
+                setRowsPerPage(parseInt(v, 10))
+                setPage(0)
+              }}
+            >
+              <SelectTrigger className="h-9 w-[4.5rem]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[10, 25, 50, 100].map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    {n}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {total === 0 ? 0 : page * rowsPerPage + 1}–{Math.min((page + 1) * rowsPerPage, total)} of {total}
+          </p>
+          <div className="flex items-center gap-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={page <= 0}
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              aria-label="Previous page"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="px-2 text-sm text-muted-foreground">
+              {page + 1} / {totalPages}
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={page >= totalPages - 1 || total === 0}
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              aria-label="Next page"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </Card>
 
       <OrderDetailDrawer
@@ -549,6 +562,6 @@ export function Orders() {
         }}
         canEdit={canEdit}
       />
-    </Box>
+    </div>
   )
 }

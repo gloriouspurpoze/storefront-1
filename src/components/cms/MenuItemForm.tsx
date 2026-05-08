@@ -1,34 +1,22 @@
 import React, { useState, useEffect } from 'react'
 import {
-  Box,
   Button,
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  FormControl,
-  FormControlLabel,
-  IconButton,
-  InputLabel,
-  MenuItem as MuiMenuItem,
+  Input,
+  Label,
   Select,
-  Stack,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Switch,
-  TextField,
-  Typography,
-  Divider,
-  Chip,
-  Alert,
-  Autocomplete,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
-import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  ArrowUpward as ArrowUpwardIcon,
-  ArrowDownward as ArrowDownwardIcon,
-  DragIndicator as DragIndicatorIcon,
-} from '@mui/icons-material'
+  Badge,
+  Separator,
+} from '../ui'
 import type { MenuItem, CreateMenuItemRequest, UpdateMenuItemRequest } from '../../types'
 
 interface MenuItemFormProps {
@@ -180,244 +168,280 @@ export function MenuItemForm({
   const canAddChild = getCurrentDepth() < maxDepth - 1
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>
-        <Stack direction="row" alignItems="center" spacing={2}>
-          <Typography variant="h6">
-            {menuItem ? 'Edit Menu Item' : 'Add Menu Item'}
-          </Typography>
-          {menuItem && (
-            <Chip
-              label={menuItem.type}
-              size="small"
-              color="primary"
-              variant="outlined"
-            />
-          )}
-        </Stack>
-      </DialogTitle>
-      <DialogContent dividers>
-        <Grid container spacing={3} sx={{ mt: 0.5 }}>
+    <Dialog open={open} onOpenChange={(next) => !next && handleClose()}>
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+        <DialogHeader>
+          <div className="flex flex-wrap items-center gap-2">
+            <DialogTitle className="text-left">
+              {menuItem ? 'Edit Menu Item' : 'Add Menu Item'}
+            </DialogTitle>
+            {menuItem && (
+              <Badge variant="outline" className="capitalize">
+                {menuItem.type}
+              </Badge>
+            )}
+          </div>
+        </DialogHeader>
+
+        <Separator />
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
           {/* Item Type */}
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth error={!!errors.type}>
-              <InputLabel>Item Type</InputLabel>
+          <div className="md:col-span-6">
+            <div className="space-y-2">
+              <Label htmlFor="menu-item-type">Item Type</Label>
               <Select
                 value={formData.type}
-                label="Item Type"
-                onChange={(e) =>
-                  setFormData({ ...formData, type: e.target.value as any })
+                onValueChange={(v) =>
+                  setFormData({ ...formData, type: v as CreateMenuItemRequest['type'] })
                 }
               >
-                {MENU_ITEM_TYPES.map((type) => (
-                  <MuiMenuItem key={type.value} value={type.value}>
-                    {type.label}
-                  </MuiMenuItem>
-                ))}
+                <SelectTrigger id="menu-item-type" className={errors.type ? 'border-destructive' : ''}>
+                  <SelectValue placeholder="Item Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MENU_ITEM_TYPES.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
               {errors.type && (
-                <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
-                  {errors.type}
-                </Typography>
+                <p className="text-xs text-destructive">{errors.type}</p>
               )}
-            </FormControl>
-          </Grid>
+            </div>
+          </div>
 
           {/* Parent Item */}
           {parentItems.length > 0 && (
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Parent Item (Optional)</InputLabel>
+            <div className="md:col-span-6">
+              <div className="space-y-2">
+                <Label htmlFor="menu-parent">Parent Item (Optional)</Label>
                 <Select
-                  value={formData.parentId || ''}
-                  label="Parent Item (Optional)"
-                  onChange={(e) =>
+                  value={formData.parentId || '__none__'}
+                  onValueChange={(v) =>
                     setFormData({
                       ...formData,
-                      parentId: e.target.value || undefined,
+                      parentId: v === '__none__' ? undefined : v,
                     })
                   }
                 >
-                  <MuiMenuItem value="">None (Top Level)</MuiMenuItem>
-                  {parentItems
-                    .filter((item) => (item.id || item._id) !== menuItem?.id && (item.id || item._id) !== menuItem?._id)
-                    .map((item) => (
-                      <MuiMenuItem key={item.id || item._id} value={item.id || item._id}>
-                        {item.label}
-                      </MuiMenuItem>
-                    ))}
+                  <SelectTrigger id="menu-parent">
+                    <SelectValue placeholder="None (Top Level)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">None (Top Level)</SelectItem>
+                    {parentItems
+                      .filter(
+                        (item) =>
+                          (item.id || item._id) !== menuItem?.id &&
+                          (item.id || item._id) !== menuItem?._id,
+                      )
+                      .map((item) => (
+                        <SelectItem key={item.id || item._id} value={String(item.id || item._id)}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
                 </Select>
-              </FormControl>
+              </div>
               {!canAddChild && formData.parentId && (
-                <Alert severity="warning" sx={{ mt: 1 }}>
+                <div
+                  className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100"
+                  role="status"
+                >
                   Maximum depth reached. Cannot add more nested items.
-                </Alert>
+                </div>
               )}
-            </Grid>
+            </div>
           )}
 
           {/* Label */}
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Label"
-              value={formData.label}
-              onChange={(e) => setFormData({ ...formData, label: e.target.value })}
-              placeholder="Menu Item Label"
-              required
-              error={!!errors.label}
-              helperText={errors.label}
-            />
-          </Grid>
+          <div className="col-span-12">
+            <div className="space-y-2">
+              <Label htmlFor="menu-label">Label</Label>
+              <Input
+                id="menu-label"
+                value={formData.label}
+                onChange={(e) => setFormData({ ...formData, label: e.target.value })}
+                placeholder="Menu Item Label"
+                className={errors.label ? 'border-destructive' : ''}
+              />
+              {errors.label && (
+                <p className="text-xs text-destructive">{errors.label}</p>
+              )}
+            </div>
+          </div>
 
           {/* URL - Show for link and custom types */}
           {(formData.type === 'link' || formData.type === 'custom') && (
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="URL"
-                value={formData.url || ''}
-                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                placeholder="/page or https://example.com"
-                error={!!errors.url}
-                helperText={errors.url || 'Enter relative path or full URL'}
-              />
-            </Grid>
+            <div className="md:col-span-6">
+              <div className="space-y-2">
+                <Label htmlFor="menu-url">URL</Label>
+                <Input
+                  id="menu-url"
+                  value={formData.url || ''}
+                  onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                  placeholder="/page or https://example.com"
+                  className={errors.url ? 'border-destructive' : ''}
+                />
+                {errors.url ? (
+                  <p className="text-xs text-destructive">{errors.url}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Enter relative path or full URL</p>
+                )}
+              </div>
+            </div>
           )}
 
           {/* Target - Show for link types */}
           {formData.type === 'link' && (
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Open In</InputLabel>
+            <div className="md:col-span-6">
+              <div className="space-y-2">
+                <Label htmlFor="menu-target">Open In</Label>
                 <Select
                   value={formData.target}
-                  label="Open In"
-                  onChange={(e) =>
-                    setFormData({ ...formData, target: e.target.value as any })
+                  onValueChange={(v) =>
+                    setFormData({ ...formData, target: v as CreateMenuItemRequest['target'] })
                   }
                 >
-                  {TARGET_OPTIONS.map((option) => (
-                    <MuiMenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MuiMenuItem>
-                  ))}
+                  <SelectTrigger id="menu-target">
+                    <SelectValue placeholder="Open In" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TARGET_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
-              </FormControl>
-            </Grid>
+              </div>
+            </div>
           )}
 
           {/* Page Selection - Show for page type */}
           {formData.type === 'page' && (
-            <Grid item xs={12}>
-              <Alert severity="info" sx={{ mb: 2 }}>
+            <div className="col-span-12">
+              <div
+                className="mb-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm dark:border-blue-900/50 dark:bg-blue-950/40"
+                role="status"
+              >
                 Page selection will be integrated with your pages API. For now, use custom link type.
-              </Alert>
-              <TextField
-                fullWidth
-                label="Page URL"
-                value={formData.url || ''}
-                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                placeholder="/page-slug"
-                helperText="Enter the page slug or URL"
-              />
-            </Grid>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="menu-page-url">Page URL</Label>
+                <Input
+                  id="menu-page-url"
+                  value={formData.url || ''}
+                  onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                  placeholder="/page-slug"
+                />
+                <p className="text-xs text-muted-foreground">Enter the page slug or URL</p>
+              </div>
+            </div>
           )}
 
           {/* Category Selection - Show for category type */}
           {formData.type === 'category' && (
-            <Grid item xs={12}>
-              <Alert severity="info" sx={{ mb: 2 }}>
+            <div className="col-span-12">
+              <div
+                className="mb-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm dark:border-blue-900/50 dark:bg-blue-950/40"
+                role="status"
+              >
                 Category selection will be integrated with your categories API. For now, use custom link type.
-              </Alert>
-              <TextField
-                fullWidth
-                label="Category URL"
-                value={formData.url || ''}
-                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                placeholder="/category-slug"
-                helperText="Enter the category slug or URL"
-              />
-            </Grid>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="menu-cat-url">Category URL</Label>
+                <Input
+                  id="menu-cat-url"
+                  value={formData.url || ''}
+                  onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                  placeholder="/category-slug"
+                />
+                <p className="text-xs text-muted-foreground">Enter the category slug or URL</p>
+              </div>
+            </div>
           )}
 
           {/* Icon */}
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Icon (Optional)"
-              value={formData.icon || ''}
-              onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-              placeholder="home, settings, etc."
-              helperText="Material-UI icon name or custom class"
-            />
-          </Grid>
+          <div className="md:col-span-6">
+            <div className="space-y-2">
+              <Label htmlFor="menu-icon">Icon (Optional)</Label>
+              <Input
+                id="menu-icon"
+                value={formData.icon || ''}
+                onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                placeholder="home, settings, etc."
+              />
+              <p className="text-xs text-muted-foreground">Icon name or custom class</p>
+            </div>
+          </div>
 
           {/* CSS Class */}
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="CSS Class (Optional)"
-              value={formData.cssClass || ''}
-              onChange={(e) => setFormData({ ...formData, cssClass: e.target.value })}
-              placeholder="custom-class"
-              helperText="Additional CSS classes"
-            />
-          </Grid>
+          <div className="md:col-span-6">
+            <div className="space-y-2">
+              <Label htmlFor="menu-css">CSS Class (Optional)</Label>
+              <Input
+                id="menu-css"
+                value={formData.cssClass || ''}
+                onChange={(e) => setFormData({ ...formData, cssClass: e.target.value })}
+                placeholder="custom-class"
+              />
+              <p className="text-xs text-muted-foreground">Additional CSS classes</p>
+            </div>
+          </div>
 
           {/* Order */}
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              type="number"
-              label="Order"
-              value={formData.order}
-              onChange={(e) =>
-                setFormData({ ...formData, order: parseInt(e.target.value) || 0 })
-              }
-              inputProps={{ min: 0 }}
-              helperText="Lower numbers appear first"
-            />
-          </Grid>
+          <div className="md:col-span-6">
+            <div className="space-y-2">
+              <Label htmlFor="menu-order">Order</Label>
+              <Input
+                id="menu-order"
+                type="number"
+                min={0}
+                value={formData.order}
+                onChange={(e) =>
+                  setFormData({ ...formData, order: parseInt(e.target.value, 10) || 0 })
+                }
+              />
+              <p className="text-xs text-muted-foreground">Lower numbers appear first</p>
+            </div>
+          </div>
 
           {/* Active Status */}
-          <Grid item xs={12} md={6}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={formData.isActive}
-                  onChange={(e) =>
-                    setFormData({ ...formData, isActive: e.target.checked })
-                  }
-                />
-              }
-              label="Active"
+          <div className="flex items-center gap-3 md:col-span-6">
+            <Switch
+              id="menu-active"
+              checked={formData.isActive}
+              onCheckedChange={(v) => setFormData({ ...formData, isActive: v })}
             />
-          </Grid>
+            <Label htmlFor="menu-active">Active</Label>
+          </div>
 
           {/* Divider Note */}
           {formData.type === 'divider' && (
-            <Grid item xs={12}>
-              <Alert severity="info">
-                Divider items are visual separators and don't require a label or URL.
-              </Alert>
-            </Grid>
+            <div className="col-span-12">
+              <div
+                className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm dark:border-blue-900/50 dark:bg-blue-950/40"
+                role="status"
+              >
+                Divider items are visual separators and don&apos;t require a label or URL.
+              </div>
+            </div>
           )}
-        </Grid>
+        </div>
+
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
+            Cancel
+          </Button>
+          <Button onClick={() => void handleSubmit()} disabled={isSubmitting} loading={isSubmitting}>
+            {menuItem ? 'Update' : 'Add'} Menu Item
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={handleClose} disabled={isSubmitting}>
-          Cancel
-        </Button>
-        <Button
-          variant="contained"
-          onClick={handleSubmit}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? 'Saving...' : menuItem ? 'Update' : 'Add'} Menu Item
-        </Button>
-      </DialogActions>
     </Dialog>
   )
 }
-

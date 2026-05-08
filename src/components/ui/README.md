@@ -179,10 +179,7 @@ import { Button } from '../components/ui'
 ```
 
 ```tsx
-// ❌ Don't mix MUI components
-import { Button as MUIButton } from '@mui/material'
-
-// ✅ Use our standardized components
+// ✅ Use our standardized components (shadcn-style under components/ui)
 import { Button } from '../components/ui'
 ```
 

@@ -1,50 +1,54 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Box,
+  Plus,
+  Pencil,
+  Trash2,
+  MoreVertical,
+  Eye,
+  Send,
+  Copy,
+  CheckCircle2,
+  CircleOff,
+  Loader2,
+} from 'lucide-react';
+import {
+  Button,
   Card,
   CardContent,
-  Typography,
-  Button,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  Paper,
-  IconButton,
-  Chip,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Label,
   Select,
-  MenuItem,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Switch,
-  FormControlLabel,
-  Stack,
-  Alert,
-  CircularProgress,
-  Tooltip,
-  Menu,
-  ListItemIcon,
-  ListItemText
-} from '@mui/material';
+  Badge,
+  Textarea,
+} from '../ui';
+import type { BadgeProps } from '../ui/badge';
 import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  MoreVert as MoreIcon,
-  Preview as PreviewIcon,
-  Send as SendIcon,
-  ContentCopy as CopyIcon,
-  CheckCircle as ActiveIcon,
-  Cancel as InactiveIcon
-} from '@mui/icons-material';
-import { notificationsService, NotificationTemplate, CreateTemplateRequest } from '../../services/api/notifications.service';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
+import {
+  notificationsService,
+  NotificationTemplate,
+  CreateTemplateRequest,
+} from '../../services/api/notifications.service';
 import { useAppDispatch } from '../../store/hooks';
 import { addToast } from '../../store/slices/uiSlice';
 
@@ -70,14 +74,30 @@ function applySamplePlaceholders(text: string): string {
   return out.replace(/\{\{[^}]+\}\}/g, '…');
 }
 
+function getTypeBadgeVariant(type: string): NonNullable<BadgeProps['variant']> {
+  const map: Record<string, NonNullable<BadgeProps['variant']>> = {
+    quote_received: 'default',
+    quote_accepted: 'success',
+    booking_confirmed: 'secondary',
+    message_received: 'default',
+    order_placed: 'default',
+    order_updated: 'warning',
+    payment_received: 'success',
+    service_completed: 'success',
+    review_requested: 'warning',
+    system_alert: 'destructive',
+    marketing: 'secondary',
+    reminder: 'secondary',
+  };
+  return map[type] || 'outline';
+}
+
 export function NotificationTemplates({ onSendFromTemplate }: NotificationTemplatesProps) {
   const [templates, setTemplates] = useState<NotificationTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<NotificationTemplate | null>(null);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedTemplate, setSelectedTemplate] = useState<NotificationTemplate | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<NotificationTemplate | null>(null);
   const dispatch = useAppDispatch();
@@ -89,7 +109,7 @@ export function NotificationTemplates({ onSendFromTemplate }: NotificationTempla
     bodyTemplate: '',
     iconUrl: '',
     actionUrl: '',
-    isActive: true
+    isActive: true,
   });
 
   const notificationTypes = [
@@ -104,14 +124,10 @@ export function NotificationTemplates({ onSendFromTemplate }: NotificationTempla
     { value: 'review_requested', label: 'Review Requested' },
     { value: 'system_alert', label: 'System Alert' },
     { value: 'marketing', label: 'Marketing' },
-    { value: 'reminder', label: 'Reminder' }
+    { value: 'reminder', label: 'Reminder' },
   ];
 
-  useEffect(() => {
-    loadTemplates();
-  }, []);
-
-  const loadTemplates = async () => {
+  const loadTemplates = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -120,14 +136,20 @@ export function NotificationTemplates({ onSendFromTemplate }: NotificationTempla
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load templates';
       setError(errorMessage);
-      dispatch(addToast({
-        message: errorMessage,
-        severity: 'error'
-      }));
+      dispatch(
+        addToast({
+          message: errorMessage,
+          severity: 'error',
+        }),
+      );
     } finally {
       setLoading(false);
     }
-  };
+  }, [dispatch]);
+
+  useEffect(() => {
+    void loadTemplates();
+  }, [loadTemplates]);
 
   const handleCreateTemplate = () => {
     setEditingTemplate(null);
@@ -138,7 +160,7 @@ export function NotificationTemplates({ onSendFromTemplate }: NotificationTempla
       bodyTemplate: '',
       iconUrl: '',
       actionUrl: '',
-      isActive: true
+      isActive: true,
     });
     setDialogOpen(true);
   };
@@ -152,10 +174,9 @@ export function NotificationTemplates({ onSendFromTemplate }: NotificationTempla
       bodyTemplate: template.bodyTemplate,
       iconUrl: template.iconUrl || '',
       actionUrl: template.actionUrl || '',
-      isActive: template.isActive
+      isActive: template.isActive,
     });
     setDialogOpen(true);
-    setAnchorEl(null);
   };
 
   const handleSaveTemplate = async () => {
@@ -171,24 +192,28 @@ export function NotificationTemplates({ onSendFromTemplate }: NotificationTempla
             message:
               'Saved as a new template. In-place updates require a PATCH endpoint on the API.',
             severity: 'success',
-          })
+          }),
         );
-        loadTemplates();
+        void loadTemplates();
       } else {
         await notificationsService.createTemplate(formData);
-        dispatch(addToast({
-          message: 'Template created successfully',
-          severity: 'success'
-        }));
-        loadTemplates();
+        dispatch(
+          addToast({
+            message: 'Template created successfully',
+            severity: 'success',
+          }),
+        );
+        void loadTemplates();
       }
       setDialogOpen(false);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to save template';
-      dispatch(addToast({
-        message: errorMessage,
-        severity: 'error'
-      }));
+      dispatch(
+        addToast({
+          message: errorMessage,
+          severity: 'error',
+        }),
+      );
     }
   };
 
@@ -197,15 +222,13 @@ export function NotificationTemplates({ onSendFromTemplate }: NotificationTempla
       addToast({
         message: `Delete for "${template.name}" is not wired to the API yet. Remove via backend admin if needed.`,
         severity: 'info',
-      })
+      }),
     );
-    setAnchorEl(null);
   };
 
   const handlePreviewTemplate = (template: NotificationTemplate) => {
     setPreviewTemplate(template);
     setPreviewOpen(true);
-    setAnchorEl(null);
   };
 
   const handleSendTemplate = (template: NotificationTemplate) => {
@@ -216,10 +239,9 @@ export function NotificationTemplates({ onSendFromTemplate }: NotificationTempla
         addToast({
           message: 'Broadcast flow is unavailable from this screen.',
           severity: 'warning',
-        })
+        }),
       );
     }
-    setAnchorEl(null);
   };
 
   const handleCopyTemplate = (template: NotificationTemplate) => {
@@ -230,312 +252,259 @@ export function NotificationTemplates({ onSendFromTemplate }: NotificationTempla
       bodyTemplate: template.bodyTemplate,
       iconUrl: template.iconUrl || '',
       actionUrl: template.actionUrl || '',
-      isActive: template.isActive
+      isActive: template.isActive,
     });
     setEditingTemplate(null);
     setDialogOpen(true);
-    setAnchorEl(null);
-  };
-
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, template: NotificationTemplate) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedTemplate(template);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setSelectedTemplate(null);
-  };
-
-  const getTypeColor = (type: string) => {
-    const colors: Record<string, 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'> = {
-      quote_received: 'primary',
-      quote_accepted: 'success',
-      booking_confirmed: 'info',
-      message_received: 'primary',
-      order_placed: 'primary',
-      order_updated: 'warning',
-      payment_received: 'success',
-      service_completed: 'success',
-      review_requested: 'warning',
-      system_alert: 'error',
-      marketing: 'secondary',
-      reminder: 'info'
-    };
-    return colors[type] || 'default';
   };
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center p-6">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-label="Loading" />
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Alert severity="error" sx={{ m: 2 }}>
+      <div
+        className="m-4 rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        role="alert"
+      >
         {error}
-      </Alert>
+      </div>
     );
   }
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5">Notification Templates</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleCreateTemplate}
-        >
+    <div>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-xl font-semibold tracking-tight">Notification Templates</h2>
+        <Button leftIcon={<Plus className="h-4 w-4" />} onClick={handleCreateTemplate}>
           Create Template
         </Button>
-      </Box>
+      </div>
 
       <Card>
-        <CardContent sx={{ p: 0 }}>
+        <CardContent className="p-0">
           {templates.length === 0 && !loading ? (
-            <Box sx={{ p: 4, textAlign: 'center' }}>
-              <Typography variant="subtitle1" gutterBottom>
-                No templates yet
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            <div className="p-8 text-center">
+              <p className="text-base font-medium">No templates yet</p>
+              <p className="mb-4 mt-1 text-sm text-muted-foreground">
                 Create reusable copy for operational and lifecycle messages. If the list stays empty, check API
-                permissions for <code>GET /notifications/templates</code>.
-              </Typography>
-              <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreateTemplate}>
+                permissions for <code className="rounded bg-muted px-1 py-0.5">GET /notifications/templates</code>.
+              </p>
+              <Button leftIcon={<Plus className="h-4 w-4" />} onClick={handleCreateTemplate}>
                 Create template
               </Button>
-            </Box>
+            </div>
           ) : null}
-          <TableContainer sx={{ display: templates.length === 0 ? 'none' : undefined }}>
+          <div className={templates.length === 0 ? 'hidden' : 'overflow-x-auto'}>
             <Table>
-              <TableHead>
+              <TableHeader>
                 <TableRow>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Type</TableCell>
-                  <TableCell>Title Template</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Created</TableCell>
-                  <TableCell align="right">Actions</TableCell>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Title Template</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {templates.map((template) => (
                   <TableRow key={template.id}>
+                    <TableCell className="font-medium">{template.name}</TableCell>
                     <TableCell>
-                      <Typography variant="subtitle2" fontWeight="medium">
-                        {template.name}
-                      </Typography>
+                      <Badge variant={getTypeBadgeVariant(template.type)}>
+                        {notificationTypes.find((t) => t.value === template.type)?.label || template.type}
+                      </Badge>
                     </TableCell>
                     <TableCell>
-                      <Chip
-                        label={notificationTypes.find(t => t.value === template.type)?.label || template.type}
-                        color={getTypeColor(template.type)}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          maxWidth: 200,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}
+                      <span
+                        className="block max-w-[200px] truncate text-sm"
+                        title={template.titleTemplate}
                       >
                         {template.titleTemplate}
-                      </Typography>
+                      </span>
                     </TableCell>
                     <TableCell>
-                      <Chip
-                        icon={template.isActive ? <ActiveIcon /> : <InactiveIcon />}
-                        label={template.isActive ? 'Active' : 'Inactive'}
-                        color={template.isActive ? 'success' : 'default'}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" color="text.secondary">
-                        {new Date(template.createdAt).toLocaleDateString()}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right">
-                      <IconButton
-                        onClick={(e) => handleMenuOpen(e, template)}
-                        size="small"
+                      <Badge
+                        variant={template.isActive ? 'success' : 'outline'}
+                        className="inline-flex items-center gap-1"
                       >
-                        <MoreIcon />
-                      </IconButton>
+                        {template.isActive ? (
+                          <CheckCircle2 className="h-3 w-3" aria-hidden />
+                        ) : (
+                          <CircleOff className="h-3 w-3" aria-hidden />
+                        )}
+                        {template.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {new Date(template.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Open menu">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onSelect={() => handleEditTemplate(template)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => handlePreviewTemplate(template)}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            Preview
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => handleCopyTemplate(template)}>
+                            <Copy className="mr-2 h-4 w-4" />
+                            Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => handleSendTemplate(template)}>
+                            <Send className="mr-2 h-4 w-4" />
+                            Send Notification
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => void handleDeleteTemplate(template)}>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Template Form Dialog */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {editingTemplate ? 'Edit template (saves as new)' : 'Create template'}
-        </DialogTitle>
-        <DialogContent>
-          <Stack spacing={3} sx={{ mt: 1 }}>
-            <TextField
-              label="Template Name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              fullWidth
-              required
-            />
-
-            <FormControl fullWidth>
-              <InputLabel>Type</InputLabel>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingTemplate ? 'Edit template (saves as new)' : 'Create template'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-1">
+            <div className="space-y-2">
+              <Label htmlFor="tmpl-name">Template Name</Label>
+              <Input
+                id="tmpl-name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tmpl-type">Type</Label>
               <Select
                 value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
-                label="Type"
+                onValueChange={(v) => setFormData({ ...formData, type: v })}
               >
-                {notificationTypes.map((type) => (
-                  <MenuItem key={type.value} value={type.value}>
-                    {type.label}
-                  </MenuItem>
-                ))}
+                <SelectTrigger id="tmpl-type">
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {notificationTypes.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
-            </FormControl>
-
-            <TextField
-              label="Title Template"
-              value={formData.titleTemplate}
-              onChange={(e) => setFormData({ ...formData, titleTemplate: e.target.value })}
-              fullWidth
-              required
-              multiline
-              rows={2}
-              helperText="Use {{variable}} for dynamic content"
-            />
-
-            <TextField
-              label="Body Template"
-              value={formData.bodyTemplate}
-              onChange={(e) => setFormData({ ...formData, bodyTemplate: e.target.value })}
-              fullWidth
-              required
-              multiline
-              rows={4}
-              helperText="Use {{variable}} for dynamic content"
-            />
-
-            <TextField
-              label="Icon URL"
-              value={formData.iconUrl}
-              onChange={(e) => setFormData({ ...formData, iconUrl: e.target.value })}
-              fullWidth
-            />
-
-            <TextField
-              label="Action URL"
-              value={formData.actionUrl}
-              onChange={(e) => setFormData({ ...formData, actionUrl: e.target.value })}
-              fullWidth
-            />
-
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={formData.isActive}
-                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                />
-              }
-              label="Active"
-            />
-          </Stack>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tmpl-title">Title Template</Label>
+              <Textarea
+                id="tmpl-title"
+                value={formData.titleTemplate}
+                onChange={(e) => setFormData({ ...formData, titleTemplate: e.target.value })}
+                required
+                rows={2}
+              />
+              <p className="text-xs text-muted-foreground">Use {'{{variable}}'} for dynamic content</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tmpl-body">Body Template</Label>
+              <Textarea
+                id="tmpl-body"
+                value={formData.bodyTemplate}
+                onChange={(e) => setFormData({ ...formData, bodyTemplate: e.target.value })}
+                required
+                rows={4}
+              />
+              <p className="text-xs text-muted-foreground">Use {'{{variable}}'} for dynamic content</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tmpl-icon">Icon URL</Label>
+              <Input
+                id="tmpl-icon"
+                value={formData.iconUrl}
+                onChange={(e) => setFormData({ ...formData, iconUrl: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tmpl-action">Action URL</Label>
+              <Input
+                id="tmpl-action"
+                value={formData.actionUrl}
+                onChange={(e) => setFormData({ ...formData, actionUrl: e.target.value })}
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch
+                id="tmpl-active"
+                checked={formData.isActive}
+                onCheckedChange={(v) => setFormData({ ...formData, isActive: v })}
+              />
+              <Label htmlFor="tmpl-active">Active</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => void handleSaveTemplate()}>
+              {editingTemplate ? 'Save as new template' : 'Create'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleSaveTemplate} variant="contained">
-            {editingTemplate ? 'Save as new template' : 'Create'}
-          </Button>
-        </DialogActions>
       </Dialog>
 
-      <Dialog open={previewOpen} onClose={() => setPreviewOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Preview (sample data)</DialogTitle>
-        <DialogContent>
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Preview (sample data)</DialogTitle>
+          </DialogHeader>
           {previewTemplate && (
-            <Stack spacing={2} sx={{ mt: 1 }}>
-              <Typography variant="caption" color="text.secondary">
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">
                 Placeholders are filled with sample values. Final rendering happens on the server when sending.
-              </Typography>
-              <Paper
-                elevation={3}
-                sx={{
-                  p: 2,
-                  borderRadius: 2,
-                  bgcolor: 'grey.900',
-                  color: 'grey.100',
-                }}
-              >
-                <Typography variant="caption" color="grey.500" display="block" gutterBottom>
-                  Push / in-app
-                </Typography>
-                <Typography variant="subtitle1" fontWeight={700}>
+              </p>
+              <div className="rounded-lg border bg-zinc-900 p-4 text-zinc-100 shadow-md dark:bg-zinc-950">
+                <span className="mb-2 block text-xs text-zinc-500">Push / in-app</span>
+                <p className="text-base font-bold leading-tight">
                   {applySamplePlaceholders(previewTemplate.titleTemplate)}
-                </Typography>
-                <Typography variant="body2" sx={{ mt: 1, whiteSpace: 'pre-wrap' }}>
+                </p>
+                <p className="mt-2 whitespace-pre-wrap text-sm text-zinc-200">
                   {applySamplePlaceholders(previewTemplate.bodyTemplate)}
-                </Typography>
-              </Paper>
-            </Stack>
+                </p>
+              </div>
+            </div>
           )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPreviewOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setPreviewOpen(false)}>Close</Button>
-        </DialogActions>
       </Dialog>
-
-      {/* Actions Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-      >
-        <MenuItem onClick={() => selectedTemplate && handleEditTemplate(selectedTemplate)}>
-          <ListItemIcon>
-            <EditIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Edit</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={() => selectedTemplate && handlePreviewTemplate(selectedTemplate)}>
-          <ListItemIcon>
-            <PreviewIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Preview</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={() => selectedTemplate && handleCopyTemplate(selectedTemplate)}>
-          <ListItemIcon>
-            <CopyIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Duplicate</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={() => selectedTemplate && handleSendTemplate(selectedTemplate)}>
-          <ListItemIcon>
-            <SendIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Send Notification</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={() => selectedTemplate && handleDeleteTemplate(selectedTemplate)}>
-          <ListItemIcon>
-            <DeleteIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Delete</ListItemText>
-        </MenuItem>
-      </Menu>
-    </Box>
+    </div>
   );
 }

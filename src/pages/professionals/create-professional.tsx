@@ -3,7 +3,7 @@
  * CREATE PROFESSIONAL PAGE
  * ============================================================================
  * Form to create a new professional (worker/technician) with User account
- * 
+ *
  * Features:
  * - Multi-step form (Personal Info → Professional Details → Location → Review)
  * - Auto-creates User account for login
@@ -11,46 +11,39 @@
  * - Phone validation
  * - Image upload
  * - Service area selection
- * 
+ *
  * @author CTO Team
  * @date November 7, 2025
  */
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Box,
-  Paper,
-  Typography,
-  TextField,
-  Button,
-  Stepper,
-  Step,
-  StepLabel,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Chip,
-  OutlinedInput,
-  FormControlLabel,
-  Checkbox,
-  CircularProgress,
-  Alert,
-  Divider,
-  Avatar,
-  IconButton,
-  InputAdornment,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
-import {
-  ArrowBack,
+  ArrowLeft,
   Save,
-  PersonAdd,
-  CloudUpload,
-  Visibility,
-  VisibilityOff,
-} from '@mui/icons-material'
+  UserPlus,
+  Eye,
+  EyeOff,
+  Loader2,
+} from 'lucide-react'
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  Checkbox,
+  Input,
+  Label,
+  Textarea,
+} from '../../components/ui'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select'
+import { cn } from '../../lib/utils'
 import { ProfessionalsService } from '../../services/api/professionals.service'
 import { PROFESSIONAL_TRADE_CATEGORIES as CATEGORIES } from '../../constants/professionalCategories'
 
@@ -62,9 +55,7 @@ const EXPERTISE_LEVELS = [
   { value: 'expert', label: 'Expert' },
 ]
 
-const WORKING_DAYS = [
-  'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'
-]
+const WORKING_DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
 export function CreateProfessional() {
   const navigate = useNavigate()
@@ -73,9 +64,7 @@ export function CreateProfessional() {
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
 
-  // Form data — required fields empty; all optional fields pre-filled
   const [formData, setFormData] = useState({
-    // Personal Info (required: firstName, lastName, email, phoneNumber)
     firstName: '',
     lastName: '',
     email: '',
@@ -84,16 +73,12 @@ export function CreateProfessional() {
     dateOfBirth: '',
     gender: 'male' as 'male' | 'female' | 'other',
     password: 'SecurePass123!',
-
-    // Professional Details (required: at least one category, experience >= 0)
     categories: [] as string[],
     skills: [] as string[],
     experience: 2,
     expertiseLevel: 'intermediate' as 'beginner' | 'intermediate' | 'expert',
     bio: 'Experienced professional. Quality service guaranteed. Available for bookings.',
     isIndependent: true,
-
-    // Location (required: area, city, pincode, at least one working day)
     address: {
       street: 'To be updated',
       area: '',
@@ -101,8 +86,6 @@ export function CreateProfessional() {
       state: 'Maharashtra',
       pincode: '',
     },
-
-    // Availability
     workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as string[],
     workingHours: {
       start: '09:00',
@@ -114,10 +97,9 @@ export function CreateProfessional() {
 
   const [newSkill, setNewSkill] = useState('')
 
-  // Validation
   const validateStep = (step: number): boolean => {
     switch (step) {
-      case 0: // Personal Info
+      case 0:
         if (!formData.firstName || !formData.lastName || !formData.email || !formData.phoneNumber) {
           setError('Please fill all required fields')
           return false
@@ -131,8 +113,8 @@ export function CreateProfessional() {
           return false
         }
         break
-      
-      case 1: // Professional Details
+
+      case 1:
         if (formData.categories.length === 0) {
           setError('Please select at least one category')
           return false
@@ -142,8 +124,8 @@ export function CreateProfessional() {
           return false
         }
         break
-      
-      case 2: // Location
+
+      case 2:
         if (!formData.address.area || !formData.address.city || !formData.address.pincode) {
           setError('Please fill all location fields')
           return false
@@ -154,7 +136,7 @@ export function CreateProfessional() {
         }
         break
     }
-    
+
     setError(null)
     return true
   }
@@ -177,28 +159,25 @@ export function CreateProfessional() {
     setError(null)
 
     try {
-      // Prepare data for API
       const professionalData = {
         ...formData,
-        // Backend requires services list; we map it from selected categories for now
         services: formData.categories,
         primaryService: formData.categories[0],
         serviceAreas: [
           {
             city: formData.address.city,
             areas: [formData.address.area],
-          }
+          },
         ],
       }
 
-      const response = await ProfessionalsService.createProfessional(professionalData)
+      await ProfessionalsService.createProfessional(professionalData)
 
-      // Success - redirect to professionals list
       navigate('/professionals', {
         state: {
           message: `Professional ${formData.firstName} ${formData.lastName} created successfully!`,
-          severity: 'success'
-        }
+          severity: 'success',
+        },
       })
     } catch (err: any) {
       setError(err.message || 'Failed to create professional')
@@ -211,7 +190,7 @@ export function CreateProfessional() {
     if (newSkill.trim() && !formData.skills.includes(newSkill.trim())) {
       setFormData({
         ...formData,
-        skills: [...formData.skills, newSkill.trim()]
+        skills: [...formData.skills, newSkill.trim()],
       })
       setNewSkill('')
     }
@@ -220,501 +199,566 @@ export function CreateProfessional() {
   const handleRemoveSkill = (skill: string) => {
     setFormData({
       ...formData,
-      skills: formData.skills.filter(s => s !== skill)
+      skills: formData.skills.filter((s) => s !== skill),
     })
   }
 
+  const toggleCategory = (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      categories: prev.categories.includes(value)
+        ? prev.categories.filter((c) => c !== value)
+        : [...prev.categories, value],
+    }))
+  }
+
   const renderPersonalInfo = () => (
-    <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <Typography variant="h6" gutterBottom>
-          Personal Information
-        </Typography>
-        <Typography variant="body2" color="text.secondary" gutterBottom>
-          Basic information about the professional
-        </Typography>
-      </Grid>
+    <div className="grid gap-6">
+      <div className="col-span-full">
+        <h2 className="text-lg font-semibold">Personal Information</h2>
+        <p className="text-sm text-muted-foreground">Basic information about the professional</p>
+      </div>
 
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          required
-          label="First Name"
-          value={formData.firstName}
-          onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-        />
-      </Grid>
-
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          required
-          label="Last Name"
-          value={formData.lastName}
-          onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-        />
-      </Grid>
-
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          required
-          type="email"
-          label="Email"
-          value={formData.email}
-          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-          helperText="Used for login"
-        />
-      </Grid>
-
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          required
-          label="Phone Number"
-          value={formData.phoneNumber}
-          onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value.replace(/\D/g, '') })}
-          helperText="10 digits without country code"
-          inputProps={{ maxLength: 10 }}
-        />
-      </Grid>
-
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Alternate Phone"
-          value={formData.alternatePhone}
-          onChange={(e) => setFormData({ ...formData, alternatePhone: e.target.value.replace(/\D/g, '') })}
-          inputProps={{ maxLength: 10 }}
-        />
-      </Grid>
-
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          type="date"
-          label="Date of Birth"
-          value={formData.dateOfBirth}
-          onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-          InputLabelProps={{ shrink: true }}
-        />
-      </Grid>
-
-      <Grid item xs={12} sm={6}>
-        <FormControl fullWidth>
-          <InputLabel>Gender</InputLabel>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <Label htmlFor="firstName">First Name *</Label>
+          <Input
+            id="firstName"
+            className="mt-1"
+            value={formData.firstName}
+            onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+          />
+        </div>
+        <div>
+          <Label htmlFor="lastName">Last Name *</Label>
+          <Input
+            id="lastName"
+            className="mt-1"
+            value={formData.lastName}
+            onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+          />
+        </div>
+        <div>
+          <Label htmlFor="email">Email *</Label>
+          <Input
+            id="email"
+            type="email"
+            className="mt-1"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          />
+          <p className="mt-1 text-xs text-muted-foreground">Used for login</p>
+        </div>
+        <div>
+          <Label htmlFor="phone">Phone Number *</Label>
+          <Input
+            id="phone"
+            className="mt-1"
+            maxLength={10}
+            value={formData.phoneNumber}
+            onChange={(e) =>
+              setFormData({ ...formData, phoneNumber: e.target.value.replace(/\D/g, '') })
+            }
+          />
+          <p className="mt-1 text-xs text-muted-foreground">10 digits without country code</p>
+        </div>
+        <div>
+          <Label htmlFor="altPhone">Alternate Phone</Label>
+          <Input
+            id="altPhone"
+            className="mt-1"
+            maxLength={10}
+            value={formData.alternatePhone}
+            onChange={(e) =>
+              setFormData({ ...formData, alternatePhone: e.target.value.replace(/\D/g, '') })
+            }
+          />
+        </div>
+        <div>
+          <Label htmlFor="dob">Date of Birth</Label>
+          <Input
+            id="dob"
+            type="date"
+            className="mt-1"
+            value={formData.dateOfBirth}
+            onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+          />
+        </div>
+        <div>
+          <Label>Gender</Label>
           <Select
             value={formData.gender}
-            label="Gender"
-            onChange={(e) => setFormData({ ...formData, gender: e.target.value as any })}
+            onValueChange={(v) =>
+              setFormData({ ...formData, gender: v as 'male' | 'female' | 'other' })
+            }
           >
-            <MenuItem value="male">Male</MenuItem>
-            <MenuItem value="female">Female</MenuItem>
-            <MenuItem value="other">Other</MenuItem>
+            <SelectTrigger className="mt-1">
+              <SelectValue placeholder="Gender" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="male">Male</SelectItem>
+              <SelectItem value="female">Female</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
           </Select>
-        </FormControl>
-      </Grid>
-
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          required
-          type={showPassword ? 'text' : 'password'}
-          label="Default Password"
-          value={formData.password}
-          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-          helperText="Professional will use this to login"
-          InputProps={{
-            endAdornment: (
-              <InputAdornment position="end">
-                <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                  {showPassword ? <VisibilityOff /> : <Visibility />}
-                </IconButton>
-              </InputAdornment>
-            ),
-          }}
-        />
-      </Grid>
-    </Grid>
+        </div>
+        <div>
+          <Label htmlFor="password">Default Password *</Label>
+          <div className="relative mt-1">
+            <Input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              className="pr-10"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute right-0 top-0 h-full px-3"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </Button>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">Professional will use this to login</p>
+        </div>
+      </div>
+    </div>
   )
 
   const renderProfessionalDetails = () => (
-    <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <Typography variant="h6" gutterBottom>
-          Professional Details
-        </Typography>
-        <Typography variant="body2" color="text.secondary" gutterBottom>
-          Skills, experience, and expertise
-        </Typography>
-      </Grid>
+    <div className="grid gap-6">
+      <div className="col-span-full">
+        <h2 className="text-lg font-semibold">Professional Details</h2>
+        <p className="text-sm text-muted-foreground">Skills, experience, and expertise</p>
+      </div>
 
-      <Grid item xs={12}>
-        <FormControl fullWidth required>
-          <InputLabel>Service Categories</InputLabel>
-          <Select
-            multiple
-            value={formData.categories}
-            label="Service Categories"
-            onChange={(e) => setFormData({ ...formData, categories: e.target.value as string[] })}
-            renderValue={(selected) => (
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                {selected.map((value) => (
-                  <Chip
-                    key={value}
-                    label={CATEGORIES.find(c => c.value === value)?.label || value}
-                    size="small"
-                  />
-                ))}
-              </Box>
-            )}
-          >
-            {CATEGORIES.map((category) => (
-              <MenuItem key={category.value} value={category.value}>
-                {category.label}
-              </MenuItem>
+      <div className="col-span-full space-y-2">
+        <Label>Service Categories *</Label>
+        <div className="grid max-h-48 gap-2 overflow-y-auto rounded-md border p-3 sm:grid-cols-2">
+          {CATEGORIES.map((category) => (
+            <label
+              key={category.value}
+              className="flex cursor-pointer items-center gap-2 text-sm"
+            >
+              <Checkbox
+                checked={formData.categories.includes(category.value)}
+                onCheckedChange={() => toggleCategory(category.value)}
+              />
+              {category.label}
+            </label>
+          ))}
+        </div>
+        {formData.categories.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {formData.categories.map((value) => (
+              <Badge key={value} variant="secondary" className="text-xs font-normal">
+                {CATEGORIES.find((c) => c.value === value)?.label || value}
+              </Badge>
             ))}
-          </Select>
-        </FormControl>
-      </Grid>
+          </div>
+        )}
+      </div>
 
-      <Grid item xs={12}>
-        <Typography variant="subtitle2" gutterBottom>
-          Skills
-        </Typography>
-        <Box display="flex" gap={1} mb={1}>
-          <TextField
-            fullWidth
-            size="small"
+      <div className="col-span-full">
+        <Label className="text-sm font-medium">Skills</Label>
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+          <Input
             placeholder="Add a skill (e.g., Wiring, Plumbing)"
             value={newSkill}
             onChange={(e) => setNewSkill(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleAddSkill()}
+            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSkill())}
+            className="sm:flex-1"
           />
-          <Button variant="outlined" onClick={handleAddSkill}>
+          <Button type="button" variant="outline" onClick={handleAddSkill}>
             Add
           </Button>
-        </Box>
-        <Box display="flex" flexWrap="wrap" gap={0.5}>
+        </div>
+        <div className="mt-2 flex flex-wrap gap-1">
           {formData.skills.map((skill) => (
-            <Chip
+            <Badge
               key={skill}
-              label={skill}
-              onDelete={() => handleRemoveSkill(skill)}
-              size="small"
-            />
+              variant="outline"
+              className="cursor-pointer gap-1 font-normal"
+              onClick={() => handleRemoveSkill(skill)}
+            >
+              {skill} ×
+            </Badge>
           ))}
-        </Box>
-      </Grid>
+        </div>
+      </div>
 
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          required
-          type="number"
-          label="Years of Experience"
-          value={formData.experience}
-          onChange={(e) => setFormData({ ...formData, experience: parseInt(e.target.value) || 0 })}
-          inputProps={{ min: 0, max: 50 }}
-        />
-      </Grid>
-
-      <Grid item xs={12} sm={6}>
-        <FormControl fullWidth required>
-          <InputLabel>Expertise Level</InputLabel>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <Label htmlFor="exp">Years of Experience *</Label>
+          <Input
+            id="exp"
+            type="number"
+            min={0}
+            max={50}
+            className="mt-1"
+            value={formData.experience}
+            onChange={(e) =>
+              setFormData({ ...formData, experience: parseInt(e.target.value, 10) || 0 })
+            }
+          />
+        </div>
+        <div>
+          <Label>Expertise Level *</Label>
           <Select
             value={formData.expertiseLevel}
-            label="Expertise Level"
-            onChange={(e) => setFormData({ ...formData, expertiseLevel: e.target.value as any })}
+            onValueChange={(v) =>
+              setFormData({
+                ...formData,
+                expertiseLevel: v as 'beginner' | 'intermediate' | 'expert',
+              })
+            }
           >
-            {EXPERTISE_LEVELS.map((level) => (
-              <MenuItem key={level.value} value={level.value}>
-                {level.label}
-              </MenuItem>
-            ))}
+            <SelectTrigger className="mt-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {EXPERTISE_LEVELS.map((level) => (
+                <SelectItem key={level.value} value={level.value}>
+                  {level.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
-        </FormControl>
-      </Grid>
+        </div>
+      </div>
 
-      <Grid item xs={12}>
-        <TextField
-          fullWidth
-          multiline
+      <div className="col-span-full">
+        <Label htmlFor="bio">Bio / Description</Label>
+        <Textarea
+          id="bio"
           rows={3}
-          label="Bio / Description"
+          className="mt-1"
           value={formData.bio}
           onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-          helperText="Brief description about the professional"
         />
-      </Grid>
+        <p className="mt-1 text-xs text-muted-foreground">Brief description about the professional</p>
+      </div>
 
-      <Grid item xs={12}>
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={formData.isIndependent}
-              onChange={(e) => setFormData({ ...formData, isIndependent: e.target.checked })}
-            />
+      <label className="flex cursor-pointer items-center gap-2">
+        <Checkbox
+          checked={formData.isIndependent}
+          onCheckedChange={(c) =>
+            setFormData({ ...formData, isIndependent: c === true })
           }
-          label="Independent Professional (not part of any company)"
         />
-      </Grid>
-    </Grid>
+        <span className="text-sm">Independent Professional (not part of any company)</span>
+      </label>
+    </div>
   )
 
   const renderLocationAvailability = () => (
-    <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <Typography variant="h6" gutterBottom>
-          Location & Availability
-        </Typography>
-        <Typography variant="body2" color="text.secondary" gutterBottom>
-          Where the professional works and when they're available
-        </Typography>
-      </Grid>
+    <div className="grid gap-6">
+      <div className="col-span-full">
+        <h2 className="text-lg font-semibold">Location & Availability</h2>
+        <p className="text-sm text-muted-foreground">
+          Where the professional works and when they&apos;re available
+        </p>
+      </div>
 
-      <Grid item xs={12}>
-        <TextField
-          fullWidth
-          label="Street / Building"
+      <div className="col-span-full">
+        <Label htmlFor="street">Street / Building</Label>
+        <Input
+          id="street"
+          className="mt-1"
           value={formData.address.street}
-          onChange={(e) => setFormData({ ...formData, address: { ...formData.address, street: e.target.value } })}
+          onChange={(e) =>
+            setFormData({
+              ...formData,
+              address: { ...formData.address, street: e.target.value },
+            })
+          }
         />
-      </Grid>
+      </div>
 
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          required
-          label="Area / Locality"
-          value={formData.address.area}
-          onChange={(e) => setFormData({ ...formData, address: { ...formData.address, area: e.target.value } })}
-        />
-      </Grid>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <Label htmlFor="area">Area / Locality *</Label>
+          <Input
+            id="area"
+            className="mt-1"
+            value={formData.address.area}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                address: { ...formData.address, area: e.target.value },
+              })
+            }
+          />
+        </div>
+        <div>
+          <Label htmlFor="city">City *</Label>
+          <Input
+            id="city"
+            className="mt-1"
+            value={formData.address.city}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                address: { ...formData.address, city: e.target.value },
+              })
+            }
+          />
+        </div>
+        <div>
+          <Label htmlFor="state">State *</Label>
+          <Input
+            id="state"
+            className="mt-1"
+            value={formData.address.state}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                address: { ...formData.address, state: e.target.value },
+              })
+            }
+          />
+        </div>
+        <div>
+          <Label htmlFor="pincode">Pincode *</Label>
+          <Input
+            id="pincode"
+            className="mt-1"
+            maxLength={6}
+            value={formData.address.pincode}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                address: {
+                  ...formData.address,
+                  pincode: e.target.value.replace(/\D/g, ''),
+                },
+              })
+            }
+          />
+        </div>
+      </div>
 
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          required
-          label="City"
-          value={formData.address.city}
-          onChange={(e) => setFormData({ ...formData, address: { ...formData.address, city: e.target.value } })}
-        />
-      </Grid>
+      <div className="col-span-full border-t pt-4">
+        <Label className="text-sm font-medium">Working Days</Label>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {WORKING_DAYS.map((day) => {
+            const on = formData.workingDays.includes(day)
+            return (
+              <Button
+                key={day}
+                type="button"
+                size="sm"
+                variant={on ? 'default' : 'outline'}
+                onClick={() => {
+                  const newDays = on
+                    ? formData.workingDays.filter((d) => d !== day)
+                    : [...formData.workingDays, day]
+                  setFormData({ ...formData, workingDays: newDays })
+                }}
+              >
+                {day.charAt(0).toUpperCase() + day.slice(1)}
+              </Button>
+            )
+          })}
+        </div>
+      </div>
 
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          required
-          label="State"
-          value={formData.address.state}
-          onChange={(e) => setFormData({ ...formData, address: { ...formData.address, state: e.target.value } })}
-        />
-      </Grid>
-
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          required
-          label="Pincode"
-          value={formData.address.pincode}
-          onChange={(e) => setFormData({ ...formData, address: { ...formData.address, pincode: e.target.value.replace(/\D/g, '') } })}
-          inputProps={{ maxLength: 6 }}
-        />
-      </Grid>
-
-      <Grid item xs={12}>
-        <Divider sx={{ my: 2 }} />
-      </Grid>
-
-      <Grid item xs={12}>
-        <Typography variant="subtitle1" gutterBottom>
-          Working Days
-        </Typography>
-        <Box display="flex" flexWrap="wrap" gap={1}>
-          {WORKING_DAYS.map((day) => (
-            <Chip
-              key={day}
-              label={day.charAt(0).toUpperCase() + day.slice(1)}
-              onClick={() => {
-                const newDays = formData.workingDays.includes(day)
-                  ? formData.workingDays.filter(d => d !== day)
-                  : [...formData.workingDays, day]
-                setFormData({ ...formData, workingDays: newDays })
-              }}
-              color={formData.workingDays.includes(day) ? 'primary' : 'default'}
-              variant={formData.workingDays.includes(day) ? 'filled' : 'outlined'}
-            />
-          ))}
-        </Box>
-      </Grid>
-
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          type="time"
-          label="Start Time"
-          value={formData.workingHours.start}
-          onChange={(e) => setFormData({ ...formData, workingHours: { ...formData.workingHours, start: e.target.value } })}
-          InputLabelProps={{ shrink: true }}
-        />
-      </Grid>
-
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          type="time"
-          label="End Time"
-          value={formData.workingHours.end}
-          onChange={(e) => setFormData({ ...formData, workingHours: { ...formData.workingHours, end: e.target.value } })}
-          InputLabelProps={{ shrink: true }}
-        />
-      </Grid>
-
-      <Grid item xs={12} sm={6}>
-        <FormControl fullWidth>
-          <InputLabel>Initial Availability</InputLabel>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <Label htmlFor="start">Start Time</Label>
+          <Input
+            id="start"
+            type="time"
+            className="mt-1"
+            value={formData.workingHours.start}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                workingHours: { ...formData.workingHours, start: e.target.value },
+              })
+            }
+          />
+        </div>
+        <div>
+          <Label htmlFor="end">End Time</Label>
+          <Input
+            id="end"
+            type="time"
+            className="mt-1"
+            value={formData.workingHours.end}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                workingHours: { ...formData.workingHours, end: e.target.value },
+              })
+            }
+          />
+        </div>
+        <div>
+          <Label>Initial Availability</Label>
           <Select
             value={formData.availability}
-            label="Initial Availability"
-            onChange={(e) => setFormData({ ...formData, availability: e.target.value as any })}
+            onValueChange={(v) =>
+              setFormData({
+                ...formData,
+                availability: v as 'available' | 'busy' | 'offline',
+              })
+            }
           >
-            <MenuItem value="available">Available</MenuItem>
-            <MenuItem value="busy">Busy</MenuItem>
-            <MenuItem value="offline">Offline</MenuItem>
+            <SelectTrigger className="mt-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="available">Available</SelectItem>
+              <SelectItem value="busy">Busy</SelectItem>
+              <SelectItem value="offline">Offline</SelectItem>
+            </SelectContent>
           </Select>
-        </FormControl>
-      </Grid>
-
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          type="number"
-          label="Max Bookings Per Day"
-          value={formData.maxBookingsPerDay}
-          onChange={(e) => setFormData({ ...formData, maxBookingsPerDay: parseInt(e.target.value) || 5 })}
-          inputProps={{ min: 1, max: 20 }}
-        />
-      </Grid>
-    </Grid>
+        </div>
+        <div>
+          <Label htmlFor="maxBook">Max Bookings Per Day</Label>
+          <Input
+            id="maxBook"
+            type="number"
+            min={1}
+            max={20}
+            className="mt-1"
+            value={formData.maxBookingsPerDay}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                maxBookingsPerDay: parseInt(e.target.value, 10) || 5,
+              })
+            }
+          />
+        </div>
+      </div>
+    </div>
   )
 
   const renderReview = () => (
-    <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <Typography variant="h6" gutterBottom>
-          Review Information
-        </Typography>
-        <Typography variant="body2" color="text.secondary" gutterBottom>
-          Please review all details before creating
-        </Typography>
-      </Grid>
+    <div className="grid gap-6">
+      <div className="col-span-full">
+        <h2 className="text-lg font-semibold">Review Information</h2>
+        <p className="text-sm text-muted-foreground">Please review all details before creating</p>
+      </div>
 
-      <Grid item xs={12}>
-        <Paper variant="outlined" sx={{ p: 3 }}>
-          <Typography variant="subtitle1" gutterBottom fontWeight="bold">
-            Personal Information
-          </Typography>
-          <Box display="grid" gridTemplateColumns="1fr 1fr" gap={2}>
-            <Box>
-              <Typography variant="caption" color="text.secondary">Name</Typography>
-              <Typography>{formData.firstName} {formData.lastName}</Typography>
-            </Box>
-            <Box>
-              <Typography variant="caption" color="text.secondary">Email</Typography>
-              <Typography>{formData.email}</Typography>
-            </Box>
-            <Box>
-              <Typography variant="caption" color="text.secondary">Phone</Typography>
-              <Typography>{formData.phoneNumber}</Typography>
-            </Box>
-            <Box>
-              <Typography variant="caption" color="text.secondary">Gender</Typography>
-              <Typography>{formData.gender.charAt(0).toUpperCase() + formData.gender.slice(1)}</Typography>
-            </Box>
-          </Box>
-        </Paper>
-      </Grid>
+      <Card className="border-dashed">
+        <CardContent className="space-y-3 pt-6">
+          <h3 className="font-semibold">Personal Information</h3>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <p className="text-xs text-muted-foreground">Name</p>
+              <p className="text-sm">
+                {formData.firstName} {formData.lastName}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Email</p>
+              <p className="text-sm">{formData.email}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Phone</p>
+              <p className="text-sm">{formData.phoneNumber}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Gender</p>
+              <p className="text-sm">
+                {formData.gender.charAt(0).toUpperCase() + formData.gender.slice(1)}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      <Grid item xs={12}>
-        <Paper variant="outlined" sx={{ p: 3 }}>
-          <Typography variant="subtitle1" gutterBottom fontWeight="bold">
-            Professional Details
-          </Typography>
-          <Box display="grid" gap={2}>
-            <Box>
-              <Typography variant="caption" color="text.secondary">Categories</Typography>
-              <Box mt={0.5}>
-                {formData.categories.map(cat => (
-                  <Chip key={cat} label={CATEGORIES.find(c => c.value === cat)?.label || cat} size="small" sx={{ mr: 0.5 }} />
-                ))}
-              </Box>
-            </Box>
-            <Box>
-              <Typography variant="caption" color="text.secondary">Skills</Typography>
-              <Box mt={0.5}>
-                {formData.skills.map(skill => (
-                  <Chip key={skill} label={skill} size="small" variant="outlined" sx={{ mr: 0.5 }} />
-                ))}
-              </Box>
-            </Box>
-            <Box display="grid" gridTemplateColumns="1fr 1fr" gap={2}>
-              <Box>
-                <Typography variant="caption" color="text.secondary">Experience</Typography>
-                <Typography>{formData.experience} years</Typography>
-              </Box>
-              <Box>
-                <Typography variant="caption" color="text.secondary">Expertise</Typography>
-                <Typography>{formData.expertiseLevel.charAt(0).toUpperCase() + formData.expertiseLevel.slice(1)}</Typography>
-              </Box>
-            </Box>
-          </Box>
-        </Paper>
-      </Grid>
+      <Card className="border-dashed">
+        <CardContent className="space-y-3 pt-6">
+          <h3 className="font-semibold">Professional Details</h3>
+          <div>
+            <p className="text-xs text-muted-foreground">Categories</p>
+            <div className="mt-1 flex flex-wrap gap-1">
+              {formData.categories.map((cat) => (
+                <Badge key={cat} variant="secondary" className="text-xs font-normal">
+                  {CATEGORIES.find((c) => c.value === cat)?.label || cat}
+                </Badge>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Skills</p>
+            <div className="mt-1 flex flex-wrap gap-1">
+              {formData.skills.map((skill) => (
+                <Badge key={skill} variant="outline" className="text-xs font-normal">
+                  {skill}
+                </Badge>
+              ))}
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <p className="text-xs text-muted-foreground">Experience</p>
+              <p className="text-sm">{formData.experience} years</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Expertise</p>
+              <p className="text-sm">
+                {formData.expertiseLevel.charAt(0).toUpperCase() +
+                  formData.expertiseLevel.slice(1)}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      <Grid item xs={12}>
-        <Paper variant="outlined" sx={{ p: 3 }}>
-          <Typography variant="subtitle1" gutterBottom fontWeight="bold">
-            Location & Availability
-          </Typography>
-          <Box display="grid" gap={2}>
-            <Box>
-              <Typography variant="caption" color="text.secondary">Address</Typography>
-              <Typography>
-                {formData.address.area}, {formData.address.city}, {formData.address.state} - {formData.address.pincode}
-              </Typography>
-            </Box>
-            <Box>
-              <Typography variant="caption" color="text.secondary">Working Days</Typography>
-              <Typography>
-                {formData.workingDays.map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ')}
-              </Typography>
-            </Box>
-            <Box display="grid" gridTemplateColumns="1fr 1fr" gap={2}>
-              <Box>
-                <Typography variant="caption" color="text.secondary">Working Hours</Typography>
-                <Typography>{formData.workingHours.start} - {formData.workingHours.end}</Typography>
-              </Box>
-              <Box>
-                <Typography variant="caption" color="text.secondary">Availability</Typography>
-                <Typography>{formData.availability.charAt(0).toUpperCase() + formData.availability.slice(1)}</Typography>
-              </Box>
-            </Box>
-          </Box>
-        </Paper>
-      </Grid>
+      <Card className="border-dashed">
+        <CardContent className="space-y-3 pt-6">
+          <h3 className="font-semibold">Location & Availability</h3>
+          <div>
+            <p className="text-xs text-muted-foreground">Address</p>
+            <p className="text-sm">
+              {formData.address.area}, {formData.address.city}, {formData.address.state} -{' '}
+              {formData.address.pincode}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Working Days</p>
+            <p className="text-sm">
+              {formData.workingDays.map((d) => d.charAt(0).toUpperCase() + d.slice(1)).join(', ')}
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <p className="text-xs text-muted-foreground">Working Hours</p>
+              <p className="text-sm">
+                {formData.workingHours.start} - {formData.workingHours.end}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Availability</p>
+              <p className="text-sm">
+                {formData.availability.charAt(0).toUpperCase() + formData.availability.slice(1)}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      <Grid item xs={12}>
-        <Alert severity="info">
-          <Typography variant="body2">
-            <strong>Login Credentials:</strong><br />
-            Email: {formData.email}<br />
-            Password: {formData.password}<br /><br />
-            The professional will be able to login using these credentials.
-          </Typography>
-        </Alert>
-      </Grid>
-    </Grid>
+      <div
+        role="status"
+        className="rounded-lg border border-blue-500/40 bg-blue-500/10 px-4 py-3 text-sm"
+      >
+        <p className="font-medium">Login Credentials</p>
+        <p className="mt-1">Email: {formData.email}</p>
+        <p>Password: {formData.password}</p>
+        <p className="mt-2 text-muted-foreground">
+          The professional will be able to login using these credentials.
+        </p>
+      </div>
+    </div>
   )
 
   const getStepContent = (step: number) => {
@@ -733,70 +777,85 @@ export function CreateProfessional() {
   }
 
   return (
-    <Box>
-      {/* Header */}
-      <Box display="flex" alignItems="center" mb={3}>
-        <IconButton onClick={() => navigate('/professionals')} sx={{ mr: 2 }}>
-          <ArrowBack />
-        </IconButton>
-        <Box>
-          <Typography variant="h4" fontWeight="bold">
-            Create Professional
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Add a new professional with login access
-          </Typography>
-        </Box>
-      </Box>
+    <div className="p-1">
+      <div className="mb-6 flex items-start gap-3">
+        <Button variant="ghost" size="icon" onClick={() => navigate('/professionals')}>
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div>
+          <div className="flex items-center gap-2">
+            <UserPlus className="h-7 w-7 text-muted-foreground" />
+            <h1 className="text-3xl font-bold tracking-tight">Create Professional</h1>
+          </div>
+          <p className="text-sm text-muted-foreground">Add a new professional with login access</p>
+        </div>
+      </div>
 
-      {/* Stepper */}
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Stepper activeStep={activeStep}>
-          {STEPS.map((label) => (
-            <Step key={label}>
-              <StepLabel>{label}</StepLabel>
-            </Step>
-          ))}
-        </Stepper>
-      </Paper>
+      <Card className="mb-6 border bg-card shadow-sm">
+        <CardContent className="py-6">
+          <ol className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-2">
+            {STEPS.map((label, i) => (
+              <li key={label} className="flex items-center gap-2 md:flex-1 md:min-w-0">
+                <div
+                  className={cn(
+                    'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold',
+                    activeStep > i && 'border-primary bg-primary text-primary-foreground',
+                    activeStep === i && 'border-primary text-primary',
+                    activeStep < i && 'border-muted text-muted-foreground'
+                  )}
+                >
+                  {i + 1}
+                </div>
+                <span
+                  className={cn(
+                    'truncate text-sm',
+                    activeStep === i && 'font-semibold text-foreground',
+                    activeStep !== i && 'text-muted-foreground'
+                  )}
+                >
+                  {label}
+                </span>
+                {i < STEPS.length - 1 && (
+                  <div className="mx-2 hidden h-0.5 flex-1 min-w-[1rem] bg-muted md:block" />
+                )}
+              </li>
+            ))}
+          </ol>
+        </CardContent>
+      </Card>
 
-      {/* Form */}
-      <Paper sx={{ p: 3 }}>
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-            {error}
-          </Alert>
-        )}
+      <Card className="border shadow-sm">
+        <CardContent className="p-6 pt-6">
+          {error && (
+            <div
+              role="alert"
+              className="mb-6 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+            >
+              {error}
+            </div>
+          )}
 
-        {getStepContent(activeStep)}
+          {getStepContent(activeStep)}
 
-        {/* Actions */}
-        <Box display="flex" justifyContent="space-between" mt={4}>
-          <Button
-            disabled={activeStep === 0 || loading}
-            onClick={handleBack}
-          >
-            Back
-          </Button>
-          <Box display="flex" gap={2}>
+          <div className="mt-8 flex flex-wrap justify-between gap-4">
+            <Button variant="outline" disabled={activeStep === 0 || loading} onClick={handleBack}>
+              Back
+            </Button>
             {activeStep === STEPS.length - 1 ? (
-              <Button
-                variant="contained"
-                startIcon={loading ? <CircularProgress size={20} /> : <Save />}
-                onClick={handleSubmit}
-                disabled={loading}
-              >
+              <Button onClick={handleSubmit} disabled={loading}>
+                {loading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}
                 {loading ? 'Creating...' : 'Create Professional'}
               </Button>
             ) : (
-              <Button variant="contained" onClick={handleNext}>
-                Next
-              </Button>
+              <Button onClick={handleNext}>Next</Button>
             )}
-          </Box>
-        </Box>
-      </Paper>
-    </Box>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
-

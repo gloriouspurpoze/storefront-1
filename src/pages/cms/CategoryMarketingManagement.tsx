@@ -1,37 +1,28 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import TabContext from '@mui/lab/TabContext'
-import TabList from '@mui/lab/TabList'
-import TabPanel from '@mui/lab/TabPanel'
+import { Loader2, ChevronDown, Trash2, Plus, Megaphone, Image as ImageIconLucide } from 'lucide-react'
+import { Button } from '../../components/ui/button'
+import { Card, CardContent } from '../../components/ui/card'
+import { Checkbox } from '../../components/ui/checkbox'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
+import { Textarea } from '../../components/ui/textarea'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs'
+import { Switch } from '../../components/ui/switch'
 import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  FormControl,
-  InputLabel,
-  MenuItem,
   Select,
-  Stack,
-  TextField,
-  Typography,
-  CircularProgress,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Checkbox,
-  FormControlLabel,
-  IconButton,
-  Tab,
-} from '@mui/material'
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select'
 import {
-  ExpandMore as ExpandMoreIcon,
-  Delete as DeleteIcon,
-  Add as AddIcon,
-  Campaign as CampaignIcon,
-  Image as ImageIcon,
-} from '@mui/icons-material'
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '../../components/ui/accordion'
+import { cn } from '../../lib/utils'
 import { CMSService } from '../../services/api'
 import { PageHeader } from '../../components/common/PageHeader'
 import ImageUploadField from '../../components/forms/ImageUploadField'
@@ -81,10 +72,10 @@ type TabKey =
   | 'closing'
 
 function charCountColor(len: number, min: number, optimal: number, hard: number): string {
-  if (len > hard) return 'error.main'
-  if (len > optimal) return 'warning.main'
-  if (len >= min) return 'success.main'
-  return 'text.secondary'
+  if (len > hard) return 'text-destructive'
+  if (len > optimal) return 'text-amber-600'
+  if (len >= min) return 'text-emerald-600'
+  return 'text-muted-foreground'
 }
 
 export default function CategoryMarketingManagement() {
@@ -261,18 +252,18 @@ export default function CategoryMarketingManagement() {
   }
 
   return (
-    <Box sx={{ p: industryHub ? 0 : { xs: 2, sm: 3, md: 4 } }}>
+    <div>
       {!industryHub && (
         <PageHeader
           title="Industry service pages"
           subtitle="Source of truth for industry landings: core meta, technical SEO (canonical, OG/Twitter, robots, hreflang), local pack, schema toggles, answer-engine copy, hero through FAQs. Use [City], [Location], [ServiceName]; composite keys use a locality slug (e.g. ac__bandra-west)."
           action={
             <Button
-              variant="contained"
-              startIcon={saving ? <CircularProgress size={18} /> : <CampaignIcon />}
+              variant="default"
+              leftIcon={saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Megaphone className="h-4 w-4" />}
               onClick={handleSave}
               disabled={saving}
-              sx={{ borderRadius: 2 }}
+             
             >
               Save
             </Button>
@@ -281,96 +272,97 @@ export default function CategoryMarketingManagement() {
       )}
 
       {industryHub && (
-        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
+        <div>
           <Button
-            variant="contained"
-            startIcon={saving ? <CircularProgress size={18} /> : <CampaignIcon />}
+            variant="default"
+            leftIcon={saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Megaphone className="h-4 w-4" />}
             onClick={handleSave}
             disabled={saving}
-            sx={{ borderRadius: 2 }}
+           
           >
             Save landing template
           </Button>
-        </Box>
+        </div>
       )}
 
-      <Card sx={{ mb: 3, borderRadius: 2 }}>
+      <Card>
         <CardContent>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-2">
             {!industryHub && (
-              <FormControl size="small" sx={{ minWidth: 220 }}>
-                <InputLabel>Industry (catalog category)</InputLabel>
+              <div className="min-w-[220px] space-y-2">
+                <Label htmlFor="catalog-category-select">Industry (catalog category)</Label>
                 <Select
                   value={selectedCategory}
-                  label="Industry (catalog category)"
-                  onChange={(e) => {
-                    setSelectedCategory(e.target.value)
+                  onValueChange={(v) => {
+                    setSelectedCategory(v)
                     setLocalitySlugForKey('')
                   }}
-                  sx={{ borderRadius: 2 }}
                 >
-                  {CMS_CATALOG_CATEGORIES.map((opt) => (
-                    <MenuItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </MenuItem>
-                  ))}
+                  <SelectTrigger id="catalog-category-select" className="h-9 w-full sm:w-[280px]">
+                    <SelectValue placeholder="Select industry" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CMS_CATALOG_CATEGORIES.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
-              </FormControl>
+              </div>
             )}
-            <TextField
-              size="small"
-              sx={{ minWidth: 260, flex: 1 }}
-              label="Locality slug (optional)"
-              value={localitySlugForKey}
-              onChange={(e) => setLocalitySlugForKey(e.target.value)}
-              placeholder="e.g. mira-bhayandar"
-              helperText="Leave empty for industry-wide. With slug, record key is industry__locality (matches public URLs)."
-            />
-          </Stack>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            <div className="space-y-2">
+                      <Label htmlFor="cmm-f-1">Locality slug (optional)</Label>
+                      <Input id="cmm-f-1" className="h-9 text-sm" value={localitySlugForKey} onChange={(e) => setLocalitySlugForKey(e.target.value)} placeholder="e.g. mira-bhayandar" />
+                      <p className="text-xs text-muted-foreground">Leave empty for industry-wide. With slug, record key is industry__locality (matches public URLs).</p>
+                    </div>
+          </div>
+          <p className="text-sm text-muted-foreground">
             Editing CMS key: <strong>{effectiveKey}</strong>
-          </Typography>
+          </p>
         </CardContent>
       </Card>
 
-      <Card sx={{ mb: 3, borderRadius: 2 }}>
+      <Card>
         <CardContent>
-          <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+          <p className="mb-2 text-base font-semibold">
             Copy from another key
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          </p>
+          <p className="text-sm text-muted-foreground">
             Duplicate an existing record into <strong>{effectiveKey}</strong> (unsaved until you click Save). Use this to
             clone <code>electric</code> into <code>electric__mira-bhayandar</code>, then edit the hyperlocal fields.
-          </Typography>
+          </p>
           {Object.keys(data).filter((k) => k !== effectiveKey).length === 0 && (
-            <Alert severity="warning" sx={{ mb: 2 }}>
+            <div role="alert" className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/30">
               No other keys loaded yet—save at least one industry template, or paste JSON below, then pick a hyperlocal
               slug and merge.
-            </Alert>
+            </div>
           )}
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }} flexWrap="wrap">
-            <FormControl size="small" sx={{ minWidth: 280 }}>
-              <InputLabel>Source key</InputLabel>
+          <div className="flex flex-col flex-wrap gap-4 sm:flex-row sm:items-center sm:gap-2">
+            <div className="min-w-[200px] space-y-2">
+              <Label htmlFor="duplicate-source-select">Source key</Label>
               <Select
-                value={duplicateSourceKey}
-                label="Source key"
-                onChange={(e) => setDuplicateSourceKey(e.target.value)}
+                value={duplicateSourceKey || '__empty__'}
+                onValueChange={(v) => setDuplicateSourceKey(v === '__empty__' ? '' : v)}
               >
-                <MenuItem value="">
-                  <em>Select a key…</em>
-                </MenuItem>
-                {Object.keys(data)
-                  .sort((a, b) => a.localeCompare(b))
-                  .filter((k) => k !== effectiveKey)
-                  .map((k) => (
-                    <MenuItem key={k} value={k}>
-                      {k}
-                    </MenuItem>
-                  ))}
+                <SelectTrigger id="duplicate-source-select" className="h-9 w-full sm:w-[260px]">
+                  <SelectValue placeholder="Select a key…" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__empty__">Select a key…</SelectItem>
+                  {Object.keys(data)
+                    .sort((a, b) => a.localeCompare(b))
+                    .filter((k) => k !== effectiveKey)
+                    .map((k) => (
+                      <SelectItem key={k} value={k}>
+                        {k}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
               </Select>
-            </FormControl>
+            </div>
             <Button
-              variant="outlined"
+              variant="outline"
               disabled={!duplicateSourceKey || !data[duplicateSourceKey]}
               onClick={() => {
                 const src = data[duplicateSourceKey]
@@ -389,8 +381,7 @@ export default function CategoryMarketingManagement() {
               Replace current with full copy
             </Button>
             <Button
-              variant="outlined"
-              color="secondary"
+              variant="secondary"
               disabled={!duplicateSourceKey || !data[duplicateSourceKey]}
               onClick={() => {
                 const src = data[duplicateSourceKey]
@@ -405,8 +396,7 @@ export default function CategoryMarketingManagement() {
               Merge locality guide only
             </Button>
             <Button
-              variant="outlined"
-              color="secondary"
+              variant="secondary"
               disabled={!duplicateSourceKey || !data[duplicateSourceKey]}
               onClick={() => {
                 const src = data[duplicateSourceKey]
@@ -420,31 +410,25 @@ export default function CategoryMarketingManagement() {
             >
               Merge local SEO only
             </Button>
-          </Stack>
+          </div>
 
-          <Accordion sx={{ mt: 2, border: 1, borderColor: 'divider', borderRadius: 1, '&:before': { display: 'none' } }}>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="subtitle2">Import JSON (merge into current key)</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Stack spacing={2}>
-                <Typography variant="body2" color="text.secondary">
+          <Accordion type="single" collapsible defaultValue="import-json" className="mt-2 rounded-md border px-3">
+            <AccordionItem value="import-json" className="border-0">
+              <AccordionTrigger className="py-3 text-sm font-medium hover:no-underline">
+                Import JSON (merge into current key)
+              </AccordionTrigger>
+              <AccordionContent>
+              <div className="flex flex-col gap-4">
+                <p className="text-sm text-muted-foreground">
                   Paste a partial or full marketing object (same shape as the API). Values are merged into{' '}
                   <strong>{effectiveKey}</strong>;                   nested <code>leadMagnet</code>, <code>localityGuide</code>, <code>localSeo</code>, and{' '}
                   <code>technicalSeo</code> are merged field-by-field. Invalid JSON shows an error toast.
-                </Typography>
-                <TextField
-                  fullWidth
-                  multiline
-                  minRows={8}
-                  value={importJsonText}
-                  onChange={(e) => setImportJsonText(e.target.value)}
-                  placeholder={`{\n  "seoTitle": "...",\n  "localityGuide": { "enabled": true, "articleH2": "..." }\n}`}
-                  InputProps={{ sx: { fontFamily: 'ui-monospace, monospace', fontSize: 13 } }}
-                />
-                <Stack direction="row" spacing={1} flexWrap="wrap">
+                </p>
+                <div className="space-y-2"><Textarea className="w-full font-mono text-[13px]" rows={8} value={importJsonText} onChange={(e) => setImportJsonText(e.target.value)} />
+                    </div>
+                <div className="flex flex-row flex-wrap gap-2">
                   <Button
-                    variant="contained"
+                    variant="default"
                     onClick={() => {
                       try {
                         const parsed = JSON.parse(importJsonText) as Record<string, unknown>
@@ -478,167 +462,132 @@ export default function CategoryMarketingManagement() {
                   >
                     Apply merge
                   </Button>
-                  <Button variant="text" onClick={() => setImportJsonText('')}>
+                  <Button variant="ghost" onClick={() => setImportJsonText('')}>
                     Clear
                   </Button>
-                </Stack>
-              </Stack>
-            </AccordionDetails>
+                </div>
+              </div>
+              </AccordionContent>
+            </AccordionItem>
           </Accordion>
         </CardContent>
       </Card>
 
       {loading ? (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="280px">
-          <CircularProgress />
-        </Box>
+        <div className="flex min-h-[280px] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
       ) : (
-        <Stack spacing={2}>
-          <TabContext value={tab}>
-            <Box sx={{ borderBottom: 1, borderColor: 'divider', overflowX: 'auto' }}>
-              <TabList
-                onChange={(_, v) => setTab(v as TabKey)}
-                variant="scrollable"
-                scrollButtons="auto"
-                allowScrollButtonsMobile
-              >
-                <Tab label="Metadata & SEO" value="metadata" />
-                <Tab label="Local SEO" value="localSeo" />
-                <Tab label="Hero & intro" value="hero" />
-                <Tab label="Service cards" value="cards" />
-                <Tab label="Detailed options" value="detailed" />
-                <Tab label="Trust & experience" value="trust" />
-                <Tab label="Areas & booking" value="areas" />
-                <Tab label="Pricing & comparison" value="pricing" />
-                <Tab label="FAQs & links" value="faqs" />
-                <Tab label="Locality guide (SEO)" value="localityGuide" />
-                <Tab label="Closing & advanced" value="closing" />
-              </TabList>
-            </Box>
+        <div className="flex flex-col gap-4">
+          <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="w-full">
+            <div className="overflow-x-auto border-b">
+              <TabsList className="mb-0 inline-flex h-auto min-h-10 w-max min-w-full justify-start gap-0 rounded-none border-0 bg-transparent p-1">
+                <TabsTrigger value="metadata" className="shrink-0">Metadata &amp; SEO</TabsTrigger>
+                <TabsTrigger value="localSeo" className="shrink-0">Local SEO</TabsTrigger>
+                <TabsTrigger value="hero" className="shrink-0">Hero &amp; intro</TabsTrigger>
+                <TabsTrigger value="cards" className="shrink-0">Service cards</TabsTrigger>
+                <TabsTrigger value="detailed" className="shrink-0">Detailed options</TabsTrigger>
+                <TabsTrigger value="trust" className="shrink-0">Trust &amp; experience</TabsTrigger>
+                <TabsTrigger value="areas" className="shrink-0">Areas &amp; booking</TabsTrigger>
+                <TabsTrigger value="pricing" className="shrink-0">Pricing &amp; comparison</TabsTrigger>
+                <TabsTrigger value="faqs" className="shrink-0">FAQs &amp; links</TabsTrigger>
+                <TabsTrigger value="localityGuide" className="shrink-0">Locality guide (SEO)</TabsTrigger>
+                <TabsTrigger value="closing" className="shrink-0">Closing &amp; advanced</TabsTrigger>
+              </TabsList>
+            </div>
 
-            <TabPanel value="metadata" sx={{ px: 0 }}>
-              <Stack spacing={2}>
-                <Alert severity="info">
+            <TabsContent value="metadata" className="mt-2 px-0 outline-none">
+              <div className="flex flex-col gap-4">
+                <div role="alert" className="rounded-md border border-blue-200 bg-blue-50/80 p-3 text-sm dark:border-blue-900 dark:bg-blue-950/30">
                   Editorial checklist: one H1 per page (use Main heading on the Hero tab). Use H2 for main sections and H3
                   for subsections; do not skip levels. Put the primary keyword in the H1, intro, and at least two section
                   headings. Use [City] or [Location] in copy when the live site substitutes the user&apos;s area.
-                </Alert>
-                <Card sx={{ borderRadius: 2 }}>
+                </div>
+                <Card>
                   <CardContent>
-                    <Stack spacing={2}>
-                      <TextField
-                        fullWidth
-                        label="SEO title"
-                        value={config.seoTitle}
-                        onChange={(e) => updateConfig({ seoTitle: e.target.value })}
-                        placeholder="AC Repair Near Me [City] – Same-Day, Transparent Pricing"
-                        inputProps={{ maxLength: SEO_TITLE_HARD_MAX_CHARS + 10 }}
-                      />
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: charCountColor(
+                    <div className="flex flex-col gap-4">
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-3">SEO title</Label>
+                      <Input id="cmm-f-3" className="w-full" value={config.seoTitle} onChange={(e) => updateConfig({ seoTitle: e.target.value })} maxLength={SEO_TITLE_HARD_MAX_CHARS + 10} placeholder="AC Repair Near Me [City] – Same-Day, Transparent Pricing" />
+                    </div>
+                      <p
+                        className={cn(
+                          'text-xs',
+                          charCountColor(
                             config.seoTitle.length,
                             SEO_TITLE_MIN_CHARS,
                             SEO_TITLE_OPTIMAL_MAX_CHARS,
                             SEO_TITLE_HARD_MAX_CHARS,
                           ),
-                        }}
+                        )}
                       >
                         {config.seoTitle.length} characters — target {SEO_TITLE_MIN_CHARS}–{SEO_TITLE_OPTIMAL_MAX_CHARS}{' '}
                         (hard max ~{SEO_TITLE_HARD_MAX_CHARS})
-                      </Typography>
-                      <TextField
-                        fullWidth
-                        label="Meta description"
-                        multiline
-                        rows={3}
-                        value={config.metaDescription}
-                        onChange={(e) => updateConfig({ metaDescription: e.target.value })}
-                        inputProps={{ maxLength: META_DESC_HARD_MAX_CHARS + 20 }}
-                      />
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: charCountColor(
+                      </p>
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-4">Meta description</Label>
+                      <Textarea id="cmm-f-4" className="w-full" rows={3} value={config.metaDescription} onChange={(e) => updateConfig({ metaDescription: e.target.value })} maxLength={META_DESC_HARD_MAX_CHARS + 20} />
+                    </div>
+                      <p
+                        className={cn(
+                          'text-xs',
+                          charCountColor(
                             config.metaDescription.length,
                             META_DESC_MIN_CHARS,
                             META_DESC_OPTIMAL_MAX_CHARS,
                             META_DESC_HARD_MAX_CHARS,
                           ),
-                        }}
+                        )}
                       >
                         {config.metaDescription.length} characters — target {META_DESC_MIN_CHARS}–
                         {META_DESC_OPTIMAL_MAX_CHARS} (hard max {META_DESC_HARD_MAX_CHARS})
-                      </Typography>
-                      <TextField
-                        fullWidth
-                        label="URL slug pattern"
-                        value={config.urlSlugPattern}
-                        onChange={(e) => updateConfig({ urlSlugPattern: e.target.value })}
-                        placeholder="services/ac-repair-[city-slug]"
-                        helperText="Pattern for the consumer site; actual routing may use params."
-                      />
-                      <TextField
-                        fullWidth
-                        label="Primary keyword"
-                        value={config.primaryKeyword}
-                        onChange={(e) => updateConfig({ primaryKeyword: e.target.value })}
-                      />
-                      <TextField
-                        fullWidth
-                        label="Hero trust badge (pill beside H1)"
-                        value={(config as any).heroTrustBadge ?? ''}
-                        onChange={(e) => updateConfig({ heroTrustBadge: e.target.value } as any)}
-                        placeholder="e.g. 30-day warranty · Verified pros"
-                        helperText="Shows in the hero as a small trust pill. Supports [City], [Location], [ServiceName]."
-                      />
-                      <TextField
-                        fullWidth
-                        label="Hero chip (highlight line)"
-                        value={(config as any).heroChip ?? ''}
-                        onChange={(e) => updateConfig({ heroChip: e.target.value } as any)}
-                        placeholder="e.g. Same-day slots · Transparent pricing"
-                        helperText="Short non-spam line under the hero intro. Supports [City], [Location], [ServiceName]."
-                      />
-                      <Typography variant="subtitle2" color="text.secondary">
+                      </p>
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-5">URL slug pattern</Label>
+                      <Input id="cmm-f-5" className="w-full" value={config.urlSlugPattern} onChange={(e) => updateConfig({ urlSlugPattern: e.target.value })} placeholder="services/ac-repair-[city-slug]" />
+                      <p className="text-xs text-muted-foreground">Pattern for the consumer site; actual routing may use params.</p>
+                    </div>
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-6">Primary keyword</Label>
+                      <Input id="cmm-f-6" className="w-full" value={config.primaryKeyword} onChange={(e) => updateConfig({ primaryKeyword: e.target.value })} />
+                    </div>
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-7">Hero trust badge (pill beside H1)</Label>
+                      <Input id="cmm-f-7" className="w-full" value={(config as any).heroTrustBadge ?? ''} onChange={(e) => updateConfig({ heroTrustBadge: e.target.value } as any)} placeholder="e.g. 30-day warranty · Verified pros" />
+                      <p className="text-xs text-muted-foreground">Shows in the hero as a small trust pill. Supports [City], [Location], [ServiceName].</p>
+                    </div>
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-8">Hero chip (highlight line)</Label>
+                      <Input id="cmm-f-8" className="w-full" value={(config as any).heroChip ?? ''} onChange={(e) => updateConfig({ heroChip: e.target.value } as any)} placeholder="e.g. Same-day slots · Transparent pricing" />
+                      <p className="text-xs text-muted-foreground">Short non-spam line under the hero intro. Supports [City], [Location], [ServiceName].</p>
+                    </div>
+                      <p className="text-sm text-muted-foreground">
                         Hero proof points (3 cards)
-                      </Typography>
+                      </p>
                       {(
                         (Array.isArray((config as any).heroProofPoints) ? (config as any).heroProofPoints : ['']) as string[]
                       ).map((line, i) => (
-                        <Stack key={`hero-proof-${i}`} direction="row" spacing={1} alignItems="center">
-                          <TextField
-                            fullWidth
-                            size="small"
-                            value={line}
-                            onChange={(e) => {
+                        <div key={`hero-proof-${i}`} className="flex flex-row items-center gap-2">
+                          <div className="space-y-2"><Input className="w-full h-9 text-sm" value={line} onChange={(e) => {
                               const base = Array.isArray((config as any).heroProofPoints)
                                 ? ([...(config as any).heroProofPoints] as string[])
                                 : ['']
                               const next = [...base]
                               next[i] = e.target.value
                               updateConfig({ heroProofPoints: next } as any)
-                            }}
-                            placeholder="e.g. Background-verified technicians"
-                          />
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => {
+                            }} placeholder="e.g. Background-verified technicians" />
+                    </div>
+                          <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive" onClick={() => {
                               const base = Array.isArray((config as any).heroProofPoints)
                                 ? ([...(config as any).heroProofPoints] as string[])
                                 : ['']
                               updateConfig({ heroProofPoints: base.filter((_, j) => j !== i) } as any)
-                            }}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Stack>
+                            }} ><Trash2 className="h-4 w-4" /></Button>
+                        </div>
                       ))}
                       <Button
-                        size="small"
-                        startIcon={<AddIcon />}
+                        size="sm"
+                        leftIcon={<Plus className="h-4 w-4" />}
                         onClick={() =>
                           updateConfig({
                             heroProofPoints: [
@@ -650,47 +599,36 @@ export default function CategoryMarketingManagement() {
                       >
                         Add proof point
                       </Button>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', mt: -1 }}>
+                      <p className="text-xs text-muted-foreground">
                         If empty, consumer will derive proof points from Trust benefits / Ways / Secondary keywords.
-                      </Typography>
-                      <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 1 }}>
+                      </p>
+                      <p className="text-sm text-muted-foreground">
                         Topic chips (replaces static semantic labels)
-                      </Typography>
+                      </p>
                       {(
                         (Array.isArray((config as any).topicChips) ? (config as any).topicChips : ['']) as string[]
                       ).map((line, i) => (
-                        <Stack key={`topic-chip-${i}`} direction="row" spacing={1} alignItems="center">
-                          <TextField
-                            fullWidth
-                            size="small"
-                            value={line}
-                            onChange={(e) => {
+                        <div key={`topic-chip-${i}`} className="flex flex-row items-center gap-2">
+                          <div className="space-y-2"><Input className="w-full h-9 text-sm" value={line} onChange={(e) => {
                               const base = Array.isArray((config as any).topicChips)
                                 ? ([...(config as any).topicChips] as string[])
                                 : ['']
                               const next = [...base]
                               next[i] = e.target.value
                               updateConfig({ topicChips: next } as any)
-                            }}
-                            placeholder="e.g. fan installation · switch repair"
-                          />
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => {
+                            }} placeholder="e.g. fan installation · switch repair" />
+                    </div>
+                          <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive" onClick={() => {
                               const base = Array.isArray((config as any).topicChips)
                                 ? ([...(config as any).topicChips] as string[])
                                 : ['']
                               updateConfig({ topicChips: base.filter((_, j) => j !== i) } as any)
-                            }}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Stack>
+                            }} ><Trash2 className="h-4 w-4" /></Button>
+                        </div>
                       ))}
                       <Button
-                        size="small"
-                        startIcon={<AddIcon />}
+                        size="sm"
+                        leftIcon={<Plus className="h-4 w-4" />}
                         onClick={() =>
                           updateConfig({
                             topicChips: [
@@ -702,225 +640,172 @@ export default function CategoryMarketingManagement() {
                       >
                         Add chip
                       </Button>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', mt: -1 }}>
+                      <p className="text-xs text-muted-foreground">
                         Consumer uses Topic chips first; if empty, it falls back to Secondary keywords.
-                      </Typography>
-                      <Typography variant="subtitle2" color="text.secondary">
+                      </p>
+                      <p className="text-sm text-muted-foreground">
                         Secondary keywords
-                      </Typography>
+                      </p>
                       {(config.secondaryKeywords.length ? config.secondaryKeywords : ['']).map((kw, i) => (
-                        <Stack key={i} direction="row" spacing={1} alignItems="center">
-                          <TextField
-                            fullWidth
-                            size="small"
-                            value={kw}
-                            onChange={(e) => {
+                        <div key={i} className="flex flex-row items-center gap-2">
+                          <div className="space-y-2"><Input className="w-full h-9 text-sm" value={kw} onChange={(e) => {
                               const base = config.secondaryKeywords.length ? config.secondaryKeywords : ['']
                               const next = [...base]
                               next[i] = e.target.value
                               updateConfig({ secondaryKeywords: next })
-                            }}
-                            placeholder="e.g. gas filling, installation"
-                          />
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() =>
+                            }} placeholder="e.g. gas filling, installation" />
+                    </div>
+                          <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive" onClick={() =>
                               updateConfig({
                                 secondaryKeywords: config.secondaryKeywords.filter((_, j) => j !== i),
                               })
-                            }
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Stack>
+                            } ><Trash2 className="h-4 w-4" /></Button>
+                        </div>
                       ))}
                       <Button
-                        size="small"
-                        startIcon={<AddIcon />}
+                        size="sm"
+                        leftIcon={<Plus className="h-4 w-4" />}
                         onClick={() => updateConfig({ secondaryKeywords: [...config.secondaryKeywords, ''] })}
                       >
                         Add keyword
                       </Button>
-                    </Stack>
+                    </div>
                   </CardContent>
                 </Card>
 
-                <Alert severity="info" sx={{ borderRadius: 2 }}>
+                <div role="alert" className="rounded-md border border-blue-200 bg-blue-50/80 p-3 text-sm dark:border-blue-900 dark:bg-blue-950/30">
                   <strong>Technical SEO:</strong> the consumer app should map <code>technicalSeo</code> to{' '}
                   <code>rel=&quot;canonical&quot;</code>, Open Graph / Twitter meta, robots, hreflang{' '}
                   <code>&lt;link&gt;</code>s, and JSON-LD (WebPage, Service, HowTo, BreadcrumbList, Speakable, VideoObject
                   when enabled). Pair <strong>OG image alt</strong> with the absolute image under Local SEO → Social
                   preview.
-                </Alert>
+                </div>
 
-                <Card sx={{ borderRadius: 2 }}>
+                <Card>
                   <CardContent>
-                    <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                    <p className="mb-2 text-base font-semibold">
                       Canonical, Open Graph &amp; Twitter
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    </p>
+                    <p className="text-sm text-muted-foreground">
                       Overrides are optional: when empty, the live site should fall back to SEO title / meta description.
                       Use absolute URLs for canonical and share images.
-                    </Typography>
-                    <Stack spacing={2}>
-                      <TextField
-                        fullWidth
-                        label="Canonical URL"
-                        value={config.technicalSeo.canonicalUrl}
-                        onChange={(e) => updateTechnicalSeo({ canonicalUrl: e.target.value })}
-                        placeholder="https://example.com/services/ac-repair/mumbai"
-                        helperText="One preferred URL for this landing; reduces duplicate signals across params or UTM variants."
-                      />
-                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                        <TextField
-                          fullWidth
-                          label="Open Graph title (override)"
-                          value={config.technicalSeo.ogTitle}
-                          onChange={(e) => updateTechnicalSeo({ ogTitle: e.target.value })}
-                          placeholder="Same as SEO title if blank"
-                        />
-                        <TextField
-                          fullWidth
-                          label="Open Graph type"
-                          value={config.technicalSeo.ogType}
-                          onChange={(e) => updateTechnicalSeo({ ogType: e.target.value })}
-                          placeholder="website"
-                          helperText="Usually website or article."
-                        />
-                      </Stack>
-                      <TextField
-                        fullWidth
-                        label="Open Graph description (override)"
-                        multiline
-                        rows={2}
-                        value={config.technicalSeo.ogDescription}
-                        onChange={(e) => updateTechnicalSeo({ ogDescription: e.target.value })}
-                        placeholder="Same as meta description if blank"
-                      />
-                      <TextField
-                        fullWidth
-                        label="OG / Twitter image alt text"
-                        value={config.technicalSeo.ogImageAlt}
-                        onChange={(e) => updateTechnicalSeo({ ogImageAlt: e.target.value })}
-                        placeholder="Technician servicing an AC outdoor unit in Mumbai – ProFixer"
-                        helperText="Accessibility and clearer social/AI context for the share image."
-                      />
-                      <FormControl fullWidth size="small">
-                        <InputLabel>Twitter card type</InputLabel>
+                    </p>
+                    <div className="flex flex-col gap-4">
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-12">Canonical URL</Label>
+                      <Input id="cmm-f-12" className="w-full" value={config.technicalSeo.canonicalUrl} onChange={(e) => updateTechnicalSeo({ canonicalUrl: e.target.value })} placeholder="https://example.com/services/ac-repair/mumbai" />
+                      <p className="text-xs text-muted-foreground">One preferred URL for this landing; reduces duplicate signals across params or UTM variants.</p>
+                    </div>
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-2">
+                        <div className="space-y-2">
+                      <Label htmlFor="cmm-f-13">Open Graph title (override)</Label>
+                      <Input id="cmm-f-13" className="w-full" value={config.technicalSeo.ogTitle} onChange={(e) => updateTechnicalSeo({ ogTitle: e.target.value })} placeholder="Same as SEO title if blank" />
+                    </div>
+                        <div className="space-y-2">
+                      <Label htmlFor="cmm-f-14">Open Graph type</Label>
+                      <Input id="cmm-f-14" className="w-full" value={config.technicalSeo.ogType} onChange={(e) => updateTechnicalSeo({ ogType: e.target.value })} placeholder="website" />
+                      <p className="text-xs text-muted-foreground">Usually website or article.</p>
+                    </div>
+                      </div>
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-15">Open Graph description (override)</Label>
+                      <Textarea id="cmm-f-15" className="w-full" rows={2} value={config.technicalSeo.ogDescription} onChange={(e) => updateTechnicalSeo({ ogDescription: e.target.value })} placeholder="Same as meta description if blank" />
+                    </div>
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-16">OG / Twitter image alt text</Label>
+                      <Input id="cmm-f-16" className="w-full" value={config.technicalSeo.ogImageAlt} onChange={(e) => updateTechnicalSeo({ ogImageAlt: e.target.value })} placeholder="Technician servicing an AC outdoor unit in Mumbai – ProFixer" />
+                      <p className="text-xs text-muted-foreground">Accessibility and clearer social/AI context for the share image.</p>
+                    </div>
+                      <div className="w-full space-y-2 sm:max-w-md">
+                        <Label htmlFor="twitter-card-select">Twitter card type</Label>
                         <Select
-                          label="Twitter card type"
-                          value={config.technicalSeo.twitterCard || 'summary_large_image'}
-                          onChange={(e) =>
+                          value={config.technicalSeo.twitterCard ? config.technicalSeo.twitterCard : '__unset__'}
+                          onValueChange={(v) =>
                             updateTechnicalSeo({
-                              twitterCard: e.target.value as TechnicalSeoCmsFields['twitterCard'],
+                              twitterCard: (v === '__unset__' ? '' : v) as TechnicalSeoCmsFields['twitterCard'],
                             })
                           }
                         >
-                          <MenuItem value="summary_large_image">summary_large_image (recommended)</MenuItem>
-                          <MenuItem value="summary">summary</MenuItem>
-                          <MenuItem value="">Default / unset</MenuItem>
+                          <SelectTrigger id="twitter-card-select" className="h-9 w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="summary_large_image">summary_large_image (recommended)</SelectItem>
+                            <SelectItem value="summary">summary</SelectItem>
+                            <SelectItem value="__unset__">Default / unset</SelectItem>
+                          </SelectContent>
                         </Select>
-                      </FormControl>
-                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                        <TextField
-                          fullWidth
-                          label="Twitter site (@handle optional)"
-                          value={config.technicalSeo.twitterSite}
-                          onChange={(e) => updateTechnicalSeo({ twitterSite: e.target.value.replace(/^@/, '') })}
-                          placeholder="yourbrand"
-                        />
-                        <TextField
-                          fullWidth
-                          label="Twitter creator (@handle optional)"
-                          value={config.technicalSeo.twitterCreator}
-                          onChange={(e) => updateTechnicalSeo({ twitterCreator: e.target.value.replace(/^@/, '') })}
-                          placeholder="founder_handle"
-                        />
-                      </Stack>
-                    </Stack>
+                      </div>
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-2">
+                        <div className="space-y-2">
+                      <Label htmlFor="cmm-f-17">Twitter site (@handle optional)</Label>
+                      <Input id="cmm-f-17" className="w-full" value={config.technicalSeo.twitterSite} onChange={(e) => updateTechnicalSeo({ twitterSite: e.target.value.replace(/^@/, '') })} placeholder="yourbrand" />
+                    </div>
+                        <div className="space-y-2">
+                      <Label htmlFor="cmm-f-18">Twitter creator (@handle optional)</Label>
+                      <Input id="cmm-f-18" className="w-full" value={config.technicalSeo.twitterCreator} onChange={(e) => updateTechnicalSeo({ twitterCreator: e.target.value.replace(/^@/, '') })} placeholder="founder_handle" />
+                    </div>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
 
-                <Card sx={{ borderRadius: 2 }}>
+                <Card>
                   <CardContent>
-                    <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                    <p className="mb-2 text-base font-semibold">
                       Robots, hreflang &amp; breadcrumbs
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    </p>
+                    <p className="text-sm text-muted-foreground">
                       Robots string is passed through to <code>&lt;meta name=&quot;robots&quot;&gt;</code> when set.
                       Hreflang rows power <code>link rel=&quot;alternate&quot;</code> for multilingual / regional
                       variants.
-                    </Typography>
-                    <Stack spacing={2}>
-                      <TextField
-                        fullWidth
-                        label="Robots meta content"
-                        value={config.technicalSeo.robotsMeta}
-                        onChange={(e) => updateTechnicalSeo({ robotsMeta: e.target.value })}
-                        placeholder="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
-                        helperText="Use noindex for thin or duplicate landings only. Rich-result-friendly previews often include max-image-preview:large."
-                      />
-                      <Typography variant="subtitle2" color="text.secondary">
+                    </p>
+                    <div className="flex flex-col gap-4">
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-19">Robots meta content</Label>
+                      <Input id="cmm-f-19" className="w-full" value={config.technicalSeo.robotsMeta} onChange={(e) => updateTechnicalSeo({ robotsMeta: e.target.value })} placeholder="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+                      <p className="text-xs text-muted-foreground">Use noindex for thin or duplicate landings only. Rich-result-friendly previews often include max-image-preview:large.</p>
+                    </div>
+                      <p className="text-sm text-muted-foreground">
                         Hreflang alternates
-                      </Typography>
+                      </p>
                       {(config.technicalSeo.hreflangAlternates.length
                         ? config.technicalSeo.hreflangAlternates
                         : [{ hreflang: '', href: '' }]
                       ).map((row, i) => (
-                        <Stack key={i} direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }}>
-                          <TextField
-                            size="small"
-                            label="hreflang"
-                            value={row.hreflang}
-                            onChange={(e) => {
+                        <div key={i} className="flex flex-col gap-2 sm:flex-row sm:gap-4">
+                          <div className="space-y-2">
+                      <Label htmlFor="cmm-f-20">hreflang</Label>
+                      <Input id="cmm-f-20" className="h-9 text-sm" value={row.hreflang} onChange={(e) => {
                               const base = config.technicalSeo.hreflangAlternates.length
                                 ? [...config.technicalSeo.hreflangAlternates]
                                 : [{ hreflang: '', href: '' }]
                               const next = [...base]
                               next[i] = { ...next[i], hreflang: e.target.value }
                               updateTechnicalSeo({ hreflangAlternates: next })
-                            }}
-                            placeholder="en-IN"
-                            sx={{ minWidth: 120 }}
-                          />
-                          <TextField
-                            fullWidth
-                            size="small"
-                            label="Absolute URL"
-                            value={row.href}
-                            onChange={(e) => {
+                            }} placeholder="en-IN" />
+                    </div>
+                          <div className="space-y-2">
+                      <Label htmlFor="cmm-f-21">Absolute URL</Label>
+                      <Input id="cmm-f-21" className="w-full h-9 text-sm" value={row.href} onChange={(e) => {
                               const base = config.technicalSeo.hreflangAlternates.length
                                 ? [...config.technicalSeo.hreflangAlternates]
                                 : [{ hreflang: '', href: '' }]
                               const next = [...base]
                               next[i] = { ...next[i], href: e.target.value }
                               updateTechnicalSeo({ hreflangAlternates: next })
-                            }}
-                            placeholder="https://…"
-                          />
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() =>
+                            }} placeholder="https://…" />
+                    </div>
+                          <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive" onClick={() =>
                               updateTechnicalSeo({
                                 hreflangAlternates: config.technicalSeo.hreflangAlternates.filter((_, j) => j !== i),
                               })
-                            }
-                            disabled={
-                              config.technicalSeo.hreflangAlternates.length === 0 ||
-                              (config.technicalSeo.hreflangAlternates.length === 1 &&
-                                !config.technicalSeo.hreflangAlternates[0].hreflang &&
-                                !config.technicalSeo.hreflangAlternates[0].href)
-                            }
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Stack>
+                            } ><Trash2 className="h-4 w-4" /></Button>
+                        </div>
                       ))}
                       <Button
-                        size="small"
-                        startIcon={<AddIcon />}
+                        size="sm"
+                        leftIcon={<Plus className="h-4 w-4" />}
                         onClick={() =>
                           updateTechnicalSeo({
                             hreflangAlternates: [
@@ -933,64 +818,55 @@ export default function CategoryMarketingManagement() {
                         Add hreflang row
                       </Button>
 
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={config.technicalSeo.enableBreadcrumbSchema}
-                            onChange={(e) => updateTechnicalSeo({ enableBreadcrumbSchema: e.target.checked })}
-                          />
-                        }
-                        label="Emit BreadcrumbList JSON-LD (use manual trail below if paths are not inferable)"
-                      />
-                      <Typography variant="subtitle2" color="text.secondary">
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          id="fcl-breadcrumb-schema"
+                          className="mt-0.5"
+                          checked={config.technicalSeo.enableBreadcrumbSchema}
+                          onCheckedChange={(c) =>
+                            updateTechnicalSeo({ enableBreadcrumbSchema: c === true })
+                          }
+                        />
+                        <Label htmlFor="fcl-breadcrumb-schema" className="text-sm font-normal leading-snug">
+                          Emit BreadcrumbList JSON-LD (use manual trail below if paths are not inferable)
+                        </Label>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
                         Breadcrumb trail (name + URL per item)
-                      </Typography>
+                      </p>
                       {(config.technicalSeo.breadcrumbItems.length
                         ? config.technicalSeo.breadcrumbItems
                         : [{ name: '', url: '' }]
                       ).map((row, i) => (
-                        <Stack key={i} direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }}>
-                          <TextField
-                            size="small"
-                            label="Name"
-                            value={row.name}
-                            onChange={(e) => {
+                        <div key={i} className="flex flex-col gap-2 sm:flex-row sm:gap-4">
+                          <div className="space-y-2">
+                      <Label htmlFor="cmm-f-22">Name</Label>
+                      <Input id="cmm-f-22" className="h-9 text-sm" value={row.name} onChange={(e) => {
                               const next = [...config.technicalSeo.breadcrumbItems]
                               if (!config.technicalSeo.breadcrumbItems.length) next.push({ name: '', url: '' })
                               next[i] = { ...next[i], name: e.target.value }
                               updateTechnicalSeo({ breadcrumbItems: next })
-                            }}
-                            placeholder="AC repair"
-                          />
-                          <TextField
-                            fullWidth
-                            size="small"
-                            label="URL"
-                            value={row.url}
-                            onChange={(e) => {
+                            }} placeholder="AC repair" />
+                    </div>
+                          <div className="space-y-2">
+                      <Label htmlFor="cmm-f-23">URL</Label>
+                      <Input id="cmm-f-23" className="w-full h-9 text-sm" value={row.url} onChange={(e) => {
                               const next = [...config.technicalSeo.breadcrumbItems]
                               if (!config.technicalSeo.breadcrumbItems.length) next.push({ name: '', url: '' })
                               next[i] = { ...next[i], url: e.target.value }
                               updateTechnicalSeo({ breadcrumbItems: next })
-                            }}
-                            placeholder="https://…"
-                          />
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() =>
+                            }} placeholder="https://…" />
+                    </div>
+                          <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive" onClick={() =>
                               updateTechnicalSeo({
                                 breadcrumbItems: config.technicalSeo.breadcrumbItems.filter((_, j) => j !== i),
                               })
-                            }
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Stack>
+                            } ><Trash2 className="h-4 w-4" /></Button>
+                        </div>
                       ))}
                       <Button
-                        size="small"
-                        startIcon={<AddIcon />}
+                        size="sm"
+                        leftIcon={<Plus className="h-4 w-4" />}
                         onClick={() =>
                           updateTechnicalSeo({
                             breadcrumbItems: [...config.technicalSeo.breadcrumbItems, { name: '', url: '' }],
@@ -999,150 +875,129 @@ export default function CategoryMarketingManagement() {
                       >
                         Add breadcrumb item
                       </Button>
-                    </Stack>
+                    </div>
                   </CardContent>
                 </Card>
 
-                <Card sx={{ borderRadius: 2 }}>
+                <Card>
                   <CardContent>
-                    <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                    <p className="mb-2 text-base font-semibold">
                       Structured data, entities &amp; answer engines
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    </p>
+                    <p className="text-sm text-muted-foreground">
                       Clear entities and factual summaries help Google and LLM-based search cite you accurately. Only use
                       aggregate rating when it matches visible, genuine reviews.
-                    </Typography>
-                    <Stack spacing={2}>
-                      <TextField
-                        fullWidth
-                        label="Primary schema.org @type hint"
-                        value={config.technicalSeo.schemaPrimaryType}
-                        onChange={(e) => updateTechnicalSeo({ schemaPrimaryType: e.target.value })}
-                        placeholder="ProfessionalService or HomeAndConstructionBusiness"
-                        helperText="Consumer maps this to Service / LocalBusiness typing, not a substitute for valid NAP."
-                      />
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={config.technicalSeo.enableWebPageSchema}
-                            onChange={(e) => updateTechnicalSeo({ enableWebPageSchema: e.target.checked })}
-                          />
-                        }
-                        label="Emit WebPage (or CollectionPage) JSON-LD with name, description, URL"
-                      />
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={config.technicalSeo.enableServiceOfferSchema}
-                            onChange={(e) => updateTechnicalSeo({ enableServiceOfferSchema: e.target.checked })}
-                          />
-                        }
-                        label="Emit Service / hasOfferCatalog style JSON-LD from cards &amp; pricing blocks"
-                      />
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={config.technicalSeo.enableHowToSchema}
-                            onChange={(e) => updateTechnicalSeo({ enableHowToSchema: e.target.checked })}
-                          />
-                        }
-                        label="Emit HowTo JSON-LD from booking steps (Areas & booking tab)"
-                      />
-                      <TextField
-                        fullWidth
-                        multiline
-                        minRows={3}
-                        label="Answer-engine summary"
-                        value={config.technicalSeo.answerEngineSummary}
-                        onChange={(e) => updateTechnicalSeo({ answerEngineSummary: e.target.value })}
-                        placeholder="2–4 factual sentences: who you serve, what’s included, pricing stance, same-day policy."
-                        helperText="Use for a visible “In brief” block and/or speakable text — avoid keyword stuffing."
-                      />
-                      <TextField
-                        fullWidth
-                        label="Content modified date (ISO)"
-                        value={config.technicalSeo.contentModifiedDate}
-                        onChange={(e) => updateTechnicalSeo({ contentModifiedDate: e.target.value })}
-                        placeholder="2026-05-01 or 2026-05-01T12:00:00+05:30"
-                        helperText="Optional dateModified for WebPage when you materially refresh this landing."
-                      />
-                      <Typography variant="subtitle2" color="text.secondary">
+                    </p>
+                    <div className="flex flex-col gap-4">
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-24">Primary schema.org @type hint</Label>
+                      <Input id="cmm-f-24" className="w-full" value={config.technicalSeo.schemaPrimaryType} onChange={(e) => updateTechnicalSeo({ schemaPrimaryType: e.target.value })} placeholder="ProfessionalService or HomeAndConstructionBusiness" />
+                      <p className="text-xs text-muted-foreground">Consumer maps this to Service / LocalBusiness typing, not a substitute for valid NAP.</p>
+                    </div>
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          id="fcl-webpage-schema"
+                          className="mt-0.5"
+                          checked={config.technicalSeo.enableWebPageSchema}
+                          onCheckedChange={(c) =>
+                            updateTechnicalSeo({ enableWebPageSchema: c === true })
+                          }
+                        />
+                        <Label htmlFor="fcl-webpage-schema" className="text-sm font-normal leading-snug">
+                          Emit WebPage (or CollectionPage) JSON-LD with name, description, URL
+                        </Label>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          id="fcl-service-offer-schema"
+                          className="mt-0.5"
+                          checked={config.technicalSeo.enableServiceOfferSchema}
+                          onCheckedChange={(c) =>
+                            updateTechnicalSeo({ enableServiceOfferSchema: c === true })
+                          }
+                        />
+                        <Label htmlFor="fcl-service-offer-schema" className="text-sm font-normal leading-snug">
+                          Emit Service / hasOfferCatalog style JSON-LD from cards &amp; pricing blocks
+                        </Label>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          id="fcl-howto-schema"
+                          className="mt-0.5"
+                          checked={config.technicalSeo.enableHowToSchema}
+                          onCheckedChange={(c) =>
+                            updateTechnicalSeo({ enableHowToSchema: c === true })
+                          }
+                        />
+                        <Label htmlFor="fcl-howto-schema" className="text-sm font-normal leading-snug">
+                          Emit HowTo JSON-LD from booking steps (Areas & booking tab)
+                        </Label>
+                      </div>
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-25">Answer-engine summary</Label>
+                      <Textarea id="cmm-f-25" className="w-full" rows={3} value={config.technicalSeo.answerEngineSummary} onChange={(e) => updateTechnicalSeo({ answerEngineSummary: e.target.value })} placeholder="2–4 factual sentences: who you serve, what’s included, pricing stance, same-day policy." />
+                      <p className="text-xs text-muted-foreground">Use for a visible “In brief” block and/or speakable text — avoid keyword stuffing.</p>
+                    </div>
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-26">Content modified date (ISO)</Label>
+                      <Input id="cmm-f-26" className="w-full" value={config.technicalSeo.contentModifiedDate} onChange={(e) => updateTechnicalSeo({ contentModifiedDate: e.target.value })} placeholder="2026-05-01 or 2026-05-01T12:00:00+05:30" />
+                      <p className="text-xs text-muted-foreground">Optional dateModified for WebPage when you materially refresh this landing.</p>
+                    </div>
+                      <p className="text-sm text-muted-foreground">
                         knowsAbout / topic entities
-                      </Typography>
+                      </p>
                       {(config.technicalSeo.knowsAbout.length ? config.technicalSeo.knowsAbout : ['']).map((topic, i) => (
-                        <Stack key={i} direction="row" spacing={1} alignItems="center">
-                          <TextField
-                            fullWidth
-                            size="small"
-                            value={topic}
-                            onChange={(e) => {
+                        <div key={i} className="flex flex-row items-center gap-2">
+                          <div className="space-y-2"><Input className="w-full h-9 text-sm" value={topic} onChange={(e) => {
                               const base = config.technicalSeo.knowsAbout.length
                                 ? [...config.technicalSeo.knowsAbout]
                                 : ['']
                               const next = [...base]
                               next[i] = e.target.value
                               updateTechnicalSeo({ knowsAbout: next })
-                            }}
-                            placeholder="Air conditioning maintenance or https://en.wikipedia.org/wiki/Air_conditioning"
-                          />
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() =>
+                            }} placeholder="Air conditioning maintenance or https://en.wikipedia.org/wiki/Air_conditioning" />
+                    </div>
+                          <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive" onClick={() =>
                               updateTechnicalSeo({
                                 knowsAbout: config.technicalSeo.knowsAbout.filter((_, j) => j !== i),
                               })
-                            }
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Stack>
+                            } ><Trash2 className="h-4 w-4" /></Button>
+                        </div>
                       ))}
                       <Button
-                        size="small"
-                        startIcon={<AddIcon />}
+                        size="sm"
+                        leftIcon={<Plus className="h-4 w-4" />}
                         onClick={() => updateTechnicalSeo({ knowsAbout: [...config.technicalSeo.knowsAbout, ''] })}
                       >
                         Add topic
                       </Button>
-                      <Typography variant="subtitle2" color="text.secondary">
+                      <p className="text-sm text-muted-foreground">
                         Speakable CSS selectors
-                      </Typography>
+                      </p>
                       {(config.technicalSeo.speakableSelectors.length
                         ? config.technicalSeo.speakableSelectors
                         : ['']
                       ).map((sel, i) => (
-                        <Stack key={i} direction="row" spacing={1} alignItems="center">
-                          <TextField
-                            fullWidth
-                            size="small"
-                            value={sel}
-                            onChange={(e) => {
+                        <div key={i} className="flex flex-row items-center gap-2">
+                          <div className="space-y-2"><Input className="w-full h-9 text-sm" value={sel} onChange={(e) => {
                               const base = config.technicalSeo.speakableSelectors.length
                                 ? [...config.technicalSeo.speakableSelectors]
                                 : ['']
                               const next = [...base]
                               next[i] = e.target.value
                               updateTechnicalSeo({ speakableSelectors: next })
-                            }}
-                            placeholder=".service-answer-summary, article h1"
-                          />
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() =>
+                            }} placeholder=".service-answer-summary, article h1" />
+                    </div>
+                          <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive" onClick={() =>
                               updateTechnicalSeo({
                                 speakableSelectors: config.technicalSeo.speakableSelectors.filter((_, j) => j !== i),
                               })
-                            }
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Stack>
+                            } ><Trash2 className="h-4 w-4" /></Button>
+                        </div>
                       ))}
                       <Button
-                        size="small"
-                        startIcon={<AddIcon />}
+                        size="sm"
+                        leftIcon={<Plus className="h-4 w-4" />}
                         onClick={() =>
                           updateTechnicalSeo({
                             speakableSelectors: [...config.technicalSeo.speakableSelectors, ''],
@@ -1151,203 +1006,162 @@ export default function CategoryMarketingManagement() {
                       >
                         Add selector
                       </Button>
-                      <Typography variant="subtitle2" color="text.secondary">
+                      <p className="text-sm text-muted-foreground">
                         Aggregate rating (JSON-LD) — honest values only
-                      </Typography>
-                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                        <TextField
-                          fullWidth
-                          label="Rating value"
-                          value={config.technicalSeo.aggregateRating.ratingValue}
-                          onChange={(e) =>
+                      </p>
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-2">
+                        <div className="space-y-2">
+                      <Label htmlFor="cmm-f-29">Rating value</Label>
+                      <Input id="cmm-f-29" className="w-full" value={config.technicalSeo.aggregateRating.ratingValue} onChange={(e) =>
                             updateTechnicalSeo({
                               aggregateRating: {
                                 ...config.technicalSeo.aggregateRating,
                                 ratingValue: e.target.value,
                               },
                             })
-                          }
-                          placeholder="4.8"
-                        />
-                        <TextField
-                          fullWidth
-                          label="Review count"
-                          value={config.technicalSeo.aggregateRating.reviewCount}
-                          onChange={(e) =>
+                          } placeholder="4.8" />
+                    </div>
+                        <div className="space-y-2">
+                      <Label htmlFor="cmm-f-30">Review count</Label>
+                      <Input id="cmm-f-30" className="w-full" value={config.technicalSeo.aggregateRating.reviewCount} onChange={(e) =>
                             updateTechnicalSeo({
                               aggregateRating: {
                                 ...config.technicalSeo.aggregateRating,
                                 reviewCount: e.target.value,
                               },
                             })
-                          }
-                          placeholder="1200"
-                        />
-                      </Stack>
-                      <Typography variant="subtitle2" color="text.secondary">
+                          } placeholder="1200" />
+                    </div>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
                         Video URLs (VideoObject / embed URLs)
-                      </Typography>
+                      </p>
                       {(config.technicalSeo.videoEmbedUrls.length
                         ? config.technicalSeo.videoEmbedUrls
                         : ['']
                       ).map((u, i) => (
-                        <Stack key={i} direction="row" spacing={1} alignItems="center">
-                          <TextField
-                            fullWidth
-                            size="small"
-                            value={u}
-                            onChange={(e) => {
+                        <div key={i} className="flex flex-row items-center gap-2">
+                          <div className="space-y-2"><Input className="w-full h-9 text-sm" value={u} onChange={(e) => {
                               const base = config.technicalSeo.videoEmbedUrls.length
                                 ? [...config.technicalSeo.videoEmbedUrls]
                                 : ['']
                               const next = [...base]
                               next[i] = e.target.value
                               updateTechnicalSeo({ videoEmbedUrls: next })
-                            }}
-                            placeholder="https://www.youtube.com/watch?v=…"
-                          />
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() =>
+                            }} placeholder="https://www.youtube.com/watch?v=…" />
+                    </div>
+                          <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive" onClick={() =>
                               updateTechnicalSeo({
                                 videoEmbedUrls: config.technicalSeo.videoEmbedUrls.filter((_, j) => j !== i),
                               })
-                            }
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Stack>
+                            } ><Trash2 className="h-4 w-4" /></Button>
+                        </div>
                       ))}
                       <Button
-                        size="small"
-                        startIcon={<AddIcon />}
+                        size="sm"
+                        leftIcon={<Plus className="h-4 w-4" />}
                         onClick={() =>
                           updateTechnicalSeo({ videoEmbedUrls: [...config.technicalSeo.videoEmbedUrls, ''] })
                         }
                       >
                         Add video URL
                       </Button>
-                    </Stack>
+                    </div>
                   </CardContent>
                 </Card>
-              </Stack>
-            </TabPanel>
+              </div>
+            </TabsContent>
 
-            <TabPanel value="localSeo" sx={{ px: 0 }}>
-              <Stack spacing={2}>
-                <Alert severity="info">
+            <TabsContent value="localSeo" className="mt-2 px-0 outline-none">
+              <div className="flex flex-col gap-4">
+                <div role="alert" className="rounded-md border border-blue-200 bg-blue-50/80 p-3 text-sm dark:border-blue-900 dark:bg-blue-950/30">
                   <strong>Consumer app contract:</strong> map-pack style data should be read only from this CMS record
                   (<code>localSeo</code> and related fields). Avoid hardcoding service areas, NAP, or GBP URLs in the
                   public bundle so hyperlocal pages stay editable from admin.
-                </Alert>
-                <Card sx={{ borderRadius: 2 }}>
+                </div>
+                <Card>
                   <CardContent>
-                    <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                    <p className="mb-2 text-base font-semibold">
                       Structured data &amp; profile
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    </p>
+                    <p className="text-sm text-muted-foreground">
                       Toggle LocalBusiness-oriented JSON-LD on the consumer site when you have a consistent NAP and
                       service-area story for this key.
-                    </Typography>
-                    <Stack spacing={2}>
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={config.localSeo.enableLocalBusinessSchema}
-                            onChange={(e) => updateLocalSeo({ enableLocalBusinessSchema: e.target.checked })}
-                          />
-                        }
-                        label="Enable LocalBusiness / local schema (consumer reads this flag)"
-                      />
-                      <TextField
-                        fullWidth
-                        label="Local profile name (schema / visible)"
-                        value={config.localSeo.localProfileName}
-                        onChange={(e) => updateLocalSeo({ localProfileName: e.target.value })}
-                        placeholder="e.g. ProFixer AC Repair – Mira Road"
-                        helperText="Optional override for JSON-LD name on this URL; use locality keys for true hyperlocal profiles."
-                      />
-                      <TextField
-                        fullWidth
-                        label="Opening hours summary"
-                        value={config.localSeo.openingHoursSummary}
-                        onChange={(e) => updateLocalSeo({ openingHoursSummary: e.target.value })}
-                        placeholder="Mon–Sat 8:00–20:00 · Sun 9:00–18:00"
-                      />
-                      <TextField
-                        fullWidth
-                        label="Price range hint"
-                        value={config.localSeo.priceRange}
-                        onChange={(e) => updateLocalSeo({ priceRange: e.target.value })}
-                        placeholder="e.g. ₹₹ or Inexpensive–Moderate"
-                      />
-                    </Stack>
+                    </p>
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          id="fcl-local-business-schema"
+                          className="mt-0.5"
+                          checked={config.localSeo.enableLocalBusinessSchema}
+                          onCheckedChange={(c) =>
+                            updateLocalSeo({ enableLocalBusinessSchema: c === true })
+                          }
+                        />
+                        <Label htmlFor="fcl-local-business-schema" className="text-sm font-normal leading-snug">
+                          Enable LocalBusiness / local schema (consumer reads this flag)
+                        </Label>
+                      </div>
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-32">Local profile name (schema / visible)</Label>
+                      <Input id="cmm-f-32" className="w-full" value={config.localSeo.localProfileName} onChange={(e) => updateLocalSeo({ localProfileName: e.target.value })} placeholder="e.g. ProFixer AC Repair – Mira Road" />
+                      <p className="text-xs text-muted-foreground">Optional override for JSON-LD name on this URL; use locality keys for true hyperlocal profiles.</p>
+                    </div>
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-33">Opening hours summary</Label>
+                      <Input id="cmm-f-33" className="w-full" value={config.localSeo.openingHoursSummary} onChange={(e) => updateLocalSeo({ openingHoursSummary: e.target.value })} placeholder="Mon–Sat 8:00–20:00 · Sun 9:00–18:00" />
+                    </div>
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-34">Price range hint</Label>
+                      <Input id="cmm-f-34" className="w-full" value={config.localSeo.priceRange} onChange={(e) => updateLocalSeo({ priceRange: e.target.value })} placeholder="e.g. ₹₹ or Inexpensive–Moderate" />
+                    </div>
+                    </div>
                   </CardContent>
                 </Card>
-                <Card sx={{ borderRadius: 2 }}>
+                <Card>
                   <CardContent>
-                    <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                    <p className="mb-2 text-base font-semibold">
                       Service area (local SEO)
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    </p>
+                    <p className="text-sm text-muted-foreground">
                       Lists and narrative power “near me” relevance and internal linking to locality URLs.
-                    </Typography>
-                    <Stack spacing={2}>
-                      <TextField
-                        fullWidth
-                        label="Service area headline"
-                        value={config.localSeo.serviceAreaHeadline}
-                        onChange={(e) => updateLocalSeo({ serviceAreaHeadline: e.target.value })}
-                        placeholder="Same-day AC repair across [Location] and surrounding suburbs"
-                      />
-                      <TextField
-                        fullWidth
-                        multiline
-                        minRows={4}
-                        label="Service area narrative"
-                        value={config.localSeo.serviceAreaNarrative}
-                        onChange={(e) => updateLocalSeo({ serviceAreaNarrative: e.target.value })}
-                        placeholder="Unique paragraph describing coverage, dispatch times, and why you win locally."
-                      />
-                      <Typography variant="subtitle2" color="text.secondary">
+                    </p>
+                    <div className="flex flex-col gap-4">
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-35">Service area headline</Label>
+                      <Input id="cmm-f-35" className="w-full" value={config.localSeo.serviceAreaHeadline} onChange={(e) => updateLocalSeo({ serviceAreaHeadline: e.target.value })} placeholder="Same-day AC repair across [Location] and surrounding suburbs" />
+                    </div>
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-36">Service area narrative</Label>
+                      <Textarea id="cmm-f-36" className="w-full" rows={4} value={config.localSeo.serviceAreaNarrative} onChange={(e) => updateLocalSeo({ serviceAreaNarrative: e.target.value })} placeholder="Unique paragraph describing coverage, dispatch times, and why you win locally." />
+                    </div>
+                      <p className="text-sm text-muted-foreground">
                         Places served (suburbs / neighborhoods)
-                      </Typography>
+                      </p>
                       {(config.localSeo.serviceAreaPlaceNames.length
                         ? config.localSeo.serviceAreaPlaceNames
                         : ['']
                       ).map((place, i) => (
-                        <Stack key={i} direction="row" spacing={1} alignItems="center">
-                          <TextField
-                            fullWidth
-                            size="small"
-                            value={place}
-                            onChange={(e) => {
+                        <div key={i} className="flex flex-row items-center gap-2">
+                          <div className="space-y-2"><Input className="w-full h-9 text-sm" value={place} onChange={(e) => {
                               const base = config.localSeo.serviceAreaPlaceNames.length
                                 ? [...config.localSeo.serviceAreaPlaceNames]
                                 : ['']
                               const next = [...base]
                               next[i] = e.target.value
                               updateLocalSeo({ serviceAreaPlaceNames: next })
-                            }}
-                            placeholder="e.g. Mira Road, Bhayandar East"
-                          />
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() =>
+                            }} placeholder="e.g. Mira Road, Bhayandar East" />
+                    </div>
+                          <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive" onClick={() =>
                               updateLocalSeo({
                                 serviceAreaPlaceNames: config.localSeo.serviceAreaPlaceNames.filter((_, j) => j !== i),
                               })
-                            }
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Stack>
+                            } ><Trash2 className="h-4 w-4" /></Button>
+                        </div>
                       ))}
                       <Button
-                        size="small"
-                        startIcon={<AddIcon />}
+                        size="sm"
+                        leftIcon={<Plus className="h-4 w-4" />}
                         onClick={() =>
                           updateLocalSeo({
                             serviceAreaPlaceNames: [...config.localSeo.serviceAreaPlaceNames, ''],
@@ -1356,44 +1170,33 @@ export default function CategoryMarketingManagement() {
                       >
                         Add place
                       </Button>
-                      <Typography variant="subtitle2" color="text.secondary" sx={{ pt: 1 }}>
+                      <p className="text-sm text-muted-foreground">
                         Local intent keywords
-                      </Typography>
+                      </p>
                       {(config.localSeo.localIntentKeywords.length
                         ? config.localSeo.localIntentKeywords
                         : ['']
                       ).map((kw, i) => (
-                        <Stack key={i} direction="row" spacing={1} alignItems="center">
-                          <TextField
-                            fullWidth
-                            size="small"
-                            value={kw}
-                            onChange={(e) => {
+                        <div key={i} className="flex flex-row items-center gap-2">
+                          <div className="space-y-2"><Input className="w-full h-9 text-sm" value={kw} onChange={(e) => {
                               const base = config.localSeo.localIntentKeywords.length
                                 ? [...config.localSeo.localIntentKeywords]
                                 : ['']
                               const next = [...base]
                               next[i] = e.target.value
                               updateLocalSeo({ localIntentKeywords: next })
-                            }}
-                            placeholder="e.g. AC repair near me in Mira Road"
-                          />
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() =>
+                            }} placeholder="e.g. AC repair near me in Mira Road" />
+                    </div>
+                          <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive" onClick={() =>
                               updateLocalSeo({
                                 localIntentKeywords: config.localSeo.localIntentKeywords.filter((_, j) => j !== i),
                               })
-                            }
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Stack>
+                            } ><Trash2 className="h-4 w-4" /></Button>
+                        </div>
                       ))}
                       <Button
-                        size="small"
-                        startIcon={<AddIcon />}
+                        size="sm"
+                        leftIcon={<Plus className="h-4 w-4" />}
                         onClick={() =>
                           updateLocalSeo({
                             localIntentKeywords: [...config.localSeo.localIntentKeywords, ''],
@@ -1402,179 +1205,134 @@ export default function CategoryMarketingManagement() {
                       >
                         Add local keyword
                       </Button>
-                    </Stack>
+                    </div>
                   </CardContent>
                 </Card>
-                <Card sx={{ borderRadius: 2 }}>
+                <Card>
                   <CardContent>
-                    <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                    <p className="mb-2 text-base font-semibold">
                       NAP &amp; citations
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    </p>
+                    <p className="text-sm text-muted-foreground">
                       Keep consistent with Google Business Profile for trust and schema quality.
-                    </Typography>
-                    <Stack spacing={2}>
-                      <TextField
-                        fullWidth
-                        label="Street address"
-                        value={config.localSeo.streetAddress}
-                        onChange={(e) => updateLocalSeo({ streetAddress: e.target.value })}
-                      />
-                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                        <TextField
-                          fullWidth
-                          label="City / locality"
-                          value={config.localSeo.addressLocality}
-                          onChange={(e) => updateLocalSeo({ addressLocality: e.target.value })}
-                        />
-                        <TextField
-                          fullWidth
-                          label="Region / state"
-                          value={config.localSeo.addressRegion}
-                          onChange={(e) => updateLocalSeo({ addressRegion: e.target.value })}
-                        />
-                      </Stack>
-                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                        <TextField
-                          fullWidth
-                          label="Postal code"
-                          value={config.localSeo.postalCode}
-                          onChange={(e) => updateLocalSeo({ postalCode: e.target.value })}
-                        />
-                        <TextField
-                          fullWidth
-                          label="Country code (ISO)"
-                          value={config.localSeo.addressCountryCode}
-                          onChange={(e) => updateLocalSeo({ addressCountryCode: e.target.value.toUpperCase() })}
-                          placeholder="IN"
-                          inputProps={{ maxLength: 2 }}
-                        />
-                      </Stack>
-                      <TextField
-                        fullWidth
-                        label="Geo coordinates (optional)"
-                        value={config.localSeo.geoLatLng}
-                        onChange={(e) => updateLocalSeo({ geoLatLng: e.target.value })}
-                        placeholder="19.2856,72.8691"
-                        helperText="Latitude,longitude for JSON-LD geo — use the verified storefront or service center."
-                      />
-                      <TextField
-                        fullWidth
-                        label="Google Business Profile URL"
-                        value={config.localSeo.googleBusinessProfileUrl}
-                        onChange={(e) => updateLocalSeo({ googleBusinessProfileUrl: e.target.value })}
-                        placeholder="https://maps.google.com/?cid=…"
-                      />
-                      <Typography variant="subtitle2" color="text.secondary">
+                    </p>
+                    <div className="flex flex-col gap-4">
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-39">Street address</Label>
+                      <Input id="cmm-f-39" className="w-full" value={config.localSeo.streetAddress} onChange={(e) => updateLocalSeo({ streetAddress: e.target.value })} />
+                    </div>
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-2">
+                        <div className="space-y-2">
+                      <Label htmlFor="cmm-f-40">City / locality</Label>
+                      <Input id="cmm-f-40" className="w-full" value={config.localSeo.addressLocality} onChange={(e) => updateLocalSeo({ addressLocality: e.target.value })} />
+                    </div>
+                        <div className="space-y-2">
+                      <Label htmlFor="cmm-f-41">Region / state</Label>
+                      <Input id="cmm-f-41" className="w-full" value={config.localSeo.addressRegion} onChange={(e) => updateLocalSeo({ addressRegion: e.target.value })} />
+                    </div>
+                      </div>
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-2">
+                        <div className="space-y-2">
+                      <Label htmlFor="cmm-f-42">Postal code</Label>
+                      <Input id="cmm-f-42" className="w-full" value={config.localSeo.postalCode} onChange={(e) => updateLocalSeo({ postalCode: e.target.value })} />
+                    </div>
+                        <div className="space-y-2">
+                      <Label htmlFor="cmm-f-43">Country code (ISO)</Label>
+                      <Input id="cmm-f-43" className="w-full" value={config.localSeo.addressCountryCode} onChange={(e) => updateLocalSeo({ addressCountryCode: e.target.value.toUpperCase() })} maxLength={2} placeholder="IN" />
+                    </div>
+                      </div>
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-44">Geo coordinates (optional)</Label>
+                      <Input id="cmm-f-44" className="w-full" value={config.localSeo.geoLatLng} onChange={(e) => updateLocalSeo({ geoLatLng: e.target.value })} placeholder="19.2856,72.8691" />
+                      <p className="text-xs text-muted-foreground">Latitude,longitude for JSON-LD geo — use the verified storefront or service center.</p>
+                    </div>
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-45">Google Business Profile URL</Label>
+                      <Input id="cmm-f-45" className="w-full" value={config.localSeo.googleBusinessProfileUrl} onChange={(e) => updateLocalSeo({ googleBusinessProfileUrl: e.target.value })} placeholder="https://maps.google.com/?cid=…" />
+                    </div>
+                      <p className="text-sm text-muted-foreground">
                         sameAs URLs
-                      </Typography>
+                      </p>
                       {(config.localSeo.sameAsUrls.length ? config.localSeo.sameAsUrls : ['']).map((url, i) => (
-                        <Stack key={i} direction="row" spacing={1} alignItems="center">
-                          <TextField
-                            fullWidth
-                            size="small"
-                            value={url}
-                            onChange={(e) => {
+                        <div key={i} className="flex flex-row items-center gap-2">
+                          <div className="space-y-2"><Input className="w-full h-9 text-sm" value={url} onChange={(e) => {
                               const base = config.localSeo.sameAsUrls.length ? [...config.localSeo.sameAsUrls] : ['']
                               const next = [...base]
                               next[i] = e.target.value
                               updateLocalSeo({ sameAsUrls: next })
-                            }}
-                            placeholder="https://"
-                          />
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() =>
+                            }} placeholder="https://" />
+                    </div>
+                          <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive" onClick={() =>
                               updateLocalSeo({
                                 sameAsUrls: config.localSeo.sameAsUrls.filter((_, j) => j !== i),
                               })
-                            }
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Stack>
+                            } ><Trash2 className="h-4 w-4" /></Button>
+                        </div>
                       ))}
                       <Button
-                        size="small"
-                        startIcon={<AddIcon />}
+                        size="sm"
+                        leftIcon={<Plus className="h-4 w-4" />}
                         onClick={() => updateLocalSeo({ sameAsUrls: [...config.localSeo.sameAsUrls, ''] })}
                       >
                         Add URL
                       </Button>
-                    </Stack>
+                    </div>
                   </CardContent>
                 </Card>
-                <Card sx={{ borderRadius: 2 }}>
+                <Card>
                   <CardContent>
-                    <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                    <p className="mb-2 text-base font-semibold">
                       Social preview
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      label="Open Graph image override (absolute URL)"
-                      value={config.localSeo.ogImageOverride}
-                      onChange={(e) => updateLocalSeo({ ogImageOverride: e.target.value })}
-                      placeholder="https://…"
-                      helperText="Optional; consumer should prefer this for og:image on this service URL when set."
-                    />
+                    </p>
+                    <div className="space-y-2">
+                      <Label htmlFor="cmm-f-47">Open Graph image override (absolute URL)</Label>
+                      <Input id="cmm-f-47" className="w-full" value={config.localSeo.ogImageOverride} onChange={(e) => updateLocalSeo({ ogImageOverride: e.target.value })} placeholder="https://…" />
+                      <p className="text-xs text-muted-foreground">Optional; consumer should prefer this for og:image on this service URL when set.</p>
+                    </div>
                   </CardContent>
                 </Card>
-              </Stack>
-            </TabPanel>
+              </div>
+            </TabsContent>
 
-            <TabPanel value="hero" sx={{ px: 0 }}>
-              <Stack spacing={2}>
-                <Card sx={{ borderRadius: 2 }}>
+            <TabsContent value="hero" className="mt-2 px-0 outline-none">
+              <div className="flex flex-col gap-4">
+                <Card>
                   <CardContent>
-                    <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
+                    <p className="text-sm text-muted-foreground">
                       H1 and intro (no heading for intro on the live page)
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      label="Main heading (H1)"
-                      value={config.mainHeading}
-                      onChange={(e) => updateConfig({ mainHeading: e.target.value })}
-                      placeholder="AC Repair & Service in [City] – Same-Day, Transparent Pricing"
-                      sx={{ mb: 2 }}
-                    />
-                    <TextField
-                      fullWidth
-                      label="Intro paragraph"
-                      multiline
-                      rows={5}
-                      value={config.intro}
-                      onChange={(e) => updateConfig({ intro: e.target.value })}
-                    />
-                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 2 }}>
-                      <TextField
-                        fullWidth
-                        label="Intro lead magnet label (optional)"
-                        value={config.introLeadMagnetLabel}
-                        onChange={(e) => updateConfig({ introLeadMagnetLabel: e.target.value })}
-                        placeholder="Free AC health check"
-                      />
-                      <TextField
-                        fullWidth
-                        label="Intro lead magnet URL (optional)"
-                        value={config.introLeadMagnetUrl}
-                        onChange={(e) => updateConfig({ introLeadMagnetUrl: e.target.value })}
-                      />
-                    </Stack>
+                    </p>
+                    <div className="space-y-2">
+                      <Label htmlFor="cmm-f-48">Main heading (H1)</Label>
+                      <Input id="cmm-f-48" className="w-full" value={config.mainHeading} onChange={(e) => updateConfig({ mainHeading: e.target.value })} placeholder="AC Repair & Service in [City] – Same-Day, Transparent Pricing" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cmm-f-49">Intro paragraph</Label>
+                      <Textarea id="cmm-f-49" className="w-full" rows={5} value={config.intro} onChange={(e) => updateConfig({ intro: e.target.value })} />
+                    </div>
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-2">
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-50">Intro lead magnet label (optional)</Label>
+                      <Input id="cmm-f-50" className="w-full" value={config.introLeadMagnetLabel} onChange={(e) => updateConfig({ introLeadMagnetLabel: e.target.value })} placeholder="Free AC health check" />
+                    </div>
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-51">Intro lead magnet URL (optional)</Label>
+                      <Input id="cmm-f-51" className="w-full" value={config.introLeadMagnetUrl} onChange={(e) => updateConfig({ introLeadMagnetUrl: e.target.value })} />
+                    </div>
+                    </div>
                   </CardContent>
                 </Card>
-                <Card sx={{ borderRadius: 2 }}>
+                <Card>
                   <CardContent>
-                    <Box display="flex" alignItems="center" gap={1} sx={{ mb: 2 }}>
-                      <ImageIcon color="action" />
-                      <Typography variant="subtitle1" fontWeight={600}>
+                    <div className="flex items-center gap-1">
+                      <ImageIconLucide className="h-4 w-4 text-primary" />
+                      <p className="text-base font-semibold">
                         Images
-                      </Typography>
-                    </Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      </p>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
                       Hero and secondary images for this industry block.
-                    </Typography>
-                    <Stack spacing={3}>
+                    </p>
+                    <div className="flex flex-col gap-4">
                       <ImageUploadField
                         label="Image 1 (Hero / main)"
                         value={
@@ -1603,820 +1361,687 @@ export default function CategoryMarketingManagement() {
                         allowFromCloudinary
                         helperText="Secondary image. Max 5MB."
                       />
-                    </Stack>
+                    </div>
                   </CardContent>
                 </Card>
-              </Stack>
-            </TabPanel>
+              </div>
+            </TabsContent>
 
-            <TabPanel value="cards" sx={{ px: 0 }}>
-              <Card sx={{ borderRadius: 2 }}>
+            <TabsContent value="cards" className="mt-2 px-0 outline-none">
+              <Card>
                 <CardContent>
-                  <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" color="text.secondary">
+                  <div className="flex flex-wrap items-center justify-between">
+                    <p className="text-sm text-muted-foreground">
                       Our Services grid (card per row in CMS; site renders as grid)
-                    </Typography>
+                    </p>
                     <Button
-                      size="small"
-                      startIcon={<AddIcon />}
+                      size="sm"
+                      leftIcon={<Plus className="h-4 w-4" />}
                       onClick={() => updateConfig({ serviceCards: [...config.serviceCards, emptyServiceCard()] })}
                     >
                       Add card
                     </Button>
-                  </Box>
+                  </div>
                   {config.serviceCards.map((card, i) => (
-                    <Accordion key={i} defaultExpanded sx={{ mb: 1, '&:before': { display: 'none' } }}>
-                      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                        <Typography variant="subtitle2">{card.title || `Card ${i + 1}`}</Typography>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            updateConfig({ serviceCards: config.serviceCards.filter((_, j) => j !== i) })
-                          }}
-                          sx={{ ml: 1 }}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </AccordionSummary>
-                      <AccordionDetails>
-                        <Stack spacing={2}>
-                          <TextField
-                            fullWidth
-                            label="Service name (H3)"
-                            value={card.title}
-                            onChange={(e) => {
+                    <Accordion key={i} type="single" collapsible defaultValue={`svc-card-${i}`} className="mb-2 rounded-md border">
+                      <AccordionItem value={`svc-card-${i}`} className="border-0">
+                        <div className="flex items-stretch gap-1 border-b px-2">
+                          <AccordionTrigger className="flex-1 py-3 text-left text-sm font-medium hover:no-underline">
+                            {card.title || `Card ${i + 1}`}
+                          </AccordionTrigger>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 shrink-0 text-destructive hover:text-destructive"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              updateConfig({ serviceCards: config.serviceCards.filter((_, j) => j !== i) })
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <AccordionContent className="px-2 pb-4 pt-2">
+                        <div className="flex flex-col gap-4">
+                          <div className="space-y-2">
+                      <Label htmlFor="cmm-f-52">Service name (H3)</Label>
+                      <Input id="cmm-f-52" className="w-full" value={card.title} onChange={(e) => {
                               const next = [...config.serviceCards]
                               next[i] = { ...next[i], title: e.target.value }
                               updateConfig({ serviceCards: next })
-                            }}
-                          />
-                          <TextField
-                            fullWidth
-                            label="Short description"
-                            multiline
-                            rows={2}
-                            value={card.description}
-                            onChange={(e) => {
+                            }} />
+                    </div>
+                          <div className="space-y-2">
+                      <Label htmlFor="cmm-f-53">Short description</Label>
+                      <Textarea id="cmm-f-53" className="w-full" rows={2} value={card.description} onChange={(e) => {
                               const next = [...config.serviceCards]
                               next[i] = { ...next[i], description: e.target.value }
                               updateConfig({ serviceCards: next })
-                            }}
-                          />
-                          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                            <TextField
-                              fullWidth
-                              label="Price"
-                              value={card.price}
-                              onChange={(e) => {
+                            }} />
+                    </div>
+                          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-2">
+                            <div className="space-y-2">
+                      <Label htmlFor="cmm-f-54">Price</Label>
+                      <Input id="cmm-f-54" className="w-full" value={card.price} onChange={(e) => {
                                 const next = [...config.serviceCards]
                                 next[i] = { ...next[i], price: e.target.value }
                                 updateConfig({ serviceCards: next })
-                              }}
-                            />
-                            <TextField
-                              fullWidth
-                              label="Rating"
-                              value={card.rating}
-                              onChange={(e) => {
+                              }} />
+                    </div>
+                            <div className="space-y-2">
+                      <Label htmlFor="cmm-f-55">Rating</Label>
+                      <Input id="cmm-f-55" className="w-full" value={card.rating} onChange={(e) => {
                                 const next = [...config.serviceCards]
                                 next[i] = { ...next[i], rating: e.target.value }
                                 updateConfig({ serviceCards: next })
-                              }}
-                            />
-                          </Stack>
-                          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                            <TextField
-                              fullWidth
-                              label="Duration"
-                              value={card.duration}
-                              onChange={(e) => {
+                              }} />
+                    </div>
+                          </div>
+                          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-2">
+                            <div className="space-y-2">
+                      <Label htmlFor="cmm-f-56">Duration</Label>
+                      <Input id="cmm-f-56" className="w-full" value={card.duration} onChange={(e) => {
                                 const next = [...config.serviceCards]
                                 next[i] = { ...next[i], duration: e.target.value }
                                 updateConfig({ serviceCards: next })
-                              }}
-                            />
-                            <TextField
-                              fullWidth
-                              label="Warranty badge"
-                              value={card.warranty}
-                              onChange={(e) => {
+                              }} />
+                    </div>
+                            <div className="space-y-2">
+                      <Label htmlFor="cmm-f-57">Warranty badge</Label>
+                      <Input id="cmm-f-57" className="w-full" value={card.warranty} onChange={(e) => {
                                 const next = [...config.serviceCards]
                                 next[i] = { ...next[i], warranty: e.target.value }
                                 updateConfig({ serviceCards: next })
-                              }}
-                            />
-                          </Stack>
-                          <TextField
-                            fullWidth
-                            label="Book now URL"
-                            value={card.bookUrl}
-                            onChange={(e) => {
+                              }} />
+                    </div>
+                          </div>
+                          <div className="space-y-2">
+                      <Label htmlFor="cmm-f-58">Book now URL</Label>
+                      <Input id="cmm-f-58" className="w-full" value={card.bookUrl} onChange={(e) => {
                               const next = [...config.serviceCards]
                               next[i] = { ...next[i], bookUrl: e.target.value }
                               updateConfig({ serviceCards: next })
-                            }}
-                          />
-                        </Stack>
-                      </AccordionDetails>
+                            }} />
+                    </div>
+                        </div>
+                        </AccordionContent>
+                      </AccordionItem>
                     </Accordion>
                   ))}
                 </CardContent>
               </Card>
-            </TabPanel>
+            </TabsContent>
 
-            <TabPanel value="detailed" sx={{ px: 0 }}>
-              <Card sx={{ borderRadius: 2 }}>
+            <TabsContent value="detailed" className="mt-2 px-0 outline-none">
+              <Card>
                 <CardContent>
-                  <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" color="text.secondary">
+                  <div className="flex flex-wrap items-center justify-between">
+                    <p className="text-sm text-muted-foreground">
                       Detailed service options (H3 + bullets)
-                    </Typography>
-                    <Button size="small" startIcon={<AddIcon />} onClick={addServiceType}>
+                    </p>
+                    <Button size="sm" leftIcon={<Plus className="h-4 w-4" />} onClick={addServiceType}>
                       Add block
                     </Button>
-                  </Box>
+                  </div>
                   {config.serviceTypes.map((block, typeIndex) => (
                     <Accordion
                       key={typeIndex}
-                      defaultExpanded
-                      sx={{ borderRadius: 1, mb: 1, '&:before': { display: 'none' } }}
+                      type="single"
+                      collapsible
+                      defaultValue={`svc-type-${typeIndex}`}
+                      className="mb-2 rounded-md border"
                     >
-                      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                        <Typography variant="subtitle2">{block.title || `Block ${typeIndex + 1}`}</Typography>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            removeServiceType(typeIndex)
-                          }}
-                          sx={{ ml: 1 }}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </AccordionSummary>
-                      <AccordionDetails>
-                        <Stack spacing={2}>
-                          <TextField
-                            fullWidth
-                            label="Title (H3)"
-                            value={block.title}
-                            onChange={(e) => updateServiceType(typeIndex, 'title', e.target.value)}
-                            placeholder="Foam & power jet AC service"
-                          />
-                          <TextField
-                            fullWidth
-                            label="Description"
-                            multiline
-                            rows={2}
-                            value={block.description}
-                            onChange={(e) => updateServiceType(typeIndex, 'description', e.target.value)}
-                          />
-                          <Box>
-                            <Typography variant="caption" color="text.secondary">
+                      <AccordionItem value={`svc-type-${typeIndex}`} className="border-0">
+                        <div className="flex items-stretch gap-1 border-b px-2">
+                          <AccordionTrigger className="flex-1 py-3 text-left text-sm font-medium hover:no-underline">
+                            {block.title || `Block ${typeIndex + 1}`}
+                          </AccordionTrigger>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 shrink-0 text-destructive hover:text-destructive"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              removeServiceType(typeIndex)
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <AccordionContent className="px-2 pb-4 pt-2">
+                        <div className="flex flex-col gap-4">
+                          <div className="space-y-2">
+                      <Label htmlFor="cmm-f-59">Title (H3)</Label>
+                      <Input id="cmm-f-59" className="w-full" value={block.title} onChange={(e) => updateServiceType(typeIndex, 'title', e.target.value)} placeholder="Foam & power jet AC service" />
+                    </div>
+                          <div className="space-y-2">
+                      <Label htmlFor="cmm-f-60">Description</Label>
+                      <Textarea id="cmm-f-60" className="w-full" rows={2} value={block.description} onChange={(e) => updateServiceType(typeIndex, 'description', e.target.value)} />
+                    </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">
                               What&apos;s included (bullets)
-                            </Typography>
+                            </p>
                             {(block.bullets || []).map((b, bi) => (
-                              <Stack key={bi} direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
-                                <TextField
-                                  fullWidth
-                                  size="small"
-                                  value={b}
-                                  onChange={(e) => updateBullet(typeIndex, bi, e.target.value)}
-                                  placeholder="Bullet point"
-                                />
-                                <IconButton size="small" color="error" onClick={() => removeBullet(typeIndex, bi)}>
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </Stack>
+                              <div key={bi} className="flex flex-row items-center gap-2">
+                                <div className="space-y-2"><Input className="w-full h-9 text-sm" value={b} onChange={(e) => updateBullet(typeIndex, bi, e.target.value)} placeholder="Bullet point" />
+                    </div>
+                                <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive" onClick={() => removeBullet(typeIndex, bi)} ><Trash2 className="h-4 w-4" /></Button>
+                              </div>
                             ))}
-                            <Button size="small" onClick={() => addBullet(typeIndex)} sx={{ mt: 1 }}>
+                            <Button size="sm" onClick={() => addBullet(typeIndex)}>
                               + Bullet
                             </Button>
-                          </Box>
-                        </Stack>
-                      </AccordionDetails>
+                          </div>
+                        </div>
+                        </AccordionContent>
+                      </AccordionItem>
                     </Accordion>
                   ))}
                 </CardContent>
               </Card>
-            </TabPanel>
+            </TabsContent>
 
-            <TabPanel value="trust" sx={{ px: 0 }}>
-              <Stack spacing={2}>
-                <Card sx={{ borderRadius: 2 }}>
+            <TabsContent value="trust" className="mt-2 px-0 outline-none">
+              <div className="flex flex-col gap-4">
+                <Card>
                   <CardContent>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" sx={{ mb: 2 }}>
-                      <Typography variant="subtitle2" color="text.secondary">
+                    <div className="flex flex-wrap items-center justify-between">
+                      <p className="text-sm text-muted-foreground">
                         Why homeowners book ProFixer (bold subheading + paragraph)
-                      </Typography>
+                      </p>
                       <Button
-                        size="small"
-                        startIcon={<AddIcon />}
+                        size="sm"
+                        leftIcon={<Plus className="h-4 w-4" />}
                         onClick={() =>
                           updateConfig({ trustBenefits: [...config.trustBenefits, emptyTrustBenefit()] })
                         }
                       >
                         Add benefit
                       </Button>
-                    </Box>
+                    </div>
                     {config.trustBenefits.map((row, i) => (
-                      <Stack key={i} direction="row" spacing={1} alignItems="flex-start" sx={{ mb: 2 }}>
-                        <Stack spacing={1} flex={1}>
-                          <TextField
-                            fullWidth
-                            size="small"
-                            label="Subheading"
-                            value={row.heading}
-                            onChange={(e) => {
+                      <div key={i} className="flex flex-row items-start gap-2">
+                        <div className="flex min-w-0 flex-1 flex-col gap-4">
+                          <div className="space-y-2">
+                      <Label htmlFor="cmm-f-62">Subheading</Label>
+                      <Input id="cmm-f-62" className="w-full h-9 text-sm" value={row.heading} onChange={(e) => {
                               const next = [...config.trustBenefits]
                               next[i] = { ...next[i], heading: e.target.value }
                               updateConfig({ trustBenefits: next })
-                            }}
-                          />
-                          <TextField
-                            fullWidth
-                            multiline
-                            rows={2}
-                            label="Paragraph"
-                            value={row.body}
-                            onChange={(e) => {
+                            }} />
+                    </div>
+                          <div className="space-y-2">
+                      <Label htmlFor="cmm-f-63">Paragraph</Label>
+                      <Textarea id="cmm-f-63" className="w-full" rows={2} value={row.body} onChange={(e) => {
                               const next = [...config.trustBenefits]
                               next[i] = { ...next[i], body: e.target.value }
                               updateConfig({ trustBenefits: next })
-                            }}
-                          />
-                        </Stack>
-                        <IconButton
-                          color="error"
-                          onClick={() =>
+                            }} />
+                    </div>
+                        </div>
+                        <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0 text-destructive hover:text-destructive" onClick={() =>
                             updateConfig({ trustBenefits: config.trustBenefits.filter((_, j) => j !== i) })
-                          }
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Stack>
+                          } ><Trash2 className="h-4 w-4" /></Button>
+                      </div>
                     ))}
                   </CardContent>
                 </Card>
-                <Card sx={{ borderRadius: 2 }}>
+                <Card>
                   <CardContent>
-                    <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
+                    <p className="text-sm text-muted-foreground">
                       Legacy &quot;4 ways&quot; block (optional; use if the site still reads this section)
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      label="Ways heading"
-                      value={config.waysHeading}
-                      onChange={(e) => updateConfig({ waysHeading: e.target.value })}
-                      sx={{ mb: 2 }}
-                    />
+                    </p>
+                    <div className="space-y-2">
+                      <Label htmlFor="cmm-f-64">Ways heading</Label>
+                      <Input id="cmm-f-64" className="w-full" value={config.waysHeading} onChange={(e) => updateConfig({ waysHeading: e.target.value })} />
+                    </div>
                     {(config.waysBullets || []).map((b, i) => (
-                      <Stack key={i} direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          value={b}
-                          onChange={(e) => {
+                      <div key={i} className="flex flex-row items-center gap-2">
+                        <div className="space-y-2"><Input className="w-full h-9 text-sm" value={b} onChange={(e) => {
                             const next = [...(config.waysBullets || [])]
                             next[i] = e.target.value
                             updateConfig({ waysBullets: next })
-                          }}
-                        />
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() =>
+                          }} />
+                    </div>
+                        <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive" onClick={() =>
                             updateConfig({ waysBullets: (config.waysBullets || []).filter((_, j) => j !== i) })
-                          }
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Stack>
+                          } ><Trash2 className="h-4 w-4" /></Button>
+                      </div>
                     ))}
                     <Button
-                      size="small"
-                      startIcon={<AddIcon />}
+                      size="sm"
+                      leftIcon={<Plus className="h-4 w-4" />}
                       onClick={() => updateConfig({ waysBullets: [...(config.waysBullets || []), ''] })}
                     >
                       Add way
                     </Button>
                   </CardContent>
                 </Card>
-                <Card sx={{ borderRadius: 2 }}>
+                <Card>
                   <CardContent>
-                    <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
+                    <p className="text-sm text-muted-foreground">
                       What&apos;s included in our service experience
-                    </Typography>
+                    </p>
                     {(config.experienceIncluded.length ? config.experienceIncluded : ['']).map((line, i) => (
-                      <Stack key={i} direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          value={line}
-                          onChange={(e) => updateStringList('experienceIncluded', i, e.target.value)}
-                          placeholder="e.g. Skilled technicians, clear approvals"
-                        />
-                        <IconButton size="small" color="error" onClick={() => removeStringListItem('experienceIncluded', i)}>
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Stack>
+                      <div key={i} className="flex flex-row items-center gap-2">
+                        <div className="space-y-2"><Input className="w-full h-9 text-sm" value={line} onChange={(e) => updateStringList('experienceIncluded', i, e.target.value)} placeholder="e.g. Skilled technicians, clear approvals" />
+                    </div>
+                        <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive" onClick={() => removeStringListItem('experienceIncluded', i)} ><Trash2 className="h-4 w-4" /></Button>
+                      </div>
                     ))}
-                    <Button size="small" startIcon={<AddIcon />} onClick={() => addStringListItem('experienceIncluded')}>
+                    <Button size="sm" leftIcon={<Plus className="h-4 w-4" />} onClick={() => addStringListItem('experienceIncluded')}>
                       Add line
                     </Button>
                   </CardContent>
                 </Card>
-              </Stack>
-            </TabPanel>
+              </div>
+            </TabsContent>
 
-            <TabPanel value="areas" sx={{ px: 0 }}>
-              <Stack spacing={2}>
-                <Card sx={{ borderRadius: 2 }}>
+            <TabsContent value="areas" className="mt-2 px-0 outline-none">
+              <div className="flex flex-col gap-4">
+                <Card>
                   <CardContent>
-                    <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
+                    <p className="text-sm text-muted-foreground">
                       Areas we serve
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      label="Optional intro copy"
-                      multiline
-                      rows={2}
-                      value={config.areasCopy}
-                      onChange={(e) => updateConfig({ areasCopy: e.target.value })}
-                      sx={{ mb: 2 }}
-                    />
-                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+                    </p>
+                    <div className="space-y-2">
+                      <Label htmlFor="cmm-f-67">Optional intro copy</Label>
+                      <Textarea id="cmm-f-67" className="w-full" rows={2} value={config.areasCopy} onChange={(e) => updateConfig({ areasCopy: e.target.value })} />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
                       Localities (one per line)
-                    </Typography>
+                    </p>
                     {(config.areasList.length ? config.areasList : ['']).map((line, i) => (
-                      <Stack key={i} direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          value={line}
-                          onChange={(e) => updateStringList('areasList', i, e.target.value)}
-                        />
-                        <IconButton size="small" color="error" onClick={() => removeStringListItem('areasList', i)}>
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Stack>
+                      <div key={i} className="flex flex-row items-center gap-2">
+                        <div className="space-y-2"><Input className="w-full h-9 text-sm" value={line} onChange={(e) => updateStringList('areasList', i, e.target.value)} />
+                    </div>
+                        <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive" onClick={() => removeStringListItem('areasList', i)} ><Trash2 className="h-4 w-4" /></Button>
+                      </div>
                     ))}
-                    <Button size="small" startIcon={<AddIcon />} onClick={() => addStringListItem('areasList')}>
+                    <Button size="sm" leftIcon={<Plus className="h-4 w-4" />} onClick={() => addStringListItem('areasList')}>
                       Add locality
                     </Button>
-                    <TextField
-                      fullWidth
-                      label="CTA after areas (e.g. check availability)"
-                      value={config.areasCta}
-                      onChange={(e) => updateConfig({ areasCta: e.target.value })}
-                      sx={{ mt: 2 }}
-                    />
+                    <div className="space-y-2">
+                      <Label htmlFor="cmm-f-69">CTA after areas (e.g. check availability)</Label>
+                      <Input id="cmm-f-69" className="w-full" value={config.areasCta} onChange={(e) => updateConfig({ areasCta: e.target.value })} />
+                    </div>
                   </CardContent>
                 </Card>
-                <Card sx={{ borderRadius: 2 }}>
+                <Card>
                   <CardContent>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" sx={{ mb: 2 }}>
-                      <Typography variant="subtitle2" color="text.secondary">
+                    <div className="flex flex-wrap items-center justify-between">
+                      <p className="text-sm text-muted-foreground">
                         How to book (numbered steps)
-                      </Typography>
+                      </p>
                       <Button
-                        size="small"
-                        startIcon={<AddIcon />}
+                        size="sm"
+                        leftIcon={<Plus className="h-4 w-4" />}
                         onClick={() => updateConfig({ bookingSteps: [...config.bookingSteps, emptyBookingStep()] })}
                       >
                         Add step
                       </Button>
-                    </Box>
+                    </div>
                     {config.bookingSteps.map((step, i) => (
-                      <Stack key={i} direction="row" spacing={1} alignItems="flex-start" sx={{ mb: 2 }}>
-                        <Stack spacing={1} flex={1}>
-                          <TextField
-                            size="small"
-                            label="Step number (optional)"
-                            value={step.stepNumber}
-                            onChange={(e) => {
+                      <div key={i} className="flex flex-row items-start gap-2">
+                        <div className="flex min-w-0 flex-1 flex-col gap-4">
+                          <div className="space-y-2">
+                      <Label htmlFor="cmm-f-70">Step number (optional)</Label>
+                      <Input id="cmm-f-70" className="h-9 text-sm" value={step.stepNumber} onChange={(e) => {
                               const next = [...config.bookingSteps]
                               next[i] = { ...next[i], stepNumber: e.target.value }
                               updateConfig({ bookingSteps: next })
-                            }}
-                            sx={{ maxWidth: 120 }}
-                          />
-                          <TextField
-                            fullWidth
-                            size="small"
-                            label="Title"
-                            value={step.title}
-                            onChange={(e) => {
+                            }} />
+                    </div>
+                          <div className="space-y-2">
+                      <Label htmlFor="cmm-f-71">Title</Label>
+                      <Input id="cmm-f-71" className="w-full h-9 text-sm" value={step.title} onChange={(e) => {
                               const next = [...config.bookingSteps]
                               next[i] = { ...next[i], title: e.target.value }
                               updateConfig({ bookingSteps: next })
-                            }}
-                          />
-                          <TextField
-                            fullWidth
-                            multiline
-                            rows={2}
-                            label="Description"
-                            value={step.description}
-                            onChange={(e) => {
+                            }} />
+                    </div>
+                          <div className="space-y-2">
+                      <Label htmlFor="cmm-f-72">Description</Label>
+                      <Textarea id="cmm-f-72" className="w-full" rows={2} value={step.description} onChange={(e) => {
                               const next = [...config.bookingSteps]
                               next[i] = { ...next[i], description: e.target.value }
                               updateConfig({ bookingSteps: next })
-                            }}
-                          />
-                        </Stack>
-                        <IconButton
-                          color="error"
-                          onClick={() =>
+                            }} />
+                    </div>
+                        </div>
+                        <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0 text-destructive hover:text-destructive" onClick={() =>
                             updateConfig({ bookingSteps: config.bookingSteps.filter((_, j) => j !== i) })
-                          }
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Stack>
+                          } ><Trash2 className="h-4 w-4" /></Button>
+                      </div>
                     ))}
-                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 2 }}>
-                      <TextField
-                        fullWidth
-                        label="Phone"
-                        value={config.contactPhone}
-                        onChange={(e) => updateConfig({ contactPhone: e.target.value })}
-                      />
-                      <TextField
-                        fullWidth
-                        label="WhatsApp"
-                        value={config.contactWhatsapp}
-                        onChange={(e) => updateConfig({ contactWhatsapp: e.target.value })}
-                      />
-                    </Stack>
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-2">
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-73">Phone</Label>
+                      <Input id="cmm-f-73" className="w-full" value={config.contactPhone} onChange={(e) => updateConfig({ contactPhone: e.target.value })} />
+                    </div>
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-74">WhatsApp</Label>
+                      <Input id="cmm-f-74" className="w-full" value={config.contactWhatsapp} onChange={(e) => updateConfig({ contactWhatsapp: e.target.value })} />
+                    </div>
+                    </div>
                   </CardContent>
                 </Card>
-              </Stack>
-            </TabPanel>
+              </div>
+            </TabsContent>
 
-            <TabPanel value="pricing" sx={{ px: 0 }}>
-              <Stack spacing={2}>
-                <Alert severity="info">
-                  <Typography variant="body2" component="span">
+            <TabsContent value="pricing" className="mt-2 px-0 outline-none">
+              <div className="flex flex-col gap-4">
+                <div role="alert" className="rounded-md border border-blue-200 bg-blue-50/80 p-3 text-sm dark:border-blue-900 dark:bg-blue-950/30">
+                  <p className="text-sm">
                     <strong>Service charges</strong> for this industry are maintained in{' '}
                     <Link to="/cms/category-marketing?tab=rate-card">Rate card</Link> (same catalog category key). Use spare parts and
                     included/excluded lists here so the consumer page can show a full pricing section without duplicating
                     labour/service rows.
-                  </Typography>
-                </Alert>
-                <Card sx={{ borderRadius: 2 }}>
+                  </p>
+                </div>
+                <Card>
                   <CardContent>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" sx={{ mb: 2 }}>
-                      <Typography variant="subtitle2" color="text.secondary">
+                    <div className="flex flex-wrap items-center justify-between">
+                      <p className="text-sm text-muted-foreground">
                         Spare parts (item + price range)
-                      </Typography>
+                      </p>
                       <Button
-                        size="small"
-                        startIcon={<AddIcon />}
+                        size="sm"
+                        leftIcon={<Plus className="h-4 w-4" />}
                         onClick={() => updateConfig({ spareParts: [...config.spareParts, emptySparePart()] })}
                       >
                         Add row
                       </Button>
-                    </Box>
+                    </div>
                     {config.spareParts.map((row, i) => (
-                      <Stack key={i} direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          label="Item"
-                          value={row.name}
-                          onChange={(e) => {
+                      <div key={i} className="flex flex-row items-center gap-2">
+                        <div className="space-y-2">
+                      <Label htmlFor="cmm-f-75">Item</Label>
+                      <Input id="cmm-f-75" className="w-full h-9 text-sm" value={row.name} onChange={(e) => {
                             const next = [...config.spareParts]
                             next[i] = { ...next[i], name: e.target.value }
                             updateConfig({ spareParts: next })
-                          }}
-                        />
-                        <TextField
-                          fullWidth
-                          size="small"
-                          label="Price range"
-                          value={row.priceRange}
-                          onChange={(e) => {
+                          }} />
+                    </div>
+                        <div className="space-y-2">
+                      <Label htmlFor="cmm-f-76">Price range</Label>
+                      <Input id="cmm-f-76" className="w-full h-9 text-sm" value={row.priceRange} onChange={(e) => {
                             const next = [...config.spareParts]
                             next[i] = { ...next[i], priceRange: e.target.value }
                             updateConfig({ spareParts: next })
-                          }}
-                        />
-                        <IconButton color="error" onClick={() => updateConfig({ spareParts: config.spareParts.filter((_, j) => j !== i) })}>
-                          <DeleteIcon />
-                        </IconButton>
-                      </Stack>
+                          }} />
+                    </div>
+                        <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0 text-destructive hover:text-destructive" onClick={() => updateConfig({ spareParts: config.spareParts.filter((_, j) => j !== i) })} ><Trash2 className="h-4 w-4" /></Button>
+                      </div>
                     ))}
                   </CardContent>
                 </Card>
-                <Card sx={{ borderRadius: 2 }}>
+                <Card>
                   <CardContent>
-                    <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
+                    <p className="text-sm text-muted-foreground">
                       What&apos;s included vs not included (pricing section)
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    </p>
+                    <p className="text-xs text-muted-foreground">
                       Included
-                    </Typography>
+                    </p>
                     {(config.pricingIncluded.length ? config.pricingIncluded : ['']).map((line, i) => (
-                      <Stack key={i} direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          value={line}
-                          onChange={(e) => updateStringList('pricingIncluded', i, e.target.value)}
-                        />
-                        <IconButton size="small" color="error" onClick={() => removeStringListItem('pricingIncluded', i)}>
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Stack>
+                      <div key={i} className="flex flex-row items-center gap-2">
+                        <div className="space-y-2"><Input className="w-full h-9 text-sm" value={line} onChange={(e) => updateStringList('pricingIncluded', i, e.target.value)} />
+                    </div>
+                        <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive" onClick={() => removeStringListItem('pricingIncluded', i)} ><Trash2 className="h-4 w-4" /></Button>
+                      </div>
                     ))}
-                    <Button size="small" startIcon={<AddIcon />} onClick={() => addStringListItem('pricingIncluded')} sx={{ mb: 2 }}>
+                    <Button size="sm" leftIcon={<Plus className="h-4 w-4" />} onClick={() => addStringListItem('pricingIncluded')}>
                       Add included
                     </Button>
-                    <Typography variant="caption" color="text.secondary">
+                    <p className="text-xs text-muted-foreground">
                       Not included
-                    </Typography>
+                    </p>
                     {(config.pricingExcluded.length ? config.pricingExcluded : ['']).map((line, i) => (
-                      <Stack key={i} direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          value={line}
-                          onChange={(e) => updateStringList('pricingExcluded', i, e.target.value)}
-                        />
-                        <IconButton size="small" color="error" onClick={() => removeStringListItem('pricingExcluded', i)}>
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Stack>
+                      <div key={i} className="flex flex-row items-center gap-2">
+                        <div className="space-y-2"><Input className="w-full h-9 text-sm" value={line} onChange={(e) => updateStringList('pricingExcluded', i, e.target.value)} />
+                    </div>
+                        <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive" onClick={() => removeStringListItem('pricingExcluded', i)} ><Trash2 className="h-4 w-4" /></Button>
+                      </div>
                     ))}
-                    <Button size="small" startIcon={<AddIcon />} onClick={() => addStringListItem('pricingExcluded')}>
+                    <Button size="sm" leftIcon={<Plus className="h-4 w-4" />} onClick={() => addStringListItem('pricingExcluded')}>
                       Add excluded
                     </Button>
                   </CardContent>
                 </Card>
-                <Card sx={{ borderRadius: 2 }}>
+                <Card>
                   <CardContent>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" sx={{ mb: 2 }}>
-                      <Typography variant="subtitle2" color="text.secondary">
+                    <div className="flex flex-wrap items-center justify-between">
+                      <p className="text-sm text-muted-foreground">
                         ProFixer vs local providers
-                      </Typography>
+                      </p>
                       <Button
-                        size="small"
-                        startIcon={<AddIcon />}
+                        size="sm"
+                        leftIcon={<Plus className="h-4 w-4" />}
                         onClick={() =>
                           updateConfig({ comparisonRows: [...config.comparisonRows, emptyComparisonRow()] })
                         }
                       >
                         Add row
                       </Button>
-                    </Box>
+                    </div>
                     {config.comparisonRows.map((row, i) => (
-                      <Stack key={i} spacing={1} sx={{ mb: 2 }}>
-                        <Stack direction="row" spacing={1} alignItems="flex-start">
-                          <Stack spacing={1} flex={1}>
-                            <TextField
-                              size="small"
-                              fullWidth
-                              label="Dimension"
-                              value={row.label}
-                              onChange={(e) => {
+                      <div className="flex flex-col gap-4" key={i}>
+                        <div className="flex flex-row items-start gap-2">
+                          <div className="flex min-w-0 flex-1 flex-col gap-4">
+                            <div className="space-y-2">
+                      <Label htmlFor="cmm-f-79">Dimension</Label>
+                      <Input id="cmm-f-79" className="w-full h-9 text-sm" value={row.label} onChange={(e) => {
                                 const next = [...config.comparisonRows]
                                 next[i] = { ...next[i], label: e.target.value }
                                 updateConfig({ comparisonRows: next })
-                              }}
-                            />
-                            <TextField
-                              size="small"
-                              fullWidth
-                              label="ProFixer"
-                              value={row.profixer}
-                              onChange={(e) => {
+                              }} />
+                    </div>
+                            <div className="space-y-2">
+                      <Label htmlFor="cmm-f-80">ProFixer</Label>
+                      <Input id="cmm-f-80" className="w-full h-9 text-sm" value={row.profixer} onChange={(e) => {
                                 const next = [...config.comparisonRows]
                                 next[i] = { ...next[i], profixer: e.target.value }
                                 updateConfig({ comparisonRows: next })
-                              }}
-                            />
-                            <TextField
-                              size="small"
-                              fullWidth
-                              label="Typical local"
-                              value={row.others}
-                              onChange={(e) => {
+                              }} />
+                    </div>
+                            <div className="space-y-2">
+                      <Label htmlFor="cmm-f-81">Typical local</Label>
+                      <Input id="cmm-f-81" className="w-full h-9 text-sm" value={row.others} onChange={(e) => {
                                 const next = [...config.comparisonRows]
                                 next[i] = { ...next[i], others: e.target.value }
                                 updateConfig({ comparisonRows: next })
-                              }}
-                            />
-                          </Stack>
-                          <IconButton
-                            color="error"
-                            onClick={() =>
+                              }} />
+                    </div>
+                          </div>
+                          <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0 text-destructive hover:text-destructive" onClick={() =>
                               updateConfig({ comparisonRows: config.comparisonRows.filter((_, j) => j !== i) })
-                            }
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </Stack>
-                      </Stack>
+                            } ><Trash2 className="h-4 w-4" /></Button>
+                        </div>
+                      </div>
                     ))}
                   </CardContent>
                 </Card>
-              </Stack>
-            </TabPanel>
+              </div>
+            </TabsContent>
 
-            <TabPanel value="faqs" sx={{ px: 0 }}>
-              <Stack spacing={2}>
-                <Card sx={{ borderRadius: 2 }}>
+            <TabsContent value="faqs" className="mt-2 px-0 outline-none">
+              <div className="flex flex-col gap-4">
+                <Card>
                   <CardContent>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" sx={{ mb: 2 }}>
-                      <Typography variant="subtitle2" color="text.secondary">
+                    <div className="flex flex-wrap items-center justify-between">
+                      <p className="text-sm text-muted-foreground">
                         FAQs (H3 + answer — industry-specific)
-                      </Typography>
+                      </p>
                       <Button
-                        size="small"
-                        startIcon={<AddIcon />}
+                        size="sm"
+                        leftIcon={<Plus className="h-4 w-4" />}
                         onClick={() => updateConfig({ faqs: [...config.faqs, emptyFaq()] })}
                       >
                         Add FAQ
                       </Button>
-                    </Box>
+                    </div>
                     {config.faqs.map((faq, i) => (
-                      <Accordion key={i} sx={{ mb: 1, '&:before': { display: 'none' } }}>
-                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                          <Typography variant="subtitle2">{faq.question || `FAQ ${i + 1}`}</Typography>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              updateConfig({ faqs: config.faqs.filter((_, j) => j !== i) })
-                            }}
-                            sx={{ ml: 1 }}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                          <Stack spacing={2}>
-                            <TextField
-                              fullWidth
-                              label="Question"
-                              value={faq.question}
-                              onChange={(e) => {
+                      <Accordion key={i} type="single" collapsible defaultValue={`faq-${i}`} className="mb-2 rounded-md border">
+                        <AccordionItem value={`faq-${i}`} className="border-0">
+                          <div className="flex items-stretch gap-1 border-b px-2">
+                            <AccordionTrigger className="flex-1 py-3 text-left text-sm font-medium hover:no-underline">
+                              {faq.question || `FAQ ${i + 1}`}
+                            </AccordionTrigger>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-9 w-9 shrink-0 text-destructive hover:text-destructive"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                updateConfig({ faqs: config.faqs.filter((_, j) => j !== i) })
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <AccordionContent className="px-2 pb-4 pt-2">
+                          <div className="flex flex-col gap-4">
+                            <div className="space-y-2">
+                      <Label htmlFor="cmm-f-82">Question</Label>
+                      <Input id="cmm-f-82" className="w-full" value={faq.question} onChange={(e) => {
                                 const next = [...config.faqs]
                                 next[i] = { ...next[i], question: e.target.value }
                                 updateConfig({ faqs: next })
-                              }}
-                            />
-                            <TextField
-                              fullWidth
-                              multiline
-                              rows={3}
-                              label="Answer"
-                              value={faq.answer}
-                              onChange={(e) => {
+                              }} />
+                    </div>
+                            <div className="space-y-2">
+                      <Label htmlFor="cmm-f-83">Answer</Label>
+                      <Textarea id="cmm-f-83" className="w-full" rows={3} value={faq.answer} onChange={(e) => {
                                 const next = [...config.faqs]
                                 next[i] = { ...next[i], answer: e.target.value }
                                 updateConfig({ faqs: next })
-                              }}
-                            />
-                          </Stack>
-                        </AccordionDetails>
+                              }} />
+                    </div>
+                          </div>
+                          </AccordionContent>
+                        </AccordionItem>
                       </Accordion>
                     ))}
                   </CardContent>
                 </Card>
-                <Card sx={{ borderRadius: 2 }}>
+                <Card>
                   <CardContent>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" sx={{ mb: 2 }}>
-                      <Typography variant="subtitle2" color="text.secondary">
+                    <div className="flex flex-wrap items-center justify-between">
+                      <p className="text-sm text-muted-foreground">
                         Related resources (internal links)
-                      </Typography>
+                      </p>
                       <Button
-                        size="small"
-                        startIcon={<AddIcon />}
+                        size="sm"
+                        leftIcon={<Plus className="h-4 w-4" />}
                         onClick={() => updateConfig({ relatedLinks: [...config.relatedLinks, emptyRelatedLink()] })}
                       >
                         Add link
                       </Button>
-                    </Box>
+                    </div>
                     {config.relatedLinks.map((link, i) => (
-                      <Stack key={i} direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                        <TextField
-                          size="small"
-                          label="Label"
-                          value={link.label}
-                          onChange={(e) => {
+                      <div key={i} className="flex flex-row items-center gap-2">
+                        <div className="space-y-2">
+                      <Label htmlFor="cmm-f-84">Label</Label>
+                      <Input id="cmm-f-84" className="h-9 text-sm" value={link.label} onChange={(e) => {
                             const next = [...config.relatedLinks]
                             next[i] = { ...next[i], label: e.target.value }
                             updateConfig({ relatedLinks: next })
-                          }}
-                          sx={{ minWidth: 160 }}
-                        />
-                        <TextField
-                          fullWidth
-                          size="small"
-                          label="URL"
-                          value={link.url}
-                          onChange={(e) => {
+                          }} />
+                    </div>
+                        <div className="space-y-2">
+                      <Label htmlFor="cmm-f-85">URL</Label>
+                      <Input id="cmm-f-85" className="w-full h-9 text-sm" value={link.url} onChange={(e) => {
                             const next = [...config.relatedLinks]
                             next[i] = { ...next[i], url: e.target.value }
                             updateConfig({ relatedLinks: next })
-                          }}
-                        />
-                        <IconButton color="error" onClick={() => updateConfig({ relatedLinks: config.relatedLinks.filter((_, j) => j !== i) })}>
-                          <DeleteIcon />
-                        </IconButton>
-                      </Stack>
+                          }} />
+                    </div>
+                        <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0 text-destructive hover:text-destructive" onClick={() => updateConfig({ relatedLinks: config.relatedLinks.filter((_, j) => j !== i) })} ><Trash2 className="h-4 w-4" /></Button>
+                      </div>
                     ))}
                   </CardContent>
                 </Card>
-              </Stack>
-            </TabPanel>
+              </div>
+            </TabsContent>
 
-            <TabPanel value="localityGuide" sx={{ px: 0 }}>
-              <Stack spacing={2}>
-                <Alert severity="info">
+            <TabsContent value="localityGuide" className="mt-2 px-0 outline-none">
+              <div className="flex flex-col gap-4">
+                <div role="alert" className="rounded-md border border-blue-200 bg-blue-50/80 p-3 text-sm dark:border-blue-900 dark:bg-blue-950/30">
                   For hyperlocal URLs (e.g. <code>/services/electrician/mira-bhayandar</code>), set Industry to{' '}
                   <strong>Electrical</strong> and Locality slug to <strong>mira-bhayandar</strong>. The CMS key becomes{' '}
                   <code>electric__mira-bhayandar</code>. Fill Metadata + FAQs, then enable the article here.
-                </Alert>
-                <Card sx={{ borderRadius: 2 }}>
+                </div>
+                <Card>
                   <CardContent>
-                    <Stack spacing={2}>
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={config.localityGuide.enabled}
-                            onChange={(e) => updateLocalityGuide({ enabled: e.target.checked })}
-                          />
-                        }
-                        label="Enable CMS locality article (replaces auto-generated guide body)"
-                      />
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={config.localityGuide.expandDetailsByDefault}
-                            onChange={(e) => updateLocalityGuide({ expandDetailsByDefault: e.target.checked })}
-                          />
-                        }
-                        label="Expand long-form sections by default (better for crawlers)"
-                      />
-                      <TextField
-                        fullWidth
-                        label="Article H2 (section under the catalogue)"
-                        value={config.localityGuide.articleH2}
-                        onChange={(e) => updateLocalityGuide({ articleH2: e.target.value })}
-                      />
-                      <TextField
-                        fullWidth
-                        multiline
-                        minRows={3}
-                        label="Summary lead (visible under H2)"
-                        value={config.localityGuide.summaryLead}
-                        onChange={(e) => updateLocalityGuide({ summaryLead: e.target.value })}
-                      />
-                      <Typography variant="subtitle2" color="text.secondary">
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          id="fcl-locality-enabled"
+                          className="mt-0.5"
+                          checked={config.localityGuide.enabled}
+                          onCheckedChange={(c) => updateLocalityGuide({ enabled: c === true })}
+                        />
+                        <Label htmlFor="fcl-locality-enabled" className="text-sm font-normal leading-snug">
+                          Enable CMS locality article (replaces auto-generated guide body)
+                        </Label>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          id="fcl-locality-expand"
+                          className="mt-0.5"
+                          checked={config.localityGuide.expandDetailsByDefault}
+                          onCheckedChange={(c) =>
+                            updateLocalityGuide({ expandDetailsByDefault: c === true })
+                          }
+                        />
+                        <Label htmlFor="fcl-locality-expand" className="text-sm font-normal leading-snug">
+                          Expand long-form sections by default (better for crawlers)
+                        </Label>
+                      </div>
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-86">Article H2 (section under the catalogue)</Label>
+                      <Input id="cmm-f-86" className="w-full" value={config.localityGuide.articleH2} onChange={(e) => updateLocalityGuide({ articleH2: e.target.value })} />
+                    </div>
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-87">Summary lead (visible under H2)</Label>
+                      <Textarea id="cmm-f-87" className="w-full" rows={3} value={config.localityGuide.summaryLead} onChange={(e) => updateLocalityGuide({ summaryLead: e.target.value })} />
+                    </div>
+                      <p className="text-sm text-muted-foreground">
                         Lead paragraphs (main article body)
-                      </Typography>
+                      </p>
                       {(config.localityGuide.leadParagraphs.length
                         ? config.localityGuide.leadParagraphs
                         : ['']
                       ).map((para, i) => (
-                        <Stack key={i} direction="row" spacing={1} alignItems="flex-start">
-                          <TextField
-                            fullWidth
-                            multiline
-                            minRows={3}
-                            label={`Paragraph ${i + 1}`}
-                            value={para}
-                            onChange={(e) => {
+                        <div key={i} className="flex flex-row items-start gap-2">
+                          <div className="space-y-2">
+                      <Label htmlFor="cmm-f-88">{`Paragraph ${i + 1}`}</Label>
+                      <Textarea id="cmm-f-88" className="w-full" rows={3} value={para} onChange={(e) => {
                               const base = config.localityGuide.leadParagraphs.length
                                 ? [...config.localityGuide.leadParagraphs]
                                 : ['']
                               base[i] = e.target.value
                               updateLocalityGuide({ leadParagraphs: base })
-                            }}
-                          />
-                          <IconButton
-                            color="error"
-                            aria-label="Remove paragraph"
-                            onClick={() => {
+                            }} />
+                    </div>
+                          <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0 text-destructive hover:text-destructive" onClick={() => {
                               const base = [...config.localityGuide.leadParagraphs]
                               base.splice(i, 1)
                               updateLocalityGuide({ leadParagraphs: base.length ? base : [''] })
-                            }}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </Stack>
+                            }}  aria-label="Remove paragraph"><Trash2 className="h-4 w-4" /></Button>
+                        </div>
                       ))}
                       <Button
-                        size="small"
-                        startIcon={<AddIcon />}
+                        size="sm"
+                        leftIcon={<Plus className="h-4 w-4" />}
                         onClick={() =>
                           updateLocalityGuide({
                             leadParagraphs: [...config.localityGuide.leadParagraphs, ''],
@@ -2425,50 +2050,46 @@ export default function CategoryMarketingManagement() {
                       >
                         Add lead paragraph
                       </Button>
-                      <Typography variant="subtitle2" color="text.secondary" sx={{ pt: 1 }}>
+                      <p className="text-sm text-muted-foreground">
                         Depth sections (optional H2 blocks)
-                      </Typography>
+                      </p>
                       {config.localityGuide.sections.map((sec, si) => (
-                        <Accordion key={si} defaultExpanded={si === 0}>
-                          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                            <Typography variant="body2">
+                        <Accordion
+                          key={si}
+                          type="single"
+                          collapsible
+                          defaultValue={si === 0 ? `loc-sec-${si}` : undefined}
+                          className="mb-2 rounded-md border"
+                        >
+                          <AccordionItem value={`loc-sec-${si}`} className="border-0">
+                            <AccordionTrigger className="px-2 py-3 text-left text-sm hover:no-underline">
                               Section {si + 1}: {sec.h2.trim() || '(untitled)'}
-                            </Typography>
-                          </AccordionSummary>
-                          <AccordionDetails>
-                            <Stack spacing={2}>
-                              <TextField
-                                fullWidth
-                                size="small"
-                                label="Section H2"
-                                value={sec.h2}
-                                onChange={(e) => {
+                            </AccordionTrigger>
+                            <AccordionContent className="px-2 pb-4 pt-0">
+                            <div className="flex flex-col gap-4">
+                              <div className="space-y-2">
+                      <Label htmlFor="cmm-f-89">Section H2</Label>
+                      <Input id="cmm-f-89" className="w-full h-9 text-sm" value={sec.h2} onChange={(e) => {
                                   const next = [...config.localityGuide.sections]
                                   next[si] = { ...next[si], h2: e.target.value }
                                   updateLocalityGuide({ sections: next })
-                                }}
-                              />
+                                }} />
+                    </div>
                               {(sec.paragraphs.length ? sec.paragraphs : ['']).map((p, pi) => (
-                                <TextField
-                                  key={pi}
-                                  fullWidth
-                                  multiline
-                                  minRows={2}
-                                  size="small"
-                                  label={`Paragraph ${pi + 1}`}
-                                  value={p}
-                                  onChange={(e) => {
+                                <div className="space-y-2">
+                      <Label htmlFor="cmm-f-90">{`Paragraph ${pi + 1}`}</Label>
+                      <Textarea id="cmm-f-90" className="w-full h-9 text-sm" rows={2} value={p} onChange={(e) => {
                                     const next = [...config.localityGuide.sections]
                                     const paras = [...(next[si].paragraphs.length ? next[si].paragraphs : [''])]
                                     paras[pi] = e.target.value
                                     next[si] = { ...next[si], paragraphs: paras }
                                     updateLocalityGuide({ sections: next })
-                                  }}
-                                />
+                                  }} />
+                    </div>
                               ))}
-                              <Stack direction="row" spacing={1}>
+                              <div className="flex flex-row gap-2">
                                 <Button
-                                  size="small"
+                                  size="sm"
                                   onClick={() => {
                                     const next = [...config.localityGuide.sections]
                                     next[si] = {
@@ -2481,8 +2102,8 @@ export default function CategoryMarketingManagement() {
                                   Add paragraph in section
                                 </Button>
                                 <Button
-                                  size="small"
-                                  color="error"
+                                  variant="destructive"
+                                  size="sm"
                                   onClick={() => {
                                     const next = config.localityGuide.sections.filter((_, j) => j !== si)
                                     updateLocalityGuide({ sections: next.length ? next : [emptyLocalityGuideSection()] })
@@ -2490,14 +2111,15 @@ export default function CategoryMarketingManagement() {
                                 >
                                   Remove section
                                 </Button>
-                              </Stack>
-                            </Stack>
-                          </AccordionDetails>
-                        </Accordion>
+                              </div>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
                       ))}
                       <Button
-                        size="small"
-                        startIcon={<AddIcon />}
+                        size="sm"
+                        leftIcon={<Plus className="h-4 w-4" />}
                         onClick={() =>
                           updateLocalityGuide({
                             sections: [...config.localityGuide.sections, emptyLocalityGuideSection()],
@@ -2506,156 +2128,141 @@ export default function CategoryMarketingManagement() {
                       >
                         Add section
                       </Button>
-                      <Typography variant="subtitle2" color="text.secondary">
+                      <p className="text-sm text-muted-foreground">
                         Key takeaways (bullets)
-                      </Typography>
+                      </p>
                       {(config.localityGuide.takeaways.length ? config.localityGuide.takeaways : ['']).map((t, i) => (
-                        <TextField
-                          key={i}
-                          fullWidth
-                          size="small"
-                          value={t}
-                          onChange={(e) => {
+                        <div className="space-y-2"><Input className="w-full h-9 text-sm" value={t} onChange={(e) => {
                             const base = config.localityGuide.takeaways.length
                               ? [...config.localityGuide.takeaways]
                               : ['']
                             base[i] = e.target.value
                             updateLocalityGuide({ takeaways: base })
-                          }}
-                        />
+                          }} />
+                    </div>
                       ))}
                       <Button
-                        size="small"
-                        startIcon={<AddIcon />}
+                        size="sm"
+                        leftIcon={<Plus className="h-4 w-4" />}
                         onClick={() => updateLocalityGuide({ takeaways: [...config.localityGuide.takeaways, ''] })}
                       >
                         Add takeaway
                       </Button>
-                      <TextField
-                        fullWidth
-                        label="JSON-LD primary name (optional)"
-                        value={config.localityGuide.jsonLdBrandServiceName}
-                        onChange={(e) => updateLocalityGuide({ jsonLdBrandServiceName: e.target.value })}
-                        helperText="Overrides Service/LocalBusiness name in structured data when set."
-                      />
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={config.localityGuide.useFaqsForSchema}
-                            onChange={(e) => updateLocalityGuide({ useFaqsForSchema: e.target.checked })}
-                          />
-                        }
-                        label="Emit FAQPage schema from the FAQs tab on this record"
-                      />
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={config.localityGuide.showInboundLinkStrip}
-                            onChange={(e) => updateLocalityGuide({ showInboundLinkStrip: e.target.checked })}
-                          />
-                        }
-                        label="Show Related links (FAQs tab → related links) above the guide"
-                      />
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={config.localityGuide.showBookingCtaStrip}
-                            onChange={(e) => updateLocalityGuide({ showBookingCtaStrip: e.target.checked })}
-                          />
-                        }
-                        label="Show call + book CTA strip"
-                      />
-                    </Stack>
+                      <div className="space-y-2">
+                      <Label htmlFor="cmm-f-92">JSON-LD primary name (optional)</Label>
+                      <Input id="cmm-f-92" className="w-full" value={config.localityGuide.jsonLdBrandServiceName} onChange={(e) => updateLocalityGuide({ jsonLdBrandServiceName: e.target.value })} />
+                      <p className="text-xs text-muted-foreground">Overrides Service/LocalBusiness name in structured data when set.</p>
+                    </div>
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          id="fcl-locality-faq-schema"
+                          className="mt-0.5"
+                          checked={config.localityGuide.useFaqsForSchema}
+                          onCheckedChange={(c) =>
+                            updateLocalityGuide({ useFaqsForSchema: c === true })
+                          }
+                        />
+                        <Label htmlFor="fcl-locality-faq-schema" className="text-sm font-normal leading-snug">
+                          Emit FAQPage schema from the FAQs tab on this record
+                        </Label>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          id="fcl-locality-inbound-links"
+                          className="mt-0.5"
+                          checked={config.localityGuide.showInboundLinkStrip}
+                          onCheckedChange={(c) =>
+                            updateLocalityGuide({ showInboundLinkStrip: c === true })
+                          }
+                        />
+                        <Label htmlFor="fcl-locality-inbound-links" className="text-sm font-normal leading-snug">
+                          Show Related links (FAQs tab → related links) above the guide
+                        </Label>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          id="fcl-locality-booking-cta"
+                          className="mt-0.5"
+                          checked={config.localityGuide.showBookingCtaStrip}
+                          onCheckedChange={(c) =>
+                            updateLocalityGuide({ showBookingCtaStrip: c === true })
+                          }
+                        />
+                        <Label htmlFor="fcl-locality-booking-cta" className="text-sm font-normal leading-snug">
+                          Show call + book CTA strip
+                        </Label>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
-              </Stack>
-            </TabPanel>
+              </div>
+            </TabsContent>
 
-            <TabPanel value="closing" sx={{ px: 0 }}>
-              <Stack spacing={2}>
-                <Card sx={{ borderRadius: 2 }}>
+            <TabsContent value="closing" className="mt-2 px-0 outline-none">
+              <div className="flex flex-col gap-4">
+                <Card>
                   <CardContent>
-                    <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
+                    <p className="text-sm text-muted-foreground">
                       Closing content
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      multiline
-                      rows={5}
-                      label="Closing paragraph(s)"
-                      value={config.closingParagraph}
-                      onChange={(e) => updateConfig({ closingParagraph: e.target.value })}
-                    />
+                    </p>
+                    <div className="space-y-2">
+                      <Label htmlFor="cmm-f-93">Closing paragraph(s)</Label>
+                      <Textarea id="cmm-f-93" className="w-full" rows={5} value={config.closingParagraph} onChange={(e) => updateConfig({ closingParagraph: e.target.value })} />
+                    </div>
                   </CardContent>
                 </Card>
-                <Card sx={{ borderRadius: 2 }}>
+                <Card>
                   <CardContent>
-                    <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
+                    <p className="text-sm text-muted-foreground">
                       Lead magnet (footer / aside — URL often configured on consumer app)
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      label="Headline"
-                      value={config.leadMagnet.headline}
-                      onChange={(e) =>
+                    </p>
+                    <div className="space-y-2">
+                      <Label htmlFor="cmm-f-94">Headline</Label>
+                      <Input id="cmm-f-94" className="w-full" value={config.leadMagnet.headline} onChange={(e) =>
                         updateConfig({ leadMagnet: { ...config.leadMagnet, headline: e.target.value } })
-                      }
-                      sx={{ mb: 2 }}
-                    />
-                    <TextField
-                      fullWidth
-                      multiline
-                      rows={2}
-                      label="Description"
-                      value={config.leadMagnet.description}
-                      onChange={(e) =>
+                      } />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cmm-f-95">Description</Label>
+                      <Textarea id="cmm-f-95" className="w-full" rows={2} value={config.leadMagnet.description} onChange={(e) =>
                         updateConfig({ leadMagnet: { ...config.leadMagnet, description: e.target.value } })
-                      }
-                      sx={{ mb: 2 }}
-                    />
-                    <TextField
-                      fullWidth
-                      label="CTA label"
-                      value={config.leadMagnet.ctaLabel}
-                      onChange={(e) =>
+                      } />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cmm-f-96">CTA label</Label>
+                      <Input id="cmm-f-96" className="w-full" value={config.leadMagnet.ctaLabel} onChange={(e) =>
                         updateConfig({ leadMagnet: { ...config.leadMagnet, ctaLabel: e.target.value } })
-                      }
-                    />
+                      } />
+                    </div>
                   </CardContent>
                 </Card>
-                <Card sx={{ borderRadius: 2 }}>
+                <Card>
                   <CardContent>
-                    <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
+                    <p className="text-sm text-muted-foreground">
                       JSON-LD (optional)
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    </p>
+                    <p className="text-sm text-muted-foreground">
                       Prefer generating FAQPage / LocalBusiness on the consumer site from structured fields. Use this
                       only if you need a fixed snippet; validate JSON before publishing.
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      multiline
-                      rows={8}
-                      value={config.jsonLdExtra}
-                      onChange={(e) => updateConfig({ jsonLdExtra: e.target.value })}
-                      placeholder='{"@context":"https://schema.org",...}'
-                    />
+                    </p>
+                    <div className="space-y-2"><Textarea className="w-full" rows={8} value={config.jsonLdExtra} onChange={(e) => updateConfig({ jsonLdExtra: e.target.value })} />
+                    </div>
                   </CardContent>
                 </Card>
-              </Stack>
-            </TabPanel>
-          </TabContext>
+              </div>
+            </TabsContent>
+          </Tabs>
 
           <Button
-            variant="contained"
-            startIcon={saving ? <CircularProgress size={18} /> : <CampaignIcon />}
+            variant="default"
+            leftIcon={saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Megaphone className="h-4 w-4" />}
             onClick={handleSave}
             disabled={saving}
           >
             Save all
           </Button>
-        </Stack>
+        </div>
       )}
-    </Box>
+    </div>
   )
 }

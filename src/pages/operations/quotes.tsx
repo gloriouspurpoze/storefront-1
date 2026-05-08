@@ -1,60 +1,66 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  Box,
+  Button,
   Card,
   CardContent,
-  Typography,
-  Button,
-  TextField,
-  InputAdornment,
-  Chip,
-  Divider,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  useTheme,
-  Stack,
-  IconButton,
-  Menu,
+  Input,
+  Badge,
+  Separator,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Textarea,
+  HStack,
+  VStack,
+} from '../../components/ui'
 import {
-  Search as SearchIcon,
-  FilterList as FilterIcon,
-  Visibility as VisibilityIcon,
-  AttachMoney as DollarIcon,
-  AccessTime as TimeIcon,
-  Person as PersonIcon,
-  Assignment as AssignmentIcon,
-  MoreVert as MoreVertIcon,
-  CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
-  Schedule as ScheduleIcon,
-  Pending as PendingIcon,
-  Gavel as GavelIcon,
-} from '@mui/icons-material'
-import type { Quote, QuoteAdminReviewStatus } from '../../types'
-import { formatCurrency, formatDate } from '../../lib/utils'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../../components/ui/dropdown-menu'
+import {
+  Search,
+  Filter,
+  Eye,
+  DollarSign,
+  Clock,
+  User,
+  ClipboardList,
+  MoreVertical,
+  CheckCircle2,
+  XCircle,
+  CalendarClock,
+  CircleAlert,
+  Gavel,
+  Loader2,
+} from 'lucide-react'
+import { cn, formatCurrency, formatDate, getInitials } from '../../lib/utils'
 import { QuotesService } from '../../services/api/quotes.service'
+import type { Quote, QuoteAdminReviewStatus } from '../../types'
 import { usePermissions } from '../../hooks/usePermissions'
 
-const statusColors = {
-  pending: 'warning',
-  accepted: 'success',
-  rejected: 'error',
-  expired: 'default',
-} as const
+const statusBadgeVariant = {
+  pending: 'warning' as const,
+  accepted: 'success' as const,
+  rejected: 'destructive' as const,
+  expired: 'secondary' as const,
+}
 
 const statusIcons = {
-  pending: PendingIcon,
-  accepted: CheckCircleIcon,
-  rejected: CancelIcon,
-  expired: ScheduleIcon,
+  pending: CircleAlert,
+  accepted: CheckCircle2,
+  rejected: XCircle,
+  expired: CalendarClock,
 } as const
 
 const reviewLabel = (s: QuoteAdminReviewStatus | undefined) => {
@@ -75,16 +81,21 @@ function createdRaw(q: Quote) {
   return q.created_at ?? q.createdAt
 }
 
+const statDotClass: Record<string, string> = {
+  primary: 'bg-primary',
+  warning: 'bg-yellow-500',
+  success: 'bg-green-500',
+  error: 'bg-red-500',
+  default: 'bg-muted-foreground',
+}
+
 export function Quotes() {
-  const theme = useTheme()
   const { checkPermission } = usePermissions()
   const canReview = checkPermission('approve_quotes')
 
   const [listTab, setListTab] = useState<'all' | 'review'>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('all')
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
-  const [menuQuote, setMenuQuote] = useState<Quote | null>(null)
   const [quotes, setQuotes] = useState<Quote[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -166,44 +177,36 @@ export function Quotes() {
     }
   }
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, quote: Quote) => {
-    setAnchorEl(event.currentTarget)
-    setMenuQuote(quote)
-  }
-
-  const handleMenuClose = () => {
-    setAnchorEl(null)
-    setMenuQuote(null)
-  }
-
-  const StatCard = ({ title, value, color = 'primary' }: { title: string; value: number; color?: string }) => (
+  const StatCard = ({
+    title,
+    value,
+    color = 'primary',
+  }: {
+    title: string
+    value: number
+    color?: keyof typeof statDotClass | 'info'
+  }) => (
     <Card>
       <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Box
-            sx={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              backgroundColor: `${color}.main`,
-            }}
+        <div className="flex items-center gap-4">
+          <div
+            className={cn(
+              'h-2 w-2 shrink-0 rounded-full',
+              color === 'info' ? 'bg-sky-500' : statDotClass[color] ?? statDotClass.primary,
+            )}
           />
-          <Box>
-            <Typography variant="h4" sx={{ fontWeight: 700 }}>
-              {value}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {title}
-            </Typography>
-          </Box>
-        </Box>
+          <div>
+            <p className="text-2xl font-bold tabular-nums">{value}</p>
+            <p className="text-sm text-muted-foreground">{title}</p>
+          </div>
+        </div>
       </CardContent>
     </Card>
   )
 
   const QuoteCard = ({ quote }: { quote: Quote }) => {
     const StatusIcon = statusIcons[quote.status]
-    const statusColor = statusColors[quote.status]
+    const statusVariant = statusBadgeVariant[quote.status]
     const pro = quote.professional
     const proName = pro
       ? [pro.firstName, pro.lastName].filter(Boolean).join(' ') || pro.email || 'Professional'
@@ -212,402 +215,363 @@ export function Quotes() {
     return (
       <Card>
         <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-            <Box sx={{ flex: 1 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexWrap: 'wrap' }}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Quote #{quote.id.slice(-8).toUpperCase()}
-                </Typography>
-                <Chip
-                  icon={<StatusIcon />}
-                  label={quote.status}
-                  size="small"
-                  color={statusColor}
-                  sx={{ textTransform: 'capitalize' }}
-                />
+          <div className="mb-4 flex justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <h3 className="text-lg font-semibold">Quote #{quote.id.slice(-8).toUpperCase()}</h3>
+                <Badge variant={statusVariant} className="gap-1 capitalize">
+                  <StatusIcon className="h-3 w-3" />
+                  {quote.status}
+                </Badge>
                 {quote.admin_review_status && (
-                  <Chip
-                    size="small"
-                    color={quote.admin_review_status === 'pending_review' ? 'info' : 'default'}
-                    label={reviewLabel(quote.admin_review_status)}
-                    variant="outlined"
-                  />
+                  <Badge
+                    variant={quote.admin_review_status === 'pending_review' ? 'default' : 'outline'}
+                    className="max-w-full text-left font-normal"
+                  >
+                    {reviewLabel(quote.admin_review_status)}
+                  </Badge>
                 )}
-              </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                {quoteText(quote) || '—'}
-              </Typography>
-              {proName && (
-                <Typography variant="caption" color="text.secondary" display="block">
-                  Pro: {proName}
-                </Typography>
-              )}
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<VisibilityIcon />}
-                onClick={() => openDetail(quote)}
-              >
+              </div>
+              <p className="mb-2 text-sm text-muted-foreground">{quoteText(quote) || '—'}</p>
+              {proName && <p className="block text-xs text-muted-foreground">Pro: {proName}</p>}
+            </div>
+            <div className="flex shrink-0 items-start gap-1">
+              <Button type="button" variant="outline" size="sm" onClick={() => openDetail(quote)}>
+                <Eye className="mr-1 h-4 w-4" />
                 View
               </Button>
-              <IconButton size="small" onClick={(e) => handleMenuOpen(e, quote)}>
-                <MoreVertIcon />
-              </IconButton>
-            </Box>
-          </Box>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => openDetail(quote)}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    View details
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
 
-          <Grid container spacing={2} sx={{ mb: 2 }}>
-            <Grid item xs={12} sm={6} md={3}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <DollarIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {formatCurrency(quote.amount)}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Amount
-                  </Typography>
-                </Box>
-              </Box>
-            </Grid>
+          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 shrink-0 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium tabular-nums">{formatCurrency(quote.amount)}</p>
+                <p className="text-xs text-muted-foreground">Amount</p>
+              </div>
+            </div>
 
-            <Grid item xs={12} sm={6} md={3}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <AssignmentIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }} noWrap title={String(quote.service_request_id ?? quote.serviceRequestId ?? '—')}>
-                    {quote.booking_id ? `Booking` : 'Request'}{' '}
-                    #{(quote.service_request_id ?? quote.booking_id ?? quote.serviceRequestId ?? '—').toString().slice(-8)}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {quote.booking_id ? 'Booking / add-on' : 'Service request'}
-                  </Typography>
-                </Box>
-              </Box>
-            </Grid>
+            <div className="flex items-center gap-2">
+              <ClipboardList className="h-5 w-5 shrink-0 text-muted-foreground" />
+              <div className="min-w-0">
+                <p
+                  className="truncate text-sm font-medium"
+                  title={String(quote.service_request_id ?? quote.serviceRequestId ?? '—')}
+                >
+                  {quote.booking_id ? `Booking` : 'Request'}{' '}
+                  #{(quote.service_request_id ?? quote.booking_id ?? quote.serviceRequestId ?? '—').toString().slice(-8)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {quote.booking_id ? 'Booking / add-on' : 'Service request'}
+                </p>
+              </div>
+            </div>
 
-            <Grid item xs={12} sm={6} md={3}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <PersonIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }} noWrap>
-                    {quote.provider?.businessName ?? '—'}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Company
-                  </Typography>
-                </Box>
-              </Box>
-            </Grid>
+            <div className="flex items-center gap-2">
+              <User className="h-5 w-5 shrink-0 text-muted-foreground" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{quote.provider?.businessName ?? '—'}</p>
+                <p className="text-xs text-muted-foreground">Company</p>
+              </div>
+            </div>
 
-            <Grid item xs={12} sm={6} md={3}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <TimeIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {validUntilRaw(quote) ? formatDate(validUntilRaw(quote) as string) : '—'}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Valid until
-                  </Typography>
-                </Box>
-              </Box>
-            </Grid>
-          </Grid>
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 shrink-0 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">
+                  {validUntilRaw(quote) ? formatDate(validUntilRaw(quote) as string) : '—'}
+                </p>
+                <p className="text-xs text-muted-foreground">Valid until</p>
+              </div>
+            </div>
+          </div>
 
-          <Divider sx={{ my: 2 }} />
+          <Separator className="my-4" />
 
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Box>
-              <Typography variant="body2" color="text.secondary">
-                Customer
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm text-muted-foreground">Customer</p>
+              <p className="text-sm font-medium">
                 {quote.customer
                   ? [quote.customer.firstName, quote.customer.lastName].filter(Boolean).join(' ') ||
                     quote.customer.email ||
                     '—'
                   : '—'}
-              </Typography>
-            </Box>
-            <Chip
-              label={createdRaw(quote) ? formatDate(createdRaw(quote) as string) : '—'}
-              size="small"
-              variant="outlined"
-            />
-          </Box>
+              </p>
+            </div>
+            <Badge variant="outline">
+              {createdRaw(quote) ? formatDate(createdRaw(quote) as string) : '—'}
+            </Badge>
+          </div>
         </CardContent>
       </Card>
     )
   }
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 4 }}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-            Quotes
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
+    <div className="min-w-0 flex-1">
+      <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+        <div>
+          <h1 className="mb-2 text-3xl font-bold">Quotes</h1>
+          <p className="text-muted-foreground">
             Review professional quotations (photos + notes), approve or reject before the customer can accept.
-          </Typography>
-        </Box>
-        <Stack direction="row" spacing={1}>
-          <Button variant={listTab === 'all' ? 'contained' : 'outlined'} onClick={() => setListTab('all')}>
+          </p>
+        </div>
+        <HStack spacing={2} className="shrink-0">
+          <Button
+            type="button"
+            variant={listTab === 'all' ? 'default' : 'outline'}
+            onClick={() => setListTab('all')}
+          >
             All quotes
           </Button>
           <Button
-            variant={listTab === 'review' ? 'contained' : 'outlined'}
-            color="warning"
-            startIcon={<GavelIcon />}
+            type="button"
+            variant={listTab === 'review' ? 'default' : 'outline'}
+            className={listTab === 'review' ? 'bg-amber-600 hover:bg-amber-600/90' : ''}
             onClick={() => setListTab('review')}
           >
+            <Gavel className="mr-2 h-4 w-4" />
             Review queue
           </Button>
-        </Stack>
-      </Box>
+        </HStack>
+      </div>
 
-      <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid item xs={6} sm={listTab === 'review' ? 4 : 3}>
+      <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className={listTab === 'review' ? 'col-span-2 sm:col-span-1' : ''}>
           <StatCard title="Pending (customer)" value={quoteStats.pending} color="warning" />
-        </Grid>
-        <Grid item xs={6} sm={listTab === 'review' ? 4 : 3}>
+        </div>
+        <div className={listTab === 'review' ? 'col-span-2 sm:col-span-1' : ''}>
           <StatCard title="Accepted" value={quoteStats.accepted} color="success" />
-        </Grid>
-        <Grid item xs={6} sm={listTab === 'review' ? 4 : 3}>
+        </div>
+        <div className={listTab === 'review' ? 'col-span-2 sm:col-span-1' : ''}>
           <StatCard title="Rejected" value={quoteStats.rejected} color="error" />
-        </Grid>
+        </div>
         {listTab === 'all' ? (
-          <Grid item xs={6} sm={3}>
+          <div>
             <StatCard title="Expired" value={quoteStats.expired} color="default" />
-          </Grid>
+          </div>
         ) : (
-          <Grid item xs={12} sm={12}>
-            <Card variant="outlined">
-              <CardContent sx={{ py: 2 }}>
-                <Typography variant="body2" color="text.secondary">
+          <div className="col-span-2 lg:col-span-1">
+            <Card className="border-dashed">
+              <CardContent className="py-4">
+                <p className="text-sm text-muted-foreground">
                   Queue total (server): <strong>{totalCount}</strong> · In this page sample awaiting review:{' '}
                   <strong>{quoteStats.pendingReview}</strong>
-                </Typography>
+                </p>
               </CardContent>
             </Card>
-          </Grid>
+          </div>
         )}
-      </Grid>
+      </div>
 
-      <Card sx={{ mb: 4 }}>
-        <CardContent>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                placeholder="Search quotes..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <FormControl fullWidth>
-                <InputLabel>Job status</InputLabel>
-                <Select
-                  value={selectedStatus}
-                  label="Job status"
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                >
-                  <MenuItem value="all">All Status</MenuItem>
-                  <MenuItem value="pending">Pending</MenuItem>
-                  <MenuItem value="accepted">Accepted</MenuItem>
-                  <MenuItem value="rejected">Rejected</MenuItem>
-                  <MenuItem value="expired">Expired</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={3}>
+      <Card className="mb-8">
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 items-end gap-4 lg:grid-cols-12">
+            <div className="lg:col-span-6">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  className="pl-9"
+                  placeholder="Search quotes..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="lg:col-span-3">
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Job status</label>
+              <Select value={selectedStatus} onValueChange={(v) => setSelectedStatus(v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="accepted">Accepted</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="expired">Expired</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="lg:col-span-3">
               <Button
-                variant="outlined"
-                startIcon={<FilterIcon />}
-                fullWidth
-                sx={{ height: 56 }}
+                type="button"
+                variant="outline"
+                className="h-10 w-full"
                 onClick={() => void load()}
                 disabled={loading}
               >
+                {loading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Filter className="mr-2 h-4 w-4" />
+                )}
                 Refresh
               </Button>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      {loadError && (
-        <Typography color="error" sx={{ mb: 2 }}>
-          {loadError}
-        </Typography>
-      )}
+      {loadError && <p className="mb-4 text-sm text-destructive">{loadError}</p>}
 
-      {loading ? (
-        <Typography color="text.secondary">Loading quotes…</Typography>
+      {loading && !quotes.length ? (
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          Loading quotes…
+        </div>
       ) : filteredQuotes.length > 0 ? (
-        <Stack spacing={2}>
+        <VStack spacing={4}>
           {filteredQuotes.map((quote) => (
             <QuoteCard key={quote.id} quote={quote} />
           ))}
-        </Stack>
+        </VStack>
       ) : (
         <Card>
-          <CardContent sx={{ textAlign: 'center', py: 8 }}>
-            <DollarIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-            <Typography variant="h6" sx={{ mb: 1 }}>
-              No quotes found
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
+          <CardContent className="py-16 text-center">
+            <DollarSign className="mx-auto mb-4 h-16 w-16 text-muted-foreground/50" />
+            <h3 className="mb-2 text-lg font-semibold">No quotes found</h3>
+            <p className="text-sm text-muted-foreground">
               {searchTerm || selectedStatus !== 'all'
                 ? 'Try adjusting your search or filter criteria.'
                 : listTab === 'review'
                   ? 'Nothing is waiting for platform review.'
                   : 'Quotes will appear when providers or professionals submit them.'}
-            </Typography>
+            </p>
           </CardContent>
         </Card>
       )}
 
-      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
-        <MenuItem
-          onClick={() => {
-            if (menuQuote) openDetail(menuQuote)
-            handleMenuClose()
-          }}
-        >
-          <VisibilityIcon sx={{ mr: 1 }} />
-          View details
-        </MenuItem>
-      </Menu>
-
-      <Dialog open={detailOpen} onClose={() => !reviewSubmitting && setDetailOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          Quote detail
-          {detailQuote?.admin_review_status === 'pending_review' && (
-            <Chip size="small" label="Needs your decision" color="warning" sx={{ ml: 1 }} />
-          )}
-        </DialogTitle>
-        <DialogContent dividers>
+      <Dialog
+        open={detailOpen}
+        onOpenChange={(o) => {
+          if (!reviewSubmitting) setDetailOpen(o)
+        }}
+      >
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex flex-wrap items-center gap-2">
+              Quote detail
+              {detailQuote?.admin_review_status === 'pending_review' && (
+                <Badge variant="warning" className="font-normal">
+                  Needs your decision
+                </Badge>
+              )}
+            </DialogTitle>
+          </DialogHeader>
           {detailQuote && (
-            <Stack spacing={2}>
-              <Typography variant="body2" color="text.secondary">
-                ID: {detailQuote.id}
-              </Typography>
-              <Typography variant="h5">{formatCurrency(detailQuote.amount)}</Typography>
-              <Typography variant="subtitle2" color="text.secondary">
-                Scope / description
-              </Typography>
-              <Typography variant="body1">{detailQuote.description || '—'}</Typography>
+            <VStack spacing={4} className="py-2">
+              <p className="text-sm text-muted-foreground">ID: {detailQuote.id}</p>
+              <p className="text-2xl font-bold tabular-nums">{formatCurrency(detailQuote.amount)}</p>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Scope / description</p>
+                <p className="mt-1 whitespace-pre-wrap">{detailQuote.description || '—'}</p>
+              </div>
               {detailQuote.notes ? (
-                <>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Additional notes
-                  </Typography>
-                  <Typography variant="body2">{detailQuote.notes}</Typography>
-                </>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Additional notes</p>
+                  <p className="mt-1 text-sm">{detailQuote.notes}</p>
+                </div>
               ) : null}
-              <Typography variant="subtitle2" color="text.secondary">
-                Workflow
-              </Typography>
-              <Chip label={reviewLabel(detailQuote.admin_review_status)} size="small" variant="outlined" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Workflow</p>
+                <Badge variant="outline" className="mt-1">
+                  {reviewLabel(detailQuote.admin_review_status)}
+                </Badge>
+              </div>
               {detailQuote.professional && (
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Professional
-                  </Typography>
-                  <Typography variant="body2">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Professional</p>
+                  <p className="text-sm">
                     {[detailQuote.professional.firstName, detailQuote.professional.lastName]
                       .filter(Boolean)
                       .join(' ') || detailQuote.professional.email}
-                  </Typography>
+                  </p>
                   {detailQuote.professional.categories?.length ? (
-                    <Stack direction="row" gap={0.5} flexWrap="wrap" sx={{ mt: 1 }}>
+                    <div className="mt-2 flex flex-wrap gap-1">
                       {detailQuote.professional.categories.map((c) => (
-                        <Chip key={c} label={c} size="small" />
+                        <Badge key={c} variant="secondary" className="font-normal">
+                          {c}
+                        </Badge>
                       ))}
-                    </Stack>
+                    </div>
                   ) : null}
-                </Box>
+                </div>
               )}
               {(detailQuote.attachment_urls?.length ?? 0) > 0 && (
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                    Photos & attachments
-                  </Typography>
-                  <Grid container spacing={1}>
+                <div>
+                  <p className="mb-2 text-sm font-medium text-muted-foreground">Photos & attachments</p>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                     {(detailQuote.attachment_urls ?? []).map((url) => (
-                      <Grid item xs={6} sm={4} key={url}>
-                        <Box
-                          component="a"
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          sx={{ display: 'block' }}
-                        >
-                          <Box
-                            component="img"
-                            src={url}
-                            alt=""
-                            sx={{
-                              width: '100%',
-                              height: 120,
-                              objectFit: 'cover',
-                              borderRadius: 1,
-                              border: `1px solid ${theme.palette.divider}`,
-                            }}
-                          />
-                        </Box>
-                      </Grid>
+                      <a
+                        key={url}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block overflow-hidden rounded-md border border-border"
+                      >
+                        <img src={url} alt="" className="h-[120px] w-full object-cover" />
+                      </a>
                     ))}
-                  </Grid>
-                </Box>
+                  </div>
+                </div>
               )}
               {canReview && detailQuote.admin_review_status === 'pending_review' && (
-                <TextField
-                  label="Internal note (optional)"
-                  fullWidth
-                  multiline
-                  minRows={2}
-                  value={reviewNote}
-                  onChange={(e) => setReviewNote(e.target.value)}
-                  placeholder="Reason for rejection or approval context (visible in audit)"
-                />
+                <div>
+                  <label className="mb-1 block text-sm font-medium">Internal note (optional)</label>
+                  <Textarea
+                    value={reviewNote}
+                    onChange={(e) => setReviewNote(e.target.value)}
+                    placeholder="Reason for rejection or approval context (visible in audit)"
+                    rows={3}
+                  />
+                </div>
               )}
               {detailQuote.admin_review_note && (
-                <Typography variant="body2" color="text.secondary">
+                <p className="text-sm text-muted-foreground">
                   Last review note: {detailQuote.admin_review_note}
-                </Typography>
+                </p>
               )}
-            </Stack>
+            </VStack>
           )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={() => setDetailOpen(false)} disabled={reviewSubmitting}>
+              Close
+            </Button>
+            {canReview && detailQuote?.admin_review_status === 'pending_review' ? (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-destructive text-destructive hover:bg-destructive/10"
+                  disabled={reviewSubmitting}
+                  onClick={() => runAdminReview('reject')}
+                >
+                  Reject
+                </Button>
+                <Button type="button" disabled={reviewSubmitting} onClick={() => runAdminReview('approve')}>
+                  Approve
+                </Button>
+              </>
+            ) : null}
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setDetailOpen(false)} disabled={reviewSubmitting}>
-            Close
-          </Button>
-          {canReview && detailQuote?.admin_review_status === 'pending_review' && (
-            <>
-              <Button color="error" variant="outlined" disabled={reviewSubmitting} onClick={() => runAdminReview('reject')}>
-                Reject
-              </Button>
-              <Button color="success" variant="contained" disabled={reviewSubmitting} onClick={() => runAdminReview('approve')}>
-                Approve
-              </Button>
-            </>
-          )}
-        </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   )
 }

@@ -1,56 +1,68 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Box,
+  Plus,
+  Pencil,
+  Trash2,
+  FileText,
+  Eye,
+  Tag,
+  Clock,
+  User,
+  CheckCircle2,
+  Search,
+  ListFilter,
+  Loader2,
+} from 'lucide-react'
+import { PageHeader } from '../../components/common/PageHeader'
+import {
+  Badge,
   Button,
   Card,
   CardContent,
-  CardMedia,
-  Chip,
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  FormControl,
-  FormControlLabel,
-  IconButton,
-  InputAdornment,
-  InputLabel,
-  MenuItem,
-  Pagination,
+  Input,
+  Label,
   Select,
-  Stack,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Switch,
-  TextField,
-  Typography,
-  alpha,
-  useTheme,
-  CircularProgress,
   Tooltip,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Article as ArticleIcon,
-  Visibility as VisibilityIcon,
-  Category as CategoryIcon,
-  AccessTime as TimeIcon,
-  Person as PersonIcon,
-  CheckCircle as CheckCircleIcon,
-  Search as SearchIcon,
-  FilterList as FilterListIcon,
-} from '@mui/icons-material'
-import { PageHeader } from '../../components/common/PageHeader'
-import { useToast } from '../../components/ui'
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+  useToast,
+} from '../../components/ui'
 import { BlogService } from '../../services/api/blog.service'
 import type { BlogPost, BlogCategory, BlogListResponse } from '../../types/cms.types'
+import { cn } from '../../lib/utils'
 
 const PAGE_SIZE = 50
 
+function statusBadgeVariant(
+  status: string,
+): 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' {
+  switch (status) {
+    case 'published':
+      return 'success'
+    case 'draft':
+      return 'secondary'
+    case 'scheduled':
+      return 'warning'
+    case 'archived':
+      return 'destructive'
+    default:
+      return 'outline'
+  }
+}
+
 export default function BlogManagement() {
-  const theme = useTheme()
   const navigate = useNavigate()
   const { toast } = useToast()
   const [posts, setPosts] = useState<BlogPost[]>([])
@@ -60,7 +72,7 @@ export default function BlogManagement() {
   const [categories, setCategories] = useState<BlogCategory[]>([])
 
   const [page, setPage] = useState(1)
-  const [statusFilter, setStatusFilter] = useState<string>('') // '' = all
+  const [statusFilter, setStatusFilter] = useState<string>('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [tagFilter, setTagFilter] = useState('')
   const [searchInput, setSearchInput] = useState('')
@@ -171,362 +183,360 @@ export default function BlogManagement() {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'published':
-        return 'success'
-      case 'draft':
-        return 'default'
-      case 'scheduled':
-        return 'info'
-      case 'archived':
-        return 'error'
-      default:
-        return 'default'
-    }
-  }
-
   return (
-    <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
-      <PageHeader
-        title="Blog Management"
-        subtitle="Filter and search posts via the API. Up to 50 per page — use pagination to see the rest."
-        action={
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => navigate('/cms/blogs/new')}
-            sx={{ borderRadius: 2 }}
-          >
-            New Post
-          </Button>
-        }
-      />
+    <TooltipProvider>
+      <div className="p-4 sm:p-6 md:p-8">
+        <PageHeader
+          title="Blog Management"
+          subtitle="Filter and search posts via the API. Up to 50 per page — use pagination to see the rest."
+          action={
+            <Button
+              className="rounded-md"
+              onClick={() => navigate('/cms/blogs/new')}
+              leftIcon={<Plus className="h-4 w-4" />}
+            >
+              New Post
+            </Button>
+          }
+        />
 
-      <Card sx={{ mb: 3, borderRadius: 2 }}>
-        <CardContent>
-          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-            <FilterListIcon color="action" fontSize="small" />
-            <Typography variant="subtitle2" fontWeight={600}>
-              Filters
-            </Typography>
-            {hasActiveFilters && (
-              <Button size="small" onClick={resetFilters}>
-                Clear all
-              </Button>
-            )}
-          </Stack>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Search title or content…"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon fontSize="small" color="action" />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={2}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Status</InputLabel>
-                <Select
-                  value={statusFilter}
-                  label="Status"
-                  onChange={(e) => {
-                    setStatusFilter(e.target.value)
-                    setPage(1)
-                  }}
-                >
-                  <MenuItem value="">All</MenuItem>
-                  <MenuItem value="draft">Draft</MenuItem>
-                  <MenuItem value="published">Published</MenuItem>
-                  <MenuItem value="scheduled">Scheduled</MenuItem>
-                  <MenuItem value="archived">Archived</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={2}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Category</InputLabel>
-                <Select
-                  value={categoryFilter}
-                  label="Category"
-                  onChange={(e) => {
-                    setCategoryFilter(e.target.value)
-                    setPage(1)
-                  }}
-                >
-                  <MenuItem value="">All</MenuItem>
-                  {categories.map((c) => (
-                    <MenuItem key={c._id} value={c._id}>
-                      {c.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={2}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Tag"
-                placeholder="Exact tag"
-                value={tagFilter}
-                onChange={(e) => {
-                  setTagFilter(e.target.value)
-                  setPage(1)
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={2}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={featuredOnly}
-                    onChange={(e) => {
-                      setFeaturedOnly(e.target.checked)
-                      setPage(1)
-                    }}
-                    size="small"
+        <Card className="mb-6 rounded-lg">
+          <CardContent className="p-6">
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <ListFilter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-semibold">Filters</span>
+              {hasActiveFilters ? (
+                <Button type="button" variant="ghost" size="sm" onClick={resetFilters}>
+                  Clear all
+                </Button>
+              ) : null}
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-12 md:items-end">
+              <div className="md:col-span-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    className="pl-9"
+                    placeholder="Search title or content…"
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
                   />
-                }
-                label="Featured only"
-              />
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
-
-      {pagination && (
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Showing {posts.length} of {pagination.total ?? posts.length} post
-          {(pagination.total ?? 0) !== 1 ? 's' : ''}
-          {totalPages > 1 ? ` · Page ${pagination.page ?? page} of ${totalPages}` : ''}
-        </Typography>
-      )}
-
-      {loading ? (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight={400}>
-          <CircularProgress />
-        </Box>
-      ) : posts.length === 0 ? (
-        <Card>
-          <CardContent sx={{ textAlign: 'center', py: 8 }}>
-            <ArticleIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              {hasActiveFilters ? 'No posts match your filters' : 'No blog posts found'}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              {hasActiveFilters
-                ? 'Try clearing filters or broadening your search.'
-                : 'Create your first blog post to get started'}
-            </Typography>
-            {hasActiveFilters ? (
-              <Button onClick={resetFilters}>Clear filters</Button>
-            ) : (
-              <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/cms/blogs/new')}>
-                Create Post
-              </Button>
-            )}
+                </div>
+              </div>
+              <div className="md:col-span-2 space-y-2">
+                <Label className="sr-only">Status</Label>
+                <Select
+                  value={statusFilter || '__all__'}
+                  onValueChange={(v) => {
+                    setStatusFilter(v === '__all__' ? '' : v)
+                    setPage(1)
+                  }}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">All</SelectItem>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="published">Published</SelectItem>
+                    <SelectItem value="scheduled">Scheduled</SelectItem>
+                    <SelectItem value="archived">Archived</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="md:col-span-2 space-y-2">
+                <Label className="sr-only">Category</Label>
+                <Select
+                  value={categoryFilter || '__all__'}
+                  onValueChange={(v) => {
+                    setCategoryFilter(v === '__all__' ? '' : v)
+                    setPage(1)
+                  }}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">All</SelectItem>
+                    {categories.map((c) => (
+                      <SelectItem key={c._id} value={c._id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="md:col-span-2 space-y-2">
+                <Label htmlFor="tag-filter" className="sr-only">
+                  Tag
+                </Label>
+                <Input
+                  id="tag-filter"
+                  className="h-9"
+                  placeholder="Exact tag"
+                  value={tagFilter}
+                  onChange={(e) => {
+                    setTagFilter(e.target.value)
+                    setPage(1)
+                  }}
+                />
+              </div>
+              <div className="flex items-center gap-2 md:col-span-2">
+                <Switch
+                  id="featured-only"
+                  checked={featuredOnly}
+                  onCheckedChange={(checked) => {
+                    setFeaturedOnly(checked)
+                    setPage(1)
+                  }}
+                />
+                <Label htmlFor="featured-only" className="text-sm font-normal">
+                  Featured only
+                </Label>
+              </div>
+            </div>
           </CardContent>
         </Card>
-      ) : (
-        <>
-          <Grid container spacing={3}>
-            {posts.map((post) => (
-              <Grid item xs={12} key={post._id}>
-                <Card
-                  sx={{
-                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      boxShadow: theme.shadows[8],
-                      transform: 'translateY(-2px)',
-                    },
-                  }}
+
+        {pagination ? (
+          <p className="mb-4 text-sm text-muted-foreground">
+            Showing {posts.length} of {pagination.total ?? posts.length} post
+            {(pagination.total ?? 0) !== 1 ? 's' : ''}
+            {totalPages > 1 ? ` · Page ${pagination.page ?? page} of ${totalPages}` : ''}
+          </p>
+        ) : null}
+
+        {loading ? (
+          <div className="flex min-h-[400px] items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : posts.length === 0 ? (
+          <Card>
+            <CardContent className="py-16 text-center">
+              <FileText className="mx-auto mb-4 h-16 w-16 text-muted-foreground" />
+              <h3 className="mb-2 text-lg font-semibold text-muted-foreground">
+                {hasActiveFilters ? 'No posts match your filters' : 'No blog posts found'}
+              </h3>
+              <p className="mb-6 text-sm text-muted-foreground">
+                {hasActiveFilters
+                  ? 'Try clearing filters or broadening your search.'
+                  : 'Create your first blog post to get started'}
+              </p>
+              {hasActiveFilters ? (
+                <Button type="button" variant="outline" onClick={resetFilters}>
+                  Clear filters
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => navigate('/cms/blogs/new')}
+                  leftIcon={<Plus className="h-4 w-4" />}
                 >
-                  <CardContent>
-                    <Grid container spacing={3} alignItems="center">
-                      {post.featuredImage && (
-                        <Grid item xs={12} sm={3}>
-                          <CardMedia
-                            component="img"
-                            sx={{
-                              width: '100%',
-                              height: 150,
-                              borderRadius: 2,
-                              objectFit: 'cover',
-                              border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                            }}
-                            image={post.featuredImage}
-                            alt={post.title}
-                          />
-                        </Grid>
+                  Create Post
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 gap-6">
+              {posts.map((post) => (
+                <Card
+                  key={post._id}
+                  className="border-border/80 transition-all hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <CardContent className="p-6">
+                    <div
+                      className={cn(
+                        'grid grid-cols-1 items-center gap-6',
+                        post.featuredImage ? 'sm:grid-cols-12' : 'sm:grid-cols-12',
                       )}
-                      <Grid item xs={12} sm={post.featuredImage ? 7 : 10}>
-                        <Stack spacing={1.5}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                            <ArticleIcon sx={{ color: theme.palette.primary.main }} />
-                            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                              {post.title}
-                            </Typography>
-                            <Chip
-                              label={post.status}
-                              color={getStatusColor(post.status)}
-                              size="small"
-                              sx={{ fontWeight: 600, textTransform: 'capitalize' }}
-                            />
-                            {post.isFeatured && (
-                              <Chip
-                                icon={<CheckCircleIcon />}
-                                label="Featured"
-                                color="warning"
-                                size="small"
-                                sx={{ fontWeight: 600 }}
-                              />
-                            )}
-                          </Box>
-                          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                    >
+                      {post.featuredImage ? (
+                        <div className="sm:col-span-3">
+                          <img
+                            src={post.featuredImage}
+                            alt={post.title}
+                            className="h-[150px] w-full rounded-lg border border-border/80 object-cover"
+                          />
+                        </div>
+                      ) : null}
+                      <div className={cn(post.featuredImage ? 'sm:col-span-7' : 'sm:col-span-10')}>
+                        <div className="space-y-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <FileText className="h-5 w-5 shrink-0 text-primary" />
+                            <h3 className="text-lg font-semibold">{post.title}</h3>
+                            <Badge variant={statusBadgeVariant(post.status)} className="capitalize">
+                              {post.status}
+                            </Badge>
+                            {post.isFeatured ? (
+                              <Badge variant="warning" className="gap-1">
+                                <CheckCircle2 className="h-3 w-3" />
+                                Featured
+                              </Badge>
+                            ) : null}
+                          </div>
+                          <p className="text-sm leading-relaxed text-muted-foreground">
                             {post.excerpt || 'No excerpt'}
-                          </Typography>
-                          <Stack direction="row" spacing={2} flexWrap="wrap" sx={{ mt: 1 }}>
-                            <Tooltip title="Category">
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <CategoryIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                                <Typography variant="caption" color="text.secondary">
+                          </p>
+                          <div className="mt-2 flex flex-wrap gap-3">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Tag className="h-3.5 w-3.5" />
                                   {post.category && typeof post.category === 'object'
                                     ? (post.category as { name?: string }).name
                                     : 'Uncategorized'}
-                                </Typography>
-                              </Box>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>Category</TooltipContent>
                             </Tooltip>
-                            <Tooltip title="Views">
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <VisibilityIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                                <Typography variant="caption" color="text.secondary">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Eye className="h-3.5 w-3.5" />
                                   {post.viewCount ?? 0} views
-                                </Typography>
-                              </Box>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>Views</TooltipContent>
                             </Tooltip>
-                            <Tooltip title="Read time">
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <TimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                                <Typography variant="caption" color="text.secondary">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Clock className="h-3.5 w-3.5" />
                                   {post.readTime ?? 0} min read
-                                </Typography>
-                              </Box>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>Read time</TooltipContent>
                             </Tooltip>
-                            <Tooltip title="Author">
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <PersonIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                                <Typography variant="caption" color="text.secondary">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                                  <User className="h-3.5 w-3.5" />
                                   {post.author?.name ?? '—'}
-                                </Typography>
-                              </Box>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>Author</TooltipContent>
                             </Tooltip>
-                            <Typography variant="caption" color="text.secondary">
+                            <span className="text-xs text-muted-foreground">
                               {new Date(post.createdAt).toLocaleDateString()}
-                            </Typography>
-                          </Stack>
-                          {Array.isArray(post.tags) && post.tags.length > 0 && (
-                            <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 1 }}>
+                            </span>
+                          </div>
+                          {Array.isArray(post.tags) && post.tags.length > 0 ? (
+                            <div className="mt-2 flex flex-wrap gap-1.5">
                               {post.tags.map((tag, idx) => (
-                                <Chip
+                                <Badge
                                   key={idx}
-                                  label={tag}
-                                  size="small"
-                                  sx={{
-                                    bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                    color: theme.palette.primary.main,
-                                    fontWeight: 500,
-                                  }}
-                                />
+                                  variant="outline"
+                                  className="border-primary/20 bg-primary/5 font-medium text-primary"
+                                >
+                                  {tag}
+                                </Badge>
                               ))}
-                            </Box>
-                          )}
-                        </Stack>
-                      </Grid>
-                      <Grid item xs={12} sm={post.featuredImage ? 2 : 2}>
-                        <Stack
-                          direction="row"
-                          spacing={1}
-                          justifyContent={{ xs: 'flex-start', sm: 'flex-end' }}
-                        >
-                          <Tooltip title="Edit">
-                            <IconButton
-                              color="primary"
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className="flex flex-row justify-start gap-1 sm:col-span-2 sm:justify-end">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="bg-primary/10 text-primary hover:bg-primary/20"
                               onClick={() => navigate(`/cms/blogs/${post._id}/edit`)}
-                              sx={{
-                                bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.2) },
-                              }}
                             >
-                              <EditIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Delete">
-                            <IconButton
-                              color="error"
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="bg-destructive/10 text-destructive hover:bg-destructive/20"
                               onClick={() => setDeleteTarget(post)}
-                              sx={{
-                                bgcolor: alpha(theme.palette.error.main, 0.1),
-                                '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.2) },
-                              }}
                             >
-                              <DeleteIcon />
-                            </IconButton>
-                          </Tooltip>
-                        </Stack>
-                      </Grid>
-                    </Grid>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Delete</TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
-              </Grid>
-            ))}
-          </Grid>
+              ))}
+            </div>
 
-          {totalPages > 1 && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-              <Pagination
-                count={totalPages}
-                page={page}
-                onChange={(_, value) => setPage(value)}
-                color="primary"
-                showFirstButton
-                showLastButton
-              />
-            </Box>
-          )}
-        </>
-      )}
+            {totalPages > 1 ? (
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage(1)}
+                >
+                  First
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  Previous
+                </Button>
+                <span className="px-3 text-sm text-muted-foreground">
+                  Page {page} of {totalPages}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  Next
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage(totalPages)}
+                >
+                  Last
+                </Button>
+              </div>
+            ) : null}
+          </>
+        )}
 
-      <Dialog
-        open={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 2 } }}
-      >
-        <DialogTitle>Delete blog post?</DialogTitle>
-        <DialogContent>
-          <Typography>
-            This will permanently delete &quot;{deleteTarget?.title}&quot;. This action cannot be undone.
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setDeleteTarget(null)}>Cancel</Button>
-          <Button variant="contained" color="error" onClick={handleDeleteConfirm}>
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+        <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Delete blog post?</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              This will permanently delete &quot;{deleteTarget?.title}&quot;. This action cannot be undone.
+            </p>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button type="button" variant="outline" onClick={() => setDeleteTarget(null)}>
+                Cancel
+              </Button>
+              <Button type="button" variant="destructive" onClick={handleDeleteConfirm}>
+                Delete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
   )
 }

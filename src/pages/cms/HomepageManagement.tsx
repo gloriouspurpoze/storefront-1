@@ -1,74 +1,80 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControl,
-  FormControlLabel,
-  IconButton,
-  InputLabel,
-  MenuItem as MuiMenuItem,
-  Select,
-  Stack,
-  Switch,
-  TextField,
-  Typography,
-  Divider,
-  alpha,
-  useTheme,
-  CircularProgress,
-  Tooltip,
-  Paper,
-  Tabs,
-  Tab,
-  Alert,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
-import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  ArrowBack as ArrowBackIcon,
-  Home as HomeIcon,
-  Visibility as VisibilityIcon,
-  VisibilityOff as VisibilityOffIcon,
-  FormatListNumbered as OrderIcon,
-  Edit as EditIcon,
-  DragIndicator as DragIndicatorIcon,
-  Preview as PreviewIcon,
-  ExpandMore as ExpandMoreIcon,
-  Image as ImageIcon,
-  TextFields as TextFieldsIcon,
-  Link as LinkIcon,
-} from '@mui/icons-material'
+  ArrowLeft,
+  Plus,
+  Trash2,
+  Home,
+  Eye,
+  EyeOff,
+  ListOrdered,
+  Pencil,
+  MonitorPlay,
+  Loader2,
+  Image as ImageIconLucide,
+  Type,
+  Link,
+  LayoutGrid,
+  Quote,
+  BarChart2,
+} from 'lucide-react'
 import { HomepageService, type HomepageSection, type CreateHomepageSectionRequest } from '../../services/api/homepage.service'
 import { ImageUploadField, type ImageFile } from '../../components/forms'
 import { PageHeader } from '../../components/common/PageHeader'
 import { ConfirmDialog, EmptyState } from '../../components/common'
 import { HomepageBlockLibraryAccordion } from '../../components/cms/HomepageBlockLibraryAccordion'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '../../components/ui/accordion'
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Separator,
+  Switch,
+  Textarea,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from '../../components/ui'
+import { cn } from '../../lib/utils'
 
-const SECTION_TYPES = [
-  { value: 'hero', label: 'Hero Banner', icon: HomeIcon, description: 'Main banner section with CTA' },
-  { value: 'features', label: 'Features Section', icon: TextFieldsIcon, description: 'Highlight key features' },
-  { value: 'services', label: 'Services Grid', icon: HomeIcon, description: 'Display services in grid' },
-  { value: 'testimonials', label: 'Testimonials', icon: TextFieldsIcon, description: 'Customer testimonials carousel' },
-  { value: 'statistics', label: 'Statistics', icon: TextFieldsIcon, description: 'Numbers and stats display' },
-  { value: 'cta', label: 'Call to Action', icon: LinkIcon, description: 'Prominent CTA section' },
-  { value: 'partners', label: 'Partners/Brands', icon: ImageIcon, description: 'Partner logos and brands' },
-  { value: 'howitworks', label: 'How It Works', icon: TextFieldsIcon, description: 'Step-by-step process' },
+type SectionTypeMeta = {
+  value: string
+  label: string
+  icon: React.ComponentType<{ className?: string }>
+  description: string
+}
+
+const SECTION_TYPES: SectionTypeMeta[] = [
+  { value: 'hero', label: 'Hero Banner', icon: Home, description: 'Main banner section with CTA' },
+  { value: 'features', label: 'Features Section', icon: Type, description: 'Highlight key features' },
+  { value: 'services', label: 'Services Grid', icon: LayoutGrid, description: 'Display services in grid' },
+  { value: 'testimonials', label: 'Testimonials', icon: Quote, description: 'Customer testimonials carousel' },
+  { value: 'statistics', label: 'Statistics', icon: BarChart2, description: 'Numbers and stats display' },
+  { value: 'cta', label: 'Call to Action', icon: Link, description: 'Prominent CTA section' },
+  { value: 'partners', label: 'Partners/Brands', icon: ImageIconLucide, description: 'Partner logos and brands' },
+  { value: 'howitworks', label: 'How It Works', icon: ListOrdered, description: 'Step-by-step process' },
 ]
 
 export default function HomepageManagement() {
-  const theme = useTheme()
   const navigate = useNavigate()
   const { id } = useParams<{ id?: string }>()
   const location = window.location.pathname
@@ -78,7 +84,6 @@ export default function HomepageManagement() {
   const [editingSection, setEditingSection] = useState<HomepageSection | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id?: string; name?: string }>({ open: false })
   const [previewSection, setPreviewSection] = useState<HomepageSection | null>(null)
-  const [tabValue, setTabValue] = useState(0)
   const [filterType, setFilterType] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
 
@@ -121,7 +126,7 @@ export default function HomepageManagement() {
       const response = await HomepageService.getHomepageSectionById(sectionId)
       const section = (response as any).section || response
       setEditingSection(section)
-      
+
       setFormData({
         sectionType: section.sectionType || 'hero',
         title: section.title || '',
@@ -193,7 +198,7 @@ export default function HomepageManagement() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!validateForm()) {
       return
     }
@@ -223,7 +228,7 @@ export default function HomepageManagement() {
 
   const handleDelete = async () => {
     if (!deleteConfirm.id) return
-    
+
     try {
       await HomepageService.deleteHomepageSection(deleteConfirm.id)
       await fetchSections()
@@ -267,549 +272,508 @@ export default function HomepageManagement() {
   }
 
   const filteredSections = useMemo(() => {
-    return sections.filter((section) => {
-      const matchesType = filterType === 'all' || section.sectionType === filterType
-      const matchesStatus = filterStatus === 'all' || 
-        (filterStatus === 'active' && section.isActive) ||
-        (filterStatus === 'inactive' && !section.isActive)
-      return matchesType && matchesStatus
-    }).sort((a, b) => (a.displayOrder || a.order || 0) - (b.displayOrder || b.order || 0))
+    return sections
+      .filter((section) => {
+        const matchesType = filterType === 'all' || section.sectionType === filterType
+        const matchesStatus =
+          filterStatus === 'all' ||
+          (filterStatus === 'active' && section.isActive) ||
+          (filterStatus === 'inactive' && !section.isActive)
+        return matchesType && matchesStatus
+      })
+      .sort((a, b) => (a.displayOrder || a.order || 0) - (b.displayOrder || b.order || 0))
   }, [sections, filterType, filterStatus])
 
   // Form View
   if (isFormPage) {
     return (
-      <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
+      <div className="p-4 sm:p-6 md:p-8">
         <PageHeader
           title={editingSection ? 'Edit Homepage Section' : 'Add Homepage Section'}
           subtitle={editingSection ? 'Update section details' : 'Create a new homepage section'}
           action={
             <Button
-              variant="outlined"
-              startIcon={<ArrowBackIcon />}
+              variant="outline"
               onClick={() => {
                 navigate('/cms/homepage')
                 resetForm()
               }}
+              leftIcon={<ArrowLeft className="h-4 w-4" />}
             >
               Back to List
             </Button>
           }
         />
 
-        <Card sx={{ mt: 3 }}>
-          <CardContent sx={{ p: 4 }}>
-            <form onSubmit={handleSubmit}>
-              <Grid container spacing={3}>
-                {/* Section Type */}
-                <Grid item xs={12}>
-                  <Divider sx={{ mb: 3 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                      Section Configuration
-                    </Typography>
-                  </Divider>
-                </Grid>
+        <Card className="mt-6">
+          <CardContent className="p-6 sm:p-8">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <Separator className="my-2" />
+                <h3 className="px-2 py-2 text-center text-lg font-semibold">Section Configuration</h3>
+                <Separator className="my-2" />
+              </div>
 
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth error={!!formErrors.sectionType} required>
-                    <InputLabel>Section Type</InputLabel>
-                    <Select
-                      value={formData.sectionType}
-                      label="Section Type"
-                      onChange={(e) => setFormData({ ...formData, sectionType: e.target.value as any })}
-                    >
-                      {SECTION_TYPES.map((type) => (
-                        <MuiMenuItem key={type.value} value={type.value}>
-                          <Stack direction="row" spacing={2} alignItems="center">
-                            <type.icon />
-                            <Box>
-                              <Typography variant="body1">{type.label}</Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {type.description}
-                              </Typography>
-                            </Box>
-                          </Stack>
-                        </MuiMenuItem>
-                      ))}
-                    </Select>
-                    {formErrors.sectionType && (
-                      <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
-                        {formErrors.sectionType}
-                      </Typography>
-                    )}
-                  </FormControl>
-                </Grid>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>
+                    Section Type <span className="text-destructive">*</span>
+                  </Label>
+                  <Select
+                    value={formData.sectionType}
+                    onValueChange={(v) => setFormData({ ...formData, sectionType: v as any })}
+                  >
+                    <SelectTrigger className={cn(formErrors.sectionType && 'border-destructive')}>
+                      <SelectValue placeholder="Choose type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SECTION_TYPES.map((type) => {
+                        const Icon = type.icon
+                        return (
+                          <SelectItem key={type.value} value={type.value} textValue={type.label}>
+                            <div className="flex items-start gap-3 py-1">
+                              <Icon className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                              <div>
+                                <div className="font-medium">{type.label}</div>
+                                <div className="text-xs text-muted-foreground">{type.description}</div>
+                              </div>
+                            </div>
+                          </SelectItem>
+                        )
+                      })}
+                    </SelectContent>
+                  </Select>
+                  {formErrors.sectionType && (
+                    <p className="text-xs text-destructive">{formErrors.sectionType}</p>
+                  )}
+                </div>
 
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
+                <div className="space-y-2">
+                  <Label htmlFor="displayOrder">Display Order</Label>
+                  <Input
+                    id="displayOrder"
                     type="number"
-                    label="Display Order"
+                    min={0}
                     value={formData.displayOrder}
                     onChange={(e) => setFormData({ ...formData, displayOrder: Number(e.target.value) })}
-                    inputProps={{ min: 0 }}
-                    helperText="Lower numbers appear first"
                   />
-                </Grid>
+                  <p className="text-xs text-muted-foreground">Lower numbers appear first</p>
+                </div>
+              </div>
 
-                {/* Content */}
-                <Grid item xs={12}>
-                  <Divider sx={{ my: 3 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                      Content
-                    </Typography>
-                  </Divider>
-                </Grid>
+              <div>
+                <Separator className="my-2" />
+                <h3 className="px-2 py-2 text-center text-lg font-semibold">Content</h3>
+                <Separator className="my-2" />
+              </div>
 
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Title"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="Welcome to Our Service"
-                    required
-                    error={!!formErrors.title}
-                    helperText={formErrors.title}
-                  />
-                </Grid>
+              <div className="space-y-2">
+                <Label htmlFor="title">
+                  Title <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="Welcome to Our Service"
+                  className={cn(formErrors.title && 'border-destructive')}
+                />
+                {formErrors.title && <p className="text-xs text-destructive">{formErrors.title}</p>}
+              </div>
 
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Subtitle"
-                    value={formData.subtitle || ''}
-                    onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
-                    placeholder="Your trusted home service partner"
-                  />
-                </Grid>
+              <div className="space-y-2">
+                <Label htmlFor="subtitle">Subtitle</Label>
+                <Input
+                  id="subtitle"
+                  value={formData.subtitle || ''}
+                  onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
+                  placeholder="Your trusted home service partner"
+                />
+              </div>
 
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Description"
-                    multiline
-                    rows={4}
-                    value={formData.description || formData.content?.description || ''}
-                    onChange={(e) => setFormData({
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  rows={4}
+                  value={formData.description || formData.content?.description || ''}
+                  onChange={(e) =>
+                    setFormData({
                       ...formData,
                       description: e.target.value,
                       content: { ...formData.content, description: e.target.value },
-                    })}
-                    placeholder="Detailed description of the section"
-                  />
-                </Grid>
+                    })
+                  }
+                  placeholder="Detailed description of the section"
+                />
+              </div>
 
-                {/* CTA */}
-                <Grid item xs={12}>
-                  <Accordion>
-                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                      <Stack direction="row" spacing={2} alignItems="center">
-                        <LinkIcon />
-                        <Typography variant="h6">Call to Action</Typography>
-                      </Stack>
-                    </AccordionSummary>
-                    <AccordionDetails>
-                      <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6}>
-                          <TextField
-                            fullWidth
-                            label="CTA Button Text"
-                            value={formData.content?.cta?.text || ''}
-                            onChange={(e) => setFormData({
+              <Accordion type="single" collapsible className="rounded-md border px-4">
+                <AccordionItem value="cta" className="border-0">
+                  <AccordionTrigger className="hover:no-underline">
+                    <span className="flex items-center gap-2 text-base font-semibold">
+                      <Link className="h-5 w-5" />
+                      Call to Action
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="ctaText">CTA Button Text</Label>
+                        <Input
+                          id="ctaText"
+                          value={formData.content?.cta?.text || ''}
+                          onChange={(e) =>
+                            setFormData({
                               ...formData,
                               content: {
                                 ...formData.content,
                                 cta: { ...formData.content?.cta, text: e.target.value } as any,
                               },
-                            })}
-                            placeholder="Get Started"
-                          />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                          <TextField
-                            fullWidth
-                            label="CTA Link"
-                            value={formData.content?.cta?.link || ''}
-                            onChange={(e) => setFormData({
+                            })
+                          }
+                          placeholder="Get Started"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="ctaLink">CTA Link</Label>
+                        <Input
+                          id="ctaLink"
+                          value={formData.content?.cta?.link || ''}
+                          onChange={(e) =>
+                            setFormData({
                               ...formData,
                               content: {
                                 ...formData.content,
                                 cta: { ...formData.content?.cta, link: e.target.value } as any,
                               },
-                            })}
-                            placeholder="/services"
-                          />
-                        </Grid>
-                        <Grid item xs={12}>
-                          <FormControl fullWidth>
-                            <InputLabel>CTA Style</InputLabel>
-                            <Select
-                              value={formData.content?.cta?.style || 'primary'}
-                              label="CTA Style"
-                              onChange={(e) => setFormData({
-                                ...formData,
-                                content: {
-                                  ...formData.content,
-                                  cta: { ...formData.content?.cta, style: e.target.value } as any,
-                                },
-                              })}
-                            >
-                              <MuiMenuItem value="primary">Primary</MuiMenuItem>
-                              <MuiMenuItem value="secondary">Secondary</MuiMenuItem>
-                              <MuiMenuItem value="outline">Outline</MuiMenuItem>
-                            </Select>
-                          </FormControl>
-                        </Grid>
-                      </Grid>
-                    </AccordionDetails>
-                  </Accordion>
-                </Grid>
+                            })
+                          }
+                          placeholder="/services"
+                        />
+                      </div>
+                      <div className="space-y-2 sm:col-span-2">
+                        <Label>CTA Style</Label>
+                        <Select
+                          value={formData.content?.cta?.style || 'primary'}
+                          onValueChange={(v) =>
+                            setFormData({
+                              ...formData,
+                              content: {
+                                ...formData.content,
+                                cta: { ...formData.content?.cta, style: v } as any,
+                              },
+                            })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="primary">Primary</SelectItem>
+                            <SelectItem value="secondary">Secondary</SelectItem>
+                            <SelectItem value="outline">Outline</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
 
-                {/* Media */}
-                <Grid item xs={12}>
-                  <Divider sx={{ my: 3 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                      Media
-                    </Typography>
-                  </Divider>
-                </Grid>
+              <div>
+                <Separator className="my-2" />
+                <h3 className="px-2 py-2 text-center text-lg font-semibold">Media</h3>
+                <Separator className="my-2" />
+              </div>
 
-                <Grid item xs={12}>
-                  <ImageUploadField
-                    label="Background Image"
-                    value={backgroundImages}
-                    onChange={(images) => {
-                      setBackgroundImages(images)
-                      setFormData({
-                        ...formData,
-                        content: {
-                          ...formData.content,
-                          backgroundImage: images[0]?.url || '',
-                        },
-                      })
-                    }}
-                    maxFiles={1}
-                    maxSize={5}
-                    helperText="Upload background image (Recommended: 1920x1080px, Max 5MB)"
-                    showPreview
-                    allowPrimary={false}
-                  />
-                </Grid>
+              <ImageUploadField
+                label="Background Image"
+                value={backgroundImages}
+                onChange={(images) => {
+                  setBackgroundImages(images)
+                  setFormData({
+                    ...formData,
+                    content: {
+                      ...formData.content,
+                      backgroundImage: images[0]?.url || '',
+                    },
+                  })
+                }}
+                maxFiles={1}
+                maxSize={5}
+                helperText="Upload background image (Recommended: 1920x1080px, Max 5MB)"
+                showPreview
+                allowPrimary={false}
+              />
 
-                {/* Settings */}
-                <Grid item xs={12}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={formData.isActive}
-                        onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                      />
-                    }
-                    label="Active"
-                  />
-                </Grid>
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={formData.isActive}
+                  onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+                />
+                <Label>Active</Label>
+              </div>
 
-                {/* Actions */}
-                <Grid item xs={12}>
-                  <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mt: 3 }}>
-                    <Button
-                      variant="outlined"
-                      onClick={() => {
-                        navigate('/cms/homepage')
-                        resetForm()
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button type="submit" variant="contained">
-                      {editingSection ? 'Update' : 'Create'} Section
-                    </Button>
-                  </Stack>
-                </Grid>
-              </Grid>
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    navigate('/cms/homepage')
+                    resetForm()
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">{editingSection ? 'Update' : 'Create'} Section</Button>
+              </div>
             </form>
           </CardContent>
         </Card>
-      </Box>
+      </div>
     )
   }
 
   // List View
   return (
-    <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
-      <PageHeader
-        title="Homepage Management"
-        subtitle="Manage homepage sections and layout"
-        action={
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => navigate('/cms/homepage/new')}
-          >
-            Add Section
-          </Button>
-        }
-      />
-
-      {/* Filters */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={4}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Section Type</InputLabel>
-              <Select
-                value={filterType}
-                label="Section Type"
-                onChange={(e) => setFilterType(e.target.value)}
-              >
-                <MuiMenuItem value="all">All Types</MuiMenuItem>
-                {SECTION_TYPES.map((type) => (
-                  <MuiMenuItem key={type.value} value={type.value}>
-                    {type.label}
-                  </MuiMenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={filterStatus}
-                label="Status"
-                onChange={(e) => setFilterStatus(e.target.value)}
-              >
-                <MuiMenuItem value="all">All Status</MuiMenuItem>
-                <MuiMenuItem value="active">Active</MuiMenuItem>
-                <MuiMenuItem value="inactive">Inactive</MuiMenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={fetchSections}
-            >
-              Refresh
+    <TooltipProvider>
+      <div className="p-4 sm:p-6 md:p-8">
+        <PageHeader
+          title="Homepage Management"
+          subtitle="Manage homepage sections and layout"
+          action={
+            <Button onClick={() => navigate('/cms/homepage/new')} leftIcon={<Plus className="h-4 w-4" />}>
+              Add Section
             </Button>
-          </Grid>
-        </Grid>
-      </Paper>
-
-      <HomepageBlockLibraryAccordion />
-
-      {loading ? (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress />
-        </Box>
-      ) : filteredSections.length === 0 ? (
-        <EmptyState
-          title="No sections found"
-          description={
-            filterType !== 'all' || filterStatus !== 'all'
-              ? 'Try adjusting your filters'
-              : 'Add your first homepage section to get started'
           }
-          action={{
-            label: 'Add Section',
-            onClick: () => navigate('/cms/homepage/new'),
-          }}
         />
-      ) : (
-        <Grid container spacing={3}>
-          {filteredSections.map((section) => {
-            const SectionIcon = SECTION_TYPES.find(t => t.value === section.sectionType)?.icon || HomeIcon
-            return (
-              <Grid item xs={12} key={section._id || section.id}>
+
+        <Card className="mb-6 p-4">
+          <div className="grid grid-cols-1 items-end gap-4 md:grid-cols-12">
+            <div className="md:col-span-4 space-y-2">
+              <Label>Section Type</Label>
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  {SECTION_TYPES.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="md:col-span-4 space-y-2">
+              <Label>Status</Label>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="md:col-span-4">
+              <Button type="button" variant="outline" className="w-full" onClick={fetchSections}>
+                Refresh
+              </Button>
+            </div>
+          </div>
+        </Card>
+
+        <HomepageBlockLibraryAccordion />
+
+        {loading ? (
+          <div className="flex min-h-[400px] items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : filteredSections.length === 0 ? (
+          <EmptyState
+            title="No sections found"
+            description={
+              filterType !== 'all' || filterStatus !== 'all'
+                ? 'Try adjusting your filters'
+                : 'Add your first homepage section to get started'
+            }
+            action={{
+              label: 'Add Section',
+              onClick: () => navigate('/cms/homepage/new'),
+            }}
+          />
+        ) : (
+          <div className="grid grid-cols-1 gap-6">
+            {filteredSections.map((section) => {
+              const SectionIcon =
+                SECTION_TYPES.find((t) => t.value === section.sectionType)?.icon || Home
+              return (
                 <Card
-                  sx={{
-                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      boxShadow: theme.shadows[8],
-                      transform: 'translateY(-2px)',
-                    },
-                  }}
+                  key={section._id || section.id}
+                  className="border-border/80 transition-all hover:-translate-y-0.5 hover:shadow-md"
                 >
-                  <CardContent>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                      <Box sx={{ flex: 1 }}>
-                        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }} flexWrap="wrap">
-                          <SectionIcon sx={{ color: theme.palette.primary.main }} />
-                          <Chip
-                            label={SECTION_TYPES.find(t => t.value === section.sectionType)?.label || section.sectionType}
-                            color="primary"
-                            size="small"
-                            sx={{ textTransform: 'capitalize', fontWeight: 600 }}
-                          />
-                          <Chip
-                            icon={<OrderIcon />}
-                            label={`Order: ${section.displayOrder || section.order || 0}`}
-                            size="small"
-                            variant="outlined"
-                          />
-                          <Chip
-                            label={section.isActive ? 'Active' : 'Inactive'}
-                            color={section.isActive ? 'success' : 'default'}
-                            size="small"
-                          />
-                        </Stack>
-                        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                          {section.title}
-                        </Typography>
+                  <CardContent className="p-6">
+                    <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <SectionIcon className="h-5 w-5 shrink-0 text-primary" />
+                          <Badge variant="default">
+                            {SECTION_TYPES.find((t) => t.value === section.sectionType)?.label ||
+                              section.sectionType}
+                          </Badge>
+                          <Badge variant="outline" className="gap-1 capitalize">
+                            <ListOrdered className="h-3 w-3" />
+                            Order: {section.displayOrder || section.order || 0}
+                          </Badge>
+                          <Badge variant={section.isActive ? 'success' : 'secondary'}>
+                            {section.isActive ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </div>
+                        <h3 className="text-lg font-semibold">{section.title}</h3>
                         {section.subtitle && (
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                            {section.subtitle}
-                          </Typography>
+                          <p className="text-sm text-muted-foreground">{section.subtitle}</p>
                         )}
                         {(section.description || section.content?.description) && (
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          <p className="text-sm text-muted-foreground">
                             {section.description || section.content?.description}
-                          </Typography>
+                          </p>
                         )}
-                      </Box>
+                      </div>
 
-                      <Stack direction="row" spacing={1}>
-                        <Tooltip title="Preview">
-                          <IconButton
-                            size="small"
-                            onClick={() => setPreviewSection(section)}
-                            sx={{
-                              bgcolor: alpha(theme.palette.info.main, 0.1),
-                              '&:hover': { bgcolor: alpha(theme.palette.info.main, 0.2) },
-                            }}
-                          >
-                            <PreviewIcon />
-                          </IconButton>
+                      <div className="flex shrink-0 flex-wrap gap-1 sm:justify-end">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="bg-sky-500/10 text-sky-700 hover:bg-sky-500/20"
+                              onClick={() => setPreviewSection(section)}
+                            >
+                              <MonitorPlay className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Preview</TooltipContent>
                         </Tooltip>
-                        <Tooltip title="Edit">
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={() => navigate(`/cms/homepage/${section._id || section.id}`)}
-                            sx={{
-                              bgcolor: alpha(theme.palette.primary.main, 0.1),
-                              '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.2) },
-                            }}
-                          >
-                            <EditIcon />
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="bg-primary/10 text-primary hover:bg-primary/20"
+                              onClick={() => navigate(`/cms/homepage/${section._id || section.id}`)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit</TooltipContent>
                         </Tooltip>
-                        <Tooltip title={section.isActive ? 'Deactivate' : 'Activate'}>
-                          <IconButton
-                            size="small"
-                            color={section.isActive ? 'default' : 'success'}
-                            onClick={() => toggleActive(section)}
-                            sx={{
-                              bgcolor: alpha(
-                                section.isActive ? theme.palette.grey[500] : theme.palette.success.main,
-                                0.1
-                              ),
-                              '&:hover': {
-                                bgcolor: alpha(
-                                  section.isActive ? theme.palette.grey[500] : theme.palette.success.main,
-                                  0.2
-                                ),
-                              },
-                            }}
-                          >
-                            {section.isActive ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className={
+                                section.isActive
+                                  ? 'bg-muted/80 hover:bg-muted'
+                                  : 'bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20'
+                              }
+                              onClick={() => toggleActive(section)}
+                            >
+                              {section.isActive ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>{section.isActive ? 'Deactivate' : 'Activate'}</TooltipContent>
                         </Tooltip>
-                        <Tooltip title="Delete">
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => setDeleteConfirm({
-                              open: true,
-                              id: section._id || section.id,
-                              name: section.title,
-                            })}
-                            sx={{
-                              bgcolor: alpha(theme.palette.error.main, 0.1),
-                              '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.2) },
-                            }}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="bg-destructive/10 text-destructive hover:bg-destructive/20"
+                              onClick={() =>
+                                setDeleteConfirm({
+                                  open: true,
+                                  id: section._id || section.id,
+                                  name: section.title,
+                                })
+                              }
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Delete</TooltipContent>
                         </Tooltip>
-                      </Stack>
-                    </Box>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
-              </Grid>
-            )
-          })}
-        </Grid>
-      )}
+              )
+            })}
+          </div>
+        )}
 
-      {/* Preview Dialog */}
-      <Dialog
-        open={!!previewSection}
-        onClose={() => setPreviewSection(null)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          <Stack direction="row" spacing={2} alignItems="center">
-            <PreviewIcon />
-            <Typography variant="h6">Section Preview</Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent>
-          {previewSection && (
-            <Box>
-              <Typography variant="h5" gutterBottom>
-                {previewSection.title}
-              </Typography>
-              {previewSection.subtitle && (
-                <Typography variant="h6" color="text.secondary" gutterBottom>
-                  {previewSection.subtitle}
-                </Typography>
-              )}
-              {(previewSection.description || previewSection.content?.description) && (
-                <Typography variant="body1" sx={{ mt: 2, mb: 2 }}>
-                  {previewSection.description || previewSection.content?.description}
-                </Typography>
-              )}
-              {previewSection.content?.backgroundImage && (
-                <Box sx={{ mt: 2, mb: 2 }}>
+        <Dialog open={!!previewSection} onOpenChange={(open) => !open && setPreviewSection(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <MonitorPlay className="h-5 w-5" />
+                Section Preview
+              </DialogTitle>
+            </DialogHeader>
+            {previewSection && (
+              <div className="space-y-4 pt-2">
+                <h4 className="text-xl font-semibold">{previewSection.title}</h4>
+                {previewSection.subtitle && (
+                  <p className="text-muted-foreground">{previewSection.subtitle}</p>
+                )}
+                {(previewSection.description || previewSection.content?.description) && (
+                  <p className="text-sm leading-relaxed">
+                    {previewSection.description || previewSection.content?.description}
+                  </p>
+                )}
+                {previewSection.content?.backgroundImage && (
                   <img
                     src={previewSection.content.backgroundImage}
                     alt={previewSection.title}
-                    style={{ width: '100%', borderRadius: 8 }}
+                    className="w-full rounded-lg border object-cover"
                   />
-                </Box>
-              )}
-              {previewSection.content?.cta?.text && (
-                <Button
-                  variant="contained"
-                  href={previewSection.content.cta.link}
-                  sx={{ mt: 2 }}
-                >
-                  {previewSection.content.cta.text}
-                </Button>
-              )}
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setPreviewSection(null)}>Close</Button>
-        </DialogActions>
-      </Dialog>
+                )}
+                {previewSection.content?.cta?.text && (
+                  <Button asChild className="mt-2">
+                    <a href={previewSection.content.cta.link || '#'}>
+                      {previewSection.content.cta.text}
+                    </a>
+                  </Button>
+                )}
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPreviewSection(null)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-      {/* Delete Confirmation */}
-      <ConfirmDialog
-        open={deleteConfirm.open}
-        onCancel={() => setDeleteConfirm({ open: false })}
-        onConfirm={() => {
-          void handleDelete()
-        }}
-        title="Delete Homepage Section?"
-        message={`Are you sure you want to delete "${deleteConfirm.name}"? This action cannot be undone.`}
-      />
-    </Box>
+        <ConfirmDialog
+          open={deleteConfirm.open}
+          onCancel={() => setDeleteConfirm({ open: false })}
+          onConfirm={() => {
+            void handleDelete()
+          }}
+          title="Delete Homepage Section?"
+          message={`Are you sure you want to delete "${deleteConfirm.name}"? This action cannot be undone.`}
+        />
+      </div>
+    </TooltipProvider>
   )
 }

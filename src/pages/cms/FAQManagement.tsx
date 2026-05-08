@@ -1,76 +1,78 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'
 import {
-  Box,
+  Plus,
+  Pencil,
+  Trash2,
+  HelpCircle,
+  Search,
+  TrendingUp,
+  CheckCircle2,
+  ThumbsUp,
+  ThumbsDown,
+  Loader2,
+} from 'lucide-react'
+import { CMSService } from '../../services/api'
+import { PageHeader } from '../../components/common/PageHeader'
+import { appToast } from '../../lib/appToast'
+import { useAppConfirm } from '../../components/providers/AppDialogsProvider'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '../../components/ui/accordion'
+import {
+  Badge,
   Button,
   Card,
   CardContent,
-  Chip,
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  FormControlLabel,
-  IconButton,
-  MenuItem,
-  Paper,
+  Input,
+  Label,
   Select,
-  Stack,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Separator,
   Switch,
-  TextField,
-  Typography,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Divider,
-  alpha,
-  useTheme,
-  CircularProgress,
-  Tooltip,
-  InputAdornment,
-} from '@mui/material';
-import Grid from '@mui/material/GridLegacy'
+  Textarea,
+} from '../../components/ui'
 import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  HelpOutline as HelpIcon,
-  ExpandMore as ExpandMoreIcon,
-  Search as SearchIcon,
-  TrendingUp as TrendingUpIcon,
-  CheckCircle as ActiveIcon,
-  ThumbUp as ThumbUpIcon,
-  ThumbDown as ThumbDownIcon,
-} from '@mui/icons-material';
-import { CMSService } from '../../services/api';
-import { PageHeader } from '../../components/common/PageHeader';
-import { appToast } from '../../lib/appToast';
-import { useAppConfirm } from '../../components/providers/AppDialogsProvider';
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../../components/ui/tooltip'
 
 interface FAQ {
-  _id: string;
-  question: string;
-  answer: string;
-  category: string;
-  order: number;
-  isActive: boolean;
-  views: number;
-  helpfulCount: number;
-  notHelpfulCount: number;
-  createdAt: string;
-  updatedAt: string;
+  _id: string
+  question: string
+  answer: string
+  category: string
+  order: number
+  isActive: boolean
+  views: number
+  helpfulCount: number
+  notHelpfulCount: number
+  createdAt: string
+  updatedAt: string
 }
 
 export default function FAQManagement() {
-  const theme = useTheme();
-  const confirm = useAppConfirm();
-  const [faqs, setFaqs] = useState<FAQ[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editingFAQ, setEditingFAQ] = useState<FAQ | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [expandedFAQ, setExpandedFAQ] = useState<string | null>(null);
+  const confirm = useAppConfirm()
+  const [faqs, setFaqs] = useState<FAQ[]>([])
+  const [categories, setCategories] = useState<string[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [editingFAQ, setEditingFAQ] = useState<FAQ | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [expandedFAQ, setExpandedFAQ] = useState<string>('')
 
   const [formData, setFormData] = useState({
     question: '',
@@ -78,69 +80,69 @@ export default function FAQManagement() {
     category: '',
     order: 0,
     isActive: true,
-  });
+  })
 
   useEffect(() => {
-    fetchFAQs();
-    fetchCategories();
-  }, [selectedCategory, searchQuery]);
+    fetchFAQs()
+    fetchCategories()
+  }, [selectedCategory, searchQuery])
 
   const fetchFAQs = async () => {
     try {
-      setLoading(true);
-      const params: any = {};
+      setLoading(true)
+      const params: Record<string, string> = {}
       if (selectedCategory && selectedCategory !== 'all') {
-        params.category = selectedCategory;
+        params.category = selectedCategory
       }
       if (searchQuery) {
-        params.search = searchQuery;
+        params.search = searchQuery
       }
 
-      const data = await CMSService.getFAQs(params);
-      setFaqs(data.faqs || []);
+      const data = await CMSService.getFAQs(params)
+      setFaqs(data.faqs || [])
     } catch (error: any) {
-      console.error('Error fetching FAQs:', error);
-      appToast('Error: ' + (error.response?.data?.error || 'Failed to load FAQs'), 'error');
+      console.error('Error fetching FAQs:', error)
+      appToast('Error: ' + (error.response?.data?.error || 'Failed to load FAQs'), 'error')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const fetchCategories = async () => {
     try {
-      const cats = await CMSService.getFAQCategories();
-      setCategories(cats || []);
+      const cats = await CMSService.getFAQCategories()
+      setCategories(cats || [])
     } catch (error) {
-      console.error('Error fetching categories:', error);
+      console.error('Error fetching categories:', error)
     }
-  };
+  }
 
   const handleSubmit = async () => {
     try {
       if (!formData.question.trim() || !formData.answer.trim() || !formData.category.trim()) {
-        appToast('Please fill in all required fields', 'warning');
-        return;
+        appToast('Please fill in all required fields', 'warning')
+        return
       }
 
       const payload = {
         ...formData,
         order: Number(formData.order),
-      };
-
-      if (editingFAQ) {
-        await CMSService.updateFAQ(editingFAQ._id, payload);
-      } else {
-        await CMSService.createFAQ(payload);
       }
 
-      fetchFAQs();
-      fetchCategories();
-      handleCloseForm();
+      if (editingFAQ) {
+        await CMSService.updateFAQ(editingFAQ._id, payload)
+      } else {
+        await CMSService.createFAQ(payload)
+      }
+
+      fetchFAQs()
+      fetchCategories()
+      handleCloseForm()
     } catch (error: any) {
-      console.error('Error saving FAQ:', error);
-      appToast('Error: ' + (error.response?.data?.error || 'Failed to save FAQ'), 'error');
+      console.error('Error saving FAQ:', error)
+      appToast('Error: ' + (error.response?.data?.error || 'Failed to save FAQ'), 'error')
     }
-  };
+  }
 
   const handleDelete = async (id: string) => {
     const ok = await confirm({
@@ -148,397 +150,342 @@ export default function FAQManagement() {
       message: 'Are you sure you want to delete this FAQ?',
       danger: true,
       confirmLabel: 'Delete',
-    });
-    if (!ok) return;
+    })
+    if (!ok) return
     try {
-      await CMSService.deleteFAQ(id);
-      fetchFAQs();
+      await CMSService.deleteFAQ(id)
+      fetchFAQs()
     } catch (error: any) {
-      console.error('Error deleting FAQ:', error);
-      appToast('Error: ' + (error.response?.data?.error || 'Failed to delete FAQ'), 'error');
+      console.error('Error deleting FAQ:', error)
+      appToast('Error: ' + (error.response?.data?.error || 'Failed to delete FAQ'), 'error')
     }
-  };
+  }
 
   const handleEdit = (faq: FAQ) => {
-    setEditingFAQ(faq);
+    setEditingFAQ(faq)
     setFormData({
       question: faq.question,
       answer: faq.answer,
       category: faq.category,
       order: faq.order,
       isActive: faq.isActive,
-    });
-    setShowForm(true);
-  };
+    })
+    setShowForm(true)
+  }
 
   const handleCloseForm = () => {
-    setShowForm(false);
-    setEditingFAQ(null);
+    setShowForm(false)
+    setEditingFAQ(null)
     setFormData({
       question: '',
       answer: '',
       category: '',
       order: 0,
       isActive: true,
-    });
-  };
+    })
+  }
 
   const handleToggleActive = async (faq: FAQ) => {
     try {
       await CMSService.updateFAQ(faq._id, {
         isActive: !faq.isActive,
-      });
-      fetchFAQs();
+      })
+      fetchFAQs()
     } catch (error: any) {
-      console.error('Error updating FAQ:', error);
-      appToast('Error: ' + (error.response?.data?.error || 'Failed to update FAQ'), 'error');
+      console.error('Error updating FAQ:', error)
+      appToast('Error: ' + (error.response?.data?.error || 'Failed to update FAQ'), 'error')
     }
-  };
+  }
 
   return (
-    <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
-      <PageHeader
-        title="FAQ Management"
-        subtitle="Manage frequently asked questions"
-        action={
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setShowForm(true)}
-            sx={{ borderRadius: 2 }}
-          >
-            Add FAQ
-          </Button>
-        }
-      />
-
-      {/* Filters and Search */}
-      <Card sx={{ mb: 3, borderRadius: 2 }}>
-        <CardContent>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={6} md={4}>
-              <TextField
-                fullWidth
-                placeholder="Search FAQs..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon sx={{ color: 'text.secondary' }} />
-                    </InputAdornment>
-                  ),
-                }}
-                size="small"
-                sx={{ borderRadius: 2 }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={4}>
-              <Select
-                fullWidth
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                size="small"
-                sx={{ borderRadius: 2 }}
-              >
-                <MenuItem value="all">All Categories</MenuItem>
-                {categories.map((cat) => (
-                  <MenuItem key={cat} value={cat}>
-                    {cat}
-                  </MenuItem>
-                ))}
-              </Select>
-            </Grid>
-            <Grid item xs={12} sm={12} md={4}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1 }}>
-                <HelpIcon sx={{ color: 'text.secondary' }} />
-                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                  {faqs.length} FAQ{faqs.length !== 1 ? 's' : ''}
-                </Typography>
-              </Box>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
-
-      {loading ? (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress />
-        </Box>
-      ) : faqs.length === 0 ? (
-        <Card>
-          <CardContent sx={{ textAlign: 'center', py: 8 }}>
-            <HelpIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              No FAQs found
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              {searchQuery || selectedCategory !== 'all'
-                ? 'Try adjusting your filters'
-                : 'Add your first FAQ to help customers'}
-            </Typography>
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => setShowForm(true)}>
+    <TooltipProvider delayDuration={300}>
+      <div className="p-4 sm:p-6 md:p-8">
+        <PageHeader
+          title="FAQ Management"
+          subtitle="Manage frequently asked questions"
+          action={
+            <Button type="button" onClick={() => setShowForm(true)}>
+              <Plus className="mr-2 h-4 w-4" />
               Add FAQ
             </Button>
+          }
+        />
+
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 items-end gap-4 md:grid-cols-12">
+              <div className="relative md:col-span-4">
+                <Label htmlFor="faq-search" className="sr-only">
+                  Search
+                </Label>
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="faq-search"
+                  className="pl-9"
+                  placeholder="Search FAQs..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2 md:col-span-4">
+                <Label htmlFor="faq-category" className="sr-only">
+                  Category
+                </Label>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger id="faq-category">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center justify-end gap-2 md:col-span-4">
+                <HelpCircle className="h-4 w-4 text-muted-foreground" aria-hidden />
+                <p className="text-sm font-semibold text-muted-foreground">
+                  {faqs.length} FAQ{faqs.length !== 1 ? 's' : ''}
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
-      ) : (
-        <Stack spacing={2}>
-          {faqs.map((faq, index) => (
-            <Accordion
-              key={faq._id}
-              expanded={expandedFAQ === faq._id}
-              onChange={() => setExpandedFAQ(expandedFAQ === faq._id ? null : faq._id)}
-              sx={{
-                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                borderRadius: 2,
-                '&:before': { display: 'none' },
-                boxShadow: theme.shadows[2],
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  boxShadow: theme.shadows[4],
-                },
-                '&.Mui-expanded': {
-                  boxShadow: theme.shadows[6],
-                },
-              }}
-            >
-              <AccordionSummary
-                expandIcon={<ExpandMoreIcon />}
-                sx={{
-                  '& .MuiAccordionSummary-content': {
-                    my: 2,
-                  },
-                }}
-              >
-                <Box display="flex" alignItems="center" gap={2} width="100%">
-                  <Box
-                    sx={{
-                      minWidth: 40,
-                      height: 40,
-                      borderRadius: 2,
-                      bgcolor: theme.palette.primary.main,
-                      color: 'white',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: 700,
-                      fontSize: '1rem',
-                    }}
-                  >
-                    {index + 1}
-                  </Box>
-                  <Box flexGrow={1}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-                      {faq.question}
-                    </Typography>
-                    <Stack direction="row" spacing={1} flexWrap="wrap">
-                      <Chip
-                        label={faq.category}
-                        size="small"
-                        variant="outlined"
-                        sx={{ fontWeight: 500 }}
-                      />
-                      <Chip
-                        label={faq.isActive ? 'Active' : 'Inactive'}
-                        size="small"
-                        color={faq.isActive ? 'success' : 'default'}
-                        icon={faq.isActive ? <ActiveIcon /> : undefined}
-                        sx={{ fontWeight: 600 }}
-                      />
-                      {faq.views > 0 && (
-                        <Tooltip title="Total views">
-                          <Chip
-                            icon={<TrendingUpIcon />}
-                            label={`${faq.views} views`}
-                            size="small"
-                            variant="outlined"
-                            sx={{ fontWeight: 500 }}
-                          />
-                        </Tooltip>
-                      )}
-                    </Stack>
-                  </Box>
-                  <Stack
-                    direction="row"
-                    spacing={0.5}
-                    onClick={(e) => e.stopPropagation()}
-                    sx={{ ml: 2 }}
-                  >
-                    <Tooltip title={faq.isActive ? 'Deactivate' : 'Activate'}>
-                      <IconButton
-                        size="small"
-                        color={faq.isActive ? 'success' : 'default'}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleActive(faq);
-                        }}
-                        sx={{
-                          bgcolor: alpha(
-                            faq.isActive ? theme.palette.success.main : theme.palette.grey[500],
-                            0.1
-                          ),
-                          '&:hover': {
-                            bgcolor: alpha(
-                              faq.isActive ? theme.palette.success.main : theme.palette.grey[500],
-                              0.2
-                            ),
-                          },
-                        }}
-                      >
-                        <ActiveIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Edit">
-                      <IconButton
-                        size="small"
-                        color="primary"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEdit(faq);
-                        }}
-                        sx={{
-                          bgcolor: alpha(theme.palette.primary.main, 0.1),
-                          '&:hover': {
-                            bgcolor: alpha(theme.palette.primary.main, 0.2),
-                          },
-                        }}
-                      >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete">
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(faq._id);
-                        }}
-                        sx={{
-                          bgcolor: alpha(theme.palette.error.main, 0.1),
-                          '&:hover': {
-                            bgcolor: alpha(theme.palette.error.main, 0.2),
-                          },
-                        }}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </Stack>
-                </Box>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Divider sx={{ mb: 2 }} />
-                <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>
-                  {faq.answer}
-                </Typography>
-                {(faq.helpfulCount > 0 || faq.notHelpfulCount > 0) && (
-                  <Box
-                    mt={2}
-                    p={2}
-                    sx={{
-                      bgcolor: alpha(theme.palette.primary.main, 0.05),
-                      borderRadius: 2,
-                      border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
-                    }}
-                  >
-                    <Stack direction="row" spacing={2} alignItems="center">
-                      <Tooltip title="Helpful">
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <ThumbUpIcon sx={{ fontSize: 18, color: theme.palette.success.main }} />
-                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                            {faq.helpfulCount}
-                          </Typography>
-                        </Box>
-                      </Tooltip>
-                      <Tooltip title="Not Helpful">
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <ThumbDownIcon sx={{ fontSize: 18, color: theme.palette.error.main }} />
-                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                            {faq.notHelpfulCount}
-                          </Typography>
-                        </Box>
-                      </Tooltip>
-                    </Stack>
-                  </Box>
-                )}
-              </AccordionDetails>
-            </Accordion>
-          ))}
-        </Stack>
-      )}
 
-      {/* Form Dialog */}
-      <Dialog
-        open={showForm}
-        onClose={handleCloseForm}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          sx: { borderRadius: 2 }
-        }}
-      >
-        <DialogTitle sx={{ pb: 2 }}>
-          <Typography variant="h5" sx={{ fontWeight: 600 }}>
-            {editingFAQ ? 'Edit FAQ' : 'Add New FAQ'}
-          </Typography>
-        </DialogTitle>
-        <DialogContent dividers>
-          <Stack spacing={3} sx={{ mt: 1 }}>
-            <TextField
-              label="Question"
-              value={formData.question}
-              onChange={(e) => setFormData({ ...formData, question: e.target.value })}
-              required
-              fullWidth
-              placeholder="What would you like to know?"
-            />
-            <TextField
-              label="Answer"
-              value={formData.answer}
-              onChange={(e) => setFormData({ ...formData, answer: e.target.value })}
-              multiline
-              rows={6}
-              required
-              fullWidth
-              placeholder="Provide a detailed answer..."
-            />
-            <TextField
-              label="Category"
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              required
-              fullWidth
-              placeholder="e.g., Booking, Payment, Services"
-              helperText="Use existing categories or create a new one"
-            />
-            <TextField
-              label="Display Order"
-              type="number"
-              value={formData.order}
-              onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
-              fullWidth
-              helperText="Lower numbers appear first"
-            />
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={formData.isActive}
-                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+        {loading ? (
+          <div className="flex min-h-[400px] items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden />
+          </div>
+        ) : faqs.length === 0 ? (
+          <Card>
+            <CardContent className="px-6 py-16 text-center">
+              <HelpCircle className="mx-auto mb-4 h-16 w-16 text-muted-foreground opacity-50" aria-hidden />
+              <h3 className="mb-2 text-lg font-semibold text-muted-foreground">No FAQs found</h3>
+              <p className="mb-6 text-sm text-muted-foreground">
+                {searchQuery || selectedCategory !== 'all'
+                  ? 'Try adjusting your filters'
+                  : 'Add your first FAQ to help customers'}
+              </p>
+              <Button type="button" onClick={() => setShowForm(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add FAQ
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <Accordion
+            type="single"
+            collapsible
+            value={expandedFAQ}
+            onValueChange={(v) => setExpandedFAQ(v ?? '')}
+            className="space-y-2"
+          >
+            {faqs.map((faq, index) => (
+              <AccordionItem
+                key={faq._id}
+                value={faq._id}
+                className="rounded-lg border bg-card px-4 shadow-sm transition-shadow hover:shadow-md data-[state=open]:shadow-md"
+              >
+                <AccordionTrigger className="items-start py-4 text-left hover:no-underline">
+                  <div className="flex w-full min-w-0 items-start gap-3 pr-2 text-left">
+                    <div className="flex h-10 min-w-10 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
+                      {index + 1}
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <p className="font-semibold leading-snug">{faq.question}</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        <Badge variant="outline" className="font-medium">
+                          {faq.category}
+                        </Badge>
+                        <Badge variant={faq.isActive ? 'success' : 'secondary'} className="gap-1 font-semibold">
+                          {faq.isActive && <CheckCircle2 className="h-3 w-3" />}
+                          {faq.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                        {faq.views > 0 && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>
+                                <Badge variant="outline" className="gap-1 font-medium">
+                                  <TrendingUp className="h-3 w-3" />
+                                  {faq.views} views
+                                </Badge>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Total views</TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                    </div>
+                    <div className="ml-2 flex shrink-0 gap-0.5" onClick={(e) => e.stopPropagation()}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className={cnFaqBtn(faq.isActive)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleToggleActive(faq)
+                            }}
+                            aria-label={faq.isActive ? 'Deactivate' : 'Activate'}
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{faq.isActive ? 'Deactivate' : 'Activate'}</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 bg-primary/10 text-primary hover:bg-primary/20"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleEdit(faq)
+                            }}
+                            aria-label="Edit"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Edit</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 bg-destructive/10 text-destructive hover:bg-destructive/20"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDelete(faq._id)
+                            }}
+                            aria-label="Delete"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Delete</TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <Separator className="mb-4" />
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{faq.answer}</p>
+                  {(faq.helpfulCount > 0 || faq.notHelpfulCount > 0) && (
+                    <div className="mt-4 rounded-md border border-primary/10 bg-primary/5 p-3">
+                      <div className="flex flex-wrap items-center gap-4 text-sm">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex items-center gap-1.5">
+                              <ThumbsUp className="h-4 w-4 text-green-600" aria-hidden />
+                              <span className="font-semibold text-muted-foreground">{faq.helpfulCount}</span>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Helpful</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex items-center gap-1.5">
+                              <ThumbsDown className="h-4 w-4 text-destructive" aria-hidden />
+                              <span className="font-semibold text-muted-foreground">{faq.notHelpfulCount}</span>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Not helpful</TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </div>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        )}
+
+        <Dialog open={showForm} onOpenChange={(open) => !open && handleCloseForm()}>
+          <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>{editingFAQ ? 'Edit FAQ' : 'Add New FAQ'}</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="faq-q">Question</Label>
+                <Input
+                  id="faq-q"
+                  value={formData.question}
+                  onChange={(e) => setFormData({ ...formData, question: e.target.value })}
+                  required
+                  placeholder="What would you like to know?"
                 />
-              }
-              label="Active (visible to customers)"
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions sx={{ p: 2.5 }}>
-          <Button onClick={handleCloseForm}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained">
-            {editingFAQ ? 'Update' : 'Create'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
-  );
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="faq-a">Answer</Label>
+                <Textarea
+                  id="faq-a"
+                  value={formData.answer}
+                  onChange={(e) => setFormData({ ...formData, answer: e.target.value })}
+                  rows={6}
+                  required
+                  placeholder="Provide a detailed answer..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="faq-cat">Category</Label>
+                <Input
+                  id="faq-cat"
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  required
+                  placeholder="e.g., Booking, Payment, Services"
+                />
+                <p className="text-xs text-muted-foreground">Use existing categories or create a new one</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="faq-order">Display Order</Label>
+                <Input
+                  id="faq-order"
+                  type="number"
+                  value={formData.order}
+                  onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value, 10) || 0 })}
+                />
+                <p className="text-xs text-muted-foreground">Lower numbers appear first</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="faq-active"
+                  checked={formData.isActive}
+                  onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+                />
+                <Label htmlFor="faq-active" className="cursor-pointer font-normal">
+                  Active (visible to customers)
+                </Label>
+              </div>
+            </div>
+            <DialogFooter className="gap-2 sm:justify-end">
+              <Button type="button" variant="outline" onClick={handleCloseForm}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={() => void handleSubmit()}>
+                {editingFAQ ? 'Update' : 'Create'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
+  )
+}
+
+function cnFaqBtn(isActive: boolean) {
+  return isActive
+    ? 'h-8 w-8 bg-green-500/10 text-green-700 hover:bg-green-500/20'
+    : 'h-8 w-8 bg-muted text-muted-foreground hover:bg-muted/80'
 }

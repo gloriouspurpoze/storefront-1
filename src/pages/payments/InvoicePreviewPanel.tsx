@@ -1,26 +1,31 @@
 import React from 'react'
+import { BadgeCheck, FileText } from 'lucide-react'
+import type { LineComputed } from './invoicePreviewData'
+import type { InvoiceBranding } from '../../lib/invoiceBranding'
+import { cn } from '../../lib/utils'
+import { Badge } from '../../components/ui/badge'
+import { Separator } from '../../components/ui/separator'
 import {
-  Box,
-  Paper,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  Typography,
-  Divider,
-  Chip,
-  Stack,
-  useTheme,
-} from '@mui/material'
-import { alpha } from '@mui/material/styles'
-import { PictureAsPdf as PdfIcon, Verified as VerifiedIcon } from '@mui/icons-material'
-import type { LineComputed } from './invoicePreviewData'
-import type { InvoiceBranding } from '../../lib/invoiceBranding'
+} from '../../components/ui/table'
 
 const ru = (n: number) =>
   n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+/** Hex #RRGGBB → rgba() for borders/backgrounds from branding colours. */
+function hexAlpha(hex: string, a: number): string {
+  const h = hex.replace('#', '').trim()
+  if (h.length !== 6 || Number.isNaN(parseInt(h, 16))) return `rgba(0,0,0,${a})`
+  const r = parseInt(h.slice(0, 2), 16)
+  const g = parseInt(h.slice(2, 4), 16)
+  const b = parseInt(h.slice(4, 6), 16)
+  return `rgba(${r},${g},${b},${a})`
+}
 
 export type InvoicePreviewPanelProps = {
   documentTypeLabel: string
@@ -79,355 +84,351 @@ export function InvoicePreviewPanel({
   branding,
   previewVariant = 'gst',
 }: InvoicePreviewPanelProps) {
-  const theme = useTheme()
   const cgst = isInterState ? 0 : totalTax / 2
   const sgst = isInterState ? 0 : totalTax / 2
   const igst = isInterState ? totalTax : 0
   const isNonGstDoc = previewVariant === 'non_gst'
 
-  const primary = branding?.primaryColor ?? theme.palette.primary.main
-  const accent = branding?.accentColor ?? theme.palette.primary.dark
+  const primary = branding?.primaryColor ?? 'hsl(var(--primary))'
+  const accent = branding?.accentColor ?? 'hsl(var(--primary))'
   const docTitle =
     (isNonGstDoc ? undefined : branding?.documentTitle?.trim()) ||
     (isNonGstDoc ? 'BILL OF SUPPLY' : 'TAX INVOICE')
 
+  const primaryIsHex = primary.startsWith('#')
+  const borderTint = branding && primaryIsHex ? hexAlpha(primary, 0.35) : undefined
+  const chipBorder = branding && primaryIsHex ? hexAlpha(primary, 0.55) : undefined
+  const supplierBg =
+    branding && primaryIsHex ? hexAlpha(primary, 0.06) : 'rgba(0,0,0,0.04)'
+  const supplierBorder = branding && primaryIsHex ? hexAlpha(primary, 0.25) : undefined
+  const headerCellBg = branding && primaryIsHex ? hexAlpha(primary, 0.1) : undefined
+
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        p: { xs: 2, sm: 3, md: 4 },
-        border: '1px solid',
-        borderColor: branding ? alpha(primary, 0.35) : 'divider',
-        borderRadius: 1,
-        bgcolor: 'background.paper',
-        maxWidth: 900,
-        mx: 'auto',
-        color: 'text.primary',
-        boxShadow: theme.shadows[mode === 'proforma' ? 2 : 3],
-      }}
+    <div
+      className={cn(
+        'mx-auto max-w-[900px] rounded-md border bg-card p-4 text-foreground shadow-sm sm:p-6 md:p-8',
+        mode === 'proforma' ? 'shadow-md' : 'shadow-lg'
+      )}
+      style={
+        borderTint
+          ? { borderColor: borderTint }
+          : branding
+            ? { borderColor: 'hsl(var(--border))' }
+            : undefined
+      }
     >
-      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2} flexWrap="wrap" sx={{ mb: 2 }}>
-        <Stack direction="row" spacing={2} alignItems="flex-start">
+      <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
+        <div className="flex flex-wrap items-start gap-4">
           {branding?.showLogo && branding.logoDataUrl && (
-            <Box
-              component="img"
+            <img
               src={branding.logoDataUrl}
               alt=""
-              sx={{
-                maxHeight: 56,
-                maxWidth: 180,
-                width: 'auto',
-                height: 'auto',
-                objectFit: 'contain',
-              }}
+              className="h-auto max-h-14 w-auto max-w-[180px] object-contain"
             />
           )}
-          <Box>
-            <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: '0.04em', color: primary }}>
-              {docTitle}
-            </Typography>
+          <div>
+            <h2
+              className="text-xl font-bold tracking-wide sm:text-2xl"
+              style={branding && primaryIsHex ? { color: primary } : undefined}
+            >
+              {!branding || !primaryIsHex ? (
+                <span className="text-primary">{docTitle}</span>
+              ) : (
+                docTitle
+              )}
+            </h2>
             {branding?.tagline ? (
-              <Typography variant="caption" color="text.secondary" display="block">
-                {branding.tagline}
-              </Typography>
+              <p className="mt-0.5 block text-xs text-muted-foreground">{branding.tagline}</p>
             ) : (
-              <Typography variant="caption" color="text.secondary" display="block">
+              <p className="mt-0.5 block text-xs text-muted-foreground">
                 {mode === 'proforma' ? 'Preview — for review before issue' : 'Original for recipient'}
-              </Typography>
+              </p>
             )}
-          </Box>
-        </Stack>
-        <Stack alignItems="flex-end" spacing={0.5}>
-          <Chip
-            size="small"
-            icon={<VerifiedIcon sx={{ '&&': { fontSize: 16 } }} />}
-            label={documentTypeLabel}
-            variant="outlined"
-            sx={{
-              borderColor: alpha(primary, 0.55),
-              color: primary,
-              '& .MuiChip-icon': { color: primary },
-            }}
-          />
-          <Stack direction="row" alignItems="center" spacing={0.5} color="text.secondary">
-            <PdfIcon sx={{ fontSize: 18 }} />
-            <Typography variant="caption">Number & date are assigned on issue</Typography>
-          </Stack>
-        </Stack>
-      </Stack>
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-0.5">
+          <Badge
+            variant="outline"
+            className="gap-1 font-medium"
+            style={
+              chipBorder && primaryIsHex
+                ? { borderColor: chipBorder, color: primary }
+                : undefined
+            }
+          >
+            <BadgeCheck
+              className="h-3.5 w-3.5 shrink-0"
+              style={primaryIsHex && branding ? { color: primary } : undefined}
+            />
+            {documentTypeLabel}
+          </Badge>
+          <div className="flex items-center gap-1 text-muted-foreground">
+            <FileText className="h-4 w-4 shrink-0 opacity-80" />
+            <span className="text-xs">Number & date are assigned on issue</span>
+          </div>
+        </div>
+      </div>
 
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+      <p className="mb-4 block text-xs text-muted-foreground">
         Place of supply: {placeOfSupply}
         {isNonGstDoc
           ? ' · No GST breakdown on this document'
           : ` · ${isInterState ? 'Inter-state (IGST)' : 'Intra-state (CGST + SGST)'}`}
         {companyStateLabel && ` · Seller state: ${companyStateLabel}`}
-      </Typography>
+      </p>
 
       <GridTwoCol
         leftTitle="Bill to (customer)"
         rightTitle="From (supplier)"
         left={
-          <Stack spacing={0.5}>
-            <Typography variant="subtitle1" fontWeight={700}>
-              {billingName || '—'}
-            </Typography>
+          <div className="space-y-1">
+            <p className="text-base font-bold">{billingName || '—'}</p>
             {billingAddressLines.map((l, i) => (
-              <Typography key={i} variant="body2" color="text.secondary">
+              <p key={i} className="text-sm text-muted-foreground">
                 {l}
-              </Typography>
+              </p>
             ))}
-            <Typography variant="body2">Ph: {billingPhone}</Typography>
-            {billingEmail && (
-              <Typography variant="body2" color="text.secondary">
-                {billingEmail}
-              </Typography>
-            )}
+            <p className="text-sm">Ph: {billingPhone}</p>
+            {billingEmail && <p className="text-sm text-muted-foreground">{billingEmail}</p>}
             {billingGstin && (
-              <Typography variant="body2" sx={{ mt: 0.5 }}>
-                GSTIN: <strong>{billingGstin}</strong> {customerMode === 'platform' ? '(B2B / registered)' : ''}
-              </Typography>
+              <p className="mt-1 text-sm">
+                GSTIN: <strong>{billingGstin}</strong>{' '}
+                {customerMode === 'platform' ? '(B2B / registered)' : ''}
+              </p>
             )}
-            <Stack direction="row" spacing={0.5} flexWrap="wrap" sx={{ pt: 0.5 }} useFlexGap>
-              <Chip
-                size="small"
-                label={customerMode === 'offline' ? 'Walk-in / offline' : 'Platform customer'}
-                variant="outlined"
-              />
-              {customerReference && <Chip size="small" label={`Ref: ${customerReference}`} />}
-              {platformCustomerIdMasked && <Chip size="small" label={`User: ${platformCustomerIdMasked}`} />}
-            </Stack>
-          </Stack>
+            <div className="flex flex-wrap gap-1 pt-1">
+              <Badge variant="outline" className="text-xs">
+                {customerMode === 'offline' ? 'Walk-in / offline' : 'Platform customer'}
+              </Badge>
+              {customerReference && (
+                <Badge variant="secondary" className="text-xs">
+                  Ref: {customerReference}
+                </Badge>
+              )}
+              {platformCustomerIdMasked && (
+                <Badge variant="secondary" className="text-xs">
+                  User: {platformCustomerIdMasked}
+                </Badge>
+              )}
+            </div>
+          </div>
         }
         right={
           branding ? (
-            <Box
-              sx={{
-                p: 1.5,
-                borderRadius: 1,
-                bgcolor: alpha(primary, theme.palette.mode === 'dark' ? 0.12 : 0.06),
-                border: `1px solid ${alpha(primary, 0.25)}`,
+            <div
+              className="rounded-md border p-4"
+              style={{
+                backgroundColor: supplierBg,
+                borderColor: supplierBorder ?? 'hsl(var(--border))',
               }}
             >
-              <Typography variant="subtitle1" fontWeight={700} sx={{ color: primary }}>
+              <p
+                className="text-base font-bold"
+                style={primaryIsHex ? { color: primary } : { color: 'hsl(var(--primary))' }}
+              >
                 {branding.companyDisplayName}
-              </Typography>
+              </p>
               {branding.companyLegalName && branding.companyLegalName !== branding.companyDisplayName && (
-                <Typography variant="caption" color="text.secondary" display="block">
-                  {branding.companyLegalName}
-                </Typography>
+                <span className="mt-0.5 block text-xs text-muted-foreground">{branding.companyLegalName}</span>
               )}
               {(branding.supplierAddressLines.length > 0
                 ? branding.supplierAddressLines
                 : ['Add registered address in Invoice appearance']
               ).map((l, i) => (
-                <Typography key={i} variant="body2" color="text.secondary">
+                <p key={i} className="text-sm text-muted-foreground">
                   {l}
-                </Typography>
+                </p>
               ))}
-              {branding.supplierPhone && (
-                <Typography variant="body2" sx={{ mt: 0.5 }}>
-                  Ph: {branding.supplierPhone}
-                </Typography>
-              )}
+              {branding.supplierPhone && <p className="mt-1 text-sm">Ph: {branding.supplierPhone}</p>}
               {branding.supplierEmail && (
-                <Typography variant="body2" color="text.secondary">
-                  {branding.supplierEmail}
-                </Typography>
+                <p className="text-sm text-muted-foreground">{branding.supplierEmail}</p>
               )}
               {branding.supplierWebsite && (
-                <Typography variant="body2" color="text.secondary">
-                  {branding.supplierWebsite}
-                </Typography>
+                <p className="text-sm text-muted-foreground">{branding.supplierWebsite}</p>
               )}
               {branding.supplierGstin && (
-                <Typography variant="body2" sx={{ mt: 0.75 }}>
+                <p className="mt-2 text-sm">
                   GSTIN: <strong>{branding.supplierGstin}</strong>
-                </Typography>
+                </p>
               )}
               {branding.supplierPan && (
-                <Typography variant="body2" color="text.secondary">
-                  PAN: {branding.supplierPan}
-                </Typography>
+                <p className="text-sm text-muted-foreground">PAN: {branding.supplierPan}</p>
               )}
               {branding.bankDetails?.trim() && (
-                <Typography
-                  variant="caption"
-                  component="pre"
-                  sx={{
-                    mt: 1,
-                    p: 1,
-                    borderRadius: 1,
-                    bgcolor: 'action.hover',
-                    whiteSpace: 'pre-wrap',
-                    fontFamily: 'inherit',
-                  }}
-                >
+                <pre className="mt-2 whitespace-pre-wrap rounded-md border border-border/80 bg-muted/40 p-2 font-sans text-xs">
                   {branding.bankDetails.trim()}
-                </Typography>
+                </pre>
               )}
-            </Box>
+            </div>
           ) : (
-            <Box
-              sx={{
-                p: 1.5,
-                borderRadius: 1,
-                bgcolor: (t) => (t.palette.mode === 'dark' ? 'grey.900' : 'grey.50'),
-                border: '1px dashed',
-                borderColor: 'divider',
-              }}
-            >
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
-                {companyHint}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Invoices you issue use the same PDF engine as online orders and service bookings
-                (fixer-backend <code style={{ fontSize: '0.8em' }}>PDFService</code> / company config). Customize logo
-                & colours in <strong>Invoices → Invoice appearance</strong>.
-              </Typography>
-            </Box>
+            <div className="rounded-md border border-dashed border-border bg-muted/30 p-4 dark:bg-muted/20">
+              <p className="mb-1 block text-xs text-muted-foreground">{companyHint}</p>
+              <p className="text-sm text-muted-foreground">
+                Invoices you issue use the same PDF engine as online orders and service bookings (fixer-backend{' '}
+                <code className="text-[0.8em]">PDFService</code> / company config). Customize logo & colours in{' '}
+                <strong>Invoices → Invoice appearance</strong>.
+              </p>
+            </div>
           )
         }
       />
 
-      <TableContainer sx={{ my: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
-        <Table
-          size="small"
-          sx={{
-            '& th': {
-              fontWeight: 700,
-              bgcolor: branding ? alpha(primary, 0.1) : 'action.hover',
-              color: branding ? primary : undefined,
-            },
-          }}
-        >
-          <TableHead>
-            <TableRow>
-              <TableCell width="5%">#</TableCell>
-              <TableCell>Description</TableCell>
+      <div className="my-4 overflow-hidden rounded-md border border-border">
+        <Table>
+          <TableHeader>
+            <TableRow
+              className={cn(
+                'border-b hover:bg-transparent',
+                !headerCellBg && 'bg-muted/50'
+              )}
+            >
+              <TableHead
+                className="h-10 w-[5%] px-2 py-2 text-xs font-bold"
+                style={headerCellBg ? { backgroundColor: headerCellBg, color: primaryIsHex ? primary : undefined } : undefined}
+              >
+                #
+              </TableHead>
+              <TableHead
+                className="h-10 px-2 py-2 text-xs font-bold"
+                style={headerCellBg ? { backgroundColor: headerCellBg, color: primaryIsHex ? primary : undefined } : undefined}
+              >
+                Description
+              </TableHead>
               {!isNonGstDoc && (
-                <TableCell width="10%" align="right">
+                <TableHead
+                  className="h-10 w-[10%] px-2 py-2 text-right text-xs font-bold"
+                  style={headerCellBg ? { backgroundColor: headerCellBg, color: primaryIsHex ? primary : undefined } : undefined}
+                >
                   HSN/SAC
-                </TableCell>
+                </TableHead>
               )}
-              <TableCell width="8%" align="right">
+              <TableHead
+                className="h-10 w-[8%] px-2 py-2 text-right text-xs font-bold"
+                style={headerCellBg ? { backgroundColor: headerCellBg, color: primaryIsHex ? primary : undefined } : undefined}
+              >
                 Qty
-              </TableCell>
-              <TableCell width="10%" align="right">
+              </TableHead>
+              <TableHead
+                className="h-10 w-[10%] px-2 py-2 text-right text-xs font-bold"
+                style={headerCellBg ? { backgroundColor: headerCellBg, color: primaryIsHex ? primary : undefined } : undefined}
+              >
                 Rate (₹)
-              </TableCell>
+              </TableHead>
               {!isNonGstDoc && (
-                <TableCell width="11%" align="right">
+                <TableHead
+                  className="h-10 w-[11%] px-2 py-2 text-right text-xs font-bold"
+                  style={headerCellBg ? { backgroundColor: headerCellBg, color: primaryIsHex ? primary : undefined } : undefined}
+                >
                   Taxable
-                </TableCell>
+                </TableHead>
               )}
               {!isNonGstDoc && (
-                <TableCell width="10%" align="right">
+                <TableHead
+                  className="h-10 w-[10%] px-2 py-2 text-right text-xs font-bold"
+                  style={headerCellBg ? { backgroundColor: headerCellBg, color: primaryIsHex ? primary : undefined } : undefined}
+                >
                   GST
-                </TableCell>
+                </TableHead>
               )}
-              <TableCell width="12%" align="right">
+              <TableHead
+                className="h-10 w-[12%] px-2 py-2 text-right text-xs font-bold"
+                style={headerCellBg ? { backgroundColor: headerCellBg, color: primaryIsHex ? primary : undefined } : undefined}
+              >
                 Amount (₹)
-              </TableCell>
+              </TableHead>
             </TableRow>
-          </TableHead>
+          </TableHeader>
           <TableBody>
             {lineRows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={isNonGstDoc ? 5 : 8} align="center">
-                  <Typography color="text.secondary" variant="body2" py={2}>
-                    No line items
-                  </Typography>
+                <TableCell colSpan={isNonGstDoc ? 5 : 8} className="py-8 text-center text-sm text-muted-foreground">
+                  No line items
                 </TableCell>
               </TableRow>
             )}
             {lineRows.map((r, i) => (
-              <TableRow key={i} hover>
-                <TableCell>{i + 1}</TableCell>
-                <TableCell>
+              <TableRow key={i}>
+                <TableCell className="px-2 py-2 text-sm">{i + 1}</TableCell>
+                <TableCell className="px-2 py-2 text-sm">
                   {r.description}
                   {r.lineKind && (
-                    <Typography component="span" variant="caption" color="text.secondary" display="block">
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
                       {r.lineKind === 'product' ? 'Goods' : 'Service'}
-                    </Typography>
+                    </span>
                   )}
                 </TableCell>
                 {!isNonGstDoc && (
-                  <TableCell align="right" sx={{ fontFeatureSettings: '"tnum"' }}>
-                    {r.hsnSac}
-                  </TableCell>
+                  <TableCell className="px-2 py-2 text-right text-sm tabular-nums">{r.hsnSac}</TableCell>
                 )}
-                <TableCell align="right">{r.quantity}</TableCell>
-                <TableCell align="right">{ru(r.unitPrice)}</TableCell>
-                {!isNonGstDoc && <TableCell align="right">{ru(r.taxable)}</TableCell>}
-                {!isNonGstDoc && <TableCell align="right">{ru(r.taxAmount)}</TableCell>}
-                <TableCell align="right" sx={{ fontWeight: 600 }}>
-                  {ru(r.lineTotal)}
-                </TableCell>
+                <TableCell className="px-2 py-2 text-right text-sm">{r.quantity}</TableCell>
+                <TableCell className="px-2 py-2 text-right text-sm tabular-nums">{ru(r.unitPrice)}</TableCell>
+                {!isNonGstDoc && (
+                  <TableCell className="px-2 py-2 text-right text-sm tabular-nums">{ru(r.taxable)}</TableCell>
+                )}
+                {!isNonGstDoc && (
+                  <TableCell className="px-2 py-2 text-right text-sm tabular-nums">{ru(r.taxAmount)}</TableCell>
+                )}
+                <TableCell className="px-2 py-2 text-right text-sm font-semibold tabular-nums">{ru(r.lineTotal)}</TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      </TableContainer>
+      </div>
 
-      <Stack spacing={1} alignItems="flex-end" sx={{ maxWidth: 400, ml: 'auto' }}>
+      <div className="ml-auto flex max-w-[400px] flex-col items-end gap-1">
         <Row
           label={isNonGstDoc ? 'Subtotal (line amounts)' : 'Subtotal (taxable value)'}
           value={ru(subtotal)}
         />
         {!isNonGstDoc && (
           <>
-            <Row label="Total GST @ 18%" value={ru(totalTax)} bold={false} muted />
+            <Row label="Total GST @ 18%" value={ru(totalTax)} muted bold={false} />
             {!isInterState && totalTax > 0 && (
-              <Typography variant="caption" color="text.secondary" sx={{ pl: 1, alignSelf: 'flex-start' }}>
+              <p className="self-start pl-1 text-xs text-muted-foreground">
                 CGST {ru(cgst)} + SGST {ru(sgst)}
-              </Typography>
+              </p>
             )}
             {isInterState && totalTax > 0 && (
-              <Typography variant="caption" color="text.secondary" sx={{ pl: 1 }}>
-                IGST {ru(igst)}
-              </Typography>
+              <p className="pl-1 text-xs text-muted-foreground">IGST {ru(igst)}</p>
             )}
           </>
         )}
         {discount > 0 && <Row label="Less: discount / adjustment" value={`−${ru(discount)}`} />}
-        <Divider sx={{ width: '100%', my: 0.5 }} />
+        <Separator className="my-1 w-full" />
         <Row
           label={isNonGstDoc ? 'Total payable (INR)' : 'Net payable (INR)'}
           value={ru(grandTotal)}
           large
           accentColor={accent}
         />
-      </Stack>
+      </div>
 
       {(paymentMethod || notes) && (
-        <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+        <div className="mt-4 border-t border-border pt-4">
           {paymentMethod && (
-            <Typography variant="body2" sx={{ mb: 1 }}>
+            <p className="mb-2 text-sm">
               <strong>Payment / mode:</strong> {paymentMethod}
-            </Typography>
+            </p>
           )}
           {notes && (
-            <Typography variant="body2" color="text.secondary">
+            <p className="text-sm text-muted-foreground">
               <strong>Remarks:</strong> {notes}
-            </Typography>
+            </p>
           )}
-        </Box>
+        </div>
       )}
 
       {branding?.footerNote?.trim() && (
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2, textAlign: 'center', whiteSpace: 'pre-wrap' }}>
-          {branding.footerNote.trim()}
-        </Typography>
+        <p className="mt-4 block whitespace-pre-wrap text-center text-xs text-muted-foreground">{branding.footerNote.trim()}</p>
       )}
       {!branding?.footerNote?.trim() && (
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2, textAlign: 'center' }}>
+        <p className="mt-4 block text-center text-xs text-muted-foreground">
           {isNonGstDoc
             ? 'Bill-of-supply preview: no GST components; discount applied to total as on server.'
             : 'Amounts follow server calculation: per-line 18% GST, then discount applied to grand total.'}
-        </Typography>
+        </p>
       )}
-    </Paper>
+    </div>
   )
 }
 
@@ -447,21 +448,23 @@ function Row({
   accentColor?: string
 }) {
   return (
-    <Stack direction="row" justifyContent="space-between" width="100%" alignItems="baseline" spacing={2}>
-      <Typography variant={large ? 'subtitle1' : 'body2'} color={muted ? 'text.secondary' : 'text.primary'} fontWeight={bold === false ? 400 : 600}>
+    <div className="flex w-full items-baseline justify-between gap-4">
+      <span
+        className={cn(
+          large ? 'text-base font-semibold' : 'text-sm',
+          muted ? 'text-muted-foreground' : 'text-foreground',
+          bold === false ? 'font-normal' : 'font-semibold'
+        )}
+      >
         {label}
-      </Typography>
-      <Typography
-        variant={large ? 'h6' : 'body2'}
-        fontWeight={700}
-        sx={{
-          fontFeatureSettings: '"tnum"',
-          color: accentColor ?? 'primary.main',
-        }}
+      </span>
+      <span
+        className={cn('tabular-nums font-bold', large ? 'text-lg' : 'text-sm')}
+        style={{ color: accentColor ?? 'hsl(var(--primary))' }}
       >
         ₹{value}
-      </Typography>
-    </Stack>
+      </span>
+    </div>
   )
 }
 
@@ -477,27 +480,15 @@ function GridTwoCol({
   right: React.ReactNode
 }) {
   return (
-    <Box
-      sx={{
-        display: 'grid',
-        gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-        gap: 2,
-        alignItems: 'start',
-        mb: 0,
-      }}
-    >
-      <Box>
-        <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: 1 }}>
-          {leftTitle}
-        </Typography>
-        <Box sx={{ mt: 0.5 }}>{left}</Box>
-      </Box>
-      <Box>
-        <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: 1 }}>
-          {rightTitle}
-        </Typography>
-        <Box sx={{ mt: 0.5 }}>{right}</Box>
-      </Box>
-    </Box>
+    <div className="mb-0 grid gap-4 md:grid-cols-2">
+      <div>
+        <p className="text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground">{leftTitle}</p>
+        <div className="mt-1">{left}</div>
+      </div>
+      <div>
+        <p className="text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground">{rightTitle}</p>
+        <div className="mt-1">{right}</div>
+      </div>
+    </div>
   )
 }

@@ -3,7 +3,7 @@
  * PROFESSIONAL PROFILE PAGE
  * ============================================================================
  * Complete profile management for professionals (workers/technicians)
- * 
+ *
  * Features:
  * - View and edit personal information
  * - Manage professional details (services, skills, certifications)
@@ -12,55 +12,54 @@
  * - View performance metrics
  * - Upload documents and certifications
  * - Manage emergency contact
- * 
+ *
  * @author CTO Team
  * @date January 23, 2026
  */
 
 import React, { useState, useEffect } from 'react'
 import {
-  Box,
+  Loader2,
+  Pencil,
+  Save,
+  X,
+  Camera,
+  BadgeCheck,
+  MapPin,
+  Briefcase,
+  Clock,
+  Star,
+  FileText,
+  Phone,
+  Mail,
+  User,
+} from 'lucide-react'
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from '../../components/ui/avatar'
+import {
+  Badge,
+  Button,
   Card,
   CardContent,
-  Typography,
-  Button,
-  Avatar,
-  TextField,
-  Stack,
-  Chip,
-  Divider,
-  Alert,
-  CircularProgress,
+  Input,
+  Label,
+  Separator,
   Tabs,
-  Tab,
-  IconButton,
-  Tooltip,
-  Paper,
-  LinearProgress,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Switch,
-  FormControlLabel,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  Textarea,
+} from '../../components/ui'
 import {
-  Edit as EditIcon,
-  Save as SaveIcon,
-  Cancel as CancelIcon,
-  Camera as CameraIcon,
-  VerifiedUser as VerifiedIcon,
-  LocationOn as LocationIcon,
-  Work as WorkIcon,
-  Schedule as ScheduleIcon,
-  Star as StarIcon,
-  TrendingUp as TrendingUpIcon,
-  Description as DocumentIcon,
-  Phone as PhoneIcon,
-  Email as EmailIcon,
-  Person as PersonIcon,
-} from '@mui/icons-material'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select'
 import { useAppSelector, useAppDispatch } from '../../store/hooks'
 import { ProfessionalsService } from '../../services/api/professionals.service'
 import { Professional } from '../../types/professional.types'
@@ -71,27 +70,6 @@ import {
   normalizeProfessionalFromApi,
 } from '../../lib/professionalAdmin'
 
-interface TabPanelProps {
-  children?: React.ReactNode
-  index: number
-  value: number
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`profile-tabpanel-${index}`}
-      aria-labelledby={`profile-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
-    </div>
-  )
-}
-
 export function ProfessionalProfile() {
   const { user } = useAppSelector((state) => state.auth)
   const dispatch = useAppDispatch()
@@ -101,8 +79,8 @@ export function ProfessionalProfile() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [professional, setProfessional] = useState<Professional | null>(null)
-  const [activeTab, setActiveTab] = useState(0)
-  
+  const [activeTab, setActiveTab] = useState('personal')
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -156,7 +134,7 @@ export function ProfessionalProfile() {
         const prof = normalizeProfessionalFromApi(raw)
         if (prof && prof._id) {
           setProfessional(prof)
-          
+
           setFormData({
             firstName: prof.firstName || '',
             lastName: prof.lastName || '',
@@ -195,44 +173,46 @@ export function ProfessionalProfile() {
     } catch (err: any) {
       console.error('Error fetching profile:', err)
       setError(err?.message || 'Failed to load profile')
-      dispatch(addToast({ 
-        message: err?.message || 'Failed to load profile', 
-        severity: 'error' 
-      }))
+      dispatch(
+        addToast({
+          message: err?.message || 'Failed to load profile',
+          severity: 'error',
+        })
+      )
     } finally {
       setLoading(false)
     }
   }
 
   const handleInputChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [field]: e.target.value,
     }))
   }
 
-  const handleNestedInputChange = (parent: string, field: string) => (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setFormData(prev => ({
-      ...prev,
-      [parent]: {
-        ...(prev[parent as keyof typeof prev] as any),
-        [field]: e.target.value,
-      },
-    }))
-  }
+  const handleNestedInputChange =
+    (parent: string, field: string) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setFormData((prev) => ({
+        ...prev,
+        [parent]: {
+          ...(prev[parent as keyof typeof prev] as any),
+          [field]: e.target.value,
+        },
+      }))
+    }
 
   const handleSave = async () => {
     if (!professional?._id) {
       setError('Professional ID not found')
       return
     }
-    
+
     try {
       setSaving(true)
       setError(null)
-      
+
       await ProfessionalsService.updateMyProfile({
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -251,40 +231,37 @@ export function ProfessionalProfile() {
         languages: formData.languages,
         emergencyContact: formData.emergencyContact,
       })
-      
+
       setSuccess('Profile updated successfully!')
       setIsEditing(false)
       setTimeout(() => setSuccess(null), 3000)
-      dispatch(addToast({ 
-        message: 'Profile updated successfully!', 
-        severity: 'success' 
-      }))
-      
-      // Reload profile
+      dispatch(addToast({ message: 'Profile updated successfully!', severity: 'success' }))
+
       await fetchProfessionalProfile()
-      
     } catch (err: any) {
       console.error('Error updating profile:', err)
       setError(err?.message || 'Failed to update profile')
-      dispatch(addToast({ 
-        message: err?.message || 'Failed to update profile', 
-        severity: 'error' 
-      }))
+      dispatch(
+        addToast({
+          message: err?.message || 'Failed to update profile',
+          severity: 'error',
+        })
+      )
     } finally {
       setSaving(false)
     }
   }
 
   const handleCancel = () => {
-    fetchProfessionalProfile() // Reset to original data
+    fetchProfessionalProfile()
     setIsEditing(false)
   }
 
   const toggleWorkingDay = (day: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       workingDays: prev.workingDays.includes(day)
-        ? prev.workingDays.filter(d => d !== day)
+        ? prev.workingDays.filter((d) => d !== day)
         : [...prev.workingDays, day],
     }))
   }
@@ -299,628 +276,628 @@ export function ProfessionalProfile() {
     { value: 'sunday', label: 'Sunday' },
   ]
 
+  const availabilityVariant = (a: string): 'success' | 'warning' | 'secondary' => {
+    if (a === 'available') return 'success'
+    if (a === 'busy') return 'warning'
+    return 'secondary'
+  }
+
   if (loading && !professional) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex min-h-[60vh] items-center justify-center p-6">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
     )
   }
 
   if (error && !professional) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">{error}</Alert>
-        <Button onClick={fetchProfessionalProfile} sx={{ mt: 2 }}>
+      <div className="p-6">
+        <div
+          role="alert"
+          className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        >
+          {error}
+        </div>
+        <Button className="mt-4" variant="outline" onClick={fetchProfessionalProfile}>
           Retry
         </Button>
-      </Box>
+      </div>
     )
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      {/* Page Header */}
-      <Box sx={{ mb: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-          <Box>
-            <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-              My Profile
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Manage your professional profile and settings
-            </Typography>
-          </Box>
-          {!isEditing ? (
-            <Button
-              variant="contained"
-              startIcon={<EditIcon />}
-              onClick={() => setIsEditing(true)}
-              sx={{ borderRadius: 2 }}
-              disabled={loading}
-            >
-              Edit Profile
+    <div className="p-6">
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="mb-1 text-3xl font-bold tracking-tight">My Profile</h1>
+          <p className="text-muted-foreground">Manage your professional profile and settings</p>
+        </div>
+        {!isEditing ? (
+          <Button onClick={() => setIsEditing(true)} disabled={loading}>
+            <Pencil className="mr-2 h-4 w-4" />
+            Edit Profile
+          </Button>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={handleCancel} disabled={saving}>
+              <X className="mr-2 h-4 w-4" />
+              Cancel
             </Button>
-          ) : (
-            <Stack direction="row" spacing={2}>
-              <Button
-                variant="outlined"
-                startIcon={<CancelIcon />}
-                onClick={handleCancel}
-                sx={{ borderRadius: 2 }}
-                disabled={saving}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<SaveIcon />}
-                onClick={handleSave}
-                sx={{ borderRadius: 2 }}
-                disabled={saving}
-              >
-                {saving ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </Stack>
-          )}
-        </Box>
-      </Box>
+            <Button onClick={handleSave} disabled={saving}>
+              <Save className="mr-2 h-4 w-4" />
+              {saving ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </div>
+        )}
+      </div>
 
-      {/* Error Alert */}
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
+        <div
+          role="alert"
+          className="mb-6 flex items-start justify-between gap-2 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        >
+          <span>{error}</span>
+          <button type="button" className="shrink-0 underline" onClick={() => setError(null)}>
+            Dismiss
+          </button>
+        </div>
       )}
 
-      {/* Success Alert */}
       {success && (
-        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess(null)}>
-          {success}
-        </Alert>
+        <div
+          role="status"
+          className="mb-6 flex items-start justify-between gap-2 rounded-lg border border-green-500/40 bg-green-500/10 px-4 py-3 text-sm"
+        >
+          <span>{success}</span>
+          <button type="button" className="shrink-0 underline" onClick={() => setSuccess(null)}>
+            Dismiss
+          </button>
+        </div>
       )}
 
-      <Grid container spacing={3}>
-        {/* Profile Picture & Basic Stats */}
-        <Grid item xs={12} md={4}>
-          <Card sx={{ borderRadius: 2, position: 'sticky', top: 20 }}>
-            <CardContent>
-              <Box sx={{ textAlign: 'center', mb: 3 }}>
-                <Box sx={{ position: 'relative', display: 'inline-block' }}>
-                  <Avatar
-                    src={professional?.profileImage}
-                    sx={{
-                      width: 120,
-                      height: 120,
-                      bgcolor: 'primary.main',
-                      fontSize: 48,
-                      mb: 2,
-                    }}
-                  >
-                    {professional?.profileImage 
-                      ? null 
-                      : getInitials(`${formData.firstName} ${formData.lastName}`)}
+      <div className="grid gap-6 lg:grid-cols-12">
+        <div className="lg:col-span-4">
+          <Card className="sticky top-5 rounded-lg border shadow-sm">
+            <CardContent className="space-y-6 pt-6">
+              <div className="text-center">
+                <div className="relative mx-auto inline-block">
+                  <Avatar className="mx-auto mb-3 h-[120px] w-[120px] text-5xl">
+                    {professional?.profileImage && (
+                      <AvatarImage src={professional.profileImage} alt="" />
+                    )}
+                    <AvatarFallback className="bg-primary text-5xl text-primary-foreground">
+                      {getInitials(`${formData.firstName} ${formData.lastName}`)}
+                    </AvatarFallback>
                   </Avatar>
                   {isEditing && (
-                    <IconButton
-                      size="small"
-                      sx={{
-                        position: 'absolute',
-                        bottom: 16,
-                        right: 0,
-                        bgcolor: 'primary.main',
-                        color: 'white',
-                        '&:hover': { bgcolor: 'primary.dark' },
-                      }}
+                    <Button
+                      type="button"
+                      size="icon"
+                      className="absolute bottom-2 right-0 h-8 w-8 rounded-full"
+                      variant="default"
+                      aria-label="Upload photo"
                     >
-                      <CameraIcon />
-                    </IconButton>
+                      <Camera className="h-4 w-4" />
+                    </Button>
                   )}
-                </Box>
+                </div>
 
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
+                <h2 className="text-lg font-semibold">
                   {formData.firstName} {formData.lastName}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Professional
-                </Typography>
-                <Stack direction="row" spacing={1} justifyContent="center" sx={{ mt: 1 }}>
+                </h2>
+                <p className="text-sm text-muted-foreground">Professional</p>
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
                   {professional?.isVerified && (
-                    <Chip 
-                      icon={<VerifiedIcon />} 
-                      label="Verified" 
-                      color="success" 
-                      size="small" 
-                    />
+                    <Badge variant="success" className="gap-1">
+                      <BadgeCheck className="h-3 w-3" />
+                      Verified
+                    </Badge>
                   )}
-                  <Chip 
-                    label={formData.expertiseLevel} 
-                    color="primary" 
-                    size="small" 
-                    variant="outlined"
-                  />
-                </Stack>
-              </Box>
+                  <Badge variant="outline">{formData.expertiseLevel}</Badge>
+                </div>
+              </div>
 
-              <Divider sx={{ my: 2 }} />
+              <Separator />
 
-              {/* Performance Metrics */}
-              <Stack spacing={2}>
-                <Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                    <Typography variant="caption" color="text.secondary">
+              <div className="space-y-4 text-sm">
+                <div>
+                  <div className="mb-1 flex justify-between text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Star className="h-3.5 w-3.5 text-amber-500" />
                       Rating
-                    </Typography>
-                    <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                    </span>
+                    <span className="font-semibold text-foreground">
                       {professional?.rating?.toFixed(1) || '0.0'} / 5.0
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <StarIcon sx={{ color: 'warning.main', fontSize: 16 }} />
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={(professional?.rating || 0) * 20} 
-                      sx={{ flex: 1, height: 6, borderRadius: 3 }}
-                    />
-                  </Box>
-                </Box>
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Member Since
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {professional?.createdAt 
-                      ? new Date(professional.createdAt).toLocaleDateString('en-US', { 
-                          year: 'numeric', 
-                          month: 'long' 
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Star className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-amber-500 transition-all"
+                        style={{ width: `${(professional?.rating || 0) * 20}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Member Since</p>
+                  <p className="font-medium">
+                    {professional?.createdAt
+                      ? new Date(professional.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
                         })
                       : 'N/A'}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Jobs Completed
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {professional?.completedJobs || 0} jobs
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Total Reviews
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {professional?.totalReviews || 0} reviews
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Availability
-                  </Typography>
-                  <Chip 
-                    label={formData.availability} 
-                    color={
-                      formData.availability === 'available' ? 'success' :
-                      formData.availability === 'busy' ? 'warning' : 'default'
-                    }
-                    size="small"
-                    sx={{ mt: 0.5 }}
-                  />
-                </Box>
-              </Stack>
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Jobs Completed</p>
+                  <p className="font-medium">{professional?.completedJobs || 0} jobs</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Total Reviews</p>
+                  <p className="font-medium">{professional?.totalReviews || 0} reviews</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Availability</p>
+                  <Badge variant={availabilityVariant(formData.availability)} className="mt-1">
+                    {formData.availability}
+                  </Badge>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
-        {/* Profile Form */}
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ borderRadius: 2 }}>
-            <Tabs 
-              value={activeTab} 
-              onChange={(e, newValue) => setActiveTab(newValue)}
-              sx={{ borderBottom: 1, borderColor: 'divider' }}
-            >
-              <Tab label="Personal Info" icon={<PersonIcon />} iconPosition="start" />
-              <Tab label="Professional" icon={<WorkIcon />} iconPosition="start" />
-              <Tab label="Location" icon={<LocationIcon />} iconPosition="start" />
-              <Tab label="Schedule" icon={<ScheduleIcon />} iconPosition="start" />
-            </Tabs>
+        <div className="lg:col-span-8">
+          <Card className="overflow-hidden rounded-lg border shadow-sm">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="h-auto w-full flex-wrap justify-start rounded-none border-b bg-muted/30 p-2">
+                <TabsTrigger value="personal" className="gap-2">
+                  <User className="h-4 w-4" />
+                  Personal Info
+                </TabsTrigger>
+                <TabsTrigger value="professional" className="gap-2">
+                  <Briefcase className="h-4 w-4" />
+                  Professional
+                </TabsTrigger>
+                <TabsTrigger value="location" className="gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Location
+                </TabsTrigger>
+                <TabsTrigger value="schedule" className="gap-2">
+                  <Clock className="h-4 w-4" />
+                  Schedule
+                </TabsTrigger>
+              </TabsList>
 
-            {/* Personal Information Tab */}
-            <TabPanel value={activeTab} index={0}>
-              <CardContent>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="First Name"
-                      value={formData.firstName}
-                      onChange={handleInputChange('firstName')}
-                      disabled={!isEditing}
-                      required
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Last Name"
-                      value={formData.lastName}
-                      onChange={handleInputChange('lastName')}
-                      disabled={!isEditing}
-                      required
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleInputChange('email')}
-                      disabled={true}
-                      InputProps={{
-                        startAdornment: <EmailIcon sx={{ mr: 1, color: 'text.secondary' }} />,
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Phone Number"
-                      value={formData.phoneNumber}
-                      onChange={handleInputChange('phoneNumber')}
-                      disabled={!isEditing}
-                      required
-                      InputProps={{
-                        startAdornment: <PhoneIcon sx={{ mr: 1, color: 'text.secondary' }} />,
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Alternate Phone"
-                      value={formData.alternatePhone}
-                      onChange={handleInputChange('alternatePhone')}
-                      disabled={!isEditing}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Date of Birth"
-                      type="date"
-                      value={formData.dateOfBirth}
-                      onChange={handleInputChange('dateOfBirth')}
-                      disabled={!isEditing}
-                      InputLabelProps={{ shrink: true }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <FormControl fullWidth disabled={!isEditing}>
-                      <InputLabel>Gender</InputLabel>
+              <TabsContent value="personal" className="mt-0 border-0 p-0">
+                <CardContent className="space-y-4 p-6">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <Label htmlFor="firstName">First Name</Label>
+                      <Input
+                        id="firstName"
+                        className="mt-1"
+                        value={formData.firstName}
+                        onChange={handleInputChange('firstName')}
+                        disabled={!isEditing}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="lastName">Last Name</Label>
+                      <Input
+                        id="lastName"
+                        className="mt-1"
+                        value={formData.lastName}
+                        onChange={handleInputChange('lastName')}
+                        disabled={!isEditing}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="email">Email</Label>
+                      <div className="relative mt-1">
+                        <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          id="email"
+                          type="email"
+                          className="pl-9"
+                          value={formData.email}
+                          onChange={handleInputChange('email')}
+                          disabled
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <div className="relative mt-1">
+                        <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          id="phone"
+                          className="pl-9"
+                          value={formData.phoneNumber}
+                          onChange={handleInputChange('phoneNumber')}
+                          disabled={!isEditing}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="altPhone">Alternate Phone</Label>
+                      <Input
+                        id="altPhone"
+                        className="mt-1"
+                        value={formData.alternatePhone}
+                        onChange={handleInputChange('alternatePhone')}
+                        disabled={!isEditing}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="dob">Date of Birth</Label>
+                      <Input
+                        id="dob"
+                        type="date"
+                        className="mt-1"
+                        value={formData.dateOfBirth}
+                        onChange={handleInputChange('dateOfBirth')}
+                        disabled={!isEditing}
+                      />
+                    </div>
+                    <div>
+                      <Label>Gender</Label>
                       <Select
-                        value={formData.gender}
-                        label="Gender"
-                        onChange={(e) => setFormData(prev => ({ ...prev, gender: e.target.value as any }))}
+                        value={formData.gender ? formData.gender : 'unspecified'}
+                        onValueChange={(v) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            gender:
+                              v === 'unspecified' ? '' : (v as 'male' | 'female' | 'other'),
+                          }))
+                        }
+                        disabled={!isEditing}
                       >
-                        <MenuItem value="male">Male</MenuItem>
-                        <MenuItem value="female">Female</MenuItem>
-                        <MenuItem value="other">Other</MenuItem>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Gender" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unspecified">Not specified</SelectItem>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
                       </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Bio"
-                      multiline
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="bio">Bio</Label>
+                    <Textarea
+                      id="bio"
                       rows={4}
+                      className="mt-1"
                       value={formData.bio}
                       onChange={handleInputChange('bio')}
                       disabled={!isEditing}
                       placeholder="Tell us about yourself..."
                     />
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </TabPanel>
+                  </div>
+                </CardContent>
+              </TabsContent>
 
-            {/* Professional Details Tab */}
-            <TabPanel value={activeTab} index={1}>
-              <CardContent>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Years of Experience"
-                      type="number"
-                      value={formData.experience}
-                      onChange={(e) => setFormData(prev => ({ ...prev, experience: parseInt(e.target.value) || 0 }))}
-                      disabled={!isEditing}
-                      required
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <FormControl fullWidth disabled={!isEditing}>
-                      <InputLabel>Expertise Level</InputLabel>
+              <TabsContent value="professional" className="mt-0 border-0 p-0">
+                <CardContent className="space-y-4 p-6">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <Label htmlFor="exp">Years of Experience</Label>
+                      <Input
+                        id="exp"
+                        type="number"
+                        className="mt-1"
+                        value={formData.experience}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            experience: parseInt(e.target.value, 10) || 0,
+                          }))
+                        }
+                        disabled={!isEditing}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label>Expertise Level</Label>
                       <Select
                         value={formData.expertiseLevel}
-                        label="Expertise Level"
-                        onChange={(e) => setFormData(prev => ({ ...prev, expertiseLevel: e.target.value as any }))}
+                        onValueChange={(v) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            expertiseLevel: v as 'beginner' | 'intermediate' | 'expert',
+                          }))
+                        }
+                        disabled={!isEditing}
                       >
-                        <MenuItem value="beginner">Beginner</MenuItem>
-                        <MenuItem value="intermediate">Intermediate</MenuItem>
-                        <MenuItem value="expert">Expert</MenuItem>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="beginner">Beginner</SelectItem>
+                          <SelectItem value="intermediate">Intermediate</SelectItem>
+                          <SelectItem value="expert">Expert</SelectItem>
+                        </SelectContent>
                       </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Max Bookings Per Day"
-                      type="number"
-                      value={formData.maxBookingsPerDay}
-                      onChange={(e) => setFormData(prev => ({ ...prev, maxBookingsPerDay: parseInt(e.target.value) || 5 }))}
-                      disabled={!isEditing}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <FormControl fullWidth disabled={!isEditing}>
-                      <InputLabel>Availability Status</InputLabel>
+                    </div>
+                    <div>
+                      <Label htmlFor="maxBook">Max Bookings Per Day</Label>
+                      <Input
+                        id="maxBook"
+                        type="number"
+                        className="mt-1"
+                        value={formData.maxBookingsPerDay}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            maxBookingsPerDay: parseInt(e.target.value, 10) || 5,
+                          }))
+                        }
+                        disabled={!isEditing}
+                      />
+                    </div>
+                    <div>
+                      <Label>Availability Status</Label>
                       <Select
                         value={formData.availability}
-                        label="Availability Status"
-                        onChange={(e) => setFormData(prev => ({ ...prev, availability: e.target.value as any }))}
+                        onValueChange={(v) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            availability: v as 'available' | 'busy' | 'offline',
+                          }))
+                        }
+                        disabled={!isEditing}
                       >
-                        <MenuItem value="available">Available</MenuItem>
-                        <MenuItem value="busy">Busy</MenuItem>
-                        <MenuItem value="offline">Offline</MenuItem>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="available">Available</SelectItem>
+                          <SelectItem value="busy">Busy</SelectItem>
+                          <SelectItem value="offline">Offline</SelectItem>
+                        </SelectContent>
                       </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Typography variant="subtitle2" gutterBottom>
-                      Services Offered
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="mb-2 text-sm font-medium">Services Offered</p>
+                    <div className="flex flex-wrap gap-2">
                       {professional?.services?.map((service) => (
-                        <Chip 
-                          key={service._id} 
-                          label={service.name} 
-                          color="primary" 
-                          size="small"
-                        />
+                        <Badge key={service._id} variant="default">
+                          {service.name}
+                        </Badge>
                       ))}
                       {(!professional?.services || professional.services.length === 0) && (
-                        <Typography variant="body2" color="text.secondary">
-                          No services added yet
-                        </Typography>
+                        <p className="text-sm text-muted-foreground">No services added yet</p>
                       )}
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Typography variant="subtitle2" gutterBottom>
-                      Skills
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="mb-2 text-sm font-medium">Skills</p>
+                    <div className="flex flex-wrap gap-2">
                       {professional?.skills?.map((skill) => (
-                        <Chip 
-                          key={skill} 
-                          label={skill} 
-                          variant="outlined" 
-                          size="small"
-                        />
+                        <Badge key={skill} variant="outline">
+                          {skill}
+                        </Badge>
                       ))}
                       {(!professional?.skills || professional.skills.length === 0) && (
-                        <Typography variant="body2" color="text.secondary">
-                          No skills added yet
-                        </Typography>
+                        <p className="text-sm text-muted-foreground">No skills added yet</p>
                       )}
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Typography variant="subtitle2" gutterBottom>
-                      Certifications
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="mb-2 text-sm font-medium">Certifications</p>
+                    <div className="flex flex-wrap gap-2">
                       {professional?.certifications?.map((cert, index) => (
-                        <Chip 
-                          key={index}
-                          icon={<DocumentIcon />}
-                          label={cert.name} 
-                          color="success" 
-                          size="small"
-                        />
+                        <Badge key={index} variant="success" className="gap-1">
+                          <FileText className="h-3 w-3" />
+                          {cert.name}
+                        </Badge>
                       ))}
-                      {(!professional?.certifications || professional.certifications.length === 0) && (
-                        <Typography variant="body2" color="text.secondary">
-                          No certifications added yet
-                        </Typography>
+                      {(!professional?.certifications ||
+                        professional.certifications.length === 0) && (
+                        <p className="text-sm text-muted-foreground">No certifications added yet</p>
                       )}
-                    </Box>
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </TabPanel>
+                    </div>
+                  </div>
+                </CardContent>
+              </TabsContent>
 
-            {/* Location Tab */}
-            <TabPanel value={activeTab} index={2}>
-              <CardContent>
-                <Grid container spacing={3}>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Street Address"
+              <TabsContent value="location" className="mt-0 border-0 p-0">
+                <CardContent className="space-y-4 p-6">
+                  <div>
+                    <Label htmlFor="street">Street Address</Label>
+                    <Input
+                      id="street"
+                      className="mt-1"
                       value={formData.address.street}
                       onChange={handleNestedInputChange('address', 'street')}
                       disabled={!isEditing}
                     />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Area"
-                      value={formData.address.area}
-                      onChange={handleNestedInputChange('address', 'area')}
-                      disabled={!isEditing}
-                      required
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="City"
-                      value={formData.address.city}
-                      onChange={handleNestedInputChange('address', 'city')}
-                      disabled={!isEditing}
-                      required
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="State"
-                      value={formData.address.state}
-                      onChange={handleNestedInputChange('address', 'state')}
-                      disabled={!isEditing}
-                      required
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Pincode"
-                      value={formData.address.pincode}
-                      onChange={handleNestedInputChange('address', 'pincode')}
-                      disabled={!isEditing}
-                      required
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Divider sx={{ my: 2 }} />
-                    <Typography variant="subtitle2" gutterBottom>
-                      Service Areas
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <Label htmlFor="area">Area</Label>
+                      <Input
+                        id="area"
+                        className="mt-1"
+                        value={formData.address.area}
+                        onChange={handleNestedInputChange('address', 'area')}
+                        disabled={!isEditing}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="city">City</Label>
+                      <Input
+                        id="city"
+                        className="mt-1"
+                        value={formData.address.city}
+                        onChange={handleNestedInputChange('address', 'city')}
+                        disabled={!isEditing}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="state">State</Label>
+                      <Input
+                        id="state"
+                        className="mt-1"
+                        value={formData.address.state}
+                        onChange={handleNestedInputChange('address', 'state')}
+                        disabled={!isEditing}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="pincode">Pincode</Label>
+                      <Input
+                        id="pincode"
+                        className="mt-1"
+                        value={formData.address.pincode}
+                        onChange={handleNestedInputChange('address', 'pincode')}
+                        disabled={!isEditing}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <Separator />
+                  <div>
+                    <p className="mb-2 text-sm font-medium">Service Areas</p>
+                    <div className="flex flex-wrap gap-2">
                       {professional?.serviceAreas?.map((area, index) => (
-                        <Chip 
-                          key={index}
-                          icon={<LocationIcon />}
-                          label={`${area.city}${area.areas?.length ? ` (${area.areas.join(', ')})` : ''}`} 
-                          variant="outlined" 
-                          size="small"
-                        />
+                        <Badge key={index} variant="outline" className="gap-1 font-normal">
+                          <MapPin className="h-3 w-3" />
+                          {`${area.city}${area.areas?.length ? ` (${area.areas.join(', ')})` : ''}`}
+                        </Badge>
                       ))}
                       {(!professional?.serviceAreas || professional.serviceAreas.length === 0) && (
-                        <Typography variant="body2" color="text.secondary">
-                          No service areas added yet
-                        </Typography>
+                        <p className="text-sm text-muted-foreground">No service areas added yet</p>
                       )}
-                    </Box>
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </TabPanel>
+                    </div>
+                  </div>
+                </CardContent>
+              </TabsContent>
 
-            {/* Schedule Tab */}
-            <TabPanel value={activeTab} index={3}>
-              <CardContent>
-                <Grid container spacing={3}>
-                  <Grid item xs={12}>
-                    <Typography variant="subtitle2" gutterBottom>
-                      Working Days
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 3 }}>
-                      {WORKING_DAYS.map((day) => (
-                        <Chip
-                          key={day.value}
-                          label={day.label}
-                          onClick={() => isEditing && toggleWorkingDay(day.value)}
-                          color={formData.workingDays.includes(day.value) ? 'primary' : 'default'}
-                          variant={formData.workingDays.includes(day.value) ? 'filled' : 'outlined'}
-                          disabled={!isEditing}
-                          clickable={isEditing}
-                        />
-                      ))}
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Start Time"
-                      type="time"
-                      value={formData.workingHours.start}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        workingHours: { ...prev.workingHours, start: e.target.value }
-                      }))}
-                      disabled={!isEditing}
-                      InputLabelProps={{ shrink: true }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="End Time"
-                      type="time"
-                      value={formData.workingHours.end}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        workingHours: { ...prev.workingHours, end: e.target.value }
-                      }))}
-                      disabled={!isEditing}
-                      InputLabelProps={{ shrink: true }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Divider sx={{ my: 2 }} />
-                    <Typography variant="subtitle2" gutterBottom sx={{ mb: 2 }}>
-                      Emergency Contact
-                    </Typography>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} sm={4}>
-                        <TextField
-                          fullWidth
-                          label="Contact Name"
+              <TabsContent value="schedule" className="mt-0 border-0 p-0">
+                <CardContent className="space-y-6 p-6">
+                  <div>
+                    <p className="mb-3 text-sm font-medium">Working Days</p>
+                    <div className="flex flex-wrap gap-2">
+                      {WORKING_DAYS.map((day) => {
+                        const on = formData.workingDays.includes(day.value)
+                        return (
+                          <Button
+                            key={day.value}
+                            type="button"
+                            size="sm"
+                            variant={on ? 'default' : 'outline'}
+                            disabled={!isEditing}
+                            onClick={() => isEditing && toggleWorkingDay(day.value)}
+                          >
+                            {day.label}
+                          </Button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <Label htmlFor="whStart">Start Time</Label>
+                      <Input
+                        id="whStart"
+                        type="time"
+                        className="mt-1"
+                        value={formData.workingHours.start}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            workingHours: { ...prev.workingHours, start: e.target.value },
+                          }))
+                        }
+                        disabled={!isEditing}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="whEnd">End Time</Label>
+                      <Input
+                        id="whEnd"
+                        type="time"
+                        className="mt-1"
+                        value={formData.workingHours.end}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            workingHours: { ...prev.workingHours, end: e.target.value },
+                          }))
+                        }
+                        disabled={!isEditing}
+                      />
+                    </div>
+                  </div>
+                  <Separator />
+                  <div>
+                    <p className="mb-4 text-sm font-medium">Emergency Contact</p>
+                    <div className="grid gap-4 sm:grid-cols-3">
+                      <div>
+                        <Label htmlFor="ecName">Contact Name</Label>
+                        <Input
+                          id="ecName"
+                          className="mt-1"
                           value={formData.emergencyContact.name}
                           onChange={handleNestedInputChange('emergencyContact', 'name')}
                           disabled={!isEditing}
                         />
-                      </Grid>
-                      <Grid item xs={12} sm={4}>
-                        <TextField
-                          fullWidth
-                          label="Relationship"
+                      </div>
+                      <div>
+                        <Label htmlFor="ecRel">Relationship</Label>
+                        <Input
+                          id="ecRel"
+                          className="mt-1"
                           value={formData.emergencyContact.relationship}
                           onChange={handleNestedInputChange('emergencyContact', 'relationship')}
                           disabled={!isEditing}
                           placeholder="e.g., Spouse, Parent"
                         />
-                      </Grid>
-                      <Grid item xs={12} sm={4}>
-                        <TextField
-                          fullWidth
-                          label="Phone Number"
+                      </div>
+                      <div>
+                        <Label htmlFor="ecPhone">Phone Number</Label>
+                        <Input
+                          id="ecPhone"
+                          className="mt-1"
                           value={formData.emergencyContact.phone}
                           onChange={handleNestedInputChange('emergencyContact', 'phone')}
                           disabled={!isEditing}
                         />
-                      </Grid>
-                    </Grid>
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </TabPanel>
-          </Paper>
-        </Grid>
-      </Grid>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </TabsContent>
+            </Tabs>
+          </Card>
+        </div>
+      </div>
 
       {isEditing && (
-        <Alert severity="info" sx={{ mt: 3 }}>
-          Make sure all information is accurate. Changes will be reviewed by our team before being published.
-        </Alert>
+        <div
+          role="status"
+          className="mt-6 rounded-lg border border-blue-500/40 bg-blue-500/10 px-4 py-3 text-sm"
+        >
+          Make sure all information is accurate. Changes will be reviewed by our team before being
+          published.
+        </div>
       )}
-    </Box>
+    </div>
   )
 }

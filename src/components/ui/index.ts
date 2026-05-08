@@ -55,7 +55,7 @@ export { Tabs, TabsList, TabsTrigger, TabsContent } from './tabs'
 // DATA DISPLAY
 // ============================================
 export { Badge } from './badge'
-export { Avatar } from './avatar'
+export { Avatar, AvatarImage, AvatarFallback } from './avatar'
 
 export {
   Table,
@@ -83,6 +83,19 @@ export {
   DialogTitle,
   DialogDescription,
 } from './dialog'
+
+export {
+  Sheet,
+  SheetPortal,
+  SheetOverlay,
+  SheetTrigger,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetFooter,
+  SheetTitle,
+  SheetDescription,
+} from './sheet'
 
 export {
   Popover,
@@ -118,4 +131,18 @@ export { Calendar } from './calendar'
 // ============================================
 export { Slider } from './slider'
 export { Separator } from './separator'
+
+export {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from './tooltip'
+
+export {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from './accordion'
 

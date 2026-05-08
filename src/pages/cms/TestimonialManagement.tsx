@@ -1,76 +1,126 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'
 import {
-  Box,
+  Plus,
+  Pencil,
+  Trash2,
+  Star,
+  StarHalf,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+} from 'lucide-react'
+import { CMSService } from '../../services/api'
+import { format } from 'date-fns'
+import { PageHeader } from '../../components/common/PageHeader'
+import { appToast } from '../../lib/appToast'
+import { useAppConfirm } from '../../components/providers/AppDialogsProvider'
+import { cn } from '../../lib/utils'
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from '../../components/ui/avatar'
+import {
+  Badge,
   Button,
   Card,
   CardContent,
-  Chip,
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  FormControlLabel,
-  IconButton,
-  Rating,
-  Stack,
+  Input,
+  Label,
+  Separator,
   Switch,
-  TextField,
-  Typography,
-  Avatar,
-  Divider,
-  alpha,
-  useTheme,
-  CircularProgress,
-  Tooltip,
   Tabs,
-  Tab,
-} from '@mui/material';
-import Grid from '@mui/material/GridLegacy'
+  TabsList,
+  TabsTrigger,
+  Textarea,
+} from '../../components/ui'
 import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Star as StarIcon,
-  CheckCircle as ApprovedIcon,
-  Cancel as RejectedIcon,
-  ThumbUp as ThumbUpIcon,
-} from '@mui/icons-material';
-import { CMSService } from '../../services/api';
-import { format } from 'date-fns';
-import { PageHeader } from '../../components/common/PageHeader';
-import { appToast } from '../../lib/appToast';
-import { useAppConfirm } from '../../components/providers/AppDialogsProvider';
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../../components/ui/tooltip'
 
-// Backend uses: title, content, customerRole, customerImage, order, isActive
 interface Testimonial {
-  _id: string;
-  customerName: string;
-  customerTitle?: string;
-  customerRole?: string;
-  customerAvatar?: string;
-  customerImage?: string;
-  rating: number;
-  comment?: string;
-  title?: string;
-  content?: string;
-  service?: string;
-  serviceType?: string;
-  isApproved?: boolean;
-  isActive?: boolean;
-  isFeatured: boolean;
-  displayOrder?: number;
-  order?: number;
-  createdAt: string;
+  _id: string
+  customerName: string
+  customerTitle?: string
+  customerRole?: string
+  customerAvatar?: string
+  customerImage?: string
+  rating: number
+  comment?: string
+  title?: string
+  content?: string
+  service?: string
+  serviceType?: string
+  isApproved?: boolean
+  isActive?: boolean
+  isFeatured: boolean
+  displayOrder?: number
+  order?: number
+  createdAt: string
+}
+
+function StarRatingDisplay({ value, className }: { value: number; className?: string }) {
+  const v = Math.min(5, Math.max(0, Math.round(value * 2) / 2))
+  const full = Math.floor(v)
+  const half = v % 1 >= 0.5
+  const empty = 5 - full - (half ? 1 : 0)
+  return (
+    <div className={cn('flex items-center gap-0.5', className)} role="img" aria-label={`${value} out of 5 stars`}>
+      {Array.from({ length: full }).map((_, i) => (
+        <Star key={`f-${i}`} className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden />
+      ))}
+      {half && <StarHalf className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden />}
+      {Array.from({ length: empty }).map((_, i) => (
+        <Star key={`e-${i}`} className="h-4 w-4 text-muted-foreground/40" aria-hidden />
+      ))}
+    </div>
+  )
+}
+
+function StarRatingInput({
+  value,
+  onChange,
+}: {
+  value: number
+  onChange: (n: number) => void
+}) {
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <button
+          key={i}
+          type="button"
+          className="rounded-sm p-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          onClick={() => onChange(i)}
+          aria-label={`${i} stars`}
+        >
+          <Star
+            className={cn(
+              'h-7 w-7',
+              i <= value ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/35',
+            )}
+          />
+        </button>
+      ))}
+    </div>
+  )
 }
 
 export default function TestimonialManagement() {
-  const theme = useTheme();
-  const confirm = useAppConfirm();
-  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editingTestimonial, setEditingTestimonial] = useState<Testimonial | null>(null);
-  const [filter, setFilter] = useState<'all' | 'approved' | 'pending' | 'featured'>('all');
+  const confirm = useAppConfirm()
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [editingTestimonial, setEditingTestimonial] = useState<Testimonial | null>(null)
+  const [filter, setFilter] = useState<'all' | 'approved' | 'pending' | 'featured'>('all')
 
   const [formData, setFormData] = useState({
     customerName: '',
@@ -82,61 +132,71 @@ export default function TestimonialManagement() {
     isApproved: false,
     isFeatured: false,
     displayOrder: 0,
-  });
+  })
 
   useEffect(() => {
-    fetchTestimonials();
-  }, [filter]);
+    fetchTestimonials()
+  }, [filter])
 
   const fetchTestimonials = async () => {
     try {
-      setLoading(true);
-      const params: any = {};
-      if (filter === 'approved') params.isActive = true;
-      if (filter === 'pending') params.isActive = false;
-      if (filter === 'featured') params.isFeatured = true;
+      setLoading(true)
+      const params: Record<string, unknown> = {}
+      if (filter === 'approved') params.isActive = true
+      if (filter === 'pending') params.isActive = false
+      if (filter === 'featured') params.isFeatured = true
 
-      const data = await CMSService.getTestimonials(params);
-      let list: Testimonial[] = [];
+      const data = await CMSService.getTestimonials(params)
+      let list: unknown[] = []
       if (Array.isArray(data)) {
-        list = data;
+        list = data
       } else if (data?.testimonials && Array.isArray(data.testimonials)) {
-        list = data.testimonials;
+        list = data.testimonials
       } else if (data?.data && Array.isArray(data.data)) {
-        list = data.data;
+        list = data.data
       }
-      setTestimonials(list.map(normalizeTestimonial));
+      setTestimonials(list.map(normalizeTestimonial))
     } catch (error: any) {
-      console.error('Error fetching testimonials:', error);
-      const errorMessage = error?.response?.data?.error || error?.response?.data?.message || error?.message || 'Failed to load testimonials';
-      appToast('Error: ' + errorMessage, 'error');
-      setTestimonials([]);
+      console.error('Error fetching testimonials:', error)
+      const errorMessage =
+        error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        error?.message ||
+        'Failed to load testimonials'
+      appToast('Error: ' + errorMessage, 'error')
+      setTestimonials([])
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  function normalizeTestimonial(t: any): Testimonial {
+  function normalizeTestimonial(t: unknown): Testimonial {
+    const r = t && typeof t === 'object' ? (t as Record<string, unknown>) : {}
     return {
-      _id: t._id,
-      customerName: t.customerName || '',
-      customerTitle: t.customerRole ?? t.customerTitle,
-      customerAvatar: t.customerImage ?? t.customerAvatar,
-      rating: t.rating ?? 5,
-      comment: t.content ?? t.comment ?? '',
-      service: t.serviceType ?? t.service,
-      isApproved: t.isActive ?? t.isApproved ?? true,
-      isFeatured: t.isFeatured ?? false,
-      displayOrder: t.order ?? t.displayOrder ?? 0,
-      createdAt: t.createdAt || '',
-    };
+      _id: String(r._id),
+      customerName: String(r.customerName ?? ''),
+      customerTitle: (r.customerRole ?? r.customerTitle) as string | undefined,
+      customerAvatar: (r.customerImage ?? r.customerAvatar) as string | undefined,
+      rating: typeof r.rating === 'number' ? r.rating : 5,
+      comment: String(r.content ?? r.comment ?? ''),
+      service: (r.serviceType ?? r.service) as string | undefined,
+      isApproved: (r.isActive ?? r.isApproved ?? true) as boolean,
+      isFeatured: Boolean(r.isFeatured),
+      displayOrder:
+        typeof r.order === 'number'
+          ? r.order
+          : typeof r.displayOrder === 'number'
+            ? r.displayOrder
+            : 0,
+      createdAt: String(r.createdAt ?? ''),
+    }
   }
 
   const handleSubmit = async () => {
     try {
       if (!formData.customerName.trim() || !formData.comment.trim()) {
-        appToast('Please fill in all required fields', 'warning');
-        return;
+        appToast('Please fill in all required fields', 'warning')
+        return
       }
 
       const payload = {
@@ -150,21 +210,21 @@ export default function TestimonialManagement() {
         isFeatured: formData.isFeatured,
         order: Number(formData.displayOrder),
         isActive: formData.isApproved,
-      };
-
-      if (editingTestimonial) {
-        await CMSService.updateTestimonial(editingTestimonial._id, payload);
-      } else {
-        await CMSService.createTestimonial(payload);
       }
 
-      fetchTestimonials();
-      handleCloseForm();
+      if (editingTestimonial) {
+        await CMSService.updateTestimonial(editingTestimonial._id, payload)
+      } else {
+        await CMSService.createTestimonial(payload)
+      }
+
+      fetchTestimonials()
+      handleCloseForm()
     } catch (error: any) {
-      console.error('Error saving testimonial:', error);
-      appToast('Error: ' + (error.response?.data?.error || 'Failed to save testimonial'), 'error');
+      console.error('Error saving testimonial:', error)
+      appToast('Error: ' + (error.response?.data?.error || 'Failed to save testimonial'), 'error')
     }
-  };
+  }
 
   const handleDelete = async (id: string) => {
     const ok = await confirm({
@@ -172,19 +232,19 @@ export default function TestimonialManagement() {
       message: 'Are you sure you want to delete this testimonial?',
       danger: true,
       confirmLabel: 'Delete',
-    });
-    if (!ok) return;
+    })
+    if (!ok) return
     try {
-      await CMSService.deleteTestimonial(id);
-      fetchTestimonials();
+      await CMSService.deleteTestimonial(id)
+      fetchTestimonials()
     } catch (error: any) {
-      console.error('Error deleting testimonial:', error);
-      appToast('Error: ' + (error.response?.data?.error || 'Failed to delete testimonial'), 'error');
+      console.error('Error deleting testimonial:', error)
+      appToast('Error: ' + (error.response?.data?.error || 'Failed to delete testimonial'), 'error')
     }
-  };
+  }
 
   const handleEdit = (testimonial: Testimonial) => {
-    setEditingTestimonial(testimonial);
+    setEditingTestimonial(testimonial)
     setFormData({
       customerName: testimonial.customerName || '',
       customerTitle: testimonial.customerTitle || testimonial.customerRole || '',
@@ -195,13 +255,13 @@ export default function TestimonialManagement() {
       isApproved: testimonial.isApproved ?? testimonial.isActive ?? true,
       isFeatured: testimonial.isFeatured ?? false,
       displayOrder: testimonial.displayOrder ?? testimonial.order ?? 0,
-    });
-    setShowForm(true);
-  };
+    })
+    setShowForm(true)
+  }
 
   const handleCloseForm = () => {
-    setShowForm(false);
-    setEditingTestimonial(null);
+    setShowForm(false)
+    setEditingTestimonial(null)
     setFormData({
       customerName: '',
       customerTitle: '',
@@ -212,398 +272,308 @@ export default function TestimonialManagement() {
       isApproved: false,
       isFeatured: false,
       displayOrder: 0,
-    });
-  };
+    })
+  }
 
   const handleToggleApproval = async (testimonial: Testimonial) => {
     try {
-      const next = !(testimonial.isApproved ?? testimonial.isActive ?? true);
-      await CMSService.updateTestimonial(testimonial._id, { isActive: next });
-      fetchTestimonials();
+      const next = !(testimonial.isApproved ?? testimonial.isActive ?? true)
+      await CMSService.updateTestimonial(testimonial._id, { isActive: next })
+      fetchTestimonials()
     } catch (error: any) {
-      console.error('Error updating approval:', error);
-      appToast('Error: ' + (error.response?.data?.error || 'Failed to update approval'), 'error');
+      console.error('Error updating approval:', error)
+      appToast('Error: ' + (error.response?.data?.error || 'Failed to update approval'), 'error')
     }
-  };
+  }
 
   const handleToggleFeatured = async (testimonial: Testimonial) => {
     try {
       await CMSService.updateTestimonial(testimonial._id, {
         isFeatured: !testimonial.isFeatured,
-      });
-      fetchTestimonials();
+      })
+      fetchTestimonials()
     } catch (error: any) {
-      console.error('Error updating featured status:', error);
-      appToast('Error: ' + (error.response?.data?.error || 'Failed to update featured status'), 'error');
+      console.error('Error updating featured status:', error)
+      appToast('Error: ' + (error.response?.data?.error || 'Failed to update featured status'), 'error')
     }
-  };
+  }
 
   return (
-    <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
-      <PageHeader
-        title="Testimonial Management"
-        subtitle="Manage customer reviews and testimonials"
-        action={
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setShowForm(true)}
-            sx={{ borderRadius: 2 }}
-          >
-            Add Testimonial
-          </Button>
-        }
-      />
-
-      {/* Filter Tabs */}
-      <Box sx={{ mb: 3 }}>
-        <Tabs
-          value={filter}
-          onChange={(_, newValue) => setFilter(newValue)}
-          sx={{
-            borderBottom: 1,
-            borderColor: 'divider',
-            '& .MuiTab-root': {
-              textTransform: 'none',
-              fontWeight: 600,
-            },
-          }}
-        >
-          <Tab label={`All (${testimonials.length})`} value="all" />
-          <Tab
-            label={`Approved (${testimonials.filter(t => t.isApproved).length})`}
-            value="approved"
-          />
-          <Tab
-            label={`Pending (${testimonials.filter(t => !t.isApproved).length})`}
-            value="pending"
-          />
-          <Tab
-            label={`Featured (${testimonials.filter(t => t.isFeatured).length})`}
-            value="featured"
-          />
-        </Tabs>
-      </Box>
-
-      {loading ? (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress />
-        </Box>
-      ) : testimonials.length === 0 ? (
-        <Card>
-          <CardContent sx={{ textAlign: 'center', py: 8 }}>
-            <StarIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              No testimonials found
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Add your first testimonial to showcase customer feedback
-            </Typography>
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => setShowForm(true)}>
+    <TooltipProvider delayDuration={300}>
+      <div className="p-4 sm:p-6 md:p-8">
+        <PageHeader
+          title="Testimonial Management"
+          subtitle="Manage customer reviews and testimonials"
+          action={
+            <Button type="button" onClick={() => setShowForm(true)}>
+              <Plus className="mr-2 h-4 w-4" />
               Add Testimonial
             </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <Grid container spacing={3}>
-          {testimonials.map((testimonial) => (
-            <Grid item xs={12} md={6} lg={4} key={testimonial._id}>
+          }
+        />
+
+        <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)} className="mb-6">
+          <TabsList className="h-auto w-full flex-wrap justify-start gap-1 bg-muted/80 p-1">
+            <TabsTrigger value="all" className="font-semibold">
+              All ({testimonials.length})
+            </TabsTrigger>
+            <TabsTrigger value="approved" className="font-semibold">
+              Approved ({testimonials.filter((t) => t.isApproved).length})
+            </TabsTrigger>
+            <TabsTrigger value="pending" className="font-semibold">
+              Pending ({testimonials.filter((t) => !t.isApproved).length})
+            </TabsTrigger>
+            <TabsTrigger value="featured" className="font-semibold">
+              Featured ({testimonials.filter((t) => t.isFeatured).length})
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {loading ? (
+          <div className="flex min-h-[400px] items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden />
+          </div>
+        ) : testimonials.length === 0 ? (
+          <Card>
+            <CardContent className="px-6 py-16 text-center">
+              <Star className="mx-auto mb-4 h-16 w-16 text-muted-foreground opacity-50" aria-hidden />
+              <h3 className="mb-2 text-lg font-semibold text-muted-foreground">No testimonials found</h3>
+              <p className="mb-6 text-sm text-muted-foreground">Add your first testimonial to showcase customer feedback</p>
+              <Button type="button" onClick={() => setShowForm(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Testimonial
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {testimonials.map((testimonial) => (
               <Card
-                sx={{
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  position: 'relative',
-                  border: testimonial.isFeatured ? `2px solid ${theme.palette.primary.main}` : `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    boxShadow: theme.shadows[8],
-                    transform: 'translateY(-4px)',
-                  },
-                }}
+                key={testimonial._id}
+                className={cn(
+                  'relative flex h-full flex-col transition-shadow hover:-translate-y-1 hover:shadow-md',
+                  testimonial.isFeatured ? 'border-2 border-primary' : 'border',
+                )}
               >
                 {testimonial.isFeatured && (
-                  <Chip
-                    icon={<StarIcon />}
-                    label="Featured"
-                    size="small"
-                    color="primary"
-                    sx={{
-                      position: 'absolute',
-                      top: 12,
-                      right: 12,
-                      fontWeight: 600,
-                    }}
-                  />
+                  <Badge className="absolute right-3 top-3 gap-1 font-semibold">
+                    <Star className="h-3 w-3" />
+                    Featured
+                  </Badge>
                 )}
-                <CardContent sx={{ flexGrow: 1, p: 3 }}>
-                  <Stack spacing={2}>
-                    {/* Customer Info */}
-                    <Box display="flex" alignItems="center" gap={2}>
-                      <Avatar
-                        src={testimonial.customerAvatar}
-                        alt={testimonial.customerName}
-                        sx={{
-                          width: 64,
-                          height: 64,
-                          bgcolor: theme.palette.primary.main,
-                          fontSize: '1.5rem',
-                        }}
-                      >
+                <CardContent className="flex flex-1 flex-col gap-4 p-6 pt-8">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-16 w-16">
+                      <AvatarImage src={testimonial.customerAvatar} alt="" />
+                      <AvatarFallback className="bg-primary text-lg text-primary-foreground">
                         {testimonial.customerName.charAt(0)}
-                      </Avatar>
-                      <Box flexGrow={1}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                          {testimonial.customerName}
-                        </Typography>
-                        {testimonial.customerTitle && (
-                          <Typography variant="caption" color="text.secondary">
-                            {testimonial.customerTitle}
-                          </Typography>
-                        )}
-                      </Box>
-                    </Box>
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold">{testimonial.customerName}</p>
+                      {testimonial.customerTitle && (
+                        <p className="text-xs text-muted-foreground">{testimonial.customerTitle}</p>
+                      )}
+                    </div>
+                  </div>
 
-                    {/* Rating */}
-                    <Rating
-                      value={testimonial.rating}
-                      readOnly
-                      precision={0.5}
-                      sx={{
-                        '& .MuiRating-iconFilled': {
-                          color: theme.palette.warning.main,
-                        },
-                      }}
-                    />
+                  <StarRatingDisplay value={testimonial.rating} />
 
-                    {/* Comment */}
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{
-                        fontStyle: 'italic',
-                        lineHeight: 1.6,
-                        flexGrow: 1,
-                      }}
-                    >
-                      "{testimonial.comment}"
-                    </Typography>
+                  <p className="flex-1 text-sm italic leading-relaxed text-muted-foreground">
+                    &ldquo;{testimonial.comment}&rdquo;
+                  </p>
 
-                    {/* Service */}
-                    {testimonial.service && (
-                      <Chip
-                        label={testimonial.service}
-                        size="small"
-                        variant="outlined"
-                        sx={{ alignSelf: 'flex-start' }}
-                      />
-                    )}
+                  {testimonial.service && (
+                    <Badge variant="outline" className="w-fit">
+                      {testimonial.service}
+                    </Badge>
+                  )}
 
-                    <Divider />
+                  <Separator />
 
-                    {/* Status and Actions */}
-                    <Box display="flex" justifyContent="space-between" alignItems="center">
-                      <Chip
-                        size="small"
-                        label={testimonial.isApproved ? 'Approved' : 'Pending'}
-                        color={testimonial.isApproved ? 'success' : 'warning'}
-                        icon={testimonial.isApproved ? <ApprovedIcon /> : <RejectedIcon />}
-                        sx={{ fontWeight: 600 }}
-                      />
-                      <Stack direction="row" spacing={0.5}>
-                        <Tooltip title={testimonial.isApproved ? 'Unapprove' : 'Approve'}>
-                          <IconButton
-                            size="small"
-                            color={testimonial.isApproved ? 'success' : 'default'}
+                  <div className="flex items-center justify-between gap-2">
+                    <Badge variant={testimonial.isApproved ? 'success' : 'warning'} className="gap-1 font-semibold">
+                      {testimonial.isApproved ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+                      {testimonial.isApproved ? 'Approved' : 'Pending'}
+                    </Badge>
+                    <div className="flex gap-0.5">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                              'h-8 w-8',
+                              testimonial.isApproved ? 'bg-green-500/10 text-green-700 hover:bg-green-500/20' : 'bg-muted',
+                            )}
                             onClick={() => handleToggleApproval(testimonial)}
-                            sx={{
-                              bgcolor: alpha(
-                                testimonial.isApproved ? theme.palette.success.main : theme.palette.grey[500],
-                                0.1
-                              ),
-                              '&:hover': {
-                                bgcolor: alpha(
-                                  testimonial.isApproved ? theme.palette.success.main : theme.palette.grey[500],
-                                  0.2
-                                ),
-                              },
-                            }}
+                            aria-label={testimonial.isApproved ? 'Unapprove' : 'Approve'}
                           >
-                            <ApprovedIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title={testimonial.isFeatured ? 'Unfeature' : 'Feature'}>
-                          <IconButton
-                            size="small"
-                            color={testimonial.isFeatured ? 'primary' : 'default'}
+                            <CheckCircle2 className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{testimonial.isApproved ? 'Unapprove' : 'Approve'}</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                              'h-8 w-8',
+                              testimonial.isFeatured ? 'bg-primary/10 text-primary' : 'bg-muted',
+                            )}
                             onClick={() => handleToggleFeatured(testimonial)}
-                            sx={{
-                              bgcolor: alpha(
-                                testimonial.isFeatured ? theme.palette.primary.main : theme.palette.grey[500],
-                                0.1
-                              ),
-                              '&:hover': {
-                                bgcolor: alpha(
-                                  testimonial.isFeatured ? theme.palette.primary.main : theme.palette.grey[500],
-                                  0.2
-                                ),
-                              },
-                            }}
+                            aria-label={testimonial.isFeatured ? 'Unfeature' : 'Feature'}
                           >
-                            <StarIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Edit">
-                          <IconButton
-                            size="small"
-                            color="primary"
+                            <Star className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{testimonial.isFeatured ? 'Unfeature' : 'Feature'}</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 bg-primary/10 text-primary hover:bg-primary/20"
                             onClick={() => handleEdit(testimonial)}
-                            sx={{
-                              bgcolor: alpha(theme.palette.primary.main, 0.1),
-                              '&:hover': {
-                                bgcolor: alpha(theme.palette.primary.main, 0.2),
-                              },
-                            }}
+                            aria-label="Edit"
                           >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete">
-                          <IconButton
-                            size="small"
-                            color="error"
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Edit</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 bg-destructive/10 text-destructive hover:bg-destructive/20"
                             onClick={() => handleDelete(testimonial._id)}
-                            sx={{
-                              bgcolor: alpha(theme.palette.error.main, 0.1),
-                              '&:hover': {
-                                bgcolor: alpha(theme.palette.error.main, 0.2),
-                              },
-                            }}
+                            aria-label="Delete"
                           >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </Stack>
-                    </Box>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Delete</TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </div>
 
-                    {/* Footer */}
-                    <Typography variant="caption" color="text.secondary">
-                      Added {format(new Date(testimonial.createdAt), 'MMM dd, yyyy')}
-                    </Typography>
-                  </Stack>
+                  <p className="text-xs text-muted-foreground">
+                    Added {format(new Date(testimonial.createdAt), 'MMM dd, yyyy')}
+                  </p>
                 </CardContent>
               </Card>
-            </Grid>
-          ))}
-        </Grid>
-      )}
+            ))}
+          </div>
+        )}
 
-      {/* Form Dialog */}
-      <Dialog
-        open={showForm}
-        onClose={handleCloseForm}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: { borderRadius: 2 }
-        }}
-      >
-        <DialogTitle sx={{ pb: 2 }}>
-          <Typography variant="h5" sx={{ fontWeight: 600 }}>
-            {editingTestimonial ? 'Edit Testimonial' : 'Add New Testimonial'}
-          </Typography>
-        </DialogTitle>
-        <DialogContent dividers>
-          <Stack spacing={3} sx={{ mt: 1 }}>
-            <TextField
-              label="Customer Name"
-              value={formData.customerName}
-              onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-              required
-              fullWidth
-            />
-            <TextField
-              label="Customer Title/Position"
-              value={formData.customerTitle}
-              onChange={(e) => setFormData({ ...formData, customerTitle: e.target.value })}
-              placeholder="e.g., Homeowner, Business Owner"
-              fullWidth
-            />
-            <TextField
-              label="Customer Avatar URL"
-              value={formData.customerAvatar}
-              onChange={(e) => setFormData({ ...formData, customerAvatar: e.target.value })}
-              placeholder="https://..."
-              fullWidth
-            />
-            <Box>
-              <Typography variant="body2" gutterBottom sx={{ fontWeight: 500 }}>
-                Rating *
-              </Typography>
-              <Rating
-                value={formData.rating}
-                onChange={(_, value) => setFormData({ ...formData, rating: value || 5 })}
-                precision={0.5}
-                size="large"
-                sx={{
-                  '& .MuiRating-iconFilled': {
-                    color: theme.palette.warning.main,
-                  },
-                }}
-              />
-            </Box>
-            <TextField
-              label="Testimonial Comment"
-              value={formData.comment}
-              onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
-              multiline
-              rows={4}
-              required
-              fullWidth
-              placeholder="Share your experience..."
-            />
-            <TextField
-              label="Service"
-              value={formData.service}
-              onChange={(e) => setFormData({ ...formData, service: e.target.value })}
-              placeholder="e.g., Plumbing, Electrical"
-              fullWidth
-            />
-            <TextField
-              label="Display Order"
-              type="number"
-              value={formData.displayOrder}
-              onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value) || 0 })}
-              fullWidth
-              helperText="Lower numbers appear first"
-            />
-            <FormControlLabel
-              control={
+        <Dialog open={showForm} onOpenChange={(open) => !open && handleCloseForm()}>
+          <DialogContent className="max-w-md sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>{editingTestimonial ? 'Edit Testimonial' : 'Add New Testimonial'}</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="tm-name">Customer Name</Label>
+                <Input
+                  id="tm-name"
+                  value={formData.customerName}
+                  onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tm-title">Customer Title/Position</Label>
+                <Input
+                  id="tm-title"
+                  value={formData.customerTitle}
+                  onChange={(e) => setFormData({ ...formData, customerTitle: e.target.value })}
+                  placeholder="e.g., Homeowner, Business Owner"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tm-avatar">Customer Avatar URL</Label>
+                <Input
+                  id="tm-avatar"
+                  value={formData.customerAvatar}
+                  onChange={(e) => setFormData({ ...formData, customerAvatar: e.target.value })}
+                  placeholder="https://..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Rating *</Label>
+                <StarRatingInput value={formData.rating} onChange={(n) => setFormData({ ...formData, rating: n })} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tm-comment">Testimonial Comment</Label>
+                <Textarea
+                  id="tm-comment"
+                  value={formData.comment}
+                  onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
+                  rows={4}
+                  required
+                  placeholder="Share your experience..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tm-service">Service</Label>
+                <Input
+                  id="tm-service"
+                  value={formData.service}
+                  onChange={(e) => setFormData({ ...formData, service: e.target.value })}
+                  placeholder="e.g., Plumbing, Electrical"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tm-order">Display Order</Label>
+                <Input
+                  id="tm-order"
+                  type="number"
+                  value={formData.displayOrder}
+                  onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value, 10) || 0 })}
+                />
+                <p className="text-xs text-muted-foreground">Lower numbers appear first</p>
+              </div>
+              <div className="flex items-center gap-2">
                 <Switch
+                  id="tm-approved"
                   checked={formData.isApproved}
-                  onChange={(e) => setFormData({ ...formData, isApproved: e.target.checked })}
+                  onCheckedChange={(checked) => setFormData({ ...formData, isApproved: checked })}
                 />
-              }
-              label="Approved"
-            />
-            <FormControlLabel
-              control={
+                <Label htmlFor="tm-approved" className="cursor-pointer font-normal">
+                  Approved
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
                 <Switch
+                  id="tm-featured"
                   checked={formData.isFeatured}
-                  onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
+                  onCheckedChange={(checked) => setFormData({ ...formData, isFeatured: checked })}
                 />
-              }
-              label="Featured"
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions sx={{ p: 2.5 }}>
-          <Button onClick={handleCloseForm}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained">
-            {editingTestimonial ? 'Update' : 'Create'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
-  );
+                <Label htmlFor="tm-featured" className="cursor-pointer font-normal">
+                  Featured
+                </Label>
+              </div>
+            </div>
+            <DialogFooter className="gap-2 sm:justify-end">
+              <Button type="button" variant="outline" onClick={handleCloseForm}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={() => void handleSubmit()}>
+                {editingTestimonial ? 'Update' : 'Create'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
+  )
 }

@@ -1,82 +1,90 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'
 import {
-  Box,
+  Plus,
+  Pencil,
+  Trash2,
+  Image as ImageIcon,
+  Eye,
+  Touchpad,
+  TrendingUp,
+  Calendar,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+} from 'lucide-react'
+import axios from 'axios'
+import { ImageUploadField, type ImageFile } from '../../components/forms'
+import { PageHeader } from '../../components/common/PageHeader'
+import { appToast } from '../../lib/appToast'
+import { useAppConfirm } from '../../components/providers/AppDialogsProvider'
+import {
+  Badge,
   Button,
   Card,
   CardContent,
-  CardMedia,
-  Chip,
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  FormControl,
-  FormControlLabel,
-  IconButton,
-  InputLabel,
-  MenuItem,
+  Input,
+  Label,
   Select,
-  Stack,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Separator,
   Switch,
-  TextField,
-  Typography,
+  Textarea,
   Tooltip,
-  Paper,
-  Divider,
-  alpha,
-  useTheme,
-  CircularProgress,
-} from '@mui/material';
-import Grid from '@mui/material/GridLegacy'
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Image as ImageIcon,
-  Visibility as VisibilityIcon,
-  TouchApp as TouchAppIcon,
-  TrendingUp as TrendingUpIcon,
-  Schedule as ScheduleIcon,
-  CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
-} from '@mui/icons-material';
-import axios from 'axios';
-import { ImageUploadField, type ImageFile } from '../../components/forms';
-import { PageHeader } from '../../components/common/PageHeader';
-import { appToast } from '../../lib/appToast';
-import { useAppConfirm } from '../../components/providers/AppDialogsProvider';
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from '../../components/ui'
+import { cn } from '../../lib/utils'
 
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api'
 
 interface Banner {
-  _id: string;
-  title: string;
-  bannerType: string;
-  position: string;
-  images: { desktop: string; mobile?: string };
-  schedule: { startDate: string; endDate: string };
-  isActive: boolean;
-  analytics: { impressions: number; clicks: number; conversions: number };
-  productId?: string;
-  productSlug?: string;
-  productName?: string;
+  _id: string
+  title: string
+  bannerType: string
+  position: string
+  images: { desktop: string; mobile?: string }
+  schedule: { startDate: string; endDate: string }
+  isActive: boolean
+  analytics: { impressions: number; clicks: number; conversions: number }
+  productId?: string
+  productSlug?: string
+  productName?: string
 }
 
-type BannerTarget = 'all' | 'product';
+type BannerTarget = 'all' | 'product'
 
 type ProductOption = {
-  id: string;
-  name: string;
-  slug?: string;
-};
+  id: string
+  name: string
+  slug?: string
+}
+
+function bannerTypeClass(type: string): string {
+  const colors: Record<string, string> = {
+    hero: 'bg-primary/10 text-primary',
+    popup: 'bg-destructive/10 text-destructive',
+    announcement: 'bg-amber-500/10 text-amber-700',
+    sidebar: 'bg-sky-500/10 text-sky-700',
+    inline: 'bg-emerald-500/10 text-emerald-700',
+  }
+  return colors[type] || 'bg-muted text-muted-foreground'
+}
 
 export default function BannerManagement() {
-  const theme = useTheme();
-  const confirm = useAppConfirm();
-  const [banners, setBanners] = useState<Banner[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
+  const confirm = useAppConfirm()
+  const [banners, setBanners] = useState<Banner[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [editingBanner, setEditingBanner] = useState<Banner | null>(null)
 
   const [formData, setFormData] = useState({
     title: '',
@@ -94,90 +102,93 @@ export default function BannerManagement() {
     startDate: '',
     endDate: '',
     isActive: true,
-  });
+  })
 
-  const [productSearch, setProductSearch] = useState('');
-  const [productLoading, setProductLoading] = useState(false);
-  const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
-
-  useEffect(() => {
-    fetchBanners();
-  }, []);
+  const [productSearch, setProductSearch] = useState('')
+  const [productLoading, setProductLoading] = useState(false)
+  const [productOptions, setProductOptions] = useState<ProductOption[]>([])
 
   useEffect(() => {
-    if (!showForm || formData.target !== 'product') return;
+    fetchBanners()
+  }, [])
 
-    const q = productSearch.trim();
-    const controller = new AbortController();
+  useEffect(() => {
+    if (!showForm || formData.target !== 'product') return
+
+    const q = productSearch.trim()
+    const controller = new AbortController()
 
     const run = async () => {
       try {
-        setProductLoading(true);
-        const token = localStorage.getItem('token');
+        setProductLoading(true)
+        const token = localStorage.getItem('token')
         const res = await axios.get(`${API_BASE}/products`, {
           params: { page: 1, limit: 10, search: q || undefined },
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
           signal: controller.signal,
-        });
+        })
 
-        const items = (res.data?.data?.products || res.data?.products || []) as any[];
+        const items = (res.data?.data?.products || res.data?.products || []) as any[]
         setProductOptions(
           items.map((p) => ({
             id: String(p.id || p._id),
             name: String(p.name || 'Unnamed product'),
             slug: p.slug ? String(p.slug) : undefined,
           })),
-        );
+        )
       } catch (e: any) {
-        if (e?.name === 'CanceledError' || e?.code === 'ERR_CANCELED') return;
-        setProductOptions([]);
+        if (e?.name === 'CanceledError' || e?.code === 'ERR_CANCELED') return
+        setProductOptions([])
       } finally {
-        setProductLoading(false);
+        setProductLoading(false)
       }
-    };
+    }
 
-    const t = window.setTimeout(() => void run(), 350);
+    const t = window.setTimeout(() => void run(), 350)
     return () => {
-      window.clearTimeout(t);
-      controller.abort();
-    };
-  }, [productSearch, showForm, formData.target]);
+      window.clearTimeout(t)
+      controller.abort()
+    }
+  }, [productSearch, showForm, formData.target])
+
   const fetchBanners = async () => {
     try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
+      setLoading(true)
+      const token = localStorage.getItem('token')
       const res = await axios.get(`${API_BASE}/cms/admin/banners`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setBanners(res.data.data.banners || []);
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      setBanners(res.data.data.banners || [])
     } catch (error) {
-      console.error('Error fetching banners:', error);
+      console.error('Error fetching banners:', error)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('token')
       const payload = {
         title: formData.title,
         description: formData.description,
         bannerType: formData.bannerType,
         position: formData.position,
-        productId: formData.target === 'product' ? (formData.productId || undefined) : undefined,
-        productSlug: formData.target === 'product' ? (formData.productSlug || undefined) : undefined,
-        productName: formData.target === 'product' ? (formData.productName || undefined) : undefined,
+        productId: formData.target === 'product' ? formData.productId || undefined : undefined,
+        productSlug: formData.target === 'product' ? formData.productSlug || undefined : undefined,
+        productName: formData.target === 'product' ? formData.productName || undefined : undefined,
         images: {
           desktop: formData.desktopImages[0]?.url || '',
           mobile: formData.mobileImages[0]?.url || formData.desktopImages[0]?.url || '',
         },
-        cta: formData.ctaText ? {
-          text: formData.ctaText,
-          link: formData.ctaLink,
-          openInNewTab: false,
-        } : undefined,
+        cta: formData.ctaText
+          ? {
+              text: formData.ctaText,
+              link: formData.ctaLink,
+              openInNewTab: false,
+            }
+          : undefined,
         schedule: {
           startDate: new Date(formData.startDate).toISOString(),
           endDate: new Date(formData.endDate).toISOString(),
@@ -186,27 +197,24 @@ export default function BannerManagement() {
         priority: 1,
         isActive: formData.isActive,
         targetAudience: { userType: 'all' },
-      };
+      }
 
       if (editingBanner) {
         await axios.put(`${API_BASE}/cms/admin/banners/${editingBanner._id}`, payload, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+          headers: { Authorization: `Bearer ${token}` },
+        })
       } else {
         await axios.post(`${API_BASE}/cms/admin/banners`, payload, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+          headers: { Authorization: `Bearer ${token}` },
+        })
       }
 
-      fetchBanners();
-      handleCloseForm();
+      fetchBanners()
+      handleCloseForm()
     } catch (error: any) {
-      appToast(
-        'Error: ' + (error.response?.data?.error || 'Failed to save banner'),
-        'error'
-      );
+      appToast('Error: ' + (error.response?.data?.error || 'Failed to save banner'), 'error')
     }
-  };
+  }
 
   const handleDelete = async (id: string) => {
     const ok = await confirm({
@@ -214,21 +222,21 @@ export default function BannerManagement() {
       message: 'Delete this banner?',
       danger: true,
       confirmLabel: 'Delete',
-    });
-    if (!ok) return;
+    })
+    if (!ok) return
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('token')
       await axios.delete(`${API_BASE}/cms/admin/banners/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      fetchBanners();
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      fetchBanners()
     } catch (error) {
-      appToast('Error deleting banner', 'error');
+      appToast('Error deleting banner', 'error')
     }
-  };
+  }
 
   const handleEdit = (banner: Banner) => {
-    setEditingBanner(banner);
+    setEditingBanner(banner)
     setFormData({
       title: banner.title,
       description: '',
@@ -238,28 +246,36 @@ export default function BannerManagement() {
       productId: banner.productId || '',
       productSlug: banner.productSlug || '',
       productName: banner.productName || '',
-      desktopImages: banner.images.desktop ? [{
-        id: '1',
-        url: banner.images.desktop,
-        alt: banner.title,
-        isPrimary: true,
-        order: 0
-      }] : [],
-      mobileImages: banner.images.mobile ? [{
-        id: '2',
-        url: banner.images.mobile,
-        alt: banner.title,
-        isPrimary: true,
-        order: 0
-      }] : [],
+      desktopImages: banner.images.desktop
+        ? [
+            {
+              id: '1',
+              url: banner.images.desktop,
+              alt: banner.title,
+              isPrimary: true,
+              order: 0,
+            },
+          ]
+        : [],
+      mobileImages: banner.images.mobile
+        ? [
+            {
+              id: '2',
+              url: banner.images.mobile,
+              alt: banner.title,
+              isPrimary: true,
+              order: 0,
+            },
+          ]
+        : [],
       ctaText: '',
       ctaLink: '',
       startDate: banner.schedule.startDate.split('T')[0],
       endDate: banner.schedule.endDate.split('T')[0],
       isActive: banner.isActive,
-    });
-    setShowForm(true);
-  };
+    })
+    setShowForm(true)
+  }
 
   const handleCloseForm = () => {
     setFormData({
@@ -278,348 +294,289 @@ export default function BannerManagement() {
       startDate: '',
       endDate: '',
       isActive: true,
-    });
-    setProductSearch('');
-    setProductOptions([]);
-    setEditingBanner(null);
-    setShowForm(false);
-  };
-
-  const getBannerTypeColor = (type: string) => {
-    const colors: Record<string, string> = {
-      hero: theme.palette.primary.main,
-      popup: theme.palette.error.main,
-      announcement: theme.palette.warning.main,
-      sidebar: theme.palette.info.main,
-      inline: theme.palette.success.main,
-    };
-    return colors[type] || theme.palette.grey[500];
-  };
+    })
+    setProductSearch('')
+    setProductOptions([])
+    setEditingBanner(null)
+    setShowForm(false)
+  }
 
   return (
-    <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
-      <PageHeader
-        title="Banner Management"
-        subtitle="Create and schedule promotional banners for your website"
-        action={
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setShowForm(true)}
-            sx={{ borderRadius: 2 }}
-          >
-            Create Banner
-          </Button>
-        }
-      />
-
-      {loading ? (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress />
-        </Box>
-      ) : banners.length === 0 ? (
-        <Card>
-          <CardContent sx={{ textAlign: 'center', py: 8 }}>
-            <ImageIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              No banners found
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Create your first banner to get started
-            </Typography>
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => setShowForm(true)}>
+    <TooltipProvider>
+      <div className="p-4 sm:p-6 md:p-8">
+        <PageHeader
+          title="Banner Management"
+          subtitle="Create and schedule promotional banners for your website"
+          action={
+            <Button
+              className="rounded-md"
+              onClick={() => setShowForm(true)}
+              leftIcon={<Plus className="h-4 w-4" />}
+            >
               Create Banner
             </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <Grid container spacing={3}>
-          {banners.map((banner) => (
-            <Grid item xs={12} key={banner._id}>
+          }
+        />
+
+        {loading ? (
+          <div className="flex min-h-[400px] items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : banners.length === 0 ? (
+          <Card>
+            <CardContent className="py-16 text-center">
+              <ImageIcon className="mx-auto mb-4 h-16 w-16 text-muted-foreground" />
+              <h3 className="mb-2 text-lg font-semibold text-muted-foreground">No banners found</h3>
+              <p className="mb-6 text-sm text-muted-foreground">Create your first banner to get started</p>
+              <Button onClick={() => setShowForm(true)} leftIcon={<Plus className="h-4 w-4" />}>
+                Create Banner
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 gap-6">
+            {banners.map((banner) => (
               <Card
-                sx={{
-                  border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    boxShadow: theme.shadows[8],
-                    transform: 'translateY(-2px)',
-                  },
-                }}
+                key={banner._id}
+                className="border-border/80 transition-all hover:-translate-y-0.5 hover:shadow-md"
               >
-                <CardContent>
-                  <Grid container spacing={3} alignItems="center">
-                    {/* Banner Image */}
-                    <Grid item xs={12} md={3}>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-12">
+                    <div className="md:col-span-3">
                       {banner.images.desktop ? (
-                        <CardMedia
-                          component="img"
-                          sx={{
-                            width: '100%',
-                            height: 150,
-                            borderRadius: 2,
-                            objectFit: 'cover',
-                            border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                          }}
-                          image={banner.images.desktop}
+                        <img
+                          src={banner.images.desktop}
                           alt={banner.title}
+                          className="h-[150px] w-full rounded-lg border border-border/80 object-cover"
                         />
                       ) : (
-                        <Box
-                          sx={{
-                            width: '100%',
-                            height: 150,
-                            borderRadius: 2,
-                            bgcolor: alpha(theme.palette.grey[500], 0.1),
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          <ImageIcon sx={{ fontSize: 48, color: 'text.secondary' }} />
-                        </Box>
+                        <div className="flex h-[150px] w-full items-center justify-center rounded-lg bg-muted">
+                          <ImageIcon className="h-12 w-12 text-muted-foreground" />
+                        </div>
                       )}
-                    </Grid>
+                    </div>
 
-                    {/* Banner Details */}
-                    <Grid item xs={12} md={7}>
-                      <Stack spacing={1.5}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                            {banner.title}
-                          </Typography>
-                          <Chip
-                            icon={banner.isActive ? <CheckCircleIcon /> : <CancelIcon />}
-                            label={banner.isActive ? 'Active' : 'Inactive'}
-                            color={banner.isActive ? 'success' : 'default'}
-                            size="small"
-                            sx={{ fontWeight: 600 }}
-                          />
-                          <Chip
-                            label={banner.bannerType}
-                            size="small"
-                            sx={{
-                              bgcolor: alpha(getBannerTypeColor(banner.bannerType), 0.1),
-                              color: getBannerTypeColor(banner.bannerType),
-                              fontWeight: 600,
-                              textTransform: 'capitalize',
-                            }}
-                          />
-                        </Box>
+                    <div className="md:col-span-7">
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-lg font-semibold">{banner.title}</h3>
+                          <Badge variant={banner.isActive ? 'success' : 'secondary'} className="gap-1">
+                            {banner.isActive ? (
+                              <CheckCircle2 className="h-3 w-3" />
+                            ) : (
+                              <XCircle className="h-3 w-3" />
+                            )}
+                            {banner.isActive ? 'Active' : 'Inactive'}
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className={cn('border-0 capitalize font-semibold', bannerTypeClass(banner.bannerType))}
+                          >
+                            {banner.bannerType}
+                          </Badge>
+                        </div>
 
-                        <Stack direction="row" spacing={2} flexWrap="wrap">
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                            <Typography variant="body2" color="text.secondary">
-                              {new Date(banner.schedule.startDate).toLocaleDateString()} - {new Date(banner.schedule.endDate).toLocaleDateString()}
-                            </Typography>
-                          </Box>
-                          <Typography variant="body2" color="text.secondary">
-                            <strong>Position:</strong> {banner.position}
-                          </Typography>
-                        </Stack>
+                        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4 shrink-0" />
+                            {new Date(banner.schedule.startDate).toLocaleDateString()} -{' '}
+                            {new Date(banner.schedule.endDate).toLocaleDateString()}
+                          </span>
+                          <span>
+                            <strong className="text-foreground">Position:</strong> {banner.position}
+                          </span>
+                        </div>
 
-                        <Divider />
+                        <Separator />
 
-                        <Stack direction="row" spacing={3} flexWrap="wrap">
-                          <Tooltip title="Impressions">
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              <VisibilityIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-                              <Typography variant="body2" color="text.secondary">
+                        <div className="flex flex-wrap gap-4">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+                                <Eye className="h-4 w-4" />
                                 {banner.analytics.impressions || 0} views
-                              </Typography>
-                            </Box>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Impressions</TooltipContent>
                           </Tooltip>
-                          <Tooltip title="Clicks">
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              <TouchAppIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-                              <Typography variant="body2" color="text.secondary">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+                                <Touchpad className="h-4 w-4" />
                                 {banner.analytics.clicks || 0} clicks
-                              </Typography>
-                            </Box>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Clicks</TooltipContent>
                           </Tooltip>
-                          <Tooltip title="Conversions">
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              <TrendingUpIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-                              <Typography variant="body2" color="text.secondary">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+                                <TrendingUp className="h-4 w-4" />
                                 {banner.analytics.conversions || 0} conversions
-                              </Typography>
-                            </Box>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Conversions</TooltipContent>
                           </Tooltip>
-                        </Stack>
-                      </Stack>
-                    </Grid>
+                        </div>
+                      </div>
+                    </div>
 
-                    {/* Actions */}
-                    <Grid item xs={12} md={2}>
-                      <Stack direction="row" spacing={1} justifyContent={{ xs: 'flex-start', md: 'flex-end' }}>
-                        <Tooltip title="Edit">
-                          <IconButton
-                            color="primary"
+                    <div className="flex flex-row gap-1 md:col-span-2 md:flex-col md:items-end md:justify-center">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="bg-primary/10 text-primary hover:bg-primary/20"
                             onClick={() => handleEdit(banner)}
-                            sx={{
-                              bgcolor: alpha(theme.palette.primary.main, 0.1),
-                              '&:hover': {
-                                bgcolor: alpha(theme.palette.primary.main, 0.2),
-                              },
-                            }}
                           >
-                            <EditIcon />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete">
-                          <IconButton
-                            color="error"
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Edit</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="bg-destructive/10 text-destructive hover:bg-destructive/20"
                             onClick={() => handleDelete(banner._id)}
-                            sx={{
-                              bgcolor: alpha(theme.palette.error.main, 0.1),
-                              '&:hover': {
-                                bgcolor: alpha(theme.palette.error.main, 0.2),
-                              },
-                            }}
                           >
-                            <DeleteIcon />
-                          </IconButton>
-                        </Tooltip>
-                      </Stack>
-                    </Grid>
-                  </Grid>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Delete</TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
-            </Grid>
-          ))}
-        </Grid>
-      )}
+            ))}
+          </div>
+        )}
 
-      {/* Create/Edit Dialog */}
-      <Dialog
-        open={showForm}
-        onClose={handleCloseForm}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          sx: { borderRadius: 2 }
-        }}
-      >
-        <DialogTitle sx={{ pb: 2 }}>
-          <Typography variant="h5" sx={{ fontWeight: 600 }}>
-            {editingBanner ? 'Edit Banner' : 'Create New Banner'}
-          </Typography>
-        </DialogTitle>
-        <form onSubmit={handleSubmit}>
-          <DialogContent dividers sx={{ pt: 2 }}>
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Title"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  required
-                  sx={{ mb: 2 }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  multiline
-                  rows={2}
-                />
-              </Grid>
+        <Dialog open={showForm} onOpenChange={(open) => !open && handleCloseForm()}>
+          <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold">
+                {editingBanner ? 'Edit Banner' : 'Create New Banner'}
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="banner-title">Title</Label>
+                  <Input
+                    id="banner-title"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="banner-desc">Description</Label>
+                  <Textarea
+                    id="banner-desc"
+                    rows={2}
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  />
+                </div>
+              </div>
 
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Banner Type</InputLabel>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Banner Type</Label>
                   <Select
                     value={formData.bannerType}
-                    label="Banner Type"
-                    onChange={(e) => setFormData({ ...formData, bannerType: e.target.value })}
+                    onValueChange={(v) => setFormData({ ...formData, bannerType: v })}
                   >
-                    <MenuItem value="hero">Hero Banner</MenuItem>
-                    <MenuItem value="popup">Pop-up</MenuItem>
-                    <MenuItem value="announcement">Announcement Bar</MenuItem>
-                    <MenuItem value="sidebar">Sidebar</MenuItem>
-                    <MenuItem value="inline">Inline</MenuItem>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hero">Hero Banner</SelectItem>
+                      <SelectItem value="popup">Pop-up</SelectItem>
+                      <SelectItem value="announcement">Announcement Bar</SelectItem>
+                      <SelectItem value="sidebar">Sidebar</SelectItem>
+                      <SelectItem value="inline">Inline</SelectItem>
+                    </SelectContent>
                   </Select>
-                </FormControl>
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Position</InputLabel>
-                  <Select
-                    value={formData.position}
-                    label="Position"
-                    onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                  >
-                    <MenuItem value="top">Top</MenuItem>
-                    <MenuItem value="middle">Middle</MenuItem>
-                    <MenuItem value="bottom">Bottom</MenuItem>
-                    <MenuItem value="floating">Floating</MenuItem>
-                    <MenuItem value="header">Header</MenuItem>
+                </div>
+                <div className="space-y-2">
+                  <Label>Position</Label>
+                  <Select value={formData.position} onValueChange={(v) => setFormData({ ...formData, position: v })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="top">Top</SelectItem>
+                      <SelectItem value="middle">Middle</SelectItem>
+                      <SelectItem value="bottom">Bottom</SelectItem>
+                      <SelectItem value="floating">Floating</SelectItem>
+                      <SelectItem value="header">Header</SelectItem>
+                    </SelectContent>
                   </Select>
-                </FormControl>
-              </Grid>
+                </div>
+              </div>
 
-              <Grid item xs={12}>
-                <Divider sx={{ my: 1 }} />
-                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                  Targeting
-                </Typography>
-              </Grid>
+              <Separator />
+              <h4 className="text-sm font-semibold">Targeting</h4>
 
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Target</InputLabel>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Target</Label>
                   <Select
                     value={formData.target}
-                    label="Target"
-                    onChange={(e) => {
-                      const next = e.target.value as BannerTarget
+                    onValueChange={(v: BannerTarget) => {
                       setFormData((prev) => ({
                         ...prev,
-                        target: next,
-                        productId: next === 'product' ? prev.productId : '',
-                        productSlug: next === 'product' ? prev.productSlug : '',
-                        productName: next === 'product' ? prev.productName : '',
+                        target: v,
+                        productId: v === 'product' ? prev.productId : '',
+                        productSlug: v === 'product' ? prev.productSlug : '',
+                        productName: v === 'product' ? prev.productName : '',
                       }))
-                      if (next !== 'product') {
+                      if (v !== 'product') {
                         setProductSearch('')
                         setProductOptions([])
                       }
                     }}
                   >
-                    <MenuItem value="all">All users (global)</MenuItem>
-                    <MenuItem value="product">Specific product</MenuItem>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All users (global)</SelectItem>
+                      <SelectItem value="product">Specific product</SelectItem>
+                    </SelectContent>
                   </Select>
-                </FormControl>
-              </Grid>
+                </div>
 
-              {formData.target === 'product' && (
-                <>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Search products"
-                      value={productSearch}
-                      onChange={(e) => setProductSearch(e.target.value)}
-                      placeholder="Type product name…"
-                      InputProps={{
-                        endAdornment: productLoading ? <CircularProgress size={18} /> : undefined,
-                      }}
-                    />
-                  </Grid>
-
-                  <Grid item xs={12}>
-                    <FormControl fullWidth>
-                      <InputLabel>Product</InputLabel>
+                {formData.target === 'product' ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="banner-product-search">Search products</Label>
+                      <div className="relative">
+                        <Input
+                          id="banner-product-search"
+                          value={productSearch}
+                          onChange={(e) => setProductSearch(e.target.value)}
+                          placeholder="Type product name…"
+                        />
+                        {productLoading ? (
+                          <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label>Product</Label>
                       <Select
-                        value={formData.productId || ''}
-                        label="Product"
-                        onChange={(e) => {
-                          const id = String(e.target.value || '')
+                        value={formData.productId || '__none__'}
+                        onValueChange={(v) => {
+                          const id = v === '__none__' ? '' : v
                           const picked = productOptions.find((p) => p.id === id)
                           setFormData((prev) => ({
                             ...prev,
@@ -629,28 +586,27 @@ export default function BannerManagement() {
                           }))
                         }}
                       >
-                        <MenuItem value="">
-                          <em>Select a product</em>
-                        </MenuItem>
-                        {productOptions.map((p) => (
-                          <MenuItem key={p.id} value={p.id}>
-                            {p.name}
-                          </MenuItem>
-                        ))}
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a product" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">Select a product</SelectItem>
+                          {productOptions.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
-                    </FormControl>
-                  </Grid>
-                </>
-              )}
+                    </div>
+                  </>
+                ) : null}
+              </div>
 
-              <Grid item xs={12}>
-                <Divider sx={{ my: 1 }} />
-                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                  Banner Images
-                </Typography>
-              </Grid>
+              <Separator />
+              <h4 className="text-sm font-semibold">Banner Images</h4>
 
-              <Grid item xs={12} sm={6}>
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <ImageUploadField
                   label="Desktop Banner Image"
                   value={formData.desktopImages}
@@ -662,9 +618,6 @@ export default function BannerManagement() {
                   showPreview
                   allowPrimary={false}
                 />
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
                 <ImageUploadField
                   label="Mobile Banner Image (Optional)"
                   value={formData.mobileImages}
@@ -675,87 +628,76 @@ export default function BannerManagement() {
                   showPreview
                   allowPrimary={false}
                 />
-              </Grid>
+              </div>
 
-              <Grid item xs={12}>
-                <Divider sx={{ my: 1 }} />
-                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                  Call to Action
-                </Typography>
-              </Grid>
+              <Separator />
+              <h4 className="text-sm font-semibold">Call to Action</h4>
 
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="CTA Button Text"
-                  value={formData.ctaText}
-                  onChange={(e) => setFormData({ ...formData, ctaText: e.target.value })}
-                  placeholder="Shop Now"
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="cta-text">CTA Button Text</Label>
+                  <Input
+                    id="cta-text"
+                    value={formData.ctaText}
+                    onChange={(e) => setFormData({ ...formData, ctaText: e.target.value })}
+                    placeholder="Shop Now"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cta-link">CTA Link</Label>
+                  <Input
+                    id="cta-link"
+                    value={formData.ctaLink}
+                    onChange={(e) => setFormData({ ...formData, ctaLink: e.target.value })}
+                    placeholder="/offers"
+                  />
+                </div>
+              </div>
+
+              <Separator />
+              <h4 className="text-sm font-semibold">Schedule</h4>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="banner-start">Start Date</Label>
+                  <Input
+                    id="banner-start"
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="banner-end">End Date</Label>
+                  <Input
+                    id="banner-end"
+                    type="date"
+                    value={formData.endDate}
+                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={formData.isActive}
+                  onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
                 />
-              </Grid>
+                <Label>Active</Label>
+              </div>
 
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="CTA Link"
-                  value={formData.ctaLink}
-                  onChange={(e) => setFormData({ ...formData, ctaLink: e.target.value })}
-                  placeholder="/offers"
-                />
-              </Grid>
-
-              <Grid item xs={12}>
-                <Divider sx={{ my: 1 }} />
-                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                  Schedule
-                </Typography>
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  type="date"
-                  label="Start Date"
-                  value={formData.startDate}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                  InputLabelProps={{ shrink: true }}
-                  required
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  type="date"
-                  label="End Date"
-                  value={formData.endDate}
-                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                  InputLabelProps={{ shrink: true }}
-                  required
-                />
-              </Grid>
-
-              <Grid item xs={12}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={formData.isActive}
-                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                    />
-                  }
-                  label="Active"
-                />
-              </Grid>
-            </Grid>
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button type="button" variant="outline" onClick={handleCloseForm}>
+                  Cancel
+                </Button>
+                <Button type="submit">{editingBanner ? 'Update' : 'Create'} Banner</Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
-          <DialogActions sx={{ p: 2.5 }}>
-            <Button onClick={handleCloseForm}>Cancel</Button>
-            <Button type="submit" variant="contained">
-              {editingBanner ? 'Update' : 'Create'} Banner
-            </Button>
-          </DialogActions>
-        </form>
-      </Dialog>
-    </Box>
-  );
+        </Dialog>
+      </div>
+    </TooltipProvider>
+  )
 }

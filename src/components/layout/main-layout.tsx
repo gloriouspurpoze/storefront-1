@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { TooltipProvider } from '../ui/tooltip'
 import { NotificationsProvider } from '../../contexts/notifications-context'
 import { Sidebar } from './sidebar'
 import { Header } from './header'
@@ -24,6 +25,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   }
 
   return (
+    <TooltipProvider delayDuration={300}>
     <NotificationsProvider>
     <div className="flex min-h-screen w-full">
       <Header onMenuClick={handleDrawerToggle} />
@@ -43,5 +45,6 @@ export function MainLayout({ children }: MainLayoutProps) {
       </main>
     </div>
     </NotificationsProvider>
+    </TooltipProvider>
   )
 }

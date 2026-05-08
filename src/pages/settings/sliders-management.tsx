@@ -1,72 +1,66 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box,
-  Typography,
+  Plus,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  ArrowLeft,
+  Image as ImageIcon,
+  TrendingUp as TrendingUpIcon,
+  CalendarClock as ScheduleIcon,
+  Globe as PublicIcon,
+  ChevronUp as ArrowUpIcon,
+  ChevronDown as ArrowDownIcon,
+  Users as GroupIcon,
+  CheckCircle2 as CheckCircleIcon,
+  XCircle as CancelIcon,
+  Info as InfoIcon,
+  Megaphone as CampaignIcon,
+  Settings as SettingsIcon,
+  Eye as PreviewIcon,
+  Save as SaveIcon,
+  Loader2,
+} from 'lucide-react';
+import { PageHeader } from '../../components/common/PageHeader';
+import { appToast } from '../../lib/appToast';
+import { cn } from '../../lib/utils';
+import {
   Button,
-  Grid,
   Card,
   CardContent,
-  Menu,
-  MenuItem,
-  Snackbar,
-  Alert,
-  CircularProgress,
-  Chip,
-  IconButton,
-  Tooltip,
-  TextField,
-  FormControl,
-  InputLabel,
+  Input,
+  Label,
   Select,
-  MenuItem as SelectMenuItem,
-  FormHelperText,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Switch,
-  FormControlLabel,
-  Divider,
-  Stack,
-  alpha,
-  useTheme,
+  Tabs,
+  TabsList,
+  TabsTrigger,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  Paper,
+  Badge,
+  Separator,
   Avatar,
-  TablePagination,
-  Tabs,
-  Tab,
-  Stepper,
-  Step,
-  StepLabel,
-  Collapse,
-  Fade,
-  Zoom,
-} from '@mui/material';
+  AvatarImage,
+  AvatarFallback,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../../components/ui';
 import {
-  Add as AddIcon,
-  MoreVert as MoreVertIcon,
-  Edit as EditIcon,
-  Visibility as ViewIcon,
-  Delete as DeleteIcon,
-  ArrowBack as ArrowBackIcon,
-  Image as ImageIcon,
-  TrendingUp as TrendingUpIcon,
-  Schedule as ScheduleIcon,
-  Public as PublicIcon,
-  ArrowUpward as ArrowUpIcon,
-  ArrowDownward as ArrowDownIcon,
-  Group as GroupIcon,
-  CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
-  Info as InfoIcon,
-  Campaign as CampaignIcon,
-  Settings as SettingsIcon,
-  Visibility as PreviewIcon,
-  Save as SaveIcon,
-} from '@mui/icons-material';
-import { PageHeader } from '../../components/common/PageHeader';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../../components/ui/dropdown-menu';
 import { SlidersService } from '../../services/api/sliders.service';
 import { CategoriesService } from '../../services/api/categories.service';
 import { Slider, SliderPlacement, SLIDER_PLACEMENT_LABELS } from '../../types';
@@ -82,7 +76,6 @@ interface SliderStats {
 }
 
 export default function SlidersManagement() {
-  const theme = useTheme();
   const confirm = useAppConfirm();
   const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
   const [sliders, setSliders] = useState<Slider[]>([]);
@@ -140,16 +133,6 @@ export default function SlidersManagement() {
   const [uploadedImages, setUploadedImages] = useState<ImageFile[]>([]);
   const [uploadedMobileImages, setUploadedMobileImages] = useState<ImageFile[]>([]);
 
-  // Menu
-  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
-  const [menuSlider, setMenuSlider] = useState<Slider | null>(null);
-
-  // Notifications
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success' as 'success' | 'error',
-  });
 
   useEffect(() => {
     if (viewMode === 'list') {
@@ -207,7 +190,7 @@ export default function SlidersManagement() {
     } catch (error: any) {
       console.error('Error fetching sliders:', error);
       const errorMessage = error?.response?.data?.error || error?.message || 'Failed to fetch sliders';
-      showSnackbar(errorMessage, 'error');
+      appToast(errorMessage, 'error');
       setSliders([]);
       setTotal(0);
     } finally {
@@ -295,7 +278,6 @@ export default function SlidersManagement() {
     setFormErrors({});
     setShowPreview(false);
     setViewMode('form');
-    handleMenuClose();
   };
 
   const handleDelete = async (slider: Slider) => {
@@ -309,51 +291,50 @@ export default function SlidersManagement() {
 
     try {
       await SlidersService.deleteSlider(slider.id);
-      showSnackbar('Slider deleted successfully', 'success');
+      appToast('Slider deleted successfully', 'success');
       fetchSliders();
       fetchStats();
     } catch (error: any) {
       console.error('Error deleting slider:', error);
       const errorMessage = error?.response?.data?.error || error?.message || 'Failed to delete slider';
-      showSnackbar(errorMessage, 'error');
+      appToast(errorMessage, 'error');
     }
-    handleMenuClose();
   };
 
   const handleToggleStatus = async (slider: Slider) => {
     try {
       await SlidersService.toggleSliderStatus(slider.id, !slider.is_active);
-      showSnackbar(`Slider ${!slider.is_active ? 'activated' : 'deactivated'} successfully`, 'success');
+      appToast(`Slider ${!slider.is_active ? 'activated' : 'deactivated'} successfully`, 'success');
       fetchSliders();
       fetchStats();
     } catch (error: any) {
       console.error('Error toggling slider status:', error);
       const errorMessage = error?.response?.data?.error || error?.message || 'Failed to update slider status';
-      showSnackbar(errorMessage, 'error');
+      appToast(errorMessage, 'error');
     }
   };
 
   const handleMoveUp = async (slider: Slider) => {
     try {
       await SlidersService.updateSliderPosition(slider.id, slider.position - 1);
-      showSnackbar('Slider position updated successfully', 'success');
+      appToast('Slider position updated successfully', 'success');
       fetchSliders();
     } catch (error: any) {
       console.error('Error moving slider up:', error);
       const errorMessage = error?.response?.data?.error || error?.message || 'Failed to update slider position';
-      showSnackbar(errorMessage, 'error');
+      appToast(errorMessage, 'error');
     }
   };
 
   const handleMoveDown = async (slider: Slider) => {
     try {
       await SlidersService.updateSliderPosition(slider.id, slider.position + 1);
-      showSnackbar('Slider position updated successfully', 'success');
+      appToast('Slider position updated successfully', 'success');
       fetchSliders();
     } catch (error: any) {
       console.error('Error moving slider down:', error);
       const errorMessage = error?.response?.data?.error || error?.message || 'Failed to update slider position';
-      showSnackbar(errorMessage, 'error');
+      appToast(errorMessage, 'error');
     }
   };
 
@@ -395,7 +376,7 @@ export default function SlidersManagement() {
     e.preventDefault();
     
     if (!validateForm()) {
-      showSnackbar('Please fix the errors in the form', 'error');
+      appToast('Please fix the errors in the form', 'error');
       setActiveTab(0); // Go to first tab if there are errors
       return;
     }
@@ -445,10 +426,10 @@ export default function SlidersManagement() {
 
       if (formMode === 'create') {
         await SlidersService.createSlider(payload);
-        showSnackbar('Slider created successfully', 'success');
+        appToast('Slider created successfully', 'success');
       } else if (selectedSlider) {
         await SlidersService.updateSlider(selectedSlider.id, payload);
-        showSnackbar('Slider updated successfully', 'success');
+        appToast('Slider updated successfully', 'success');
       }
 
       setViewMode('list');
@@ -458,7 +439,7 @@ export default function SlidersManagement() {
     } catch (error: any) {
       console.error('Error submitting form:', error);
       const errorMessage = error?.response?.data?.error || error?.message || `Failed to ${formMode} slider`;
-      showSnackbar(errorMessage, 'error');
+      appToast(errorMessage, 'error');
     } finally {
       setFormLoading(false);
     }
@@ -490,24 +471,6 @@ export default function SlidersManagement() {
     setShowPreview(false);
   };
 
-  const handleMenuClick = (event: React.MouseEvent<HTMLElement>, slider: Slider) => {
-    setMenuAnchor(event.currentTarget);
-    setMenuSlider(slider);
-  };
-
-  const handleMenuClose = () => {
-    setMenuAnchor(null);
-    setMenuSlider(null);
-  };
-
-  const showSnackbar = (message: string, severity: 'success' | 'error') => {
-    setSnackbar({ open: true, message, severity });
-  };
-
-  const handleSnackbarClose = () => {
-    setSnackbar({ ...snackbar, open: false });
-  };
-
   const handleClearFilters = () => {
     setSearchTerm('');
     setStatusFilter('all');
@@ -517,16 +480,21 @@ export default function SlidersManagement() {
     setPage(0);
   };
 
-  const getStatusColor = (isActive: boolean) => {
-    return isActive ? 'success' : 'default';
-  };
+  const getStatusBadgeVariant = (isActive: boolean): 'success' | 'secondary' =>
+    isActive ? 'success' : 'secondary';
 
-  const getAudienceColor = (audience: string) => {
+  const getAudienceBadgeVariant = (
+    audience: string,
+  ): 'default' | 'success' | 'secondary' | 'outline' => {
     switch (audience) {
-      case 'all': return 'primary';
-      case 'customers': return 'success';
-      case 'providers': return 'info';
-      default: return 'default';
+      case 'all':
+        return 'default';
+      case 'customers':
+        return 'success';
+      case 'providers':
+        return 'secondary';
+      default:
+        return 'outline';
     }
   };
 
@@ -539,6 +507,8 @@ export default function SlidersManagement() {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString();
   };
+
+  const totalPages = Math.max(1, Math.ceil(total / limit));
 
   // Form View
   if (viewMode === 'form') {
@@ -555,137 +525,113 @@ export default function SlidersManagement() {
       : formData.image_url;
 
     return (
-      <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
+      <TooltipProvider>
+      <div className="p-4 sm:p-6 md:p-8">
         <PageHeader
           title={formMode === 'edit' ? 'Edit Slider' : 'Create New Slider'}
           subtitle={formMode === 'edit' ? 'Update slider details and settings' : 'Add a new banner/slider to your website'}
           action={
-            <Stack direction="row" spacing={2}>
+            <div className="flex flex-row gap-2">
               <Button
-                variant="outlined"
-                startIcon={<PreviewIcon />}
+                variant="outline"
+                className="rounded-lg"
                 onClick={() => setShowPreview(!showPreview)}
-                sx={{ borderRadius: 2 }}
               >
+                <PreviewIcon className="mr-2 h-4 w-4" />
                 {showPreview ? 'Hide Preview' : 'Show Preview'}
               </Button>
               <Button
-                variant="outlined"
-                startIcon={<ArrowBackIcon />}
+                variant="outline"
+                className="rounded-lg"
                 onClick={() => {
                   setViewMode('list');
                   resetForm();
                 }}
-                sx={{ borderRadius: 2 }}
               >
+                <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to List
               </Button>
-            </Stack>
+            </div>
           }
         />
 
         {/* Progress Indicator */}
-        <Card sx={{ mt: 3, mb: 3, borderRadius: 3, overflow: 'hidden' }}>
-          <CardContent sx={{ py: 2 }}>
-            <Stepper activeStep={activeTab} alternativeLabel>
+        <Card className="mt-6 mb-6 overflow-hidden rounded-2xl">
+          <CardContent className="py-4">
+            <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4">
               {tabs.map((tab, index) => (
-                <Step key={tab.value} completed={activeTab > index}>
-                  <StepLabel 
-                    icon={tab.icon}
-                    onClick={() => setActiveTab(index)}
-                    sx={{ cursor: 'pointer' }}
-                  >
-                    {tab.label}
-                  </StepLabel>
-                </Step>
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => setActiveTab(index)}
+                  className={cn(
+                    'flex min-w-[120px] flex-col items-center gap-1 rounded-lg border p-3 text-center text-sm font-semibold transition-colors',
+                    activeTab === index
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border bg-muted/30 text-muted-foreground hover:bg-muted',
+                    activeTab > index && 'border-emerald-500/50',
+                  )}
+                >
+                  <span className="flex h-8 w-8 items-center justify-center">{tab.icon}</span>
+                  {tab.label}
+                </button>
               ))}
-            </Stepper>
+            </div>
           </CardContent>
         </Card>
 
         {/* Form Errors Alert */}
         {Object.keys(formErrors).length > 0 && (
-          <Alert 
-            severity="error" 
-            sx={{ mb: 3, borderRadius: 2 }}
-            onClose={() => setFormErrors({})}
-          >
-            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-              Please fix the following errors:
-            </Typography>
-            <Box component="ul" sx={{ m: 0, pl: 2 }}>
+          <div className="mb-6 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
+            <div className="mb-2 flex items-start justify-between gap-2">
+              <p className="text-sm font-semibold">Please fix the following errors:</p>
+              <Button variant="ghost" size="sm" className="h-7 text-destructive" onClick={() => setFormErrors({})}>
+                Dismiss
+              </Button>
+            </div>
+            <ul className="list-inside list-disc space-y-1 pl-1">
               {Object.values(formErrors).map((error, idx) => (
-                <li key={idx}>
-                  <Typography variant="body2">{error}</Typography>
+                <li key={idx} className="text-sm">
+                  {error}
                 </li>
               ))}
-            </Box>
-          </Alert>
+            </ul>
+          </div>
         )}
 
-        <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', lg: 'row' } }}>
+        <div className="flex flex-col gap-8 lg:flex-row">
           {/* Main Form */}
-          <Box sx={{ flex: { xs: 1, lg: showPreview ? 2 : 1 } }}>
-            <Card 
-              sx={{ 
-                borderRadius: 3,
-                boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.08)}`,
-                overflow: 'hidden',
-              }}
-            >
+          <div className="flex-1 lg:max-w-none" style={{ flex: showPreview ? '2 1 0%' : '1 1 0%' }}>
+            <Card className="overflow-hidden rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.08)]">
               {/* Tab Navigation */}
-              <Box sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper' }}>
-                <Tabs 
-                  value={activeTab} 
-                  onChange={(e, newValue) => setActiveTab(newValue)}
-                  variant="scrollable"
-                  scrollButtons="auto"
-                  sx={{
-                    '& .MuiTab-root': {
-                      minHeight: 72,
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      fontSize: '0.95rem',
-                    },
-                    '& .Mui-selected': {
-                      color: 'primary.main',
-                    },
-                  }}
-                >
-                  {tabs.map((tab) => (
-                    <Tab 
-                      key={tab.value}
-                      icon={tab.icon}
-                      iconPosition="start"
-                      label={tab.label}
-                      sx={{ gap: 1 }}
-                    />
-                  ))}
+              <div className="border-b border-border bg-card">
+                <Tabs value={String(activeTab)} onValueChange={(v) => setActiveTab(Number(v))}>
+                  <TabsList className="h-auto min-h-16 w-full flex-wrap justify-start gap-1 rounded-none border-0 bg-transparent p-2">
+                    {tabs.map((tab) => (
+                      <TabsTrigger
+                        key={tab.value}
+                        value={String(tab.value)}
+                        className="gap-2 rounded-md data-[state=active]:bg-primary/15 data-[state=active]:text-primary"
+                      >
+                        {tab.icon}
+                        {tab.label}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
                 </Tabs>
-              </Box>
+              </div>
 
-              <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
+              <CardContent className="p-6 sm:p-8 md:p-10">
                 <form onSubmit={handleFormSubmit} id="slider-form">
                   {/* Tab 0: Basic Information */}
                   {activeTab === 0 && (
-                    <Fade in={activeTab === 0}>
-                      <Box>
-                        <Typography
-                          variant="h5"
-                          sx={{
-                            fontWeight: 700,
-                            mb: 3,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1,
-                            color: 'primary.main',
-                          }}
-                        >
-                          <InfoIcon />
+                    <div>
+                        <h3 className="mb-6 flex items-center gap-2 text-xl font-bold text-primary">
+                          <InfoIcon className="h-6 w-6" />
                           Basic Information
-                        </Typography>
-                        <Grid container spacing={3}>
-                          <Grid size={{ xs: 12, sm: 8 }}>
+                        </h3>
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
+                          <div className="col-span-12 md:col-span-8">
                             <FormField
                               label="Title"
                               value={formData.title}
@@ -702,9 +648,9 @@ export default function SlidersManagement() {
                               maxLength={100}
                               showCharCount
                             />
-                          </Grid>
+                          </div>
 
-                          <Grid size={{ xs: 12, sm: 4 }}>
+                          <div className="col-span-12 md:col-span-4">
                             <FormField
                               label="Position"
                               value={formData.position}
@@ -715,49 +661,68 @@ export default function SlidersManagement() {
                               helperText="Lower numbers appear first"
                               placeholder="1"
                             />
-                          </Grid>
+                          </div>
 
-                          <Grid size={{ xs: 12, sm: 6 }}>
-                            <FormControl fullWidth>
-                              <InputLabel>Placement</InputLabel>
+                          <div className="col-span-12 md:col-span-6">
+                            <div className="space-y-2">
+                              <Label>Placement</Label>
                               <Select
                                 value={formData.placement}
-                                label="Placement"
-                                onChange={(e) => setFormData({ ...formData, placement: e.target.value as SliderPlacement })}
-                                sx={{ borderRadius: 2 }}
+                                onValueChange={(v) =>
+                                  setFormData({ ...formData, placement: v as SliderPlacement })
+                                }
                               >
-                                {(Object.entries(SLIDER_PLACEMENT_LABELS) as [SliderPlacement, string][]).map(([value, label]) => (
-                                  <SelectMenuItem key={value} value={value}>
-                                    {label}
-                                  </SelectMenuItem>
-                                ))}
+                                <SelectTrigger className="rounded-lg">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {(Object.entries(SLIDER_PLACEMENT_LABELS) as [SliderPlacement, string][]).map(
+                                    ([value, label]) => (
+                                      <SelectItem key={value} value={value}>
+                                        {label}
+                                      </SelectItem>
+                                    ),
+                                  )}
+                                </SelectContent>
                               </Select>
-                              <FormHelperText>Where this banner appears (Home, Offers, Mobile App, etc.)</FormHelperText>
-                            </FormControl>
-                          </Grid>
+                              <p className="text-xs text-muted-foreground">
+                                Where this banner appears (Home, Offers, Mobile App, etc.)
+                              </p>
+                            </div>
+                          </div>
 
-                          <Grid size={{ xs: 12, sm: 6 }}>
-                            <FormControl fullWidth>
-                              <InputLabel>Category (optional)</InputLabel>
+                          <div className="col-span-12 md:col-span-6">
+                            <div className="space-y-2">
+                              <Label>Category (optional)</Label>
                               <Select
-                                value={formData.category_id || ''}
-                                label="Category (optional)"
-                                onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                                sx={{ borderRadius: 2 }}
+                                value={formData.category_id || '__all__'}
+                                onValueChange={(v) =>
+                                  setFormData({
+                                    ...formData,
+                                    category_id: v === '__all__' ? '' : v,
+                                  })
+                                }
                               >
-                                <SelectMenuItem value="">All categories</SelectMenuItem>
-                                {categories.map((cat) => (
-                                  <SelectMenuItem key={cat.id} value={cat.id}>
-                                    {cat.name}
-                                    {cat.slug ? ` (${cat.slug})` : ''}
-                                  </SelectMenuItem>
-                                ))}
+                                <SelectTrigger className="rounded-lg">
+                                  <SelectValue placeholder="All categories" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="__all__">All categories</SelectItem>
+                                  {categories.map((cat) => (
+                                    <SelectItem key={cat.id} value={cat.id}>
+                                      {cat.name}
+                                      {cat.slug ? ` (${cat.slug})` : ''}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
                               </Select>
-                              <FormHelperText>Show this slider only on this category (e.g. AC, Electrician)</FormHelperText>
-                            </FormControl>
-                          </Grid>
+                              <p className="text-xs text-muted-foreground">
+                                Show this slider only on this category (e.g. AC, Electrician)
+                              </p>
+                            </div>
+                          </div>
 
-                          <Grid size={{ xs: 12 }}>
+                          <div className="col-span-12">
                             <FormField
                               label="Subtitle"
                               value={formData.subtitle}
@@ -767,9 +732,9 @@ export default function SlidersManagement() {
                               maxLength={150}
                               showCharCount
                             />
-                          </Grid>
+                          </div>
 
-                          <Grid size={{ xs: 12 }}>
+                          <div className="col-span-12">
                             <FormField
                               label="Description"
                               value={formData.description}
@@ -781,40 +746,28 @@ export default function SlidersManagement() {
                               maxLength={500}
                               showCharCount
                             />
-                          </Grid>
-                        </Grid>
-                      </Box>
-                    </Fade>
+                          </div>
+                        </div>
+                      </div>
                   )}
 
                   {/* Tab 1: Image & Media */}
                   {activeTab === 1 && (
-                    <Fade in={activeTab === 1}>
-                      <Box>
-                        <Typography
-                          variant="h5"
-                          sx={{
-                            fontWeight: 700,
-                            mb: 3,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1,
-                            color: 'primary.main',
-                          }}
-                        >
-                          <ImageIcon />
+                    <div>
+                        <h3 className="mb-6 flex items-center gap-2 text-xl font-bold text-primary">
+                          <ImageIcon className="h-6 w-6" />
                           Image & Media
-                        </Typography>
-                        <Grid container spacing={3}>
-                          <Grid size={{ xs: 12 }}>
-                            <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
-                              <Typography variant="body2">
+                        </h3>
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
+                          <div className="col-span-12">
+                            <div className="mb-6 rounded-lg border border-sky-500/30 bg-sky-500/10 p-4 text-sm">
+                              <p>
                                 <strong>Recommended size:</strong> 1920x600px for best results. Maximum file size: 5MB.
-                              </Typography>
-                            </Alert>
-                          </Grid>
+                              </p>
+                            </div>
+                          </div>
 
-                          <Grid size={{ xs: 12 }}>
+                          <div className="col-span-12">
                             <ImageUploadField
                               label="Slider Image"
                               value={uploadedImages}
@@ -844,19 +797,15 @@ export default function SlidersManagement() {
                               tooltip="Drag and drop or click to upload. Maximum 5MB. Supported formats: JPG, PNG, GIF, WebP"
                             />
                             {formErrors.image_url && (
-                              <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
-                                {formErrors.image_url}
-                              </Typography>
+                              <p className="mt-2 block text-xs text-destructive">{formErrors.image_url}</p>
                             )}
-                          </Grid>
+                          </div>
 
-                          <Grid size={{ xs: 12 }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                              Mobile image (optional)
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                          <div className="col-span-12">
+                            <p className="mb-2 text-sm font-semibold">Mobile image (optional)</p>
+                            <p className="mb-4 text-sm text-muted-foreground">
                               Used by the mobile app and mobile web. Fallback: desktop image.
-                            </Typography>
+                            </p>
                             <ImageUploadField
                               label="Mobile / App image"
                               value={uploadedMobileImages}
@@ -879,17 +828,15 @@ export default function SlidersManagement() {
                               onChange={(value) => setFormData({ ...formData, image_url_mobile: value })}
                               placeholder="https://example.com/mobile-banner.jpg"
                             />
-                          </Grid>
+                          </div>
 
-                          <Grid size={{ xs: 12 }}>
-                            <Divider sx={{ my: 2 }}>
-                              <Typography variant="body2" color="text.secondary">
-                                OR
-                              </Typography>
-                            </Divider>
-                          </Grid>
+                          <div className="col-span-12">
+                            <Separator className="my-6" />
+                            <p className="text-center text-sm text-muted-foreground">OR</p>
+                            <Separator className="my-6" />
+                          </div>
 
-                          <Grid size={{ xs: 12 }}>
+                          <div className="col-span-12">
                             <FormField
                               label="Image URL"
                               value={formData.image_url}
@@ -904,9 +851,9 @@ export default function SlidersManagement() {
                               type="url"
                               error={formErrors.image_url || undefined}
                             />
-                          </Grid>
+                          </div>
 
-                          <Grid size={{ xs: 12 }}>
+                          <div className="col-span-12">
                             <FormField
                               label="Image Alt Text"
                               value={formData.image_alt}
@@ -914,80 +861,47 @@ export default function SlidersManagement() {
                               placeholder="Enter descriptive alt text for accessibility"
                               helperText="Alt text helps with SEO and accessibility for screen readers"
                             />
-                          </Grid>
+                          </div>
 
                           {/* Image Preview */}
                           {imageUrl && (
-                            <Grid size={{ xs: 12 }}>
-                              <Card
-                                sx={{
-                                  borderRadius: 2,
-                                  overflow: 'hidden',
-                                  border: `2px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-                                  boxShadow: `0 4px 20px ${alpha(theme.palette.primary.main, 0.1)}`,
-                                }}
-                              >
-                                <Box
-                                  sx={{
-                                    width: '100%',
-                                    height: { xs: 200, sm: 300 },
-                                    position: 'relative',
-                                    bgcolor: alpha(theme.palette.grey[500], 0.05),
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    overflow: 'hidden',
-                                  }}
-                                >
+                            <div className="col-span-12">
+                              <Card className="overflow-hidden rounded-lg border-2 border-primary/20 shadow-md">
+                                <div className="relative flex h-[200px] w-full items-center justify-center overflow-hidden bg-muted/50 sm:h-[300px]">
                                   <img
                                     src={imageUrl}
                                     alt={formData.image_alt || formData.title || 'Slider preview'}
-                                    style={{
-                                      width: '100%',
-                                      height: '100%',
-                                      objectFit: 'cover',
-                                    }}
+                                    className="h-full w-full object-cover"
                                     onError={(e) => {
                                       (e.target as HTMLImageElement).style.display = 'none';
                                     }}
                                   />
-                                </Box>
+                                </div>
                               </Card>
-                            </Grid>
+                            </div>
                           )}
-                        </Grid>
-                      </Box>
-                    </Fade>
+                        </div>
+                      </div>
                   )}
 
                   {/* Tab 2: Call to Action */}
                   {activeTab === 2 && (
-                    <Fade in={activeTab === 2}>
-                      <Box>
-                        <Typography
-                          variant="h5"
-                          sx={{
-                            fontWeight: 700,
-                            mb: 3,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1,
-                            color: 'primary.main',
-                          }}
-                        >
-                          <CampaignIcon />
+                    <div>
+                        <h3 className="mb-6 flex items-center gap-2 text-xl font-bold text-primary">
+                          <CampaignIcon className="h-6 w-6" />
                           Call to Action
-                        </Typography>
-                        <Grid container spacing={3}>
-                          <Grid size={{ xs: 12 }}>
-                            <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
-                              <Typography variant="body2">
-                                Add a button to drive user engagement. Both button text and URL are optional, but if you provide text, URL is required.
-                              </Typography>
-                            </Alert>
-                          </Grid>
+                        </h3>
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
+                          <div className="col-span-12">
+                            <div className="mb-6 rounded-lg border border-sky-500/30 bg-sky-500/10 p-4 text-sm">
+                              <p>
+                                Add a button to drive user engagement. Both button text and URL are optional, but if you
+                                provide text, URL is required.
+                              </p>
+                            </div>
+                          </div>
 
-                          <Grid size={{ xs: 12, sm: 6 }}>
+                          <div className="col-span-12 md:col-span-6">
                             <FormField
                               label="Button Text"
                               value={formData.button_text}
@@ -1002,9 +916,9 @@ export default function SlidersManagement() {
                               maxLength={30}
                               showCharCount
                             />
-                          </Grid>
+                          </div>
 
-                          <Grid size={{ xs: 12, sm: 6 }}>
+                          <div className="col-span-12 md:col-span-6">
                             <FormField
                               label="Button URL"
                               value={formData.button_url}
@@ -1019,1059 +933,662 @@ export default function SlidersManagement() {
                               type="url"
                               error={formErrors.button_url || undefined}
                             />
-                          </Grid>
-                        </Grid>
-                      </Box>
-                    </Fade>
+                          </div>
+                        </div>
+                      </div>
                   )}
 
                   {/* Tab 3: Settings */}
                   {activeTab === 3 && (
-                    <Fade in={activeTab === 3}>
-                      <Box>
-                        <Typography
-                          variant="h5"
-                          sx={{
-                            fontWeight: 700,
-                            mb: 3,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1,
-                            color: 'primary.main',
-                          }}
-                        >
-                          <SettingsIcon />
+                    <div>
+                        <h3 className="mb-6 flex items-center gap-2 text-xl font-bold text-primary">
+                          <SettingsIcon className="h-6 w-6" />
                           Settings & Schedule
-                        </Typography>
-                        <Grid container spacing={3}>
-                          <Grid size={{ xs: 12, sm: 6 }}>
-                            <FormControl fullWidth>
-                              <InputLabel>Target Audience</InputLabel>
+                        </h3>
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
+                          <div className="col-span-12 md:col-span-6">
+                            <div className="space-y-2">
+                              <Label>Target Audience</Label>
                               <Select
                                 value={formData.target_audience}
-                                label="Target Audience"
-                                onChange={(e) => setFormData({ ...formData, target_audience: e.target.value as any })}
-                                sx={{ borderRadius: 2 }}
+                                onValueChange={(v) =>
+                                  setFormData({
+                                    ...formData,
+                                    target_audience: v as 'all' | 'customers' | 'providers',
+                                  })
+                                }
                               >
-                                <SelectMenuItem value="all">All Users</SelectMenuItem>
-                                <SelectMenuItem value="customers">Customers Only</SelectMenuItem>
-                                <SelectMenuItem value="providers">Providers Only</SelectMenuItem>
+                                <SelectTrigger className="rounded-lg">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="all">All Users</SelectItem>
+                                  <SelectItem value="customers">Customers Only</SelectItem>
+                                  <SelectItem value="providers">Providers Only</SelectItem>
+                                </SelectContent>
                               </Select>
-                              <FormHelperText>Select who should see this slider</FormHelperText>
-                            </FormControl>
-                          </Grid>
+                              <p className="text-xs text-muted-foreground">Select who should see this slider</p>
+                            </div>
+                          </div>
 
-                          <Grid size={{ xs: 12, sm: 6 }}>
+                          <div className="col-span-12 md:col-span-6">
                             <Card
-                              sx={{
-                                p: 2.5,
-                                borderRadius: 2,
-                                bgcolor: formData.is_active 
-                                  ? alpha(theme.palette.success.main, 0.1)
-                                  : alpha(theme.palette.grey[500], 0.1),
-                                border: `2px solid ${
-                                  formData.is_active
-                                    ? alpha(theme.palette.success.main, 0.3)
-                                    : alpha(theme.palette.grey[500], 0.3)
-                                }`,
-                              }}
+                              className={cn(
+                                'rounded-lg border-2 p-4',
+                                formData.is_active
+                                  ? 'border-emerald-500/40 bg-emerald-500/10'
+                                  : 'border-muted bg-muted/40',
+                              )}
                             >
-                              <FormControlLabel
-                                control={
-                                  <Switch
-                                    checked={formData.is_active}
-                                    onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                                    color="success"
-                                    size="medium"
-                                  />
-                                }
-                                label={
-                                  <Box>
-                                    <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                                      Active Status
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                      {formData.is_active ? 'Slider is visible to users' : 'Slider is hidden'}
-                                    </Typography>
-                                  </Box>
-                                }
-                              />
+                              <div className="flex items-start gap-3">
+                                <Switch
+                                  id="slider-active"
+                                  checked={formData.is_active}
+                                  onCheckedChange={(checked) =>
+                                    setFormData({ ...formData, is_active: checked })
+                                  }
+                                />
+                                <div>
+                                  <Label htmlFor="slider-active" className="text-base font-semibold">
+                                    Active Status
+                                  </Label>
+                                  <p className="text-xs text-muted-foreground">
+                                    {formData.is_active
+                                      ? 'Slider is visible to users'
+                                      : 'Slider is hidden'}
+                                  </p>
+                                </div>
+                              </div>
                             </Card>
-                          </Grid>
+                          </div>
 
-                          <Grid size={{ xs: 12 }}>
-                            <Divider sx={{ my: 2 }} />
-                            <Typography
-                              variant="h6"
-                              sx={{
-                                fontWeight: 600,
-                                mb: 2,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1,
-                              }}
-                            >
-                              <ScheduleIcon />
+                          <div className="col-span-12">
+                            <Separator className="my-4" />
+                            <h4 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+                              <ScheduleIcon className="h-5 w-5" />
                               Schedule (Optional)
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                            </h4>
+                            <p className="mb-6 text-sm text-muted-foreground">
                               Set when the slider should be displayed. Leave empty for no scheduling.
-                            </Typography>
-                          </Grid>
+                            </p>
+                          </div>
 
-                          <Grid size={{ xs: 12, sm: 6 }}>
-                            <TextField
-                              fullWidth
-                              label="Start Date"
-                              type="date"
-                              value={formData.start_date}
-                              onChange={(e) => {
-                                setFormData({ ...formData, start_date: e.target.value });
-                                if (formErrors.end_date) {
-                                  setFormErrors({ ...formErrors, end_date: '' });
-                                }
-                              }}
-                              InputLabelProps={{
-                                shrink: true,
-                              }}
-                              helperText="When should the slider start appearing?"
-                              sx={{ borderRadius: 2 }}
-                            />
-                          </Grid>
+                          <div className="col-span-12 md:col-span-6">
+                            <div className="space-y-2">
+                              <Label htmlFor="start-date">Start Date</Label>
+                              <Input
+                                id="start-date"
+                                type="date"
+                                className="rounded-lg"
+                                value={formData.start_date}
+                                onChange={(e) => {
+                                  setFormData({ ...formData, start_date: e.target.value });
+                                  if (formErrors.end_date) {
+                                    setFormErrors({ ...formErrors, end_date: '' });
+                                  }
+                                }}
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                When should the slider start appearing?
+                              </p>
+                            </div>
+                          </div>
 
-                          <Grid size={{ xs: 12, sm: 6 }}>
-                            <TextField
-                              fullWidth
-                              label="End Date"
-                              type="date"
-                              value={formData.end_date}
-                              onChange={(e) => {
-                                setFormData({ ...formData, end_date: e.target.value });
-                                if (formErrors.end_date) {
-                                  setFormErrors({ ...formErrors, end_date: '' });
-                                }
-                              }}
-                              InputLabelProps={{
-                                shrink: true,
-                              }}
-                              helperText="When should the slider stop appearing?"
-                              error={!!formErrors.end_date}
-                              sx={{ borderRadius: 2 }}
-                            />
-                            {formErrors.end_date && (
-                              <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
-                                {formErrors.end_date}
-                              </Typography>
-                            )}
-                          </Grid>
-                        </Grid>
-                      </Box>
-                    </Fade>
+                          <div className="col-span-12 md:col-span-6">
+                            <div className="space-y-2">
+                              <Label htmlFor="end-date">End Date</Label>
+                              <Input
+                                id="end-date"
+                                type="date"
+                                className={cn('rounded-lg', formErrors.end_date && 'border-destructive')}
+                                value={formData.end_date}
+                                onChange={(e) => {
+                                  setFormData({ ...formData, end_date: e.target.value });
+                                  if (formErrors.end_date) {
+                                    setFormErrors({ ...formErrors, end_date: '' });
+                                  }
+                                }}
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                When should the slider stop appearing?
+                              </p>
+                              {formErrors.end_date && (
+                                <p className="block text-xs text-destructive">{formErrors.end_date}</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                   )}
 
                   {/* Tab 4: Preview */}
                   {activeTab === 4 && (
-                    <Fade in={activeTab === 4}>
-                      <Box>
-                        <Typography
-                          variant="h5"
-                          sx={{
-                            fontWeight: 700,
-                            mb: 3,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1,
-                            color: 'primary.main',
-                          }}
-                        >
-                          <PreviewIcon />
+                    <div>
+                        <h3 className="mb-6 flex items-center gap-2 text-xl font-bold text-primary">
+                          <PreviewIcon className="h-6 w-6" />
                           Live Preview
-                        </Typography>
+                        </h3>
                         {imageUrl ? (
-                          <Card
-                            sx={{
-                              borderRadius: 3,
-                              overflow: 'hidden',
-                              border: `2px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-                              boxShadow: `0 8px 32px ${alpha(theme.palette.primary.main, 0.15)}`,
-                            }}
-                          >
-                            <Box
-                              sx={{
-                                width: '100%',
-                                height: { xs: 300, sm: 400, md: 500 },
-                                position: 'relative',
-                                bgcolor: alpha(theme.palette.grey[500], 0.05),
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                overflow: 'hidden',
-                              }}
-                            >
+                          <Card className="overflow-hidden rounded-3xl border-2 border-primary/20 shadow-lg">
+                            <div className="relative flex h-[300px] w-full items-center justify-center overflow-hidden bg-muted/50 sm:h-[400px] md:h-[500px]">
                               <img
                                 src={imageUrl}
                                 alt={formData.image_alt || formData.title || 'Slider preview'}
-                                style={{
-                                  width: '100%',
-                                  height: '100%',
-                                  objectFit: 'cover',
-                                }}
+                                className="h-full w-full object-cover"
                                 onError={(e) => {
                                   (e.target as HTMLImageElement).style.display = 'none';
                                 }}
                               />
                               {(formData.title || formData.subtitle || formData.button_text) && (
-                                <Box
-                                  sx={{
-                                    position: 'absolute',
-                                    bottom: 0,
-                                    left: 0,
-                                    right: 0,
-                                    background: `linear-gradient(to top, ${alpha('#000', 0.85)}, transparent)`,
-                                    p: { xs: 2, sm: 3, md: 4 },
-                                    color: 'white',
-                                  }}
-                                >
+                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/85 to-transparent p-4 text-white sm:p-6 md:p-8">
                                   {formData.title && (
-                                    <Typography 
-                                      variant="h4" 
-                                      sx={{ 
-                                        fontWeight: 700, 
-                                        mb: 1,
-                                        fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' }
-                                      }}
-                                    >
+                                    <p className="mb-2 text-2xl font-bold sm:text-3xl md:text-4xl">
                                       {formData.title}
-                                    </Typography>
+                                    </p>
                                   )}
                                   {formData.subtitle && (
-                                    <Typography 
-                                      variant="h6" 
-                                      sx={{ 
-                                        opacity: 0.95,
-                                        mb: 2,
-                                        fontSize: { xs: '1rem', sm: '1.25rem' }
-                                      }}
-                                    >
+                                    <p className="mb-4 text-base opacity-95 sm:text-xl">
                                       {formData.subtitle}
-                                    </Typography>
+                                    </p>
                                   )}
                                   {formData.button_text && (
-                                    <Button
-                                      variant="contained"
-                                      size="large"
-                                      sx={{ 
-                                        mt: 1,
-                                        px: 4,
-                                        py: 1.5,
-                                        fontSize: '1rem',
-                                        fontWeight: 600,
-                                        textTransform: 'none',
-                                      }}
-                                      disabled
-                                    >
+                                    <Button size="lg" className="mt-2 px-8 font-semibold" disabled>
                                       {formData.button_text}
                                     </Button>
                                   )}
-                                </Box>
+                                </div>
                               )}
-                            </Box>
+                            </div>
                           </Card>
                         ) : (
-                          <Alert severity="info" sx={{ borderRadius: 2 }}>
-                            <Typography variant="body2" sx={{ mb: 2 }}>
-                              Add an image to see how your slider will look. Go to the <strong>Image & Media</strong> tab to upload a file or paste an image URL.
-                            </Typography>
+                          <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 p-4">
+                            <p className="mb-4 text-sm">
+                              Add an image to see how your slider will look. Go to the{' '}
+                              <strong>Image & Media</strong> tab to upload a file or paste an image URL.
+                            </p>
                             <Button
-                              variant="outlined"
-                              size="small"
-                              startIcon={<ImageIcon />}
+                              variant="outline"
+                              size="sm"
                               onClick={() => setActiveTab(1)}
-                              sx={{ textTransform: 'none' }}
                             >
+                              <ImageIcon className="mr-2 h-4 w-4" />
                               Go to Image & Media
                             </Button>
-                          </Alert>
+                          </div>
                         )}
-                      </Box>
-                    </Fade>
+                      </div>
                   )}
 
                   {/* Form Actions */}
-                  <Box
-                    sx={{
-                      mt: 4,
-                      pt: 3,
-                      borderTop: `2px solid ${alpha(theme.palette.divider, 0.1)}`,
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      flexDirection: { xs: 'column', sm: 'row' },
-                      gap: 2,
-                    }}
-                  >
+                  <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
                     <Button
-                      variant="outlined"
+                      variant="outline"
+                      className="order-2 w-full rounded-lg sm:order-1 sm:w-auto"
                       onClick={() => {
                         setViewMode('list');
                         resetForm();
                       }}
                       disabled={formLoading}
-                      sx={{ 
-                        borderRadius: 2,
-                        minWidth: { xs: '100%', sm: 120 },
-                        order: { xs: 2, sm: 1 },
-                      }}
                     >
                       Cancel
                     </Button>
-                    <Stack direction="row" spacing={2} sx={{ order: { xs: 1, sm: 2 } }}>
+                    <div className="order-1 flex w-full flex-col gap-2 sm:order-2 sm:w-auto sm:flex-row">
                       {activeTab > 0 && (
                         <Button
-                          variant="outlined"
+                          variant="outline"
+                          className="rounded-lg"
                           onClick={() => setActiveTab(activeTab - 1)}
                           disabled={formLoading}
-                          sx={{ borderRadius: 2 }}
                         >
                           Previous
                         </Button>
                       )}
                       {activeTab < tabs.length - 1 ? (
                         <Button
-                          variant="outlined"
+                          variant="outline"
+                          className="rounded-lg"
                           onClick={() => setActiveTab(activeTab + 1)}
                           disabled={formLoading}
-                          sx={{ borderRadius: 2 }}
                         >
                           Next
                         </Button>
                       ) : null}
                       <Button
                         type="submit"
-                        variant="contained"
+                        className="min-h-11 min-w-[180px] rounded-lg text-base font-semibold"
                         disabled={formLoading}
-                        startIcon={formLoading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
-                        sx={{ 
-                          borderRadius: 2,
-                          minWidth: { xs: '100%', sm: 180 },
-                          py: 1.5,
-                          fontSize: '1rem',
-                          fontWeight: 600,
-                        }}
                       >
-                        {formLoading ? 'Processing...' : formMode === 'edit' ? 'Update Slider' : 'Create Slider'}
+                        {formLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <SaveIcon className="mr-2 h-4 w-4" />
+                            {formMode === 'edit' ? 'Update Slider' : 'Create Slider'}
+                          </>
+                        )}
                       </Button>
-                    </Stack>
-                  </Box>
+                    </div>
+                  </div>
                 </form>
               </CardContent>
             </Card>
-          </Box>
+          </div>
 
           {/* Side Preview Panel */}
           {showPreview && imageUrl && (
-            <Zoom in={showPreview}>
-              <Box sx={{ flex: { xs: 1, lg: 1 }, position: { lg: 'sticky' }, top: 24, height: 'fit-content' }}>
-                <Card
-                  sx={{
-                    borderRadius: 3,
-                    overflow: 'hidden',
-                    border: `2px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-                    boxShadow: `0 8px 32px ${alpha(theme.palette.primary.main, 0.15)}`,
-                  }}
-                >
-                  <Box
-                    sx={{
-                      bgcolor: alpha(theme.palette.primary.main, 0.08),
-                      p: 2,
-                      borderBottom: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+            <div className="h-fit flex-1 lg:sticky lg:top-6">
+              <Card className="overflow-hidden rounded-3xl border-2 border-primary/20 shadow-lg">
+                <div className="border-b border-primary/20 bg-primary/10 p-4">
+                  <p className="flex items-center gap-2 font-semibold">
+                    <PreviewIcon className="h-4 w-4" />
+                    Live Preview
+                  </p>
+                </div>
+                <div className="relative flex h-[250px] w-full items-center justify-center overflow-hidden bg-muted/50 sm:h-[350px] lg:h-[400px]">
+                  <img
+                    src={imageUrl}
+                    alt={formData.image_alt || formData.title || 'Slider preview'}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
                     }}
-                  >
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <PreviewIcon fontSize="small" />
-                      Live Preview
-                    </Typography>
-                  </Box>
-                  <Box
-                    sx={{
-                      width: '100%',
-                      height: { xs: 250, sm: 350, lg: 400 },
-                      position: 'relative',
-                      bgcolor: alpha(theme.palette.grey[500], 0.05),
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <img
-                      src={imageUrl}
-                      alt={formData.image_alt || formData.title || 'Slider preview'}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                      }}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                    {(formData.title || formData.subtitle || formData.button_text) && (
-                      <Box
-                        sx={{
-                          position: 'absolute',
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          background: `linear-gradient(to top, ${alpha('#000', 0.85)}, transparent)`,
-                          p: 3,
-                          color: 'white',
-                        }}
-                      >
-                        {formData.title && (
-                          <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
-                            {formData.title}
-                          </Typography>
-                        )}
-                        {formData.subtitle && (
-                          <Typography variant="body1" sx={{ opacity: 0.95, mb: 1 }}>
-                            {formData.subtitle}
-                          </Typography>
-                        )}
-                        {formData.button_text && (
-                          <Button
-                            variant="contained"
-                            size="medium"
-                            sx={{ mt: 1 }}
-                            disabled
-                          >
-                            {formData.button_text}
-                          </Button>
-                        )}
-                      </Box>
-                    )}
-                  </Box>
-                </Card>
-              </Box>
-            </Zoom>
+                  />
+                  {(formData.title || formData.subtitle || formData.button_text) && (
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/85 to-transparent p-6 text-white">
+                      {formData.title && (
+                        <p className="mb-1 text-xl font-bold">{formData.title}</p>
+                      )}
+                      {formData.subtitle && (
+                        <p className="mb-2 text-sm opacity-95">{formData.subtitle}</p>
+                      )}
+                      {formData.button_text && (
+                        <Button className="mt-2" disabled>
+                          {formData.button_text}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </Card>
+            </div>
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
+      </TooltipProvider>
     );
   }
 
   // List View
   return (
-    <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
-      <PageHeader
-        title="Slider Management"
-        subtitle="Manage banners and sliders for the client-side website"
-        action={
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleCreate}
-            sx={{ borderRadius: 2 }}
-          >
-            Add Slider
-          </Button>
-        }
-      />
-
-      {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card
-            sx={{
-              borderRadius: 2,
-              background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.primary.main, 0.05)} 100%)`,
-              border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-            }}
-          >
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <Box
-                  sx={{
-                    p: 1.5,
-                    borderRadius: 2,
-                    bgcolor: alpha(theme.palette.primary.main, 0.1),
-                    color: theme.palette.primary.main,
-                  }}
-                >
-                  <ImageIcon />
-                </Box>
-                <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                    {stats.total_sliders}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Total Sliders
-                  </Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card
-            sx={{
-              borderRadius: 2,
-              background: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.1)} 0%, ${alpha(theme.palette.success.main, 0.05)} 100%)`,
-              border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
-            }}
-          >
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <Box
-                  sx={{
-                    p: 1.5,
-                    borderRadius: 2,
-                    bgcolor: alpha(theme.palette.success.main, 0.1),
-                    color: theme.palette.success.main,
-                  }}
-                >
-                  <TrendingUpIcon />
-                </Box>
-                <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 700, color: theme.palette.success.main }}>
-                    {stats.active_sliders}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Active
-                  </Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card
-            sx={{
-              borderRadius: 2,
-              background: `linear-gradient(135deg, ${alpha(theme.palette.warning.main, 0.1)} 0%, ${alpha(theme.palette.warning.main, 0.05)} 100%)`,
-              border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
-            }}
-          >
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <Box
-                  sx={{
-                    p: 1.5,
-                    borderRadius: 2,
-                    bgcolor: alpha(theme.palette.warning.main, 0.1),
-                    color: theme.palette.warning.main,
-                  }}
-                >
-                  <ScheduleIcon />
-                </Box>
-                <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 700, color: theme.palette.warning.main }}>
-                    {stats.scheduled_sliders}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Scheduled
-                  </Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card
-            sx={{
-              borderRadius: 2,
-              background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.1)} 0%, ${alpha(theme.palette.info.main, 0.05)} 100%)`,
-              border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
-            }}
-          >
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <Box
-                  sx={{
-                    p: 1.5,
-                    borderRadius: 2,
-                    bgcolor: alpha(theme.palette.info.main, 0.1),
-                    color: theme.palette.info.main,
-                  }}
-                >
-                  <PublicIcon />
-                </Box>
-                <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 700, color: theme.palette.info.main }}>
-                    {stats.inactive_sliders}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Inactive
-                  </Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Filters */}
-      <Card 
-        sx={{ 
-          mb: 3, 
-          borderRadius: 3,
-          boxShadow: `0 4px 20px ${alpha(theme.palette.common.black, 0.08)}`,
-        }}
-      >
-        <CardContent sx={{ p: 3 }}>
-          <Grid container spacing={2} alignItems="center">
-            <Grid size={{ xs: 12, md: 3 }}>
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Search by title, subtitle, or description..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                sx={{ 
-                  borderRadius: 2,
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2,
-                  }
-                }}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Status</InputLabel>
-                <Select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  label="Status"
-                  sx={{ 
-                    borderRadius: 2,
-                    '& .MuiOutlinedInput-notchedOutline': {
-                      borderRadius: 2,
-                    }
-                  }}
-                >
-                  <SelectMenuItem value="all">All Status</SelectMenuItem>
-                  <SelectMenuItem value="active">Active</SelectMenuItem>
-                  <SelectMenuItem value="inactive">Inactive</SelectMenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Audience</InputLabel>
-                <Select
-                  value={audienceFilter}
-                  onChange={(e) => setAudienceFilter(e.target.value)}
-                  label="Audience"
-                  sx={{ 
-                    borderRadius: 2,
-                    '& .MuiOutlinedInput-notchedOutline': {
-                      borderRadius: 2,
-                    }
-                  }}
-                >
-                  <SelectMenuItem value="all">All Audiences</SelectMenuItem>
-                  <SelectMenuItem value="customers">Customers Only</SelectMenuItem>
-                  <SelectMenuItem value="providers">Providers Only</SelectMenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Placement</InputLabel>
-                <Select
-                  value={placementFilter}
-                  onChange={(e) => setPlacementFilter(e.target.value)}
-                  label="Placement"
-                  sx={{ 
-                    borderRadius: 2,
-                    '& .MuiOutlinedInput-notchedOutline': {
-                      borderRadius: 2,
-                    }
-                  }}
-                >
-                  <SelectMenuItem value="all">All Placements</SelectMenuItem>
-                  {(Object.entries(SLIDER_PLACEMENT_LABELS) as [SliderPlacement, string][]).map(([value, label]) => (
-                    <SelectMenuItem key={value} value={value}>
-                      {label}
-                    </SelectMenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Category</InputLabel>
-                <Select
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  label="Category"
-                  sx={{ 
-                    borderRadius: 2,
-                    '& .MuiOutlinedInput-notchedOutline': {
-                      borderRadius: 2,
-                    }
-                  }}
-                >
-                  <SelectMenuItem value="all">All Categories</SelectMenuItem>
-                  {categories.map((cat) => (
-                    <SelectMenuItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectMenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid size={{ xs: 12, md: 2 }}>
-              <Button
-                variant="outlined"
-                onClick={handleClearFilters}
-                fullWidth
-                sx={{ 
-                  borderRadius: 2,
-                  py: 1.5,
-                  textTransform: 'none',
-                  fontWeight: 600,
-                }}
-              >
-                Clear Filters
-              </Button>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
-
-      {/* Sliders Table */}
-      {loading ? (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress />
-        </Box>
-      ) : sliders.length === 0 ? (
-        <Card 
-          sx={{ 
-            borderRadius: 3,
-            boxShadow: `0 4px 20px ${alpha(theme.palette.common.black, 0.08)}`,
-          }}
-        >
-          <CardContent sx={{ textAlign: 'center', py: 10 }}>
-            <Box
-              sx={{
-                width: 120,
-                height: 120,
-                borderRadius: '50%',
-                bgcolor: alpha(theme.palette.primary.main, 0.1),
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                mx: 'auto',
-                mb: 3,
-              }}
-            >
-              <ImageIcon sx={{ fontSize: 64, color: 'primary.main' }} />
-            </Box>
-            <Typography variant="h5" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>
-              No sliders found
-            </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 4, maxWidth: 400, mx: 'auto' }}>
-              {searchTerm || statusFilter !== 'all' || audienceFilter !== 'all' || placementFilter !== 'all' || categoryFilter !== 'all'
-                ? 'Try adjusting your filters to see more results'
-                : 'Create your first slider banner to get started with marketing campaigns'}
-            </Typography>
-            <Button 
-              variant="contained" 
-              startIcon={<AddIcon />} 
-              onClick={handleCreate} 
-              sx={{ 
-                borderRadius: 2,
-                px: 4,
-                py: 1.5,
-                fontSize: '1rem',
-                fontWeight: 600,
-                textTransform: 'none',
-              }}
-            >
-              Create Your First Slider
+    <TooltipProvider>
+      <div className="p-4 sm:p-6 md:p-8">
+        <PageHeader
+          title="Slider Management"
+          subtitle="Manage banners and sliders for the client-side website"
+          action={
+            <Button onClick={handleCreate}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Slider
             </Button>
+          }
+        />
+
+        <div className="mb-6 grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-4">
+          <Card className="rounded-lg border border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5">
+            <CardContent className="pt-6">
+              <div className="flex flex-row items-center gap-4">
+                <div className="rounded-lg bg-primary/10 p-3 text-primary">
+                  <ImageIcon className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.total_sliders}</p>
+                  <p className="text-sm text-muted-foreground">Total Sliders</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="rounded-lg border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5">
+            <CardContent className="pt-6">
+              <div className="flex flex-row items-center gap-4">
+                <div className="rounded-lg bg-emerald-500/10 p-3 text-emerald-600">
+                  <TrendingUpIcon className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-emerald-600">{stats.active_sliders}</p>
+                  <p className="text-sm text-muted-foreground">Active</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="rounded-lg border border-amber-500/20 bg-gradient-to-br from-amber-500/10 to-amber-500/5">
+            <CardContent className="pt-6">
+              <div className="flex flex-row items-center gap-4">
+                <div className="rounded-lg bg-amber-500/10 p-3 text-amber-600">
+                  <ScheduleIcon className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-amber-600">{stats.scheduled_sliders}</p>
+                  <p className="text-sm text-muted-foreground">Scheduled</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="rounded-lg border border-sky-500/20 bg-gradient-to-br from-sky-500/10 to-sky-500/5">
+            <CardContent className="pt-6">
+              <div className="flex flex-row items-center gap-4">
+                <div className="rounded-lg bg-sky-500/10 p-3 text-sky-600">
+                  <PublicIcon className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-sky-600">{stats.inactive_sliders}</p>
+                  <p className="text-sm text-muted-foreground">Inactive</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card className="mb-6 rounded-2xl shadow-md">
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 items-center gap-4 md:grid-cols-12">
+              <div className="col-span-12 md:col-span-3">
+                <Input
+                  placeholder="Search by title, subtitle, or description..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="rounded-lg"
+                />
+              </div>
+              <div className="col-span-12 sm:col-span-6 md:col-span-2">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="h-9 rounded-lg">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-12 sm:col-span-6 md:col-span-2">
+                <Select value={audienceFilter} onValueChange={setAudienceFilter}>
+                  <SelectTrigger className="h-9 rounded-lg">
+                    <SelectValue placeholder="Audience" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Audiences</SelectItem>
+                    <SelectItem value="customers">Customers Only</SelectItem>
+                    <SelectItem value="providers">Providers Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-12 sm:col-span-6 md:col-span-2">
+                <Select value={placementFilter} onValueChange={setPlacementFilter}>
+                  <SelectTrigger className="h-9 rounded-lg">
+                    <SelectValue placeholder="Placement" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Placements</SelectItem>
+                    {(Object.entries(SLIDER_PLACEMENT_LABELS) as [SliderPlacement, string][]).map(
+                      ([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ),
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-12 sm:col-span-6 md:col-span-2">
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="h-9 rounded-lg">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-12 md:col-span-2">
+                <Button variant="outline" className="w-full rounded-lg font-semibold" onClick={handleClearFilters}>
+                  Clear Filters
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
-      ) : (
-        <>
-          <TableContainer 
-            component={Paper} 
-            sx={{ 
-              borderRadius: 3, 
-              overflow: 'hidden',
-              boxShadow: `0 4px 20px ${alpha(theme.palette.common.black, 0.08)}`,
-            }}
-          >
-            <Table>
-              <TableHead>
-                <TableRow sx={{ 
-                  bgcolor: alpha(theme.palette.primary.main, 0.08),
-                  '& .MuiTableCell-head': {
-                    fontWeight: 700,
-                    fontSize: '0.875rem',
-                    color: 'primary.main',
-                    borderBottom: `2px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-                  }
-                }}>
-                  <TableCell sx={{ fontWeight: 600 }}>Preview</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Title</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Placement</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Position</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Audience</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Schedule</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 600 }}>Actions</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 600 }}>Menu</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {sliders.map((slider) => (
-                  <TableRow 
-                    key={slider.id} 
-                    hover
-                    sx={{
-                      '&:hover': {
-                        bgcolor: alpha(theme.palette.primary.main, 0.02),
-                      },
-                      '& .MuiTableCell-body': {
-                        borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                      }
-                    }}
-                  >
-                    <TableCell>
-                      <Avatar
-                        variant="rounded"
-                        src={slider.image_url}
-                        sx={{
-                          width: 100,
-                          height: 60,
-                          bgcolor: alpha(theme.palette.grey[500], 0.1),
-                          border: `2px solid ${alpha(theme.palette.divider, 0.2)}`,
-                          borderRadius: 2,
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          '&:hover': {
-                            transform: 'scale(1.05)',
-                            boxShadow: `0 4px 12px ${alpha(theme.palette.common.black, 0.15)}`,
-                          }
-                        }}
-                        onClick={() => {
-                          if (slider.image_url) {
-                            window.open(slider.image_url, '_blank');
-                          }
-                        }}
-                      >
-                        {!slider.image_url && <ImageIcon />}
-                      </Avatar>
-                    </TableCell>
-                    <TableCell>
-                      <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {slider.title}
-                        </Typography>
-                        {slider.subtitle && (
-                          <Typography variant="caption" color="text.secondary">
-                            {slider.subtitle}
-                          </Typography>
-                        )}
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={getPlacementLabel(slider.placement)}
-                        size="small"
-                        variant="outlined"
-                        sx={{ fontWeight: 500 }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {slider.category_id || slider.category_name || slider.category_slug ? (
-                        <Chip
-                          label={slider.category_name || slider.category_slug || slider.category_id}
-                          size="small"
-                          variant="outlined"
-                          sx={{ fontWeight: 500 }}
-                        />
-                      ) : (
-                        <Typography variant="caption" color="text.secondary">—</Typography>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Chip label={slider.position} size="small" variant="outlined" />
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        icon={slider.is_active ? <CheckCircleIcon /> : <CancelIcon />}
-                        label={slider.is_active ? 'Active' : 'Inactive'}
-                        color={getStatusColor(slider.is_active)}
-                        size="small"
-                        sx={{ fontWeight: 600 }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        icon={slider.target_audience === 'all' ? <PublicIcon /> : <GroupIcon />}
-                        label={slider.target_audience || 'all'}
-                        color={getAudienceColor(slider.target_audience || 'all')}
-                        size="small"
-                        sx={{ textTransform: 'capitalize' }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Stack spacing={0.5}>
-                        {slider.start_date && (
-                          <Typography variant="caption" color="text.secondary">
-                            Start: {formatDate(slider.start_date)}
-                          </Typography>
-                        )}
-                        {slider.end_date && (
-                          <Typography variant="caption" color="text.secondary">
-                            End: {formatDate(slider.end_date)}
-                          </Typography>
-                        )}
-                        {!slider.start_date && !slider.end_date && (
-                          <Typography variant="caption" color="text.secondary">
-                            No schedule
-                          </Typography>
-                        )}
-                      </Stack>
-                    </TableCell>
-                    <TableCell align="center">
-                      <Stack direction="row" spacing={0.5} justifyContent="center">
-                        <Tooltip title={slider.is_active ? 'Deactivate' : 'Activate'}>
-                          <IconButton
-                            size="small"
-                            color={slider.is_active ? 'success' : 'default'}
-                            onClick={() => handleToggleStatus(slider)}
-                            sx={{
-                              bgcolor: alpha(
-                                slider.is_active ? theme.palette.success.main : theme.palette.grey[500],
-                                0.1
-                              ),
-                              '&:hover': {
-                                bgcolor: alpha(
-                                  slider.is_active ? theme.palette.success.main : theme.palette.grey[500],
-                                  0.2
-                                ),
-                              },
-                            }}
-                          >
-                            {slider.is_active ? <CheckCircleIcon /> : <CancelIcon />}
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Move Up">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleMoveUp(slider)}
-                            disabled={slider.position <= 1}
-                            sx={{
-                              bgcolor: alpha(theme.palette.primary.main, 0.1),
-                              '&:hover': {
-                                bgcolor: alpha(theme.palette.primary.main, 0.2),
-                              },
-                            }}
-                          >
-                            <ArrowUpIcon />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Move Down">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleMoveDown(slider)}
-                            sx={{
-                              bgcolor: alpha(theme.palette.primary.main, 0.1),
-                              '&:hover': {
-                                bgcolor: alpha(theme.palette.primary.main, 0.2),
-                              },
-                            }}
-                          >
-                            <ArrowDownIcon />
-                          </IconButton>
-                        </Tooltip>
-                      </Stack>
-                    </TableCell>
-                    <TableCell align="right">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => handleMenuClick(e, slider)}
-                        sx={{
-                          bgcolor: alpha(theme.palette.grey[500], 0.1),
-                          '&:hover': {
-                            bgcolor: alpha(theme.palette.grey[500], 0.2),
-                          },
-                        }}
-                      >
-                        <MoreVertIcon />
-                      </IconButton>
-                    </TableCell>
+
+        {loading ? (
+          <div className="flex min-h-[400px] items-center justify-center">
+            <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+          </div>
+        ) : sliders.length === 0 ? (
+          <Card className="rounded-2xl shadow-md">
+            <CardContent className="py-16 text-center">
+              <div className="mx-auto mb-6 flex h-28 w-28 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <ImageIcon className="h-14 w-14" />
+              </div>
+              <p className="mb-2 text-xl font-semibold">No sliders found</p>
+              <p className="mb-8 max-w-md text-muted-foreground mx-auto">
+                {searchTerm ||
+                statusFilter !== 'all' ||
+                audienceFilter !== 'all' ||
+                placementFilter !== 'all' ||
+                categoryFilter !== 'all'
+                  ? 'Try adjusting your filters to see more results'
+                  : 'Create your first slider banner to get started with marketing campaigns'}
+              </p>
+              <Button onClick={handleCreate} className="rounded-lg px-8 py-6 text-base font-semibold">
+                <Plus className="mr-2 h-4 w-4" />
+                Create Your First Slider
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <div className="overflow-hidden rounded-3xl border bg-card shadow-md">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-b-2 border-primary/20 bg-primary/10 hover:bg-primary/10">
+                    <TableHead className="font-bold text-primary">Preview</TableHead>
+                    <TableHead className="font-bold text-primary">Title</TableHead>
+                    <TableHead className="font-bold text-primary">Placement</TableHead>
+                    <TableHead className="font-bold text-primary">Category</TableHead>
+                    <TableHead className="font-bold text-primary">Position</TableHead>
+                    <TableHead className="font-bold text-primary">Status</TableHead>
+                    <TableHead className="font-bold text-primary">Audience</TableHead>
+                    <TableHead className="font-bold text-primary">Schedule</TableHead>
+                    <TableHead className="text-center font-bold text-primary">Actions</TableHead>
+                    <TableHead className="text-right font-bold text-primary">Menu</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHeader>
+                <TableBody>
+                  {sliders.map((slider) => (
+                    <TableRow key={slider.id} className="border-border/60 hover:bg-muted/30">
+                      <TableCell>
+                        <Avatar
+                          className="h-[60px] w-[100px] cursor-pointer rounded-md border-2 border-border transition-transform hover:scale-105"
+                          onClick={() => {
+                            if (slider.image_url) window.open(slider.image_url, '_blank');
+                          }}
+                        >
+                          <AvatarImage src={slider.image_url || undefined} className="object-cover" />
+                          <AvatarFallback className="rounded-md">
+                            <ImageIcon className="h-6 w-6" />
+                          </AvatarFallback>
+                        </Avatar>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="text-sm font-semibold">{slider.title}</p>
+                          {slider.subtitle && (
+                            <p className="text-xs text-muted-foreground">{slider.subtitle}</p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="font-medium">
+                          {getPlacementLabel(slider.placement)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {slider.category_id || slider.category_name || slider.category_slug ? (
+                          <Badge variant="outline" className="font-medium">
+                            {slider.category_name || slider.category_slug || slider.category_id}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{slider.position}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getStatusBadgeVariant(slider.is_active)} className="gap-1 font-semibold capitalize">
+                          {slider.is_active ? (
+                            <CheckCircleIcon className="h-3 w-3" />
+                          ) : (
+                            <CancelIcon className="h-3 w-3" />
+                          )}
+                          {slider.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={getAudienceBadgeVariant(slider.target_audience || 'all')}
+                          className="gap-1 capitalize"
+                        >
+                          {slider.target_audience === 'all' ? (
+                            <PublicIcon className="h-3 w-3" />
+                          ) : (
+                            <GroupIcon className="h-3 w-3" />
+                          )}
+                          {slider.target_audience || 'all'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-0.5 text-xs text-muted-foreground">
+                          {slider.start_date && <span>Start: {formatDate(slider.start_date)}</span>}
+                          {slider.end_date && <span>End: {formatDate(slider.end_date)}</span>}
+                          {!slider.start_date && !slider.end_date && <span>No schedule</span>}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex flex-row justify-center gap-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className={cn(
+                                  'h-8 w-8',
+                                  slider.is_active
+                                    ? 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20'
+                                    : 'bg-muted text-muted-foreground hover:bg-muted/80',
+                                )}
+                                onClick={() => handleToggleStatus(slider)}
+                              >
+                                {slider.is_active ? (
+                                  <CheckCircleIcon className="h-4 w-4" />
+                                ) : (
+                                  <CancelIcon className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{slider.is_active ? 'Deactivate' : 'Activate'}</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 bg-primary/10 text-primary hover:bg-primary/20"
+                                onClick={() => handleMoveUp(slider)}
+                                disabled={slider.position <= 1}
+                              >
+                                <ArrowUpIcon className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Move Up</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 bg-primary/10 text-primary hover:bg-primary/20"
+                                onClick={() => handleMoveDown(slider)}
+                              >
+                                <ArrowDownIcon className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Move Down</TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 bg-muted/80">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEdit(slider)}>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => handleDelete(slider)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
 
-          <TablePagination
-            component="div"
-            count={total}
-            page={page}
-            onPageChange={(_, newPage) => setPage(newPage)}
-            rowsPerPage={limit}
-            rowsPerPageOptions={[10, 25, 50, 100]}
-            sx={{ 
-              mt: 3,
-              '& .MuiTablePagination-toolbar': {
-                px: 0,
-              },
-              '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
-                fontWeight: 500,
-              }
-            }}
-          />
-        </>
-      )}
-
-      {/* Action Menu */}
-      <Menu
-        anchorEl={menuAnchor}
-        open={Boolean(menuAnchor)}
-        onClose={handleMenuClose}
-        PaperProps={{
-          sx: { borderRadius: 2, minWidth: 160 }
-        }}
-      >
-        <MenuItem onClick={() => menuSlider && handleEdit(menuSlider)}>
-          <EditIcon sx={{ mr: 1 }} fontSize="small" />
-          Edit
-        </MenuItem>
-        <MenuItem 
-          onClick={() => menuSlider && handleDelete(menuSlider)}
-          sx={{ color: 'error.main' }}
-        >
-          <DeleteIcon sx={{ mr: 1 }} fontSize="small" />
-          Delete
-        </MenuItem>
-      </Menu>
-
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={handleSnackbarClose}
-          severity={snackbar.severity}
-          sx={{ borderRadius: 2 }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+            <div className="mt-6 flex flex-col items-center justify-between gap-4 sm:flex-row">
+              <p className="text-sm text-muted-foreground">
+                Page {page + 1} of {totalPages} ({total} total)
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 0}
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages - 1}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </TooltipProvider>
   );
 }

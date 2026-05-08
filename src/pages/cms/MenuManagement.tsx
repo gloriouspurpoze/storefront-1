@@ -1,60 +1,56 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControl,
-  FormControlLabel,
-  IconButton,
-  InputLabel,
-  MenuItem as MuiMenuItem,
-  Select,
-  Stack,
-  Switch,
-  TextField,
-  Typography,
-  Alert,
-  Paper,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
-  Collapse,
-  Tooltip,
-  Breadcrumbs,
-  Link as MuiLink,
-  Tabs,
-  Tab,
-  CircularProgress,
-} from '@mui/material'
-import Grid from '@mui/material/GridLegacy'
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Menu as MenuIcon,
-  Visibility as VisibilityIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-  DragIndicator as DragIndicatorIcon,
-  Search as SearchIcon,
-  FilterList as FilterListIcon,
-  ContentCopy as DuplicateIcon,
-  Refresh as RefreshIcon,
-  CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
-} from '@mui/icons-material'
+  Plus,
+  Pencil,
+  Trash2,
+  Menu,
+  Eye,
+  ChevronDown,
+  ChevronUp,
+  GripVertical,
+  Search,
+  ListFilter,
+  Copy,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  ChevronRight,
+} from 'lucide-react'
 import { MenuService } from '../../services/api/menu.service'
 import { MenuItemForm } from '../../components/cms/MenuItemForm'
 import { ConfirmDialog, EmptyState } from '../../components/common'
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Switch,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+  Textarea,
+} from '../../components/ui'
+import { cn } from '../../lib/utils'
 import type {
-  Menu,
+  Menu as MenuType,
   MenuItem,
   CreateMenuRequest,
   UpdateMenuRequest,
@@ -62,37 +58,33 @@ import type {
   UpdateMenuItemRequest,
 } from '../../types'
 
-interface TabPanelProps {
-  children?: React.ReactNode
-  index: number
-  value: number
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`menu-tabpanel-${index}`}
-      aria-labelledby={`menu-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
-    </div>
-  )
+function locationBadgeVariant(
+  location: string,
+): 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' {
+  switch (location) {
+    case 'header':
+      return 'default'
+    case 'footer':
+      return 'secondary'
+    case 'sidebar':
+      return 'outline'
+    case 'mobile':
+      return 'success'
+    default:
+      return 'warning'
+  }
 }
 
 export default function MenuManagement() {
-  const [menus, setMenus] = useState<Menu[]>([])
+  const [menus, setMenus] = useState<MenuType[]>([])
   const [loading, setLoading] = useState(true)
   const [showMenuForm, setShowMenuForm] = useState(false)
   const [showMenuItemForm, setShowMenuItemForm] = useState(false)
-  const [editingMenu, setEditingMenu] = useState<Menu | null>(null)
+  const [editingMenu, setEditingMenu] = useState<MenuType | null>(null)
   const [editingMenuItem, setEditingMenuItem] = useState<MenuItem | null>(null)
-  const [selectedMenu, setSelectedMenu] = useState<Menu | null>(null)
+  const [selectedMenu, setSelectedMenu] = useState<MenuType | null>(null)
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
-  const [tabValue, setTabValue] = useState(0)
+  const [tab, setTab] = useState<'menus' | 'items'>('menus')
   const [deleteConfirm, setDeleteConfirm] = useState<{
     open: boolean
     type: 'menu' | 'item'
@@ -101,7 +93,6 @@ export default function MenuManagement() {
     name?: string
   }>({ open: false, type: 'menu' })
 
-  // Filters and search
   const [searchQuery, setSearchQuery] = useState('')
   const [locationFilter, setLocationFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -123,6 +114,12 @@ export default function MenuManagement() {
   useEffect(() => {
     fetchMenus()
   }, [])
+
+  useEffect(() => {
+    if (!selectedMenu && tab === 'items') {
+      setTab('menus')
+    }
+  }, [selectedMenu, tab])
 
   const fetchMenus = async () => {
     try {
@@ -168,7 +165,7 @@ export default function MenuManagement() {
       await fetchMenus()
       if (selectedMenu?.id === deleteConfirm.id || selectedMenu?._id === deleteConfirm.id) {
         setSelectedMenu(null)
-        setTabValue(0)
+        setTab('menus')
       }
       setDeleteConfirm({ open: false, type: 'menu' })
     } catch (error) {
@@ -179,12 +176,8 @@ export default function MenuManagement() {
   const handleAddMenuItem = async (data: CreateMenuItemRequest) => {
     if (!selectedMenu) return
     try {
-      await MenuService.addMenuItem(
-        selectedMenu.id || selectedMenu._id || '',
-        data
-      )
+      await MenuService.addMenuItem(selectedMenu.id || selectedMenu._id || '', data)
       await fetchMenus()
-      // Refresh selected menu
       const updated = await MenuService.getMenuById(selectedMenu.id || selectedMenu._id || '')
       setSelectedMenu(updated.data?.menu || updated.menu)
       setShowMenuItemForm(false)
@@ -199,13 +192,8 @@ export default function MenuManagement() {
     if (!selectedMenu || !editingMenuItem) return
     try {
       const itemId = editingMenuItem.id || editingMenuItem._id || ''
-      await MenuService.updateMenuItem(
-        selectedMenu.id || selectedMenu._id || '',
-        itemId,
-        data
-      )
+      await MenuService.updateMenuItem(selectedMenu.id || selectedMenu._id || '', itemId, data)
       await fetchMenus()
-      // Refresh selected menu
       const updated = await MenuService.getMenuById(selectedMenu.id || selectedMenu._id || '')
       setSelectedMenu(updated.data?.menu || updated.menu)
       setShowMenuItemForm(false)
@@ -221,7 +209,6 @@ export default function MenuManagement() {
     try {
       await MenuService.deleteMenuItem(deleteConfirm.menuId, deleteConfirm.id)
       await fetchMenus()
-      // Refresh selected menu
       const updated = await MenuService.getMenuById(deleteConfirm.menuId)
       setSelectedMenu(updated.data?.menu || updated.menu)
       setDeleteConfirm({ open: false, type: 'item' })
@@ -230,12 +217,9 @@ export default function MenuManagement() {
     }
   }
 
-  const handleToggleMenuStatus = async (menu: Menu) => {
+  const handleToggleMenuStatus = async (menu: MenuType) => {
     try {
-      await MenuService.toggleMenuStatus(
-        menu.id || menu._id || '',
-        !menu.isActive
-      )
+      await MenuService.toggleMenuStatus(menu.id || menu._id || '', !menu.isActive)
       await fetchMenus()
       if (selectedMenu?.id === menu.id || selectedMenu?._id === menu._id) {
         const updated = await MenuService.getMenuById(menu.id || menu._id || '')
@@ -246,7 +230,7 @@ export default function MenuManagement() {
     }
   }
 
-  const handleDuplicateMenu = async (menu: Menu) => {
+  const handleDuplicateMenu = async (menu: MenuType) => {
     try {
       await MenuService.duplicateMenu(menu.id || menu._id || '', `${menu.name} (Copy)`)
       await fetchMenus()
@@ -255,7 +239,7 @@ export default function MenuManagement() {
     }
   }
 
-  const handleEditMenu = (menu: Menu) => {
+  const handleEditMenu = (menu: MenuType) => {
     setEditingMenu(menu)
     setMenuFormData({
       name: menu.name,
@@ -296,11 +280,11 @@ export default function MenuManagement() {
     setShowMenuForm(false)
   }
 
-  const handleSelectMenu = async (menu: Menu) => {
+  const handleSelectMenu = async (menu: MenuType) => {
     try {
       const response = await MenuService.getMenuById(menu.id || menu._id || '')
       setSelectedMenu(response.data?.menu || response.menu)
-      setTabValue(1)
+      setTab('items')
     } catch (error) {
       console.error('Error loading menu:', error)
     }
@@ -318,21 +302,6 @@ export default function MenuManagement() {
     })
   }
 
-  const getLocationColor = (location: string) => {
-    switch (location) {
-      case 'header':
-        return 'primary'
-      case 'footer':
-        return 'secondary'
-      case 'sidebar':
-        return 'info'
-      case 'mobile':
-        return 'success'
-      default:
-        return 'default'
-    }
-  }
-
   const renderMenuItem = (item: MenuItem, level = 0): React.ReactNode => {
     const itemId = item.id || item._id || ''
     const hasChildren = item.children && item.children.length > 0
@@ -341,93 +310,94 @@ export default function MenuManagement() {
 
     return (
       <React.Fragment key={itemId}>
-        <ListItem
-          sx={{
-            pl: `${2 + indent}rem`,
-            borderLeft: level > 0 ? '2px solid' : 'none',
-            borderColor: 'divider',
-            bgcolor: level % 2 === 0 ? 'transparent' : 'action.hover',
-          }}
+        <div
+          className={cn(
+            'flex items-start gap-3 border-b border-border/80 py-3 pr-2',
+            level > 0 && 'border-l-2 border-border pl-2',
+            level % 2 === 1 && 'bg-muted/30',
+          )}
+          style={{ paddingLeft: `${1 + indent}rem` }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
-            {hasChildren && (
-              <IconButton
-                size="small"
+          <div className="flex min-w-0 flex-1 items-start gap-2">
+            {hasChildren ? (
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 shrink-0"
                 onClick={() => toggleItemExpansion(itemId)}
               >
-                {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-              </IconButton>
+                {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            ) : (
+              <span className="w-8 shrink-0" />
             )}
-            {!hasChildren && <Box sx={{ width: 32 }} />}
-            <DragIndicatorIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
-            <ListItemText
-              primary={
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <Typography variant="body2" fontWeight={level === 0 ? 600 : 400}>
-                    {item.label}
-                  </Typography>
-                  {item.type !== 'link' && (
-                    <Chip label={item.type} size="small" variant="outlined" />
-                  )}
-                  {!item.isActive && (
-                    <Chip label="Inactive" size="small" color="default" />
-                  )}
-                </Stack>
-              }
-              secondary={
-                <Stack direction="row" spacing={2} sx={{ mt: 0.5 }}>
-                  {item.url && (
-                    <Typography variant="caption" color="text.secondary">
-                      {item.url}
-                    </Typography>
-                  )}
-                  {item.target === '_blank' && (
-                    <Chip label="New Tab" size="small" variant="outlined" />
-                  )}
-                  <Typography variant="caption" color="text.secondary">
-                    Order: {item.order}
-                  </Typography>
-                </Stack>
-              }
-            />
-            <ListItemSecondaryAction>
-              <Stack direction="row" spacing={0.5}>
-                <Tooltip title="Edit">
-                  <IconButton
-                    size="small"
-                    onClick={() => handleEditMenuItem(item)}
-                  >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Delete">
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={() =>
-                      setDeleteConfirm({
-                        open: true,
-                        type: 'item',
-                        id: itemId,
-                        menuId: selectedMenu?.id || selectedMenu?._id,
-                        name: item.label,
-                      })
-                    }
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </Stack>
-            </ListItemSecondaryAction>
-          </Box>
-        </ListItem>
-        {hasChildren && (
-          <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-            <List component="div" disablePadding>
-              {item.children?.map((child) => renderMenuItem(child, level + 1))}
-            </List>
-          </Collapse>
-        )}
+            <GripVertical className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={cn('text-sm', level === 0 ? 'font-semibold' : 'font-normal')}>
+                  {item.label}
+                </span>
+                {item.type !== 'link' ? (
+                  <Badge variant="outline" className="text-xs">
+                    {item.type}
+                  </Badge>
+                ) : null}
+                {!item.isActive ? (
+                  <Badge variant="secondary" className="text-xs">
+                    Inactive
+                  </Badge>
+                ) : null}
+              </div>
+              <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted-foreground">
+                {item.url ? <span>{item.url}</span> : null}
+                {item.target === '_blank' ? (
+                  <Badge variant="outline" className="text-[10px]">
+                    New Tab
+                  </Badge>
+                ) : null}
+                <span>Order: {item.order}</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex shrink-0 gap-0.5">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEditMenuItem(item)}>
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Edit</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 text-destructive hover:text-destructive"
+                  onClick={() =>
+                    setDeleteConfirm({
+                      open: true,
+                      type: 'item',
+                      id: itemId,
+                      menuId: selectedMenu?.id || selectedMenu?._id,
+                      name: item.label,
+                    })
+                  }
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Delete</TooltipContent>
+            </Tooltip>
+          </div>
+        </div>
+        {hasChildren && isExpanded ? (
+          <div className="border-b border-border/60">
+            {item.children?.map((child) => renderMenuItem(child, level + 1))}
+          </div>
+        ) : null}
       </React.Fragment>
     )
   }
@@ -449,406 +419,382 @@ export default function MenuManagement() {
 
   if (loading && menus.length === 0) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex min-h-[400px] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
     )
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box>
-          <Typography variant="h4" fontWeight="bold" gutterBottom>
-            Menu Management
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Create and manage navigation menus for your website
-          </Typography>
-        </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setShowMenuForm(true)}
+    <TooltipProvider>
+      <div className="p-6">
+        <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Menu Management</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Create and manage navigation menus for your website
+            </p>
+          </div>
+          <Button onClick={() => setShowMenuForm(true)} leftIcon={<Plus className="h-4 w-4" />}>
+            New Menu
+          </Button>
+        </div>
+
+        <div
+          className="mb-6 rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/40 dark:text-sky-100"
+          role="status"
         >
-          New Menu
-        </Button>
-      </Box>
+          <strong>Note:</strong> Menu item builder with drag-and-drop functionality can be added in a future enhancement.
+          The current structure supports nested menu items and is ready for drag-and-drop integration. For now, create
+          menus and add items via the UI or API.
+        </div>
 
-      {/* Note about drag-and-drop */}
-      <Alert severity="info" sx={{ mb: 3 }}>
-        <Typography variant="body2">
-          <strong>Note:</strong> Menu item builder with drag-and-drop functionality can be added in a future enhancement. 
-          The current structure supports nested menu items and is ready for drag-and-drop integration. 
-          For now, create menus and add items via the UI or API.
-        </Typography>
-      </Alert>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as 'menus' | 'items')}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="menus">All Menus</TabsTrigger>
+            {selectedMenu ? <TabsTrigger value="items">{selectedMenu.name}</TabsTrigger> : null}
+          </TabsList>
 
-      <Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)} sx={{ mb: 3 }}>
-        <Tab label="All Menus" />
-        {selectedMenu && <Tab label={selectedMenu.name} />}
-      </Tabs>
+          <TabsContent value="menus" className="mt-0">
+            <Card className="mb-6 p-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-12 md:items-end">
+                <div className="md:col-span-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      className="h-9 pl-9"
+                      placeholder="Search menus..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="md:col-span-3 space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Location</Label>
+                  <Select value={locationFilter} onValueChange={setLocationFilter}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Locations</SelectItem>
+                      <SelectItem value="header">Header</SelectItem>
+                      <SelectItem value="footer">Footer</SelectItem>
+                      <SelectItem value="sidebar">Sidebar</SelectItem>
+                      <SelectItem value="mobile">Mobile</SelectItem>
+                      <SelectItem value="custom">Custom</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="md:col-span-3 space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Status</Label>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="md:col-span-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-9 w-full"
+                    onClick={fetchMenus}
+                    leftIcon={<RefreshCw className="h-4 w-4" />}
+                  >
+                    Refresh
+                  </Button>
+                </div>
+              </div>
+            </Card>
 
-      {/* All Menus Tab */}
-      <TabPanel value={tabValue} index={0}>
-        {/* Filters */}
-        <Paper sx={{ p: 2, mb: 3 }}>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Search menus..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                InputProps={{
-                  startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Location</InputLabel>
-                <Select
-                  value={locationFilter}
-                  label="Location"
-                  onChange={(e) => setLocationFilter(e.target.value)}
-                >
-                  <MuiMenuItem value="all">All Locations</MuiMenuItem>
-                  <MuiMenuItem value="header">Header</MuiMenuItem>
-                  <MuiMenuItem value="footer">Footer</MuiMenuItem>
-                  <MuiMenuItem value="sidebar">Sidebar</MuiMenuItem>
-                  <MuiMenuItem value="mobile">Mobile</MuiMenuItem>
-                  <MuiMenuItem value="custom">Custom</MuiMenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Status</InputLabel>
-                <Select
-                  value={statusFilter}
-                  label="Status"
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                >
-                  <MuiMenuItem value="all">All Status</MuiMenuItem>
-                  <MuiMenuItem value="active">Active</MuiMenuItem>
-                  <MuiMenuItem value="inactive">Inactive</MuiMenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={2}>
-              <Button
-                fullWidth
-                variant="outlined"
-                startIcon={<RefreshIcon />}
-                onClick={fetchMenus}
-              >
-                Refresh
-              </Button>
-            </Grid>
-          </Grid>
-        </Paper>
-
-        {/* Menus List */}
-        {filteredMenus.length === 0 ? (
-          <EmptyState
-            title="No menus found"
-            description={
-              searchQuery || locationFilter !== 'all' || statusFilter !== 'all'
-                ? 'Try adjusting your filters'
-                : 'Create your first menu to get started'
-            }
-            action={{
-              label: 'Create Menu',
-              onClick: () => setShowMenuForm(true),
-            }}
-          />
-      ) : (
-        <Grid container spacing={2}>
-            {filteredMenus.map((menu) => (
-              <Grid item xs={12} key={menu.id || menu._id}>
-              <Card>
-                <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                    <Box sx={{ flex: 1 }}>
-                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                        <MenuIcon color="action" />
-                          <Typography variant="h6" fontWeight="600">
-                            {menu.name}
-                          </Typography>
-                        <Chip
-                          label={menu.isActive ? 'Active' : 'Inactive'}
-                          color={menu.isActive ? 'success' : 'default'}
-                          size="small"
-                            icon={menu.isActive ? <CheckCircleIcon /> : <CancelIcon />}
-                        />
-                        <Chip
-                          label={menu.location}
-                            color={getLocationColor(menu.location) as any}
-                          size="small"
-                          variant="outlined"
-                        />
-                      </Stack>
-
-                      <Stack direction="row" spacing={2} sx={{ mb: 1 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          <strong>Slug:</strong> <code>{menu.slug}</code>
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                            {menu.items?.length || 0} menu items
-                        </Typography>
-                      </Stack>
-
-                        {menu.description && (
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                            {menu.description}
-                          </Typography>
-                        )}
-
-                      <Typography variant="caption" color="text.secondary">
-                        Created {new Date(menu.createdAt).toLocaleDateString()}
-                      </Typography>
-                    </Box>
-
-                    <Stack direction="row" spacing={1}>
-                        <Tooltip title="View & Edit Items">
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={() => handleSelectMenu(menu)}
-                          >
-                            <VisibilityIcon />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Edit Menu">
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={() => handleEditMenu(menu)}
-                          >
-                        <EditIcon />
-                      </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Duplicate">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDuplicateMenu(menu)}
-                          >
-                            <DuplicateIcon />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title={menu.isActive ? 'Deactivate' : 'Activate'}>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleToggleMenuStatus(menu)}
-                          >
-                            {menu.isActive ? <CancelIcon /> : <CheckCircleIcon />}
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete">
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() =>
-                              setDeleteConfirm({
-                                open: true,
-                                type: 'menu',
-                                id: menu.id || menu._id,
-                                name: menu.name,
-                              })
-                            }
-                          >
-                        <DeleteIcon />
-                      </IconButton>
-                        </Tooltip>
-                    </Stack>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      )}
-      </TabPanel>
-
-      {/* Menu Items Tab */}
-      <TabPanel value={tabValue} index={1}>
-        {selectedMenu ? (
-          <Box>
-            <Paper sx={{ p: 2, mb: 3 }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Box>
-                  <Typography variant="h6" gutterBottom>
-                    {selectedMenu.name}
-                  </Typography>
-                  <Breadcrumbs>
-                    <MuiLink color="inherit" href="#" onClick={() => setTabValue(0)}>
-                      Menus
-                    </MuiLink>
-                    <Typography color="text.primary">{selectedMenu.name}</Typography>
-                  </Breadcrumbs>
-                </Box>
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  onClick={() => {
-                    setEditingMenuItem(null)
-                    setShowMenuItemForm(true)
-                  }}
-                >
-                  Add Menu Item
-                </Button>
-              </Stack>
-            </Paper>
-
-            {selectedMenu.items && selectedMenu.items.length > 0 ? (
-              <Paper>
-                <List>
-                  {selectedMenu.items
-                    .sort((a, b) => (a.order || 0) - (b.order || 0))
-                    .map((item) => renderMenuItem(item))}
-                </List>
-              </Paper>
-            ) : (
+            {filteredMenus.length === 0 ? (
               <EmptyState
-                title="No menu items"
-                description="Add your first menu item to get started"
+                title="No menus found"
+                description={
+                  searchQuery || locationFilter !== 'all' || statusFilter !== 'all'
+                    ? 'Try adjusting your filters'
+                    : 'Create your first menu to get started'
+                }
                 action={{
-                  label: 'Add Menu Item',
-                  onClick: () => {
-                    setEditingMenuItem(null)
-                    setShowMenuItemForm(true)
-                  },
+                  label: 'Create Menu',
+                  onClick: () => setShowMenuForm(true),
                 }}
               />
+            ) : (
+              <div className="grid grid-cols-1 gap-4">
+                {filteredMenus.map((menu) => (
+                  <Card key={menu.id || menu._id}>
+                    <CardContent className="p-6">
+                      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-2 flex flex-wrap items-center gap-2">
+                            <Menu className="h-5 w-5 text-muted-foreground" />
+                            <h3 className="text-lg font-semibold">{menu.name}</h3>
+                            <Badge variant={menu.isActive ? 'success' : 'secondary'} className="gap-1">
+                              {menu.isActive ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+                              {menu.isActive ? 'Active' : 'Inactive'}
+                            </Badge>
+                            <Badge variant={locationBadgeVariant(menu.location)} className="capitalize">
+                              {menu.location}
+                            </Badge>
+                          </div>
+                          <div className="mb-2 flex flex-wrap gap-4 text-sm text-muted-foreground">
+                            <span>
+                              <strong className="text-foreground">Slug:</strong>{' '}
+                              <code className="rounded bg-muted px-1 py-0.5 text-xs">{menu.slug}</code>
+                            </span>
+                            <span>{menu.items?.length || 0} menu items</span>
+                          </div>
+                          {menu.description ? (
+                            <p className="mb-2 text-sm text-muted-foreground">{menu.description}</p>
+                          ) : null}
+                          <p className="text-xs text-muted-foreground">
+                            Created {new Date(menu.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 flex-wrap gap-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="text-primary"
+                                onClick={() => handleSelectMenu(menu)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>View &amp; Edit Items</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="text-primary"
+                                onClick={() => handleEditMenu(menu)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Edit Menu</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button type="button" size="icon" variant="ghost" onClick={() => handleDuplicateMenu(menu)}>
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Duplicate</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button type="button" size="icon" variant="ghost" onClick={() => handleToggleMenuStatus(menu)}>
+                                {menu.isActive ? <XCircle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{menu.isActive ? 'Deactivate' : 'Activate'}</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="text-destructive"
+                                onClick={() =>
+                                  setDeleteConfirm({
+                                    open: true,
+                                    type: 'menu',
+                                    id: menu.id || menu._id,
+                                    name: menu.name,
+                                  })
+                                }
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Delete</TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             )}
-          </Box>
-        ) : (
-          <Alert severity="info">Select a menu to view and manage its items</Alert>
-        )}
-      </TabPanel>
+          </TabsContent>
 
-      {/* Menu Form Dialog */}
-      <Dialog open={showMenuForm} onClose={handleCloseMenuForm} maxWidth="sm" fullWidth>
-        <DialogTitle>{editingMenu ? 'Edit Menu' : 'Create New Menu'}</DialogTitle>
-        <DialogContent dividers>
-          <Grid container spacing={2} sx={{ mt: 0.5 }}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Menu Name"
-                value={menuFormData.name}
-                onChange={(e) => setMenuFormData({ ...menuFormData, name: e.target.value })}
-                placeholder="Main Navigation"
-                required
-              />
-            </Grid>
+          {selectedMenu ? (
+            <TabsContent value="items" className="mt-0">
+              <Card className="mb-6 p-4">
+                <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                  <div>
+                    <h2 className="text-lg font-semibold">{selectedMenu.name}</h2>
+                    <nav className="mt-2 flex items-center gap-1 text-sm text-muted-foreground">
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="h-auto p-0 text-muted-foreground"
+                        onClick={() => setTab('menus')}
+                      >
+                        Menus
+                      </Button>
+                      <ChevronRight className="h-4 w-4" />
+                      <span className="text-foreground">{selectedMenu.name}</span>
+                    </nav>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      setEditingMenuItem(null)
+                      setShowMenuItemForm(true)
+                    }}
+                    leftIcon={<Plus className="h-4 w-4" />}
+                  >
+                    Add Menu Item
+                  </Button>
+                </div>
+              </Card>
 
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Slug (optional)"
-                value={menuFormData.slug}
-                onChange={(e) => setMenuFormData({ ...menuFormData, slug: e.target.value })}
-                placeholder="main-navigation"
-                helperText="Auto-generated from name if empty"
-              />
-            </Grid>
+              {selectedMenu.items && selectedMenu.items.length > 0 ? (
+                <Card>
+                  <div className="divide-y divide-border">{selectedMenu.items
+                    .sort((a, b) => (a.order || 0) - (b.order || 0))
+                    .map((item) => renderMenuItem(item))}</div>
+                </Card>
+              ) : (
+                <EmptyState
+                  title="No menu items"
+                  description="Add your first menu item to get started"
+                  action={{
+                    label: 'Add Menu Item',
+                    onClick: () => {
+                      setEditingMenuItem(null)
+                      setShowMenuItemForm(true)
+                    },
+                  }}
+                />
+              )}
+            </TabsContent>
+          ) : null}
+        </Tabs>
 
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Location</InputLabel>
+        <Dialog open={showMenuForm} onOpenChange={(open) => !open && handleCloseMenuForm()}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>{editingMenu ? 'Edit Menu' : 'Create New Menu'}</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="menu-name">Menu Name</Label>
+                <Input
+                  id="menu-name"
+                  value={menuFormData.name}
+                  onChange={(e) => setMenuFormData({ ...menuFormData, name: e.target.value })}
+                  placeholder="Main Navigation"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="menu-slug">Slug (optional)</Label>
+                <Input
+                  id="menu-slug"
+                  value={menuFormData.slug}
+                  onChange={(e) => setMenuFormData({ ...menuFormData, slug: e.target.value })}
+                  placeholder="main-navigation"
+                />
+                <p className="text-xs text-muted-foreground">Auto-generated from name if empty</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Location</Label>
                 <Select
                   value={menuFormData.location}
-                  label="Location"
-                  onChange={(e) =>
+                  onValueChange={(v) =>
                     setMenuFormData({
                       ...menuFormData,
-                      location: e.target.value as any,
+                      location: v as CreateMenuRequest['location'],
                     })
                   }
-                  required
                 >
-                  <MuiMenuItem value="header">Header</MuiMenuItem>
-                  <MuiMenuItem value="footer">Footer</MuiMenuItem>
-                  <MuiMenuItem value="sidebar">Sidebar</MuiMenuItem>
-                  <MuiMenuItem value="mobile">Mobile</MuiMenuItem>
-                  <MuiMenuItem value="custom">Custom</MuiMenuItem>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="header">Header</SelectItem>
+                    <SelectItem value="footer">Footer</SelectItem>
+                    <SelectItem value="sidebar">Sidebar</SelectItem>
+                    <SelectItem value="mobile">Mobile</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
+                  </SelectContent>
                 </Select>
-              </FormControl>
-            </Grid>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="menu-desc">Description</Label>
+                <Textarea
+                  id="menu-desc"
+                  rows={3}
+                  value={menuFormData.description}
+                  onChange={(e) => setMenuFormData({ ...menuFormData, description: e.target.value })}
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={menuFormData.isActive}
+                  onCheckedChange={(checked) => setMenuFormData({ ...menuFormData, isActive: checked })}
+                />
+                <Label>Active</Label>
+              </div>
+            </div>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button type="button" variant="outline" onClick={handleCloseMenuForm}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={editingMenu ? handleUpdateMenu : handleCreateMenu}>
+                {editingMenu ? 'Update' : 'Create'} Menu
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Description"
-                multiline
-                rows={3}
-                value={menuFormData.description}
-                onChange={(e) =>
-                  setMenuFormData({ ...menuFormData, description: e.target.value })
-                }
-              />
-            </Grid>
+        <MenuItemForm
+          open={showMenuItemForm}
+          onClose={() => {
+            setShowMenuItemForm(false)
+            setEditingMenuItem(null)
+          }}
+          onSubmit={async (data: CreateMenuItemRequest | UpdateMenuItemRequest) => {
+            if (editingMenuItem) {
+              await handleUpdateMenuItem(data as any)
+            } else {
+              await handleAddMenuItem(data as any)
+            }
+          }}
+          menuItem={editingMenuItem}
+          parentItems={selectedMenu?.items || []}
+          maxDepth={selectedMenu?.settings?.maxDepth || 3}
+        />
 
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={menuFormData.isActive}
-                    onChange={(e) =>
-                      setMenuFormData({ ...menuFormData, isActive: e.target.checked })
-                    }
-                  />
-                }
-                label="Active"
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseMenuForm}>Cancel</Button>
-          <Button variant="contained" onClick={editingMenu ? handleUpdateMenu : handleCreateMenu}>
-            {editingMenu ? 'Update' : 'Create'} Menu
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Menu Item Form */}
-      <MenuItemForm
-        open={showMenuItemForm}
-        onClose={() => {
-          setShowMenuItemForm(false)
-          setEditingMenuItem(null)
-        }}
-        onSubmit={async (data: CreateMenuItemRequest | UpdateMenuItemRequest) => {
-          if (editingMenuItem) {
-            await handleUpdateMenuItem(data as any)
-          } else {
-            await handleAddMenuItem(data as any)
+        <ConfirmDialog
+          open={deleteConfirm.open}
+          onCancel={() => setDeleteConfirm({ open: false, type: 'menu' })}
+          onConfirm={() => {
+            void (deleteConfirm.type === 'menu' ? handleDeleteMenu() : handleDeleteMenuItem())
+          }}
+          title={`Delete ${deleteConfirm.type === 'menu' ? 'Menu' : 'Menu Item'}?`}
+          message={
+            deleteConfirm.type === 'menu'
+              ? `Are you sure you want to delete "${deleteConfirm.name}"? This action cannot be undone.`
+              : `Are you sure you want to delete "${deleteConfirm.name}"? This will also remove all child items.`
           }
-        }}
-        menuItem={editingMenuItem}
-        parentItems={selectedMenu?.items || []}
-        maxDepth={selectedMenu?.settings?.maxDepth || 3}
-      />
-
-      {/* Delete Confirmation */}
-      <ConfirmDialog
-        open={deleteConfirm.open}
-        onCancel={() => setDeleteConfirm({ open: false, type: 'menu' })}
-        onConfirm={() => {
-          void (deleteConfirm.type === 'menu' ? handleDeleteMenu() : handleDeleteMenuItem())
-        }}
-        title={`Delete ${deleteConfirm.type === 'menu' ? 'Menu' : 'Menu Item'}?`}
-        message={
-          deleteConfirm.type === 'menu'
-            ? `Are you sure you want to delete "${deleteConfirm.name}"? This action cannot be undone.`
-            : `Are you sure you want to delete "${deleteConfirm.name}"? This will also remove all child items.`
-        }
-      />
-    </Box>
+        />
+      </div>
+    </TooltipProvider>
   )
 }

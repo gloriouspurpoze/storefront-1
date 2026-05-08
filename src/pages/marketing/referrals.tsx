@@ -1,44 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Divider,
-  FormControl,
-  FormControlLabel,
-  IconButton,
-  InputLabel,
-  MenuItem,
-  Select,
-  Stack,
-  Switch,
-  Tab,
-  Tabs,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  TextField,
-  Tooltip,
-  Typography,
-  alpha,
-  useTheme,
-} from '@mui/material';
-import Grid from '@mui/material/GridLegacy';
-import {
-  Add as AddIcon,
-  Share as ShareIcon,
-  Block as BlockIcon,
-  TimerOff as TimerOffIcon,
-} from '@mui/icons-material';
+  Loader2,
+  Plus,
+  Share2,
+  Ban,
+  TimerOff,
+} from 'lucide-react';
 import { PageHeader } from '../../components/common/PageHeader';
 import { appToast } from '../../lib/appToast';
 import { useAppConfirm } from '../../components/providers/AppDialogsProvider';
@@ -48,6 +15,39 @@ import {
   type ReferralStats,
   type ReferralPayoutReportResponse,
 } from '../../services/api/referrals.service';
+import {
+  Button,
+  Card,
+  CardContent,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Separator,
+  Switch,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  Badge,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../../components/ui';
 
 function formatMoney(amount: number, currency = 'INR') {
   const sym = currency === 'INR' ? '₹' : `${currency} `;
@@ -55,7 +55,6 @@ function formatMoney(amount: number, currency = 'INR') {
 }
 
 export default function Referrals() {
-  const theme = useTheme();
   const confirm = useAppConfirm();
 
   const [mainTab, setMainTab] = useState(0);
@@ -324,554 +323,563 @@ export default function Referrals() {
     stats?.total_rewards_given ??
     referrals.reduce((s, r) => s + r.referrer_reward + r.referee_reward, 0);
 
-  const statusColor = (status: string) => {
+  const statusVariant = (status: string): 'success' | 'warning' | 'destructive' | 'secondary' | 'outline' => {
     switch (status) {
       case 'completed':
         return 'success';
       case 'pending':
         return 'warning';
       case 'expired':
-        return 'error';
+        return 'destructive';
       case 'cancelled':
-        return 'default';
+        return 'outline';
       default:
-        return 'default';
+        return 'secondary';
     }
   };
 
   return (
-    <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
-      <PageHeader
-        title="Referrals"
-        subtitle="Referral rows, wallet payout ledger, and program defaults (signup credit + new-code rewards)"
-        action={
-          <Stack direction="row" spacing={1}>
-            <Button
-              variant="outlined"
-              startIcon={<AddIcon />}
-              onClick={() => setCreateOpen(true)}
-              sx={{ borderRadius: 2 }}
-            >
-              Record referral
-            </Button>
-          </Stack>
-        }
-      />
-
-      <Card sx={{ borderRadius: 2, mb: 3 }}>
-        <Tabs value={mainTab} onChange={(_, v) => setMainTab(v)}>
-          <Tab label="Referral activity" />
-          <Tab label="Program settings" />
-          <Tab label="Reward payouts" />
-        </Tabs>
-      </Card>
-
-      {mainTab === 1 ? (
-        <Card sx={{ borderRadius: 2 }}>
-          <CardContent sx={{ p: 4 }}>
-            {progLoading ? (
-              <Box display="flex" justifyContent="center" py={6}>
-                <CircularProgress />
-              </Box>
-            ) : (
-              <Stack spacing={3} maxWidth={560}>
-                <Typography variant="body2" color="text.secondary">
-                  When enabled, new customers receive this wallet credit once after email / OAuth signup
-                  (Mongo auth flow). Amount is stored in paise internally. If disabled here, the server falls back to
-                  the <code>WALLET_SIGNUP_BONUS_PAISE</code> environment default.
-                </Typography>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={progEnabled}
-                      onChange={(e) => setProgEnabled(e.target.checked)}
-                    />
-                  }
-                  label="Enable admin-controlled signup credit"
-                />
-                <TextField
-                  label="Credit amount (₹)"
-                  type="number"
-                  value={creditRupee}
-                  onChange={(e) => setCreditRupee(Number(e.target.value))}
-                  inputProps={{ min: 0, step: 1 }}
-                  helperText="Whole rupees; converted to paise for the wallet."
-                />
-                <Divider sx={{ my: 1 }} />
-                <Typography variant="subtitle2" color="text.secondary">
-                  Default referral rewards (new share codes)
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Applies when generating a new wallet referral row (customer app + admin). Leave a field empty to use
-                  the server env defaults (<code>REFERRAL_DEFAULT_*</code> / <code>REFERRAL_MIN_QUALIFYING_SPEND_*</code>
-                  ). Existing referral rows keep their stored amounts.
-                </Typography>
-                <TextField
-                  label="Friend (referee) reward after qualifying order (₹)"
-                  value={refereeRewardRupee}
-                  onChange={(e) => setRefereeRewardRupee(e.target.value)}
-                  placeholder="Env default"
-                  helperText="Wallet credit for the new customer."
-                />
-                <TextField
-                  label="Referrer reward after qualifying order (₹)"
-                  value={referrerRewardRupee}
-                  onChange={(e) => setReferrerRewardRupee(e.target.value)}
-                  placeholder="Env default"
-                  helperText="Wallet credit for the user who shared the code."
-                />
-                <TextField
-                  label="Minimum qualifying first paid total (₹)"
-                  value={minQualifyingRupee}
-                  onChange={(e) => setMinQualifyingRupee(e.target.value)}
-                  placeholder="Env default"
-                  helperText="Order or booking paid total must meet this before rewards credit."
-                />
-                <Button
-                  variant="contained"
-                  onClick={() => void saveProgram()}
-                  disabled={savingProg}
-                  sx={{ alignSelf: 'flex-start', borderRadius: 2 }}
-                >
-                  {savingProg ? 'Saving…' : 'Save'}
-                </Button>
-              </Stack>
-            )}
-          </CardContent>
-        </Card>
-      ) : mainTab === 2 ? (
-        <Card sx={{ borderRadius: 2 }}>
-          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Wallet credits issued when referrals complete (sources{' '}
-              <code>referral_referee</code> / <code>referral_referrer</code>), plus any legacy ledger reward rows.
-            </Typography>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }} alignItems={{ sm: 'flex-end' }}>
-              <TextField
-                label="User id (Mongo ObjectId)"
-                size="small"
-                value={payoutUserInput}
-                onChange={(e) => setPayoutUserInput(e.target.value)}
-                sx={{ minWidth: 260 }}
-                helperText="Optional; filters both tables"
-              />
-              <FormControl size="small" sx={{ minWidth: 180 }}>
-                <InputLabel>Wallet role</InputLabel>
-                <Select
-                  label="Wallet role"
-                  value={payoutWalletRole}
-                  onChange={(e) => {
-                    setPayoutWalletRole(e.target.value as 'all' | 'referee' | 'referrer');
-                    setPayoutPage(1);
-                  }}
-                >
-                  <MenuItem value="all">All wallet payouts</MenuItem>
-                  <MenuItem value="referee">Friend (referee) only</MenuItem>
-                  <MenuItem value="referrer">Referrer only</MenuItem>
-                </Select>
-              </FormControl>
-              <Button variant="contained" onClick={() => applyPayoutFilters()} sx={{ borderRadius: 2 }}>
-                Apply filters
+    <TooltipProvider>
+      <div className="p-4 sm:p-6 md:p-8">
+        <PageHeader
+          title="Referrals"
+          subtitle="Referral rows, wallet payout ledger, and program defaults (signup credit + new-code rewards)"
+          action={
+            <div className="flex flex-row gap-1">
+              <Button variant="outline" className="rounded-lg" onClick={() => setCreateOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Record referral
               </Button>
-              <Button variant="outlined" onClick={() => void loadPayoutReport()} sx={{ borderRadius: 2 }}>
-                Refresh
-              </Button>
-            </Stack>
+            </div>
+          }
+        />
 
-            {payoutLoading ? (
-              <Box display="flex" justifyContent="center" py={8}>
-                <CircularProgress />
-              </Box>
-            ) : payoutReport ? (
-              <Stack spacing={4}>
-                <Box>
-                  <Typography variant="h6" sx={{ mb: 1 }}>
-                    Wallet referral credits
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-                    Total matching rows: {payoutReport.wallet.pagination.total} — page{' '}
-                    {payoutReport.wallet.pagination.page} of {payoutReport.wallet.pagination.totalPages}
-                  </Typography>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>When</TableCell>
-                        <TableCell>User</TableCell>
-                        <TableCell>Role</TableCell>
-                        <TableCell align="right">Amount</TableCell>
-                        <TableCell>Code / referral id</TableCell>
-                        <TableCell>Order / booking</TableCell>
-                        <TableCell>Description</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {payoutReport.wallet.items.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={7}>
-                            <Typography variant="body2" color="text.secondary">
-                              No wallet referral credits for this page.
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        payoutReport.wallet.items.map((w) => (
-                          <TableRow key={w.id}>
-                            <TableCell>{new Date(w.created_at).toLocaleString()}</TableCell>
-                            <TableCell sx={{ fontFamily: 'monospace', fontSize: 12 }}>{w.user_id}</TableCell>
-                            <TableCell>{w.role}</TableCell>
-                            <TableCell align="right">{formatMoney(w.amount_rupees)}</TableCell>
-                            <TableCell sx={{ fontFamily: 'monospace', fontSize: 11 }}>
-                              {[w.referral_code, w.referral_id].filter(Boolean).join(' · ') || '—'}
-                            </TableCell>
-                            <TableCell sx={{ fontFamily: 'monospace', fontSize: 11 }}>
-                              {[w.order_id, w.booking_id].filter(Boolean).join(' · ') || '—'}
-                            </TableCell>
-                            <TableCell>{w.description}</TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </Box>
-
-                <Divider />
-
-                <Box>
-                  <Typography variant="h6" sx={{ mb: 1 }}>
-                    Legacy ledger rewards
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-                    Total matching rows: {payoutReport.ledger.pagination.total} — page{' '}
-                    {payoutReport.ledger.pagination.page} of {payoutReport.ledger.pagination.totalPages}
-                  </Typography>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>When</TableCell>
-                        <TableCell>User</TableCell>
-                        <TableCell>Referral ledger id</TableCell>
-                        <TableCell align="right">Amount</TableCell>
-                        <TableCell>Status</TableCell>
-                        <TableCell>Type</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {payoutReport.ledger.items.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={6}>
-                            <Typography variant="body2" color="text.secondary">
-                              No legacy ledger rewards for this page.
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        payoutReport.ledger.items.map((r) => (
-                          <TableRow key={r.id}>
-                            <TableCell>{new Date(r.created_at).toLocaleString()}</TableCell>
-                            <TableCell sx={{ fontFamily: 'monospace', fontSize: 12 }}>{r.user_id}</TableCell>
-                            <TableCell sx={{ fontFamily: 'monospace', fontSize: 11 }}>{r.referral_id}</TableCell>
-                            <TableCell align="right">
-                              {formatMoney(r.amount, r.currency || 'INR')}
-                            </TableCell>
-                            <TableCell>{r.status}</TableCell>
-                            <TableCell>{r.reward_type}</TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </Box>
-
-                <Stack direction="row" spacing={2} alignItems="center">
-                  <Button
-                    variant="outlined"
-                    disabled={payoutPage <= 1}
-                    onClick={() => setPayoutPage((p) => Math.max(1, p - 1))}
-                  >
-                    Previous page
-                  </Button>
-                  <Typography variant="body2">Page {payoutPage}</Typography>
-                  <Button
-                    variant="outlined"
-                    disabled={
-                      !payoutReport ||
-                      payoutPage >=
-                        Math.max(
-                          payoutReport.wallet.pagination.totalPages,
-                          payoutReport.ledger.pagination.totalPages,
-                        )
-                    }
-                    onClick={() => setPayoutPage((p) => p + 1)}
-                  >
-                    Next page
-                  </Button>
-                </Stack>
-              </Stack>
-            ) : (
-              <Typography color="text.secondary">Could not load payout report.</Typography>
-            )}
-          </CardContent>
+        <Card className="mb-6 rounded-lg">
+          <Tabs value={String(mainTab)} onValueChange={(v) => setMainTab(Number(v))}>
+            <TabsList className="grid h-auto w-full grid-cols-3 rounded-none border-b bg-transparent p-0">
+              <TabsTrigger
+                value="0"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
+              >
+                Referral activity
+              </TabsTrigger>
+              <TabsTrigger
+                value="1"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
+              >
+                Program settings
+              </TabsTrigger>
+              <TabsTrigger
+                value="2"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
+              >
+                Reward payouts
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </Card>
-      ) : (
-        <>
-          <Grid container spacing={3} sx={{ mb: 3 }}>
-            <Grid item xs={12} sm={6} md={3}>
-              <Card
-                sx={{
-                  borderRadius: 2,
-                  background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.primary.main, 0.05)} 100%)`,
-                  border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-                }}
-              >
-                <CardContent>
-                  <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                    {totalShown}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Total referrals
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Card
-                sx={{
-                  borderRadius: 2,
-                  background: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.1)} 0%, ${alpha(theme.palette.success.main, 0.05)} 100%)`,
-                  border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
-                }}
-              >
-                <CardContent>
-                  <Typography variant="h4" sx={{ fontWeight: 700, color: theme.palette.success.main }}>
-                    {completedShown}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Completed
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Card
-                sx={{
-                  borderRadius: 2,
-                  background: `linear-gradient(135deg, ${alpha(theme.palette.warning.main, 0.1)} 0%, ${alpha(theme.palette.warning.main, 0.05)} 100%)`,
-                  border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
-                }}
-              >
-                <CardContent>
-                  <Typography variant="h4" sx={{ fontWeight: 700, color: theme.palette.warning.main }}>
-                    {pendingShown}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Pending
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Card
-                sx={{
-                  borderRadius: 2,
-                  background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.1)} 0%, ${alpha(theme.palette.info.main, 0.05)} 100%)`,
-                  border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
-                }}
-              >
-                <CardContent>
-                  <Typography variant="h4" sx={{ fontWeight: 700, color: theme.palette.info.main }}>
-                    {formatMoney(rewardsShown)}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Rewards (reported)
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
 
-          <Card sx={{ borderRadius: 2 }}>
-            <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
-              <Tabs value={filterTab} onChange={(_, v) => setFilterTab(v)}>
-                <Tab label={`All (${referrals.length})`} />
-                <Tab label={`Completed (${referrals.filter((r) => r.status === 'completed').length})`} />
-                <Tab label={`Pending (${referrals.filter((r) => r.status === 'pending').length})`} />
-              </Tabs>
-            </Box>
-            <CardContent>
-              {loading ? (
-                <Box display="flex" justifyContent="center" py={8}>
-                  <CircularProgress />
-                </Box>
-              ) : filtered.length === 0 ? (
-                <Box sx={{ textAlign: 'center', py: 8 }}>
-                  <ShareIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
-                  <Typography color="text.secondary">
-                    No referrals match this filter
-                  </Typography>
-                </Box>
+        {mainTab === 1 ? (
+          <Card className="rounded-lg">
+            <CardContent className="p-8">
+              {progLoading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
               ) : (
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Code</TableCell>
-                      <TableCell>Referrer</TableCell>
-                      <TableCell>Referee</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Rewards</TableCell>
-                      <TableCell>Requirement</TableCell>
-                      <TableCell align="right">Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {filtered.map((r) => (
-                      <TableRow key={r.id} hover>
-                        <TableCell sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
-                          {r.referral_code}
-                        </TableCell>
-                        <TableCell>{r.referrer_id || '—'}</TableCell>
-                        <TableCell>{r.referee_id?.trim() ? r.referee_id : '—'}</TableCell>
-                        <TableCell>
-                          <Chip
-                            size="small"
-                            label={r.status}
-                            color={statusColor(r.status) as 'success' | 'warning' | 'error' | 'default'}
-                            sx={{ textTransform: 'capitalize' }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {formatMoney(r.referrer_reward, r.referrer_reward_currency)} /{' '}
-                          {formatMoney(r.referee_reward, r.referee_reward_currency)}
-                        </TableCell>
-                        <TableCell sx={{ textTransform: 'capitalize' }}>
-                          {(r.completion_requirement || '').replace(/_/g, ' ')}
-                        </TableCell>
-                        <TableCell align="right">
-                          {r.status === 'pending' ? (
-                            <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                              <Tooltip title="Cancel">
-                                <IconButton size="small" onClick={() => void handleCancel(r)}>
-                                  <BlockIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="Expire">
-                                <IconButton size="small" onClick={() => void handleExpire(r)}>
-                                  <TimerOffIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            </Stack>
-                          ) : (
-                            '—'
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <div className="flex max-w-xl flex-col gap-6">
+                  <p className="text-sm text-muted-foreground">
+                    When enabled, new customers receive this wallet credit once after email / OAuth signup
+                    (Mongo auth flow). Amount is stored in paise internally. If disabled here, the server falls back to
+                    the <code className="rounded bg-muted px-1">WALLET_SIGNUP_BONUS_PAISE</code> environment default.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="prog-enabled"
+                      checked={progEnabled}
+                      onCheckedChange={(checked) => setProgEnabled(checked)}
+                    />
+                    <Label htmlFor="prog-enabled">Enable admin-controlled signup credit</Label>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="credit-rupee">Credit amount (₹)</Label>
+                    <Input
+                      id="credit-rupee"
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={creditRupee}
+                      onChange={(e) => setCreditRupee(Number(e.target.value))}
+                    />
+                    <p className="text-xs text-muted-foreground">Whole rupees; converted to paise for the wallet.</p>
+                  </div>
+                  <Separator />
+                  <p className="text-sm font-medium text-muted-foreground">Default referral rewards (new share codes)</p>
+                  <p className="text-sm text-muted-foreground">
+                    Applies when generating a new wallet referral row (customer app + admin). Leave a field empty to use
+                    the server env defaults (<code className="rounded bg-muted px-1">REFERRAL_DEFAULT_*</code> /{' '}
+                    <code className="rounded bg-muted px-1">REFERRAL_MIN_QUALIFYING_SPEND_*</code>
+                    ). Existing referral rows keep their stored amounts.
+                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="referee-reward">Friend (referee) reward after qualifying order (₹)</Label>
+                    <Input
+                      id="referee-reward"
+                      value={refereeRewardRupee}
+                      onChange={(e) => setRefereeRewardRupee(e.target.value)}
+                      placeholder="Env default"
+                    />
+                    <p className="text-xs text-muted-foreground">Wallet credit for the new customer.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="referrer-reward">Referrer reward after qualifying order (₹)</Label>
+                    <Input
+                      id="referrer-reward"
+                      value={referrerRewardRupee}
+                      onChange={(e) => setReferrerRewardRupee(e.target.value)}
+                      placeholder="Env default"
+                    />
+                    <p className="text-xs text-muted-foreground">Wallet credit for the user who shared the code.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="min-qual">Minimum qualifying first paid total (₹)</Label>
+                    <Input
+                      id="min-qual"
+                      value={minQualifyingRupee}
+                      onChange={(e) => setMinQualifyingRupee(e.target.value)}
+                      placeholder="Env default"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Order or booking paid total must meet this before rewards credit.
+                    </p>
+                  </div>
+                  <Button className="self-start rounded-lg" onClick={() => void saveProgram()} disabled={savingProg}>
+                    {savingProg ? 'Saving…' : 'Save'}
+                  </Button>
+                </div>
               )}
             </CardContent>
           </Card>
-        </>
-      )}
+        ) : mainTab === 2 ? (
+          <Card className="rounded-lg">
+            <CardContent className="p-4 sm:p-6">
+              <p className="mb-4 text-sm text-muted-foreground">
+                Wallet credits issued when referrals complete (sources{' '}
+                <code className="rounded bg-muted px-1">referral_referee</code> /{' '}
+                <code className="rounded bg-muted px-1">referral_referrer</code>), plus any legacy ledger reward rows.
+              </p>
+              <div className="mb-6 flex flex-col items-stretch gap-4 sm:flex-row sm:items-end">
+                <div className="min-w-[260px] flex-1 space-y-2">
+                  <Label htmlFor="payout-user">User id (Mongo ObjectId)</Label>
+                  <Input
+                    id="payout-user"
+                    value={payoutUserInput}
+                    onChange={(e) => setPayoutUserInput(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">Optional; filters both tables</p>
+                </div>
+                <div className="w-full min-w-[180px] space-y-2 sm:w-auto">
+                  <Label>Wallet role</Label>
+                  <Select
+                    value={payoutWalletRole}
+                    onValueChange={(v) => {
+                      setPayoutWalletRole(v as 'all' | 'referee' | 'referrer');
+                      setPayoutPage(1);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Wallet role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All wallet payouts</SelectItem>
+                      <SelectItem value="referee">Friend (referee) only</SelectItem>
+                      <SelectItem value="referrer">Referrer only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button className="rounded-lg" onClick={() => applyPayoutFilters()}>
+                  Apply filters
+                </Button>
+                <Button variant="outline" className="rounded-lg" onClick={() => void loadPayoutReport()}>
+                  Refresh
+                </Button>
+              </div>
 
-      <Dialog open={createOpen} onClose={() => !creating && setCreateOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Record referral</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <Typography variant="body2" color="text.secondary">
-              Creates a referral row between two users. Use MongoDB user id (24 hex), email, or phone as stored on the
-              user. Invite-link codes for customers are managed separately in the app wallet flow.
-            </Typography>
-            <TextField
-              label="Referrer (user id, email, or phone)"
-              fullWidth
-              value={createForm.referrer_id}
-              onChange={(e) => setCreateForm({ ...createForm, referrer_id: e.target.value })}
-            />
-            <TextField
-              label="Referee (user id, email, or phone)"
-              fullWidth
-              value={createForm.referee_id}
-              onChange={(e) => setCreateForm({ ...createForm, referee_id: e.target.value })}
-            />
-            <FormControl fullWidth>
-              <InputLabel>Reward type</InputLabel>
-              <Select
-                label="Reward type"
-                value={createForm.reward_type}
-                onChange={(e) =>
-                  setCreateForm({ ...createForm, reward_type: e.target.value as ReferralRow['reward_type'] })
-                }
-              >
-                <MenuItem value="credit">Credit</MenuItem>
-                <MenuItem value="discount">Discount</MenuItem>
-                <MenuItem value="cashback">Cashback</MenuItem>
-                <MenuItem value="free_service">Free service</MenuItem>
-              </Select>
-            </FormControl>
-            <Stack direction="row" spacing={2}>
-              <TextField
-                label="Referrer reward (₹)"
-                type="number"
-                fullWidth
-                value={createForm.referrer_reward}
-                onChange={(e) =>
-                  setCreateForm({ ...createForm, referrer_reward: Number(e.target.value) })
-                }
-              />
-              <TextField
-                label="Referee reward (₹)"
-                type="number"
-                fullWidth
-                value={createForm.referee_reward}
-                onChange={(e) =>
-                  setCreateForm({ ...createForm, referee_reward: Number(e.target.value) })
-                }
-              />
-            </Stack>
-            <FormControl fullWidth>
-              <InputLabel>Completion rule</InputLabel>
-              <Select
-                label="Completion rule"
-                value={createForm.completion_requirement}
-                onChange={(e) =>
-                  setCreateForm({
-                    ...createForm,
-                    completion_requirement: e.target.value as
-                      | 'first_order'
-                      | 'first_booking'
-                      | 'first_payment'
-                      | 'minimum_spend',
-                  })
-                }
-              >
-                <MenuItem value="first_order">First order</MenuItem>
-                <MenuItem value="first_booking">First booking</MenuItem>
-                <MenuItem value="first_payment">First payment</MenuItem>
-                <MenuItem value="minimum_spend">Minimum spend</MenuItem>
-              </Select>
-            </FormControl>
-            {createForm.completion_requirement === 'minimum_spend' ? (
-              <TextField
-                label="Minimum spend (₹)"
-                type="number"
-                fullWidth
-                value={createForm.minimum_spend}
-                onChange={(e) =>
-                  setCreateForm({ ...createForm, minimum_spend: Number(e.target.value) })
-                }
-              />
-            ) : null}
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setCreateOpen(false)} disabled={creating}>
-            Cancel
-          </Button>
-          <Button variant="contained" onClick={() => void submitCreate()} disabled={creating}>
-            {creating ? 'Saving…' : 'Save'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+              {payoutLoading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : payoutReport ? (
+                <div className="flex flex-col gap-8">
+                  <div>
+                    <h3 className="mb-1 text-lg font-semibold">Wallet referral credits</h3>
+                    <p className="mb-2 block text-xs text-muted-foreground">
+                      Total matching rows: {payoutReport.wallet.pagination.total} — page{' '}
+                      {payoutReport.wallet.pagination.page} of {payoutReport.wallet.pagination.totalPages}
+                    </p>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>When</TableHead>
+                          <TableHead>User</TableHead>
+                          <TableHead>Role</TableHead>
+                          <TableHead className="text-right">Amount</TableHead>
+                          <TableHead>Code / referral id</TableHead>
+                          <TableHead>Order / booking</TableHead>
+                          <TableHead>Description</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {payoutReport.wallet.items.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={7}>
+                              <p className="text-sm text-muted-foreground">No wallet referral credits for this page.</p>
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          payoutReport.wallet.items.map((w) => (
+                            <TableRow key={w.id}>
+                              <TableCell>{new Date(w.created_at).toLocaleString()}</TableCell>
+                              <TableCell className="font-mono text-xs">{w.user_id}</TableCell>
+                              <TableCell>{w.role}</TableCell>
+                              <TableCell className="text-right">{formatMoney(w.amount_rupees)}</TableCell>
+                              <TableCell className="font-mono text-[11px]">
+                                {[w.referral_code, w.referral_id].filter(Boolean).join(' · ') || '—'}
+                              </TableCell>
+                              <TableCell className="font-mono text-[11px]">
+                                {[w.order_id, w.booking_id].filter(Boolean).join(' · ') || '—'}
+                              </TableCell>
+                              <TableCell>{w.description}</TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <h3 className="mb-1 text-lg font-semibold">Legacy ledger rewards</h3>
+                    <p className="mb-2 block text-xs text-muted-foreground">
+                      Total matching rows: {payoutReport.ledger.pagination.total} — page{' '}
+                      {payoutReport.ledger.pagination.page} of {payoutReport.ledger.pagination.totalPages}
+                    </p>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>When</TableHead>
+                          <TableHead>User</TableHead>
+                          <TableHead>Referral ledger id</TableHead>
+                          <TableHead className="text-right">Amount</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Type</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {payoutReport.ledger.items.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={6}>
+                              <p className="text-sm text-muted-foreground">No legacy ledger rewards for this page.</p>
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          payoutReport.ledger.items.map((r) => (
+                            <TableRow key={r.id}>
+                              <TableCell>{new Date(r.created_at).toLocaleString()}</TableCell>
+                              <TableCell className="font-mono text-xs">{r.user_id}</TableCell>
+                              <TableCell className="font-mono text-[11px]">{r.referral_id}</TableCell>
+                              <TableCell className="text-right">
+                                {formatMoney(r.amount, r.currency || 'INR')}
+                              </TableCell>
+                              <TableCell>{r.status}</TableCell>
+                              <TableCell>{r.reward_type}</TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  <div className="flex flex-row items-center gap-4">
+                    <Button
+                      variant="outline"
+                      disabled={payoutPage <= 1}
+                      onClick={() => setPayoutPage((p) => Math.max(1, p - 1))}
+                    >
+                      Previous page
+                    </Button>
+                    <p className="text-sm">Page {payoutPage}</p>
+                    <Button
+                      variant="outline"
+                      disabled={
+                        !payoutReport ||
+                        payoutPage >=
+                          Math.max(
+                            payoutReport.wallet.pagination.totalPages,
+                            payoutReport.ledger.pagination.totalPages,
+                          )
+                      }
+                      onClick={() => setPayoutPage((p) => p + 1)}
+                    >
+                      Next page
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-muted-foreground">Could not load payout report.</p>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+              <Card className="rounded-lg border border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5">
+                <CardContent className="pt-6">
+                  <p className="text-2xl font-bold">{totalShown}</p>
+                  <p className="text-sm text-muted-foreground">Total referrals</p>
+                </CardContent>
+              </Card>
+              <Card className="rounded-lg border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5">
+                <CardContent className="pt-6">
+                  <p className="text-2xl font-bold text-emerald-600">{completedShown}</p>
+                  <p className="text-sm text-muted-foreground">Completed</p>
+                </CardContent>
+              </Card>
+              <Card className="rounded-lg border border-amber-500/20 bg-gradient-to-br from-amber-500/10 to-amber-500/5">
+                <CardContent className="pt-6">
+                  <p className="text-2xl font-bold text-amber-600">{pendingShown}</p>
+                  <p className="text-sm text-muted-foreground">Pending</p>
+                </CardContent>
+              </Card>
+              <Card className="rounded-lg border border-sky-500/20 bg-gradient-to-br from-sky-500/10 to-sky-500/5">
+                <CardContent className="pt-6">
+                  <p className="text-2xl font-bold text-sky-600">{formatMoney(rewardsShown)}</p>
+                  <p className="text-sm text-muted-foreground">Rewards (reported)</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="rounded-lg">
+              <div className="border-b px-2">
+                <Tabs value={String(filterTab)} onValueChange={(v) => setFilterTab(Number(v))}>
+                  <TabsList className="grid h-auto w-full grid-cols-3 rounded-none border-0 bg-transparent p-0">
+                    <TabsTrigger
+                      value="0"
+                      className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
+                    >
+                      All ({referrals.length})
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="1"
+                      className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
+                    >
+                      Completed ({referrals.filter((r) => r.status === 'completed').length})
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="2"
+                      className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
+                    >
+                      Pending ({referrals.filter((r) => r.status === 'pending').length})
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+              <CardContent>
+                {loading ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : filtered.length === 0 ? (
+                  <div className="py-12 text-center">
+                    <Share2 className="mx-auto mb-2 h-12 w-12 text-muted-foreground" />
+                    <p className="text-muted-foreground">No referrals match this filter</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Code</TableHead>
+                        <TableHead>Referrer</TableHead>
+                        <TableHead>Referee</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Rewards</TableHead>
+                        <TableHead>Requirement</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filtered.map((r) => (
+                        <TableRow key={r.id} className="hover:bg-muted/50">
+                          <TableCell className="font-mono font-semibold">{r.referral_code}</TableCell>
+                          <TableCell>{r.referrer_id || '—'}</TableCell>
+                          <TableCell>{r.referee_id?.trim() ? r.referee_id : '—'}</TableCell>
+                          <TableCell>
+                            <Badge variant={statusVariant(r.status)} className="capitalize">
+                              {r.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {formatMoney(r.referrer_reward, r.referrer_reward_currency)} /{' '}
+                            {formatMoney(r.referee_reward, r.referee_reward_currency)}
+                          </TableCell>
+                          <TableCell className="capitalize">
+                            {(r.completion_requirement || '').replace(/_/g, ' ')}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {r.status === 'pending' ? (
+                              <div className="flex justify-end gap-1">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => void handleCancel(r)}>
+                                      <Ban className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Cancel</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => void handleExpire(r)}>
+                                      <TimerOff className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Expire</TooltipContent>
+                                </Tooltip>
+                              </div>
+                            ) : (
+                              '—'
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </>
+        )}
+
+        <Dialog open={createOpen} onOpenChange={(o) => !creating && setCreateOpen(o)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Record referral</DialogTitle>
+            </DialogHeader>
+            <div className="mt-2 flex flex-col gap-4">
+              <p className="text-sm text-muted-foreground">
+                Creates a referral row between two users. Use MongoDB user id (24 hex), email, or phone as stored on the
+                user. Invite-link codes for customers are managed separately in the app wallet flow.
+              </p>
+              <div className="space-y-2">
+                <Label htmlFor="create-referrer">Referrer (user id, email, or phone)</Label>
+                <Input
+                  id="create-referrer"
+                  value={createForm.referrer_id}
+                  onChange={(e) => setCreateForm({ ...createForm, referrer_id: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="create-referee">Referee (user id, email, or phone)</Label>
+                <Input
+                  id="create-referee"
+                  value={createForm.referee_id}
+                  onChange={(e) => setCreateForm({ ...createForm, referee_id: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Reward type</Label>
+                <Select
+                  value={createForm.reward_type}
+                  onValueChange={(v) =>
+                    setCreateForm({ ...createForm, reward_type: v as ReferralRow['reward_type'] })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Reward type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="credit">Credit</SelectItem>
+                    <SelectItem value="discount">Discount</SelectItem>
+                    <SelectItem value="cashback">Cashback</SelectItem>
+                    <SelectItem value="free_service">Free service</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-4 sm:flex-row">
+                <div className="flex-1 space-y-2">
+                  <Label htmlFor="create-ref-reward">Referrer reward (₹)</Label>
+                  <Input
+                    id="create-ref-reward"
+                    type="number"
+                    value={createForm.referrer_reward}
+                    onChange={(e) =>
+                      setCreateForm({ ...createForm, referrer_reward: Number(e.target.value) })
+                    }
+                  />
+                </div>
+                <div className="flex-1 space-y-2">
+                  <Label htmlFor="create-ree-reward">Referee reward (₹)</Label>
+                  <Input
+                    id="create-ree-reward"
+                    type="number"
+                    value={createForm.referee_reward}
+                    onChange={(e) =>
+                      setCreateForm({ ...createForm, referee_reward: Number(e.target.value) })
+                    }
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Completion rule</Label>
+                <Select
+                  value={createForm.completion_requirement}
+                  onValueChange={(v) =>
+                    setCreateForm({
+                      ...createForm,
+                      completion_requirement: v as
+                        | 'first_order'
+                        | 'first_booking'
+                        | 'first_payment'
+                        | 'minimum_spend',
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Completion rule" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="first_order">First order</SelectItem>
+                    <SelectItem value="first_booking">First booking</SelectItem>
+                    <SelectItem value="first_payment">First payment</SelectItem>
+                    <SelectItem value="minimum_spend">Minimum spend</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {createForm.completion_requirement === 'minimum_spend' ? (
+                <div className="space-y-2">
+                  <Label htmlFor="create-min-spend">Minimum spend (₹)</Label>
+                  <Input
+                    id="create-min-spend"
+                    type="number"
+                    value={createForm.minimum_spend}
+                    onChange={(e) =>
+                      setCreateForm({ ...createForm, minimum_spend: Number(e.target.value) })
+                    }
+                  />
+                </div>
+              ) : null}
+            </div>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={creating}>
+                Cancel
+              </Button>
+              <Button onClick={() => void submitCreate()} disabled={creating}>
+                {creating ? 'Saving…' : 'Save'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
   );
 }

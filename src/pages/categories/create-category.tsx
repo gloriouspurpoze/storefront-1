@@ -1,38 +1,33 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
-  Box,
-  Container,
-  Typography,
-  Alert,
-  Button,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Switch,
-  FormGroup,
-  FormControlLabel,
-  CircularProgress,
-  Card,
-  CardContent,
-  IconButton,
-  Paper,
-  Stack,
-  Divider,
-} from '@mui/material'
-import { 
-  Add as AddIcon,
-  ArrowBack as ArrowBackIcon,
-  Image as ImageIcon,
-  Category as CategoryIcon,
-  Save as SaveIcon,
-} from '@mui/icons-material'
+  Plus,
+  ArrowLeft,
+  ImageIcon,
+  FolderTree,
+  Save,
+  Loader2,
+} from 'lucide-react'
 import { CategoriesService } from '../../services/api/categories.service'
 import { ImageUploadField, type ImageFile } from '../../components/forms'
 import { useAppDispatch } from '../../store/hooks'
 import { addToast } from '../../store/slices/uiSlice'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
+import { cn } from '../../lib/utils'
+import {
+  Button,
+  Card,
+  CardContent,
+  Input,
+  Label,
+  Textarea,
+  Switch,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Separator,
+} from '../../components/ui'
 
 interface CategoryFormData {
   name: string
@@ -82,8 +77,7 @@ export function CreateCategory() {
   const location = useLocation()
   const { scope: pathScope, id } = useParams<{ scope?: string; id: string }>()
 
-  const listScope =
-    pathScope === 'products' || pathScope === 'services' ? pathScope : null
+  const listScope = pathScope === 'products' || pathScope === 'services' ? pathScope : null
   const backPath = listScope ? `/categories/${listScope}` : '/categories'
   const catalogLabel =
     listScope === 'products' ? 'product catalog' : listScope === 'services' ? 'service catalog' : 'catalogs'
@@ -99,12 +93,10 @@ export function CreateCategory() {
     isActive: true,
   })
 
-  // Determine mode based on URL
   const isEditMode = location.pathname.includes('/edit/')
   const isViewMode = location.pathname.includes('/view/')
   const isCreateMode = !isEditMode && !isViewMode
 
-  // Default type when creating from a scoped URL (store vs service)
   useEffect(() => {
     if (!isCreateMode || !listScope) return
     setFormData((prev) => ({
@@ -113,7 +105,6 @@ export function CreateCategory() {
     }))
   }, [isCreateMode, listScope])
 
-  // Keep type valid if scope or loaded data would leave an option selected that is not in the menu
   useEffect(() => {
     setFormData((prev) => {
       const next = normalizeCategoryTypeForScope(prev.categoryType, listScope)
@@ -122,20 +113,13 @@ export function CreateCategory() {
     })
   }, [listScope])
 
-  useEffect(() => {
-    if ((isEditMode || isViewMode) && id) {
-      fetchCategoryData(id)
-    }
-  }, [id, isEditMode, isViewMode])
-
-  const fetchCategoryData = async (categoryId: string) => {
+  const fetchCategoryData = useCallback(async (categoryId: string) => {
     if (!categoryId?.trim()) return
     try {
       setLoadingData(true)
       const response = await CategoriesService.getCategory(categoryId)
-      // Backend may return category as response.data or nested as response.data.category / response.data.data
       const raw = response?.data
-      const category = (raw && typeof raw === 'object' && 'name' in raw)
+      const category = raw && typeof raw === 'object' && 'name' in raw
         ? raw
         : (raw as any)?.category ?? (raw as any)?.data ?? null
 
@@ -156,35 +140,49 @@ export function CreateCategory() {
           name: category.name || '',
           description: category.description || '',
           categoryType,
-          images: imageUrl ? [{
-            id: '1',
-            url: imageUrl,
-            file: undefined,
-            alt: category.name,
-            isPrimary: true,
-            order: 0,
-          }] : [],
+          images: imageUrl
+            ? [
+                {
+                  id: '1',
+                  url: imageUrl,
+                  file: undefined,
+                  alt: category.name,
+                  isPrimary: true,
+                  order: 0,
+                },
+              ]
+            : [],
           sortOrder: Number(sortOrder) || 0,
           isActive,
         })
       } else if (response?.success && isEditMode) {
-        dispatch(addToast({
-          message: 'Category data could not be loaded. Please try again.',
-          severity: 'warning',
-          duration: 4000,
-        }))
+        dispatch(
+          addToast({
+            message: 'Category data could not be loaded. Please try again.',
+            severity: 'warning',
+            duration: 4000,
+          })
+        )
       }
     } catch (error) {
       console.error('Error fetching category:', error)
-      dispatch(addToast({
-        message: 'Failed to load category data.',
-        severity: 'error',
-        duration: 4000,
-      }))
+      dispatch(
+        addToast({
+          message: 'Failed to load category data.',
+          severity: 'error',
+          duration: 4000,
+        })
+      )
     } finally {
       setLoadingData(false)
     }
-  }
+  }, [dispatch, isEditMode, listScope])
+
+  useEffect(() => {
+    if ((isEditMode || isViewMode) && id) {
+      void fetchCategoryData(id)
+    }
+  }, [id, isEditMode, isViewMode, fetchCategoryData])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -194,11 +192,10 @@ export function CreateCategory() {
       const categoryData = {
         name: formData.name,
         description: formData.description,
-        type: formData.categoryType,
-        category_type: formData.categoryType,
+        categoryType: formData.categoryType,
         image: formData.images.length > 0 ? formData.images[0].url : undefined,
-        sort_order: formData.sortOrder,
-        is_active: formData.isActive,
+        sortOrder: formData.sortOrder,
+        status: formData.isActive ? ('active' as const) : ('inactive' as const),
       }
 
       console.log('📤 Submitting category data:', categoryData)
@@ -212,46 +209,47 @@ export function CreateCategory() {
       }
 
       if (response.success) {
-        dispatch(addToast({
-          message: isEditMode ? 'Category updated successfully!' : 'Category created successfully!',
-          severity: 'success',
-          duration: 4000,
-        }))
-        
+        dispatch(
+          addToast({
+            message: isEditMode ? 'Category updated successfully!' : 'Category created successfully!',
+            severity: 'success',
+            duration: 4000,
+          })
+        )
+
         navigate(backPath)
       }
     } catch (error) {
       console.error(`Error ${isEditMode ? 'updating' : 'creating'} category:`, error)
-      dispatch(addToast({
-        message: `Failed to ${isEditMode ? 'update' : 'create'} category.`,
-        severity: 'error',
-        duration: 4000,
-      }))
+      dispatch(
+        addToast({
+          message: `Failed to ${isEditMode ? 'update' : 'create'} category.`,
+          severity: 'error',
+          duration: 4000,
+        })
+      )
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <Box sx={{ flexGrow: 1, bgcolor: 'grey.50', minHeight: '100vh' }}>
-      {/* Header */}
-      <Paper sx={{ 
-        p: 3, 
-        mb: 3, 
-        borderRadius: 0,
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        color: 'white'
-      }}>
-        <Container maxWidth="lg">
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <IconButton 
-              sx={{ color: 'white' }}
+    <div className="min-h-screen flex-1 bg-muted/40">
+      <div className="mb-6 bg-gradient-to-br from-indigo-500 to-violet-600 text-white">
+        <div className="mx-auto max-w-4xl px-4 py-8">
+          <div className="flex items-center gap-4">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="text-white hover:bg-white/15"
               onClick={() => navigate(backPath)}
             >
-              <ArrowBackIcon />
-            </IconButton>
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+              <ArrowLeft className="h-5 w-5" />
+              <span className="sr-only">Back</span>
+            </Button>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
                 {isViewMode
                   ? 'View category'
                   : isEditMode
@@ -261,102 +259,113 @@ export function CreateCategory() {
                       : listScope === 'services'
                         ? 'New service category'
                         : 'New category'}
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+              </h1>
+              <p className="mt-1 max-w-2xl text-sm text-white/90">
                 {listScope
-                  ? (isViewMode || isEditMode
+                  ? isViewMode || isEditMode
                     ? `Changes apply to the ${catalogLabel} list.`
-                    : `This category is created under the ${catalogLabel} screen. You can set whether it is product-only, service-only, or both.`)
+                    : `This category is created under the ${catalogLabel} screen. You can set whether it is product-only, service-only, or both.`
                   : isViewMode
                     ? 'Category details and information'
                     : isEditMode
                       ? 'Update category information'
                       : 'Add a category to organize the catalog'}
-              </Typography>
-            </Box>
-            <CategoryIcon sx={{ fontSize: 48, opacity: 0.2 }} />
-          </Box>
-        </Container>
-      </Paper>
+              </p>
+            </div>
+            <FolderTree className="hidden h-14 w-14 shrink-0 opacity-20 sm:block" aria-hidden />
+          </div>
+        </div>
+      </div>
 
-      <Container maxWidth="md">
+      <div className="mx-auto max-w-3xl px-4 pb-12">
         {loadingData ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-            <CircularProgress />
-          </Box>
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" aria-hidden />
+            <span className="sr-only">Loading</span>
+          </div>
         ) : (
-          <Card sx={{ mb: 4, borderRadius: 2, boxShadow: 3 }}>
-            <CardContent sx={{ p: 4 }}>
-              <Box component="form" onSubmit={handleSubmit}>
-                <Stack spacing={3}>
+          <Card className="shadow-md">
+            <CardContent className="p-6 sm:p-8">
+              <form onSubmit={handleSubmit} className="flex flex-col gap-8">
                 {listScope && !isViewMode && (
-                  <Alert severity="info" variant="outlined">
+                  <div
+                    role="status"
+                    className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-950 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-100"
+                  >
                     {listScope === 'products'
                       ? 'You are on the product categories flow. “Both” is available if a category should also be used for services.'
                       : 'You are on the service categories flow. “Both” is available if a category should also be used in the product store.'}
-                  </Alert>
+                  </div>
                 )}
-                {/* Basic Information */}
-                <Box>
-                  <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main' }}>
-                    <CategoryIcon />
+
+                <section>
+                  <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-primary">
+                    <FolderTree className="h-5 w-5" aria-hidden />
                     Basic Information
-                  </Typography>
-                  <Stack spacing={2}>
-                    <TextField
-                      label="Category Name"
-                      required
-                      fullWidth
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="e.g., Electronics, Home Appliances, Plumbing"
-                      helperText="Enter a clear, descriptive category name"
-                      disabled={isViewMode}
-                    />
+                  </h2>
+                  <div className="flex flex-col gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="category-name">Category Name *</Label>
+                      <Input
+                        id="category-name"
+                        required
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        placeholder="e.g., Electronics, Home Appliances, Plumbing"
+                        disabled={isViewMode}
+                      />
+                      <p className="text-xs text-muted-foreground">Enter a clear, descriptive category name</p>
+                    </div>
 
-                    <TextField
-                      label="Description"
-                      multiline
-                      rows={3}
-                      fullWidth
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      placeholder="Describe the category and what products/services it includes..."
-                      helperText="Provide a brief description to help users understand this category"
-                      disabled={isViewMode}
-                    />
+                    <div className="space-y-1.5">
+                      <Label htmlFor="category-desc">Description</Label>
+                      <Textarea
+                        id="category-desc"
+                        rows={3}
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        placeholder="Describe the category and what products/services it includes..."
+                        disabled={isViewMode}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Provide a brief description to help users understand this category
+                      </p>
+                    </div>
 
-                    <FormControl fullWidth required>
-                      <InputLabel>Applies to</InputLabel>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="applies-to">Applies to</Label>
                       <Select
                         value={formData.categoryType}
-                        onChange={(e) =>
+                        onValueChange={(v) =>
                           setFormData({
                             ...formData,
-                            categoryType: e.target.value as CategoryFormData['categoryType'],
+                            categoryType: v as CategoryFormData['categoryType'],
                           })
                         }
-                        label="Applies to"
                         disabled={isViewMode}
                       >
-                        {appliesToMenuOptions(listScope).map((opt) => (
-                          <MenuItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </MenuItem>
-                        ))}
+                        <SelectTrigger id="applies-to" className="w-full">
+                          <SelectValue placeholder="Select scope" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {appliesToMenuOptions(listScope).map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
-                    </FormControl>
-                  </Stack>
-                </Box>
+                    </div>
+                  </div>
+                </section>
 
-                <Divider />
+                <Separator />
 
-                {/* Image Upload */}
-                <Box>
-                  <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main' }}>
-                    <ImageIcon />
+                <section>
+                  <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-primary">
+                    <ImageIcon className="h-5 w-5" aria-hidden />
                     Category Image
-                  </Typography>
+                  </h2>
                   <ImageUploadField
                     label="Upload Category Image"
                     value={formData.images}
@@ -366,53 +375,56 @@ export function CreateCategory() {
                     helperText="Upload a category image. Recommended size: 400x400px (1:1 ratio). Max file size: 5MB"
                     disabled={isViewMode}
                   />
-                </Box>
+                </section>
 
-                <Divider />
+                <Separator />
 
-                {/* Settings */}
-                <Box>
-                  <Typography variant="h6" sx={{ mb: 2 }}>
-                    Settings
-                  </Typography>
-                  <Stack spacing={2}>
-                    <TextField
-                      label="Sort Order"
-                      type="number"
-                      fullWidth
-                      value={formData.sortOrder}
-                      onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })}
-                      helperText="Lower numbers appear first in the list (e.g., 1, 2, 3...)"
-                      disabled={isViewMode}
-                    />
-
-                    <FormGroup>
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={formData.isActive}
-                            onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                            color="success"
-                            disabled={isViewMode}
-                          />
+                <section>
+                  <h2 className="mb-4 text-lg font-semibold">Settings</h2>
+                  <div className="flex flex-col gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="sort-order">Sort Order</Label>
+                      <Input
+                        id="sort-order"
+                        type="number"
+                        value={formData.sortOrder}
+                        onChange={(e) =>
+                          setFormData({ ...formData, sortOrder: parseInt(e.target.value, 10) || 0 })
                         }
-                        label={
-                          <Box>
-                            <Typography variant="body1">Active Category</Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              Inactive categories won't be visible to users
-                            </Typography>
-                          </Box>
-                        }
+                        disabled={isViewMode}
                       />
-                    </FormGroup>
-                  </Stack>
-                </Box>
+                      <p className="text-xs text-muted-foreground">
+                        Lower numbers appear first in the list (e.g., 1, 2, 3…)
+                      </p>
+                    </div>
 
-                {/* Action Buttons */}
-                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', pt: 2 }}>
+                    <div
+                      className={cn(
+                        'flex items-start justify-between gap-4 rounded-lg border border-border/60 bg-muted/30 p-4'
+                      )}
+                    >
+                      <div>
+                        <Label htmlFor="active-category" className="text-base font-medium">
+                          Active Category
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          Inactive categories won&apos;t be visible to users
+                        </p>
+                      </div>
+                      <Switch
+                        id="active-category"
+                        checked={formData.isActive}
+                        onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+                        disabled={isViewMode}
+                      />
+                    </div>
+                  </div>
+                </section>
+
+                <div className="flex flex-wrap justify-end gap-2 pt-2">
                   <Button
-                    variant="outlined"
+                    type="button"
+                    variant="outline"
                     onClick={() => navigate(backPath)}
                     disabled={loading}
                   >
@@ -421,25 +433,34 @@ export function CreateCategory() {
                   {!isViewMode && (
                     <Button
                       type="submit"
-                      variant="contained"
-                      size="large"
                       disabled={loading || !formData.name}
-                      startIcon={loading ? <CircularProgress size={20} color="inherit" /> : isEditMode ? <SaveIcon /> : <AddIcon />}
-                      sx={{ minWidth: 160 }}
+                      loading={loading}
+                      leftIcon={
+                        loading ? undefined : isEditMode ? (
+                          <Save className="h-4 w-4" />
+                        ) : (
+                          <Plus className="h-4 w-4" />
+                        )
+                      }
+                      className="min-w-[160px]"
                     >
-                      {loading ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Category' : 'Create Category')}
+                      {loading
+                        ? isEditMode
+                          ? 'Updating…'
+                          : 'Creating…'
+                        : isEditMode
+                          ? 'Update Category'
+                          : 'Create Category'}
                     </Button>
                   )}
-                </Box>
-                </Stack>
-              </Box>
+                </div>
+              </form>
             </CardContent>
           </Card>
         )}
-      </Container>
-    </Box>
+      </div>
+    </div>
   )
 }
 
 export default CreateCategory
-

@@ -2,67 +2,55 @@
  * ============================================================================
  * PROFESSIONALS MANAGEMENT PAGE
  * ============================================================================
- * Main page for managing professionals (workers/technicians)
- * 
- * Features:
- * - List all professionals with filters
- * - Search by name, email, phone
- * - Filter by availability, expertise, verification
- * - Create/Edit/Delete professionals
- * - Update verification status
- * - Update availability status
- * - View statistics
- * 
- * @author CTO Team
- * @date November 7, 2025
  */
 
 import React, { useState, useEffect } from 'react'
 import {
-  Box,
-  Typography,
-  Button,
-  Menu,
-  MenuItem,
-  Divider,
-  Snackbar,
-  Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-} from '@mui/material'
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Visibility as ViewIcon,
-  Delete as DeleteIcon,
-  CheckCircle as VerifiedIcon,
-  AccessTime as AvailabilityIcon,
-  Dashboard as DashboardIcon,
-} from '@mui/icons-material'
+  Plus,
+  Pencil,
+  Eye,
+  Trash2,
+  ShieldCheck,
+  Clock,
+  LayoutDashboard,
+} from 'lucide-react'
+import { Link as RouterLink } from 'react-router-dom'
 import { PageHeader } from '../../components/common/PageHeader'
-import {
-  ProfessionalTable,
-  ProfessionalFilters,
-  ProfessionalStatsWidget,
-} from '../../components/professionals'
+import { ProfessionalTable, ProfessionalFilters, ProfessionalStatsWidget } from '../../components/professionals'
 import { ProfessionalsService } from '../../services/api/professionals.service'
 import { Professional, UpdateAvailabilityData } from '../../types/professional.types'
 import { getProfessionalCategoryLabel } from '../../constants/professionalCategories'
-import { useNavigate, Link as RouterLink } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import { useAppDispatch } from '../../store/hooks'
+import { addToast } from '../../store/slices/uiSlice'
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  Textarea,
+} from '../../components/ui'
 
 export function ProfessionalsManagement() {
   const navigate = useNavigate()
+  const dispatch = useAppDispatch()
   const [professionals, setProfessionals] = useState<Professional[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshKey, setRefreshKey] = useState(Date.now())
 
-  // Filters
   const [searchTerm, setSearchTerm] = useState('')
   const [availabilityFilter, setAvailabilityFilter] = useState('all')
   const [expertiseFilter, setExpertiseFilter] = useState('all')
@@ -70,12 +58,10 @@ export function ProfessionalsManagement() {
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [accountFilter, setAccountFilter] = useState('all')
 
-  // Pagination
   const [page, setPage] = useState(0)
   const [limit] = useState(10)
   const [total, setTotal] = useState(0)
 
-  // Dialogs
   const [verificationDialogOpen, setVerificationDialogOpen] = useState(false)
   const [availabilityDialogOpen, setAvailabilityDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -89,22 +75,13 @@ export function ProfessionalsManagement() {
     notes: string
   }>({ status: 'pending', notes: '' })
 
-  // Availability form
   const [availabilityData, setAvailabilityData] = useState<UpdateAvailabilityData>({
     availability: 'available',
     reason: '',
   })
 
-  // Menu
-  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
+  const [actionSheetOpen, setActionSheetOpen] = useState(false)
   const [menuProfessional, setMenuProfessional] = useState<Professional | null>(null)
-
-  // Notifications
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success' as 'success' | 'error',
-  })
 
   useEffect(() => {
     fetchProfessionals()
@@ -135,8 +112,10 @@ export function ProfessionalsManagement() {
         query.isActive = false
       }
 
-      const response = await ProfessionalsService.getProfessionals(query as any)
-      const payload = response.data as { professionals?: Professional[]; pagination?: { total: number } } | undefined
+      const response = await ProfessionalsService.getProfessionals(query as never)
+      const payload = response.data as
+        | { professionals?: Professional[]; pagination?: { total: number } }
+        | undefined
       if (payload?.professionals) {
         setProfessionals(payload.professionals)
         setTotal(payload.pagination?.total || 0)
@@ -144,9 +123,9 @@ export function ProfessionalsManagement() {
         setProfessionals([])
         setTotal(0)
       }
-    } catch (error: any) {
-      console.error('Error fetching professionals:', error)
-      showSnackbar(error.message || 'Failed to fetch professionals', 'error')
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to fetch professionals'
+      showSnackbar(message, 'error')
       setProfessionals([])
     } finally {
       setLoading(false)
@@ -164,18 +143,21 @@ export function ProfessionalsManagement() {
 
   const handleEdit = (professional: Professional) => {
     navigate(`/professionals/edit/${professional._id}`)
-    handleMenuClose()
+    setActionSheetOpen(false)
+    setMenuProfessional(null)
   }
 
   const handleOpenHub = (professional: Professional) => {
     navigate(`/professionals/${professional._id}`)
-    handleMenuClose()
+    setActionSheetOpen(false)
+    setMenuProfessional(null)
   }
 
   const handleView = (professional: Professional) => {
     setViewingProfessional(professional)
     setViewDialogOpen(true)
-    handleMenuClose()
+    setActionSheetOpen(false)
+    setMenuProfessional(null)
   }
 
   const handleDelete = async () => {
@@ -185,8 +167,9 @@ export function ProfessionalsManagement() {
       await ProfessionalsService.deleteProfessional(selectedProfessional._id)
       showSnackbar('Professional deleted successfully', 'success')
       handleSuccess()
-    } catch (error: any) {
-      showSnackbar(error.message || 'Failed to delete professional', 'error')
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to delete professional'
+      showSnackbar(message, 'error')
     } finally {
       setDeleteDialogOpen(false)
       setSelectedProfessional(null)
@@ -205,8 +188,9 @@ export function ProfessionalsManagement() {
       })
       showSnackbar('Verification updated successfully', 'success')
       handleSuccess()
-    } catch (error: any) {
-      showSnackbar(error.message || 'Failed to update verification', 'error')
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to update verification'
+      showSnackbar(message, 'error')
     } finally {
       setVerificationDialogOpen(false)
       setSelectedProfessional(null)
@@ -221,8 +205,9 @@ export function ProfessionalsManagement() {
       await ProfessionalsService.updateAvailability(selectedProfessional._id, availabilityData)
       showSnackbar('Availability updated successfully', 'success')
       handleSuccess()
-    } catch (error: any) {
-      showSnackbar(error.message || 'Failed to update availability', 'error')
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to update availability'
+      showSnackbar(message, 'error')
     } finally {
       setAvailabilityDialogOpen(false)
       setSelectedProfessional(null)
@@ -230,14 +215,9 @@ export function ProfessionalsManagement() {
     }
   }
 
-  const handleMenuClick = (event: React.MouseEvent<HTMLElement>, professional: Professional) => {
-    setMenuAnchor(event.currentTarget)
+  const handleMenuClick = (_event: React.MouseEvent<HTMLElement>, professional: Professional) => {
     setMenuProfessional(professional)
-  }
-
-  const handleMenuClose = () => {
-    setMenuAnchor(null)
-    setMenuProfessional(null)
+    setActionSheetOpen(true)
   }
 
   const openVerificationDialog = () => {
@@ -253,7 +233,8 @@ export function ProfessionalsManagement() {
       setVerificationForm({ status, notes: '' })
       setVerificationDialogOpen(true)
     }
-    handleMenuClose()
+    setActionSheetOpen(false)
+    setMenuProfessional(null)
   }
 
   const openAvailabilityDialog = () => {
@@ -265,7 +246,8 @@ export function ProfessionalsManagement() {
       })
       setAvailabilityDialogOpen(true)
     }
-    handleMenuClose()
+    setActionSheetOpen(false)
+    setMenuProfessional(null)
   }
 
   const openDeleteDialog = () => {
@@ -273,15 +255,12 @@ export function ProfessionalsManagement() {
       setSelectedProfessional(menuProfessional)
       setDeleteDialogOpen(true)
     }
-    handleMenuClose()
+    setActionSheetOpen(false)
+    setMenuProfessional(null)
   }
 
   const showSnackbar = (message: string, severity: 'success' | 'error') => {
-    setSnackbar({ open: true, message, severity })
-  }
-
-  const handleSnackbarClose = () => {
-    setSnackbar({ ...snackbar, open: false })
+    dispatch(addToast({ message, severity }))
   }
 
   const handleClearFilters = () => {
@@ -300,37 +279,28 @@ export function ProfessionalsManagement() {
   }
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title="Professionals"
         subtitle="Manage service professionals (workers/technicians)"
         action={
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'flex-end' }}>
-            <Button
-              variant="outlined"
-              startIcon={<DashboardIcon />}
-              component={RouterLink}
-              to="/professionals/operations"
-              sx={{ borderRadius: 2 }}
-            >
-              Workforce dashboard
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button variant="outline" asChild>
+              <RouterLink to="/professionals/operations">
+                <LayoutDashboard className="mr-2 h-4 w-4" />
+                Workforce dashboard
+              </RouterLink>
             </Button>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleCreate}
-              sx={{ borderRadius: 2 }}
-            >
+            <Button onClick={handleCreate}>
+              <Plus className="mr-2 h-4 w-4" />
               Add Professional
             </Button>
-          </Box>
+          </div>
         }
       />
 
-      {/* Stats Cards */}
       <ProfessionalStatsWidget onRefresh={refreshKey} />
 
-      {/* Filters */}
       <ProfessionalFilters
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
@@ -348,7 +318,6 @@ export function ProfessionalsManagement() {
         onApplyFilters={handleApplyFilters}
       />
 
-      {/* Professionals Table */}
       <ProfessionalTable
         professionals={professionals}
         loading={loading}
@@ -356,222 +325,236 @@ export function ProfessionalsManagement() {
         onOpenHub={handleOpenHub}
       />
 
-      {/* Action Menu */}
-      <Menu
-        anchorEl={menuAnchor}
-        open={Boolean(menuAnchor)}
-        onClose={handleMenuClose}
-        PaperProps={{
-          sx: { borderRadius: 2, minWidth: 200 }
-        }}
-      >
-        <MenuItem onClick={() => menuProfessional && handleView(menuProfessional)}>
-          <ViewIcon sx={{ mr: 1 }} fontSize="small" />
-          View Details
-        </MenuItem>
-        <MenuItem onClick={() => menuProfessional && handleOpenHub(menuProfessional)}>
-          <DashboardIcon sx={{ mr: 1 }} fontSize="small" />
-          Command center
-        </MenuItem>
-        <MenuItem onClick={() => menuProfessional && handleEdit(menuProfessional)}>
-          <EditIcon sx={{ mr: 1 }} fontSize="small" />
-          Edit
-        </MenuItem>
-        <MenuItem onClick={openVerificationDialog}>
-          <VerifiedIcon sx={{ mr: 1 }} fontSize="small" />
-          Update Verification
-        </MenuItem>
-        <MenuItem onClick={openAvailabilityDialog}>
-          <AvailabilityIcon sx={{ mr: 1 }} fontSize="small" />
-          Update Availability
-        </MenuItem>
-        <Divider />
-        <MenuItem onClick={openDeleteDialog} sx={{ color: 'error.main' }}>
-          <DeleteIcon sx={{ mr: 1 }} fontSize="small" />
-          Delete
-        </MenuItem>
-      </Menu>
-
-      {/* View details */}
-      <Dialog open={viewDialogOpen} onClose={() => setViewDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Professional details</DialogTitle>
-        <DialogContent>
-          {viewingProfessional && (
-            <Box sx={{ pt: 1 }}>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                Name and ID
-              </Typography>
-              <Typography sx={{ mb: 2 }}>
-                {viewingProfessional.firstName} {viewingProfessional.lastName} — {viewingProfessional.professionalId}
-              </Typography>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                Contact
-              </Typography>
-              <Typography sx={{ mb: 0.5 }}>{viewingProfessional.email}</Typography>
-              <Typography sx={{ mb: 2 }}>{viewingProfessional.phoneNumber}</Typography>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                Trades / categories
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2 }}>
-                {(viewingProfessional.categories || []).map((c) => (
-                  <span key={c} style={{ fontSize: 13, padding: '2px 8px', borderRadius: 4, background: 'rgba(0,0,0,0.06)' }}>
-                    {getProfessionalCategoryLabel(c)}
-                  </span>
-                ))}
-                {(viewingProfessional.categories || []).length === 0 && (
-                  <Typography variant="body2" color="text.secondary">—</Typography>
-                )}
-              </Box>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                Work
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1 }}>
-                Expertise: {viewingProfessional.expertiseLevel} · {viewingProfessional.experience} years experience
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1 }}>
-                Availability: {viewingProfessional.availability} · Verification: {viewingProfessional.verificationStatus}
-              </Typography>
-              {viewingProfessional.serviceProviderId && (
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  Company: {viewingProfessional.serviceProviderId.businessName}
-                </Typography>
-              )}
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          {viewingProfessional ? (
-            <Button
-              variant="contained"
-              onClick={() => {
-                setViewDialogOpen(false)
-                navigate(`/professionals/${viewingProfessional._id}`)
-              }}
-            >
-              Command center
-            </Button>
+      <Sheet open={actionSheetOpen} onOpenChange={setActionSheetOpen}>
+        <SheetContent side="bottom" className="rounded-t-xl">
+          <SheetHeader>
+            <SheetTitle>Actions</SheetTitle>
+          </SheetHeader>
+          {menuProfessional ? (
+            <div className="mt-4 grid gap-2 pb-6">
+              <Button
+                variant="outline"
+                className="justify-start"
+                onClick={() => handleView(menuProfessional)}
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                View Details
+              </Button>
+              <Button
+                variant="outline"
+                className="justify-start"
+                onClick={() => handleOpenHub(menuProfessional)}
+              >
+                <LayoutDashboard className="mr-2 h-4 w-4" />
+                Command center
+              </Button>
+              <Button variant="outline" className="justify-start" onClick={() => handleEdit(menuProfessional)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+              <Button variant="outline" className="justify-start" onClick={openVerificationDialog}>
+                <ShieldCheck className="mr-2 h-4 w-4" />
+                Update Verification
+              </Button>
+              <Button variant="outline" className="justify-start" onClick={openAvailabilityDialog}>
+                <Clock className="mr-2 h-4 w-4" />
+                Update Availability
+              </Button>
+              <Button variant="destructive" className="justify-start" onClick={openDeleteDialog}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </Button>
+            </div>
           ) : null}
-          <Button onClick={() => setViewDialogOpen(false)}>Close</Button>
-        </DialogActions>
+        </SheetContent>
+      </Sheet>
+
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Professional details</DialogTitle>
+          </DialogHeader>
+          {viewingProfessional && (
+            <div className="space-y-4 text-sm">
+              <div>
+                <p className="text-muted-foreground">Name and ID</p>
+                <p>
+                  {viewingProfessional.firstName} {viewingProfessional.lastName} — {viewingProfessional.professionalId}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Contact</p>
+                <p>{viewingProfessional.email}</p>
+                <p>{viewingProfessional.phoneNumber}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Trades / categories</p>
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {(viewingProfessional.categories || []).map((c) => (
+                    <span
+                      key={c}
+                      className="rounded bg-muted px-2 py-0.5 text-xs"
+                    >
+                      {getProfessionalCategoryLabel(c)}
+                    </span>
+                  ))}
+                  {(viewingProfessional.categories || []).length === 0 ? (
+                    <span className="text-muted-foreground">—</span>
+                  ) : null}
+                </div>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Work</p>
+                <p>
+                  Expertise: {viewingProfessional.expertiseLevel} · {viewingProfessional.experience} years experience
+                </p>
+                <p>
+                  Availability: {viewingProfessional.availability} · Verification:{' '}
+                  {viewingProfessional.verificationStatus}
+                </p>
+                {viewingProfessional.serviceProviderId ? (
+                  <p>Company: {viewingProfessional.serviceProviderId.businessName}</p>
+                ) : null}
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:justify-end">
+            {viewingProfessional ? (
+              <Button
+                onClick={() => {
+                  setViewDialogOpen(false)
+                  navigate(`/professionals/${viewingProfessional._id}`)
+                }}
+              >
+                Command center
+              </Button>
+            ) : null}
+            <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
 
-      {/* Verification Dialog */}
-      <Dialog open={verificationDialogOpen} onClose={() => setVerificationDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Update Verification Status</DialogTitle>
+      <Dialog open={verificationDialogOpen} onOpenChange={setVerificationDialogOpen}>
         <DialogContent>
-          <Box sx={{ pt: 2 }}>
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Verification status</InputLabel>
+          <DialogHeader>
+            <DialogTitle>Update Verification Status</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Verification status</Label>
               <Select
                 value={verificationForm.status}
-                onChange={(e) =>
+                onValueChange={(v) =>
                   setVerificationForm({
                     ...verificationForm,
-                    status: e.target.value as 'pending' | 'verified' | 'rejected',
+                    status: v as 'pending' | 'verified' | 'rejected',
                   })
                 }
-                label="Verification status"
               >
-                <MenuItem value="pending">Pending</MenuItem>
-                <MenuItem value="verified">Verified</MenuItem>
-                <MenuItem value="rejected">Rejected</MenuItem>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="verified">Verified</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
               </Select>
-            </FormControl>
-            <TextField
-              fullWidth
-              multiline
-              rows={3}
-              label="Admin notes (optional)"
-              value={verificationForm.notes}
-              onChange={(e) => setVerificationForm({ ...verificationForm, notes: e.target.value })}
-            />
-          </Box>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="verify-notes">Admin notes (optional)</Label>
+              <Textarea
+                id="verify-notes"
+                rows={3}
+                value={verificationForm.notes}
+                onChange={(e) => setVerificationForm({ ...verificationForm, notes: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setVerificationDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleVerificationSubmit}>Update</Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setVerificationDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleVerificationSubmit} variant="contained">
-            Update
-          </Button>
-        </DialogActions>
       </Dialog>
 
-      {/* Availability Dialog */}
-      <Dialog open={availabilityDialogOpen} onClose={() => setAvailabilityDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Update Availability</DialogTitle>
+      <Dialog open={availabilityDialogOpen} onOpenChange={setAvailabilityDialogOpen}>
         <DialogContent>
-          <Box sx={{ pt: 2 }}>
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Availability</InputLabel>
+          <DialogHeader>
+            <DialogTitle>Update Availability</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Availability</Label>
               <Select
                 value={availabilityData.availability}
+                onValueChange={(v) =>
+                  setAvailabilityData({
+                    ...availabilityData,
+                    availability: v as UpdateAvailabilityData['availability'],
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="available">Available</SelectItem>
+                  <SelectItem value="busy">Busy</SelectItem>
+                  <SelectItem value="offline">Offline</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="avail-reason">Reason (Optional)</Label>
+              <Textarea
+                id="avail-reason"
+                rows={2}
+                value={availabilityData.reason || ''}
                 onChange={(e) =>
                   setAvailabilityData({
                     ...availabilityData,
-                    availability: e.target.value as any,
+                    reason: e.target.value,
                   })
                 }
-                label="Availability"
-              >
-                <MenuItem value="available">Available</MenuItem>
-                <MenuItem value="busy">Busy</MenuItem>
-                <MenuItem value="offline">Offline</MenuItem>
-              </Select>
-            </FormControl>
-            <TextField
-              fullWidth
-              multiline
-              rows={2}
-              label="Reason (Optional)"
-              value={availabilityData.reason || ''}
-              onChange={(e) =>
-                setAvailabilityData({
-                  ...availabilityData,
-                  reason: e.target.value,
-                })
-              }
-            />
-          </Box>
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAvailabilityDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAvailabilitySubmit}>Update</Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAvailabilityDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleAvailabilitySubmit} variant="contained">
-            Update
-          </Button>
-        </DialogActions>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Delete Professional</DialogTitle>
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
-          <Typography>
-            Are you sure you want to delete <strong>{selectedProfessional?.firstName} {selectedProfessional?.lastName}</strong>? This action cannot be undone.
-          </Typography>
+          <DialogHeader>
+            <DialogTitle>Delete Professional</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm">
+            Are you sure you want to delete{' '}
+            <strong>
+              {selectedProfessional?.firstName} {selectedProfessional?.lastName}
+            </strong>
+            ? This action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleDelete} variant="contained" color="error">
-            Delete
-          </Button>
-        </DialogActions>
       </Dialog>
-
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={handleSnackbarClose}
-          severity={snackbar.severity}
-          sx={{ borderRadius: 2 }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+    </div>
   )
 }
-

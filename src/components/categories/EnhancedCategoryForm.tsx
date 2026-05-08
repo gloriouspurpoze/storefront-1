@@ -1,80 +1,41 @@
 import React, { useState, useEffect } from 'react'
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Box,
-  Typography,
-  Stepper,
-  Step,
-  StepLabel,
-  StepContent,
-  Grid,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Switch,
-  FormControlLabel,
-  Chip,
-  IconButton,
-  Tooltip,
-  Divider,
-  Alert,
-  Tabs,
-  Tab,
-  useTheme,
-  alpha,
-} from '@mui/material'
-import {
-  Close as CloseIcon,
-  Save as SaveIcon,
-  Category as CategoryIcon,
-  Description as DescriptionIcon,
-  Image as ImageIcon,
-  Settings as SettingsIcon,
-  Preview as PreviewIcon,
-  ArrowBack as ArrowBackIcon,
-  ArrowForward as ArrowForwardIcon,
-  Search as SearchIcon,
-  Palette as PaletteIcon,
-  TrendingUp as TrendingUpIcon,
-  Visibility as VisibilityIcon,
-} from '@mui/icons-material'
-import { styled } from '@mui/material/styles'
+  FolderTree,
+  Save,
+  X,
+  Search,
+  Settings2,
+  Eye,
+  Palette,
+  TrendingUp,
+  ImageIcon,
+} from 'lucide-react'
 import { Category, CreateCategoryRequest, UpdateCategoryRequest } from '../../types'
 import { CategoriesService } from '../../services/api/categories.service'
-
-// Enhanced form styling
-const StyledDialog = styled(Dialog)(({ theme }) => ({
-  '& .MuiDialog-paper': {
-    borderRadius: theme.spacing(3),
-    maxWidth: 1000,
-    maxHeight: '95vh',
-    background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.95)} 0%, ${alpha(theme.palette.primary.main, 0.02)} 100%)`,
-    backdropFilter: 'blur(10px)',
-  },
-}))
-
-const FormSection = styled(Box)(({ theme }) => ({
-  padding: theme.spacing(3),
-  borderRadius: theme.spacing(2),
-  background: alpha(theme.palette.background.paper, 0.7),
-  border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-  marginBottom: theme.spacing(2),
-}))
-
-const SectionTitle = styled(Typography)(({ theme }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: theme.spacing(1),
-  marginBottom: theme.spacing(2),
-  color: theme.palette.primary.main,
-  fontWeight: 600,
-}))
+import { cn } from '../../lib/utils'
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Label,
+  Textarea,
+  Switch,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Badge,
+  Separator,
+} from '../ui'
 
 interface EnhancedCategoryFormProps {
   open: boolean
@@ -84,26 +45,57 @@ interface EnhancedCategoryFormProps {
   onSuccess?: (category: Category) => void
 }
 
-interface TabPanelProps {
-  children?: React.ReactNode
-  index: number
-  value: number
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props
+function FormSection({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`category-tabpanel-${index}`}
-      aria-labelledby={`category-tab-${index}`}
-      {...other}
+      className={cn(
+        'mb-2 rounded-lg border border-border/60 bg-muted/30 p-6 shadow-sm backdrop-blur-sm',
+        className
+      )}
     >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+      {children}
     </div>
   )
 }
+
+function SectionTitle({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <h3
+      className={cn(
+        'mb-4 flex items-center gap-2 text-base font-semibold text-primary',
+        className
+      )}
+    >
+      {children}
+    </h3>
+  )
+}
+
+function AlertBox({
+  variant,
+  className,
+  children,
+}: {
+  variant: 'info' | 'error'
+  className?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div
+      role="alert"
+      className={cn(
+        'rounded-md border px-4 py-3 text-sm',
+        variant === 'info' && 'border-blue-200 bg-blue-50 text-blue-900 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-100',
+        variant === 'error' && 'border-destructive/50 bg-destructive/10 text-destructive',
+        className
+      )}
+    >
+      {children}
+    </div>
+  )
+}
+
+const NO_PARENT_VALUE = '__none__'
 
 export default function EnhancedCategoryForm({
   open,
@@ -112,15 +104,11 @@ export default function EnhancedCategoryForm({
   parentCategories = [],
   onSuccess,
 }: EnhancedCategoryFormProps) {
-  const theme = useTheme()
-  const [activeStep, setActiveStep] = useState(0)
   const [activeTab, setActiveTab] = useState(0)
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
-  
-  // Form data with all enhanced fields
+
   const [formData, setFormData] = useState({
-    // Basic fields
     name: '',
     description: '',
     parentId: '',
@@ -129,28 +117,19 @@ export default function EnhancedCategoryForm({
     image: '',
     icon: '',
     sortOrder: 0,
-    
-    // Enhanced hierarchy fields
     level: 0,
-    
-    // SEO fields
     metaTitle: '',
     metaDescription: '',
     seoKeywords: [] as string[],
-    
-    // Marketing fields
     featuredImage: '',
     bannerImage: '',
     colorCode: '',
-    
-    // Analytics (read-only)
     viewCount: 0,
     clickCount: 0,
   })
 
   const [keywordInput, setKeywordInput] = useState('')
 
-  // Initialize form data
   useEffect(() => {
     if (category) {
       setFormData({
@@ -195,67 +174,67 @@ export default function EnhancedCategoryForm({
     }
   }, [category])
 
-  const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+  const handleInputChange = (field: string, value: unknown) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }))
+      setErrors((prev) => ({ ...prev, [field]: '' }))
     }
   }
 
   const handleAddKeyword = () => {
     if (keywordInput.trim() && !formData.seoKeywords.includes(keywordInput.trim())) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        seoKeywords: [...prev.seoKeywords, keywordInput.trim()]
+        seoKeywords: [...prev.seoKeywords, keywordInput.trim()],
       }))
       setKeywordInput('')
     }
   }
 
   const handleRemoveKeyword = (keyword: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      seoKeywords: prev.seoKeywords.filter(k => k !== keyword)
+      seoKeywords: prev.seoKeywords.filter((k) => k !== keyword),
     }))
   }
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
-    
+
     if (!formData.name.trim()) {
       newErrors.name = 'Category name is required'
     }
-    
+
     if (formData.metaTitle && formData.metaTitle.length > 60) {
       newErrors.metaTitle = 'Meta title must be 60 characters or less'
     }
-    
+
     if (formData.metaDescription && formData.metaDescription.length > 160) {
       newErrors.metaDescription = 'Meta description must be 160 characters or less'
     }
-    
+
     if (formData.colorCode && !/^#[0-9A-Fa-f]{6}$/.test(formData.colorCode)) {
       newErrors.colorCode = 'Color code must be a valid hex color (e.g., #FF5733)'
     }
-    
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = async () => {
     if (!validateForm()) return
-    
+
     setLoading(true)
     try {
-      const requestData = {
+      const requestData: CreateCategoryRequest | UpdateCategoryRequest = {
         name: formData.name,
         description: formData.description,
-        parent_id: formData.parentId || undefined,
-        is_active: formData.status === 'active',
-        category_type: formData.categoryType,
+        parentId: formData.parentId || undefined,
+        status: formData.status === 'active' ? 'active' : 'inactive',
+        categoryType: formData.categoryType,
         image: formData.image,
         icon: formData.icon,
-        sort_order: formData.sortOrder,
+        sortOrder: formData.sortOrder,
         metaTitle: formData.metaTitle,
         metaDescription: formData.metaDescription,
         seoKeywords: formData.seoKeywords,
@@ -281,340 +260,355 @@ export default function EnhancedCategoryForm({
     }
   }
 
-  const steps = [
-    { label: 'Basic Information', icon: <CategoryIcon /> },
-    { label: 'SEO & Marketing', icon: <SearchIcon /> },
-    { label: 'Advanced Settings', icon: <SettingsIcon /> },
-    { label: 'Preview', icon: <PreviewIcon /> },
-  ]
-
   const tabs = [
-    { label: 'Basic Info', icon: <CategoryIcon /> },
-    { label: 'SEO', icon: <SearchIcon /> },
-    { label: 'Marketing', icon: <PaletteIcon /> },
-    { label: 'Analytics', icon: <TrendingUpIcon /> },
+    { label: 'Basic Info', icon: FolderTree },
+    { label: 'SEO', icon: Search },
+    { label: 'Marketing', icon: Palette },
+    { label: 'Analytics', icon: TrendingUp },
   ]
 
   return (
-    <StyledDialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-      <DialogTitle>
-        <Box display="flex" alignItems="center" justifyContent="space-between">
-          <Typography variant="h5" component="div">
-            {category ? 'Edit Category' : 'Create New Category'}
-          </Typography>
-          <IconButton onClick={onClose} size="small">
-            <CloseIcon />
-          </IconButton>
-        </Box>
-      </DialogTitle>
-
-      <DialogContent dividers>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-          <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)}>
-            {tabs.map((tab, index) => (
-              <Tab
-                key={index}
-                label={tab.label}
-                icon={tab.icon}
-                iconPosition="start"
-              />
-            ))}
-          </Tabs>
-        </Box>
-
-        {/* Basic Information Tab */}
-        <TabPanel value={activeTab} index={0}>
-          <FormSection>
-            <SectionTitle>
-              <CategoryIcon />
-              Basic Information
-            </SectionTitle>
-            
-            <Box display="flex" flexDirection="column" gap={3}>
-              <Box display="flex" gap={2} flexWrap="wrap">
-                <Box flex="1" minWidth="300px">
-                  <TextField
-                    fullWidth
-                    label="Category Name"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    error={!!errors.name}
-                    helperText={errors.name}
-                    required
-                  />
-                </Box>
-                
-                <Box flex="1" minWidth="300px">
-                  <FormControl fullWidth>
-                    <InputLabel>Category Type</InputLabel>
-                    <Select
-                      value={formData.categoryType}
-                      onChange={(e) => handleInputChange('categoryType', e.target.value)}
-                      label="Category Type"
-                    >
-                      <MenuItem value="product">Product</MenuItem>
-                      <MenuItem value="service">Service</MenuItem>
-                      <MenuItem value="both">Both</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Box>
-              </Box>
-              
-              <TextField
-                fullWidth
-                multiline
-                rows={3}
-                label="Description"
-                value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
-              />
-              
-              <Box display="flex" gap={2} flexWrap="wrap">
-                <Box flex="1" minWidth="300px">
-                  <FormControl fullWidth>
-                    <InputLabel>Parent Category</InputLabel>
-                    <Select
-                      value={formData.parentId}
-                      onChange={(e) => handleInputChange('parentId', e.target.value)}
-                      label="Parent Category"
-                    >
-                      <MenuItem value="">No Parent (Root Category)</MenuItem>
-                      {parentCategories.map((parent) => (
-                        <MenuItem key={parent.id} value={parent.id}>
-                          {parent.name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Box>
-                
-                <Box flex="1" minWidth="300px">
-                  <TextField
-                    fullWidth
-                    label="Sort Order"
-                    type="number"
-                    value={formData.sortOrder}
-                    onChange={(e) => handleInputChange('sortOrder', parseInt(e.target.value) || 0)}
-                  />
-                </Box>
-              </Box>
-              
-              <Box display="flex" gap={2} flexWrap="wrap">
-                <Box flex="1" minWidth="300px">
-                  <TextField
-                    fullWidth
-                    label="Image URL"
-                    value={formData.image}
-                    onChange={(e) => handleInputChange('image', e.target.value)}
-                  />
-                </Box>
-                
-                <Box flex="1" minWidth="300px">
-                  <TextField
-                    fullWidth
-                    label="Icon"
-                    value={formData.icon}
-                    onChange={(e) => handleInputChange('icon', e.target.value)}
-                  />
-                </Box>
-              </Box>
-              
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={formData.status === 'active'}
-                    onChange={(e) => handleInputChange('status', e.target.checked ? 'active' : 'inactive')}
-                  />
-                }
-                label="Active"
-              />
-            </Box>
-          </FormSection>
-        </TabPanel>
-
-        {/* SEO Tab */}
-        <TabPanel value={activeTab} index={1}>
-          <FormSection>
-            <SectionTitle>
-              <SearchIcon />
-              SEO Settings
-            </SectionTitle>
-            
-            <Box display="flex" flexDirection="column" gap={3}>
-              <TextField
-                fullWidth
-                label="Meta Title"
-                value={formData.metaTitle}
-                onChange={(e) => handleInputChange('metaTitle', e.target.value)}
-                error={!!errors.metaTitle}
-                helperText={errors.metaTitle || `${formData.metaTitle.length}/60 characters`}
-                inputProps={{ maxLength: 60 }}
-              />
-              
-              <TextField
-                fullWidth
-                multiline
-                rows={3}
-                label="Meta Description"
-                value={formData.metaDescription}
-                onChange={(e) => handleInputChange('metaDescription', e.target.value)}
-                error={!!errors.metaDescription}
-                helperText={errors.metaDescription || `${formData.metaDescription.length}/160 characters`}
-                inputProps={{ maxLength: 160 }}
-              />
-              
-              <Box>
-                <Typography variant="subtitle2" gutterBottom>
-                  SEO Keywords
-                </Typography>
-                <Box display="flex" gap={1} mb={2}>
-                  <TextField
-                    size="small"
-                    placeholder="Add keyword"
-                    value={keywordInput}
-                    onChange={(e) => setKeywordInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleAddKeyword()}
-                  />
-                  <Button
-                    variant="outlined"
-                    onClick={handleAddKeyword}
-                    disabled={!keywordInput.trim()}
-                  >
-                    Add
-                  </Button>
-                </Box>
-                <Box display="flex" flexWrap="wrap" gap={1}>
-                  {formData.seoKeywords.map((keyword, index) => (
-                    <Chip
-                      key={index}
-                      label={keyword}
-                      onDelete={() => handleRemoveKeyword(keyword)}
-                      size="small"
-                    />
-                  ))}
-                </Box>
-              </Box>
-            </Box>
-          </FormSection>
-        </TabPanel>
-
-        {/* Marketing Tab */}
-        <TabPanel value={activeTab} index={2}>
-          <FormSection>
-            <SectionTitle>
-              <PaletteIcon />
-              Marketing & Branding
-            </SectionTitle>
-            
-            <Box display="flex" flexDirection="column" gap={3}>
-              <Box display="flex" gap={2} flexWrap="wrap">
-                <Box flex="1" minWidth="300px">
-                  <TextField
-                    fullWidth
-                    label="Featured Image URL"
-                    value={formData.featuredImage}
-                    onChange={(e) => handleInputChange('featuredImage', e.target.value)}
-                  />
-                </Box>
-                
-                <Box flex="1" minWidth="300px">
-                  <TextField
-                    fullWidth
-                    label="Banner Image URL"
-                    value={formData.bannerImage}
-                    onChange={(e) => handleInputChange('bannerImage', e.target.value)}
-                  />
-                </Box>
-              </Box>
-              
-              <Box display="flex" gap={2} flexWrap="wrap" alignItems="end">
-                <Box flex="1" minWidth="300px">
-                  <TextField
-                    fullWidth
-                    label="Color Code"
-                    value={formData.colorCode}
-                    onChange={(e) => handleInputChange('colorCode', e.target.value)}
-                    error={!!errors.colorCode}
-                    helperText={errors.colorCode || 'Hex color code (e.g., #FF5733)'}
-                    placeholder="#FF5733"
-                  />
-                </Box>
-                
-                {formData.colorCode && (
-                  <Box
-                    sx={{
-                      width: 100,
-                      height: 40,
-                      backgroundColor: formData.colorCode,
-                      borderRadius: 1,
-                      border: '1px solid',
-                      borderColor: 'divider',
-                    }}
-                  />
-                )}
-              </Box>
-            </Box>
-          </FormSection>
-        </TabPanel>
-
-        {/* Analytics Tab */}
-        <TabPanel value={activeTab} index={3}>
-          <FormSection>
-            <SectionTitle>
-              <TrendingUpIcon />
-              Analytics & Performance
-            </SectionTitle>
-            
-            <Box display="flex" flexDirection="column" gap={3}>
-              <Box display="flex" gap={2} flexWrap="wrap">
-                <Box flex="1" minWidth="300px">
-                  <TextField
-                    fullWidth
-                    label="View Count"
-                    value={formData.viewCount}
-                    InputProps={{ readOnly: true }}
-                    helperText="Total number of views"
-                  />
-                </Box>
-                
-                <Box flex="1" minWidth="300px">
-                  <TextField
-                    fullWidth
-                    label="Click Count"
-                    value={formData.clickCount}
-                    InputProps={{ readOnly: true }}
-                    helperText="Total number of clicks"
-                  />
-                </Box>
-              </Box>
-              
-              <Alert severity="info">
-                Analytics data is automatically tracked and cannot be manually edited.
-              </Alert>
-            </Box>
-          </FormSection>
-        </TabPanel>
-
-        {errors.submit && (
-          <Alert severity="error" sx={{ mt: 2 }}>
-            {errors.submit}
-          </Alert>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose()
+      }}
+    >
+      <DialogContent
+        className={cn(
+          'max-h-[95vh] max-w-[1000px] overflow-y-auto border bg-gradient-to-br from-background to-primary/5 p-0 sm:max-w-[1000px]'
         )}
-      </DialogContent>
+      >
+        <DialogHeader className="border-b px-6 pb-4 pt-6">
+          <div className="flex items-center justify-between gap-4 pr-8">
+            <DialogTitle className="text-xl">
+              {category ? 'Edit Category' : 'Create New Category'}
+            </DialogTitle>
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onClose} type="button">
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </Button>
+          </div>
+        </DialogHeader>
 
-      <DialogActions sx={{ p: 3 }}>
-        <Button onClick={onClose} disabled={loading}>
-          Cancel
-        </Button>
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
-          startIcon={<SaveIcon />}
-          disabled={loading}
-        >
-          {loading ? 'Saving...' : category ? 'Update Category' : 'Create Category'}
-        </Button>
-      </DialogActions>
-    </StyledDialog>
+        <div className="px-6 pt-4">
+          <Tabs value={String(activeTab)} onValueChange={(v) => setActiveTab(Number(v))}>
+            <TabsList className="mb-4 grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-4">
+              {tabs.map((tab, index) => (
+                <TabsTrigger
+                  key={tab.label}
+                  value={String(index)}
+                  className="gap-1.5 text-xs sm:text-sm"
+                >
+                  <tab.icon className="h-4 w-4 shrink-0" aria-hidden />
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            <TabsContent value="0" className="mt-0">
+              <FormSection>
+                <SectionTitle>
+                  <FolderTree className="h-5 w-5" aria-hidden />
+                  Basic Information
+                </SectionTitle>
+
+                <div className="flex flex-col gap-6">
+                  <div className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2">
+                    <div className="min-w-0 space-y-1.5">
+                      <Label htmlFor="cat-name">Category Name *</Label>
+                      <Input
+                        id="cat-name"
+                        value={formData.name}
+                        onChange={(e) => handleInputChange('name', e.target.value)}
+                        className={cn(errors.name && 'border-destructive')}
+                        placeholder="Category name"
+                      />
+                      {errors.name && (
+                        <p className="text-xs text-destructive">{errors.name}</p>
+                      )}
+                    </div>
+                    <div className="min-w-0 space-y-1.5">
+                      <Label>Category Type</Label>
+                      <Select
+                        value={formData.categoryType}
+                        onValueChange={(v) =>
+                          handleInputChange('categoryType', v as typeof formData.categoryType)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="product">Product</SelectItem>
+                          <SelectItem value="service">Service</SelectItem>
+                          <SelectItem value="both">Both</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="cat-desc">Description</Label>
+                    <Textarea
+                      id="cat-desc"
+                      rows={3}
+                      value={formData.description}
+                      onChange={(e) => handleInputChange('description', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2">
+                    <div className="min-w-0 space-y-1.5">
+                      <Label>Parent Category</Label>
+                      <Select
+                        value={formData.parentId || NO_PARENT_VALUE}
+                        onValueChange={(v) =>
+                          handleInputChange('parentId', v === NO_PARENT_VALUE ? '' : v)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Parent" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={NO_PARENT_VALUE}>No Parent (Root Category)</SelectItem>
+                          {parentCategories.map((parent) => (
+                            <SelectItem key={parent.id} value={parent.id}>
+                              {parent.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="min-w-0 space-y-1.5">
+                      <Label htmlFor="sort-order">Sort Order</Label>
+                      <Input
+                        id="sort-order"
+                        type="number"
+                        value={formData.sortOrder}
+                        onChange={(e) =>
+                          handleInputChange('sortOrder', parseInt(e.target.value, 10) || 0)
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2">
+                    <div className="min-w-0 space-y-1.5">
+                      <Label htmlFor="image-url">Image URL</Label>
+                      <Input
+                        id="image-url"
+                        value={formData.image}
+                        onChange={(e) => handleInputChange('image', e.target.value)}
+                      />
+                    </div>
+                    <div className="min-w-0 space-y-1.5">
+                      <Label htmlFor="icon-field">Icon</Label>
+                      <Input
+                        id="icon-field"
+                        value={formData.icon}
+                        onChange={(e) => handleInputChange('icon', e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Switch
+                      id="active-switch"
+                      checked={formData.status === 'active'}
+                      onCheckedChange={(checked) =>
+                        handleInputChange('status', checked ? 'active' : 'inactive')
+                      }
+                    />
+                    <Label htmlFor="active-switch">Active</Label>
+                  </div>
+                </div>
+              </FormSection>
+            </TabsContent>
+
+            <TabsContent value="1" className="mt-0">
+              <FormSection>
+                <SectionTitle>
+                  <Search className="h-5 w-5" aria-hidden />
+                  SEO Settings
+                </SectionTitle>
+
+                <div className="flex flex-col gap-6">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="meta-title">Meta Title</Label>
+                    <Input
+                      id="meta-title"
+                      value={formData.metaTitle}
+                      maxLength={60}
+                      onChange={(e) => handleInputChange('metaTitle', e.target.value)}
+                      className={cn(errors.metaTitle && 'border-destructive')}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {errors.metaTitle ||
+                        `${formData.metaTitle.length}/60 characters`}
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="meta-desc">Meta Description</Label>
+                    <Textarea
+                      id="meta-desc"
+                      rows={3}
+                      maxLength={160}
+                      value={formData.metaDescription}
+                      onChange={(e) => handleInputChange('metaDescription', e.target.value)}
+                      className={cn(errors.metaDescription && 'border-destructive')}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {errors.metaDescription ||
+                        `${formData.metaDescription.length}/160 characters`}
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label className="mb-2 block">SEO Keywords</Label>
+                    <div className="mb-2 flex flex-wrap gap-2">
+                      <Input
+                        className="max-w-md flex-1"
+                        placeholder="Add keyword"
+                        value={keywordInput}
+                        onChange={(e) => setKeywordInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            handleAddKeyword()
+                          }
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleAddKeyword}
+                        disabled={!keywordInput.trim()}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {formData.seoKeywords.map((keyword, index) => (
+                        <Badge key={index} variant="secondary" className="gap-1 pr-1">
+                          {keyword}
+                          <button
+                            type="button"
+                            className="ml-1 rounded-full p-0.5 hover:bg-background/80"
+                            onClick={() => handleRemoveKeyword(keyword)}
+                            aria-label={`Remove ${keyword}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </FormSection>
+            </TabsContent>
+
+            <TabsContent value="2" className="mt-0">
+              <FormSection>
+                <SectionTitle>
+                  <Palette className="h-5 w-5" aria-hidden />
+                  Marketing & Branding
+                </SectionTitle>
+
+                <div className="flex flex-col gap-6">
+                  <div className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2">
+                    <div className="min-w-0 space-y-1.5">
+                      <Label htmlFor="feat-img">Featured Image URL</Label>
+                      <Input
+                        id="feat-img"
+                        value={formData.featuredImage}
+                        onChange={(e) => handleInputChange('featuredImage', e.target.value)}
+                      />
+                    </div>
+                    <div className="min-w-0 space-y-1.5">
+                      <Label htmlFor="banner-img">Banner Image URL</Label>
+                      <Input
+                        id="banner-img"
+                        value={formData.bannerImage}
+                        onChange={(e) => handleInputChange('bannerImage', e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-end gap-4">
+                    <div className="min-w-[200px] flex-1 space-y-1.5">
+                      <Label htmlFor="color-code">Color Code</Label>
+                      <Input
+                        id="color-code"
+                        value={formData.colorCode}
+                        onChange={(e) => handleInputChange('colorCode', e.target.value)}
+                        placeholder="#FF5733"
+                        className={cn(errors.colorCode && 'border-destructive')}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        {errors.colorCode || 'Hex color code (e.g., #FF5733)'}
+                      </p>
+                    </div>
+                    {formData.colorCode && /^#[0-9A-Fa-f]{6}$/.test(formData.colorCode) && (
+                      <div
+                        className="h-10 w-[100px] shrink-0 rounded border border-border"
+                        style={{ backgroundColor: formData.colorCode }}
+                        aria-hidden
+                      />
+                    )}
+                  </div>
+                </div>
+              </FormSection>
+            </TabsContent>
+
+            <TabsContent value="3" className="mt-0">
+              <FormSection>
+                <SectionTitle>
+                  <TrendingUp className="h-5 w-5" aria-hidden />
+                  Analytics & Performance
+                </SectionTitle>
+
+                <div className="flex flex-col gap-6">
+                  <div className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2">
+                    <div className="min-w-0 space-y-1.5">
+                      <Label htmlFor="view-count">View Count</Label>
+                      <Input id="view-count" readOnly value={formData.viewCount} className="bg-muted" />
+                      <p className="text-xs text-muted-foreground">Total number of views</p>
+                    </div>
+                    <div className="min-w-0 space-y-1.5">
+                      <Label htmlFor="click-count">Click Count</Label>
+                      <Input id="click-count" readOnly value={formData.clickCount} className="bg-muted" />
+                      <p className="text-xs text-muted-foreground">Total number of clicks</p>
+                    </div>
+                  </div>
+
+                  <AlertBox variant="info">
+                    Analytics data is automatically tracked and cannot be manually edited.
+                  </AlertBox>
+                </div>
+              </FormSection>
+            </TabsContent>
+          </Tabs>
+
+          {errors.submit && (
+            <AlertBox variant="error" className="mt-4">
+              {errors.submit}
+            </AlertBox>
+          )}
+        </div>
+
+        <Separator className="mt-4" />
+
+        <DialogFooter className="gap-2 px-6 pb-6 pt-4 sm:justify-end">
+          <Button variant="outline" onClick={onClose} disabled={loading} type="button">
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={loading} loading={loading} leftIcon={<Save className="h-4 w-4" />}>
+            {loading ? 'Saving…' : category ? 'Update Category' : 'Create Category'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
