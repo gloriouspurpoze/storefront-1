@@ -60,6 +60,7 @@ import {
 } from '../../types/categoryMarketing'
 import { appToast } from '../../lib/appToast'
 import { useIndustryServicePagesCatalog } from './IndustryServicePagesContext'
+import { useServiceCatalogLocalities } from '../../hooks/useServiceCatalogLocalities'
 
 type TabKey =
   | 'metadata'
@@ -84,6 +85,11 @@ function charCountColor(len: number, min: number, optimal: number, hard: number)
 export default function CategoryMarketingManagement() {
   const industryHub = useIndustryServicePagesCatalog()
   const { options: catalogOptions, loading: catalogOptionsLoading, defaultSlug } = useCmsCatalogCategories()
+  const {
+    rows: managedLocalities,
+    loading: managedLocalitiesLoading,
+    error: managedLocalitiesError,
+  } = useServiceCatalogLocalities()
   const [standaloneCategory, setStandaloneCategory] = useState<string>('')
   const selectedCategory: string =
     industryHub?.catalogKey ?? (standaloneCategory || defaultSlug) ?? CMS_DEFAULT_FALLBACK_SLUG
@@ -97,6 +103,8 @@ export default function CategoryMarketingManagement() {
   const [saving, setSaving] = useState(false)
   /** URL locality slug for composite CMS keys, e.g. `mira-road` + industry `electric` → `electric__mira-road` (`__` = delimiter). */
   const [localitySlugForKey, setLocalitySlugForKey] = useState('')
+  /** True after user chooses “Custom slug” while the field is still empty (avoid Select snapping back to “Industry-wide”). */
+  const [emptyCustomSlugMode, setEmptyCustomSlugMode] = useState(false)
   const [duplicateSourceKey, setDuplicateSourceKey] = useState('')
   const [importJsonText, setImportJsonText] = useState('')
   const [tab, setTab] = useState<TabKey>('metadata')
@@ -106,6 +114,21 @@ export default function CategoryMarketingManagement() {
     if (!loc) return selectedCategory
     return `${selectedCategory}__${loc}`
   }, [selectedCategory, localitySlugForKey])
+
+  const sortedManagedLocalities = useMemo(
+    () =>
+      [...managedLocalities].sort(
+        (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
+      ),
+    [managedLocalities],
+  )
+
+  const localitySelectValue = useMemo(() => {
+    const raw = localitySlugForKey.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-')
+    if (!raw) return emptyCustomSlugMode ? '__custom__' : '__none__'
+    if (sortedManagedLocalities.some((l) => l.slug === raw)) return raw
+    return '__custom__'
+  }, [localitySlugForKey, sortedManagedLocalities, emptyCustomSlugMode])
 
   useEffect(() => {
     fetchData()
@@ -302,6 +325,7 @@ export default function CategoryMarketingManagement() {
                   onValueChange={(v) => {
                     setSelectedCategory(v)
                     setLocalitySlugForKey('')
+                    setEmptyCustomSlugMode(false)
                   }}
                   disabled={catalogOptionsLoading || catalogOptions.length === 0}
                 >
@@ -319,24 +343,76 @@ export default function CategoryMarketingManagement() {
               </div>
             ) : null}
             <div className={cn('space-y-1.5', !industryHub ? 'md:col-span-4' : 'md:col-span-6')}>
-              <Label htmlFor="cmm-f-1" className="text-xs font-medium text-muted-foreground">
-                Locality slug (optional)
+              <Label htmlFor="cmm-locality-picker" className="text-xs font-medium text-muted-foreground">
+                Locality (optional)
               </Label>
-              <Input
-                id="cmm-f-1"
-                className="h-9 font-mono text-sm"
-                value={localitySlugForKey}
-                onChange={(e) => setLocalitySlugForKey(e.target.value)}
-                placeholder="mira-road"
-              />
-              <p className="text-[11px] leading-snug text-muted-foreground">
-                Empty = industry-wide record. With locality → CMS key{' '}
-                <span className="font-mono">
-                  {selectedCategory}__[locality-slug]
-                </span>{' '}
-                (exactly <span className="font-mono">__</span> between industry slug and locality; not a single
-                underscore).
-              </p>
+              <Select
+                value={localitySelectValue}
+                onValueChange={(v) => {
+                  if (v === '__none__') {
+                    setLocalitySlugForKey('')
+                    setEmptyCustomSlugMode(false)
+                  } else if (v === '__custom__') {
+                    setEmptyCustomSlugMode(true)
+                  } else {
+                    setLocalitySlugForKey(v)
+                    setEmptyCustomSlugMode(false)
+                  }
+                }}
+                disabled={managedLocalitiesLoading}
+              >
+                <SelectTrigger id="cmm-locality-picker" className="h-9 w-full">
+                  <SelectValue placeholder={managedLocalitiesLoading ? 'Loading areas…' : 'Pick a service area'} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Industry-wide (no locality)</SelectItem>
+                  {sortedManagedLocalities.map((loc) => (
+                    <SelectItem key={loc._id} value={loc.slug}>
+                      {`${loc.name} (${loc.slug})${!loc.isActive ? ' — inactive' : ''}`}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="__custom__">Custom slug (advanced)…</SelectItem>
+                </SelectContent>
+              </Select>
+              {localitySelectValue === '__custom__' ? (
+                <Input
+                  id="cmm-f-1-custom"
+                  className="h-9 font-mono text-sm"
+                  value={localitySlugForKey}
+                  onChange={(e) => setLocalitySlugForKey(e.target.value)}
+                  onBlur={() => {
+                    setLocalitySlugForKey((s) =>
+                      s
+                        .trim()
+                        .toLowerCase()
+                        .replace(/[^a-z0-9-]+/g, '-')
+                        .replace(/^-|-$/g, ''),
+                    )
+                    setEmptyCustomSlugMode(false)
+                  }}
+                  placeholder="legacy-or-imported-slug"
+                  aria-label="Custom locality slug"
+                />
+              ) : null}
+              {managedLocalitiesError ? (
+                <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                  Could not load managed areas — use Custom slug or open{' '}
+                  <Link to="/cms/category-marketing?tab=service-areas" className="underline">
+                    Service areas
+                  </Link>
+                  .
+                </p>
+              ) : (
+                <p className="text-[11px] leading-snug text-muted-foreground">
+                  Manage the list under{' '}
+                  <Link to="/cms/category-marketing?tab=service-areas" className="font-medium underline">
+                    Service areas
+                  </Link>
+                  . Empty = industry-wide. With locality → CMS key{' '}
+                  <span className="font-mono">{selectedCategory}__{'{slug}'}</span> (separator{' '}
+                  <span className="font-mono">__</span>).
+                </p>
+              )}
             </div>
             <div className="flex flex-col justify-end md:col-span-3 md:text-right">
               <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">CMS key</span>

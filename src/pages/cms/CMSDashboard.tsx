@@ -19,6 +19,7 @@ import {
   HelpCircle,
   Receipt,
   Megaphone,
+  MapPin,
   Link2,
   Search,
   Tag,
@@ -211,6 +212,12 @@ const HUB_SECTIONS: HubSection[] = [
         description: 'Landing SEO, rate card, and cross-links in one hub (same catalog key per vertical).',
         to: '/cms/category-marketing',
         icon: Megaphone,
+      },
+      {
+        title: 'Service areas',
+        description: 'Hyperlocal URL slugs — active/inactive controls consumer routes & sitemap.',
+        to: '/cms/category-marketing?tab=service-areas',
+        icon: MapPin,
       },
       {
         title: 'Rate card',

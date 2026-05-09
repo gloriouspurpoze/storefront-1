@@ -154,6 +154,12 @@ export const QUICK_NAV_ITEMS: QuickNavItem[] = [
     group: 'Content & marketing',
     keywords: 'landing seo locality rate card cross linking',
   },
+  {
+    label: 'Industry service areas',
+    path: '/cms/category-marketing?tab=service-areas',
+    group: 'Content & marketing',
+    keywords: 'hyperlocal locality slug mumbai service catalog',
+  },
   { label: 'Industry rate card', path: '/cms/category-marketing?tab=rate-card', group: 'Content & marketing' },
   {
     label: 'Industry cross-linking',

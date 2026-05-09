@@ -563,6 +563,57 @@ export class CMSService {
     return response.data?.data ?? response.data;
   }
 
+  // ==================== SERVICE CATALOG LOCALITIES (hyperlocal `/services/.../{slug}`) ====================
+
+  static async listServiceCatalogLocalities(): Promise<
+    Array<{
+      _id: string
+      slug: string
+      name: string
+      sortOrder: number
+      isActive: boolean
+      createdAt?: string
+      updatedAt?: string
+    }>
+  > {
+    const response = await axios.get(`${API_BASE}/cms/admin/service-catalog-localities`, this.getAuthHeaders())
+    return response.data?.data ?? []
+  }
+
+  static async createServiceCatalogLocality(body: {
+    name: string
+    slug?: string
+    sortOrder?: number
+    isActive?: boolean
+  }) {
+    const response = await axios.post(
+      `${API_BASE}/cms/admin/service-catalog-localities`,
+      body,
+      this.getAuthHeaders(),
+    )
+    return response.data?.data
+  }
+
+  static async updateServiceCatalogLocality(
+    id: string,
+    body: Partial<{ name: string; slug: string; sortOrder: number; isActive: boolean }>,
+  ) {
+    const response = await axios.put(
+      `${API_BASE}/cms/admin/service-catalog-localities/${encodeURIComponent(id)}`,
+      body,
+      this.getAuthHeaders(),
+    )
+    return response.data?.data
+  }
+
+  static async deleteServiceCatalogLocality(id: string) {
+    const response = await axios.delete(
+      `${API_BASE}/cms/admin/service-catalog-localities/${encodeURIComponent(id)}`,
+      this.getAuthHeaders(),
+    )
+    return response.data?.data
+  }
+
   // ==================== CROSS-LINKING (common problems by category for SEO) ====================
 
   static async getCrossLinking(): Promise<Record<string, string[]>> {

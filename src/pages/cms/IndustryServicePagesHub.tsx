@@ -20,8 +20,10 @@ import { IndustryServicePagesCatalogContext } from './IndustryServicePagesContex
 import CategoryMarketingManagement from './CategoryMarketingManagement'
 import RateCardManagement from './RateCardManagement'
 import CrossLinkingManagement from './CrossLinkingManagement'
+import { ServiceCatalogLocalitiesPanel } from '../../components/cms/ServiceCatalogLocalitiesPanel'
+import { useServiceCatalogLocalities } from '../../hooks/useServiceCatalogLocalities'
 
-const HUB_TABS = ['landing', 'rate-card', 'cross-linking'] as const
+const HUB_TABS = ['landing', 'service-areas', 'rate-card', 'cross-linking'] as const
 type HubTab = (typeof HUB_TABS)[number]
 
 function normalizeHubTab(raw: string | null): HubTab {
@@ -83,6 +85,8 @@ export default function IndustryServicePagesHub() {
     [searchParams, setSearchParams],
   )
 
+  const serviceLocalities = useServiceCatalogLocalities()
+
   const ctx = useMemo(
     () => ({
       catalogKey: effectiveCatalogKey,
@@ -96,7 +100,7 @@ export default function IndustryServicePagesHub() {
       <div className="p-4 sm:p-6 md:p-8">
         <PageHeader
           title="Industry service pages"
-          subtitle="One place for money-page SEO: landing copy & technical meta (canonical, OG, schema), spare-parts rate card, and internal cross-links. Pick a catalog industry once; it applies to all tabs. Hyperlocal keys still use the locality slug on the Landing tab."
+          subtitle="Landing copy, managed service areas (hyperlocal URLs), rate card, and cross-links. Pick a catalog industry once; it applies to landing + pricing + links tabs. Service areas control live locality segments site-wide."
           icon={<Megaphone className="h-7 w-7" aria-hidden />}
         />
 
@@ -135,6 +139,12 @@ export default function IndustryServicePagesHub() {
                     Landing & SEO
                   </TabsTrigger>
                   <TabsTrigger
+                    value="service-areas"
+                    className="shrink-0 font-semibold data-[state=active]:shadow-sm"
+                  >
+                    Service areas
+                  </TabsTrigger>
+                  <TabsTrigger
                     value="rate-card"
                     className="shrink-0 font-semibold data-[state=active]:shadow-sm"
                   >
@@ -150,8 +160,8 @@ export default function IndustryServicePagesHub() {
               </Tabs>
             </div>
             <p className="text-sm text-muted-foreground">
-              Rate card and cross-linking feed the same consumer catalog keys as industry landings — keeping pricing,
-              entity topics, and internal links aligned per vertical.
+              Service areas drive the locality picker on the Landing tab and the consumer URL allowlist. Rate card and
+              cross-linking use the same catalog industry key as landings.
             </p>
           </CardContent>
         </Card>
@@ -159,6 +169,14 @@ export default function IndustryServicePagesHub() {
         <div className={hubTab === 'landing' ? 'block' : 'hidden'}>
           <CategoryMarketingManagement />
         </div>
+        {hubTab === 'service-areas' ? (
+          <ServiceCatalogLocalitiesPanel
+            rows={serviceLocalities.rows}
+            loading={serviceLocalities.loading}
+            error={serviceLocalities.error}
+            onRefresh={() => void serviceLocalities.refresh()}
+          />
+        ) : null}
         {hubTab === 'rate-card' && <RateCardManagement />}
         {hubTab === 'cross-linking' && <CrossLinkingManagement />}
       </div>
