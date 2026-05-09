@@ -75,6 +75,12 @@ export const QUICK_NAV_ITEMS: QuickNavItem[] = [
 
   { label: 'Offers & listing chats', path: '/bazaar', group: 'Bazaar' },
   { label: 'Listing review', path: '/bazaar/listing-review', group: 'Bazaar' },
+  {
+    label: 'Bazaar module & AI',
+    path: '/bazaar/module-settings',
+    group: 'Bazaar',
+    keywords: 'vision photo check assist semantic draft',
+  },
   { label: 'Pro-Verify queue', path: '/bazaar/pro-verify', group: 'Bazaar' },
 
   { label: 'Bookings', path: '/bookings', group: 'Operations' },

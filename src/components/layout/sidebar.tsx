@@ -385,6 +385,21 @@ const navigationGroups = [
         badge: null,
       },
       {
+        name: 'Module & AI settings',
+        href: '/bazaar/module-settings',
+        icon: Sparkles,
+        permissions: [
+          'view_products',
+          'create_products',
+          'view_categories',
+          'view_orders',
+          'manage_coupons',
+          'manage_system_settings',
+          'view_settings',
+        ],
+        badge: null,
+      },
+      {
         name: 'Pro-Verify queue',
         href: '/bazaar/pro-verify',
         icon: VerifiedUserIcon,

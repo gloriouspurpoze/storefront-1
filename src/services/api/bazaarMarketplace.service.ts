@@ -60,6 +60,23 @@ export interface BazaarProVerifyRequestRow {
   seller?: { firstName?: string; lastName?: string; email?: string; userId?: string; phone?: string }
 }
 
+/** Runtime flags — persisted in admin_app_settings.bazaarModule (fixer-backend). */
+export interface BazaarModuleFlags {
+  assistAiEnabled: boolean
+  photoCheckEnabled: boolean
+  visionApiEnabled: boolean
+  bypassPhotoModeration: boolean
+}
+
+export interface BazaarModuleSettingsPayload {
+  effective: BazaarModuleFlags
+  envBaseline: BazaarModuleFlags
+  hints: Record<string, string>
+}
+
+/** GET /api/bazaar/admin/listing-review/:id — full operator console */
+export type BazaarListingReviewDetail = Record<string, unknown>
+
 export class BazaarMarketplaceService {
   static async adminListOffers(params?: {
     page?: number
@@ -137,6 +154,30 @@ export class BazaarMarketplaceService {
       `/bazaar/admin/pro-verify/${encodeURIComponent(id)}`,
       body,
       { showSuccessToast: true, successMessage: 'Pro-Verify updated' }
+    )
+  }
+
+  /** GET /api/bazaar/admin/module-settings */
+  static async adminGetModuleSettings() {
+    return api.get<BazaarModuleSettingsPayload>('/bazaar/admin/module-settings', {
+      showSuccessToast: false,
+    })
+  }
+
+  /** PATCH /api/bazaar/admin/module-settings */
+  static async adminPatchModuleSettings(body: Partial<BazaarModuleFlags>) {
+    return api.patch<{ effective: BazaarModuleFlags; envBaseline: BazaarModuleFlags }>(
+      '/bazaar/admin/module-settings',
+      body,
+      { showSuccessToast: true, successMessage: 'Bazaar module settings saved' }
+    )
+  }
+
+  /** GET /api/bazaar/admin/listing-review/:id */
+  static async adminGetListingReviewDetail(listingId: string) {
+    return api.get<BazaarListingReviewDetail>(
+      `/bazaar/admin/listing-review/${encodeURIComponent(listingId)}`,
+      { showSuccessToast: false }
     )
   }
 }

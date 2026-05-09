@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { BazaarGuidanceAccordion } from './BazaarGuidanceAccordion'
 import { PageHeader } from '../../components/common/PageHeader'
@@ -6,7 +7,6 @@ import { BazaarMarketplaceService } from '../../services/api/bazaarMarketplace.s
 import type { BazaarAdminListingRow } from '../../services/api/bazaarMarketplace.service'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent } from '../../components/ui/card'
-import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
 import { Textarea } from '../../components/ui/textarea'
 import { Badge } from '../../components/ui/badge'
@@ -175,7 +175,7 @@ export default function BazaarListingModeration() {
               <TableHead>Price (₹)</TableHead>
               <TableHead>Seller</TableHead>
               <TableHead>Created</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="text-right">Review</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -209,33 +209,36 @@ export default function BazaarListingModeration() {
                     {row.createdAt ? new Date(row.createdAt).toLocaleString() : '—'}
                   </TableCell>
                   <TableCell className="text-right">
-                    {row.moderationStatus === 'pending_review' ? (
-                      <div className="flex flex-wrap justify-end gap-1">
-                        <Button
-                          size="sm"
-                          className="bg-emerald-600 text-white hover:bg-emerald-600/90"
-                          onClick={() => {
-                            setActionRow(row)
-                            setModerateAction('approve')
-                          }}
-                        >
-                          Approve
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-destructive text-destructive hover:bg-destructive/10"
-                          onClick={() => {
-                            setActionRow(row)
-                            setModerateAction('reject')
-                          }}
-                        >
-                          Reject
-                        </Button>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
+                    <div className="flex flex-wrap justify-end gap-1">
+                      <Button size="sm" variant="secondary" asChild>
+                        <Link to={`/bazaar/listing-review/${encodeURIComponent(row.id)}`}>Details</Link>
+                      </Button>
+                      {row.moderationStatus === 'pending_review' ? (
+                        <>
+                          <Button
+                            size="sm"
+                            className="bg-emerald-600 text-white hover:bg-emerald-600/90"
+                            onClick={() => {
+                              setActionRow(row)
+                              setModerateAction('approve')
+                            }}
+                          >
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-destructive text-destructive hover:bg-destructive/10"
+                            onClick={() => {
+                              setActionRow(row)
+                              setModerateAction('reject')
+                            }}
+                          >
+                            Reject
+                          </Button>
+                        </>
+                      ) : null}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

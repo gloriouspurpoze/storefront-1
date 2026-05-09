@@ -237,9 +237,9 @@ export function TeamWorkSprintPanel({
               <Flag className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
               <div>
                 <p className="text-sm font-semibold">Sprints</p>
-                <p className="mt-0.5 max-w-xl text-xs text-muted-foreground">
+                {/* <p className="mt-0.5 max-w-xl text-xs text-muted-foreground">
                   Fixed-length iterations. Edit dates or remove planned/completed sprints; complete the active sprint before deleting it.
-                </p>
+                </p> */}
               </div>
             </div>
             {canManage ? (

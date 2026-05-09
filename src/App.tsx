@@ -88,6 +88,8 @@ const Marketplace = lazy(() => import('./pages/marketplace/Marketplace'))
 const EcommerceHub = lazy(() => import('./pages/ecommerce/EcommerceHub'))
 const BazaarMarketplaceHub = lazy(() => import('./pages/bazaar/BazaarMarketplaceHub'))
 const BazaarListingModeration = lazy(() => import('./pages/bazaar/BazaarListingModeration'))
+const BazaarListingReviewDetailPage = lazy(() => import('./pages/bazaar/BazaarListingReviewDetailPage'))
+const BazaarModuleSettingsPage = lazy(() => import('./pages/bazaar/BazaarModuleSettingsPage'))
 const BazaarProVerifyModeration = lazy(() => import('./pages/bazaar/BazaarProVerifyModeration'))
 const InventoryManagement = lazy(() => import('./pages/inventory/InventoryManagement'))
 
@@ -450,6 +452,24 @@ function App() {
                         }
                       />
                       <Route
+                        path="/bazaar/listing-review/:listingId"
+                        element={
+                          <RoleBasedRoute
+                            permissions={[
+                              'view_products',
+                              'create_products',
+                              'view_categories',
+                              'view_orders',
+                              'manage_coupons',
+                              'manage_system_settings',
+                              'view_settings',
+                            ]}
+                          >
+                            <BazaarListingReviewDetailPage />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
                         path="/bazaar/listing-review"
                         element={
                           <RoleBasedRoute
@@ -464,6 +484,24 @@ function App() {
                             ]}
                           >
                             <BazaarListingModeration />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/bazaar/module-settings"
+                        element={
+                          <RoleBasedRoute
+                            permissions={[
+                              'view_products',
+                              'create_products',
+                              'view_categories',
+                              'view_orders',
+                              'manage_coupons',
+                              'manage_system_settings',
+                              'view_settings',
+                            ]}
+                          >
+                            <BazaarModuleSettingsPage />
                           </RoleBasedRoute>
                         }
                       />
