@@ -100,7 +100,7 @@ export default function IndustryServicePagesHub() {
       <div className="p-4 sm:p-6 md:p-8">
         <PageHeader
           title="Industry service pages"
-          subtitle="Landing copy, managed service areas (hyperlocal URLs), rate card, and cross-links. Pick a catalog industry once; it applies to landing + pricing + links tabs. Service areas control live locality segments site-wide."
+          subtitle="Same catalog industry everywhere: Landing = Industry × Location × page content (saved per key). Service areas = which URLs exist. Rate card & cross-linking use the same industry key."
           icon={<Megaphone className="h-7 w-7" aria-hidden />}
         />
 

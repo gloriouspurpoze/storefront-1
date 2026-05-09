@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { Loader2, ChevronDown, Trash2, Plus, Megaphone, Image as ImageIconLucide } from 'lucide-react'
 import { Button } from '../../components/ui/button'
@@ -61,6 +61,8 @@ import {
 import { appToast } from '../../lib/appToast'
 import { useIndustryServicePagesCatalog } from './IndustryServicePagesContext'
 import { useServiceCatalogLocalities } from '../../hooks/useServiceCatalogLocalities'
+import { IndustryLandingWorkspaceOverview } from '../../components/cms/IndustryLandingWorkspaceOverview'
+import { localitySlugFromCompositeKey } from '../../lib/categoryMarketingCoverageOverview'
 
 type TabKey =
   | 'metadata'
@@ -109,11 +111,20 @@ export default function CategoryMarketingManagement() {
   const [importJsonText, setImportJsonText] = useState('')
   const [tab, setTab] = useState<TabKey>('metadata')
 
+  const normalizedLocalitySlug = useMemo(
+    () =>
+      localitySlugForKey
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9-]+/g, '-')
+        .replace(/^-|-$/g, ''),
+    [localitySlugForKey],
+  )
+
   const effectiveKey = useMemo(() => {
-    const loc = localitySlugForKey.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-')
-    if (!loc) return selectedCategory
-    return `${selectedCategory}__${loc}`
-  }, [selectedCategory, localitySlugForKey])
+    if (!normalizedLocalitySlug) return selectedCategory
+    return `${selectedCategory}__${normalizedLocalitySlug}`
+  }, [selectedCategory, normalizedLocalitySlug])
 
   const sortedManagedLocalities = useMemo(
     () =>
@@ -124,11 +135,42 @@ export default function CategoryMarketingManagement() {
   )
 
   const localitySelectValue = useMemo(() => {
-    const raw = localitySlugForKey.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-')
-    if (!raw) return emptyCustomSlugMode ? '__custom__' : '__none__'
-    if (sortedManagedLocalities.some((l) => l.slug === raw)) return raw
+    if (!normalizedLocalitySlug) return emptyCustomSlugMode ? '__custom__' : '__none__'
+    if (sortedManagedLocalities.some((l) => l.slug === normalizedLocalitySlug)) return normalizedLocalitySlug
     return '__custom__'
-  }, [localitySlugForKey, sortedManagedLocalities, emptyCustomSlugMode])
+  }, [normalizedLocalitySlug, sortedManagedLocalities, emptyCustomSlugMode])
+
+  const industryLabel = useMemo(
+    () => catalogOptions.find((o) => o.value === selectedCategory)?.label ?? selectedCategory,
+    [catalogOptions, selectedCategory],
+  )
+
+  const localityDisplayLabel = useMemo(() => {
+    if (!normalizedLocalitySlug) return 'All areas (default)'
+    const hit = sortedManagedLocalities.find((l) => l.slug === normalizedLocalitySlug)
+    if (hit) return hit.name
+    return normalizedLocalitySlug
+      .split('-')
+      .filter(Boolean)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ')
+  }, [normalizedLocalitySlug, sortedManagedLocalities])
+
+  const openSavedStorageKey = useCallback(
+    (storageKey: string) => {
+      const locSuffix = localitySlugFromCompositeKey(selectedCategory, storageKey)
+      if (locSuffix === null) return
+      if (locSuffix === '') {
+        setLocalitySlugForKey('')
+        setEmptyCustomSlugMode(false)
+      } else {
+        setLocalitySlugForKey(locSuffix)
+        setEmptyCustomSlugMode(false)
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    },
+    [selectedCategory],
+  )
 
   useEffect(() => {
     fetchData()
@@ -284,7 +326,7 @@ export default function CategoryMarketingManagement() {
       {!industryHub && (
         <PageHeader
           title="Industry service pages"
-          subtitle="Industry landing CMS: meta through FAQs, schema toggles, and locality overrides. Tokens: [City], [Location], [ServiceName]. Composite keys: industry__locality slug."
+          subtitle="Structure: pick Industry → Location → edit page content in tabs. Save per storage key. Industry-wide defaults merge with each location on the live site. Tokens: [City], [Location], [ServiceName]."
           action={
             <Button
               variant="default"
@@ -314,11 +356,25 @@ export default function CategoryMarketingManagement() {
 
       <Card className="border-border/80 shadow-sm">
         <CardContent className="space-y-4 py-4">
+          <div className="border-b border-border/60 pb-3">
+            <p className="text-sm font-semibold text-foreground">1 · Industry &amp; location</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Pick the vertical and the area (or &quot;All areas&quot; for defaults). Then use{' '}
+              <strong className="font-medium text-foreground">section tabs</strong> below for page content — the panel
+              under this card shows what&apos;s already filled for this pair.
+            </p>
+            {industryHub ? (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Catalog industry: <span className="font-semibold text-foreground">{industryLabel}</span>{' '}
+                <span className="font-mono text-[11px] text-muted-foreground">({selectedCategory})</span>
+              </p>
+            ) : null}
+          </div>
           <div className="grid gap-4 md:grid-cols-12 md:items-end">
             {!industryHub ? (
               <div className="space-y-1.5 md:col-span-5">
                 <Label htmlFor="catalog-category-select" className="text-xs font-medium text-muted-foreground">
-                  Industry
+                  Industry (catalog)
                 </Label>
                 <Select
                   value={selectedCategory}
@@ -344,7 +400,7 @@ export default function CategoryMarketingManagement() {
             ) : null}
             <div className={cn('space-y-1.5', !industryHub ? 'md:col-span-4' : 'md:col-span-6')}>
               <Label htmlFor="cmm-locality-picker" className="text-xs font-medium text-muted-foreground">
-                Locality (optional)
+                Location (service area)
               </Label>
               <Select
                 value={localitySelectValue}
@@ -365,7 +421,7 @@ export default function CategoryMarketingManagement() {
                   <SelectValue placeholder={managedLocalitiesLoading ? 'Loading areas…' : 'Pick a service area'} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">Industry-wide (no locality)</SelectItem>
+                  <SelectItem value="__none__">All areas — industry default template</SelectItem>
                   {sortedManagedLocalities.map((loc) => (
                     <SelectItem key={loc._id} value={loc.slug}>
                       {`${loc.name} (${loc.slug})${!loc.isActive ? ' — inactive' : ''}`}
@@ -415,7 +471,9 @@ export default function CategoryMarketingManagement() {
               )}
             </div>
             <div className="flex flex-col justify-end md:col-span-3 md:text-right">
-              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">CMS key</span>
+              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                Saved storage key
+              </span>
               <code className="mt-1 break-all rounded-md bg-muted px-2 py-1 text-left text-xs font-semibold md:text-right">
                 {effectiveKey}
               </code>
@@ -423,6 +481,19 @@ export default function CategoryMarketingManagement() {
           </div>
         </CardContent>
       </Card>
+
+      {!loading ? (
+        <IndustryLandingWorkspaceOverview
+          industrySlug={selectedCategory}
+          industryLabel={industryLabel}
+          localitySlug={normalizedLocalitySlug}
+          localityDisplayLabel={localityDisplayLabel}
+          effectiveStorageKey={effectiveKey}
+          config={config}
+          allData={data}
+          onOpenSavedKey={openSavedStorageKey}
+        />
+      ) : null}
 
       <Accordion type="single" collapsible className="rounded-lg border border-border/80 bg-card px-1 shadow-sm">
         <AccordionItem value="clone-import" className="border-0">
@@ -585,6 +656,9 @@ export default function CategoryMarketingManagement() {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
+          <p className="text-xs font-semibold text-muted-foreground">
+            2 · Page content — tabs apply to <span className="font-mono text-foreground">{effectiveKey}</span>
+          </p>
           <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="w-full">
             <div className="overflow-x-auto rounded-lg border border-border/80 bg-muted/20">
               <TabsList className="mb-0 inline-flex h-auto min-h-9 w-max min-w-full justify-start gap-0.5 rounded-none border-0 bg-transparent p-1">
