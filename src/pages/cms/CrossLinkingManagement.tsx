@@ -7,18 +7,22 @@ import { Label } from '../../components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select'
 import { PageHeader } from '../../components/common/PageHeader'
 import { CMSService } from '../../services/api'
-import { CMS_CATALOG_CATEGORIES } from '../../constants/cmsCatalogCategories'
+import { CMS_DEFAULT_FALLBACK_SLUG } from '../../constants/cmsCatalogCategories'
+import { useCmsCatalogCategories } from '../../hooks/useCmsCatalogCategories'
 import { appToast } from '../../lib/appToast'
 import { cn } from '../../lib/utils'
 import { useIndustryServicePagesCatalog } from './IndustryServicePagesContext'
 
 export default function CrossLinkingManagement() {
   const industryHub = useIndustryServicePagesCatalog()
+  const { options: catalogOptions, loading: catalogOptionsLoading, defaultSlug, getLabel } =
+    useCmsCatalogCategories()
   const [data, setData] = useState<Record<string, string[]>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [standaloneCategory, setStandaloneCategory] = useState<string>('ac')
-  const selectedCategory = industryHub?.catalogKey ?? standaloneCategory
+  const [standaloneCategory, setStandaloneCategory] = useState<string>('')
+  const selectedCategory: string =
+    industryHub?.catalogKey ?? (standaloneCategory || defaultSlug) ?? CMS_DEFAULT_FALLBACK_SLUG
   const setSelectedCategory = (v: string) => {
     if (industryHub) industryHub.setCatalogKey(v)
     else setStandaloneCategory(v)
@@ -68,7 +72,7 @@ export default function CrossLinkingManagement() {
   }
 
   const removeProblem = (index: number) => {
-    const next = problems.filter((_, i) => i !== index)
+    const next = problems.filter((_: string, i: number) => i !== index)
     setData((prev) => ({ ...prev, [selectedCategory]: next }))
   }
 
@@ -102,12 +106,16 @@ export default function CrossLinkingManagement() {
             <div className="flex flex-wrap items-center gap-2">
               <div className="space-y-2">
                 <Label htmlFor="cat-select">Category</Label>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <Select
+                  value={selectedCategory}
+                  onValueChange={setSelectedCategory}
+                  disabled={catalogOptionsLoading || catalogOptions.length === 0}
+                >
                   <SelectTrigger id="cat-select" className="w-[200px] rounded-md">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {CMS_CATALOG_CATEGORIES.map((opt) => (
+                    {catalogOptions.map((opt) => (
                       <SelectItem key={opt.value} value={opt.value}>
                         {opt.label}
                       </SelectItem>
@@ -129,7 +137,7 @@ export default function CrossLinkingManagement() {
           <CardContent className="p-4">
             <p className="mb-4 text-sm text-muted-foreground">
               Common problems we fix — “
-              {CMS_CATALOG_CATEGORIES.find((c) => c.value === selectedCategory)?.label ?? selectedCategory}”
+              {getLabel(selectedCategory)}”
             </p>
             <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end">
               <div className="min-w-0 flex-1 space-y-2">
@@ -163,7 +171,7 @@ export default function CrossLinkingManagement() {
                   No problems added. Add items to show in catalog cross-linking block.
                 </li>
               ) : (
-                problems.map((text, index) => (
+                problems.map((text: string, index: number) => (
                   <li key={index} className="flex items-center justify-between gap-2 px-3 py-2">
                     <span className="text-sm">{text}</span>
                     <Button

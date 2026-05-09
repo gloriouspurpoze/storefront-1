@@ -2718,53 +2718,54 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
           onClick={() => closeCloudinaryPicker()}
         >
           <div
-            className="relative my-8 w-full max-w-3xl rounded-xl border border-slate-200 bg-white shadow-xl"
+            className="relative my-8 flex max-h-[min(90vh,720px)] w-[calc(100vw-1.5rem)] max-w-3xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl sm:w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-              <div>
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
+              <div className="min-w-0">
                 <h2 className="text-sm font-semibold text-slate-900">
                   {cloudinaryPickerFor === 'featured' ? 'Featured image from Cloudinary' : 'Insert from Cloudinary'}
                 </h2>
-                <p className="text-xs text-slate-500">
+                <p className="mt-0.5 text-xs text-slate-500">
                   Folder: {BLOG_BODY_CLOUDINARY_FOLDER}
                   {cloudinaryPickerFor === 'featured'
                     ? ' — click an image to use as the featured image.'
                     : ' — click an image, then enter alt text to insert at your cursor.'}
                 </p>
+                <p className="mt-1 text-xs text-slate-500">Scroll to browse all images.</p>
               </div>
               <button
                 type="button"
                 onClick={() => closeCloudinaryPicker()}
-                className="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100"
+                className="shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100"
               >
                 Close
               </button>
             </div>
-            <div className="max-h-[min(70vh,520px)] overflow-y-auto p-4">
-              {cloudinaryLoading && <p className="text-sm text-slate-600">Loading library…</p>}
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
+              {cloudinaryLoading && <p className="py-8 text-center text-sm text-slate-600">Loading library…</p>}
               {!cloudinaryLoading && cloudinaryError && (
                 <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">{cloudinaryError}</p>
               )}
               {!cloudinaryLoading && !cloudinaryError && cloudinaryImages.length === 0 && (
-                <p className="text-sm text-slate-600">No images in this folder yet. Upload with the image button first.</p>
+                <p className="py-8 text-sm text-slate-600">No images in this folder yet. Upload with the image button first.</p>
               )}
               {!cloudinaryLoading && !cloudinaryError && cloudinaryImages.length > 0 && (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                   {cloudinaryImages.map((img) => (
                     <button
-                      key={img.publicId}
+                      key={img.publicId?.trim() || img.url}
                       type="button"
                       onClick={() => handleCloudinaryLibraryPick(img.url)}
-                      className="group overflow-hidden rounded-lg border border-slate-200 bg-slate-50 text-left shadow-sm transition hover:border-indigo-300 hover:ring-2 hover:ring-indigo-200"
+                      className="group flex min-w-0 flex-col items-stretch overflow-hidden rounded-lg border border-slate-200 bg-slate-50 text-left shadow-sm transition hover:border-indigo-300 hover:ring-2 hover:ring-indigo-200"
                     >
                       <img
                         src={img.url}
                         alt={img.publicId.split('/').pop() ?? 'Library image'}
-                        className="aspect-square w-full object-cover"
+                        className="h-40 w-full shrink-0 bg-slate-100 object-contain object-center sm:h-44"
                         loading="lazy"
                       />
-                      <span className="block truncate px-2 py-1 text-[10px] text-slate-500 group-hover:text-slate-700">
+                      <span className="block truncate px-2 py-1.5 text-[10px] text-slate-500 group-hover:text-slate-700">
                         {img.publicId.split('/').pop()}
                       </span>
                     </button>

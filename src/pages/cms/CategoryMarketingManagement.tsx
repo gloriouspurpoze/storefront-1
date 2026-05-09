@@ -27,7 +27,8 @@ import { CMSService } from '../../services/api'
 import { PageHeader } from '../../components/common/PageHeader'
 import ImageUploadField from '../../components/forms/ImageUploadField'
 import type { ImageFile } from '../../components/forms/ImageUploadField'
-import { CMS_CATALOG_CATEGORIES } from '../../constants/cmsCatalogCategories'
+import { CMS_DEFAULT_FALLBACK_SLUG } from '../../constants/cmsCatalogCategories'
+import { useCmsCatalogCategories } from '../../hooks/useCmsCatalogCategories'
 import {
   META_DESC_HARD_MAX_CHARS,
   META_DESC_MIN_CHARS,
@@ -39,7 +40,9 @@ import {
 import {
   type CategoryMarketingConfig,
   type LocalityGuideCmsFields,
+  type LocalityGuideSectionBlock,
   type LocalSeoCmsFields,
+  type RelatedLinkBlock,
   type TechnicalSeoCmsFields,
   type ServiceTypeBlock,
   emptyCategoryMarketingConfig,
@@ -80,8 +83,10 @@ function charCountColor(len: number, min: number, optimal: number, hard: number)
 
 export default function CategoryMarketingManagement() {
   const industryHub = useIndustryServicePagesCatalog()
-  const [standaloneCategory, setStandaloneCategory] = useState<string>('ac')
-  const selectedCategory = industryHub?.catalogKey ?? standaloneCategory
+  const { options: catalogOptions, loading: catalogOptionsLoading, defaultSlug } = useCmsCatalogCategories()
+  const [standaloneCategory, setStandaloneCategory] = useState<string>('')
+  const selectedCategory: string =
+    industryHub?.catalogKey ?? (standaloneCategory || defaultSlug) ?? CMS_DEFAULT_FALLBACK_SLUG
   const setSelectedCategory = (v: string) => {
     if (industryHub) industryHub.setCatalogKey(v)
     else setStandaloneCategory(v)
@@ -90,7 +95,7 @@ export default function CategoryMarketingManagement() {
   const [data, setData] = useState<Record<string, CategoryMarketingConfig>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  /** URL locality slug for composite CMS keys, e.g. `mira-bhayandar` → `electric__mira-bhayandar`. */
+  /** URL locality slug for composite CMS keys, e.g. `mira-road` + industry `electric` → `electric__mira-road` (`__` = delimiter). */
   const [localitySlugForKey, setLocalitySlugForKey] = useState('')
   const [duplicateSourceKey, setDuplicateSourceKey] = useState('')
   const [importJsonText, setImportJsonText] = useState('')
@@ -298,12 +303,13 @@ export default function CategoryMarketingManagement() {
                     setSelectedCategory(v)
                     setLocalitySlugForKey('')
                   }}
+                  disabled={catalogOptionsLoading || catalogOptions.length === 0}
                 >
                   <SelectTrigger id="catalog-category-select" className="h-9 w-full">
                     <SelectValue placeholder="Select industry" />
                   </SelectTrigger>
                   <SelectContent>
-                    {CMS_CATALOG_CATEGORIES.map((opt) => (
+                    {catalogOptions.map((opt) => (
                       <SelectItem key={opt.value} value={opt.value}>
                         {opt.label}
                       </SelectItem>
@@ -321,10 +327,15 @@ export default function CategoryMarketingManagement() {
                 className="h-9 font-mono text-sm"
                 value={localitySlugForKey}
                 onChange={(e) => setLocalitySlugForKey(e.target.value)}
-                placeholder="mira-bhayandar"
+                placeholder="mira-road"
               />
               <p className="text-[11px] leading-snug text-muted-foreground">
-                Empty = industry-wide record. With slug → key <span className="font-mono">{selectedCategory}__…</span>
+                Empty = industry-wide record. With locality → CMS key{' '}
+                <span className="font-mono">
+                  {selectedCategory}__[locality-slug]
+                </span>{' '}
+                (exactly <span className="font-mono">__</span> between industry slug and locality; not a single
+                underscore).
               </p>
             </div>
             <div className="flex flex-col justify-end md:col-span-3 md:text-right">
@@ -1990,7 +2001,7 @@ export default function CategoryMarketingManagement() {
                         Add link
                       </Button>
                     </div>
-                    {config.relatedLinks.map((link, i) => (
+                    {config.relatedLinks.map((link: RelatedLinkBlock, i: number) => (
                       <div key={i} className="flex flex-row items-center gap-2">
                         <div className="space-y-2">
                       <Label htmlFor="cmm-f-84">Label</Label>
@@ -2008,7 +2019,19 @@ export default function CategoryMarketingManagement() {
                             updateConfig({ relatedLinks: next })
                           }} />
                     </div>
-                        <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0 text-destructive hover:text-destructive" onClick={() => updateConfig({ relatedLinks: config.relatedLinks.filter((_, j) => j !== i) })} ><Trash2 className="h-4 w-4" /></Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-10 w-10 shrink-0 text-destructive hover:text-destructive"
+                          onClick={() =>
+                            updateConfig({
+                              relatedLinks: config.relatedLinks.filter((_x: RelatedLinkBlock, j: number) => j !== i),
+                            })
+                          }
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     ))}
                   </CardContent>
@@ -2019,9 +2042,15 @@ export default function CategoryMarketingManagement() {
             <TabsContent value="localityGuide" className="mt-2 px-0 outline-none">
               <div className="flex flex-col gap-4">
                 <div role="alert" className="rounded-md border border-blue-200 bg-blue-50/80 p-3 text-sm dark:border-blue-900 dark:bg-blue-950/30">
-                  For hyperlocal URLs (e.g. <code>/services/electrician/mira-bhayandar</code>), set Industry to{' '}
-                  <strong>Electrical</strong> and Locality slug to <strong>mira-bhayandar</strong>. The CMS key becomes{' '}
-                  <code>electric__mira-bhayandar</code>. Fill Metadata + FAQs, then enable the article here.
+                  For hyperlocal landings, choose the root service category (slug drives the key). Set Locality slug to
+                  the path segment (example <code>mira-road</code>). The CMS key is{' '}
+                  <code>
+                    {selectedCategory}__mira-road
+                  </code>{' '}
+                  with your real locality instead of <code>mira-road</code>. The separator is{' '}
+                  <strong className="font-mono font-normal">__</strong> (two underscores), e.g.{' '}
+                  <code>electric__mira-road</code>, not a single <code>_</code>. Fill Metadata + FAQs, then enable the
+                  article here.
                 </div>
                 <Card>
                   <CardContent>
@@ -2064,7 +2093,7 @@ export default function CategoryMarketingManagement() {
                       {(config.localityGuide.leadParagraphs.length
                         ? config.localityGuide.leadParagraphs
                         : ['']
-                      ).map((para, i) => (
+                      ).map((para: string, i: number) => (
                         <div key={i} className="flex flex-row items-start gap-2">
                           <div className="space-y-2">
                       <Label htmlFor="cmm-f-88">{`Paragraph ${i + 1}`}</Label>
@@ -2097,7 +2126,7 @@ export default function CategoryMarketingManagement() {
                       <p className="text-sm text-muted-foreground">
                         Depth sections (optional H2 blocks)
                       </p>
-                      {config.localityGuide.sections.map((sec, si) => (
+                      {config.localityGuide.sections.map((sec: LocalityGuideSectionBlock, si: number) => (
                         <Accordion
                           key={si}
                           type="single"
@@ -2119,7 +2148,7 @@ export default function CategoryMarketingManagement() {
                                   updateLocalityGuide({ sections: next })
                                 }} />
                     </div>
-                              {(sec.paragraphs.length ? sec.paragraphs : ['']).map((p, pi) => (
+                              {(sec.paragraphs.length ? sec.paragraphs : ['']).map((p: string, pi: number) => (
                                 <div className="space-y-2">
                       <Label htmlFor="cmm-f-90">{`Paragraph ${pi + 1}`}</Label>
                       <Textarea id="cmm-f-90" className="w-full h-9 text-sm" rows={2} value={p} onChange={(e) => {
@@ -2149,7 +2178,9 @@ export default function CategoryMarketingManagement() {
                                   variant="destructive"
                                   size="sm"
                                   onClick={() => {
-                                    const next = config.localityGuide.sections.filter((_, j) => j !== si)
+                                    const next = config.localityGuide.sections.filter(
+                                      (_s: LocalityGuideSectionBlock, j: number) => j !== si,
+                                    )
                                     updateLocalityGuide({ sections: next.length ? next : [emptyLocalityGuideSection()] })
                                   }}
                                 >
@@ -2175,7 +2206,8 @@ export default function CategoryMarketingManagement() {
                       <p className="text-sm text-muted-foreground">
                         Key takeaways (bullets)
                       </p>
-                      {(config.localityGuide.takeaways.length ? config.localityGuide.takeaways : ['']).map((t, i) => (
+                      {(config.localityGuide.takeaways.length ? config.localityGuide.takeaways : ['']).map(
+                        (t: string, i: number) => (
                         <div className="space-y-2"><Input className="w-full h-9 text-sm" value={t} onChange={(e) => {
                             const base = config.localityGuide.takeaways.length
                               ? [...config.localityGuide.takeaways]

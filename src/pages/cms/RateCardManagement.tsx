@@ -28,7 +28,8 @@ import {
 } from '../../components/ui/dialog'
 import { CMSService } from '../../services/api'
 import { PageHeader } from '../../components/common/PageHeader'
-import { CMS_CATALOG_CATEGORIES } from '../../constants/cmsCatalogCategories'
+import { CMS_DEFAULT_FALLBACK_SLUG } from '../../constants/cmsCatalogCategories'
+import { useCmsCatalogCategories } from '../../hooks/useCmsCatalogCategories'
 import { appToast } from '../../lib/appToast'
 import { useAppConfirm } from '../../components/providers/AppDialogsProvider'
 import { useIndustryServicePagesCatalog } from './IndustryServicePagesContext'
@@ -41,12 +42,15 @@ interface RateCardPart {
 
 export default function RateCardManagement() {
   const industryHub = useIndustryServicePagesCatalog()
+  const { options: catalogOptions, loading: catalogOptionsLoading, defaultSlug, getLabel } =
+    useCmsCatalogCategories()
   const confirm = useAppConfirm()
   const [data, setData] = useState<Record<string, RateCardPart[]>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [standaloneCategory, setStandaloneCategory] = useState<string>('ac')
-  const selectedCategory = industryHub?.catalogKey ?? standaloneCategory
+  const [standaloneCategory, setStandaloneCategory] = useState<string>('')
+  const selectedCategory: string =
+    industryHub?.catalogKey ?? (standaloneCategory || defaultSlug) ?? CMS_DEFAULT_FALLBACK_SLUG
   const setSelectedCategory = (v: string) => {
     if (industryHub) industryHub.setCatalogKey(v)
     else setStandaloneCategory(v)
@@ -125,7 +129,7 @@ export default function RateCardManagement() {
       confirmLabel: 'Remove',
     })
     if (!ok) return
-    const next = parts.filter((_, i) => i !== index)
+    const next = parts.filter((_: RateCardPart, i: number) => i !== index)
     setData((prev) => ({ ...prev, [selectedCategory]: next.length ? next : [] }))
   }
 
@@ -179,12 +183,16 @@ export default function RateCardManagement() {
             <div className="flex flex-wrap items-center gap-3">
               <div className="space-y-2">
                 <Label htmlFor="rate-cat">Category</Label>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <Select
+                  value={selectedCategory}
+                  onValueChange={setSelectedCategory}
+                  disabled={catalogOptionsLoading || catalogOptions.length === 0}
+                >
                   <SelectTrigger id="rate-cat" className="w-[200px] rounded-md">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {CMS_CATALOG_CATEGORIES.map((opt) => (
+                    {catalogOptions.map((opt) => (
                       <SelectItem key={opt.value} value={opt.value}>
                         {opt.label}
                       </SelectItem>
@@ -218,7 +226,7 @@ export default function RateCardManagement() {
         <Card className="rounded-md">
           <CardContent className="p-4">
             <h2 className="mb-4 text-base font-semibold">
-              Parts for “{CMS_CATALOG_CATEGORIES.find((c) => c.value === selectedCategory)?.label ?? selectedCategory}”
+              Parts for “{getLabel(selectedCategory)}”
             </h2>
             <div className="rounded-md border">
               <Table>
@@ -237,7 +245,7 @@ export default function RateCardManagement() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    parts.map((row, index) => (
+                    parts.map((row: RateCardPart, index: number) => (
                       <TableRow key={index}>
                         <TableCell>{row.name}</TableCell>
                         <TableCell>{row.price}</TableCell>

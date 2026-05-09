@@ -15,7 +15,7 @@ import {
 } from '../../components/ui'
 import { PageHeader } from '../../components/common/PageHeader'
 import { Megaphone } from 'lucide-react'
-import { CMS_CATALOG_CATEGORIES } from '../../constants/cmsCatalogCategories'
+import { useCmsCatalogCategories } from '../../hooks/useCmsCatalogCategories'
 import { IndustryServicePagesCatalogContext } from './IndustryServicePagesContext'
 import CategoryMarketingManagement from './CategoryMarketingManagement'
 import RateCardManagement from './RateCardManagement'
@@ -36,13 +36,32 @@ function normalizeHubTab(raw: string | null): HubTab {
 export default function IndustryServicePagesHub() {
   const [searchParams, setSearchParams] = useSearchParams()
   const hubTab = useMemo(() => normalizeHubTab(searchParams.get('tab')), [searchParams])
-  const catalogFromUrl = searchParams.get('catalog')?.trim() || 'ac'
+  const catalogFromUrl = searchParams.get('catalog')?.trim() ?? ''
   const [catalogKey, setCatalogKeyState] = useState(catalogFromUrl)
+  const { options: catalogOptions, loading: catalogOptionsLoading, defaultSlug } = useCmsCatalogCategories()
+
+  const effectiveCatalogKey = useMemo(() => {
+    if (catalogOptions.length === 0) return catalogKey
+    if (catalogKey && catalogOptions.some((o) => o.value === catalogKey)) return catalogKey
+    return defaultSlug ?? catalogOptions[0]?.value ?? ''
+  }, [catalogOptions, catalogKey, defaultSlug])
 
   useEffect(() => {
     const c = searchParams.get('catalog')?.trim()
     if (c) setCatalogKeyState(c)
   }, [searchParams])
+
+  useEffect(() => {
+    if (catalogOptionsLoading || catalogOptions.length === 0) return
+    const slugs = new Set(catalogOptions.map((o) => o.value))
+    if (catalogKey && slugs.has(catalogKey)) return
+    const next = defaultSlug ?? catalogOptions[0]?.value ?? ''
+    if (!next) return
+    setCatalogKeyState(next)
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.set('catalog', next)
+    setSearchParams(nextParams, { replace: true })
+  }, [catalogOptionsLoading, catalogOptions, catalogKey, defaultSlug, searchParams, setSearchParams])
 
   const setCatalogKey = useCallback(
     (key: string) => {
@@ -66,10 +85,10 @@ export default function IndustryServicePagesHub() {
 
   const ctx = useMemo(
     () => ({
-      catalogKey,
+      catalogKey: effectiveCatalogKey,
       setCatalogKey,
     }),
-    [catalogKey, setCatalogKey],
+    [effectiveCatalogKey, setCatalogKey],
   )
 
   return (
@@ -86,12 +105,16 @@ export default function IndustryServicePagesHub() {
             <div className="flex min-w-0 flex-col flex-wrap gap-4 md:flex-row md:items-center">
               <div className="flex min-w-[240px] flex-col gap-2">
                 <Label htmlFor="industry-hub-catalog">Catalog industry</Label>
-                <Select value={catalogKey} onValueChange={setCatalogKey}>
+                <Select
+                  value={effectiveCatalogKey}
+                  onValueChange={setCatalogKey}
+                  disabled={catalogOptionsLoading || catalogOptions.length === 0}
+                >
                   <SelectTrigger id="industry-hub-catalog" className="w-full min-w-[240px]">
                     <SelectValue placeholder="Industry" />
                   </SelectTrigger>
                   <SelectContent>
-                    {CMS_CATALOG_CATEGORIES.map((opt) => (
+                    {catalogOptions.map((opt) => (
                       <SelectItem key={opt.value} value={opt.value}>
                         {opt.label}
                       </SelectItem>

@@ -16,6 +16,78 @@ export interface CloudinaryImageItem {
   height?: number
 }
 
+type RawListing = Record<string, unknown>
+
+function readString(raw: RawListing, ...keys: string[]): string {
+  for (const key of keys) {
+    const v = raw[key]
+    if (typeof v === 'string' && v.trim()) return v.trim()
+  }
+  return ''
+}
+
+function readNumber(raw: RawListing, ...keys: string[]): number | undefined {
+  for (const key of keys) {
+    const v = raw[key]
+    if (typeof v === 'number' && Number.isFinite(v)) return v
+  }
+  return undefined
+}
+
+/** Best-effort when API returns URL only (stable keys + delete by public_id) */
+function inferPublicIdFromCloudinaryUrl(url: string): string {
+  try {
+    const u = new URL(url)
+    const segments = u.pathname.split('/').filter(Boolean)
+    const uploadIdx = segments.indexOf('upload')
+    if (uploadIdx === -1) return ''
+    const after = segments.slice(uploadIdx + 1)
+    if (after[0]?.startsWith('v') && /^v\d+$/i.test(after[0])) after.shift()
+    if (after.length === 0) return ''
+    const joined = decodeURIComponent(after.join('/'))
+    return joined.replace(/\.[^.]+$/, '')
+  } catch {
+    return ''
+  }
+}
+
+/** Normalize one row from `/upload/images` or Cloudinary admin-style payloads */
+function normalizeCloudinaryImageItem(raw: unknown): CloudinaryImageItem | null {
+  if (!raw || typeof raw !== 'object') return null
+  const o = raw as RawListing
+  const url = readString(o, 'url', 'secure_url', 'secureUrl')
+  let publicId = readString(o, 'publicId', 'public_id')
+  if (!publicId && url) publicId = inferPublicIdFromCloudinaryUrl(url)
+  if (!url && !publicId) return null
+  return {
+    url,
+    publicId,
+    width: readNumber(o, 'width'),
+    height: readNumber(o, 'height'),
+  }
+}
+
+function collectImageArrays(body: unknown): unknown[] | null {
+  if (Array.isArray(body)) return body
+  if (!body || typeof body !== 'object') return null
+  const o = body as RawListing & { data?: unknown }
+  const data = o.data
+  const nestedArrays = [
+    o.images,
+    o.resources,
+    o.result,
+    o.items,
+    (data && typeof data === 'object' && !Array.isArray(data) ? (data as RawListing).images : undefined),
+    (data && typeof data === 'object' && !Array.isArray(data) ? (data as RawListing).resources : undefined),
+    (data && typeof data === 'object' && !Array.isArray(data) ? (data as RawListing).result : undefined),
+  ]
+  for (const a of nestedArrays) {
+    if (Array.isArray(a)) return a
+  }
+  if (Array.isArray(data)) return data
+  return null
+}
+
 interface ApiResponse {
   success: boolean
   message?: string
@@ -53,14 +125,15 @@ export class UploadService {
   static async listImages(folder: string = 'homeservice', limit: number = 50): Promise<CloudinaryImageItem[]> {
     try {
       const params = new URLSearchParams({ folder, limit: String(limit) })
-      const response = await apiClient.get<{ success?: boolean; data?: { images?: CloudinaryImageItem[] }; images?: CloudinaryImageItem[] }>(
+      const response = await apiClient.get<unknown>(
         `/upload/images?${params.toString()}`,
         { showLoading: false, showSuccessToast: false, showErrorToast: false }
       )
-      if (response?.data?.images) return response.data.images
-      if (Array.isArray((response as any).images)) return (response as any).images
-      if (Array.isArray(response?.data)) return response.data as CloudinaryImageItem[]
-      return []
+      const rawList = collectImageArrays(response)
+      if (!rawList) return []
+      return rawList
+        .map((row) => normalizeCloudinaryImageItem(row))
+        .filter((x): x is CloudinaryImageItem => Boolean(x?.url?.trim()))
     } catch (error: any) {
       console.error('List images error:', error)
       throw new Error(error?.response?.data?.message || error?.message || 'Failed to list images')

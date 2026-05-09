@@ -216,19 +216,45 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
     }
   }, [folder])
 
-  const addFromCloudinary = (item: { url: string; publicId: string }) => {
-    if (value.length >= maxFiles) return
-    const newImage: ImageFile = {
-      id: Math.random().toString(36).slice(2, 11),
-      url: item.url,
-      alt: item.publicId.split('/').pop() || 'Image',
-      isPrimary: value.length === 0,
-      order: value.length,
-      publicId: item.publicId,
-      fromLibrary: true,
-    }
-    onChange([...value, newImage])
-  }
+  /** Single-file fields (e.g. category marketing hero): allow replace; multi-file at capacity must remove one first */
+  const cloudinaryPickDisabled =
+    disabled ||
+    deletingPublicId !== null ||
+    (value.length >= maxFiles && maxFiles !== 1)
+
+  const addFromCloudinary = useCallback(
+    (item: { url: string; publicId: string }) => {
+      if (cloudinaryPickDisabled) return
+      const url = String(item.url ?? '').trim()
+      if (!url) return
+
+      const pid = String(item.publicId ?? '').trim()
+      const newImage: ImageFile = {
+        id: Math.random().toString(36).slice(2, 11),
+        url,
+        alt: (pid || url).split('/').pop() || 'Image',
+        isPrimary: true,
+        order: 0,
+        publicId: pid || undefined,
+        fromLibrary: true,
+      }
+
+      if (value.length >= maxFiles && maxFiles === 1) {
+        onChange([newImage])
+      } else {
+        onChange([
+          ...value,
+          {
+            ...newImage,
+            isPrimary: value.length === 0,
+            order: value.length,
+          },
+        ])
+      }
+      setCloudinaryOpen(false)
+    },
+    [cloudinaryPickDisabled, value, maxFiles, onChange],
+  )
 
   const deleteFromCloudinary = async (publicId: string) => {
     setDeletingPublicId(publicId)
@@ -303,16 +329,18 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
         )}
       </div>
 
-      {allowFromCloudinary && value.length < maxFiles && (
+      {allowFromCloudinary && (
         <Button
           type="button"
           variant="outline"
           className="mt-3 w-full sm:w-auto"
-          onClick={openCloudinary}
+          onClick={() => void openCloudinary()}
           disabled={disabled}
           leftIcon={<ImageIcon className="h-4 w-4" />}
         >
-          Choose from Cloudinary
+          {value.length >= maxFiles && maxFiles === 1
+            ? 'Replace from Cloudinary'
+            : 'Choose from Cloudinary'}
         </Button>
       )}
 
@@ -452,42 +480,64 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={cloudinaryOpen} onOpenChange={setCloudinaryOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Choose from Cloudinary</DialogTitle>
-          </DialogHeader>
-          {cloudinaryLoading && (
-            <div className="flex justify-center py-10">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          )}
-          {!cloudinaryLoading && cloudinaryError && (
-            <div
-              className="flex items-center justify-between gap-2 rounded-md border border-destructive/50 p-2 text-sm text-destructive"
-              role="alert"
-            >
-              {cloudinaryError}
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setCloudinaryError(null)}
-              >
-                Dismiss
-              </Button>
-            </div>
-          )}
-          {!cloudinaryLoading && !cloudinaryError && cloudinaryImages.length === 0 && (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              No images found in this folder. Upload some first.
+      <Dialog
+        open={cloudinaryOpen}
+        onOpenChange={(open) => {
+          setCloudinaryOpen(open)
+          if (!open) setCloudinaryError(null)
+        }}
+      >
+        <DialogContent className="flex max-h-[min(90vh,720px)] w-[calc(100vw-1.5rem)] max-w-3xl flex-col gap-0 overflow-hidden p-0 sm:w-full">
+          <div className="shrink-0 space-y-1.5 border-b px-6 pb-4 pt-6 pr-14 text-left">
+            <DialogHeader className="space-y-1.5 p-0 text-left">
+              <DialogTitle>Choose from Cloudinary</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              Scroll the list to browse. Click a thumbnail or use Add / Replace.
             </p>
-          )}
-          {!cloudinaryLoading && !cloudinaryError && cloudinaryImages.length > 0 && (
-            <div className="grid max-h-[50vh] grid-cols-2 gap-2 overflow-y-auto p-1 sm:grid-cols-3">
-              {cloudinaryImages.map((im) => (
-                <Card key={im.publicId} className="overflow-hidden p-0">
-                  <div className="relative h-[120px]">
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6">
+            {cloudinaryLoading && (
+              <div className="flex justify-center py-16">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            )}
+            {!cloudinaryLoading && cloudinaryError && (
+              <div
+                className="flex items-center justify-between gap-2 rounded-md border border-destructive/50 p-2 text-sm text-destructive"
+                role="alert"
+              >
+                {cloudinaryError}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setCloudinaryError(null)}
+                >
+                  Dismiss
+                </Button>
+              </div>
+            )}
+            {!cloudinaryLoading && !cloudinaryError && cloudinaryImages.length === 0 && (
+              <p className="py-12 text-center text-sm text-muted-foreground">
+                No images found in this folder. Upload some first.
+              </p>
+            )}
+            {!cloudinaryLoading && !cloudinaryError && cloudinaryImages.length > 0 && (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+              {cloudinaryImages.map((im) => {
+                const rowKey = im.publicId?.trim() || im.url
+                return (
+                <Card key={rowKey} className="min-w-0 overflow-hidden p-0">
+                  {/* Fixed height; clickable thumb = same as Add (single-slot CMS fields used to hide Cloudinary when full) */}
+                  <button
+                    type="button"
+                    className="relative h-40 w-full shrink-0 overflow-hidden bg-muted text-left outline-none ring-offset-background transition hover:opacity-95 focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 sm:h-44"
+                    onClick={() => addFromCloudinary(im)}
+                    disabled={cloudinaryPickDisabled}
+                    aria-label="Use this image"
+                  >
                     {deletingPublicId === im.publicId && (
                       <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50">
                         <Loader2 className="h-8 w-8 animate-spin text-white" />
@@ -495,26 +545,30 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
                     )}
                     <img
                       src={im.url}
-                      alt={im.publicId}
-                      className="h-full w-full object-cover"
+                      alt=""
+                      className="pointer-events-none h-full w-full object-contain object-center"
+                      loading="lazy"
                     />
-                  </div>
-                  <CardContent className="flex items-center gap-0.5 p-2">
+                  </button>
+                  <CardContent className="flex items-center gap-1.5 p-3 pt-2">
                     <Button
                       type="button"
                       size="sm"
-                      className="flex-1"
+                      className="min-w-0 flex-1"
                       onClick={() => addFromCloudinary(im)}
-                      disabled={value.length >= maxFiles || deletingPublicId !== null}
+                      disabled={cloudinaryPickDisabled}
                     >
-                      Add
+                      {maxFiles === 1 && value.length >= 1 ? 'Replace' : 'Add'}
                     </Button>
                     <Button
                       type="button"
                       size="icon"
                       variant="destructive"
                       className="h-8 w-8"
-                      onClick={() => void deleteFromCloudinary(im.publicId)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        void deleteFromCloudinary(im.publicId)
+                      }}
                       disabled={deletingPublicId !== null}
                       title="Delete from Cloudinary"
                     >
@@ -522,10 +576,13 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
                     </Button>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
-          )}
-          <DialogFooter>
+                )
+              })}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="shrink-0 border-t bg-background px-6 py-4 sm:justify-end">
             <Button type="button" variant="outline" onClick={() => setCloudinaryOpen(false)}>
               Close
             </Button>
