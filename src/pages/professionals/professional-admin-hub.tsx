@@ -65,6 +65,7 @@ import { professionalKycTypeLabel } from '../../constants/professionalKycDocumen
 import { formatCurrency, formatDate } from '../../lib/utils'
 import { normalizeLedgerPaymentsList } from '../../lib/paymentLedgerNormalize'
 import { getProfessionalCategoryLabel } from '../../constants/professionalCategories'
+import { ProfessionalConductPanel } from '../../components/professionals/ProfessionalConductPanel'
 import {
   formatSlotList,
   normalizeWeeklyAvailability,
@@ -108,7 +109,16 @@ function HubAlert({
   )
 }
 
-type TabKey = 'overview' | 'bookings' | 'activity' | 'earnings' | 'reviews' | 'documents' | 'coverage' | 'moderation'
+type TabKey =
+  | 'overview'
+  | 'bookings'
+  | 'activity'
+  | 'earnings'
+  | 'reviews'
+  | 'documents'
+  | 'coverage'
+  | 'conduct'
+  | 'moderation'
 
 function daysUntilExpiry(iso?: string): number | null {
   if (!iso?.trim()) return null
@@ -166,6 +176,7 @@ export function ProfessionalAdminHub() {
   const navigate = useNavigate()
   const { checkPermission } = usePermissions()
   const canModerate = checkPermission('edit_providers')
+  const canViewConduct = checkPermission('view_professional_conduct')
 
   const [tab, setTab] = useState<TabKey>('overview')
   const [loadingPro, setLoadingPro] = useState(true)
@@ -811,6 +822,11 @@ export function ProfessionalAdminHub() {
             <TabsTrigger value="coverage" className="shrink-0">
               Coverage
             </TabsTrigger>
+            {canViewConduct ? (
+              <TabsTrigger value="conduct" className="shrink-0">
+                Conduct
+              </TabsTrigger>
+            ) : null}
             <TabsTrigger value="moderation" className="shrink-0">
               Moderation
             </TabsTrigger>
@@ -883,6 +899,11 @@ export function ProfessionalAdminHub() {
                 <Button size="sm" variant="outline" onClick={() => setTab('documents')}>
                   Documents
                 </Button>
+                {canViewConduct ? (
+                  <Button size="sm" variant="outline" onClick={() => setTab('conduct')}>
+                    Conduct
+                  </Button>
+                ) : null}
                 <Button size="sm" variant="outline" onClick={() => setTab('moderation')}>
                   Moderation
                 </Button>
@@ -1443,6 +1464,10 @@ export function ProfessionalAdminHub() {
           </Card>
         </div>
       )}
+
+      {tab === 'conduct' && id && canViewConduct ? (
+        <ProfessionalConductPanel professionalIdFixed={id} />
+      ) : null}
 
       {tab === 'moderation' && (
         <div>

@@ -106,7 +106,7 @@ export function CompanyDocumentsEnvelopesPage() {
 
   const loadTemplates = useCallback(async () => {
     try {
-      const res = await CompanyDocumentsService.listTemplates({ page: 1, limit: 200 })
+      const res = await CompanyDocumentsService.listTemplates({ page: 1, limit: 20 })
       const list = res.data?.templates ?? []
       setTplOptions(list.filter((t) => !t.isArchived))
     } catch {

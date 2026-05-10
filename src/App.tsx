@@ -201,6 +201,32 @@ const DisputeCasesPage = lazy(() =>
 const HomeServicePOSPage = lazy(() =>
   import('./pages/operations/HomeServicePOSPage').then((m) => ({ default: m.HomeServicePOSPage })),
 )
+const OperationsCommercialLayout = lazy(() =>
+  import('./pages/operations/operations-commercial-layout').then((m) => ({ default: m.OperationsCommercialLayout })),
+)
+const OperationsCommercialIndexRedirect = lazy(() =>
+  import('./pages/operations/operations-commercial-layout').then((m) => ({
+    default: m.OperationsCommercialIndexRedirect,
+  })),
+)
+const OperationsCommercialTermsPage = lazy(() =>
+  import('./pages/operations/operations-commercial-terms').then((m) => ({ default: m.OperationsCommercialTermsPage })),
+)
+const OperationsCommercialCitiesPage = lazy(() =>
+  import('./pages/operations/operations-commercial-cities').then((m) => ({
+    default: m.OperationsCommercialCitiesPage,
+  })),
+)
+const OperationsProviderAssetsPage = lazy(() =>
+  import('./pages/operations/operations-provider-assets').then((m) => ({
+    default: m.OperationsProviderAssetsPage,
+  })),
+)
+const OperationsProfessionalConductPage = lazy(() =>
+  import('./pages/operations/operations-professional-conduct').then((m) => ({
+    default: m.OperationsProfessionalConductPage,
+  })),
+)
 
 const Payments = lazy(() => import('./pages/payments/payments').then((m) => ({ default: m.Payments })))
 const Invoices = lazy(() => import('./pages/payments/invoices').then((m) => ({ default: m.Invoices })))
@@ -702,6 +728,34 @@ function App() {
                         element={
                           <RoleBasedRoute permissions={['create_bookings', 'manage_bookings']}>
                             <HomeServicePOSPage />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/operations/commercial"
+                        element={
+                          <RoleBasedRoute permissions={['view_operating_terms']}>
+                            <OperationsCommercialLayout />
+                          </RoleBasedRoute>
+                        }
+                      >
+                        <Route index element={<OperationsCommercialIndexRedirect />} />
+                        <Route path="terms" element={<OperationsCommercialTermsPage />} />
+                        <Route path="cities" element={<OperationsCommercialCitiesPage />} />
+                      </Route>
+                      <Route
+                        path="/operations/provider-assets"
+                        element={
+                          <RoleBasedRoute permissions={['view_provider_assets']}>
+                            <OperationsProviderAssetsPage />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/operations/professional-conduct"
+                        element={
+                          <RoleBasedRoute permissions={['view_professional_conduct']}>
+                            <OperationsProfessionalConductPage />
                           </RoleBasedRoute>
                         }
                       />

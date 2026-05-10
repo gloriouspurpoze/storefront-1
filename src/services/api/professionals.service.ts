@@ -8,7 +8,7 @@
  * @date November 7, 2025
  */
 
-import { api } from './base'
+import { api, type RequestConfig } from './base'
 import {
   Professional,
   CreateProfessionalData,
@@ -26,7 +26,10 @@ export class ProfessionalsService {
   /**
    * Get all professionals with filters
    */
-  static async getProfessionals(query: ProfessionalsQuery = {}) {
+  static async getProfessionals(
+    query: ProfessionalsQuery = {},
+    requestConfig?: Omit<RequestConfig, 'method' | 'body'>,
+  ) {
     const params = new URLSearchParams()
     
     Object.entries(query).forEach(([key, value]) => {
@@ -40,6 +43,7 @@ export class ProfessionalsService {
     return api.get<ProfessionalsResponse>(endpoint, {
       loadingMessage: 'Loading professionals...',
       showSuccessToast: false,
+      ...requestConfig,
     })
   }
 

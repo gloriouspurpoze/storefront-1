@@ -1040,6 +1040,9 @@ export interface MenusQuery {
 export * from './finance.types'
 export * from './amc.types'
 export * from './company-documents.types'
+export * from './operating-commercial.types'
+export * from './provider-assets.types'
+export * from './professional-conduct.types'
 
 // Static Data types
 export interface StaticData {

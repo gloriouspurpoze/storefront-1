@@ -76,6 +76,9 @@ import {
   ShieldCheck as AmcShieldIcon,
   ListOrdered as RateCardsHubIcon,
   FileSignature as CompanyDocumentsIcon,
+  CircleDollarSign as OperatingCommercialIcon,
+  Boxes as ProviderAssetsIcon,
+  Gavel as ProfessionalConductIcon,
 } from 'lucide-react'
 import { useAppSelector, useAppDispatch } from '../../store/hooks'
 import { setChatUnreadMessages } from '../../store/slices/chatInboxSlice'
@@ -275,6 +278,27 @@ const navigationGroups = [
         href: '/rate-cards/overview',
         icon: RateCardsHubIcon,
         permissions: ['view_rate_cards'],
+        badge: null,
+      },
+      {
+        name: 'Fees & cities',
+        href: '/operations/commercial/terms',
+        icon: OperatingCommercialIcon,
+        permissions: ['view_operating_terms'],
+        badge: null,
+      },
+      {
+        name: 'Professional assets',
+        href: '/operations/provider-assets',
+        icon: ProviderAssetsIcon,
+        permissions: ['view_provider_assets'],
+        badge: null,
+      },
+      {
+        name: 'Conduct & incentives',
+        href: '/operations/professional-conduct',
+        icon: ProfessionalConductIcon,
+        permissions: ['view_professional_conduct'],
         badge: null,
       },
       {

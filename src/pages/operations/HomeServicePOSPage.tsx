@@ -53,6 +53,8 @@ import {
 } from '../../lib/googleMapsLinks'
 import { cn } from '../../lib/utils'
 import type { ApiError } from '../../services/api/base'
+import { OperationsCommercialService } from '../../services/api/operations-commercial.service'
+import type { TenantCommercialTermsDto } from '../../types/operating-commercial.types'
 
 type CartLine =
   | {
@@ -115,6 +117,24 @@ function computePosTotals(
       : 0
   const grandTotal = Math.round((afterCoupon + gstAmount) * 100) / 100
   return { afterManual, afterCoupon, gstAmount, grandTotal }
+}
+
+/** Mirrors backend `computePlatformConvenienceFeesFromTerms` — fee base is merchandise after discounts (before service GST). */
+function computePlatformConvenienceFeesFromTermsLocal(
+  baseAfterDiscounts: number,
+  terms: TenantCommercialTermsDto | null,
+): { convenienceFee: number; convenienceFeeGst: number } {
+  if (!terms) return { convenienceFee: 0, convenienceFeeGst: 0 }
+  const base = Math.max(0, Number(baseAfterDiscounts) || 0)
+  const pct = Number(terms.convenienceFeePercent) || 0
+  const fixed = Number(terms.convenienceFeeFixed) || 0
+  const minFee = Number(terms.minimumPlatformFeePerBooking) || 0
+  const gstPct = Number(terms.gstPercentOnFees) || 0
+  let fee = base * (pct / 100) + fixed
+  fee = Math.round(fee * 100) / 100
+  if (fee < minFee) fee = Math.round(minFee * 100) / 100
+  const feeGst = gstPct > 0 ? Math.round(fee * (gstPct / 100) * 100) / 100 : 0
+  return { convenienceFee: fee, convenienceFeeGst: feeGst }
 }
 
 function generatePosCustomerPassword(): string {
@@ -201,11 +221,24 @@ export function HomeServicePOSPage() {
   const [ncPassword, setNcPassword] = useState('')
   const [creatingCustomer, setCreatingCustomer] = useState(false)
 
+  const [commercialTerms, setCommercialTerms] = useState<TenantCommercialTermsDto | null>(null)
+
   useEffect(() => {
     if (newCustomerOpen) {
       setNcPassword(generatePosCustomerPassword())
     }
   }, [newCustomerOpen])
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const res = await OperationsCommercialService.getTerms()
+        if (res.success && res.data) setCommercialTerms(res.data)
+      } catch {
+        setCommercialTerms(null)
+      }
+    })()
+  }, [])
 
   const loadCatalog = useCallback(async () => {
     setCatalogLoading(true)
@@ -352,9 +385,21 @@ export function HomeServicePOSPage() {
     return Math.round(afterCoupon * (gstPercent / 100) * 100) / 100
   }, [applyGst, gstPercent, afterCoupon])
 
+  const platformFeeBreakdown = useMemo(
+    () => computePlatformConvenienceFeesFromTermsLocal(afterCoupon, commercialTerms),
+    [afterCoupon, commercialTerms],
+  )
+
   const grandTotal = useMemo(
-    () => Math.round((afterCoupon + gstAmount) * 100) / 100,
-    [afterCoupon, gstAmount],
+    () =>
+      Math.round(
+        (afterCoupon +
+          gstAmount +
+          platformFeeBreakdown.convenienceFee +
+          platformFeeBreakdown.convenienceFeeGst) *
+          100,
+      ) / 100,
+    [afterCoupon, gstAmount, platformFeeBreakdown],
   )
 
   const splitSum = useMemo(
@@ -638,14 +683,19 @@ export function HomeServicePOSPage() {
         gstPercent,
         applyGst,
       )
+      const feeRows = computePlatformConvenienceFeesFromTermsLocal(totals.afterCoupon, commercialTerms)
+      const grandWithFees =
+        Math.round(
+          (totals.afterCoupon + totals.gstAmount + feeRows.convenienceFee + feeRows.convenienceFeeGst) * 100,
+        ) / 100
 
       if (useSplitTender) {
         const sum = tenderCash + tenderCard + tenderUpi
-        if (!(sum > 0 && Math.abs(sum - totals.grandTotal) <= 0.05)) {
+        if (!(sum > 0 && Math.abs(sum - grandWithFees) <= 0.05)) {
           toast({
             variant: 'destructive',
             title: 'Split tender mismatch',
-            description: `Allocated cash, card, and UPI must total ${formatMoney(totals.grandTotal)} (±₹0.05).`,
+            description: `Allocated cash, card, and UPI must total ${formatMoney(grandWithFees)} (±₹0.05).`,
           })
           return
         }
@@ -705,7 +755,7 @@ export function HomeServicePOSPage() {
           country: addrCountry || 'India',
           phone: addrPhone || selectedCustomer.phone || '',
         },
-        totalAmount: totals.grandTotal,
+        totalAmount: grandWithFees,
         paymentMethod: useSplitTender ? 'split' : paymentMethod,
         checkoutIdempotencyKey: idempotencyKey(),
       }
@@ -1225,6 +1275,23 @@ export function HomeServicePOSPage() {
                   </span>
                   <span>{applyGst ? formatMoney(gstAmount) : formatMoney(0)}</span>
                 </div>
+                {platformFeeBreakdown.convenienceFee > 0 ||
+                platformFeeBreakdown.convenienceFeeGst > 0 ? (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Platform convenience fee</span>
+                      <span>{formatMoney(platformFeeBreakdown.convenienceFee)}</span>
+                    </div>
+                    {platformFeeBreakdown.convenienceFeeGst > 0 ? (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">
+                          GST on platform fee ({commercialTerms?.gstPercentOnFees ?? 0}%)
+                        </span>
+                        <span>{formatMoney(platformFeeBreakdown.convenienceFeeGst)}</span>
+                      </div>
+                    ) : null}
+                  </>
+                ) : null}
                 <Separator />
                 <div className="flex justify-between text-base font-semibold">
                   <span>Due</span>

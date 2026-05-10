@@ -825,7 +825,7 @@ export function CreateService() {
         setLoadingCategories(true)
         const raw = await CategoriesService.getCategoriesForServiceUIs({
           page: 1,
-          limit: 200,
+          limit: 20,
           is_active: true,
         })
         const list = normalizeList({ categories: raw })

@@ -62,8 +62,8 @@ export function CategoriesList() {
       setError(null)
       const list =
         scope === 'services'
-          ? await CategoriesService.getCategoriesForServiceUIs({ page: 1, limit: 2000 })
-          : await CategoriesService.getCategoriesForProductUIs({ page: 1, limit: 2000 })
+          ? await CategoriesService.getCategoriesForServiceUIs({ page: 1, limit: 200 })
+          : await CategoriesService.getCategoriesForProductUIs({ page: 1, limit: 200 })
       setAllRows(list)
     } catch (err) {
       console.error('Error loading categories:', err)

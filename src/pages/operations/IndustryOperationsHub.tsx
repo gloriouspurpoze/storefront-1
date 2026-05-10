@@ -11,6 +11,9 @@ import {
   Loader2,
   RefreshCw,
   ScanLine,
+  Percent,
+  Boxes,
+  Gavel,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
@@ -63,10 +66,31 @@ const cards: {
     href: '/operations/payouts-playbook',
     icon: Wallet,
   },
+  {
+    title: 'Fees & cities',
+    description:
+      'Convenience fee, training/onboarding charges, provider commission, GST on fees — manage operating cities & price multipliers.',
+    href: '/operations/commercial/terms',
+    icon: Percent,
+  },
+  {
+    title: 'Professional assets',
+    description:
+      'Per-technician tools, vans, spares, PPE — admin registration plus approve/reject requests from the pro app; optional catalog links.',
+    href: '/operations/provider-assets',
+    icon: Boxes,
+  },
+  {
+    title: 'Conduct & incentives',
+    description:
+      'Formal workforce actions: warnings, penalties, fines, rewards — status workflow and immutable audit trail for HR / ops.',
+    href: '/operations/professional-conduct',
+    icon: Gavel,
+  },
 ]
 
 export function IndustryOperationsHub() {
-  const { checkAnyPermission } = usePermissions()
+  const { checkAnyPermission, checkPermission } = usePermissions()
   const canPos = checkAnyPermission(['create_bookings', 'manage_bookings'])
   const canBookings = checkAnyPermission(['view_bookings', 'manage_bookings'])
   const canPros = checkAnyPermission(['view_providers', 'edit_providers', 'approve_providers'])
@@ -271,6 +295,9 @@ export function IndustryOperationsHub() {
             allowed = checkAnyPermission(['view_payments', 'create_payments', 'refund_payments'])
           }
           if (c.href.includes('dispute-cases')) allowed = canDisputes
+          if (c.href.includes('/operations/commercial')) allowed = checkPermission('view_operating_terms')
+          if (c.href.includes('/operations/provider-assets')) allowed = checkPermission('view_provider_assets')
+          if (c.href.includes('/operations/professional-conduct')) allowed = checkPermission('view_professional_conduct')
 
           return (
             <Card key={c.href} className={!allowed ? 'opacity-60' : ''}>

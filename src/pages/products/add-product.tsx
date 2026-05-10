@@ -529,7 +529,7 @@ export function AddProduct() {
       
       const list = await CategoriesService.getCategoriesForProductUIs({
         page: 1,
-        limit: 200,
+        limit: 20,
       })
       if (list.length > 0) {
         setCategories(list)

@@ -61,6 +61,32 @@ export const DASHBOARD_ACCESS_MODULES: DashboardAccessModule[] = [
     ],
   },
   {
+    id: 'operating_terms',
+    label: 'Commercial terms & cities',
+    description:
+      'POS economics — convenience fee, training/onboarding fee, provider commission, GST on fees; cities/zones with price multipliers',
+    viewPermissions: ['view_operating_terms'],
+    extras: [{ key: 'operating_manage', label: 'Edit fees & cities', permissions: ['manage_operating_terms'] }],
+  },
+  {
+    id: 'provider_assets',
+    label: 'Professional assets',
+    description:
+      'Per-technician tools, vans, spares, PPE — admin registry plus technician requests (approve/reject); optional catalog links',
+    viewPermissions: ['view_provider_assets'],
+    extras: [{ key: 'provider_assets_manage', label: 'Register & edit assets', permissions: ['manage_provider_assets'] }],
+  },
+  {
+    id: 'professional_conduct',
+    label: 'Conduct & incentives',
+    description:
+      'Workforce ledger: formal warnings, penalties, fines, and rewards with status workflow (HR / ops audit trail)',
+    viewPermissions: ['view_professional_conduct'],
+    extras: [
+      { key: 'professional_conduct_manage', label: 'Log & update records', permissions: ['manage_professional_conduct'] },
+    ],
+  },
+  {
     id: 'payments',
     label: 'Payments & payouts',
     description: 'Payments, invoices, payouts',

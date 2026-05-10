@@ -246,7 +246,7 @@ export default function SupportTicketsQueuePage() {
 
   useEffect(() => {
     if (!canAgent) return
-    void usersService.getUsers({ scope: 'members', limit: 200, page: 1 }).then((res) => {
+    void usersService.getUsers({ scope: 'members', limit: 20, page: 1 }).then((res) => {
       setAssignMembers(res.users.map((u) => ({ id: u.id, firstName: u.firstName, lastName: u.lastName, email: u.email })))
     })
   }, [canAgent])

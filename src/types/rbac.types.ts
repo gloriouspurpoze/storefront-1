@@ -138,6 +138,18 @@ export type Permission =
   | 'view_company_documents'
   | 'manage_company_documents'
 
+  /** Fees, commissions, operating cities — home-service POS economics */
+  | 'view_operating_terms'
+  | 'manage_operating_terms'
+
+  /** Provider fleet / toolkit — tools, vans, spare stock, PPE; links to catalog product & platform service */
+  | 'view_provider_assets'
+  | 'manage_provider_assets'
+
+  /** Workforce conduct ledger — penalties, warnings, fines, rewards (HR / ops audit trail) */
+  | 'view_professional_conduct'
+  | 'manage_professional_conduct'
+
 export interface RolePermissions {
   role: UserRole
   permissions: Permission[]

@@ -124,6 +124,15 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       'view_company_documents',
       'manage_company_documents',
 
+      'view_operating_terms',
+      'manage_operating_terms',
+
+      'view_provider_assets',
+      'manage_provider_assets',
+
+      'view_professional_conduct',
+      'manage_professional_conduct',
+
       // Boards (collaborative canvas)
       'view_boards',
       'manage_boards',
@@ -238,6 +247,15 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       'view_company_documents',
       'manage_company_documents',
 
+      'view_operating_terms',
+      'manage_operating_terms',
+
+      'view_provider_assets',
+      'manage_provider_assets',
+
+      'view_professional_conduct',
+      'manage_professional_conduct',
+
       // Boards (collaborative canvas)
       'view_boards',
       'manage_boards',
@@ -311,6 +329,15 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       'view_company_documents',
       'manage_company_documents',
 
+      'view_operating_terms',
+      'manage_operating_terms',
+
+      'view_provider_assets',
+      'manage_provider_assets',
+
+      'view_professional_conduct',
+      'manage_professional_conduct',
+
       'view_coupons',
       'edit_coupons',
       'manage_coupons',
@@ -370,6 +397,12 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       'view_rate_cards',
 
       'view_company_documents',
+
+      'view_operating_terms',
+
+      'view_provider_assets',
+
+      'view_professional_conduct',
 
       'view_coupons',
       'edit_coupons',
@@ -499,6 +532,21 @@ export const routePermissions: RoutePermission[] = [
     path: '/operations/pos',
     requiredPermissions: ['create_bookings', 'manage_bookings'],
     requireAll: false,
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+  {
+    path: '/operations/commercial',
+    requiredPermissions: ['view_operating_terms'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+  {
+    path: '/operations/provider-assets',
+    requiredPermissions: ['view_provider_assets'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+  {
+    path: '/operations/professional-conduct',
+    requiredPermissions: ['view_professional_conduct'],
     allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
   },
   {
