@@ -63,6 +63,7 @@ import {
   Camera,
   StickyNote,
   Loader2,
+  Copy,
 } from 'lucide-react'
 import { AssignProfessionalDialog } from '../../components/bookings/AssignProfessionalDialog'
 import { BookingsService } from '../../services/api/bookings.service'
@@ -71,6 +72,7 @@ import { PaymentsService } from '../../services/api/payments.service'
 import { apiClient } from '../../services/apiClient'
 import { useAppSelector, useAppDispatch } from '../../store/hooks'
 import { addToast } from '../../store/slices/uiSlice'
+import { resolveBookingIdLabel } from '../../lib/bookingDisplay'
 import { isLikelyImageUrl, parseBookingNotesContent } from '../../lib/parseBookingNotesContent'
 import { appToast } from '../../lib/appToast'
 import { cn } from '../../lib/utils'
@@ -915,11 +917,9 @@ export function BookingDetails() {
     setError(null)
     try {
       const response = await BookingsService.getBookingDetails(id)
-      console.log('📦 Raw API Response:', response)
-      
+
       if (response.success && response.data) {
         const apiBooking = response.data.booking || response.data
-        console.log('📦 API Booking Data:', apiBooking)
         
         // Line items: prefer services, fallback to items
         const lineItems: BookingServiceItem[] = (apiBooking.services || apiBooking.items || []).map((s: any) => ({
@@ -941,7 +941,7 @@ export function BookingDetails() {
         
         const transformed: BookingDetails = {
           _id: apiBooking._id || apiBooking.id,
-          bookingId: apiBooking.bookingNumber || apiBooking.bookingId || `BKG-${String(apiBooking._id || apiBooking.id).slice(-8).toUpperCase()}`,
+          bookingId: resolveBookingIdLabel(apiBooking),
           
           customer: {
             _id: apiBooking.customer?.id || apiBooking.customer?._id || apiBooking.customerId || apiBooking.customer_id || 'unknown',
@@ -1523,6 +1523,53 @@ export function BookingDetails() {
                 >
                   {booking.service.name}
                 </Typography>
+                <Box
+                  sx={{
+                    mt: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.75,
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    component="span"
+                    sx={{
+                      color: 'rgba(255,255,255,0.82)',
+                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                      fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                      letterSpacing: 0.2,
+                      wordBreak: 'break-all',
+                      maxWidth: { xs: '100%', sm: 'min(100%, 28rem)' },
+                    }}
+                  >
+                    ID {booking._id}
+                  </Typography>
+                  <Tooltip title="Copy full booking ID">
+                    <IconButton
+                      size="small"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(booking._id)
+                          appToast('Booking ID copied', 'success', 2500)
+                        } catch {
+                          appToast('Could not copy', 'error')
+                        }
+                      }}
+                      sx={{
+                        color: 'white',
+                        bgcolor: 'rgba(255,255,255,0.2)',
+                        width: 28,
+                        height: 28,
+                        '&:hover': { bgcolor: 'rgba(255,255,255,0.32)' },
+                      }}
+                      aria-label="Copy booking ID"
+                    >
+                      <Copy size={14} />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
               </Box>
             </Box>
             <Chip

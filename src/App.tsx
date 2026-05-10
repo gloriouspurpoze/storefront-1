@@ -44,6 +44,9 @@ const FinanceIndexRedirect = lazy(() =>
 const FinanceOverviewPage = lazy(() =>
   import('./pages/finance/finance-overview').then((m) => ({ default: m.FinanceOverviewPage })),
 )
+const FinanceOperatingHubPage = lazy(() =>
+  import('./pages/finance/finance-operating-hub').then((m) => ({ default: m.FinanceOperatingHubPage })),
+)
 const FinanceExpensesPage = lazy(() =>
   import('./pages/finance/finance-expenses').then((m) => ({ default: m.FinanceExpensesPage })),
 )
@@ -774,6 +777,7 @@ function App() {
                       >
                         <Route index element={<FinanceIndexRedirect />} />
                         <Route path="overview" element={<FinanceOverviewPage />} />
+                        <Route path="operating" element={<FinanceOperatingHubPage />} />
                         <Route path="expenses" element={<FinanceExpensesPage />} />
                         <Route path="budgets" element={<FinanceBudgetsPage />} />
                         <Route path="reconciliation" element={<FinanceReconciliationPage />} />

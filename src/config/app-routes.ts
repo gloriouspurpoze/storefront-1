@@ -37,6 +37,12 @@ export const QUICK_NAV_ITEMS: QuickNavItem[] = [
   },
 
   { label: 'Finance overview', path: '/finance/overview', group: 'Finance', keywords: 'expenses budget pnl cashflow' },
+  {
+    label: 'Finance operating costs',
+    path: '/finance/operating',
+    group: 'Finance',
+    keywords: 'daily monthly tea travel rent aws cloud telecom utilities budget opex',
+  },
   { label: 'Finance expenses', path: '/finance/expenses', group: 'Finance', keywords: 'bills vendors approval' },
   { label: 'Finance budgets', path: '/finance/budgets', group: 'Finance', keywords: 'forecast opex' },
   { label: 'Finance directory', path: '/finance/directory', group: 'Finance', keywords: 'accounts vendors categories' },

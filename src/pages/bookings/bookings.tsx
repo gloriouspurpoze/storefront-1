@@ -16,6 +16,8 @@ import {
   Smartphone,
   MoreVertical,
   Loader2,
+  Copy,
+  CalendarDays,
 } from 'lucide-react'
 import { Card, CardContent } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
@@ -46,7 +48,9 @@ import {
   DropdownMenuTrigger,
 } from '../../components/ui/dropdown-menu'
 import { FixedMessage } from '../../components/common/FixedMessage'
+import { PageHeader } from '../../components/common/PageHeader'
 import { Pagination } from '../../components/common/Pagination'
+import { bookingDisplayPrimary, bookingMongoId } from '../../lib/bookingDisplay'
 import { cn } from '../../lib/utils'
 import { Booking, BookingsQuery } from '../../types'
 import { formatCurrency, formatDate, getInitials } from '../../lib/utils'
@@ -56,6 +60,12 @@ import { AssignProfessionalDialog } from '../../components/bookings/AssignProfes
 import { UpdateBookingStatusModal } from '../../components/bookings/UpdateBookingStatusModal'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAppConfirm } from '../../components/providers/AppDialogsProvider'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../../components/ui/tooltip'
 
 const statusConfig: Record<
   string,
@@ -467,12 +477,26 @@ export function Bookings() {
 
   const totalPages = Math.max(1, Math.ceil((totalRows || 0) / pageSize))
 
+  const copyBookingRef = async (e: React.MouseEvent, row: Booking) => {
+    e.stopPropagation()
+    const full = bookingMongoId({ id: row.id, _id: (row as any)._id })
+    const text = full || bookingDisplayPrimary(row as any)
+    try {
+      await navigator.clipboard.writeText(text)
+      setSnackbar({ open: true, message: 'Booking ID copied', severity: 'success' })
+    } catch {
+      setSnackbar({ open: true, message: 'Could not copy', severity: 'error' })
+    }
+  }
+
   return (
-    <div className="flex-1 p-4 md:p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Bookings Management</h1>
-        <p className="text-sm text-muted-foreground md:text-base">Manage and track all service bookings</p>
-      </div>
+    <TooltipProvider delayDuration={250}>
+      <div className="flex-1 p-4 md:p-6">
+      <PageHeader
+        title="Bookings"
+        subtitle="Search, filter, and open any booking. Short references keep rows scannable; full IDs are one click away."
+        icon={<CalendarDays className="h-7 w-7 text-primary sm:h-8 sm:w-8" />}
+      />
 
       {professionalIdFromUrl ? (
         <div className="mb-4 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
@@ -706,9 +730,42 @@ export function Bookings() {
                         onClick={() => navigate(`/bookings/${row.id}`)}
                       >
                         <TableCell className="align-top">
-                          <p className="text-sm font-extrabold">
-                            {row.bookingNumber || `#${row.id}`}
-                          </p>
+                          <div className="flex max-w-[140px] items-start gap-1 sm:max-w-[180px]">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="min-w-0 cursor-default truncate font-mono text-sm font-extrabold tracking-tight">
+                                  {bookingDisplayPrimary({
+                                    id: row.id,
+                                    _id: (row as any)._id,
+                                    bookingNumber: row.bookingNumber,
+                                  })}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-[min(90vw,22rem)]">
+                                <p className="font-mono text-xs break-all">
+                                  {bookingMongoId({ id: row.id, _id: (row as any)._id }) ||
+                                    bookingDisplayPrimary({
+                                      id: row.id,
+                                      _id: (row as any)._id,
+                                      bookingNumber: row.bookingNumber,
+                                    })}
+                                </p>
+                                <p className="mt-1 text-[11px] text-muted-foreground">
+                                  Full ID — use copy for support or exports
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
+                              aria-label="Copy booking ID"
+                              onClick={(e) => copyBookingRef(e, row)}
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                           <p className="text-xs text-muted-foreground">{formatDate(row.createdAt)}</p>
                         </TableCell>
                         <TableCell className="align-top">
@@ -942,6 +999,7 @@ export function Bookings() {
           }}
         />
       )}
-    </div>
+      </div>
+    </TooltipProvider>
   )
 }
