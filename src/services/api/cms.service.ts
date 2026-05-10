@@ -541,6 +541,24 @@ export class CMSService {
     return response.data?.data ?? response.data;
   }
 
+  /** Partner / technician playbook — admin-only blob (no public GET). Same shape as customer rate-card JSON. */
+  static async getProviderRateCards(): Promise<Record<string, Array<{ name: string; price: string }>>> {
+    const response = await axios.get(
+      `${API_BASE}/cms/admin/static-content/provider-rate-card`,
+      this.getAuthHeaders()
+    );
+    return response.data?.data ?? response.data ?? {};
+  }
+
+  static async updateProviderRateCards(data: Record<string, Array<{ name: string; price: string }>>) {
+    const response = await axios.put(
+      `${API_BASE}/cms/admin/static-content/provider-rate-card`,
+      data,
+      this.getAuthHeaders()
+    );
+    return response.data?.data ?? response.data;
+  }
+
   // ==================== CATEGORY MARKETING (industry service page template + catalog blocks) ====================
   /**
    * Backend should persist this payload as schemaless JSON per category key (`localSeo`, `technicalSeo`, `localityGuide`, etc.).

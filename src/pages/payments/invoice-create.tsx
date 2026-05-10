@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   Plus,
@@ -144,6 +144,7 @@ function maskId(id: string) {
 
 export function InvoiceCreate() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { branding: invoiceBranding } = useInvoiceBranding()
   const [activeStep, setActiveStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
@@ -203,6 +204,25 @@ export function InvoiceCreate() {
       )
     }
   }, [type])
+
+  /** Deep-link from AMC contract detail: ?customerId=&amcContract= */
+  useEffect(() => {
+    const cid = searchParams.get('customerId')?.trim()
+    const amc = searchParams.get('amcContract')?.trim()
+    if (cid && OBJ_ID.test(cid)) {
+      setCustomerMode('platform')
+      setCustomerId(cid)
+    }
+    if (amc) {
+      setCustomerReference((prev) => (prev.trim() ? prev : `AMC ${amc}`))
+      setItems((rows) => {
+        if (rows.length !== 1) return rows
+        const only = rows[0]
+        if (only.description.trim()) return rows
+        return [{ ...only, description: `Annual maintenance contract (${amc})` }]
+      })
+    }
+  }, [searchParams])
 
   const isInterState = isInterStateForPreview(billingTo.state, COMPANY_STATE)
   const documentTypeLabel = INVOICE_TYPES.find((t) => t.value === type)?.label ?? 'Invoice'

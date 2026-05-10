@@ -126,6 +126,18 @@ export type Permission =
   | 'manage_boards'
   | 'invite_board_members'
 
+  /** Annual Maintenance Contracts (home-service AMC ledger) */
+  | 'view_amc'
+  | 'manage_amc'
+
+  /** Published + partner pricing playbooks (`/cms/admin/static-content/*rate-card*`) */
+  | 'view_rate_cards'
+  | 'manage_rate_cards'
+
+  /** Policies, onboarding packs, agreements — templates & email signing envelopes */
+  | 'view_company_documents'
+  | 'manage_company_documents'
+
 export interface RolePermissions {
   role: UserRole
   permissions: Permission[]

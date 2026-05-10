@@ -115,6 +115,15 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       'view_finance',
       'manage_finance',
 
+      'view_amc',
+      'manage_amc',
+
+      'view_rate_cards',
+      'manage_rate_cards',
+
+      'view_company_documents',
+      'manage_company_documents',
+
       // Boards (collaborative canvas)
       'view_boards',
       'manage_boards',
@@ -220,6 +229,15 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       'view_finance',
       'manage_finance',
 
+      'view_amc',
+      'manage_amc',
+
+      'view_rate_cards',
+      'manage_rate_cards',
+
+      'view_company_documents',
+      'manage_company_documents',
+
       // Boards (collaborative canvas)
       'view_boards',
       'manage_boards',
@@ -284,6 +302,15 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       'view_finance',
       'manage_finance',
 
+      'view_amc',
+      'manage_amc',
+
+      'view_rate_cards',
+      'manage_rate_cards',
+
+      'view_company_documents',
+      'manage_company_documents',
+
       'view_coupons',
       'edit_coupons',
       'manage_coupons',
@@ -337,6 +364,12 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       'manage_team_tasks',
 
       'view_finance',
+
+      'view_amc',
+
+      'view_rate_cards',
+
+      'view_company_documents',
 
       'view_coupons',
       'edit_coupons',
@@ -671,6 +704,24 @@ export const routePermissions: RoutePermission[] = [
   {
     path: '/finance',
     requiredPermissions: ['view_finance'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+
+  {
+    path: '/amc',
+    requiredPermissions: ['view_amc'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+
+  {
+    path: '/company-documents',
+    requiredPermissions: ['view_company_documents'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+
+  {
+    path: '/rate-cards',
+    requiredPermissions: ['view_rate_cards'],
     allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
   },
 

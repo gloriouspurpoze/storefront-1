@@ -30,6 +30,7 @@ import { CMSService } from '../../services/api'
 import { PageHeader } from '../../components/common/PageHeader'
 import { CMS_DEFAULT_FALLBACK_SLUG } from '../../constants/cmsCatalogCategories'
 import { useCmsCatalogCategories } from '../../hooks/useCmsCatalogCategories'
+import { usePermissions } from '../../hooks/usePermissions'
 import { appToast } from '../../lib/appToast'
 import { useAppConfirm } from '../../components/providers/AppDialogsProvider'
 import { useIndustryServicePagesCatalog } from './IndustryServicePagesContext'
@@ -40,7 +41,22 @@ interface RateCardPart {
   price: string
 }
 
-export default function RateCardManagement() {
+export type RateCardDataset = 'customer' | 'provider'
+
+export interface RateCardManagementProps {
+  /** `customer` — published catalog matrix; `provider` — internal partner playbook blob. */
+  dataset?: RateCardDataset
+  pageTitle?: string
+  pageSubtitle?: string
+}
+
+export default function RateCardManagement({
+  dataset = 'customer',
+  pageTitle,
+  pageSubtitle,
+}: RateCardManagementProps) {
+  const { checkPermission } = usePermissions()
+  const canMutate = checkPermission('manage_rate_cards') || checkPermission('edit_settings')
   const industryHub = useIndustryServicePagesCatalog()
   const { options: catalogOptions, loading: catalogOptionsLoading, defaultSlug, getLabel } =
     useCmsCatalogCategories()
@@ -61,12 +77,13 @@ export default function RateCardManagement() {
 
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [dataset])
 
   const fetchData = async () => {
     try {
       setLoading(true)
-      const result = await CMSService.getRateCards()
+      const result =
+        dataset === 'provider' ? await CMSService.getProviderRateCards() : await CMSService.getRateCards()
       setData(typeof result === 'object' && result !== null ? result : {})
     } catch (error: any) {
       console.error('Error fetching rate cards:', error)
@@ -81,9 +98,14 @@ export default function RateCardManagement() {
   const parts = data[selectedCategory] ?? []
 
   const handleSaveAll = async () => {
+    if (!canMutate) return
     try {
       setSaving(true)
-      await CMSService.updateRateCards(data)
+      if (dataset === 'provider') {
+        await CMSService.updateProviderRateCards(data)
+      } else {
+        await CMSService.updateRateCards(data)
+      }
       appToast('Rate cards saved successfully.', 'success')
       fetchData()
     } catch (error: any) {
@@ -95,6 +117,7 @@ export default function RateCardManagement() {
   }
 
   const handleAddPart = () => {
+    if (!canMutate) return
     if (!formPart.name.trim()) {
       appToast('Part name is required.', 'warning')
       return
@@ -112,6 +135,7 @@ export default function RateCardManagement() {
   }
 
   const handleUpdatePart = () => {
+    if (!canMutate) return
     if (editingIndex === null || !formPart.name.trim()) return
     const next = [...parts]
     next[editingIndex] = { name: formPart.name.trim(), price: formPart.price.trim() || 'As per rate card' }
@@ -122,6 +146,7 @@ export default function RateCardManagement() {
   }
 
   const handleDeletePart = async (index: number) => {
+    if (!canMutate) return
     const ok = await confirm({
       title: 'Remove line?',
       message: 'Remove this rate card line?',
@@ -139,29 +164,47 @@ export default function RateCardManagement() {
     setFormPart({ name: '', price: '' })
   }
 
+  const resolvedTitle =
+    pageTitle ??
+    (dataset === 'provider' ? 'Provider rate playbook' : 'Rate Card (Pricing Parts)')
+  const resolvedSubtitle =
+    pageSubtitle ??
+    (dataset === 'provider'
+      ? 'Internal payout, visit, and spare-economics lines by catalog category — not published to consumers.'
+      : 'Category-wise spare parts & pricing for catalog PricingTable')
+
   return (
     <div className={cn(!industryHub && 'p-4 sm:p-6 md:p-8')}>
       {!industryHub && (
         <PageHeader
-          title="Rate Card (Pricing Parts)"
-          subtitle="Category-wise spare parts & pricing for catalog PricingTable"
+          title={resolvedTitle}
+          subtitle={resolvedSubtitle}
           action={
-            <Button
-              onClick={() => {
-                setEditingIndex(null)
-                setFormPart({ name: '', price: '' })
-                setShowForm(true)
-              }}
-              className="rounded-md"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add line
-            </Button>
+            canMutate ? (
+              <Button
+                onClick={() => {
+                  setEditingIndex(null)
+                  setFormPart({ name: '', price: '' })
+                  setShowForm(true)
+                }}
+                className="rounded-md"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add line
+              </Button>
+            ) : undefined
           }
         />
       )}
 
-      {industryHub && (
+      {!canMutate && !industryHub && (
+        <p className="mb-4 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+          View-only: assign <strong className="font-medium text-foreground">manage_rate_cards</strong> or{' '}
+          <strong className="font-medium text-foreground">edit_settings</strong> to edit.
+        </p>
+      )}
+
+      {industryHub && canMutate && (
         <div className="mb-4 flex justify-end">
           <Button
             onClick={() => {
@@ -200,7 +243,12 @@ export default function RateCardManagement() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button variant="outline" onClick={handleSaveAll} disabled={saving} className="mt-0 self-end sm:mt-auto">
+              <Button
+                variant="outline"
+                onClick={handleSaveAll}
+                disabled={saving || !canMutate}
+                className="mt-0 self-end sm:mt-auto"
+              >
                 {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CircleDollarSign className="mr-2 h-4 w-4" />}
                 {saving ? 'Saving…' : 'Save all'}
               </Button>
@@ -209,7 +257,7 @@ export default function RateCardManagement() {
         </Card>
       )}
 
-      {industryHub && (
+      {industryHub && canMutate && (
         <div className="mb-4 flex justify-end">
           <Button variant="outline" onClick={handleSaveAll} disabled={saving} className="rounded-md">
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CircleDollarSign className="mr-2 h-4 w-4" />}
@@ -233,15 +281,22 @@ export default function RateCardManagement() {
                 <TableHeader>
                   <TableRow className="bg-primary/5">
                     <TableHead className="font-semibold">Part / Service</TableHead>
-                    <TableHead className="font-semibold">Price</TableHead>
-                    <TableHead className="text-right font-semibold">Actions</TableHead>
+                    <TableHead className="font-semibold">
+                      {dataset === 'provider' ? 'Reference (payout / charge)' : 'Published price'}
+                    </TableHead>
+                    {canMutate ? <TableHead className="text-right font-semibold">Actions</TableHead> : null}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {parts.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={3} className="py-8 text-center text-muted-foreground">
-                        No lines. Add one to show in catalog.
+                      <TableCell
+                        colSpan={canMutate ? 3 : 2}
+                        className="py-8 text-center text-muted-foreground"
+                      >
+                        {dataset === 'provider'
+                          ? 'No partner lines yet — add visit splits, spare margins, or SLA notes.'
+                          : 'No lines. Add one to show in catalog.'}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -249,28 +304,30 @@ export default function RateCardManagement() {
                       <TableRow key={index}>
                         <TableCell>{row.name}</TableCell>
                         <TableCell>{row.price}</TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            title="Edit"
-                            onClick={() => handleEditPart(index)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive"
-                            title="Delete"
-                            onClick={() => handleDeletePart(index)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
+                        {canMutate ? (
+                          <TableCell className="text-right">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              title="Edit"
+                              onClick={() => handleEditPart(index)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive"
+                              title="Delete"
+                              onClick={() => handleDeletePart(index)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        ) : null}
                       </TableRow>
                     ))
                   )}
@@ -303,7 +360,11 @@ export default function RateCardManagement() {
                 id="part-price"
                 value={formPart.price}
                 onChange={(e) => setFormPart((p) => ({ ...p, price: e.target.value }))}
-                placeholder="e.g. ₹2,499 onwards or As per capacity"
+                placeholder={
+                  dataset === 'provider'
+                    ? 'e.g. ₹450–₹650 visit share or 62% of spare margin'
+                    : 'e.g. ₹2,499 onwards or As per capacity'
+                }
               />
             </div>
           </div>

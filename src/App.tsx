@@ -47,6 +47,56 @@ const FinanceOverviewPage = lazy(() =>
 const FinanceOperatingHubPage = lazy(() =>
   import('./pages/finance/finance-operating-hub').then((m) => ({ default: m.FinanceOperatingHubPage })),
 )
+const AmcLayout = lazy(() => import('./pages/amc/amc-layout').then((m) => ({ default: m.AmcLayout })))
+const AmcIndexRedirect = lazy(() => import('./pages/amc/amc-layout').then((m) => ({ default: m.AmcIndexRedirect })))
+const AmcOverviewPage = lazy(() => import('./pages/amc/amc-overview').then((m) => ({ default: m.AmcOverviewPage })))
+const AmcContractsPage = lazy(() => import('./pages/amc/amc-contracts').then((m) => ({ default: m.AmcContractsPage })))
+const AmcPackagesPage = lazy(() => import('./pages/amc/amc-packages').then((m) => ({ default: m.AmcPackagesPage })))
+const AmcContractDetailPage = lazy(() =>
+  import('./pages/amc/amc-contract-detail').then((m) => ({ default: m.AmcContractDetailPage })),
+)
+const CompanyDocumentsLayout = lazy(() =>
+  import('./pages/company-documents/company-documents-layout').then((m) => ({
+    default: m.CompanyDocumentsLayout,
+  })),
+)
+const CompanyDocumentsIndexRedirect = lazy(() =>
+  import('./pages/company-documents/company-documents-layout').then((m) => ({
+    default: m.CompanyDocumentsIndexRedirect,
+  })),
+)
+const CompanyDocumentsOverviewPage = lazy(() =>
+  import('./pages/company-documents/company-documents-overview').then((m) => ({
+    default: m.CompanyDocumentsOverviewPage,
+  })),
+)
+const CompanyDocumentsTemplatesPage = lazy(() =>
+  import('./pages/company-documents/company-documents-templates').then((m) => ({
+    default: m.CompanyDocumentsTemplatesPage,
+  })),
+)
+const CompanyDocumentsTemplateEditorPage = lazy(() =>
+  import('./pages/company-documents/company-documents-template-editor').then((m) => ({
+    default: m.CompanyDocumentsTemplateEditorPage,
+  })),
+)
+const CompanyDocumentsEnvelopesPage = lazy(() =>
+  import('./pages/company-documents/company-documents-envelopes').then((m) => ({
+    default: m.CompanyDocumentsEnvelopesPage,
+  })),
+)
+const RateCardsLayout = lazy(() =>
+  import('./pages/rate-cards/rate-cards-layout').then((m) => ({ default: m.RateCardsLayout })),
+)
+const RateCardsIndexRedirect = lazy(() =>
+  import('./pages/rate-cards/rate-cards-layout').then((m) => ({ default: m.RateCardsIndexRedirect })),
+)
+const RateCardsOverviewPage = lazy(() =>
+  import('./pages/rate-cards/rate-cards-overview').then((m) => ({ default: m.RateCardsOverviewPage })),
+)
+const RateCardsCustomerPage = lazy(() => import('./pages/rate-cards/rate-cards-customer'))
+const RateCardsProviderPage = lazy(() => import('./pages/rate-cards/rate-cards-provider'))
+const RateCardsCatalogPage = lazy(() => import('./pages/rate-cards/rate-cards-catalog'))
 const FinanceExpensesPage = lazy(() =>
   import('./pages/finance/finance-expenses').then((m) => ({ default: m.FinanceExpensesPage })),
 )
@@ -784,7 +834,52 @@ function App() {
                         <Route path="recurring" element={<FinanceRecurringPage />} />
                         <Route path="directory" element={<FinanceDirectoryPage />} />
                       </Route>
-                      
+
+                      <Route
+                        path="/amc"
+                        element={
+                          <RoleBasedRoute permissions={['view_amc']}>
+                            <AmcLayout />
+                          </RoleBasedRoute>
+                        }
+                      >
+                        <Route index element={<AmcIndexRedirect />} />
+                        <Route path="overview" element={<AmcOverviewPage />} />
+                        <Route path="packages" element={<AmcPackagesPage />} />
+                        <Route path="contracts" element={<AmcContractsPage />} />
+                        <Route path="contracts/:id" element={<AmcContractDetailPage />} />
+                      </Route>
+
+                      <Route
+                        path="/company-documents"
+                        element={
+                          <RoleBasedRoute permissions={['view_company_documents']}>
+                            <CompanyDocumentsLayout />
+                          </RoleBasedRoute>
+                        }
+                      >
+                        <Route index element={<CompanyDocumentsIndexRedirect />} />
+                        <Route path="overview" element={<CompanyDocumentsOverviewPage />} />
+                        <Route path="templates" element={<CompanyDocumentsTemplatesPage />} />
+                        <Route path="templates/:id" element={<CompanyDocumentsTemplateEditorPage />} />
+                        <Route path="envelopes" element={<CompanyDocumentsEnvelopesPage />} />
+                      </Route>
+
+                      <Route
+                        path="/rate-cards"
+                        element={
+                          <RoleBasedRoute permissions={['view_rate_cards']}>
+                            <RateCardsLayout />
+                          </RoleBasedRoute>
+                        }
+                      >
+                        <Route index element={<RateCardsIndexRedirect />} />
+                        <Route path="overview" element={<RateCardsOverviewPage />} />
+                        <Route path="customer" element={<RateCardsCustomerPage />} />
+                        <Route path="provider" element={<RateCardsProviderPage />} />
+                        <Route path="catalog" element={<RateCardsCatalogPage />} />
+                      </Route>
+
                       {/* Users - Admin only */}
                       <Route 
                         path="/users" 

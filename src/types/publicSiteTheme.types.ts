@@ -4,6 +4,8 @@ export type SiteRadiusPreset = 'sm' | 'md' | 'lg'
 export type SiteSpacingDensity = 'compact' | 'comfortable' | 'spacious'
 
 export interface PublicSiteThemeTokens {
+  /** Optional — shown on hosted document signing pages (`/api/company-documents/public/sign/*`). */
+  brandLogoUrl?: string
   /** Primary brand (buttons, links emphasis) */
   primaryColor: string
   /** Secondary accent (badges, highlights) */

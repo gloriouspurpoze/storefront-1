@@ -77,6 +77,34 @@ export const DASHBOARD_ACCESS_MODULES: DashboardAccessModule[] = [
     extras: [{ key: 'finance_manage', label: 'Manage finance data', permissions: ['manage_finance'] }],
   },
   {
+    id: 'amc',
+    label: 'AMC',
+    description: 'Annual Maintenance Contracts — visits, renewals, covered categories (AC, RO, plumbing, etc.)',
+    viewPermissions: ['view_amc'],
+    extras: [{ key: 'amc_manage', label: 'Create & edit AMC contracts', permissions: ['manage_amc'] }],
+  },
+  {
+    id: 'company_documents',
+    label: 'Documents & signatures',
+    description:
+      'Policies, onboarding/hiring packs, provider & customer agreements — templates and email signing envelopes',
+    viewPermissions: ['view_company_documents'],
+    extras: [
+      {
+        key: 'company_docs_manage',
+        label: 'Manage templates & envelopes',
+        permissions: ['manage_company_documents'],
+      },
+    ],
+  },
+  {
+    id: 'rate_cards',
+    label: 'Rate cards',
+    description: 'Customer-facing catalog pricing, partner payout playbook, and live SKU / platform-service tariffs',
+    viewPermissions: ['view_rate_cards'],
+    extras: [{ key: 'rate_cards_manage', label: 'Edit rate card blobs', permissions: ['manage_rate_cards'] }],
+  },
+  {
     id: 'people',
     label: 'Users & providers',
     description: 'Team, providers, professionals',

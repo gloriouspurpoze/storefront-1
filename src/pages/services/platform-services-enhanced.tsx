@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   Button,
   Card,
@@ -34,6 +34,10 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
 } from '../../components/ui'
 import {
   DropdownMenu,
@@ -47,6 +51,7 @@ import {
   Search,
   LayoutGrid,
   List,
+  Layers,
   MoreVertical,
   Eye,
   Pencil,
@@ -57,16 +62,89 @@ import {
   Filter,
   CheckCircle2,
   CircleOff,
-  TrendingUp,
+  FolderTree,
 } from 'lucide-react'
 import { platformServicesService, PlatformService, type GetPlatformServicesParams } from '../../services/api/platformServices.service'
 import { CategoriesService } from '../../services/api/categories.service'
+import { SubcategoriesService } from '../../services/api/subcategories.service'
 import { ConfirmDialog } from '../../components/common/ConfirmDialog'
 import { useNavigate } from 'react-router-dom'
 import { appToast } from '../../lib/appToast'
 import { formatCurrency, cn } from '../../lib/utils'
 
-const CATEGORIES = ['home_repair', 'home_improvement', 'cleaning', 'outdoor', 'maintenance', 'installation']
+const CATEGORIES_FALLBACK = ['home_repair', 'home_improvement', 'cleaning', 'outdoor', 'maintenance', 'installation']
+
+const CATALOG_PAGE_LIMIT = 500
+
+function formatSubcategoryLabel(rawKey: string): string {
+  if (rawKey === '__general__') return 'General / ungrouped'
+  return rawKey
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .trim()
+}
+
+function displayPlatformSubcategory(service: PlatformService): string {
+  const t = service.subcategory?.trim()
+  if (!t) return '—'
+  if (/^[a-f\d]{24}$/i.test(t)) return t
+  return formatSubcategoryLabel(t.toLowerCase())
+}
+
+type CatalogSubgroup = {
+  subKey: string
+  subLabel: string
+  services: PlatformService[]
+}
+
+type CatalogCategoryGroup = {
+  categoryKey: string
+  categoryLabel: string
+  serviceCount: number
+  subgroups: CatalogSubgroup[]
+}
+
+function groupServicesIntoCatalog(
+  list: PlatformService[],
+  categoryNameById: Record<string, string>,
+): CatalogCategoryGroup[] {
+  const byCat = new Map<string, Map<string, PlatformService[]>>()
+  for (const s of list) {
+    const catKey = String(s.category ?? 'uncategorized').toLowerCase()
+    const rawSub = (s.subcategory ?? '').trim()
+    const subKey = rawSub ? rawSub.toLowerCase() : '__general__'
+    if (!byCat.has(catKey)) byCat.set(catKey, new Map())
+    const subMap = byCat.get(catKey)!
+    if (!subMap.has(subKey)) subMap.set(subKey, [])
+    subMap.get(subKey)!.push(s)
+  }
+
+  const groups: CatalogCategoryGroup[] = []
+
+  for (const [categoryKey, subMap] of Array.from(byCat.entries())) {
+    const subgroups: CatalogSubgroup[] = []
+    for (const [subKey, svcs] of Array.from(subMap.entries())) {
+      subgroups.push({
+        subKey,
+        subLabel: formatSubcategoryLabel(subKey),
+        services: [...svcs].sort(
+          (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.name.localeCompare(b.name),
+        ),
+      })
+    }
+    subgroups.sort((a, b) => a.subLabel.localeCompare(b.subLabel))
+    const serviceCount = subgroups.reduce((n, sg) => n + sg.services.length, 0)
+    groups.push({
+      categoryKey,
+      categoryLabel: getCategoryDisplayName(categoryNameById, categoryKey),
+      serviceCount,
+      subgroups,
+    })
+  }
+
+  groups.sort((a, b) => a.categoryLabel.localeCompare(b.categoryLabel))
+  return groups
+}
 
 function hasDisplayableBasePrice(v: number | string | undefined | null): boolean {
   if (v == null) return false
@@ -461,17 +539,20 @@ export function PlatformServicesEnhanced() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
+  const [selectedSubcategory, setSelectedSubcategory] = useState('all')
+  const [subcategoryFilterOptions, setSubcategoryFilterOptions] = useState<{ id: string; name: string }[]>([])
   const [selectedStatus, setSelectedStatus] = useState('all')
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [totalCount, setTotalCount] = useState(0)
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
+  /** Catalog = category → subcategory accordions (default). Table / grid = classic paginated lists. */
+  const [layoutMode, setLayoutMode] = useState<'catalog' | 'list' | 'grid'>('catalog')
   const [showFilters, setShowFilters] = useState(false)
   const [categoryNameById, setCategoryNameById] = useState<Record<string, string>>({})
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false)
   const [selectedService, setSelectedService] = useState<PlatformService | null>(null)
-  const [stats, setStats] = useState({ total: 0, active: 0, featured: 0 })
+  const [stats, setStats] = useState({ total: 0, active: 0, featured: 0, total_requests: 0 })
 
   useEffect(() => {
     let isMounted = true
@@ -501,6 +582,59 @@ export function PlatformServicesEnhanced() {
   }, [])
 
   useEffect(() => {
+    setPage(0)
+  }, [searchTerm, selectedCategory, selectedSubcategory, selectedStatus])
+
+  useEffect(() => {
+    let cancelled = false
+    if (selectedCategory === 'all') {
+      setSubcategoryFilterOptions([])
+      setSelectedSubcategory('all')
+      return
+    }
+    setSelectedSubcategory('all')
+    void (async () => {
+      try {
+        const res = await SubcategoriesService.getSubcategories({
+          categoryId: selectedCategory,
+          is_active: true,
+        })
+        const raw = res?.data as { subcategories?: unknown[] } | undefined
+        const list = raw?.subcategories ?? []
+        if (cancelled) return
+        const normalized = (Array.isArray(list) ? list : [])
+          .map((sub: any) => ({
+            id: String(sub.id ?? sub._id ?? '').toLowerCase(),
+            name: String(sub.name ?? sub.displayName ?? sub.title ?? '').trim() || 'Subcategory',
+          }))
+          .filter((s: { id: string }) => s.id)
+        normalized.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+        setSubcategoryFilterOptions(normalized)
+      } catch {
+        if (!cancelled) setSubcategoryFilterOptions([])
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [selectedCategory])
+
+  const categoryFilterIds = useMemo(() => {
+    const keys = Object.keys(categoryNameById)
+    if (keys.length > 0) {
+      return [...keys].sort((a, b) =>
+        (categoryNameById[a] ?? a).localeCompare(categoryNameById[b] ?? b, undefined, { sensitivity: 'base' }),
+      )
+    }
+    return CATEGORIES_FALLBACK
+  }, [categoryNameById])
+
+  const catalogGroups = useMemo(
+    () => groupServicesIntoCatalog(services, categoryNameById),
+    [services, categoryNameById],
+  )
+
+  useEffect(() => {
     let isMounted = true
     const loadData = async () => {
       if (isMounted) await Promise.all([fetchServices(), fetchStats()])
@@ -509,16 +643,20 @@ export function PlatformServicesEnhanced() {
     return () => {
       isMounted = false
     }
-  }, [page, rowsPerPage, selectedCategory, selectedStatus, searchTerm])
+  }, [page, rowsPerPage, selectedCategory, selectedSubcategory, selectedStatus, searchTerm, layoutMode])
 
   const fetchServices = async () => {
     try {
       setLoading(true)
+      const isCatalog = layoutMode === 'catalog'
       const params: Record<string, unknown> = {
-        page: page + 1,
-        limit: rowsPerPage,
+        page: isCatalog ? 1 : page + 1,
+        limit: isCatalog ? CATALOG_PAGE_LIMIT : rowsPerPage,
+        sort_by: 'sort_order',
+        sort_order: 'asc',
       }
       if (selectedCategory !== 'all') params.category = selectedCategory
+      if (selectedSubcategory !== 'all') params.subcategory = selectedSubcategory
       if (selectedStatus !== 'all') params.is_active = selectedStatus === 'active'
       if (searchTerm) params.search = searchTerm
 
@@ -545,10 +683,11 @@ export function PlatformServicesEnhanced() {
           total: statsData.total_services || 0,
           active: statsData.active_services || 0,
           featured: statsData.featured_services || 0,
+          total_requests: statsData.total_requests || 0,
         })
       }
     } catch {
-      setStats({ total: 0, active: 0, featured: 0 })
+      setStats({ total: 0, active: 0, featured: 0, total_requests: 0 })
     }
   }
 
@@ -629,8 +768,13 @@ export function PlatformServicesEnhanced() {
   const clearFilters = () => {
     setSearchTerm('')
     setSelectedCategory('all')
+    setSelectedSubcategory('all')
     setSelectedStatus('all')
+    setPage(0)
   }
+
+  const truncatedCatalog =
+    layoutMode === 'catalog' && totalCount > services.length && totalCount > 0
 
   const rangeStart = totalCount === 0 ? 0 : page * rowsPerPage + 1
   const rangeEnd = Math.min((page + 1) * rowsPerPage, totalCount)
@@ -642,30 +786,60 @@ export function PlatformServicesEnhanced() {
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Platform Services</h1>
-              <p className="text-sm text-muted-foreground">Manage your service offerings</p>
+              <p className="text-sm text-muted-foreground">
+                Browse by category and subcategory, or switch to a classic table or grid.
+              </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex rounded-lg border p-0.5">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                  className="h-8 px-2"
-                  onClick={() => setViewMode('list')}
-                  aria-pressed={viewMode === 'list'}
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-                  className="h-8 px-2"
-                  onClick={() => setViewMode('grid')}
-                  aria-pressed={viewMode === 'grid'}
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                </Button>
+              <div className="flex rounded-lg border bg-muted/30 p-0.5">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={layoutMode === 'catalog' ? 'secondary' : 'ghost'}
+                      className="h-8 gap-1.5 px-2.5 sm:px-3"
+                      onClick={() => setLayoutMode('catalog')}
+                      aria-pressed={layoutMode === 'catalog'}
+                    >
+                      <Layers className="h-4 w-4 shrink-0" />
+                      <span className="hidden sm:inline">Catalog</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Category → subcategory accordions</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={layoutMode === 'list' ? 'secondary' : 'ghost'}
+                      className="h-8 gap-1.5 px-2.5 sm:px-3"
+                      onClick={() => setLayoutMode('list')}
+                      aria-pressed={layoutMode === 'list'}
+                    >
+                      <List className="h-4 w-4 shrink-0" />
+                      <span className="hidden sm:inline">Table</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Paginated table</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={layoutMode === 'grid' ? 'secondary' : 'ghost'}
+                      className="h-8 gap-1.5 px-2.5 sm:px-3"
+                      onClick={() => setLayoutMode('grid')}
+                      aria-pressed={layoutMode === 'grid'}
+                    >
+                      <LayoutGrid className="h-4 w-4 shrink-0" />
+                      <span className="hidden sm:inline">Grid</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Card grid</TooltipContent>
+                </Tooltip>
               </div>
               <Button className="h-9 min-w-[140px]" onClick={handleCreate}>
                 <Plus className="mr-2 h-4 w-4" />
@@ -696,10 +870,10 @@ export function PlatformServicesEnhanced() {
             <Card className="overflow-hidden rounded-xl border-0 bg-gradient-to-br from-sky-400 to-cyan-400 text-white">
               <CardContent className="p-4">
                 <div className="flex items-center gap-1 text-xs opacity-90">
-                  <TrendingUp className="h-3.5 w-3.5" />
-                  Growth
+                  <FolderTree className="h-3.5 w-3.5" />
+                  Job requests
                 </div>
-                <p className="text-2xl font-bold">+12%</p>
+                <p className="text-2xl font-bold tabular-nums">{stats.total_requests}</p>
               </CardContent>
             </Card>
           </div>
@@ -718,7 +892,7 @@ export function PlatformServicesEnhanced() {
             </div>
             {showFilters && (
               <div className="grid grid-cols-1 gap-3 md:grid-cols-12 md:items-end">
-                <div className="md:col-span-4">
+                <div className="md:col-span-3">
                   <Label className="sr-only" htmlFor="ps-search">
                     Search
                   </Label>
@@ -741,15 +915,39 @@ export function PlatformServicesEnhanced() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Categories</SelectItem>
-                      {CATEGORIES.map((cat) => (
+                      {categoryFilterIds.map((cat) => (
                         <SelectItem key={cat} value={cat}>
-                          {cat.replace(/_/g, ' ').toUpperCase()}
+                          {getCategoryDisplayName(categoryNameById, cat)}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="grid gap-1 md:col-span-3">
+                  <Label className="text-xs">Subcategory</Label>
+                  <Select
+                    value={selectedSubcategory}
+                    onValueChange={setSelectedSubcategory}
+                    disabled={selectedCategory === 'all'}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue
+                        placeholder={
+                          selectedCategory === 'all' ? 'Pick a category first' : 'All subcategories'
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All subcategories</SelectItem>
+                      {subcategoryFilterOptions.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-1 md:col-span-2">
                   <Label className="text-xs">Status</Label>
                   <Select value={selectedStatus} onValueChange={setSelectedStatus}>
                     <SelectTrigger className="h-9">
@@ -762,7 +960,7 @@ export function PlatformServicesEnhanced() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="md:col-span-2">
+                <div className="md:col-span-1">
                   <Button type="button" variant="outline" className="w-full" size="sm" onClick={clearFilters}>
                     Clear
                   </Button>
@@ -772,13 +970,220 @@ export function PlatformServicesEnhanced() {
           </CardContent>
         </Card>
 
-        {viewMode === 'list' ? (
+        {layoutMode === 'catalog' && (
+          <div className="space-y-4">
+            {truncatedCatalog && (
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+                <span>
+                  Showing {services.length} of {totalCount} services (catalog loads up to {CATALOG_PAGE_LIMIT}).
+                </span>
+                <Button
+                  type="button"
+                  variant="link"
+                  className="h-auto p-0 text-amber-900 underline dark:text-amber-50"
+                  onClick={() => setLayoutMode('list')}
+                >
+                  Open table view
+                </Button>
+                <span className="text-muted-foreground dark:text-amber-200/90">for full pagination.</span>
+              </div>
+            )}
+
+            <Card className="overflow-hidden rounded-xl border shadow-sm">
+              <CardContent className="p-0">
+                {loading ? (
+                  <div className="py-16 text-center text-muted-foreground">Loading catalog…</div>
+                ) : catalogGroups.length === 0 ? (
+                  <div className="flex flex-col items-center gap-3 py-16">
+                    <p className="text-muted-foreground">No services match your filters.</p>
+                    <Button size="sm" onClick={handleCreate}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create service
+                    </Button>
+                  </div>
+                ) : (
+                  <Accordion type="multiple" className="w-full">
+                    {catalogGroups.map((cat) => (
+                      <AccordionItem
+                        key={cat.categoryKey}
+                        value={`cat-${cat.categoryKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`}
+                        className="border-b border-border/60 px-0"
+                      >
+                        <AccordionTrigger className="rounded-none px-4 py-4 hover:bg-muted/40 hover:no-underline sm:px-6">
+                          <div className="flex flex-1 flex-wrap items-center gap-3 text-left">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
+                              <Layers className="h-5 w-5" />
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-base font-semibold tracking-tight">{cat.categoryLabel}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {cat.subgroups.length} subcategor{cat.subgroups.length === 1 ? 'y' : 'ies'} ·{' '}
+                                {cat.serviceCount} service{cat.serviceCount === 1 ? '' : 's'}
+                              </p>
+                            </div>
+                            <Badge variant="secondary" className="shrink-0 tabular-nums">
+                              {cat.serviceCount}
+                            </Badge>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="pb-0">
+                          <div className="border-t bg-muted/20 px-2 pb-3 pt-2 sm:px-4">
+                            <Accordion type="multiple" className="w-full border-l-2 border-primary/20 pl-3 sm:pl-4">
+                              {cat.subgroups.map((sub) => (
+                                <AccordionItem
+                                  key={`${cat.categoryKey}::${sub.subKey}`}
+                                  value={`sub-${cat.categoryKey.replace(/[^a-zA-Z0-9_-]/g, '_')}__${sub.subKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`}
+                                  className="border-border/80"
+                                >
+                                  <AccordionTrigger className="py-3 text-sm hover:bg-muted/50 hover:no-underline">
+                                    <div className="flex flex-1 items-center gap-2 pr-2">
+                                      <FolderTree className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                      <span className="font-medium">{sub.subLabel}</span>
+                                      <Badge variant="outline" className="ml-auto tabular-nums">
+                                        {sub.services.length}
+                                      </Badge>
+                                    </div>
+                                  </AccordionTrigger>
+                                  <AccordionContent className="pb-3 pt-0">
+                                    <ul className="space-y-2">
+                                      {sub.services.map((service) => (
+                                        <li
+                                          key={service.id}
+                                          className="rounded-lg border bg-background p-3 shadow-sm transition-colors hover:border-primary/25"
+                                        >
+                                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                            <div className="flex min-w-0 flex-1 items-start gap-3">
+                                              <Avatar className="h-11 w-11 shrink-0 rounded-lg">
+                                                {service.image ? <AvatarImage src={service.image} alt="" /> : null}
+                                                <AvatarFallback className="rounded-lg bg-primary/10 text-primary">
+                                                  {service.name.charAt(0)}
+                                                </AvatarFallback>
+                                              </Avatar>
+                                              <div className="min-w-0">
+                                                <p className="truncate font-semibold leading-tight">{service.name}</p>
+                                                <p className="truncate text-xs text-muted-foreground">{service.slug}</p>
+                                                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                                  <Badge variant="outline" className="text-[10px] capitalize">
+                                                    {service.service_type}
+                                                  </Badge>
+                                                  <Badge
+                                                    variant={service.is_active ? 'default' : 'secondary'}
+                                                    className="cursor-pointer text-[10px]"
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    onClick={(e) => {
+                                                      e.stopPropagation()
+                                                      void handleToggleActive(service)
+                                                    }}
+                                                    onKeyDown={(e) => {
+                                                      if (e.key === 'Enter') {
+                                                        e.stopPropagation()
+                                                        void handleToggleActive(service)
+                                                      }
+                                                    }}
+                                                  >
+                                                    {service.is_active ? 'Active' : 'Inactive'}
+                                                  </Badge>
+                                                  <Badge variant="outline" className="text-[10px] capitalize">
+                                                    {service.status}
+                                                  </Badge>
+                                                  {service.is_featured && (
+                                                    <Badge className="border-amber-200 bg-amber-50 text-[10px] text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
+                                                      <Star className="mr-1 h-3 w-3" />
+                                                      Featured
+                                                    </Badge>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            </div>
+                                            <div className="flex shrink-0 items-center justify-between gap-3 sm:flex-col sm:items-end sm:justify-center">
+                                              <div className="text-right">
+                                                <p className="text-lg font-bold tabular-nums text-primary">
+                                                  {displayBasePrice(service.base_price)}
+                                                </p>
+                                                <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
+                                                  <Star className="h-3.5 w-3.5 text-amber-500" />
+                                                  {service.average_rating
+                                                    ? Number(service.average_rating).toFixed(1)
+                                                    : '0.0'}
+                                                </div>
+                                              </div>
+                                              <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                  <Button variant="outline" size="sm" className="h-8 gap-1 px-2">
+                                                    <MoreVertical className="h-4 w-4" />
+                                                    <span className="sr-only">Actions</span>
+                                                  </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-52">
+                                                  <DropdownMenuItem onClick={() => handlePreview(service)}>
+                                                    <Eye className="mr-2 h-4 w-4 text-sky-600" />
+                                                    View details
+                                                  </DropdownMenuItem>
+                                                  <DropdownMenuItem onClick={() => handleEdit(service)}>
+                                                    <Pencil className="mr-2 h-4 w-4 text-amber-600" />
+                                                    Edit
+                                                  </DropdownMenuItem>
+                                                  <DropdownMenuItem onClick={() => void handleDuplicate(service)}>
+                                                    <Copy className="mr-2 h-4 w-4 text-primary" />
+                                                    Duplicate
+                                                  </DropdownMenuItem>
+                                                  <DropdownMenuSeparator />
+                                                  <DropdownMenuItem onClick={() => void handleToggleActive(service)}>
+                                                    {service.is_active ? (
+                                                      <>
+                                                        <CircleOff className="mr-2 h-4 w-4 text-destructive" />
+                                                        Deactivate
+                                                      </>
+                                                    ) : (
+                                                      <>
+                                                        <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-600" />
+                                                        Activate
+                                                      </>
+                                                    )}
+                                                  </DropdownMenuItem>
+                                                  <DropdownMenuItem onClick={() => void handleToggleFeatured(service)}>
+                                                    <Star className="mr-2 h-4 w-4" />
+                                                    {service.is_featured ? 'Unfeature' : 'Feature'}
+                                                  </DropdownMenuItem>
+                                                  <DropdownMenuSeparator />
+                                                  <DropdownMenuItem
+                                                    className="text-destructive focus:text-destructive"
+                                                    onClick={() => handleDelete(service)}
+                                                  >
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    Delete
+                                                  </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                              </DropdownMenu>
+                                            </div>
+                                          </div>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </AccordionContent>
+                                </AccordionItem>
+                              ))}
+                            </Accordion>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {layoutMode === 'list' ? (
           <Card className="rounded-xl">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
                   <TableHead>Service</TableHead>
                   <TableHead>Category</TableHead>
+                  <TableHead>Subcategory</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Rating</TableHead>
@@ -788,13 +1193,13 @@ export function PlatformServicesEnhanced() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                    <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
                       Loading services...
                     </TableCell>
                   </TableRow>
                 ) : services.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="py-10">
+                    <TableCell colSpan={7} className="py-10">
                       <div className="flex flex-col items-center gap-3 text-center">
                         <p className="font-medium text-muted-foreground">No services found</p>
                         <Button size="sm" onClick={handleCreate}>
@@ -823,6 +1228,9 @@ export function PlatformServicesEnhanced() {
                         <Badge variant="secondary" className="font-normal">
                           {getCategoryDisplayName(categoryNameById, service.category)}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="max-w-[140px] truncate text-sm text-muted-foreground">
+                        {displayPlatformSubcategory(service)}
                       </TableCell>
                       <TableCell className="font-medium">{displayBasePrice(service.base_price)}</TableCell>
                       <TableCell>
@@ -951,7 +1359,7 @@ export function PlatformServicesEnhanced() {
               </div>
             </div>
           </Card>
-        ) : (
+        ) : layoutMode === 'grid' ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {loading && <div className="col-span-full py-12 text-center text-muted-foreground">Loading...</div>}
             {!loading && services.length === 0 && (
@@ -980,6 +1388,9 @@ export function PlatformServicesEnhanced() {
                           <p className="truncate text-sm font-semibold">{service.name}</p>
                           <p className="truncate text-xs text-muted-foreground">
                             {getCategoryDisplayName(categoryNameById, service.category)}
+                            {service.subcategory?.trim()
+                              ? ` · ${formatSubcategoryLabel(service.subcategory.trim().toLowerCase())}`
+                              : ''}
                           </p>
                         </div>
                       </div>
@@ -1036,7 +1447,7 @@ export function PlatformServicesEnhanced() {
               ))
             }
           </div>
-        )}
+        ) : null}
 
         <ServicePreviewDialog
           open={previewDialogOpen}

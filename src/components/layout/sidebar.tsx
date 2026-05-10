@@ -32,7 +32,6 @@ import {
   Tag as CouponIcon,
   Share2 as ReferralIcon,
   Globe as WebIcon,
-  Image as ImageIcon,
   Star as StarIcon,
   HelpCircle as HelpIcon,
   Search as SearchIcon,
@@ -74,6 +73,9 @@ import {
   Presentation as PresentationIcon,
   History as HistoryIcon,
   Gauge as GaugeIcon,
+  ShieldCheck as AmcShieldIcon,
+  ListOrdered as RateCardsHubIcon,
+  FileSignature as CompanyDocumentsIcon,
 } from 'lucide-react'
 import { useAppSelector, useAppDispatch } from '../../store/hooks'
 import { setChatUnreadMessages } from '../../store/slices/chatInboxSlice'
@@ -254,6 +256,27 @@ const navigationGroups = [
     icon: CalendarIcon,
     items: [
       { name: 'Bookings', href: '/bookings', icon: CalendarIcon, permissions: ['view_bookings', 'manage_bookings'], badge: null },
+      {
+        name: 'AMC contracts',
+        href: '/amc/overview',
+        icon: AmcShieldIcon,
+        permissions: ['view_amc'],
+        badge: null,
+      },
+      {
+        name: 'Documents & signatures',
+        href: '/company-documents',
+        icon: CompanyDocumentsIcon,
+        permissions: ['view_company_documents'],
+        badge: null,
+      },
+      {
+        name: 'Rate cards',
+        href: '/rate-cards/overview',
+        icon: RateCardsHubIcon,
+        permissions: ['view_rate_cards'],
+        badge: null,
+      },
       {
         name: 'POS — Home services',
         href: '/operations/pos',

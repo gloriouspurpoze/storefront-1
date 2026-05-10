@@ -38,6 +38,61 @@ export const QUICK_NAV_ITEMS: QuickNavItem[] = [
 
   { label: 'Finance overview', path: '/finance/overview', group: 'Finance', keywords: 'expenses budget pnl cashflow' },
   {
+    label: 'AMC contracts',
+    path: '/amc/overview',
+    group: 'Operations',
+    keywords: 'annual maintenance contract visits renewal AC RO purifier home service profixer',
+  },
+  {
+    label: 'AMC packages',
+    path: '/amc/packages',
+    group: 'Operations',
+    keywords: 'annual maintenance catalogue published website profixer',
+  },
+  {
+    label: 'Documents & signatures',
+    path: '/company-documents/overview',
+    group: 'Operations',
+    keywords:
+      'policy agreement PDF onboarding hiring termination NDA contractor customer provider acknowledgement esign email profixer',
+  },
+  {
+    label: 'Document templates',
+    path: '/company-documents/templates',
+    group: 'Operations',
+    keywords: 'library HTML markdown compliance safety liability',
+  },
+  {
+    label: 'Signature envelopes',
+    path: '/company-documents/envelopes',
+    group: 'Operations',
+    keywords: 'send email sign link recipient audit',
+  },
+  {
+    label: 'Rate cards hub',
+    path: '/rate-cards/overview',
+    group: 'Operations',
+    keywords: 'pricing tariff customer provider playbook SKU platform service profixer POS',
+  },
+  {
+    label: 'Customer rate matrix',
+    path: '/rate-cards/customer',
+    group: 'Operations',
+    keywords: 'published catalog spare parts indicative pricing',
+  },
+  {
+    label: 'Provider rate playbook',
+    path: '/rate-cards/provider',
+    group: 'Operations',
+    keywords: 'payout technician visit margin partner internal',
+  },
+  {
+    label: 'Catalog pricing table',
+    path: '/rate-cards/catalog',
+    group: 'Operations',
+    keywords: 'platform services products SKU list price',
+  },
+  {
     label: 'Finance operating costs',
     path: '/finance/operating',
     group: 'Finance',

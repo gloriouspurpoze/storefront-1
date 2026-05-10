@@ -173,6 +173,27 @@ export default function SiteAppearancePage() {
             <CardContent className="space-y-6 pt-6">
               <h2 className="text-lg font-semibold tracking-tight">Tokens</h2>
 
+              <div className="space-y-2">
+                <Label htmlFor="brand-logo-url">Brand logo URL (optional)</Label>
+                <Input
+                  id="brand-logo-url"
+                  type="url"
+                  inputMode="url"
+                  placeholder="https://cdn.example.com/logo.png"
+                  value={theme.brandLogoUrl ?? ''}
+                  onChange={(e) =>
+                    setTheme((t) => ({
+                      ...t,
+                      brandLogoUrl: e.target.value.trim() || undefined,
+                    }))
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  Shown on hosted document signing pages (<code className="rounded bg-muted px-1">/api/company-documents/public/sign/…</code>)
+                  together with colors and fonts below.
+                </p>
+              </div>
+
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
                 {(
                   [

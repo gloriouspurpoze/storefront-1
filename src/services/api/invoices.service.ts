@@ -291,7 +291,7 @@ export class InvoicesService {
    * Get invoice by ID
    */
   static async getInvoiceById(invoiceId: string) {
-    return api.get<InvoiceResponse>(`/invoices/${invoiceId}`, {
+    return api.get<{ invoice: Invoice }>(`/invoices/${invoiceId}`, {
       loadingMessage: 'Loading invoice...',
       showSuccessToast: false,
     })
@@ -301,7 +301,7 @@ export class InvoicesService {
    * Get invoice by booking ID
    */
   static async getInvoiceByBookingId(bookingId: string) {
-    return api.get<InvoiceResponse>(`/invoices/booking/${bookingId}`, {
+    return api.get<{ invoice: Invoice }>(`/invoices/booking/${bookingId}`, {
       loadingMessage: 'Loading invoice...',
       showSuccessToast: false,
     })
@@ -311,7 +311,7 @@ export class InvoicesService {
    * Get invoice by order ID
    */
   static async getInvoiceByOrderId(orderId: string) {
-    return api.get<InvoiceResponse>(`/invoices/order/${orderId}`, {
+    return api.get<{ invoice: Invoice }>(`/invoices/order/${orderId}`, {
       loadingMessage: 'Loading invoice...',
       showSuccessToast: false,
     })

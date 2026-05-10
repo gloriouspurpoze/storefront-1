@@ -80,6 +80,67 @@ const TIME_SLOTS = [
   { value: 'night', label: 'Night (6:00 PM - 9:00 PM)' },
 ]
 
+function getCategoryId(c: any): string {
+  return String(c?.id ?? c?._id ?? '').toLowerCase()
+}
+
+function slugifyLabel(s: string): string {
+  return s
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
+function extractIdLikeString(raw: unknown): string {
+  if (raw == null) return ''
+  if (typeof raw === 'object') {
+    const o = raw as Record<string, unknown>
+    const id = o.id ?? o._id
+    if (id != null && String(id).trim()) return String(id).trim().toLowerCase()
+    if (o.slug != null && String(o.slug).trim()) return String(o.slug).trim().toLowerCase()
+    if (o.name != null && String(o.name).trim()) return String(o.name).trim().toLowerCase()
+    return ''
+  }
+  return String(raw).trim().toLowerCase()
+}
+
+/** Map API category (id, slug, or name) to a dropdown value that exists in loaded categories. */
+function resolveCategoryPick(raw: unknown, categories: any[]): string {
+  const hint = extractIdLikeString(raw)
+  if (!hint || !categories.length) return hint
+  if (categories.some((c) => getCategoryId(c) === hint)) return hint
+  const bySlug = categories.find((c) => String((c as any).slug ?? '').toLowerCase() === hint)
+  if (bySlug) return getCategoryId(bySlug)
+  const byName = categories.find((c) => String((c as any).name ?? '').toLowerCase() === hint)
+  if (byName) return getCategoryId(byName)
+  const bySlugifiedName = categories.find((c) => slugifyLabel(String((c as any).name ?? '')) === hint)
+  if (bySlugifiedName) return getCategoryId(bySlugifiedName)
+  return hint
+}
+
+function resolveSubcategoryPick(raw: unknown, subs: any[]): string {
+  const hint = extractIdLikeString(raw)
+  if (!hint || !subs.length) return hint
+  if (subs.some((s) => getCategoryId(s) === hint)) return hint
+  const bySlug = subs.find((s) => String((s as any).slug ?? '').toLowerCase() === hint)
+  if (bySlug) return getCategoryId(bySlug)
+  const byName = subs.find((s) => String((s as any).name ?? '').toLowerCase() === hint)
+  if (byName) return getCategoryId(byName)
+  return hint
+}
+
+/** Rich text often saves as `<p><br></p>` — treat as empty for required validation. */
+function richTextHasPlainText(html: string): boolean {
+  if (!html || !String(html).trim()) return false
+  const stripped = String(html)
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return stripped.length > 0
+}
+
 export function CreateService() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>() // Get service ID from URL for edit mode
@@ -494,17 +555,19 @@ export function CreateService() {
         setActiveTab(0)
         return
       }
-      if (!formData.category) {
+      if (!formData.category?.trim()) {
         appToast('Please select a category', 'error')
         setActiveTab(0)
         return
       }
-      if (!formData.subcategory) {
+      const subsRequired =
+        Boolean(formData.category?.trim()) && !loadingSubcategories && subcategories.length > 0
+      if (subsRequired && !formData.subcategory?.trim()) {
         appToast('Please select a subcategory', 'error')
         setActiveTab(0)
         return
       }
-      if (!formData.description?.trim()) {
+      if (!richTextHasPlainText(formData.description)) {
         appToast('Description is required', 'error')
         setActiveTab(0)
         return
@@ -722,10 +785,28 @@ export function CreateService() {
     loadService()
   }, [id])
 
-  // Normalize category id (backend may return id or _id); use lowercase so it matches API (e.g. 690b45c8b1b9905e4aefb06f)
-  const getCategoryId = (c: any) => ((c?.id ?? c?._id ?? '') + '').toLowerCase()
+  // When catalog loads, align stored category with dropdown ids (slug/name/object → Mongo id).
+  useEffect(() => {
+    if (loadingCategories || categories.length === 0) return
+    setFormData((prev) => {
+      if (!prev.category?.trim()) return prev
+      const resolved = resolveCategoryPick(prev.category, categories)
+      if (resolved === prev.category) return prev
+      return { ...prev, category: resolved }
+    })
+  }, [categories, loadingCategories])
 
-  // Fetch categories for dropdown: support multiple API shapes, normalize id/name, show root-only, fallback without type filter
+  // Align subcategory once options load (slug/name vs id).
+  useEffect(() => {
+    if (loadingSubcategories || subcategories.length === 0 || !formData.subcategory?.trim()) return
+    setFormData((prev) => {
+      const resolved = resolveSubcategoryPick(prev.subcategory, subcategories)
+      if (resolved === prev.subcategory) return prev
+      return { ...prev, subcategory: resolved }
+    })
+  }, [subcategories, loadingSubcategories])
+
+  // Fetch categories for dropdown: full service/both list so ids match API (not only root parents).
   useEffect(() => {
     const normalizeList = (raw: any): any[] => {
       const list = Array.isArray(raw)
@@ -748,10 +829,10 @@ export function CreateService() {
           is_active: true,
         })
         const list = normalizeList({ categories: raw })
-        const roots = list.filter(
-          (c: any) => !(c.parentId ?? c.parent_id)
+        list.sort((a: any, b: any) =>
+          String(a.name ?? '').localeCompare(String(b.name ?? ''), undefined, { sensitivity: 'base' }),
         )
-        setCategories(roots.length > 0 ? roots : list)
+        setCategories(list)
       } catch (error) {
         console.error('Error fetching categories:', error)
         appToast('Failed to load categories', 'error')
@@ -826,11 +907,13 @@ export function CreateService() {
       })
       const raw = response?.data
       const list = raw?.subcategories ?? (Array.isArray(raw) ? raw : [])
-      const normalized = list.map((sub: any) => ({
-        ...sub,
-        id: sub.id ?? sub._id ?? '',
-        name: sub.name ?? sub.displayName ?? sub.title ?? '',
-      })).filter((sub: any) => sub.id && sub.name)
+      const normalized = list
+        .map((sub: any) => ({
+          ...sub,
+          id: String(sub.id ?? sub._id ?? '').toLowerCase(),
+          name: sub.name ?? sub.displayName ?? sub.title ?? '',
+        }))
+        .filter((sub: any) => sub.id && sub.name)
       setSubcategories(normalized)
     } catch (error) {
       console.error('Error fetching subcategories:', error)
@@ -870,7 +953,7 @@ export function CreateService() {
       const created = (raw && typeof raw === 'object' && ('name' in raw || 'id' in raw))
         ? raw
         : (raw as any)?.subcategory ?? (raw as any)?.data
-      const newId = created ? (created.id ?? (created as any)._id) : null
+      const newId = created ? String(created.id ?? (created as any)._id ?? '').toLowerCase() : ''
       if (newId) {
         setSubcategories((prev) => [...prev, { ...created, id: newId, name: created.name ?? name }])
         handleInputChange('subcategory', newId)
@@ -887,6 +970,16 @@ export function CreateService() {
       setCreatingSubcategory(false)
     }
   }
+
+  const requiresSubcategoryPick =
+    Boolean(formData.category?.trim()) && !loadingSubcategories && subcategories.length > 0
+
+  const primaryActionsDisabled =
+    loading ||
+    !formData.name?.trim() ||
+    !formData.category?.trim() ||
+    (requiresSubcategoryPick && !formData.subcategory?.trim()) ||
+    !richTextHasPlainText(formData.description)
 
   return (
     <div className="p-4 md:p-6">
@@ -935,7 +1028,7 @@ export function CreateService() {
                 loading={loading}
                 leftIcon={!loading ? <Save className="h-4 w-4" /> : undefined}
                 onClick={() => handleSubmit('publish')}
-                disabled={loading || !formData.name?.trim() || !formData.category || !formData.subcategory || !formData.description?.trim()}
+                disabled={primaryActionsDisabled}
               >
                 {loading ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Service' : 'Create Service')}
               </Button>
@@ -1001,8 +1094,8 @@ export function CreateService() {
           {activeTab === 0 && (
             <div>
               <p className="mb-6 text-sm text-muted-foreground">
-                Fill the 4 required fields below to create your service. All other fields have sensible defaults and
-                can be changed later.
+                Complete name, category, description, and subcategory when your category has sub-types. Other fields
+                have sensible defaults you can adjust later.
               </p>
 
               <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 p-6">
@@ -1056,7 +1149,12 @@ export function CreateService() {
                       </Select>
                     </div>
                     <div className="flex-1 space-y-2">
-                      <Label>Subcategory</Label>
+                      <Label>
+                        Subcategory
+                        {formData.category && !loadingSubcategories && subcategories.length === 0 ? (
+                          <span className="ml-1 font-normal text-muted-foreground">(optional)</span>
+                        ) : null}
+                      </Label>
                       <Select
                         value={formData.subcategory || undefined}
                         onValueChange={(v) => handleInputChange('subcategory', v)}
@@ -2367,13 +2465,7 @@ export function CreateService() {
             <Button
               variant="outline"
               onClick={() => handleSubmit('draft')}
-              disabled={
-                loading ||
-                !formData.name?.trim() ||
-                !formData.category ||
-                !formData.subcategory ||
-                !formData.description?.trim()
-              }
+              disabled={primaryActionsDisabled}
             >
               Save as Draft
             </Button>
@@ -2381,13 +2473,7 @@ export function CreateService() {
               loading={loading}
               leftIcon={!loading ? <Save className="h-4 w-4" /> : undefined}
               onClick={() => handleSubmit('publish')}
-              disabled={
-                loading ||
-                !formData.name?.trim() ||
-                !formData.category ||
-                !formData.subcategory ||
-                !formData.description?.trim()
-              }
+              disabled={primaryActionsDisabled}
             >
               {loading
                 ? isEditMode
