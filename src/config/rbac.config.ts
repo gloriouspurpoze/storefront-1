@@ -318,6 +318,7 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       'view_providers',
       
       'view_bookings',
+      'create_bookings',
       'edit_bookings',
       
       'view_quotes',
@@ -458,6 +459,12 @@ export const routePermissions: RoutePermission[] = [
   {
     path: '/operations/dispute-cases',
     requiredPermissions: ['view_bookings', 'manage_bookings', 'edit_bookings'],
+    requireAll: false,
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+  {
+    path: '/operations/pos',
+    requiredPermissions: ['create_bookings', 'manage_bookings'],
     requireAll: false,
     allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
   },

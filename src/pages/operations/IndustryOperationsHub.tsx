@@ -10,6 +10,7 @@ import {
   ArrowRight,
   Loader2,
   RefreshCw,
+  ScanLine,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
@@ -66,6 +67,7 @@ const cards: {
 
 export function IndustryOperationsHub() {
   const { checkAnyPermission } = usePermissions()
+  const canPos = checkAnyPermission(['create_bookings', 'manage_bookings'])
   const canBookings = checkAnyPermission(['view_bookings', 'manage_bookings'])
   const canPros = checkAnyPermission(['view_providers', 'edit_providers', 'approve_providers'])
   const canRefund = checkAnyPermission(['refund_payments', 'create_payments'])
@@ -237,6 +239,27 @@ export function IndustryOperationsHub() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
+        {canPos ? (
+          <Card className="border-primary/35 bg-gradient-to-br from-primary/8 via-background to-background shadow-sm">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <ScanLine className="h-5 w-5 text-primary" aria-hidden />
+                <CardTitle className="text-lg">POS — Home services</CardTitle>
+              </div>
+              <CardDescription>
+                Walk-in and phone desk: live catalog, GST-aware ticket, technician assignment — posts through{' '}
+                <code className="rounded bg-muted px-1 py-0.5 text-[11px]">POST /api/bookings/admin</code>.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="default" size="sm" asChild>
+                <Link to="/operations/pos">
+                  Open POS <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : null}
         {cards.map((c) => {
           const Icon = c.icon
           let allowed = true

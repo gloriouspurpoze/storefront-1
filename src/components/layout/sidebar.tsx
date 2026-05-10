@@ -50,6 +50,7 @@ import {
   Wallet as WalletIcon,
   Store as StorefrontIcon,
   ShoppingBag as ShoppingBagIcon,
+  ScanLine as PosTerminalIcon,
   Briefcase as BusinessCenterIcon,
   UserSearch as PersonSearchIcon,
   Handshake as HandshakeIcon,
@@ -252,6 +253,13 @@ const navigationGroups = [
     icon: CalendarIcon,
     items: [
       { name: 'Bookings', href: '/bookings', icon: CalendarIcon, permissions: ['view_bookings', 'manage_bookings'], badge: null },
+      {
+        name: 'POS — Home services',
+        href: '/operations/pos',
+        icon: PosTerminalIcon,
+        permissions: ['create_bookings', 'manage_bookings'],
+        badge: null,
+      },
       {
         name: 'Industry operations',
         href: '/operations',

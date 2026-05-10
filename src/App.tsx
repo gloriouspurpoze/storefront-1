@@ -145,6 +145,9 @@ const PayoutTransparencyPage = lazy(() =>
 const DisputeCasesPage = lazy(() =>
   import('./pages/operations/DisputeCasesPage').then((m) => ({ default: m.DisputeCasesPage })),
 )
+const HomeServicePOSPage = lazy(() =>
+  import('./pages/operations/HomeServicePOSPage').then((m) => ({ default: m.HomeServicePOSPage })),
+)
 
 const Payments = lazy(() => import('./pages/payments/payments').then((m) => ({ default: m.Payments })))
 const Invoices = lazy(() => import('./pages/payments/invoices').then((m) => ({ default: m.Invoices })))
@@ -614,6 +617,14 @@ function App() {
                             permissions={['view_bookings', 'manage_bookings', 'edit_bookings']}
                           >
                             <DisputeCasesPage />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/operations/pos"
+                        element={
+                          <RoleBasedRoute permissions={['create_bookings', 'manage_bookings']}>
+                            <HomeServicePOSPage />
                           </RoleBasedRoute>
                         }
                       />
