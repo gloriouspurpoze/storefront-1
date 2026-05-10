@@ -82,7 +82,10 @@ export const usersService = {
       })
     }
     const url = queryParams.toString() ? `/users/all?${queryParams.toString()}` : '/users/all'
-    const response = (await apiClient.get(url)) as { data?: { users?: unknown[]; pagination?: GetUsersResponse['pagination'] } }
+    const response = (await apiClient.get(url, {
+      showSuccessToast: false,
+      showLoading: false,
+    })) as { data?: { users?: unknown[]; pagination?: GetUsersResponse['pagination'] } }
     if (response?.data) {
       const rawUsers = response.data.users || []
       return {
@@ -99,8 +102,11 @@ export const usersService = {
   },
 
   async getUserById(userId: string): Promise<User> {
-    const response = (await apiClient.get(`/users/${userId}`)) as { data?: { data?: { user?: unknown } } }
-    const raw = (response as { data?: { data?: { user?: unknown } } })?.data?.data?.user
+    const response = (await apiClient.get(`/users/${userId}`, {
+      showSuccessToast: false,
+      showLoading: false,
+    })) as { data?: { user?: unknown; data?: { user?: unknown } } }
+    const raw = response?.data?.user ?? response?.data?.data?.user
     if (!raw) throw new Error('User not found')
     return mapListUser(raw)
   },
@@ -173,7 +179,8 @@ export const usersService = {
     if (data.permissions !== undefined) payload.permissions = data.permissions
 
     const response = await apiClient.put(`/users/update/${userId}`, payload)
-    const userRaw = (response as { data?: { data?: { user?: unknown } } })?.data?.data?.user
+    const payloadData = (response as { data?: { user?: unknown; message?: string; data?: { user?: unknown } } })?.data
+    const userRaw = payloadData?.user ?? payloadData?.data?.user
     if (!userRaw) throw new Error('Invalid update user response')
     return mapListUser(userRaw)
   },
@@ -190,14 +197,24 @@ export const usersService = {
     const response = await apiClient.put(`/users/update/${userId}`, {
       is_active: isActive,
     })
-    const userRaw = (response as { data?: { data?: { user?: unknown } } })?.data?.data?.user
+    const payloadData = (response as { data?: { user?: unknown; data?: { user?: unknown } } })?.data
+    const userRaw = payloadData?.user ?? payloadData?.data?.user
     if (!userRaw) throw new Error('Invalid response')
     return mapListUser(userRaw)
   },
 
   async getUserStats(): Promise<UserStats> {
-    const response = await apiClient.get('/users/stats')
-    return (response as { data?: { data?: UserStats } }).data?.data as UserStats
+    const response = await apiClient.get('/users/stats', {
+      showSuccessToast: false,
+      showLoading: false,
+    })
+    const stats =
+      (response as { data?: UserStats }).data ??
+      (response as { data?: { data?: UserStats } }).data?.data
+    if (!stats || typeof stats.totalUsers !== 'number') {
+      throw new Error('Invalid stats response')
+    }
+    return stats
   },
 
   async bulkDeleteUsers(userIds: string[]): Promise<void> {
