@@ -13,6 +13,7 @@ import {
   Search,
   Settings2,
   Tag,
+  Trash2,
   UserCircle2,
 } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
@@ -261,9 +262,13 @@ export function TeamWorkHub() {
 
   const [projectSettingsOpen, setProjectSettingsOpen] = useState(false)
   const [projectDetailName, setProjectDetailName] = useState('')
+  const [projectDetailKey, setProjectDetailKey] = useState('')
   const [projectDetailDesc, setProjectDetailDesc] = useState('')
   const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false)
   const [archiving, setArchiving] = useState(false)
+  const [deleteBoardConfirmOpen, setDeleteBoardConfirmOpen] = useState(false)
+  const [deleteBoardSaving, setDeleteBoardSaving] = useState(false)
+  const [unarchiveSaving, setUnarchiveSaving] = useState(false)
   const [newProjectOpen, setNewProjectOpen] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const [newProjectKey, setNewProjectKey] = useState('')
@@ -530,7 +535,7 @@ export function TeamWorkHub() {
     let cancelled = false
     void (async () => {
       try {
-        const list = await teamWorkApi.listProjects()
+        const list = await teamWorkApi.listProjects({ includeArchived: canManageProjects })
         if (cancelled) return
         setProjects(list)
         const saved = typeof window !== 'undefined' ? window.localStorage.getItem(projectStorageKey) : null
@@ -549,7 +554,7 @@ export function TeamWorkHub() {
     return () => {
       cancelled = true
     }
-  }, [projectStorageKey])
+  }, [projectStorageKey, canManageProjects])
 
   useEffect(() => {
     if (!projectsLoaded || !projectId) return
@@ -719,9 +724,9 @@ export function TeamWorkHub() {
   }
 
   const refreshProjects = useCallback(async () => {
-    const list = await teamWorkApi.listProjects()
+    const list = await teamWorkApi.listProjects({ includeArchived: canManageProjects })
     setProjects(list)
-  }, [])
+  }, [canManageProjects])
 
   const resetNewIssueForm = useCallback(() => {
     setNewTitle('')
@@ -802,12 +807,17 @@ export function TeamWorkHub() {
         new Set(accessMemberIds.map(emailFromMemberId).filter(Boolean)),
       ) as string[]
       const description = projectDetailDesc.trim()
-      const updated = await teamWorkApi.patchProject(currentProject.id, {
+      const keyNormalized = projectDetailKey.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 12)
+      const patch: Parameters<typeof teamWorkApi.patchProject>[1] = {
         name,
         description: description || undefined,
         memberUserIds: accessMemberIds,
         memberEmails,
-      })
+      }
+      if (keyNormalized && keyNormalized !== currentProject.key) {
+        patch.key = keyNormalized
+      }
+      const updated = await teamWorkApi.patchProject(currentProject.id, patch)
       setProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
       setProjectSettingsOpen(false)
       void load()
@@ -840,16 +850,50 @@ export function TeamWorkHub() {
     if (projectSettingsOpen && currentProject) {
       setAccessMemberIds([...currentProject.memberUserIds])
       setProjectDetailName(currentProject.name)
+      setProjectDetailKey(currentProject.key)
       setProjectDetailDesc(currentProject.description ?? '')
     }
   }, [projectSettingsOpen, currentProject])
+
+  const unarchiveCurrentBoard = async () => {
+    if (!currentProject || !canManageProjects) return
+    setUnarchiveSaving(true)
+    try {
+      const updated = await teamWorkApi.patchProject(currentProject.id, { isArchived: false })
+      setProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
+      await refreshProjects()
+      setProjectSettingsOpen(false)
+    } finally {
+      setUnarchiveSaving(false)
+    }
+  }
+
+  const deleteCurrentBoard = async () => {
+    if (!currentProject || !canManageProjects) return
+    setDeleteBoardSaving(true)
+    try {
+      await teamWorkApi.deleteProject(currentProject.id)
+      const list = await teamWorkApi.listProjects({ includeArchived: canManageProjects })
+      setProjects(list)
+      setDeleteBoardConfirmOpen(false)
+      setProjectSettingsOpen(false)
+      const nextId = list.find((p) => !p.isArchived)?.id ?? null
+      if (nextId) onChangeProject(nextId)
+      else {
+        setProjectId(null)
+        window.localStorage.removeItem(projectStorageKey)
+      }
+    } finally {
+      setDeleteBoardSaving(false)
+    }
+  }
 
   const archiveCurrentBoard = async () => {
     if (!currentProject) return
     setArchiving(true)
     try {
       await teamWorkApi.patchProject(currentProject.id, { isArchived: true })
-      const list = await teamWorkApi.listProjects()
+      const list = await teamWorkApi.listProjects({ includeArchived: canManageProjects })
       setProjects(list)
       setArchiveConfirmOpen(false)
       setProjectSettingsOpen(false)
@@ -1804,6 +1848,22 @@ export function TeamWorkHub() {
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="board-key">Issue key prefix</Label>
+              <Input
+                id="board-key"
+                value={projectDetailKey}
+                onChange={(e) =>
+                  setProjectDetailKey(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 12))
+                }
+                placeholder="PF"
+                maxLength={12}
+                className="font-mono uppercase"
+              />
+              <p className="text-xs text-muted-foreground">
+                New tasks use this prefix (e.g. PF-1). Existing keys are not renamed if you change the prefix.
+              </p>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="board-desc">Description (optional)</Label>
               <Textarea
                 id="board-desc"
@@ -1850,17 +1910,42 @@ export function TeamWorkHub() {
               )}
             </div>
           </div>
-          <DialogFooter className="flex-col gap-2 border-t border-border/60 pt-3 sm:flex-row sm:items-center sm:justify-between">
-            <Button
-              type="button"
-              variant="outline"
-              className="gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive sm:mr-auto"
-              disabled={!currentProject || currentProject.isArchived || archiving}
-              onClick={() => setArchiveConfirmOpen(true)}
-            >
-              <Archive className="h-4 w-4" aria-hidden />
-              Archive board
-            </Button>
+          <DialogFooter className="flex-col gap-3 border-t border-border/60 pt-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex w-full flex-wrap gap-2 sm:max-w-md">
+              {currentProject?.isArchived ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="gap-1.5"
+                  disabled={!canManageProjects || unarchiveSaving}
+                  onClick={() => void unarchiveCurrentBoard()}
+                >
+                  {unarchiveSaving ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+                  Unarchive board
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  disabled={!currentProject || archiving}
+                  onClick={() => setArchiveConfirmOpen(true)}
+                >
+                  <Archive className="h-4 w-4" aria-hidden />
+                  Archive board
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                disabled={!currentProject || !canManageProjects || deleteBoardSaving}
+                onClick={() => setDeleteBoardConfirmOpen(true)}
+              >
+                <Trash2 className="h-4 w-4" aria-hidden />
+                Delete board…
+              </Button>
+            </div>
             <div className="flex w-full flex-wrap justify-end gap-2 sm:w-auto">
               <Button type="button" variant="outline" onClick={() => setProjectSettingsOpen(false)}>
                 Cancel
@@ -1883,10 +1968,21 @@ export function TeamWorkHub() {
         onCancel={() => !archiving && setArchiveConfirmOpen(false)}
         onConfirm={() => void archiveCurrentBoard()}
         title="Archive this project board?"
-        message={`Board “${currentProject?.name ?? ''}” (${currentProject?.key ?? ''}) will be hidden from the default list. You can still open it from the picker if it remains returned by the API.`}
+        message={`Board “${currentProject?.name ?? ''}” (${currentProject?.key ?? ''}) will be archived. Users with manage team projects still see it in the board picker and can unarchive it from Board settings.`}
         confirmText="Archive board"
         severity="error"
         loading={archiving}
+      />
+
+      <ConfirmDialog
+        open={deleteBoardConfirmOpen}
+        onCancel={() => !deleteBoardSaving && setDeleteBoardConfirmOpen(false)}
+        onConfirm={() => void deleteCurrentBoard()}
+        title="Delete this project board?"
+        message="Permanently removes the board only if it has no tasks, ceremonies, or sprints. The default organization board cannot be deleted."
+        confirmText="Delete board"
+        severity="error"
+        loading={deleteBoardSaving}
       />
 
       <ScheduleMeetingDialog

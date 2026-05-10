@@ -185,6 +185,18 @@ export const QUICK_NAV_ITEMS: QuickNavItem[] = [
   { label: 'Refund requests', path: '/support/refund-requests', group: 'System' },
   { label: 'System status', path: '/system-status', group: 'System' },
   { label: 'Settings', path: '/settings', group: 'System' },
+  {
+    label: 'Roles & access',
+    path: '/settings/access',
+    group: 'System',
+    keywords: 'rbac permissions roles route guards',
+  },
+  {
+    label: 'Assign access',
+    path: '/settings/access/assign',
+    group: 'System',
+    keywords: 'team permissions edit_user manage_user_roles',
+  },
   { label: 'SaaS platform', path: '/settings/saas', group: 'System', keywords: 'tenant billing checklist multi' },
   { label: 'Organizations', path: '/settings/tenants', group: 'System', keywords: 'tenants onboard saas clients' },
   { label: 'Help & support', path: '/support', group: 'System' },
@@ -244,6 +256,13 @@ const SEGMENT_TITLE_RULES: { test: RegExp; title: string }[] = [
   { test: /^\/cms\/blogs\/[^/]+\/edit$/, title: 'Edit blog post' },
   { test: /^\/cms\/homepage\/new$/, title: 'Homepage section' },
   { test: /^\/cms\/homepage\/[^/]+$/, title: 'Homepage section' },
+  { test: /^\/settings\/access\/permissions\/[^/]+$/, title: 'Permission detail' },
+  { test: /^\/settings\/access\/roles\/[^/]+$/, title: 'Role detail' },
+  { test: /^\/settings\/access\/routes$/, title: 'Route guards' },
+  { test: /^\/settings\/access\/permissions$/, title: 'Permissions' },
+  { test: /^\/settings\/access\/roles$/, title: 'Roles' },
+  { test: /^\/settings\/access$/, title: 'Roles & access' },
+  { test: /^\/settings\/access\/assign$/, title: 'Assign access' },
 ]
 
 function titleForPath(pathname: string): string {

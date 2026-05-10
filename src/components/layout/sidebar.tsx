@@ -24,6 +24,7 @@ import {
   Building2 as BusinessIcon,
   LifeBuoy as SupportIcon,
   ShieldAlert as ShieldAlertIcon,
+  Shield as ShieldAccessIcon,
   Bell as NotificationsIcon,
   User as PersonIcon,
   Tag as CategoryIcon,
@@ -614,6 +615,13 @@ const navigationGroups = [
         badge: null,
       },
       { name: 'Settings', href: '/settings', icon: SettingsIcon, permissions: ['manage_settings'], badge: null },
+      {
+        name: 'Roles & access',
+        href: '/settings/access',
+        icon: ShieldAccessIcon,
+        permissions: ['view_settings', 'manage_system_settings', 'manage_user_roles'],
+        badge: null,
+      },
       { name: 'Help & Support', href: '/support', icon: SupportIcon, permissions: ['view_dashboard'], badge: null },
       {
         name: 'SaaS platform',

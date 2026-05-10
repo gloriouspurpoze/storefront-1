@@ -1,6 +1,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { BoardsService, type BoardSummary } from '../../services/api/boards.service'
+import { BoardsService, type ArchivedBoardSummary, type BoardSummary } from '../../services/api/boards.service'
 import {
   Button,
   Card,
@@ -39,6 +39,8 @@ export function BoardsHub() {
   const [renaming, setRenaming] = React.useState(false)
   const [deleteTarget, setDeleteTarget] = React.useState<BoardSummary | null>(null)
   const [deleting, setDeleting] = React.useState(false)
+  const [archivedBoards, setArchivedBoards] = React.useState<ArchivedBoardSummary[]>([])
+  const [restoringId, setRestoringId] = React.useState<string | null>(null)
 
   const load = React.useCallback(async () => {
     setLoading(true)
@@ -56,6 +58,38 @@ export function BoardsHub() {
   React.useEffect(() => {
     void load()
   }, [load])
+
+  const loadArchived = React.useCallback(async () => {
+    try {
+      const r = await BoardsService.listArchivedMine()
+      if (!r.success) throw new Error(r.message || 'Failed to load archived boards')
+      setArchivedBoards(r.data || [])
+    } catch {
+      setArchivedBoards([])
+    }
+  }, [])
+
+  React.useEffect(() => {
+    void loadArchived()
+  }, [loadArchived])
+
+  const runRestore = async (id: string) => {
+    setRestoringId(id)
+    try {
+      const r = await BoardsService.unarchive(id)
+      if (!r.success) throw new Error(r.message || 'Failed to restore')
+      toast({ title: 'Board restored' })
+      await Promise.all([load(), loadArchived()])
+    } catch (e) {
+      toast({
+        title: 'Could not restore',
+        description: e instanceof Error ? e.message : undefined,
+        variant: 'destructive',
+      })
+    } finally {
+      setRestoringId(null)
+    }
+  }
 
   const onCreate = async () => {
     const t = title.trim()
@@ -204,6 +238,35 @@ export function BoardsHub() {
             ))
           )}
         </div>
+
+        {archivedBoards.length > 0 ? (
+          <Card className="border-amber-500/30 bg-amber-500/5">
+            <CardHeader>
+              <CardTitle className="text-base">Archived canvas boards</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              <p className="text-muted-foreground">
+                These boards were removed from your list. Restoring puts them back as owner so you can open them again.
+              </p>
+              <ul className="divide-y rounded-md border">
+                {archivedBoards.map((b) => (
+                  <li key={b.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+                    <span className="font-medium">{b.title}</span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      disabled={restoringId === b.id}
+                      onClick={() => void runRestore(b.id)}
+                    >
+                      {restoringId === b.id ? 'Restoring…' : 'Unarchive'}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        ) : null}
 
         <Dialog
           open={renameTarget !== null}

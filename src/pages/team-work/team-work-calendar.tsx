@@ -27,6 +27,7 @@ import {
   Video,
 } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
+import { parseTeamCalendarProjectKeys, resolveCalendarProjectIds } from '../../lib/teamWorkCalendarScope'
 import { teamWorkApi } from '../../services/api/teamWork.api'
 import type {
   TeamWorkCalendarEvent,
@@ -171,16 +172,29 @@ export function TeamWorkCalendarPage() {
     setErr(null)
     setLoading(true)
     try {
-      const [f, projs, cer, g] = await Promise.all([
-        teamWorkApi.getCalendarFeed({ from: range.from, to: range.to, includeGoogle }),
+      const calKeys = parseTeamCalendarProjectKeys()
+      const [projs, g] = await Promise.all([
         teamWorkApi.listProjects(),
-        teamWorkApi.listCeremonies(),
         teamWorkApi.getGoogleCalendarStatus().catch(() => ({ googleConnected: false })),
       ])
+      const scopedIds = resolveCalendarProjectIds(projs)
+      const primaryPid = scopedIds[0] ?? ''
+
+      const [f, cer] = await Promise.all([
+        teamWorkApi.getCalendarFeed({
+          from: range.from,
+          to: range.to,
+          includeGoogle,
+          projectKeys: calKeys.length ? calKeys : undefined,
+        }),
+        primaryPid ? teamWorkApi.listCeremonies(primaryPid) : Promise.resolve([]),
+      ])
+
       setFeed(f)
       setProjects(projs)
       setCeremonies(cer)
       setGoogleStatus(g)
+      setCProjectId((prev) => (prev && scopedIds.includes(prev) ? prev : primaryPid))
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : 'Could not load calendar')
     } finally {
@@ -359,7 +373,7 @@ export function TeamWorkCalendarPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <PageHeader
         title="Team calendar"
-        subtitle="All ticket due dates across boards you can access, recurring ceremonies, and optional Google Calendar overlay. Create Google Meet events on the server after connecting your Google account (separate from CRM read-only sync)."
+        subtitle="Due dates and ceremonies are scoped to project keys from REACT_APP_TEAM_WORK_CALENDAR_PROJECT_KEYS (default PF / ProFixer). Optional Google overlay is unchanged."
         action={
           <Button variant="outline" size="sm" asChild>
             <Link to="/team-work">Back to boards</Link>

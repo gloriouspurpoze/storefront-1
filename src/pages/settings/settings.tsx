@@ -4,6 +4,7 @@ import {
   Card,
   CardHeader,
   CardTitle,
+  CardDescription,
   CardContent,
   Input,
   Label,
@@ -25,6 +26,7 @@ import {
   CloudOff,
   Cloud,
   Loader2,
+  KeyRound,
 } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { PushNotificationManager } from '../../components/notifications/PushNotificationManager'
@@ -32,6 +34,7 @@ import { SocialPublishSettingsForm } from '../../components/marketing-workspace/
 import { Badge } from '../../components/ui/badge'
 import { settingsService, type Settings } from '../../services/api/settings.service'
 import { Link } from 'react-router-dom'
+import { usePermissions } from '../../hooks/usePermissions'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -63,6 +66,12 @@ export function Settings() {
   const [lastFetchedAt, setLastFetchedAt] = useState<Date | null>(null)
   const [fetchDetail, setFetchDetail] = useState<string | null>(null)
   const { toast } = useToast()
+  const { checkAnyPermission } = usePermissions()
+  const canSeeAccessExplorer = checkAnyPermission([
+    'view_settings',
+    'manage_system_settings',
+    'manage_user_roles',
+  ])
   
   const [settings, setSettings] = useState<Settings>({
     general: {
@@ -236,6 +245,26 @@ export function Settings() {
             )}
           </CardContent>
         </Card>
+
+        {canSeeAccessExplorer ? (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <KeyRound className="h-5 w-5 text-primary" aria-hidden />
+                Roles & access
+              </CardTitle>
+              <CardDescription>
+                Browse roles, the permission catalog, and route guards — all generated from the same RBAC
+                config the app uses at runtime.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="secondary" size="sm" asChild>
+                <Link to="/settings/access">Open access explorer</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : null}
 
         {/* Tabs */}
         <Card>

@@ -185,8 +185,14 @@ export const teamWorkApi = {
     return getJson<TeamWorkMeta>('/team-work/meta', false)
   },
 
-  async listProjects(): Promise<TeamWorkProject[]> {
-    const d = await getJson<{ projects: Record<string, unknown>[] }>('/team-work/projects', false)
+  async listProjects(opts?: { includeArchived?: boolean }): Promise<TeamWorkProject[]> {
+    const qs = new URLSearchParams()
+    if (opts?.includeArchived) qs.set('includeArchived', '1')
+    const q = qs.toString()
+    const d = await getJson<{ projects: Record<string, unknown>[] }>(
+      `/team-work/projects${q ? `?${q}` : ''}`,
+      false,
+    )
     return (d.projects || []).map((row) => mapProject(row))
   },
 
@@ -207,11 +213,18 @@ export const teamWorkApi = {
   async patchProject(
     id: string,
     body: Partial<
-      Pick<TeamWorkProject, 'name' | 'description' | 'memberUserIds' | 'memberEmails' | 'isArchived' | 'tagCatalog'>
+      Pick<
+        TeamWorkProject,
+        'name' | 'description' | 'key' | 'memberUserIds' | 'memberEmails' | 'isArchived' | 'tagCatalog'
+      >
     >,
   ): Promise<TeamWorkProject> {
     const d = await sendJson<{ project: Record<string, unknown> }>('PATCH', `/team-work/projects/${id}`, body)
     return mapProject(d.project)
+  },
+
+  async deleteProject(id: string): Promise<void> {
+    await sendJson<unknown>('DELETE', `/team-work/projects/${id}`)
   },
 
   async listSprints(projectId: string): Promise<TeamWorkSprint[]> {
@@ -355,9 +368,15 @@ export const teamWorkApi = {
     return mapItem(row)
   },
 
-  async getCalendarFeed(params: { from: string; to: string; includeGoogle?: boolean }): Promise<TeamWorkCalendarFeed> {
+  async getCalendarFeed(params: {
+    from: string
+    to: string
+    includeGoogle?: boolean
+    projectKeys?: string[]
+  }): Promise<TeamWorkCalendarFeed> {
     const qs = new URLSearchParams({ from: params.from, to: params.to })
     if (params.includeGoogle) qs.set('includeGoogle', '1')
+    if (params.projectKeys?.length) qs.set('projectKeys', params.projectKeys.join(','))
     return getJson<TeamWorkCalendarFeed>(`/team-work/calendar?${qs.toString()}`, false)
   },
 

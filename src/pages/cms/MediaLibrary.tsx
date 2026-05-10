@@ -17,6 +17,7 @@ import {
   Loader2,
   HardDrive,
   Sparkles,
+  Upload,
 } from 'lucide-react'
 import { CMSService } from '../../services/api'
 import { PageHeader } from '../../components/common/PageHeader'
@@ -189,6 +190,33 @@ const MIME_OPTIONS: { value: string; label: string }[] = [
   { value: 'application/octet-stream', label: 'Other / unknown' },
 ]
 
+const CMS_UPLOAD_MAX_BYTES = 15 * 1024 * 1024
+const CMS_UPLOAD_ACCEPT_MIME = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'image/svg+xml',
+  'video/mp4',
+  'video/webm',
+  'video/quicktime',
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'text/csv',
+])
+
+function validateCmsUpload(file: File): string | null {
+  if (!file.size || file.size > CMS_UPLOAD_MAX_BYTES) {
+    return `Choose a file under ${formatBytes(CMS_UPLOAD_MAX_BYTES)} (photos, PDFs, Office docs, short video).`
+  }
+  if (file.type && !CMS_UPLOAD_ACCEPT_MIME.has(file.type)) {
+    return 'This file type is not allowed. Use images, PDF, Office documents, CSV, or MP4/WebM/MOV.'
+  }
+  return null
+}
+
 export default function MediaLibrary() {
   const confirm = useAppConfirm()
   const [files, setFiles] = useState<MediaFile[]>([])
@@ -203,6 +231,8 @@ export default function MediaLibrary() {
   const [typeStats, setTypeStats] = useState<Array<{ _id: string; count: number; totalSize: number }>>([])
   const [selectedFile, setSelectedFile] = useState<MediaFile | null>(null)
   const [addOpen, setAddOpen] = useState(false)
+  const [addTab, setAddTab] = useState<'link' | 'upload' | 'guide'>('link')
+  const [uploadSaving, setUploadSaving] = useState(false)
 
   const [form, setForm] = useState({
     url: '',
@@ -291,6 +321,55 @@ export default function MediaLibrary() {
       filename: name,
       size: f.size || 0,
     }))
+  }
+
+  const handleUploadAsset = async (fileList: FileList | null) => {
+    const file = fileList?.[0]
+    if (!file) {
+      appToast('Choose a file from your device', 'error')
+      return
+    }
+    const v = validateCmsUpload(file)
+    if (v) {
+      appToast(v, 'error')
+      return
+    }
+    setUploadSaving(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('folder', form.folder.trim() || 'uploads')
+      if (form.description.trim()) fd.append('description', form.description.trim())
+      if (form.tags.trim()) fd.append('tags', form.tags.trim())
+      const raw = await CMSService.uploadMedia(fd)
+      const envelope = raw as { file?: MediaFile } & MediaFile
+      const created = envelope.file ?? (envelope._id ? envelope : null)
+      if (!created?._id) {
+        appToast('Upload succeeded but library response was unexpected', 'error')
+        return
+      }
+      appToast('File uploaded to library', 'success')
+      setAddOpen(false)
+      setForm({
+        url: '',
+        filename: '',
+        mimeType: 'application/pdf',
+        size: 0,
+        folder: 'marketing',
+        description: '',
+        tags: '',
+      })
+      void loadFoldersAndStats()
+      void fetchFiles()
+    } catch (e: unknown) {
+      const msg =
+        e && typeof e === 'object' && 'response' in e
+          ? (e as { response?: { data?: { message?: string } } }).response?.data?.message
+          : null
+      appToast(typeof msg === 'string' ? msg : 'Upload failed', 'error')
+    } finally {
+      setUploadSaving(false)
+    }
   }
 
   const handleRegisterAsset = async () => {
@@ -648,15 +727,22 @@ export default function MediaLibrary() {
         </div>
       )}
 
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+      <Dialog
+        open={addOpen}
+        onOpenChange={(o) => {
+          setAddOpen(o)
+          if (o) setAddTab('link')
+        }}
+      >
         <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>Register asset</DialogTitle>
           </DialogHeader>
-          <Tabs defaultValue="link" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="link">Link &amp; details</TabsTrigger>
-              <TabsTrigger value="guide">How teams use this</TabsTrigger>
+          <Tabs value={addTab} onValueChange={(v) => setAddTab(v as 'link' | 'upload' | 'guide')} className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="link">Link URL</TabsTrigger>
+              <TabsTrigger value="upload">Upload file</TabsTrigger>
+              <TabsTrigger value="guide">Guide</TabsTrigger>
             </TabsList>
             <TabsContent value="link" className="space-y-4 pt-2">
               <div className="space-y-1.5">
@@ -757,6 +843,70 @@ export default function MediaLibrary() {
                 <p className="text-xs text-muted-foreground">Comma-separated; stored lowercase.</p>
               </div>
             </TabsContent>
+            <TabsContent value="upload" className="space-y-4 pt-2">
+              <p className="text-xs text-muted-foreground">
+                Images, PDF, Word/Excel/PowerPoint, CSV, and short video — max {formatBytes(CMS_UPLOAD_MAX_BYTES)} per
+                file. Heavier assets should use a URL instead.
+              </p>
+              <div className="space-y-1.5">
+                <Label htmlFor="upload-folder">Folder</Label>
+                <Input
+                  id="upload-folder"
+                  placeholder="e.g. uploads, marketing"
+                  value={form.folder}
+                  onChange={(e) => setForm((f) => ({ ...f, folder: e.target.value }))}
+                />
+                <div className="flex flex-wrap gap-1">
+                  {FOLDER_PRESETS.map((f) => (
+                    <Button
+                      key={f}
+                      type="button"
+                      variant={form.folder === f ? 'secondary' : 'outline'}
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setForm((prev) => ({ ...prev, folder: f }))}
+                    >
+                      {f}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="upload-desc">Description (optional)</Label>
+                <Textarea
+                  id="upload-desc"
+                  rows={2}
+                  value={form.description}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="upload-tags">Tags (optional)</Label>
+                <Input
+                  id="upload-tags"
+                  value={form.tags}
+                  onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cms-file-input">File</Label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    id="cms-file-input"
+                    type="file"
+                    accept={Array.from(CMS_UPLOAD_ACCEPT_MIME).join(',')}
+                    disabled={uploadSaving}
+                    className="max-w-full sm:max-w-md"
+                    onChange={(e) => void handleUploadAsset(e.target.files)}
+                  />
+                  {uploadSaving ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-hidden /> : null}
+                </div>
+                <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Upload className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  Choosing a file uploads it immediately after validation.
+                </p>
+              </div>
+            </TabsContent>
             <TabsContent value="guide" className="space-y-3 pt-2 text-sm text-muted-foreground">
               <ul className="list-inside list-disc space-y-2">
                 <li>
@@ -783,9 +933,11 @@ export default function MediaLibrary() {
             <Button type="button" variant="outline" onClick={() => setAddOpen(false)}>
               Cancel
             </Button>
-            <Button type="button" onClick={() => void handleRegisterAsset()}>
-              Save to library
-            </Button>
+            {addTab === 'link' ? (
+              <Button type="button" onClick={() => void handleRegisterAsset()}>
+                Save to library
+              </Button>
+            ) : null}
           </DialogFooter>
         </DialogContent>
       </Dialog>

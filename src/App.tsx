@@ -169,6 +169,30 @@ const SaasPlatformPage = lazy(() =>
 const PlatformTenantsPage = lazy(() =>
   import('./pages/settings/PlatformTenantsPage').then((m) => ({ default: m.PlatformTenantsPage })),
 )
+const AccessLayout = lazy(() =>
+  import('./pages/settings/access/AccessLayout').then((m) => ({ default: m.AccessLayout })),
+)
+const AccessOverviewPage = lazy(() =>
+  import('./pages/settings/access/AccessOverviewPage').then((m) => ({ default: m.AccessOverviewPage })),
+)
+const RolesIndexPage = lazy(() =>
+  import('./pages/settings/access/RolesIndexPage').then((m) => ({ default: m.RolesIndexPage })),
+)
+const RoleDetailPage = lazy(() =>
+  import('./pages/settings/access/RoleDetailPage').then((m) => ({ default: m.RoleDetailPage })),
+)
+const PermissionsIndexPage = lazy(() =>
+  import('./pages/settings/access/PermissionsIndexPage').then((m) => ({ default: m.PermissionsIndexPage })),
+)
+const PermissionDetailPage = lazy(() =>
+  import('./pages/settings/access/PermissionDetailPage').then((m) => ({ default: m.PermissionDetailPage })),
+)
+const RoutesExplorerPage = lazy(() =>
+  import('./pages/settings/access/RoutesExplorerPage').then((m) => ({ default: m.RoutesExplorerPage })),
+)
+const AssignTeamAccessPage = lazy(() =>
+  import('./pages/settings/access/AssignTeamAccessPage').then((m) => ({ default: m.AssignTeamAccessPage })),
+)
 const Sliders = lazy(() => import('./pages/settings/sliders').then((m) => ({ default: m.Sliders })))
 const SystemStatus = lazy(() => import('./pages/settings/system-status'))
 
@@ -1093,6 +1117,24 @@ function App() {
                           </RoleBasedRoute>
                         } 
                       />
+                      <Route
+                        path="/settings/access"
+                        element={
+                          <RoleBasedRoute
+                            permissions={['view_settings', 'manage_system_settings', 'manage_user_roles']}
+                          >
+                            <AccessLayout />
+                          </RoleBasedRoute>
+                        }
+                      >
+                        <Route index element={<AccessOverviewPage />} />
+                        <Route path="roles" element={<RolesIndexPage />} />
+                        <Route path="roles/:roleId" element={<RoleDetailPage />} />
+                        <Route path="permissions" element={<PermissionsIndexPage />} />
+                        <Route path="permissions/:permissionId" element={<PermissionDetailPage />} />
+                        <Route path="routes" element={<RoutesExplorerPage />} />
+                        <Route path="assign" element={<AssignTeamAccessPage />} />
+                      </Route>
                       <Route
                         path="/settings/saas"
                         element={

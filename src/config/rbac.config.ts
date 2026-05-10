@@ -576,6 +576,12 @@ export const routePermissions: RoutePermission[] = [
     allowedRoles: ['super_admin', 'admin'],
   },
   {
+    path: '/settings/access',
+    requiredPermissions: ['view_settings', 'manage_system_settings', 'manage_user_roles'],
+    requireAll: false,
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff'],
+  },
+  {
     path: '/settings',
     requiredPermissions: ['view_settings'],
     allowedRoles: ['super_admin', 'admin', 'manager']

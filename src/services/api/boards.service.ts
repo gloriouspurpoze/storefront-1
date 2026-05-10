@@ -10,6 +10,14 @@ export type BoardSummary = {
   role: BoardRole
 }
 
+export type ArchivedBoardSummary = {
+  id: string
+  title: string
+  updatedAt?: string
+  createdAt?: string
+  archivedAt?: string
+}
+
 export type BoardDetail = {
   id: string
   title: string
@@ -25,6 +33,14 @@ const quiet = { showSuccessToast: false, showLoading: false }
 export const BoardsService = {
   async list(): Promise<ApiResponse<BoardSummary[]>> {
     return api.get('/boards', quiet) as Promise<ApiResponse<BoardSummary[]>>
+  },
+
+  async listArchivedMine(): Promise<ApiResponse<ArchivedBoardSummary[]>> {
+    return api.get('/boards/archived/mine', quiet) as Promise<ApiResponse<ArchivedBoardSummary[]>>
+  },
+
+  async unarchive(id: string): Promise<ApiResponse<{ id: string }>> {
+    return api.post(`/boards/${id}/unarchive`, undefined, quiet) as Promise<ApiResponse<{ id: string }>>
   },
 
   async create(title: string): Promise<ApiResponse<{ id: string; title: string }>> {
