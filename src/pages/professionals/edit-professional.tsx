@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Loader2, Save } from 'lucide-react'
 import {
@@ -73,6 +73,15 @@ export function EditProfessional() {
     workingHours: { start: '09:00', end: '18:00' },
     availability: 'available' as 'available' | 'busy' | 'offline',
     maxBookingsPerDay: 5,
+    /** Profixer platform commission % on job (partner keeps 100 − this). */
+    commissionRate: 15,
+    securityDeposit: {
+      totalRequired: 0,
+      collected: 0,
+      refundable: 0,
+      nonRefundable: 0,
+      perServiceDeduction: 0,
+    },
   })
 
   const mapApiToForm = useCallback((p: Record<string, unknown>) => {
@@ -119,6 +128,34 @@ export function EditProfessional() {
       },
       availability: (p.availability as 'available' | 'busy' | 'offline') || 'available',
       maxBookingsPerDay: Number(p.maxBookingsPerDay ?? 5),
+      commissionRate: (() => {
+        const c = Math.round(Number(p.commissionRate))
+        if (!Number.isFinite(c)) return 15
+        return Math.min(50, Math.max(0, c))
+      })(),
+      securityDeposit: (() => {
+        const sd = p.securityDeposit as Record<string, unknown> | undefined
+        if (!sd || typeof sd !== 'object') {
+          return {
+            totalRequired: 0,
+            collected: 0,
+            refundable: 0,
+            nonRefundable: 0,
+            perServiceDeduction: 0,
+          }
+        }
+        const n = (v: unknown) => {
+          const x = typeof v === 'number' ? v : parseFloat(String(v ?? ''))
+          return Number.isFinite(x) ? x : 0
+        }
+        return {
+          totalRequired: n(sd.totalRequired),
+          collected: n(sd.collected),
+          refundable: n(sd.refundable),
+          nonRefundable: n(sd.nonRefundable),
+          perServiceDeduction: n(sd.perServiceDeduction),
+        }
+      })(),
     }
   }, [])
 
@@ -178,7 +215,6 @@ export function EditProfessional() {
         gender: formData.gender,
         isIndependent: formData.isIndependent,
         services: formData.categories,
-        primaryService: formData.categories[0],
         categories: formData.categories,
         skills: formData.skills,
         experience: formData.experience,
@@ -201,6 +237,18 @@ export function EditProfessional() {
         workingHours: formData.workingHours,
         maxBookingsPerDay: formData.maxBookingsPerDay,
         availability: formData.availability,
+        commissionRate: Math.min(50, Math.max(0, Number(formData.commissionRate) || 0)),
+        securityDeposit: {
+          totalRequired: formData.securityDeposit.totalRequired,
+          collected: formData.securityDeposit.collected,
+          dueFromPartner: Math.max(
+            0,
+            formData.securityDeposit.totalRequired - formData.securityDeposit.collected,
+          ),
+          refundable: formData.securityDeposit.refundable,
+          nonRefundable: formData.securityDeposit.nonRefundable,
+          perServiceDeduction: formData.securityDeposit.perServiceDeduction,
+        },
       })
       navigate('/professionals')
     } catch (e) {
@@ -226,6 +274,12 @@ export function EditProfessional() {
         : [...prev.categories, value],
     }))
   }
+
+  const depositOutstanding = useMemo(() => {
+    const req = Number(formData.securityDeposit.totalRequired) || 0
+    const col = Number(formData.securityDeposit.collected) || 0
+    return Math.max(0, Math.round((req - col) * 100) / 100)
+  }, [formData.securityDeposit.totalRequired, formData.securityDeposit.collected])
 
   if (loading) {
     return (
@@ -538,6 +592,190 @@ export function EditProfessional() {
                 />
               </div>
             </div>
+          </section>
+
+          <Separator />
+
+          <section className="space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold">Profixer commission (per partner)</h2>
+              <p className="text-sm text-muted-foreground">
+                Platform fee as a percent of the job total (customer invoice). The partner keeps the remainder and
+                sees this in their app. For cash collected on site, this fee is debited from their Profixer Wallet
+                credits when they complete the job — they need enough balance. New assignments require at least ₹500
+                in wallet credits by default (override with{' '}
+                <code className="rounded bg-muted px-1">MIN_PROFESSIONAL_WALLET_FOR_ASSIGN_RUPEES</code> on the API).
+              </p>
+            </div>
+            <div className="grid max-w-md gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="commission-rate">Platform commission (%)</Label>
+                <Input
+                  id="commission-rate"
+                  type="number"
+                  min={0}
+                  max={50}
+                  step={1}
+                  value={formData.commissionRate}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      commissionRate: Math.min(50, Math.max(0, Math.round(Number(e.target.value)) || 0)),
+                    })
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  Partner keeps approximately <strong>{100 - formData.commissionRate}%</strong> of each completed job
+                  (before taxes / TDS on payout).
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <Separator />
+
+          <section className="space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold">Partner wallet &amp; security deposit</h2>
+              <p className="text-sm text-muted-foreground">
+                Controls what the partner app shows under <strong className="text-foreground">Wallet</strong>. Only two
+                numbers drive the headline “amount still due”: <strong className="text-foreground">required</strong> and{' '}
+                <strong className="text-foreground">collected</strong>. Optional fields below are for finance / ledger
+                detail when you need them.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-border bg-muted/30 p-4 sm:p-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div className="grid flex-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="sd-total">Required wallet / deposit (₹)</Label>
+                    <Input
+                      id="sd-total"
+                      type="number"
+                      min={0}
+                      step={1}
+                      inputMode="numeric"
+                      placeholder="e.g. 500"
+                      value={formData.securityDeposit.totalRequired || ''}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          securityDeposit: {
+                            ...formData.securityDeposit,
+                            totalRequired: parseFloat(e.target.value) || 0,
+                          },
+                        })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground">Target balance before partner is fully “in good standing.”</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sd-collected">Already collected (₹)</Label>
+                    <Input
+                      id="sd-collected"
+                      type="number"
+                      min={0}
+                      step={1}
+                      inputMode="numeric"
+                      placeholder="0"
+                      value={formData.securityDeposit.collected}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          securityDeposit: {
+                            ...formData.securityDeposit,
+                            collected: parseFloat(e.target.value) || 0,
+                          },
+                        })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground">Cash or transfers you have credited to this partner.</p>
+                  </div>
+                </div>
+                <div className="shrink-0 rounded-lg border border-dashed border-primary/30 bg-background px-4 py-3 text-center sm:min-w-[140px]">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Outstanding</p>
+                  <p className="text-2xl font-bold tabular-nums text-foreground">₹{depositOutstanding.toLocaleString('en-IN')}</p>
+                  <p className="text-[11px] text-muted-foreground">max(0, required − collected)</p>
+                </div>
+              </div>
+            </div>
+
+            <details className="group rounded-lg border border-border bg-card">
+              <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-foreground marker:hidden [&::-webkit-details-marker]:hidden">
+                <span className="flex items-center justify-between gap-2">
+                  Optional ledger detail
+                  <span className="text-xs font-normal text-muted-foreground group-open:hidden">Show</span>
+                  <span className="hidden text-xs font-normal text-muted-foreground group-open:inline">Hide</span>
+                </span>
+              </summary>
+              <div className="border-t border-border px-4 py-4">
+                <p className="mb-4 text-xs text-muted-foreground">
+                  Use when finance tracks refundable vs non-refundable portions or a per-job wallet deduction policy.
+                  Leave at zero if you only care about required vs collected.
+                </p>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="sd-ref">Refundable bucket (₹)</Label>
+                    <Input
+                      id="sd-ref"
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={formData.securityDeposit.refundable || ''}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          securityDeposit: {
+                            ...formData.securityDeposit,
+                            refundable: parseFloat(e.target.value) || 0,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sd-nref">Non-refundable bucket (₹)</Label>
+                    <Input
+                      id="sd-nref"
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={formData.securityDeposit.nonRefundable || ''}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          securityDeposit: {
+                            ...formData.securityDeposit,
+                            nonRefundable: parseFloat(e.target.value) || 0,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sd-per">Per completed job deduction (₹)</Label>
+                    <Input
+                      id="sd-per"
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={formData.securityDeposit.perServiceDeduction || ''}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          securityDeposit: {
+                            ...formData.securityDeposit,
+                            perServiceDeduction: parseFloat(e.target.value) || 0,
+                          },
+                        })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground">If your payout logic reads this field from the profile.</p>
+                  </div>
+                </div>
+              </div>
+            </details>
           </section>
 
           <div className="flex justify-end gap-2 pt-2">

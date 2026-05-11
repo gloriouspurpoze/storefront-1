@@ -4,7 +4,7 @@
  * ============================================================================
  */
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   Plus,
   Pencil,
@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Clock,
   LayoutDashboard,
+  MapPin,
 } from 'lucide-react'
 import { Link as RouterLink } from 'react-router-dom'
 import { PageHeader } from '../../components/common/PageHeader'
@@ -83,11 +84,7 @@ export function ProfessionalsManagement() {
   const [actionSheetOpen, setActionSheetOpen] = useState(false)
   const [menuProfessional, setMenuProfessional] = useState<Professional | null>(null)
 
-  useEffect(() => {
-    fetchProfessionals()
-  }, [page, limit, searchTerm, availabilityFilter, expertiseFilter, verificationFilter, categoryFilter, accountFilter])
-
-  const fetchProfessionals = async () => {
+  const fetchProfessionals = useCallback(async () => {
     try {
       setLoading(true)
       const query: Record<string, string | number | boolean | undefined> = {
@@ -130,7 +127,20 @@ export function ProfessionalsManagement() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [
+    page,
+    limit,
+    searchTerm,
+    availabilityFilter,
+    expertiseFilter,
+    verificationFilter,
+    categoryFilter,
+    accountFilter,
+  ])
+
+  useEffect(() => {
+    void fetchProfessionals()
+  }, [fetchProfessionals])
 
   const handleSuccess = () => {
     fetchProfessionals()
@@ -291,6 +301,12 @@ export function ProfessionalsManagement() {
                 Workforce dashboard
               </RouterLink>
             </Button>
+            <Button variant="outline" asChild>
+              <RouterLink to="/professionals/live-locations">
+                <MapPin className="mr-2 h-4 w-4" />
+                Live locations
+              </RouterLink>
+            </Button>
             <Button onClick={handleCreate}>
               <Plus className="mr-2 h-4 w-4" />
               Add Professional
@@ -324,6 +340,10 @@ export function ProfessionalsManagement() {
         onMenuClick={handleMenuClick}
         onOpenHub={handleOpenHub}
       />
+      <p className="mt-2 px-1 text-xs text-muted-foreground">
+        Page {page + 1} · Showing {professionals.length} on this page
+        {total > 0 ? ` · ${total} total` : null}
+      </p>
 
       <Sheet open={actionSheetOpen} onOpenChange={setActionSheetOpen}>
         <SheetContent side="bottom" className="rounded-t-xl">

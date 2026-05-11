@@ -112,6 +112,7 @@ const NAV_EXACT_ONLY_HREFS = new Set<string>([
   '/settings/saas',
   '/settings/tenants',
   '/cms/category-marketing',
+  '/knowledge-kit',
 ])
 
 /** Sidebar badge text; numeric badges cap at 99+ (avoids layout break). */
@@ -640,6 +641,19 @@ const navigationGroups = [
       // { name: 'Messages', href: '/messages', icon: MessageIcon, permissions: ['view_messages'], badge: null },
       { name: 'Notifications', href: '/notifications', icon: NotificationsIcon, permissions: ['view_notifications', 'manage_notifications'], badge: null },
     ]
+  },
+  {
+    title: 'Knowledge kit',
+    icon: ArticleIcon,
+    items: [
+      {
+        name: 'Guides overview',
+        href: '/knowledge-kit',
+        icon: ArticleIcon,
+        permissions: ['view_dashboard'],
+        badge: null,
+      },
+    ],
   },
   {
     title: 'System',

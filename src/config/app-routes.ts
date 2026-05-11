@@ -260,6 +260,18 @@ export const QUICK_NAV_ITEMS: QuickNavItem[] = [
   { label: 'Notifications', path: '/notifications', group: 'Users & communication' },
   { label: 'Messages', path: '/messages', group: 'Users & communication' },
 
+  {
+    label: 'Knowledge kit',
+    path: '/knowledge-kit',
+    group: 'System',
+    keywords: 'guides documentation how it works playbook training admin',
+  },
+  {
+    label: 'Guide: Commercial terms',
+    path: '/knowledge-kit/operations-commercial-terms',
+    group: 'System',
+    keywords: 'fees commissions convenience GST POS checkout tenant provider customer',
+  },
   { label: 'Reports', path: '/reports', group: 'System' },
   { label: 'Refund requests', path: '/support/refund-requests', group: 'System' },
   { label: 'System status', path: '/system-status', group: 'System' },

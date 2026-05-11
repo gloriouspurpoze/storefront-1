@@ -188,7 +188,7 @@ export function ProfessionalStatsWidget({ onRefresh }: ProfessionalStatsWidgetPr
         </div>
       )}
 
-      {byCategory.length > 0 && (
+      {/* {byCategory.length > 0 && (
         <Card className="mt-4">
           <CardContent className="p-4">
             <p className="mb-3 text-sm font-medium text-muted-foreground">Professionals by trade / category</p>
@@ -226,7 +226,7 @@ export function ProfessionalStatsWidget({ onRefresh }: ProfessionalStatsWidgetPr
             </div>
           </CardContent>
         </Card>
-      )}
+      )} */}
     </div>
   )
 }

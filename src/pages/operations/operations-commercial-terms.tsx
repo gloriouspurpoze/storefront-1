@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { Loader2, Save } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { BookOpen, Loader2, Save } from 'lucide-react'
 import { OperationsCommercialService } from '../../services/api/operations-commercial.service'
 import type { TenantCommercialTermsDto } from '../../types/operating-commercial.types'
 import { usePermissions } from '../../hooks/usePermissions'
@@ -12,6 +13,28 @@ import { Textarea } from '../../components/ui/textarea'
 function num(v: string): number {
   const n = parseFloat(v)
   return Number.isFinite(n) ? n : 0
+}
+
+function FieldHint({
+  children,
+  customer,
+  partner,
+}: {
+  children: React.ReactNode
+  customer: string
+  partner: string
+}) {
+  return (
+    <div className="space-y-1.5 rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+      <p>{children}</p>
+      <p>
+        <span className="font-semibold text-foreground">Customer site:</span> {customer}
+      </p>
+      <p>
+        <span className="font-semibold text-foreground">Provider / professional:</span> {partner}
+      </p>
+    </div>
+  )
 }
 
 export function OperationsCommercialTermsPage() {
@@ -98,6 +121,21 @@ export function OperationsCommercialTermsPage() {
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-col gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex gap-3">
+          <BookOpen className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
+          <div className="text-sm">
+            <p className="font-medium text-foreground">How these fields affect live products</p>
+            <p className="text-muted-foreground">
+              Open the Knowledge kit article for customer vs provider impact, API paths, and PATCH behaviour.
+            </p>
+          </div>
+        </div>
+        <Button variant="outline" size="sm" asChild className="shrink-0 self-start sm:self-center">
+          <Link to="/knowledge-kit/operations-commercial-terms">Open guide</Link>
+        </Button>
+      </div>
+
       {err && (
         <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {err}
@@ -108,9 +146,8 @@ export function OperationsCommercialTermsPage() {
         <CardHeader>
           <CardTitle className="text-base">Fee & commission matrix</CardTitle>
           <CardDescription>
-            Amounts are in {currency} (major units). Percent fields are 0–100. Booking/checkout code can merge these
-            with cart lines and payout rules — this screen is the{' '}
-            <strong className="text-foreground">single source of truth</strong> per tenant.
+            Amounts are in {currency} (major units). Percent fields are 0–100. Values are stored per tenant (SaaS) or on
+            the global row when no tenant is selected — backend booking/POS code reads them for platform fee math.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6 md:grid-cols-2">
@@ -123,6 +160,12 @@ export function OperationsCommercialTermsPage() {
               disabled={!canManage}
               className="max-w-xs font-mono"
             />
+            <FieldHint
+              customer="Displayed wherever the storefront formats money (e.g. checkout labels)."
+              partner="Same code in partner statements when surfaced."
+            >
+              ISO currency for this tenant’s commercial row. Changing it does not auto-convert historical bookings.
+            </FieldHint>
           </div>
 
           <div className="space-y-2">
@@ -137,6 +180,12 @@ export function OperationsCommercialTermsPage() {
               onChange={(e) => setConvenienceFeePercent(e.target.value)}
               disabled={!canManage}
             />
+            <FieldHint
+              customer="When checkout/POS sends validated totals, this % is applied to the merchandise subtotal after discounts — customer may see a higher “taxes and fees” line."
+              partner="Does not change catalog rates; customer total may rise so net to partner depends on your pricing rules."
+            >
+              Part of the platform convenience fee. Combined with flat fee and minimum floor before GST-on-fee.
+            </FieldHint>
           </div>
           <div className="space-y-2">
             <Label htmlFor="oc-conv-flat">Convenience fee — flat add-on ({currency})</Label>
@@ -149,6 +198,12 @@ export function OperationsCommercialTermsPage() {
               onChange={(e) => setConvenienceFeeFixed(e.target.value)}
               disabled={!canManage}
             />
+            <FieldHint
+              customer="Adds a fixed rupee platform line on applicable checkouts (in addition to the % component)."
+              partner="Indirect — affects booking/order totals your partners fulfil."
+            >
+              Added after the percentage part; still subject to the minimum platform fee floor.
+            </FieldHint>
           </div>
 
           <div className="space-y-2">
@@ -162,6 +217,12 @@ export function OperationsCommercialTermsPage() {
               onChange={(e) => setTrainingFeePerProfessional(e.target.value)}
               disabled={!canManage}
             />
+            <FieldHint
+              customer="Not wired into standard B2C checkout unless you build a dedicated flow."
+              partner="Finance / onboarding use — distinct from per-partner commission on Edit Professional."
+            >
+              Tenant-level training economics field for ops tracking; not the same as wallet or per-job commission %.
+            </FieldHint>
           </div>
           <div className="space-y-2">
             <Label htmlFor="oc-comm">Provider commission — platform retain (% of payout)</Label>
@@ -175,6 +236,12 @@ export function OperationsCommercialTermsPage() {
               onChange={(e) => setProviderCommissionPercent(e.target.value)}
               disabled={!canManage}
             />
+            <FieldHint
+              customer="Usually not shown as a separate line on the customer site."
+              partner="May drive platform take on payouts; can interact with per-professional commission overrides."
+            >
+              Default tenant policy for how much of payout-related amounts the platform retains (0–100).
+            </FieldHint>
           </div>
 
           <div className="space-y-2">
@@ -189,6 +256,12 @@ export function OperationsCommercialTermsPage() {
               onChange={(e) => setPaymentProcessingFeePercent(e.target.value)}
               disabled={!canManage}
             />
+            <FieldHint
+              customer="May appear in payment-method or invoice disclosures when you surface pass-through fees."
+              partner="Typically not shown to professionals unless you expose payment economics."
+            >
+              Models gateway / processing cost as a percent; integrate explicitly in payment flows when needed.
+            </FieldHint>
           </div>
           <div className="space-y-2">
             <Label htmlFor="oc-minpf">Minimum platform fee per paid booking ({currency})</Label>
@@ -201,6 +274,12 @@ export function OperationsCommercialTermsPage() {
               onChange={(e) => setMinimumPlatformFeePerBooking(e.target.value)}
               disabled={!canManage}
             />
+            <FieldHint
+              customer="Small jobs still incur at least this platform fee when the fee path runs — total due may look higher on low-ticket carts."
+              partner="Protects platform unit economics on small bookings."
+            >
+              Floor applied to the computed convenience fee (before GST on the fee line).
+            </FieldHint>
           </div>
 
           <div className="space-y-2">
@@ -215,6 +294,12 @@ export function OperationsCommercialTermsPage() {
               onChange={(e) => setGstPercentOnFees(e.target.value)}
               disabled={!canManage}
             />
+            <FieldHint
+              customer="When non-zero, GST is calculated on the platform convenience fee and can appear as a separate line next to it."
+              partner="Invoice / compliance views may show GST on platform charges."
+            >
+              Matches finance policy for taxing platform fees; 0 disables GST on that fee component in the calculator.
+            </FieldHint>
           </div>
           <div className="space-y-2">
             <Label htmlFor="oc-after">After-hours / peak uplift hint (%)</Label>
@@ -228,6 +313,12 @@ export function OperationsCommercialTermsPage() {
               onChange={(e) => setAfterHoursSurchargePercent(e.target.value)}
               disabled={!canManage}
             />
+            <FieldHint
+              customer="Only affects pricing if your slot/pricing engine reads this field (otherwise inert)."
+              partner="May increase job value for peak or night slots when wired into pricing."
+            >
+              Hint for peak / night uplift; POS or catalog modules may consume separately from convenience fee.
+            </FieldHint>
           </div>
 
           <div className="space-y-2 md:col-span-2">
@@ -240,6 +331,12 @@ export function OperationsCommercialTermsPage() {
               disabled={!canManage}
               placeholder="e.g. GST inclusive on convenience from 1 Apr; negotiate partner commission separately…"
             />
+            <FieldHint
+              customer="Never exposed on the public storefront or public commerce API."
+              partner="Never sent to provider apps."
+            >
+              Admin-only audit context; not included in public checkout-terms responses.
+            </FieldHint>
           </div>
 
           {canManage && (

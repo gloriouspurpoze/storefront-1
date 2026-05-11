@@ -7,6 +7,8 @@ export type ProfessionalApplicationStatus =
   | 'rejected'
   | 'archived'
 
+export type ProfessionalApplicationSource = 'web' | 'admin' | 'import' | 'mobile_app'
+
 export interface ProfessionalApplication {
   _id: string
   applicationId: string
@@ -20,7 +22,7 @@ export interface ProfessionalApplication {
   experienceYears?: number
   message?: string
   status: ProfessionalApplicationStatus
-  source: string
+  source: ProfessionalApplicationSource | string
   adminNotes?: string
   contactedAt?: string
   contactedBy?: string
@@ -39,6 +41,7 @@ export interface ProfessionalApplicationsQuery {
   page?: number
   limit?: number
   status?: ProfessionalApplicationStatus
+  source?: ProfessionalApplicationSource
   search?: string
   city?: string
   fromDate?: string
@@ -59,6 +62,7 @@ export class ProfessionalApplicationsService {
     if (query.page != null) params.page = query.page
     if (query.limit != null) params.limit = query.limit
     if (query.status) params.status = query.status
+    if (query.source) params.source = query.source
     if (query.search) params.search = query.search
     if (query.city) params.city = query.city
     if (query.fromDate) params.fromDate = query.fromDate

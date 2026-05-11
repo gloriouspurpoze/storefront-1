@@ -165,6 +165,11 @@ const ProfessionalsOperationsDashboard = lazy(() =>
     default: m.ProfessionalsOperationsDashboard,
   })),
 )
+const ProfessionalsLiveLocations = lazy(() =>
+  import('./pages/professionals/professionals-live-locations').then((m) => ({
+    default: m.ProfessionalsLiveLocations,
+  })),
+)
 const ProfessionalDashboard = lazy(() => import('./pages/professionals/professional-dashboard').then((m) => ({ default: m.ProfessionalDashboard })))
 const ProfessionalBookings = lazy(() => import('./pages/bookings/professional-bookings').then((m) => ({ default: m.ProfessionalBookings })))
 const ProfessionalProfile = lazy(() => import('./pages/professionals/professional-profile').then((m) => ({ default: m.ProfessionalProfile })))
@@ -215,6 +220,14 @@ const OperationsCommercialTermsPage = lazy(() =>
 const OperationsCommercialCitiesPage = lazy(() =>
   import('./pages/operations/operations-commercial-cities').then((m) => ({
     default: m.OperationsCommercialCitiesPage,
+  })),
+)
+const KnowledgeKitHub = lazy(() =>
+  import('./pages/knowledge-kit/knowledge-kit-hub').then((m) => ({ default: m.KnowledgeKitHub })),
+)
+const OperationsCommercialTermsGuide = lazy(() =>
+  import('./pages/knowledge-kit/operations-commercial-terms-guide').then((m) => ({
+    default: m.OperationsCommercialTermsGuide,
   })),
 )
 const OperationsProviderAssetsPage = lazy(() =>
@@ -744,6 +757,22 @@ function App() {
                         <Route path="cities" element={<OperationsCommercialCitiesPage />} />
                       </Route>
                       <Route
+                        path="/knowledge-kit"
+                        element={
+                          <RoleBasedRoute permissions={['view_dashboard']}>
+                            <KnowledgeKitHub />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/knowledge-kit/operations-commercial-terms"
+                        element={
+                          <RoleBasedRoute permissions={['view_operating_terms']}>
+                            <OperationsCommercialTermsGuide />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
                         path="/operations/provider-assets"
                         element={
                           <RoleBasedRoute permissions={['view_provider_assets']}>
@@ -1016,6 +1045,14 @@ function App() {
                         element={
                           <RoleBasedRoute permissions={['view_providers']}>
                             <ProfessionalsOperationsDashboard />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/professionals/live-locations"
+                        element={
+                          <RoleBasedRoute permissions={['view_providers']}>
+                            <ProfessionalsLiveLocations />
                           </RoleBasedRoute>
                         }
                       />

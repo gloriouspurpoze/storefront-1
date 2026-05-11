@@ -139,6 +139,12 @@ export interface Professional {
     phone: string
   }
   
+  /** Partner wallet / security deposit (admin edit professional) */
+  securityDeposit?: ProfessionalSecurityDeposit
+
+  /** Profixer platform commission % on job value (0–50). Partner keeps (100 − this)%. */
+  commissionRate?: number
+
   // Timestamps
   createdAt: string
   updatedAt: string
@@ -209,6 +215,16 @@ export interface CreateProfessionalData {
   }
 }
 
+/** Admin-managed; surfaced in partner app wallet via GET /wallet/balance (rupees). */
+export interface ProfessionalSecurityDeposit {
+  totalRequired: number
+  collected: number
+  dueFromPartner?: number
+  refundable: number
+  nonRefundable: number
+  perServiceDeduction: number
+}
+
 export interface UpdateProfessionalData extends Partial<CreateProfessionalData> {
   availability?: 'available' | 'busy' | 'offline'
   isActive?: boolean
@@ -218,6 +234,8 @@ export interface UpdateProfessionalData extends Partial<CreateProfessionalData> 
   moderationNotes?: string
   suspendedUntil?: string | null
   documents?: ProfessionalVerificationDocument[]
+  securityDeposit?: ProfessionalSecurityDeposit
+  commissionRate?: number
 }
 
 export interface ProfessionalsQuery {
@@ -291,5 +309,17 @@ export interface SuspendProfessionalRequest {
 
 export interface BlockProfessionalRequest {
   reason: string
+}
+
+/** GET /professionals/admin/live-locations — ops visibility */
+export interface ProfessionalLiveLocationRow {
+  id: string
+  professionalId: string | null
+  name: string
+  phone: string
+  availability: 'available' | 'busy' | 'offline'
+  latitude: number | null
+  longitude: number | null
+  lastLocationAt: string | null
 }
 

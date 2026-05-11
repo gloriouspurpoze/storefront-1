@@ -16,6 +16,7 @@ import {
   ProfessionalsQuery,
   ProfessionalsResponse,
   ProfessionalStats,
+  ProfessionalLiveLocationRow,
   UpdateVerificationData,
   UpdateAvailabilityData,
   SuspendProfessionalRequest,
@@ -104,6 +105,15 @@ export class ProfessionalsService {
   static async getProfessionalStats() {
     return api.get<ProfessionalStats>('/professionals/stats', {
       loadingMessage: 'Loading statistics...',
+      showSuccessToast: false,
+    })
+  }
+
+  /**
+   * Admin: last-known coordinates + availability for field workforce (max ~500 rows server-side).
+   */
+  static async getLiveLocationsForAdmin() {
+    return api.get<ProfessionalLiveLocationRow[]>('/professionals/admin/live-locations', {
       showSuccessToast: false,
     })
   }

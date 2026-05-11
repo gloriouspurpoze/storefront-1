@@ -78,6 +78,22 @@ export function normalizeProfessionalFromApi(raw: unknown): Professional {
     p.weeklyAvailability ?? p.time_slots ?? p.timeSlots,
   )
 
+  const rawSd = p.securityDeposit as Record<string, unknown> | undefined
+  if (rawSd && typeof rawSd === 'object') {
+    const n = (v: unknown) => {
+      const x = typeof v === 'number' ? v : parseFloat(String(v ?? ''))
+      return Number.isFinite(x) ? x : 0
+    }
+    merged.securityDeposit = {
+      totalRequired: n(rawSd.totalRequired),
+      collected: n(rawSd.collected),
+      dueFromPartner: n(rawSd.dueFromPartner),
+      refundable: n(rawSd.refundable),
+      nonRefundable: n(rawSd.nonRefundable),
+      perServiceDeduction: n(rawSd.perServiceDeduction),
+    }
+  }
+
   return merged
 }
 

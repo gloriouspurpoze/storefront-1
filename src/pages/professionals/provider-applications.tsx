@@ -22,6 +22,7 @@ import {
   ProfessionalApplicationsService,
   ProfessionalApplication,
   ProfessionalApplicationStatus,
+  type ProfessionalApplicationSource,
 } from '../../services/api/professionalApplications.service'
 import { Card, CardContent } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
@@ -56,6 +57,25 @@ const STATUS_OPTIONS: { value: ProfessionalApplicationStatus | 'all'; label: str
   { value: 'archived', label: 'Archived' },
 ]
 
+const SOURCE_OPTIONS: { value: ProfessionalApplicationSource | 'all'; label: string }[] = [
+  { value: 'all', label: 'All sources' },
+  { value: 'mobile_app', label: 'Provider app' },
+  { value: 'web', label: 'Web form' },
+  { value: 'admin', label: 'Admin' },
+  { value: 'import', label: 'Import' },
+]
+
+function sourceLabel(source: string | undefined) {
+  if (!source) return '—'
+  const map: Record<string, string> = {
+    mobile_app: 'Provider app',
+    web: 'Web',
+    admin: 'Admin',
+    import: 'Import',
+  }
+  return map[source] ?? source
+}
+
 const statusClass: Record<ProfessionalApplicationStatus, string> = {
   new: 'border-blue-200 bg-blue-500/10 text-blue-800',
   contacted: 'border-amber-200 bg-amber-500/10 text-amber-800',
@@ -85,6 +105,7 @@ export function ProviderApplications() {
   const [statusFilter, setStatusFilter] = useState<ProfessionalApplicationStatus | 'all'>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [cityFilter, setCityFilter] = useState('')
+  const [sourceFilter, setSourceFilter] = useState<ProfessionalApplicationSource | 'all'>('all')
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedApp, setSelectedApp] = useState<ProfessionalApplication | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
@@ -105,6 +126,7 @@ export function ProviderApplications() {
         page,
         limit: pageSize,
         status: statusFilter === 'all' ? undefined : statusFilter,
+        source: sourceFilter === 'all' ? undefined : sourceFilter,
         search: searchTerm || undefined,
         city: cityFilter || undefined,
       })
@@ -118,7 +140,7 @@ export function ProviderApplications() {
     } finally {
       setLoading(false)
     }
-  }, [page, pageSize, statusFilter, searchTerm, cityFilter])
+  }, [page, pageSize, statusFilter, sourceFilter, searchTerm, cityFilter])
 
   useEffect(() => {
     fetchList()
@@ -174,7 +196,7 @@ export function ProviderApplications() {
     <div className="p-4 md:p-6">
       <PageHeader
         title="Provider Applications"
-        subtitle="Onboarding applications from the Become a Provider form"
+        subtitle="Web leads, imports, and new accounts from the Profixer Provider mobile app (self-registration)"
         action={
           <Button variant="outline" size="sm" className="gap-1.5" onClick={handleRefresh}>
             <RefreshCw className="h-4 w-4" />
@@ -214,6 +236,24 @@ export function ProviderApplications() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="w-full min-w-[140px] sm:w-40">
+              <Label className="sr-only">Source</Label>
+              <Select
+                value={sourceFilter}
+                onValueChange={(v) => setSourceFilter(v as ProfessionalApplicationSource | 'all')}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Source" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SOURCE_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <Input
               className="w-full min-w-[120px] sm:w-36"
               placeholder="City"
@@ -240,13 +280,14 @@ export function ProviderApplications() {
                   <TableHead>Services</TableHead>
                   <TableHead className="text-right">Exp (y)</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Source</TableHead>
                   <TableHead>Applied</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {applications.length === 0 && !loading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-24 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={9} className="h-24 text-center text-sm text-muted-foreground">
                       No applications match your filters.
                     </TableCell>
                   </TableRow>
@@ -275,6 +316,7 @@ export function ProviderApplications() {
                           {row.status ?? '—'}
                         </Badge>
                       </TableCell>
+                      <TableCell className="text-sm">{sourceLabel(row.source)}</TableCell>
                       <TableCell className="whitespace-nowrap text-sm">{formatDate(row.createdAt)}</TableCell>
                     </TableRow>
                   ))
@@ -340,6 +382,15 @@ export function ProviderApplications() {
                   <span className="text-xs">Name</span>
                 </div>
                 <p className="mb-3 text-sm font-medium">{selectedApp.fullName}</p>
+
+                <p className="mb-0.5 text-xs text-muted-foreground">Source</p>
+                <p className="mb-3 text-sm">{sourceLabel(selectedApp.source)}</p>
+                {selectedApp.metadata?.userId != null && String(selectedApp.metadata.userId).trim() !== '' ? (
+                  <>
+                    <p className="mb-0.5 text-xs text-muted-foreground">Linked user (app account)</p>
+                    <p className="mb-3 font-mono text-xs break-all text-sm">{String(selectedApp.metadata.userId)}</p>
+                  </>
+                ) : null}
 
                 <div className="mb-1 flex items-center gap-1.5 text-muted-foreground">
                   <Phone className="h-4 w-4" />

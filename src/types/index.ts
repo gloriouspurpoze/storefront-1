@@ -344,6 +344,9 @@ export interface Quote {
   admin_review_status?: QuoteAdminReviewStatus
   admin_review_note?: string
   admin_reviewed_at?: string
+  /** Customer decline reason (PATCH /quotes/:id/status with rejected). */
+  customer_rejection_reason?: string
+  quote_kind?: 'catalog' | 'custom'
   created_at?: string
   createdAt?: string
   updated_at?: string

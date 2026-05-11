@@ -14,6 +14,16 @@ import {
   Textarea,
   HStack,
   VStack,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  useToast,
 } from '../../components/ui'
 import {
   Select,
@@ -29,11 +39,15 @@ import {
   DropdownMenuTrigger,
 } from '../../components/ui/dropdown-menu'
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../../components/ui/tooltip'
+import {
   Search,
-  Filter,
   Eye,
   DollarSign,
-  Clock,
   User,
   ClipboardList,
   MoreVertical,
@@ -43,7 +57,15 @@ import {
   CircleAlert,
   Gavel,
   Loader2,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUpDown,
+  Building2,
+  ExternalLink,
+  FileText,
+  Sparkles,
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { cn, formatCurrency, formatDate, getInitials } from '../../lib/utils'
 import { QuotesService } from '../../services/api/quotes.service'
 import type { Quote, QuoteAdminReviewStatus } from '../../types'
@@ -66,7 +88,8 @@ const statusIcons = {
 const reviewLabel = (s: QuoteAdminReviewStatus | undefined) => {
   if (s === 'pending_review') return 'Awaiting platform review'
   if (s === 'rejected') return 'Platform rejected'
-  return 'Released to customer'
+  if (s === 'approved') return 'Platform approved'
+  return 'With customer'
 }
 
 function quoteText(q: Quote) {
@@ -81,25 +104,109 @@ function createdRaw(q: Quote) {
   return q.created_at ?? q.createdAt
 }
 
-const statDotClass: Record<string, string> = {
-  primary: 'bg-primary',
-  warning: 'bg-yellow-500',
-  success: 'bg-green-500',
-  error: 'bg-red-500',
-  default: 'bg-muted-foreground',
+function updatedRaw(q: Quote) {
+  return q.updated_at ?? q.updatedAt
+}
+
+function formatDateTime(iso: string | undefined | null): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  return new Intl.DateTimeFormat('en-IN', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(d)
+}
+
+function safeAmount(q: Quote): number {
+  const n = Number(q.amount)
+  return Number.isFinite(n) ? n : 0
+}
+
+function bookingLinkId(q: Quote): string | null {
+  const id = q.booking_id
+  if (id && String(id).trim()) return String(id)
+  return null
+}
+
+function serviceRequestLinkId(q: Quote): string | null {
+  const id = q.service_request_id ?? q.serviceRequestId
+  if (id && String(id).trim()) return String(id)
+  return null
+}
+
+function professionalName(q: Quote): string | null {
+  const pro = q.professional
+  if (!pro) return null
+  const n = [pro.firstName, pro.lastName].filter(Boolean).join(' ').trim()
+  return n || pro.email || null
+}
+
+function customerName(q: Quote): string {
+  const c = q.customer
+  if (!c) return '—'
+  const n = [c.firstName, c.lastName].filter(Boolean).join(' ').trim()
+  return n || c.email || c.phone || '—'
+}
+
+function shortId(id: string | undefined | null, len = 8): string {
+  if (!id) return '—'
+  const s = String(id).replace(/\s/g, '')
+  if (s.length <= len) return s.toUpperCase()
+  return s.slice(-len).toUpperCase()
+}
+
+type SortKey = 'created' | 'amount' | 'validUntil' | 'status'
+
+function parsePayload(
+  res: {
+    data: unknown
+    meta?: { pagination?: { page?: number; limit?: number; total?: number; totalPages?: number } }
+  },
+  fallbackLimit: number,
+) {
+  const root = res.data as Record<string, unknown> | null
+  const quotesRaw = root?.quotes
+  const list = Array.isArray(quotesRaw) ? (quotesRaw as Quote[]) : []
+  const pag =
+    (root?.pagination as { total?: number; totalPages?: number; page?: number; limit?: number } | undefined) ??
+    res.meta?.pagination
+  const total = typeof pag?.total === 'number' ? pag.total : list.length
+  const limit =
+    typeof pag?.limit === 'number' && pag.limit > 0 ? pag.limit : fallbackLimit > 0 ? fallbackLimit : 25
+  const totalPages =
+    typeof pag?.totalPages === 'number' && pag.totalPages > 0
+      ? pag.totalPages
+      : Math.max(1, Math.ceil(total / limit))
+  return { quotes: list, total, totalPages }
 }
 
 export function Quotes() {
+  const { toast } = useToast()
   const { checkPermission } = usePermissions()
   const canReview = checkPermission('approve_quotes')
 
   const [listTab, setListTab] = useState<'all' | 'review'>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('all')
+  const [quoteKindFilter, setQuoteKindFilter] = useState<'all' | 'catalog' | 'custom'>('all')
+  const [adminReviewFilter, setAdminReviewFilter] = useState<'all' | 'pending_review' | 'approved' | 'rejected' | 'cleared'>(
+    'all',
+  )
   const [quotes, setQuotes] = useState<Quote[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [totalCount, setTotalCount] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  const [page, setPage] = useState(1)
+  const pageSize = 25
+
+  const [sortKey, setSortKey] = useState<SortKey>('created')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailQuote, setDetailQuote] = useState<Quote | null>(null)
   const [reviewNote, setReviewNote] = useState('')
@@ -110,41 +217,98 @@ export function Quotes() {
     setLoadError(null)
     try {
       if (listTab === 'review') {
-        const res = await QuotesService.getAdminReviewQueue({ page: 1, limit: 100 })
-        const payload = res.data as { quotes?: Quote[]; pagination?: { total?: number } }
-        setQuotes(Array.isArray(payload?.quotes) ? payload.quotes : [])
-        setTotalCount(payload?.pagination?.total ?? (payload?.quotes?.length ?? 0))
+        const res = await QuotesService.getAdminReviewQueue({ page, limit: pageSize })
+        const { quotes: list, total, totalPages: tp } = parsePayload(res, pageSize)
+        setQuotes(list)
+        setTotalCount(total)
+        setTotalPages(tp)
       } else {
-        const res = await QuotesService.getQuotes({ page: 1, limit: 100 })
-        const payload = res.data as { quotes?: Quote[]; pagination?: { total?: number } }
-        setQuotes(Array.isArray(payload?.quotes) ? payload.quotes : [])
-        setTotalCount(payload?.pagination?.total ?? (payload?.quotes?.length ?? 0))
+        const res = await QuotesService.getQuotes({
+          page,
+          limit: pageSize,
+          ...(selectedStatus !== 'all' ? { status: selectedStatus } : {}),
+        })
+        const { quotes: list, total, totalPages: tp } = parsePayload(res, pageSize)
+        setQuotes(list)
+        setTotalCount(total)
+        setTotalPages(tp)
       }
     } catch (e: unknown) {
-      setLoadError(e instanceof Error ? e.message : 'Failed to load quotes')
+      const msg = e && typeof e === 'object' && 'message' in e ? String((e as { message: unknown }).message) : null
+      setLoadError(msg || 'Failed to load quotes')
       setQuotes([])
       setTotalCount(0)
+      setTotalPages(1)
     } finally {
       setLoading(false)
     }
-  }, [listTab])
+  }, [listTab, page, pageSize, selectedStatus])
 
   useEffect(() => {
     void load()
   }, [load])
 
+  useEffect(() => {
+    setPage(1)
+  }, [listTab, selectedStatus])
+
   const filteredQuotes = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase()
     return quotes.filter((quote) => {
       const text = quoteText(quote).toLowerCase()
+      const pro = professionalName(quote)?.toLowerCase() ?? ''
+      const cust = customerName(quote).toLowerCase()
+      const email = quote.customer?.email?.toLowerCase() ?? ''
+      const bid = bookingLinkId(quote)?.toLowerCase() ?? ''
+      const sr = serviceRequestLinkId(quote)?.toLowerCase() ?? ''
       const matchesSearch =
-        !searchTerm ||
-        text.includes(searchTerm.toLowerCase()) ||
-        String(quote.amount).includes(searchTerm) ||
-        (quote.id && quote.id.toLowerCase().includes(searchTerm.toLowerCase()))
-      const matchesStatus = selectedStatus === 'all' || quote.status === selectedStatus
-      return matchesSearch && matchesStatus
+        !term ||
+        text.includes(term) ||
+        String(quote.amount).includes(term) ||
+        quote.id.toLowerCase().includes(term) ||
+        pro.includes(term) ||
+        cust.includes(term) ||
+        email.includes(term) ||
+        bid.includes(term) ||
+        sr.includes(term) ||
+        (quote.provider?.businessName ?? '').toLowerCase().includes(term)
+
+      const ar = quote.admin_review_status
+      const matchesAdmin =
+        adminReviewFilter === 'all' ||
+        (adminReviewFilter === 'pending_review' && ar === 'pending_review') ||
+        (adminReviewFilter === 'approved' && ar === 'approved') ||
+        (adminReviewFilter === 'rejected' && ar === 'rejected') ||
+        (adminReviewFilter === 'cleared' && ar == null)
+
+      const kindOk =
+        quoteKindFilter === 'all'
+          ? true
+          : quoteKindFilter === 'catalog'
+            ? quote.quote_kind === 'catalog'
+            : quote.quote_kind === 'custom'
+
+      return matchesSearch && kindOk && matchesAdmin
     })
-  }, [quotes, searchTerm, selectedStatus])
+  }, [quotes, searchTerm, quoteKindFilter, adminReviewFilter])
+
+  const sortedQuotes = useMemo(() => {
+    const list = [...filteredQuotes]
+    const dir = sortDir === 'asc' ? 1 : -1
+    list.sort((a, b) => {
+      if (sortKey === 'amount') return (safeAmount(a) - safeAmount(b)) * dir
+      if (sortKey === 'status') return String(a.status).localeCompare(String(b.status)) * dir
+      if (sortKey === 'validUntil') {
+        const ta = validUntilRaw(a) ? new Date(validUntilRaw(a) as string).getTime() : 0
+        const tb = validUntilRaw(b) ? new Date(validUntilRaw(b) as string).getTime() : 0
+        return (ta - tb) * dir
+      }
+      const ca = createdRaw(a) ? new Date(createdRaw(a) as string).getTime() : 0
+      const cb = createdRaw(b) ? new Date(createdRaw(b) as string).getTime() : 0
+      return (ca - cb) * dir
+    })
+    return list
+  }, [filteredQuotes, sortKey, sortDir])
 
   const quoteStats = useMemo(() => {
     return {
@@ -153,8 +317,17 @@ export function Quotes() {
       rejected: quotes.filter((q) => q.status === 'rejected').length,
       expired: quotes.filter((q) => q.status === 'expired').length,
       pendingReview: quotes.filter((q) => q.admin_review_status === 'pending_review').length,
+      pageValue: quotes.reduce((s, q) => s + (q.status === 'pending' ? safeAmount(q) : 0), 0),
     }
   }, [quotes])
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    else {
+      setSortKey(key)
+      setSortDir(key === 'amount' ? 'desc' : 'desc')
+    }
+  }
 
   const openDetail = (q: Quote) => {
     setDetailQuote(q)
@@ -170,408 +343,603 @@ export function Quotes() {
       setDetailOpen(false)
       setDetailQuote(null)
       await load()
-    } catch {
-      /* toasts from api base */
+    } catch (e: unknown) {
+      const msg =
+        e && typeof e === 'object' && 'message' in e ? String((e as { message: unknown }).message) : 'Review failed.'
+      toast({ title: 'Could not update quote', description: msg, variant: 'destructive' })
     } finally {
       setReviewSubmitting(false)
     }
   }
 
-  const StatCard = ({
-    title,
+  const StatTile = ({
+    label,
     value,
-    color = 'primary',
+    hint,
+    accent,
   }: {
-    title: string
-    value: number
-    color?: keyof typeof statDotClass | 'info'
-  }) => (
-    <Card>
-      <CardContent>
-        <div className="flex items-center gap-4">
-          <div
-            className={cn(
-              'h-2 w-2 shrink-0 rounded-full',
-              color === 'info' ? 'bg-sky-500' : statDotClass[color] ?? statDotClass.primary,
-            )}
-          />
-          <div>
-            <p className="text-2xl font-bold tabular-nums">{value}</p>
-            <p className="text-sm text-muted-foreground">{title}</p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
-
-  const QuoteCard = ({ quote }: { quote: Quote }) => {
-    const StatusIcon = statusIcons[quote.status]
-    const statusVariant = statusBadgeVariant[quote.status]
-    const pro = quote.professional
-    const proName = pro
-      ? [pro.firstName, pro.lastName].filter(Boolean).join(' ') || pro.email || 'Professional'
-      : null
-
+    label: string
+    value: string | number
+    hint?: string
+    accent?: 'default' | 'warning' | 'success' | 'danger' | 'info'
+  }) => {
+    const bar =
+      accent === 'warning'
+        ? 'bg-amber-500'
+        : accent === 'success'
+          ? 'bg-emerald-500'
+          : accent === 'danger'
+            ? 'bg-red-500'
+            : accent === 'info'
+              ? 'bg-sky-500'
+              : 'bg-primary'
     return (
-      <Card>
-        <CardContent>
-          <div className="mb-4 flex justify-between gap-2">
-            <div className="min-w-0 flex-1">
-              <div className="mb-2 flex flex-wrap items-center gap-2">
-                <h3 className="text-lg font-semibold">Quote #{quote.id.slice(-8).toUpperCase()}</h3>
-                <Badge variant={statusVariant} className="gap-1 capitalize">
-                  <StatusIcon className="h-3 w-3" />
-                  {quote.status}
-                </Badge>
-                {quote.admin_review_status && (
-                  <Badge
-                    variant={quote.admin_review_status === 'pending_review' ? 'default' : 'outline'}
-                    className="max-w-full text-left font-normal"
-                  >
-                    {reviewLabel(quote.admin_review_status)}
-                  </Badge>
-                )}
-              </div>
-              <p className="mb-2 text-sm text-muted-foreground">{quoteText(quote) || '—'}</p>
-              {proName && <p className="block text-xs text-muted-foreground">Pro: {proName}</p>}
-            </div>
-            <div className="flex shrink-0 items-start gap-1">
-              <Button type="button" variant="outline" size="sm" onClick={() => openDetail(quote)}>
-                <Eye className="mr-1 h-4 w-4" />
-                View
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => openDetail(quote)}>
-                    <Eye className="mr-2 h-4 w-4" />
-                    View details
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-
-          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 shrink-0 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium tabular-nums">{formatCurrency(quote.amount)}</p>
-                <p className="text-xs text-muted-foreground">Amount</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <ClipboardList className="h-5 w-5 shrink-0 text-muted-foreground" />
-              <div className="min-w-0">
-                <p
-                  className="truncate text-sm font-medium"
-                  title={String(quote.service_request_id ?? quote.serviceRequestId ?? '—')}
-                >
-                  {quote.booking_id ? `Booking` : 'Request'}{' '}
-                  #{(quote.service_request_id ?? quote.booking_id ?? quote.serviceRequestId ?? '—').toString().slice(-8)}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {quote.booking_id ? 'Booking / add-on' : 'Service request'}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <User className="h-5 w-5 shrink-0 text-muted-foreground" />
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{quote.provider?.businessName ?? '—'}</p>
-                <p className="text-xs text-muted-foreground">Company</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 shrink-0 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">
-                  {validUntilRaw(quote) ? formatDate(validUntilRaw(quote) as string) : '—'}
-                </p>
-                <p className="text-xs text-muted-foreground">Valid until</p>
-              </div>
-            </div>
-          </div>
-
-          <Separator className="my-4" />
-
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-sm text-muted-foreground">Customer</p>
-              <p className="text-sm font-medium">
-                {quote.customer
-                  ? [quote.customer.firstName, quote.customer.lastName].filter(Boolean).join(' ') ||
-                    quote.customer.email ||
-                    '—'
-                  : '—'}
-              </p>
-            </div>
-            <Badge variant="outline">
-              {createdRaw(quote) ? formatDate(createdRaw(quote) as string) : '—'}
-            </Badge>
-          </div>
+      <Card className="overflow-hidden border-border/80 shadow-sm">
+        <CardContent className="p-4">
+          <div className={cn('mb-3 h-1 w-10 rounded-full', bar)} />
+          <p className="text-2xl font-bold tabular-nums tracking-tight">{value}</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+          {hint ? <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p> : null}
         </CardContent>
       </Card>
     )
   }
 
-  return (
-    <div className="min-w-0 flex-1">
-      <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-        <div>
-          <h1 className="mb-2 text-3xl font-bold">Quotes</h1>
-          <p className="text-muted-foreground">
-            Review professional quotations (photos + notes), approve or reject before the customer can accept.
-          </p>
-        </div>
-        <HStack spacing={2} className="shrink-0">
-          <Button
-            type="button"
-            variant={listTab === 'all' ? 'default' : 'outline'}
-            onClick={() => setListTab('all')}
-          >
-            All quotes
-          </Button>
-          <Button
-            type="button"
-            variant={listTab === 'review' ? 'default' : 'outline'}
-            className={listTab === 'review' ? 'bg-amber-600 hover:bg-amber-600/90' : ''}
-            onClick={() => setListTab('review')}
-          >
-            <Gavel className="mr-2 h-4 w-4" />
-            Review queue
-          </Button>
-        </HStack>
-      </div>
-
-      <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <div className={listTab === 'review' ? 'col-span-2 sm:col-span-1' : ''}>
-          <StatCard title="Pending (customer)" value={quoteStats.pending} color="warning" />
-        </div>
-        <div className={listTab === 'review' ? 'col-span-2 sm:col-span-1' : ''}>
-          <StatCard title="Accepted" value={quoteStats.accepted} color="success" />
-        </div>
-        <div className={listTab === 'review' ? 'col-span-2 sm:col-span-1' : ''}>
-          <StatCard title="Rejected" value={quoteStats.rejected} color="error" />
-        </div>
-        {listTab === 'all' ? (
-          <div>
-            <StatCard title="Expired" value={quoteStats.expired} color="default" />
-          </div>
-        ) : (
-          <div className="col-span-2 lg:col-span-1">
-            <Card className="border-dashed">
-              <CardContent className="py-4">
-                <p className="text-sm text-muted-foreground">
-                  Queue total (server): <strong>{totalCount}</strong> · In this page sample awaiting review:{' '}
-                  <strong>{quoteStats.pendingReview}</strong>
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-      </div>
-
-      <Card className="mb-8">
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 items-end gap-4 lg:grid-cols-12">
-            <div className="lg:col-span-6">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  className="pl-9"
-                  placeholder="Search quotes..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="lg:col-span-3">
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">Job status</label>
-              <Select value={selectedStatus} onValueChange={(v) => setSelectedStatus(v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="accepted">Accepted</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                  <SelectItem value="expired">Expired</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="lg:col-span-3">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-10 w-full"
-                onClick={() => void load()}
-                disabled={loading}
-              >
-                {loading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Filter className="mr-2 h-4 w-4" />
-                )}
-                Refresh
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {loadError && <p className="mb-4 text-sm text-destructive">{loadError}</p>}
-
-      {loading && !quotes.length ? (
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin" />
-          Loading quotes…
-        </div>
-      ) : filteredQuotes.length > 0 ? (
-        <VStack spacing={4}>
-          {filteredQuotes.map((quote) => (
-            <QuoteCard key={quote.id} quote={quote} />
-          ))}
-        </VStack>
-      ) : (
-        <Card>
-          <CardContent className="py-16 text-center">
-            <DollarSign className="mx-auto mb-4 h-16 w-16 text-muted-foreground/50" />
-            <h3 className="mb-2 text-lg font-semibold">No quotes found</h3>
-            <p className="text-sm text-muted-foreground">
-              {searchTerm || selectedStatus !== 'all'
-                ? 'Try adjusting your search or filter criteria.'
-                : listTab === 'review'
-                  ? 'Nothing is waiting for platform review.'
-                  : 'Quotes will appear when providers or professionals submit them.'}
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      <Dialog
-        open={detailOpen}
-        onOpenChange={(o) => {
-          if (!reviewSubmitting) setDetailOpen(o)
-        }}
+  const SortHead = ({ label, k }: { label: string; k: SortKey }) => (
+    <TableHead className="whitespace-nowrap">
+      <button
+        type="button"
+        className="inline-flex items-center gap-1 font-semibold text-foreground hover:text-primary"
+        onClick={() => toggleSort(k)}
       >
-        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex flex-wrap items-center gap-2">
-              Quote detail
-              {detailQuote?.admin_review_status === 'pending_review' && (
-                <Badge variant="warning" className="font-normal">
-                  Needs your decision
+        {label}
+        <ArrowUpDown className={cn('h-3.5 w-3.5', sortKey === k ? 'opacity-100' : 'opacity-40')} />
+      </button>
+    </TableHead>
+  )
+
+  return (
+    <TooltipProvider delayDuration={200}>
+      <div className="min-w-0 flex-1 space-y-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0 space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-3xl font-bold tracking-tight">Quotes</h1>
+              <Badge variant="secondary" className="font-normal">
+                Operations
+              </Badge>
+            </div>
+            <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
+              Add-on and job quotes from professionals and providers. Catalog quotes usually reach the customer
+              immediately; custom quotes may sit in the platform review queue until you approve or reject them.
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
+              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Refresh
+            </Button>
+          </div>
+        </div>
+
+        <Tabs value={listTab} onValueChange={(v) => setListTab(v as 'all' | 'review')} className="w-full">
+          <TabsList className="grid h-auto w-full max-w-md grid-cols-2 p-1">
+            <TabsTrigger value="all" className="gap-2 py-2.5">
+              <FileText className="h-4 w-4" />
+              All quotes
+            </TabsTrigger>
+            <TabsTrigger value="review" className="gap-2 py-2.5 data-[state=active]:bg-amber-600 data-[state=active]:text-white">
+              <Gavel className="h-4 w-4" />
+              Review queue
+              {quoteStats.pendingReview > 0 ? (
+                <Badge variant="secondary" className="ml-1 rounded-sm px-1.5 py-0 text-[10px]">
+                  {quoteStats.pendingReview}
                 </Badge>
-              )}
-            </DialogTitle>
-          </DialogHeader>
-          {detailQuote && (
-            <VStack spacing={4} className="py-2">
-              <p className="text-sm text-muted-foreground">ID: {detailQuote.id}</p>
-              <p className="text-2xl font-bold tabular-nums">{formatCurrency(detailQuote.amount)}</p>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Scope / description</p>
-                <p className="mt-1 whitespace-pre-wrap">{detailQuote.description || '—'}</p>
-              </div>
-              {detailQuote.notes ? (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Additional notes</p>
-                  <p className="mt-1 text-sm">{detailQuote.notes}</p>
-                </div>
               ) : null}
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Workflow</p>
-                <Badge variant="outline" className="mt-1">
-                  {reviewLabel(detailQuote.admin_review_status)}
-                </Badge>
-              </div>
-              {detailQuote.professional && (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Professional</p>
-                  <p className="text-sm">
-                    {[detailQuote.professional.firstName, detailQuote.professional.lastName]
-                      .filter(Boolean)
-                      .join(' ') || detailQuote.professional.email}
-                  </p>
-                  {detailQuote.professional.categories?.length ? (
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {detailQuote.professional.categories.map((c) => (
-                        <Badge key={c} variant="secondary" className="font-normal">
-                          {c}
-                        </Badge>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              )}
-              {(detailQuote.attachment_urls?.length ?? 0) > 0 && (
-                <div>
-                  <p className="mb-2 text-sm font-medium text-muted-foreground">Photos & attachments</p>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {(detailQuote.attachment_urls ?? []).map((url) => (
-                      <a
-                        key={url}
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block overflow-hidden rounded-md border border-border"
-                      >
-                        <img src={url} alt="" className="h-[120px] w-full object-cover" />
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {canReview && detailQuote.admin_review_status === 'pending_review' && (
-                <div>
-                  <label className="mb-1 block text-sm font-medium">Internal note (optional)</label>
-                  <Textarea
-                    value={reviewNote}
-                    onChange={(e) => setReviewNote(e.target.value)}
-                    placeholder="Reason for rejection or approval context (visible in audit)"
-                    rows={3}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <StatTile
+            label="Pending (customer)"
+            value={quoteStats.pending}
+            hint="On this page"
+            accent="warning"
+          />
+          <StatTile label="Accepted" value={quoteStats.accepted} hint="On this page" accent="success" />
+          <StatTile label="Rejected" value={quoteStats.rejected} hint="On this page" accent="danger" />
+          <StatTile label="Expired" value={quoteStats.expired} hint="On this page" accent="default" />
+          <StatTile
+            label="Pipeline (pending ₹)"
+            value={formatCurrency(quoteStats.pageValue)}
+            hint="Sum of pending amounts on this page"
+            accent="info"
+          />
+        </div>
+
+        <Card>
+          <CardContent className="space-y-4 pt-6">
+            <div className="grid gap-4 lg:grid-cols-12 lg:items-end">
+              <div className="lg:col-span-4">
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Search</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    className="pl-9"
+                    placeholder="ID, amount, customer, pro, company, booking…"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
+              </div>
+              {listTab === 'all' ? (
+                <div className="lg:col-span-2">
+                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Customer status</label>
+                  <Select value={selectedStatus} onValueChange={(v) => setSelectedStatus(v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All statuses</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="accepted">Accepted</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                      <SelectItem value="expired">Expired</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="lg:col-span-2 text-sm text-muted-foreground">
+                  <p className="rounded-md border border-dashed bg-muted/30 px-3 py-2">
+                    Queue is filtered by the server for items awaiting platform review. Use search to narrow this
+                    page.
+                  </p>
+                </div>
               )}
-              {detailQuote.admin_review_note && (
-                <p className="text-sm text-muted-foreground">
-                  Last review note: {detailQuote.admin_review_note}
+              <div className="lg:col-span-2">
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Quote kind</label>
+                <Select value={quoteKindFilter} onValueChange={(v) => setQuoteKindFilter(v as typeof quoteKindFilter)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All kinds</SelectItem>
+                    <SelectItem value="catalog">Catalog</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="lg:col-span-2">
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Platform review</label>
+                <Select
+                  value={adminReviewFilter}
+                  onValueChange={(v) => setAdminReviewFilter(v as typeof adminReviewFilter)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="pending_review">Awaiting review</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                    <SelectItem value="cleared">No gate (not set)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center justify-between gap-2 lg:col-span-2">
+                <p className="text-xs text-muted-foreground">
+                  Page <span className="font-mono font-medium text-foreground">{page}</span> of{' '}
+                  <span className="font-mono font-medium text-foreground">{totalPages}</span>
+                  <span className="mx-1">·</span>
+                  <span className="font-medium text-foreground">{totalCount}</span> total
                 </p>
-              )}
-            </VStack>
-          )}
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={() => setDetailOpen(false)} disabled={reviewSubmitting}>
-              Close
-            </Button>
-            {canReview && detailQuote?.admin_review_status === 'pending_review' ? (
-              <>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {loadError ? (
+          <p className="text-sm text-destructive" role="alert">
+            {loadError}
+          </p>
+        ) : null}
+
+        <Card className="overflow-hidden border-border/80 shadow-sm">
+          <div className="border-b bg-muted/30 px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span>
+                  Showing <strong className="text-foreground">{sortedQuotes.length}</strong> of{' '}
+                  <strong className="text-foreground">{quotes.length}</strong> rows on this page (after local filters).
+                </span>
+              </div>
+              <HStack spacing={2}>
                 <Button
                   type="button"
                   variant="outline"
-                  className="border-destructive text-destructive hover:bg-destructive/10"
-                  disabled={reviewSubmitting}
-                  onClick={() => runAdminReview('reject')}
+                  size="sm"
+                  disabled={loading || page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
                 >
-                  Reject
+                  <ChevronLeft className="mr-1 h-4 w-4" />
+                  Prev
                 </Button>
-                <Button type="button" disabled={reviewSubmitting} onClick={() => runAdminReview('approve')}>
-                  Approve
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={loading || page >= totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Next
+                  <ChevronRight className="ml-1 h-4 w-4" />
                 </Button>
-              </>
-            ) : null}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+              </HStack>
+            </div>
+          </div>
+          {loading && !quotes.length ? (
+            <div className="flex items-center justify-center gap-2 py-20 text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              Loading quotes…
+            </div>
+          ) : sortedQuotes.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="w-[100px] font-semibold">Quote</TableHead>
+                  <SortHead label="Amount" k="amount" />
+                  <TableHead className="font-semibold">Kind</TableHead>
+                  <TableHead className="font-semibold">Review</TableHead>
+                  <SortHead label="Status" k="status" />
+                  <TableHead className="font-semibold">Professional</TableHead>
+                  <TableHead className="font-semibold">Customer</TableHead>
+                  <TableHead className="font-semibold">Job link</TableHead>
+                  <SortHead label="Valid until" k="validUntil" />
+                  <SortHead label="Created" k="created" />
+                  <TableHead className="text-right font-semibold">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sortedQuotes.map((quote) => {
+                  const StatusIcon = statusIcons[quote.status]
+                  const bid = bookingLinkId(quote)
+                  const srid = serviceRequestLinkId(quote)
+                  const pro = professionalName(quote)
+                  const initials = getInitials(pro || quote.provider?.businessName || '?')
+                  return (
+                    <TableRow key={quote.id} className="group">
+                      <TableCell className="align-top font-mono text-xs font-medium">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="cursor-default">{shortId(quote.id)}</span>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="max-w-sm font-mono text-xs">
+                            {quote.id}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TableCell>
+                      <TableCell className="align-top tabular-nums font-semibold">{formatCurrency(safeAmount(quote))}</TableCell>
+                      <TableCell className="align-top">
+                        {quote.quote_kind ? (
+                          <Badge variant="secondary" className="capitalize">
+                            {quote.quote_kind}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="align-top text-xs">
+                        <Badge
+                          variant={quote.admin_review_status === 'pending_review' ? 'default' : 'outline'}
+                          className="max-w-[160px] whitespace-normal text-left font-normal leading-snug"
+                        >
+                          {reviewLabel(quote.admin_review_status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="align-top">
+                        <Badge variant={statusBadgeVariant[quote.status]} className="mb-1 gap-1 capitalize">
+                          <StatusIcon className="h-3 w-3" />
+                          {quote.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="max-w-[180px] align-top">
+                        <div className="flex items-start gap-2">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold">
+                            {initials}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium leading-tight">{pro ?? '—'}</p>
+                            {quote.professional?.email ? (
+                              <p className="truncate text-xs text-muted-foreground">{quote.professional.email}</p>
+                            ) : null}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="max-w-[200px] align-top">
+                        <p className="truncate text-sm font-medium">{customerName(quote)}</p>
+                        {quote.customer?.email ? (
+                          <p className="truncate text-xs text-muted-foreground">{quote.customer.email}</p>
+                        ) : null}
+                      </TableCell>
+                      <TableCell className="max-w-[200px] align-top text-xs">
+                        {bid ? (
+                          <Link
+                            to={`/bookings/${bid}`}
+                            className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                          >
+                            Booking {shortId(bid, 6)}
+                            <ExternalLink className="h-3 w-3 opacity-60" />
+                          </Link>
+                        ) : srid ? (
+                          <span className="text-muted-foreground" title={srid}>
+                            Request {shortId(srid, 6)}
+                          </span>
+                        ) : (
+                          '—'
+                        )}
+                        {quote.provider?.businessName ? (
+                          <p className="mt-1 flex items-center gap-1 truncate text-muted-foreground">
+                            <Building2 className="h-3 w-3 shrink-0" />
+                            {quote.provider.businessName}
+                          </p>
+                        ) : null}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap align-top text-xs text-muted-foreground">
+                        {validUntilRaw(quote) ? formatDate(validUntilRaw(quote) as string) : '—'}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap align-top text-xs text-muted-foreground">
+                        {createdRaw(quote) ? formatDate(createdRaw(quote) as string) : '—'}
+                      </TableCell>
+                      <TableCell className="text-right align-top">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openDetail(quote)}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View details
+                            </DropdownMenuItem>
+                            {bid ? (
+                              <DropdownMenuItem asChild>
+                                <Link to={`/bookings/${bid}`} className="flex cursor-pointer items-center">
+                                  <ClipboardList className="mr-2 h-4 w-4" />
+                                  Open booking
+                                </Link>
+                              </DropdownMenuItem>
+                            ) : null}
+                            {quote.professional?.professionalId ? (
+                              <DropdownMenuItem asChild>
+                                <Link
+                                  to={`/professionals/${quote.professional.professionalId}`}
+                                  className="flex cursor-pointer items-center"
+                                >
+                                  <User className="mr-2 h-4 w-4" />
+                                  Professional profile
+                                </Link>
+                              </DropdownMenuItem>
+                            ) : null}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          ) : (
+            <CardContent className="py-16 text-center">
+              <DollarSign className="mx-auto mb-3 h-12 w-12 text-muted-foreground/40" />
+              <h3 className="text-lg font-semibold">No quotes match</h3>
+              <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+                {searchTerm || quoteKindFilter !== 'all' || adminReviewFilter !== 'all' || selectedStatus !== 'all'
+                  ? 'Try clearing filters or search keywords.'
+                  : listTab === 'review'
+                    ? 'Nothing is waiting for platform review on this page.'
+                    : 'Quotes will appear when professionals submit them from the provider app.'}
+              </p>
+            </CardContent>
+          )}
+        </Card>
+
+        <Dialog
+          open={detailOpen}
+          onOpenChange={(o) => {
+            if (!reviewSubmitting) setDetailOpen(o)
+          }}
+        >
+          <DialogContent className="max-h-[92vh] max-w-3xl gap-0 overflow-hidden p-0">
+            <div className="border-b bg-muted/40 px-6 py-4">
+              <DialogHeader className="space-y-1 text-left">
+                <DialogTitle className="flex flex-wrap items-center gap-2 text-xl">
+                  Quote detail
+                  {detailQuote?.admin_review_status === 'pending_review' && (
+                    <Badge variant="warning" className="font-normal">
+                      Needs your decision
+                    </Badge>
+                  )}
+                </DialogTitle>
+                {detailQuote ? (
+                  <p className="font-mono text-xs text-muted-foreground">
+                    {detailQuote.id}
+                  </p>
+                ) : null}
+              </DialogHeader>
+            </div>
+            {detailQuote && (
+              <div className="max-h-[calc(92vh-8rem)] overflow-y-auto px-6 py-5">
+                <div className="grid gap-6 lg:grid-cols-5">
+                  <div className="space-y-4 lg:col-span-2">
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Amount</p>
+                      <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight">
+                        {formatCurrency(safeAmount(detailQuote))}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant={statusBadgeVariant[detailQuote.status]} className="gap-1 capitalize">
+                        {React.createElement(statusIcons[detailQuote.status], { className: 'h-3.5 w-3.5' })}
+                        {detailQuote.status}
+                      </Badge>
+                      {detailQuote.quote_kind ? (
+                        <Badge variant="secondary" className="capitalize">
+                          {detailQuote.quote_kind}
+                        </Badge>
+                      ) : null}
+                      <Badge variant="outline" className="font-normal">
+                        {reviewLabel(detailQuote.admin_review_status)}
+                      </Badge>
+                    </div>
+                    <Separator />
+                    <dl className="grid grid-cols-1 gap-3 text-sm">
+                      <div>
+                        <dt className="text-xs font-medium text-muted-foreground">Created</dt>
+                        <dd className="font-medium">{formatDateTime(createdRaw(detailQuote))}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs font-medium text-muted-foreground">Last updated</dt>
+                        <dd className="font-medium">{formatDateTime(updatedRaw(detailQuote))}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs font-medium text-muted-foreground">Valid until</dt>
+                        <dd className="font-medium">{formatDateTime(validUntilRaw(detailQuote))}</dd>
+                      </div>
+                      {detailQuote.estimated_duration != null ? (
+                        <div>
+                          <dt className="text-xs font-medium text-muted-foreground">Est. duration</dt>
+                          <dd className="font-medium">{detailQuote.estimated_duration} min</dd>
+                        </div>
+                      ) : null}
+                      {detailQuote.admin_reviewed_at ? (
+                        <div>
+                          <dt className="text-xs font-medium text-muted-foreground">Reviewed at</dt>
+                          <dd className="font-medium">{formatDateTime(detailQuote.admin_reviewed_at)}</dd>
+                        </div>
+                      ) : null}
+                    </dl>
+                  </div>
+                  <div className="space-y-4 lg:col-span-3">
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Scope</p>
+                      <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed">
+                        {detailQuote.description?.trim() || '—'}
+                      </p>
+                    </div>
+                    {detailQuote.notes ? (
+                      <div>
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Notes</p>
+                        <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{detailQuote.notes}</p>
+                      </div>
+                    ) : null}
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-lg border bg-card p-3">
+                        <p className="text-xs font-medium text-muted-foreground">Customer</p>
+                        <p className="mt-1 text-sm font-semibold">{customerName(detailQuote)}</p>
+                        {detailQuote.customer?.email ? (
+                          <p className="text-xs text-muted-foreground">{detailQuote.customer.email}</p>
+                        ) : null}
+                        {detailQuote.customer?.phone ? (
+                          <p className="text-xs text-muted-foreground">{detailQuote.customer.phone}</p>
+                        ) : null}
+                      </div>
+                      <div className="rounded-lg border bg-card p-3">
+                        <p className="text-xs font-medium text-muted-foreground">Professional</p>
+                        <p className="mt-1 text-sm font-semibold">{professionalName(detailQuote) ?? '—'}</p>
+                        {detailQuote.professional?.professionalId ? (
+                          <Link
+                            className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                            to={`/professionals/${detailQuote.professional.professionalId}`}
+                          >
+                            Open profile <ExternalLink className="h-3 w-3" />
+                          </Link>
+                        ) : null}
+                      </div>
+                    </div>
+                    {bookingLinkId(detailQuote) ? (
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to={`/bookings/${bookingLinkId(detailQuote)}`}>
+                          <ClipboardList className="mr-2 h-4 w-4" />
+                          Open linked booking
+                        </Link>
+                      </Button>
+                    ) : null}
+                    {(detailQuote.attachment_urls?.length ?? 0) > 0 && (
+                      <div>
+                        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Photos & attachments
+                        </p>
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                          {(detailQuote.attachment_urls ?? []).map((url) => (
+                            <a
+                              key={url}
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block overflow-hidden rounded-md border border-border"
+                            >
+                              <img src={url} alt="" className="h-[120px] w-full object-cover" loading="lazy" />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {canReview && detailQuote.admin_review_status === 'pending_review' && (
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium">Internal note (optional)</label>
+                        <Textarea
+                          value={reviewNote}
+                          onChange={(e) => setReviewNote(e.target.value)}
+                          placeholder="Reason for rejection or context for approval (audit trail)"
+                          rows={3}
+                        />
+                      </div>
+                    )}
+                    {detailQuote.admin_review_note ? (
+                      <p className="rounded-md border border-dashed bg-muted/30 p-3 text-sm text-muted-foreground">
+                        <span className="font-medium text-foreground">Last review note:</span> {detailQuote.admin_review_note}
+                      </p>
+                    ) : null}
+                    {detailQuote.status === 'rejected' &&
+                      (detailQuote.customer_rejection_reason || '').trim().length > 0 && (
+                        <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3">
+                          <p className="text-xs font-medium text-destructive">Customer decline reason</p>
+                          <p className="mt-1 whitespace-pre-wrap text-sm">{detailQuote.customer_rejection_reason}</p>
+                        </div>
+                      )}
+                  </div>
+                </div>
+              </div>
+            )}
+            <DialogFooter className="border-t bg-muted/20 px-6 py-4">
+              <Button type="button" variant="outline" onClick={() => setDetailOpen(false)} disabled={reviewSubmitting}>
+                Close
+              </Button>
+              {canReview && detailQuote?.admin_review_status === 'pending_review' ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-destructive text-destructive hover:bg-destructive/10"
+                    disabled={reviewSubmitting}
+                    onClick={() => runAdminReview('reject')}
+                  >
+                    Reject
+                  </Button>
+                  <Button type="button" disabled={reviewSubmitting} onClick={() => runAdminReview('approve')}>
+                    {reviewSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Approve
+                  </Button>
+                </>
+              ) : null}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
   )
 }
