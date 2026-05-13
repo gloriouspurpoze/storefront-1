@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { BookOpen, ArrowRight, BadgePercent } from 'lucide-react'
+import { BookOpen, ArrowRight, BadgePercent, Megaphone } from 'lucide-react'
 import { PageHeader } from '../../components/common'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
 import { usePermissions } from '../../hooks/usePermissions'
@@ -13,6 +13,14 @@ const ARTICLES: Array<{
   icon: React.ElementType
   permission: Permission | null
 }> = [
+  {
+    slug: 'content-marketing',
+    title: 'Content & marketing (full area map)',
+    description:
+      'CMS structure, sliders, growth tools, industry landing SEO, and the marketing workspace — who sees what and recommended go-live workflows.',
+    icon: Megaphone,
+    permission: null,
+  },
   {
     slug: 'operations-commercial-terms',
     title: 'Commercial terms (fees & commissions)',

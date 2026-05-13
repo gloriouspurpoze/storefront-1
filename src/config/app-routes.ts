@@ -267,6 +267,12 @@ export const QUICK_NAV_ITEMS: QuickNavItem[] = [
     keywords: 'guides documentation how it works playbook training admin',
   },
   {
+    label: 'Guide: Content & marketing',
+    path: '/knowledge-kit/content-marketing',
+    group: 'System',
+    keywords: 'cms blog seo sliders coupons referrals workspace playbook',
+  },
+  {
     label: 'Guide: Commercial terms',
     path: '/knowledge-kit/operations-commercial-terms',
     group: 'System',

@@ -30,6 +30,7 @@ import {
 } from 'lucide-react'
 import { CMSService } from '../../services/api'
 import { PageHeader, StatHighlightCard } from '../../components/common'
+import { Button } from '../../components/ui/button'
 import { Card, CardContent } from '../../components/ui/card'
 import { Badge } from '../../components/ui/badge'
 import { cn } from '../../lib/utils'
@@ -310,6 +311,11 @@ export default function CMSDashboard() {
       <PageHeader
         title="Content & marketing"
         subtitle="Manage site structure, campaigns, editorial content, and SEO from one hub — aligned with how modern CMS products group workflows."
+        action={
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/knowledge-kit/content-marketing">Open knowledge kit</Link>
+          </Button>
+        }
       />
 
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">

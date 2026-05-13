@@ -230,6 +230,11 @@ const OperationsCommercialTermsGuide = lazy(() =>
     default: m.OperationsCommercialTermsGuide,
   })),
 )
+const ContentMarketingGuide = lazy(() =>
+  import('./pages/knowledge-kit/content-marketing-guide').then((m) => ({
+    default: m.ContentMarketingGuide,
+  })),
+)
 const OperationsProviderAssetsPage = lazy(() =>
   import('./pages/operations/operations-provider-assets').then((m) => ({
     default: m.OperationsProviderAssetsPage,
@@ -769,6 +774,14 @@ function App() {
                         element={
                           <RoleBasedRoute permissions={['view_operating_terms']}>
                             <OperationsCommercialTermsGuide />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/knowledge-kit/content-marketing"
+                        element={
+                          <RoleBasedRoute permissions={['view_dashboard']}>
+                            <ContentMarketingGuide />
                           </RoleBasedRoute>
                         }
                       />
