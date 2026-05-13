@@ -12,7 +12,7 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { Bug, BookOpen, Flag, Layers, ListTodo } from 'lucide-react'
+import { Bug, BookOpen, Flag, Layers, ListTodo, MessageSquare } from 'lucide-react'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
 import { cn } from '../../lib/utils'
@@ -26,6 +26,7 @@ import {
 import type { TeamWorkItem, TeamWorkStatus } from '../../types/teamWork.types'
 import { assigneeIdsFromItem } from '../../lib/teamWorkAssignees'
 import { hierarchicalIssueLabel } from '../../lib/teamWorkIssueDisplay'
+import { teamWorkCommentCount } from '../../lib/teamWorkCommentCount'
 
 const itemDragId = (id: string) => `tw-${id}`
 const columnDropId = (status: TeamWorkStatus) => `col-${status}`
@@ -56,6 +57,7 @@ function WorkCard({
   sprintName?: string
   onOpen: (id: string) => void
 }) {
+  const commentCount = teamWorkCommentCount(item)
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: itemDragId(item.id),
     disabled: !canDrag,
@@ -104,6 +106,14 @@ function WorkCard({
             </span>
           </div>
           <p className="mt-0.5 line-clamp-3 text-sm font-medium leading-snug text-foreground">{item.title}</p>
+          {commentCount > 0 ? (
+            <div className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+              <MessageSquare className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span>
+                {commentCount} comment{commentCount === 1 ? '' : 's'}
+              </span>
+            </div>
+          ) : null}
           {sprintName ? (
             <Badge variant="outline" className="mt-1 h-5 max-w-full truncate px-1.5 text-[10px] font-normal">
               {sprintName}

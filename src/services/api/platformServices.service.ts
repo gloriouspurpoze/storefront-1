@@ -8,8 +8,11 @@ export interface PlatformService {
   short_description?: string
   icon?: string
   image?: string
+  /** May be slug or id depending on API transform; prefer `category_id` for writes. */
   category: string
+  category_id?: string
   subcategory?: string
+  subcategory_id?: string
   service_type: 'fixed' | 'hourly' | 'consultation'
   duration?: string
   base_price?: number
@@ -332,6 +335,54 @@ export const platformServicesService = {
   async archiveService(serviceId: string): Promise<PlatformService> {
     const response = await apiClient.put(`/platform-services/${serviceId}/archive`) as any
     return response.data.data.service
+  },
+
+  /**
+   * Deactivate every active platform service matching category (and optional subcategory).
+   * Re-fetches page 1 until no active matches remain — safe for large catalogs.
+   * Used when a category or subcategory is set inactive so services follow the same visibility.
+   */
+  async deactivateServicesMatching(params: {
+    category: string
+    subcategory?: string
+  }): Promise<{ deactivatedCount: number }> {
+    const category = String(params.category ?? '').trim().toLowerCase()
+    if (!category) return { deactivatedCount: 0 }
+    const subcategory = params.subcategory?.trim().toLowerCase()
+
+    let deactivatedCount = 0
+    const limit = 100
+    let safety = 0
+    const maxLoops = 500
+
+    while (safety < maxLoops) {
+      safety += 1
+      const query: GetPlatformServicesParams = {
+        page: 1,
+        limit,
+        category,
+        is_active: true,
+        sort_by: 'sort_order',
+        sort_order: 'asc',
+      }
+      if (subcategory) query.subcategory = subcategory
+
+      const res = await this.getServices(query)
+      const batch = res.services ?? []
+      if (batch.length === 0) break
+
+      for (const s of batch) {
+        if (!s.is_active) continue
+        try {
+          await this.updateService(s.id, { is_active: false })
+          deactivatedCount += 1
+        } catch {
+          // Continue other rows; caller may retry or inspect logs
+        }
+      }
+    }
+
+    return { deactivatedCount }
   },
 }
 

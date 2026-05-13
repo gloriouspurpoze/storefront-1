@@ -1,4 +1,5 @@
 import { api } from './base'
+import { platformServicesService } from './platformServices.service'
 import type {
   Category,
   CreateCategoryRequest,
@@ -215,11 +216,19 @@ export class CategoriesService {
    * Update existing category
    */
   static async updateCategory(id: string, category: UpdateCategoryRequest) {
-    return api.put<Category>(`/categories/update/${id}`, category, {
+    const response = await api.put<Category>(`/categories/update/${id}`, category, {
       loadingMessage: 'Updating category...',
       successMessage: 'Category updated successfully!',
       errorMessage: 'Failed to update category.',
     })
+    if (category.status === 'inactive') {
+      try {
+        await platformServicesService.deactivateServicesMatching({ category: id })
+      } catch {
+        // Category is still saved; cascade is best-effort from admin client
+      }
+    }
+    return response
   }
 
   /**

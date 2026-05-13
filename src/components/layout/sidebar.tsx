@@ -987,119 +987,123 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             </ul>
           </div>
         )}
-        {activeNavigationGroups.map((group, groupIndex) => (
-          <div
-            key={group.title}
-            className={cn(
-              'space-y-0.5',
-              groupIndex < activeNavigationGroups.length - 1 && 'mb-1.5',
-            )}
-          >
-            {sidebarOpen && (
-              <p className="px-2 py-1 text-[0.65rem] font-bold uppercase tracking-wider text-muted-foreground">
-                {group.title}
-              </p>
-            )}
-            <ul className="px-0.5">
-              {group.items.map((item: SidebarItem) => {
-                const isActive = Boolean(
-                  (!!item.href && routeMatchesNav(item.href, location.pathname, location.search)) ||
-                    (!!item.hasSubmenu &&
-                      item.subItems?.some((sub) => routeMatchesNav(sub.href, location.pathname, location.search))),
-                )
-                const hasSubmenu = item.hasSubmenu
-                const isSubmenuOpen = openSubmenus[item.name] || false
-                const Icon = item.icon
-                const navBadgeRaw =
-                  item.href === '/chat' ? (chatUnread > 0 ? chatUnread : null) : item.badge
-                const navBadgeLabel = formatSidebarBadgeValue(navBadgeRaw)
+        {activeNavigationGroups.map((group, groupIndex) => {
+          const rows = group.items.map((item: SidebarItem) => {
+            const isActive = Boolean(
+              (!!item.href && routeMatchesNav(item.href, location.pathname, location.search)) ||
+                (!!item.hasSubmenu &&
+                  item.subItems?.some((sub) => routeMatchesNav(sub.href, location.pathname, location.search))),
+            )
+            const hasSubmenu = item.hasSubmenu
+            const isSubmenuOpen = openSubmenus[item.name] || false
+            const Icon = item.icon
+            const navBadgeRaw =
+              item.href === '/chat' ? (chatUnread > 0 ? chatUnread : null) : item.badge
+            const navBadgeLabel = formatSidebarBadgeValue(navBadgeRaw)
 
-                const mainCell = hasSubmenu ? (
-                  <button
-                    type="button"
-                    className={linkBase(isActive)}
-                    onClick={() => handleSubmenuToggle(item.name)}
-                    title={!sidebarOpen ? item.name : undefined}
-                  >
-                    <span className="relative flex w-8 shrink-0 items-center justify-center">
-                      {navBadgeLabel != null && (
-                        <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-0.5 text-[9px] font-bold leading-none text-destructive-foreground">
-                          {navBadgeLabel}
-                        </span>
-                      )}
-                      {renderNavIcon(Icon, isActive)}
+            const mainCell = hasSubmenu ? (
+              <button
+                type="button"
+                className={linkBase(isActive)}
+                onClick={() => handleSubmenuToggle(item.name)}
+                title={!sidebarOpen ? item.name : undefined}
+              >
+                <span className="relative flex w-8 shrink-0 items-center justify-center">
+                  {navBadgeLabel != null && (
+                    <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-0.5 text-[9px] font-bold leading-none text-destructive-foreground">
+                      {navBadgeLabel}
                     </span>
-                    {sidebarOpen && (
-                      <span className="flex min-w-0 flex-1 items-center justify-between gap-1">
-                        <span className={cn('truncate', isActive ? 'font-semibold' : 'font-medium')}>
-                          {item.name}
-                        </span>
-                        {isSubmenuOpen ? (
-                          <ExpandLess className="h-4 w-4 shrink-0" />
-                        ) : (
-                          <ExpandMore className="h-4 w-4 shrink-0" />
-                        )}
-                      </span>
+                  )}
+                  {renderNavIcon(Icon, isActive)}
+                </span>
+                {sidebarOpen && (
+                  <span className="flex min-w-0 flex-1 items-center justify-between gap-1">
+                    <span className={cn('truncate', isActive ? 'font-semibold' : 'font-medium')}>{item.name}</span>
+                    {isSubmenuOpen ? (
+                      <ExpandLess className="h-4 w-4 shrink-0" />
+                    ) : (
+                      <ExpandMore className="h-4 w-4 shrink-0" />
                     )}
-                  </button>
-                ) : (
-                  <Link
-                    to={item.href!}
-                    onClick={isMobile ? onClose : undefined}
-                    className={linkBase(isActive)}
-                    title={!sidebarOpen ? item.name : undefined}
-                  >
-                    <span className="relative flex w-8 shrink-0 items-center justify-center">
-                      {navBadgeLabel != null && (
-                        <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-0.5 text-[9px] font-bold leading-none text-destructive-foreground">
-                          {navBadgeLabel}
-                        </span>
-                      )}
-                      {renderNavIcon(Icon, isActive)}
+                  </span>
+                )}
+              </button>
+            ) : (
+              <Link
+                to={item.href!}
+                onClick={isMobile ? onClose : undefined}
+                className={linkBase(isActive)}
+                title={!sidebarOpen ? item.name : undefined}
+              >
+                <span className="relative flex w-8 shrink-0 items-center justify-center">
+                  {navBadgeLabel != null && (
+                    <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-0.5 text-[9px] font-bold leading-none text-destructive-foreground">
+                      {navBadgeLabel}
                     </span>
-                    {sidebarOpen && (
-                      <span
-                        className={cn('min-w-0 flex-1 truncate', isActive ? 'font-semibold' : 'font-medium')}
-                      >
-                        {item.name}
-                      </span>
-                    )}
-                  </Link>
-                )
+                  )}
+                  {renderNavIcon(Icon, isActive)}
+                </span>
+                {sidebarOpen && (
+                  <span className={cn('min-w-0 flex-1 truncate', isActive ? 'font-semibold' : 'font-medium')}>
+                    {item.name}
+                  </span>
+                )}
+              </Link>
+            )
 
-                return (
-                  <li key={item.name} className="list-none">
-                    {mainCell}
-                    {hasSubmenu && isSubmenuOpen && sidebarOpen && item.subItems && (
-                      <ul className="mt-0.5 space-y-0.5 pl-2.5 pr-0.5">
-                        {item.subItems.map((subItem: SidebarSubItem) => {
-                          const isSubActive = routeMatchesNav(subItem.href, location.pathname, location.search)
-                          const SIcon = subItem.icon
-                          return (
-                            <li key={subItem.name} className="list-none">
-                              <Link
-                                to={subItem.href}
-                                onClick={isMobile ? onClose : undefined}
-                                className={subLinkBase(isSubActive)}
-                              >
-                                {renderNavIcon(SIcon, isSubActive, true)}
-                                <span
-                                  className={cn('flex-1 truncate', isSubActive ? 'font-semibold' : 'font-normal')}
-                                >
-                                  {subItem.name}
-                                </span>
-                              </Link>
-                            </li>
-                          )
-                        })}
-                      </ul>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-        ))}
+            return (
+              <li key={item.name} className="list-none">
+                {mainCell}
+                {hasSubmenu && isSubmenuOpen && sidebarOpen && item.subItems && (
+                  <ul className="mt-0.5 space-y-0.5 pl-2.5 pr-0.5">
+                    {item.subItems.map((subItem: SidebarSubItem) => {
+                      const isSubActive = routeMatchesNav(subItem.href, location.pathname, location.search)
+                      const SIcon = subItem.icon
+                      return (
+                        <li key={subItem.name} className="list-none">
+                          <Link
+                            to={subItem.href}
+                            onClick={isMobile ? onClose : undefined}
+                            className={subLinkBase(isSubActive)}
+                          >
+                            {renderNavIcon(SIcon, isSubActive, true)}
+                            <span className={cn('flex-1 truncate', isSubActive ? 'font-semibold' : 'font-normal')}>
+                              {subItem.name}
+                            </span>
+                          </Link>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </li>
+            )
+          })
+
+          return (
+            <div
+              key={group.title}
+              className={cn(!sidebarOpen && groupIndex < activeNavigationGroups.length - 1 && 'mb-1.5')}
+            >
+              {sidebarOpen ? (
+                <details
+                  className="mb-1 border-b border-border/50 pb-2 last:border-b-0"
+                  {...({ defaultOpen: true } as Record<string, unknown>)}
+                >
+                  <summary className="flex cursor-pointer list-none items-center gap-2 px-2 py-1.5 text-[0.65rem] font-bold uppercase tracking-wider text-muted-foreground [&::-webkit-details-marker]:hidden">
+                    {group.icon ? (
+                      <group.icon className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+                    ) : null}
+                    <span className="min-w-0 flex-1 truncate">{group.title}</span>
+                    <ExpandMore className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+                  </summary>
+                  <ul className="space-y-0.5 px-0.5 pt-1">{rows}</ul>
+                </details>
+              ) : (
+                <ul className="space-y-0.5 px-0.5">{rows}</ul>
+              )}
+            </div>
+          )
+        })}
       </nav>
 
       {SAAS_MODE && (

@@ -1,4 +1,5 @@
 import { api } from './base'
+import { platformServicesService } from './platformServices.service'
 
 export interface Subcategory {
   id: string
@@ -81,11 +82,31 @@ export class SubcategoriesService {
    * Update subcategory (admin)
    */
   static async updateSubcategory(id: string, data: Partial<CreateSubcategoryRequest>) {
-    return api.put<Subcategory>(`/subcategories/${id}`, data, {
+    const response = await api.put<Subcategory>(`/subcategories/${id}`, data, {
       loadingMessage: 'Updating subcategory...',
       successMessage: 'Subcategory updated successfully!',
       errorMessage: 'Failed to update subcategory.',
     })
+
+    if (data.is_active === false) {
+      try {
+        let categoryId = data.category_id
+        if (!categoryId) {
+          const subRes = await SubcategoriesService.getSubcategory(id)
+          categoryId = subRes?.data?.categoryId
+        }
+        if (categoryId) {
+          await platformServicesService.deactivateServicesMatching({
+            category: String(categoryId),
+            subcategory: String(id),
+          })
+        }
+      } catch {
+        // Subcategory still saved; cascade is best-effort from admin client
+      }
+    }
+
+    return response
   }
 
   /**

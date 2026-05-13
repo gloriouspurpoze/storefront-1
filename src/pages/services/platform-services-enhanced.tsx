@@ -71,13 +71,14 @@ import { ConfirmDialog } from '../../components/common/ConfirmDialog'
 import { useNavigate } from 'react-router-dom'
 import { appToast } from '../../lib/appToast'
 import { formatCurrency, cn } from '../../lib/utils'
+import { normalizeRefToMongoIdString } from '../../lib/mongoObjectId'
 
 const CATEGORIES_FALLBACK = ['home_repair', 'home_improvement', 'cleaning', 'outdoor', 'maintenance', 'installation']
 
 const CATALOG_PAGE_LIMIT = 500
 
 function formatSubcategoryLabel(rawKey: string): string {
-  if (rawKey === '__general__') return 'General / ungrouped'
+  if (rawKey === '__general__') return 'No subcategory assigned'
   return rawKey
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (c) => c.toUpperCase())
@@ -746,12 +747,49 @@ export function PlatformServicesEnhanced() {
 
   const handleDuplicate = async (service: PlatformService) => {
     try {
-      const { id: _id, slug: _slug, created_at: _c, updated_at: _u, ...serviceData } = service as PlatformService & {
+      const ext = service as PlatformService & {
         created_at?: string
         updated_at?: string
+        category_id?: string
+        subcategory_id?: string
+        categoryId?: string
+        subcategoryId?: string
       }
+      const categoryId =
+        normalizeRefToMongoIdString(ext.category_id) ??
+        normalizeRefToMongoIdString(ext.categoryId) ??
+        normalizeRefToMongoIdString(ext.category)
+      const subcategoryId =
+        normalizeRefToMongoIdString(ext.subcategory_id) ??
+        normalizeRefToMongoIdString(ext.subcategoryId) ??
+        normalizeRefToMongoIdString(ext.subcategory)
+
+      if (!categoryId) {
+        appToast(
+          'Cannot duplicate: category ID is missing (API returned a slug only). Open the service in the editor, confirm category, and save once.',
+          'error',
+        )
+        return
+      }
+
+      const {
+        id: _id,
+        slug: _slug,
+        created_at: _c,
+        updated_at: _u,
+        category: _cat,
+        subcategory: _sub,
+        category_id: _cid,
+        subcategory_id: _sid,
+        categoryId: _cId,
+        subcategoryId: _sId,
+        ...serviceData
+      } = ext
+
       await platformServicesService.createService({
         ...(serviceData as object),
+        category: categoryId,
+        ...(subcategoryId ? { subcategory: subcategoryId } : {}),
         name: `${service.name} (Copy)`,
         slug: `${service.slug}-copy`,
         is_active: false,
@@ -1036,12 +1074,19 @@ export function PlatformServicesEnhanced() {
                                   className="border-border/80"
                                 >
                                   <AccordionTrigger className="py-3 text-sm hover:bg-muted/50 hover:no-underline">
-                                    <div className="flex flex-1 items-center gap-2 pr-2">
-                                      <FolderTree className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                      <span className="font-medium">{sub.subLabel}</span>
-                                      <Badge variant="outline" className="ml-auto tabular-nums">
-                                        {sub.services.length}
-                                      </Badge>
+                                    <div className="flex min-w-0 flex-1 flex-col items-stretch gap-0.5 pr-2 sm:flex-row sm:items-center sm:gap-2">
+                                      <div className="flex min-w-0 flex-1 items-center gap-2">
+                                        <FolderTree className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                        <span className="font-medium">{sub.subLabel}</span>
+                                        <Badge variant="outline" className="ml-auto shrink-0 tabular-nums sm:ml-0">
+                                          {sub.services.length}
+                                        </Badge>
+                                      </div>
+                                      {sub.subKey === '__general__' ? (
+                                        <span className="text-xs text-muted-foreground sm:ml-8">
+                                          Only for this category — assign a subcategory on each service to organize them.
+                                        </span>
+                                      ) : null}
                                     </div>
                                   </AccordionTrigger>
                                   <AccordionContent className="pb-3 pt-0">

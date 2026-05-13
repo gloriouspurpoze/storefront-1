@@ -1653,7 +1653,10 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
         return
       }
       const slug = (item.slug || '').trim() || 'item'
-      const href = kind === 'product' ? `/products/${encodeURIComponent(slug)}` : `/services/${encodeURIComponent(slug)}`
+      const href =
+        kind === 'product'
+          ? `/store/product/${encodeURIComponent(slug)}`
+          : `/services/${encodeURIComponent(slug)}`
       const esc = (s: string) =>
         s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
       const label = (item.name || slug).trim()
@@ -2468,7 +2471,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             <section className="rounded-xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/50 to-white p-4 shadow-sm ring-1 ring-emerald-100/60">
               <h3 className="text-sm font-semibold text-emerald-950">Insert internal links</h3>
               <p className="mt-1 text-xs text-slate-600">
-                Combined search via <code className="rounded bg-white px-1 font-mono text-[11px]">GET /api/cms/admin/blogs/link-suggestions</code>. Inserts at the caret using <span className="font-mono text-[11px]">/products/&lt;slug&gt;</span> and <span className="font-mono text-[11px]">/services/&lt;slug&gt;</span>; map these routes on <strong className="text-slate-800">my.profixer.in</strong> (or your consumer app).
+                Combined search via <code className="rounded bg-white px-1 font-mono text-[11px]">GET /api/cms/admin/blogs/link-suggestions</code>. Inserts at the caret using <span className="font-mono text-[11px]">/store/product/&lt;slug&gt;</span> (storefront PDP on my.profixer.in) and <span className="font-mono text-[11px]">/services/&lt;slug&gt;</span> for services. Legacy <span className="font-mono text-[11px]">/products/&lt;slug&gt;</span> URLs redirect to the store on the consumer app.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <input

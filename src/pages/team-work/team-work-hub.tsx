@@ -2,19 +2,27 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   Archive,
+  BarChart2,
+  CalendarDays,
   CalendarPlus,
   ClipboardList,
+  Clock,
+  FileText,
   FolderKanban,
   KanbanSquare,
+  Layers,
   LayoutList,
   Loader2,
   Mail,
+  PieChart,
   Plus,
   Search,
   Settings2,
   Tag,
+  Target,
   Trash2,
   UserCircle2,
+  Zap,
 } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { ConfirmDialog } from '../../components/common/ConfirmDialog'
@@ -61,6 +69,7 @@ import { Switch } from '../../components/ui/switch'
 import { Checkbox } from '../../components/ui/checkbox'
 import { assigneeSwatchClass, initialsFromLabel, PRIORITY_CHIP, priorityLabel } from '../../lib/teamWorkVisuals'
 import { teamWorkTagDisplayName, teamWorkTagSlug } from '../../lib/teamWorkTags'
+import { teamWorkCommentCount } from '../../lib/teamWorkCommentCount'
 import { assigneeIdsFromItem, primaryAssigneeUserId } from '../../lib/teamWorkAssignees'
 import { getProjectTeamUsersForAssignee } from '../../lib/teamWorkProjectTeam'
 import {
@@ -84,18 +93,39 @@ const STATUS_LABELS: Record<TeamWorkStatus, string> = {
   cancelled: 'Cancelled',
 }
 
-type ListSortKey = 'issueKey' | 'title' | 'status' | 'priority' | 'type' | 'sprint' | 'assignee'
+const TEAM_WORK_HUB_TABS = [
+  'active-sprint',
+  'backlog',
+  'all-issues',
+  'sprints',
+  'goals',
+  'summary',
+  'timeline',
+  'calendar',
+  'notes',
+  'report',
+] as const
+
+type TeamWorkHubTab = (typeof TEAM_WORK_HUB_TABS)[number]
+
+function normalizeTeamWorkHubTab(raw: string | null): TeamWorkHubTab {
+  if (raw && TEAM_WORK_HUB_TABS.includes(raw as TeamWorkHubTab)) return raw as TeamWorkHubTab
+  return 'active-sprint'
+}
+
+type ListSortKey = 'issueKey' | 'title' | 'status' | 'priority' | 'type' | 'sprint' | 'comments' | 'assignee'
 
 const LIST_COL_STORAGE_KEY = 'fixer-team-work-list-cols-v1'
 
 const DEFAULT_LIST_COL_WIDTHS: Record<string, number> = {
   key: 136,
-  title: 268,
+  title: 248,
   status: 124,
   priority: 104,
   type: 92,
-  sprint: 128,
-  assignee: 200,
+  sprint: 120,
+  comments: 88,
+  assignee: 180,
   actions: 76,
 }
 
@@ -214,6 +244,8 @@ export function TeamWorkHub() {
   const [assigneeFilter, setAssigneeFilter] = useState<string>('__all__')
   const [mineOnly, setMineOnly] = useState(false)
   const [tagFilters, setTagFilters] = useState<string[]>([])
+  const [tagPresetDeleteSlug, setTagPresetDeleteSlug] = useState<string | null>(null)
+  const [tagPresetDeleting, setTagPresetDeleting] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
   const [drawerId, setDrawerId] = useState<string | null>(null)
 
@@ -241,6 +273,29 @@ export function TeamWorkHub() {
     }
     setDrawerId((d) => (d === q ? d : q))
   }, [searchParams])
+
+  const hubTab = useMemo(() => normalizeTeamWorkHubTab(searchParams.get('hub')), [searchParams])
+
+  const setHubTab = useCallback(
+    (tab: TeamWorkHubTab) => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev)
+          next.set('hub', tab)
+          return next
+        },
+        { replace: true },
+      )
+    },
+    [setSearchParams],
+  )
+
+  useEffect(() => {
+    if (!projectId) return
+    if (hubTab === 'active-sprint') setSprintViewFilter('__active__')
+    else if (hubTab === 'backlog') setSprintViewFilter('__backlog__')
+    else if (hubTab === 'all-issues') setSprintViewFilter('__all__')
+  }, [projectId, hubTab])
 
   const [newTitle, setNewTitle] = useState('')
   const [newDesc, setNewDesc] = useState('')
@@ -276,6 +331,7 @@ export function TeamWorkHub() {
   const [savingAccess, setSavingAccess] = useState(false)
   const [savingNewProject, setSavingNewProject] = useState(false)
   const [scheduleMeetingOpen, setScheduleMeetingOpen] = useState(false)
+  const [projectNotes, setProjectNotes] = useState('')
 
   const tenantId = authUser?.tenant?.id ?? '_'
   const [sprintRows, setSprintRows] = useState<TeamWorkSprint[]>([])
@@ -343,8 +399,16 @@ export function TeamWorkHub() {
     const m = new Map<string, string>()
     for (const u of adminUsers) m.set(u.id, userLabel(u))
     if (authUser?.id) {
-      const self = `${authUser.firstName || ''} ${authUser.lastName || ''}`.trim() || authUser.email || authUser.id
-      m.set(authUser.id, self)
+      m.set(
+        authUser.id,
+        userLabel({
+          id: authUser.id,
+          username: (authUser as { username?: string }).username,
+          firstName: authUser.firstName,
+          lastName: authUser.lastName,
+          email: authUser.email,
+        }),
+      )
     }
     return m
   }, [adminUsers, authUser])
@@ -395,6 +459,16 @@ export function TeamWorkHub() {
 
   const mergedItems = useMemo(() => mergeSprintOntoItems(items, sprintAssignments), [items, sprintAssignments])
 
+  const tagSlugTicketCounts = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const it of mergedItems) {
+      for (const lb of it.labels ?? []) {
+        m.set(lb, (m.get(lb) ?? 0) + 1)
+      }
+    }
+    return m
+  }, [mergedItems])
+
   const sprintNameById = useMemo(() => {
     const m = new Map<string, string>()
     for (const s of sprintRows) m.set(s.id, s.name)
@@ -412,6 +486,72 @@ export function TeamWorkHub() {
     }
     return mergedItems.filter((i) => i.sprintId === sprintViewFilter)
   }, [mergedItems, sprintViewFilter, sprintRows])
+
+  const summaryStats = useMemo(() => {
+    const openStatuses = new Set(['backlog', 'todo', 'in_progress', 'in_review', 'blocked'])
+    let open = 0
+    let done = 0
+    let blocked = 0
+    for (const it of mergedItems) {
+      if (it.status === 'blocked') blocked += 1
+      if (it.status === 'done') done += 1
+      if (openStatuses.has(it.status)) open += 1
+    }
+    return { open, done, blocked, total: mergedItems.length }
+  }, [mergedItems])
+
+  const timelineRows = useMemo(() => {
+    return [...mergedItems]
+      .filter((it) => it.dueAt || it.startAt)
+      .sort((a, b) => {
+        const ta = new Date(a.dueAt || a.startAt || 0).getTime()
+        const tb = new Date(b.dueAt || b.startAt || 0).getTime()
+        return ta - tb
+      })
+      .slice(0, 150)
+  }, [mergedItems])
+
+  const reportByStatus = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const it of mergedItems) {
+      m.set(it.status, (m.get(it.status) ?? 0) + 1)
+    }
+    return Array.from(m.entries()).sort((a, b) => b[1] - a[1])
+  }, [mergedItems])
+
+  const reportByType = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const it of mergedItems) {
+      m.set(it.issueType, (m.get(it.issueType) ?? 0) + 1)
+    }
+    return Array.from(m.entries()).sort((a, b) => b[1] - a[1])
+  }, [mergedItems])
+
+  const hubNotesStorageKey = projectId ? `fixer-tw-hub-notes:${tenantId}:${projectId}` : null
+
+  useEffect(() => {
+    if (!hubNotesStorageKey) {
+      setProjectNotes('')
+      return
+    }
+    try {
+      setProjectNotes(window.localStorage.getItem(hubNotesStorageKey) ?? '')
+    } catch {
+      setProjectNotes('')
+    }
+  }, [hubNotesStorageKey])
+
+  useEffect(() => {
+    if (!hubNotesStorageKey) return
+    const id = window.setTimeout(() => {
+      try {
+        window.localStorage.setItem(hubNotesStorageKey, projectNotes)
+      } catch {
+        /* ignore */
+      }
+    }, 400)
+    return () => window.clearTimeout(id)
+  }, [hubNotesStorageKey, projectNotes])
 
   useEffect(() => {
     try {
@@ -473,6 +613,9 @@ export function TeamWorkHub() {
           c = la.localeCompare(lb)
           break
         }
+        case 'comments':
+          c = teamWorkCommentCount(a) - teamWorkCommentCount(b)
+          break
         default:
           c = 0
       }
@@ -717,7 +860,16 @@ export function TeamWorkHub() {
   const onChangeProject = (id: string) => {
     openWorkItemDrawer(null)
     setTagFilters([])
-    setSprintViewFilter('__all__')
+    setSprintViewFilter('__active__')
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.set('hub', 'active-sprint')
+        next.delete('issue')
+        return next
+      },
+      { replace: true },
+    )
     setProjectId(id)
     window.localStorage.setItem(projectStorageKey, id)
     setLoadError(null)
@@ -727,6 +879,22 @@ export function TeamWorkHub() {
     const list = await teamWorkApi.listProjects({ includeArchived: canManageProjects })
     setProjects(list)
   }, [canManageProjects])
+
+  const removeTagFromBoardCatalog = useCallback(async () => {
+    if (!projectId || !tagPresetDeleteSlug || !canManage) return
+    setTagPresetDeleting(true)
+    try {
+      const cat = currentProject?.tagCatalog ?? []
+      const next = cat.filter((t) => t.slug !== tagPresetDeleteSlug)
+      await teamWorkApi.patchProject(projectId, { tagCatalog: next })
+      setTagFilters((prev) => prev.filter((x) => x !== tagPresetDeleteSlug))
+      await refreshProjects()
+      await load()
+    } finally {
+      setTagPresetDeleting(false)
+      setTagPresetDeleteSlug(null)
+    }
+  }, [projectId, tagPresetDeleteSlug, canManage, currentProject?.tagCatalog, refreshProjects, load])
 
   const resetNewIssueForm = useCallback(() => {
     setNewTitle('')
@@ -910,12 +1078,14 @@ export function TeamWorkHub() {
     }
   }
 
+  const isWorkHub = hubTab === 'active-sprint' || hubTab === 'backlog' || hubTab === 'all-issues'
+
   return (
     <div className="flex flex-col gap-3 p-3 md:p-4">
       <PageHeader
         className="mb-3 gap-1.5 sm:mb-4 md:mb-5"
         title="Team work"
-        subtitle="Each project is its own board. Restrict a board by adding members (Board access); leave members empty for a tenant-wide board. Super admins and users with manage_team_projects see every board and can create new ones."
+        // subtitle="Each project is its own board. Restrict a board by adding members (Board access); leave members empty for a tenant-wide board. Super admins and users with manage_team_projects see every board and can create new ones."
         action={
           <Button variant="outline" size="sm" asChild>
             <Link to="/team-work/calendar">Team calendar</Link>
@@ -1016,39 +1186,258 @@ export function TeamWorkHub() {
       ) : null}
 
       {projectId ? (
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            { label: 'Active pipeline', value: stats.open, hint: 'Open work in current view' },
-            { label: 'Blocked', value: stats.blocked, hint: 'In current view' },
-            { label: 'Done', value: stats.done, hint: 'In current view' },
-            { label: 'Total (server)', value: total, hint: 'Matches search & tags (not sprint scope)' },
-          ].map((s) => (
-            <Card key={s.label} className="border-border/80 bg-gradient-to-br from-card to-muted/30">
-              <CardContent className="pt-3 pb-3">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{s.label}</p>
-                <p className="mt-1 text-3xl font-semibold tabular-nums">{loading ? '—' : s.value}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{s.hint}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : null}
+        <>
+          <Card className="border-border/80">
+            <CardContent className="space-y-3 py-3">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Workspace</p>
+                  <p className="text-xs text-muted-foreground">
+                    Jira-style areas — the board appears on <strong className="font-medium text-foreground">Active sprint</strong>,{' '}
+                    <strong className="font-medium text-foreground">Backlog</strong>, and <strong className="font-medium text-foreground">All work</strong>.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {(
+                  [
+                    { id: 'active-sprint' as const, label: 'Active sprint', Icon: Zap },
+                    { id: 'backlog' as const, label: 'Backlog', Icon: KanbanSquare },
+                    { id: 'all-issues' as const, label: 'All work', Icon: LayoutList },
+                    { id: 'sprints' as const, label: 'Sprints', Icon: Layers },
+                    { id: 'goals' as const, label: 'Goals', Icon: Target },
+                    { id: 'summary' as const, label: 'Summary', Icon: BarChart2 },
+                    { id: 'timeline' as const, label: 'Timeline', Icon: Clock },
+                    { id: 'calendar' as const, label: 'Calendar', Icon: CalendarDays },
+                    { id: 'notes' as const, label: 'Notes', Icon: FileText },
+                    { id: 'report' as const, label: 'Report', Icon: PieChart },
+                  ] as const
+                ).map((tab) => (
+                  <Button
+                    key={tab.id}
+                    type="button"
+                    size="sm"
+                    variant={hubTab === tab.id ? 'default' : 'secondary'}
+                    className="h-9 gap-1.5 rounded-full px-3"
+                    onClick={() => setHubTab(tab.id)}
+                  >
+                    <tab.Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    {tab.label}
+                  </Button>
+                ))}
+              </div>
 
-      {projectId ? (
-        <TeamWorkSprintPanel
-          projectId={projectId}
-          items={mergedItems}
-          canManage={canManage}
-          sprints={sprintRows}
-          sprintAssignments={sprintAssignments}
-          onSprintsUpdated={setSprintRows}
-          onAssignmentsAfterClose={handleSprintCloseAssignments}
-          onSprintDeleted={handleSprintDeleted}
-        />
-      ) : null}
+              {hubTab === 'summary' ? (
+                <div className="grid gap-2 border-t border-border/60 pt-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {[
+                    { label: 'Active pipeline', value: summaryStats.open, hint: 'Open issues (whole board)' },
+                    { label: 'Blocked', value: summaryStats.blocked, hint: 'Whole board' },
+                    { label: 'Done', value: summaryStats.done, hint: 'Whole board' },
+                    { label: 'Total issues', value: summaryStats.total, hint: 'Items loaded for this project' },
+                  ].map((s) => (
+                    <Card key={s.label} className="border-border/80 bg-gradient-to-br from-card to-muted/30">
+                      <CardContent className="pt-3 pb-3">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{s.label}</p>
+                        <p className="mt-1 text-3xl font-semibold tabular-nums">{loading ? '—' : s.value}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{s.hint}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : null}
 
-      {projectId ? (
-      <Card className="border-border/80">
+              {hubTab === 'sprints' ? (
+                <div className="border-t border-border/60 pt-3">
+                  <TeamWorkSprintPanel
+                    projectId={projectId}
+                    items={mergedItems}
+                    canManage={canManage}
+                    sprints={sprintRows}
+                    sprintAssignments={sprintAssignments}
+                    onSprintsUpdated={setSprintRows}
+                    onAssignmentsAfterClose={handleSprintCloseAssignments}
+                    onSprintDeleted={handleSprintDeleted}
+                  />
+                </div>
+              ) : null}
+
+              {hubTab === 'goals' ? (
+                <div className="space-y-3 border-t border-border/60 pt-3">
+                  <p className="text-sm text-muted-foreground">Epics on this board — click to open the issue.</p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {epics.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        No epics yet. Create an issue with type &quot;Epic&quot; from All work.
+                      </p>
+                    ) : (
+                      epics.map((ep) => (
+                        <Card key={ep.id} className="border-border/80">
+                          <CardContent className="flex flex-col gap-2 py-3">
+                            <span className="font-mono text-xs font-bold text-primary">{ep.issueKey}</span>
+                            <p className="text-sm font-medium leading-snug">{ep.title}</p>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="w-fit"
+                              onClick={() => openWorkItemDrawer(ep.id)}
+                            >
+                              Open epic
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ))
+                    )}
+                  </div>
+                </div>
+              ) : null}
+
+              {hubTab === 'timeline' ? (
+                <div className="border-t border-border/60 pt-3">
+                  <p className="mb-2 text-xs text-muted-foreground">
+                    Up to 150 issues with a start or due date, ordered soonest first.
+                  </p>
+                  <div className="overflow-x-auto rounded-lg border border-border/70">
+                    <table className="w-full min-w-[520px] text-left text-sm">
+                      <thead>
+                        <tr className="border-b bg-muted/40">
+                          <th className="px-2 py-2 text-xs font-medium uppercase text-muted-foreground">Key</th>
+                          <th className="px-2 py-2 text-xs font-medium uppercase text-muted-foreground">Title</th>
+                          <th className="px-2 py-2 text-xs font-medium uppercase text-muted-foreground">Start</th>
+                          <th className="px-2 py-2 text-xs font-medium uppercase text-muted-foreground">Due</th>
+                          <th className="px-2 py-2 text-xs font-medium uppercase text-muted-foreground">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {timelineRows.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="px-2 py-8 text-center text-sm text-muted-foreground">
+                              No start or due dates on loaded issues.
+                            </td>
+                          </tr>
+                        ) : (
+                          timelineRows.map((it) => (
+                            <tr key={it.id} className="border-b border-border/40">
+                              <td className="px-2 py-1.5 font-mono text-xs font-semibold text-primary">{it.issueKey}</td>
+                              <td className="px-2 py-1.5">
+                                <button
+                                  type="button"
+                                  className="text-left text-sm font-medium text-foreground hover:underline"
+                                  onClick={() => openWorkItemDrawer(it.id)}
+                                >
+                                  {it.title}
+                                </button>
+                              </td>
+                              <td className="px-2 py-1.5 text-xs text-muted-foreground">
+                                {it.startAt
+                                  ? new Date(it.startAt).toLocaleString(undefined, {
+                                      dateStyle: 'short',
+                                      timeStyle: 'short',
+                                    })
+                                  : '—'}
+                              </td>
+                              <td className="px-2 py-1.5 text-xs text-muted-foreground">
+                                {it.dueAt
+                                  ? new Date(it.dueAt).toLocaleString(undefined, {
+                                      dateStyle: 'short',
+                                      timeStyle: 'short',
+                                    })
+                                  : '—'}
+                              </td>
+                              <td className="px-2 py-1.5 text-xs capitalize text-muted-foreground">
+                                {it.status.replace(/_/g, ' ')}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : null}
+
+              {hubTab === 'calendar' ? (
+                <div className="flex flex-col gap-3 border-t border-border/60 pt-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Team calendar</p>
+                    <p className="text-xs text-muted-foreground">
+                      Ceremonies, due dates, and optional Google sync are on the dedicated calendar route.
+                    </p>
+                  </div>
+                  <Button type="button" size="sm" className="gap-2" asChild>
+                    <Link to="/team-work/calendar">
+                      <CalendarDays className="h-4 w-4" aria-hidden />
+                      Open calendar
+                    </Link>
+                  </Button>
+                </div>
+              ) : null}
+
+              {hubTab === 'notes' ? (
+                <div className="border-t border-border/60 pt-3">
+                  <Label htmlFor="tw-hub-notes" className="text-sm font-medium">
+                    Project notes
+                  </Label>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Browser-only scratchpad for this board (per device). Replace with server-backed notes when available.
+                  </p>
+                  <Textarea
+                    id="tw-hub-notes"
+                    className="mt-2 min-h-[140px] text-sm"
+                    value={projectNotes}
+                    onChange={(e) => setProjectNotes(e.target.value)}
+                    placeholder="Decisions, links, retro takeaways…"
+                  />
+                </div>
+              ) : null}
+
+              {hubTab === 'report' ? (
+                <div className="space-y-4 border-t border-border/60 pt-3">
+                  <p className="text-sm text-muted-foreground">
+                    Distribution across <span className="font-medium text-foreground">loaded</span> issues (API list
+                    limit applies).
+                  </p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">By status</p>
+                      <div className="overflow-hidden rounded-lg border border-border/70">
+                        <table className="w-full text-sm">
+                          <tbody>
+                            {reportByStatus.map(([status, cnt]) => (
+                              <tr key={status} className="border-b border-border/40 last:border-0">
+                                <td className="px-2 py-1.5">
+                                  {STATUS_LABELS[status as TeamWorkStatus] ?? status}
+                                </td>
+                                <td className="px-2 py-1.5 text-right font-medium tabular-nums">{cnt}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">By type</p>
+                      <div className="overflow-hidden rounded-lg border border-border/70">
+                        <table className="w-full text-sm">
+                          <tbody>
+                            {reportByType.map(([typ, cnt]) => (
+                              <tr key={typ} className="border-b border-border/40 last:border-0">
+                                <td className="px-2 py-1.5 capitalize">{typ}</td>
+                                <td className="px-2 py-1.5 text-right font-medium tabular-nums">{cnt}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+
+      {projectId && isWorkHub ? (
+        <Card className="border-border/80">
         <CardContent className="flex flex-col gap-3 py-3">
           <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-1 flex-wrap items-center gap-2">
@@ -1098,25 +1487,37 @@ export function TeamWorkHub() {
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-muted/30 px-3 py-1.5">
                 <span className="text-xs text-muted-foreground">Sprint scope</span>
-                <Select value={sprintViewFilter} onValueChange={setSprintViewFilter}>
-                  <SelectTrigger className="h-8 w-[200px] border-0 bg-transparent shadow-none">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__all__">All issues</SelectItem>
-                    <SelectItem value="__backlog__">Backlog (no sprint)</SelectItem>
-                    <SelectItem value="__active__">
-                      Active sprint{activeSprintRow ? `: ${activeSprintRow.name}` : ''}
-                    </SelectItem>
-                    {sprintRows
-                      .filter((s) => s.state === 'planned')
-                      .map((s) => (
-                        <SelectItem key={s.id} value={s.id}>
-                          Planned: {s.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                {hubTab === 'all-issues' ? (
+                  <Select value={sprintViewFilter} onValueChange={setSprintViewFilter}>
+                    <SelectTrigger className="h-8 w-[200px] border-0 bg-transparent shadow-none">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">All issues</SelectItem>
+                      <SelectItem value="__backlog__">Backlog (no sprint)</SelectItem>
+                      <SelectItem value="__active__">
+                        Active sprint{activeSprintRow ? `: ${activeSprintRow.name}` : ''}
+                      </SelectItem>
+                      {sprintRows
+                        .filter((s) => s.state === 'planned')
+                        .map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            Planned: {s.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                ) : hubTab === 'backlog' ? (
+                  <Badge variant="secondary" className="h-8 max-w-[220px] truncate font-normal">
+                    Backlog (no sprint)
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="h-8 max-w-[220px] truncate font-normal">
+                    {activeSprintRow
+                      ? `Active sprint: ${activeSprintRow.name}`
+                      : 'Active sprint (none set)'}
+                  </Badge>
+                )}
               </div>
               <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-muted/30 px-3 py-1.5">
                 <UserCircle2 className="h-4 w-4 text-muted-foreground" />
@@ -1168,25 +1569,50 @@ export function TeamWorkHub() {
                   ) : null}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Shows issues that include at least one of the selected tags.
+                  Shows issues that include at least one of the selected tags. Counts are tickets in the current sprint
+                  scope. Managers can remove a tag from the board catalog (trash); issues keep labels until you edit them.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {tagFilterChipSlugs.map((slug) => {
                     const active = tagFilters.includes(slug)
                     const label = teamWorkTagDisplayName(slug, currentProject?.tagCatalog ?? [])
+                    const count = tagSlugTicketCounts.get(slug) ?? 0
+                    const isCatalogPreset = (currentProject?.tagCatalog ?? []).some((t) => t.slug === slug)
                     return (
-                      <Button
-                        key={slug}
-                        type="button"
-                        size="sm"
-                        variant={active ? 'default' : 'outline'}
-                        className="h-8 rounded-full px-3 text-xs"
-                        onClick={() =>
-                          setTagFilters((prev) => (prev.includes(slug) ? prev.filter((x) => x !== slug) : [...prev, slug]))
-                        }
-                      >
-                        {label}
-                      </Button>
+                      <div key={slug} className="flex items-center gap-0.5">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={active ? 'default' : 'outline'}
+                          className="h-8 gap-1.5 rounded-full px-3 text-xs"
+                          onClick={() =>
+                            setTagFilters((prev) =>
+                              prev.includes(slug) ? prev.filter((x) => x !== slug) : [...prev, slug],
+                            )
+                          }
+                        >
+                          <span>{label}</span>
+                          <Badge
+                            variant="outline"
+                            className="h-5 min-w-[1.25rem] justify-center border-current/30 bg-transparent px-1.5 text-[10px] font-semibold tabular-nums"
+                          >
+                            {count}
+                          </Badge>
+                        </Button>
+                        {canManage && isCatalogPreset ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                            title={`Remove “${label}” from board tag presets`}
+                            aria-label={`Remove tag preset ${label}`}
+                            onClick={() => setTagPresetDeleteSlug(slug)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        ) : null}
+                      </div>
                     )
                   })}
                 </div>
@@ -1298,7 +1724,7 @@ export function TeamWorkHub() {
               </div>
 
               <div className="overflow-x-auto rounded-lg border border-border/70">
-                <table className="w-full table-fixed text-left text-sm" style={{ minWidth: 720 }}>
+                <table className="w-full table-fixed text-left text-sm" style={{ minWidth: 800 }}>
                   <thead>
                     <tr>
                       <ResizableTh
@@ -1368,6 +1794,17 @@ export function TeamWorkHub() {
                         Sprint
                       </ResizableTh>
                       <ResizableTh
+                        width={listColWidths.comments}
+                        minWidth={72}
+                        onResize={(n) => setListColWidths((p) => ({ ...p, comments: n }))}
+                        sortable
+                        onSortClick={() => toggleListSort('comments')}
+                        sortActive={listSortKey === 'comments'}
+                        sortDir={listSortDir}
+                      >
+                        Comments
+                      </ResizableTh>
+                      <ResizableTh
                         width={listColWidths.assignee}
                         minWidth={100}
                         onResize={(n) => setListColWidths((p) => ({ ...p, assignee: n }))}
@@ -1422,6 +1859,9 @@ export function TeamWorkHub() {
                           <td className="overflow-hidden px-2 py-2 align-top capitalize">{it.issueType}</td>
                           <td className="overflow-hidden truncate px-2 py-2 align-top text-xs text-muted-foreground">
                             {it.sprintId ? sprintNameById.get(it.sprintId) ?? it.sprintId.slice(0, 8) : '—'}
+                          </td>
+                          <td className="overflow-hidden px-2 py-2 align-top text-xs tabular-nums text-muted-foreground">
+                            {teamWorkCommentCount(it)}
                           </td>
                           <td className="overflow-hidden px-2 py-2 align-top">
                             {rowAssignees.length ? (
@@ -1480,6 +1920,8 @@ export function TeamWorkHub() {
           )}
         </CardContent>
       </Card>
+      ) : null}
+        </>
       ) : null}
 
       <TeamWorkItemDrawer
@@ -1983,6 +2425,21 @@ export function TeamWorkHub() {
         confirmText="Delete board"
         severity="error"
         loading={deleteBoardSaving}
+      />
+
+      <ConfirmDialog
+        open={Boolean(tagPresetDeleteSlug)}
+        onCancel={() => !tagPresetDeleting && setTagPresetDeleteSlug(null)}
+        onConfirm={() => void removeTagFromBoardCatalog()}
+        title="Remove tag from board presets?"
+        message={
+          tagPresetDeleteSlug
+            ? `“${teamWorkTagDisplayName(tagPresetDeleteSlug, currentProject?.tagCatalog ?? [])}” will disappear from the filter chip presets. Issues that already use this label keep it until you edit them.`
+            : ''
+        }
+        confirmText="Remove preset"
+        severity="warning"
+        loading={tagPresetDeleting}
       />
 
       <ScheduleMeetingDialog

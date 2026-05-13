@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
   Tabs,
+  TabsContent,
   TabsList,
   TabsTrigger,
 } from '../../components/ui'
@@ -104,81 +105,98 @@ export default function IndustryServicePagesHub() {
           icon={<Megaphone className="h-7 w-7" aria-hidden />}
         />
 
-        <Card className="mb-4">
-          <CardContent className="space-y-4 pt-6">
-            <div className="flex min-w-0 flex-col flex-wrap gap-4 md:flex-row md:items-center">
-              <div className="flex min-w-[240px] flex-col gap-2">
-                <Label htmlFor="industry-hub-catalog">Catalog industry</Label>
-                <Select
-                  value={effectiveCatalogKey}
-                  onValueChange={setCatalogKey}
-                  disabled={catalogOptionsLoading || catalogOptions.length === 0}
-                >
-                  <SelectTrigger id="industry-hub-catalog" className="w-full min-w-[240px]">
-                    <SelectValue placeholder="Industry" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {catalogOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+        <Tabs
+          value={hubTab}
+          onValueChange={(v) => setHubTab(v as HubTab)}
+          className="w-full space-y-4"
+        >
+          <Card className="border-border/80 shadow-sm">
+            <CardContent className="space-y-5 pt-6">
+              <div className="grid gap-4 sm:max-w-md">
+                <div className="space-y-2">
+                  <Label htmlFor="industry-hub-catalog" className="text-sm font-semibold">
+                    Catalog industry
+                  </Label>
+                  <Select
+                    value={effectiveCatalogKey}
+                    onValueChange={setCatalogKey}
+                    disabled={catalogOptionsLoading || catalogOptions.length === 0}
+                  >
+                    <SelectTrigger id="industry-hub-catalog" className="h-10 w-full">
+                      <SelectValue placeholder="Industry" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {catalogOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Applies to every tab below. Changing it switches the key used for landing JSON, rate card rows, and
+                    cross-linking.
+                  </p>
+                </div>
               </div>
-              <Tabs
-                value={hubTab}
-                onValueChange={(v) => setHubTab(v as HubTab)}
-                className="min-w-0 flex-1"
-              >
-                <TabsList className="h-auto w-full min-w-0 flex-wrap justify-start gap-1 overflow-x-auto bg-muted/80 p-1">
-                  <TabsTrigger
-                    value="landing"
-                    className="shrink-0 font-semibold data-[state=active]:shadow-sm"
-                  >
-                    Landing & SEO
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="service-areas"
-                    className="shrink-0 font-semibold data-[state=active]:shadow-sm"
-                  >
-                    Service areas
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="rate-card"
-                    className="shrink-0 font-semibold data-[state=active]:shadow-sm"
-                  >
-                    Rate card
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="cross-linking"
-                    className="shrink-0 font-semibold data-[state=active]:shadow-sm"
-                  >
-                    Cross-linking
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Service areas drive the locality picker on the Landing tab and the consumer URL allowlist. Rate card and
-              cross-linking use the same catalog industry key as landings.
-            </p>
-          </CardContent>
-        </Card>
 
-        <div className={hubTab === 'landing' ? 'block' : 'hidden'}>
-          <CategoryMarketingManagement />
-        </div>
-        {hubTab === 'service-areas' ? (
-          <ServiceCatalogLocalitiesPanel
-            rows={serviceLocalities.rows}
-            loading={serviceLocalities.loading}
-            error={serviceLocalities.error}
-            onRefresh={() => void serviceLocalities.refresh()}
-          />
-        ) : null}
-        {hubTab === 'rate-card' && <RateCardManagement />}
-        {hubTab === 'cross-linking' && <CrossLinkingManagement />}
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Workspace</p>
+                <div className="overflow-x-auto rounded-lg border border-border/80 bg-muted/25 shadow-sm">
+                  <TabsList className="mb-0 inline-flex h-auto min-h-10 w-max min-w-full justify-start gap-0.5 rounded-none border-0 bg-transparent p-1.5">
+                    <TabsTrigger
+                      value="landing"
+                      className="shrink-0 rounded-md px-3 py-2 text-sm font-semibold data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                    >
+                      Landing &amp; SEO
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="service-areas"
+                      className="shrink-0 rounded-md px-3 py-2 text-sm font-semibold data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                    >
+                      Service areas
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="rate-card"
+                      className="shrink-0 rounded-md px-3 py-2 text-sm font-semibold data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                    >
+                      Rate card
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="cross-linking"
+                      className="shrink-0 rounded-md px-3 py-2 text-sm font-semibold data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                    >
+                      Cross-linking
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+              </div>
+
+              <p className="text-sm text-muted-foreground">
+                Service areas drive the locality picker on the Landing tab and the consumer URL allowlist. Rate card and
+                cross-linking use the same catalog industry key as landings.
+              </p>
+            </CardContent>
+          </Card>
+
+          <TabsContent value="landing" className="mt-0 outline-none focus-visible:outline-none">
+            <CategoryMarketingManagement />
+          </TabsContent>
+          <TabsContent value="service-areas" className="mt-0 outline-none focus-visible:outline-none">
+            <ServiceCatalogLocalitiesPanel
+              rows={serviceLocalities.rows}
+              loading={serviceLocalities.loading}
+              error={serviceLocalities.error}
+              onRefresh={() => void serviceLocalities.refresh()}
+            />
+          </TabsContent>
+          <TabsContent value="rate-card" className="mt-0 outline-none focus-visible:outline-none">
+            <RateCardManagement />
+          </TabsContent>
+          <TabsContent value="cross-linking" className="mt-0 outline-none focus-visible:outline-none">
+            <CrossLinkingManagement />
+          </TabsContent>
+        </Tabs>
       </div>
     </IndustryServicePagesCatalogContext.Provider>
   )

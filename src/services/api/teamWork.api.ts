@@ -143,6 +143,14 @@ function mapItem(raw: Record<string, unknown>): TeamWorkItem {
     storyPoints: raw.storyPoints !== undefined && raw.storyPoints !== null ? Number(raw.storyPoints) : undefined,
     boardRank: Number(raw.boardRank ?? 0),
     sprintId: raw.sprintId ? String(raw.sprintId) : undefined,
+    commentCount:
+      raw.commentCount !== undefined && raw.commentCount !== null
+        ? Number(raw.commentCount)
+        : raw.commentsCount !== undefined && raw.commentsCount !== null
+          ? Number(raw.commentsCount)
+          : commentsRaw?.length
+            ? commentsRaw.length
+            : undefined,
     comments: commentsRaw?.length ? commentsRaw.map((c) => mapComment(c)) : undefined,
     attachments: attachmentsRaw?.filter((x) => x && String((x as Record<string, unknown>).url || '')).length
       ? attachmentsRaw.map((x) => mapAttachment(x as Record<string, unknown>)).filter((x) => x.url)

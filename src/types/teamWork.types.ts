@@ -98,6 +98,8 @@ export interface TeamWorkItem {
   /** Scrum sprint membership (API or local overlay). */
   sprintId?: string
   boardRank: number
+  /** When the list API omits `comments`, the backend may still send this count. */
+  commentCount?: number
   comments?: TeamWorkComment[]
   attachments?: TeamWorkAttachment[]
   completedAt?: string

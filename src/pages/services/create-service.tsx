@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   Loader2,
   ArrowLeft,
@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   CircleHelp,
   ListOrdered,
+  Search,
   X,
 } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -240,9 +241,9 @@ export function CreateService() {
       { question: 'How do I book and pay?', answer: 'Book online by selecting date and time. You can pay online or pay at the time of service. We accept cards, UPI, and cash as per policy.' },
       { question: 'Is there a warranty?', answer: 'Yes. We offer workmanship warranty as per your chosen plan. Defects in our work within the warranty period will be rectified at no extra cost.' },
     ] as Array<{ question: string; answer: string }>,
-    base_price_legacy: '',
-    price_type: 'fixed',
-    duration_minutes: '60',
+    seo_title: '',
+    seo_description: '',
+    seo_keywords: [] as string[],
     is_featured: false,
     sort_order: 0,
     tags: [] as string[],
@@ -251,6 +252,7 @@ export function CreateService() {
 
   // Dynamic fields
   const [newTag, setNewTag] = useState('')
+  const [newSeoKeyword, setNewSeoKeyword] = useState('')
   const [newFeature, setNewFeature] = useState('')
   const [newRequirement, setNewRequirement] = useState('')
   const [newProduct, setNewProduct] = useState({
@@ -311,9 +313,27 @@ export function CreateService() {
   }
 
   const removeTag = (tagToRemove: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      tags: prev.tags.filter(tag => tag !== tagToRemove)
+      tags: prev.tags.filter((tag) => tag !== tagToRemove),
+    }))
+  }
+
+  const addSeoKeyword = () => {
+    const k = newSeoKeyword.trim()
+    if (k && !formData.seo_keywords.includes(k)) {
+      setFormData((prev) => ({
+        ...prev,
+        seo_keywords: [...prev.seo_keywords, k],
+      }))
+      setNewSeoKeyword('')
+    }
+  }
+
+  const removeSeoKeyword = (keyword: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      seo_keywords: prev.seo_keywords.filter((x) => x !== keyword),
     }))
   }
 
@@ -546,31 +566,72 @@ export function CreateService() {
     }))
   }
 
+  const handleGenerateSeoFromContent = () => {
+    const title = formData.name.trim().slice(0, 60)
+    const plain = richTextHasPlainText(formData.description)
+      ? String(formData.description)
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/&nbsp;/gi, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 160)
+      : ''
+    const keywords = formData.tags.length ? [...formData.tags] : []
+    setFormData((prev) => ({
+      ...prev,
+      seo_title: title || prev.seo_title,
+      seo_description: plain || prev.seo_description,
+      seo_keywords: keywords.length ? keywords : prev.seo_keywords,
+    }))
+    appToast('SEO fields filled from name, description, and tags', 'success')
+  }
+
   const handleSubmit = async (action: 'draft' | 'publish' = 'publish') => {
     try {
       setLoading(true)
 
-      if (!formData.name?.trim()) {
-        appToast('Service name is required', 'error')
-        setActiveTab(0)
-        return
-      }
-      if (!formData.category?.trim()) {
-        appToast('Please select a category', 'error')
-        setActiveTab(0)
-        return
-      }
-      const subsRequired =
-        Boolean(formData.category?.trim()) && !loadingSubcategories && subcategories.length > 0
-      if (subsRequired && !formData.subcategory?.trim()) {
-        appToast('Please select a subcategory', 'error')
-        setActiveTab(0)
-        return
-      }
-      if (!richTextHasPlainText(formData.description)) {
-        appToast('Description is required', 'error')
-        setActiveTab(0)
-        return
+      if (action === 'draft') {
+        if (!formData.name?.trim()) {
+          appToast('Add a service name to save as draft', 'error')
+          setActiveTab(0)
+          return
+        }
+      } else {
+        if (!formData.name?.trim()) {
+          appToast('Service name is required', 'error')
+          setActiveTab(0)
+          return
+        }
+        if (!formData.category?.trim()) {
+          appToast('Please select a category', 'error')
+          setActiveTab(0)
+          return
+        }
+        const subsRequired =
+          Boolean(formData.category?.trim()) && !loadingSubcategories && subcategories.length > 0
+        if (subsRequired && !formData.subcategory?.trim()) {
+          appToast('Please select a subcategory', 'error')
+          setActiveTab(0)
+          return
+        }
+        if (!richTextHasPlainText(formData.description)) {
+          appToast('Description is required', 'error')
+          setActiveTab(0)
+          return
+        }
+        const minH = parseInt(String(formData.min_hours), 10)
+        const maxH = parseInt(String(formData.max_hours), 10)
+        if (
+          formData.min_hours &&
+          formData.max_hours &&
+          !Number.isNaN(minH) &&
+          !Number.isNaN(maxH) &&
+          minH > maxH
+        ) {
+          appToast('Minimum hours cannot be greater than maximum hours', 'error')
+          setActiveTab(1)
+          return
+        }
       }
 
       // Get primary image or first image
@@ -620,10 +681,15 @@ export function CreateService() {
         please_note: formData.please_note?.length ? formData.please_note : undefined,
         our_promises: formData.our_promises?.length ? formData.our_promises : undefined,
         faqs: formData.faqs?.length ? formData.faqs : undefined,
+        seo_title: formData.seo_title?.trim() || undefined,
+        seo_description: formData.seo_description?.trim() || undefined,
+        seo_keywords: formData.seo_keywords?.length ? formData.seo_keywords : undefined,
       }
-      // Only include status for publish; draft endpoint implies status=draft (some backends 400 if status is in body)
+      // Publish: explicit status. Edit + draft: send draft status on update. Create + draft: omit (saveAsDraft sets it).
       if (action === 'publish') {
         raw.status = 'published'
+      } else if (action === 'draft' && isEditMode && id) {
+        raw.status = 'draft'
       }
 
       // Drop undefined, empty string, and NaN so backend doesn't get invalid values
@@ -637,7 +703,10 @@ export function CreateService() {
 
       if (isEditMode && id) {
         await platformServicesService.updateService(id, submitData)
-        appToast('Service updated successfully!', 'success')
+        appToast(
+          action === 'draft' ? 'Draft saved successfully.' : 'Service updated successfully!',
+          'success',
+        )
       } else {
         if (action === 'draft') {
           await platformServicesService.saveAsDraft(submitData)
@@ -761,11 +830,10 @@ export function CreateService() {
           please_note: (service as any).please_note || [],
           our_promises: (service as any).our_promises || [],
           faqs: (service as any).faqs || [],
-          
-          // Legacy fields
-          base_price_legacy: service.base_price?.toString() || '',
-          price_type: 'fixed',
-          duration_minutes: '',
+          seo_title: (service as any).seo_title || '',
+          seo_description: (service as any).seo_description || '',
+          seo_keywords: Array.isArray((service as any).seo_keywords) ? [...(service as any).seo_keywords] : [],
+
           is_featured: service.is_featured || false,
           sort_order: service.sort_order || 0,
           tags: service.tags || [],
@@ -825,7 +893,7 @@ export function CreateService() {
         setLoadingCategories(true)
         const raw = await CategoriesService.getCategoriesForServiceUIs({
           page: 1,
-          limit: 20,
+          limit: 500,
           is_active: true,
         })
         const list = normalizeList({ categories: raw })
@@ -854,7 +922,6 @@ export function CreateService() {
           page: 1,
           limit: 100
         })
-        console.log("response",response)
         if (response.success) {
           setProviders(response?.data?.providers || [])
         }
@@ -971,15 +1038,38 @@ export function CreateService() {
     }
   }
 
-  const requiresSubcategoryPick =
-    Boolean(formData.category?.trim()) && !loadingSubcategories && subcategories.length > 0
 
-  const primaryActionsDisabled =
+  const publishDisabled =
     loading ||
     !formData.name?.trim() ||
     !formData.category?.trim() ||
-    (requiresSubcategoryPick && !formData.subcategory?.trim()) ||
+    (Boolean(formData.category?.trim()) &&
+      !loadingSubcategories &&
+      subcategories.length > 0 &&
+      !formData.subcategory?.trim()) ||
     !richTextHasPlainText(formData.description)
+
+  const draftDisabled = loading || !formData.name?.trim()
+
+  const selectedCategoryLabel = useMemo(() => {
+    const c = categories.find((x) => getCategoryId(x) === formData.category)
+    return (c?.name ?? '').trim() || formData.category || '—'
+  }, [categories, formData.category])
+
+  const selectedSubcategoryLabel = useMemo(() => {
+    const s = subcategories.find(
+      (x) => String(x.id ?? (x as { _id?: string })._id ?? '').toLowerCase() === formData.subcategory,
+    )
+    return (s?.name ?? '').trim() || formData.subcategory || '—'
+  }, [subcategories, formData.subcategory])
+
+  const priceReviewLabel = useMemo(() => {
+    if (formData.service_type === 'hourly') return `Hourly · ₹${formData.hourly_rate || '—'}`
+    if (formData.service_type === 'consultation') return `Consultation · ₹${formData.consultation_fee || '—'}`
+    return `Fixed · ₹${formData.base_price || '—'}`
+  }, [formData.service_type, formData.hourly_rate, formData.consultation_fee, formData.base_price])
+
+  const hasPrimaryImage = Boolean(formData.images?.some((img) => Boolean(img.url)))
 
   return (
     <div className="p-4 md:p-6">
@@ -1016,7 +1106,7 @@ export function CreateService() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
               <Button
                 variant="outline"
                 leftIcon={<Eye className="h-4 w-4" />}
@@ -1025,15 +1115,71 @@ export function CreateService() {
                 {previewMode ? 'Edit Mode' : 'Preview Mode'}
               </Button>
               <Button
+                variant="outline"
+                leftIcon={<Save className="h-4 w-4" />}
+                onClick={() => void handleSubmit('draft')}
+                disabled={draftDisabled}
+              >
+                Save as Draft
+              </Button>
+              <Button
                 loading={loading}
                 leftIcon={!loading ? <Save className="h-4 w-4" /> : undefined}
-                onClick={() => handleSubmit('publish')}
-                disabled={primaryActionsDisabled}
+                onClick={() => void handleSubmit('publish')}
+                disabled={publishDisabled}
               >
-                {loading ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Service' : 'Create Service')}
+                {loading
+                  ? isEditMode
+                    ? 'Saving…'
+                    : 'Publishing…'
+                  : isEditMode
+                    ? 'Update & publish'
+                    : 'Publish service'}
               </Button>
             </div>
           </div>
+
+          <Card className="mb-4 border-border/80 bg-muted/30">
+            <CardContent className="space-y-3 py-4">
+              <p className="text-sm font-semibold text-foreground">Review before publish</p>
+              <p className="text-xs text-muted-foreground">
+                Draft saves need only a name. Publishing requires category, description, and subcategory when your
+                category defines them.
+              </p>
+              <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Service</p>
+                  <p className="font-medium text-foreground">{formData.name.trim() || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Category</p>
+                  <p className="font-medium text-foreground">{selectedCategoryLabel}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Subcategory</p>
+                  <p className="font-medium text-foreground">{selectedSubcategoryLabel}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Pricing</p>
+                  <p className="font-medium capitalize text-foreground">
+                    {formData.service_type.replace(/_/g, ' ')} · {priceReviewLabel}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Flags</p>
+                  <p className="text-foreground">
+                    {formData.is_featured ? 'Featured · ' : ''}
+                    {formData.is_popular ? 'Popular · ' : ''}
+                    {formData.is_active ? 'Active' : 'Inactive'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Hero image</p>
+                  <p className="font-medium text-foreground">{hasPrimaryImage ? 'Set' : 'Not set'}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
       {/* Main Form with Tabs */}
       <Card className="overflow-hidden rounded-lg border shadow-sm">
@@ -1083,6 +1229,10 @@ export function CreateService() {
               <TabsTrigger value="9" className="gap-2 data-[state=active]:bg-muted sm:min-h-16">
                 <CircleHelp className="h-4 w-4 shrink-0" />
                 FAQs
+              </TabsTrigger>
+              <TabsTrigger value="10" className="gap-2 data-[state=active]:bg-muted sm:min-h-16">
+                <Search className="h-4 w-4 shrink-0" />
+                SEO
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -2454,6 +2604,99 @@ export function CreateService() {
               </div>
             </div>
           )}
+
+          {activeTab === 10 && (
+            <div className="space-y-6">
+              <p className="text-sm text-muted-foreground">
+                Meta title and description power search and social previews. Optional — if empty, many sites fall back
+                to the service name and first lines of the description.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleGenerateSeoFromContent}
+                  disabled={previewMode}
+                >
+                  Generate from name, description & tags
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label htmlFor="seo-title">SEO title</Label>
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {formData.seo_title.length}/60
+                  </span>
+                </div>
+                <Input
+                  id="seo-title"
+                  value={formData.seo_title}
+                  onChange={(e) => handleInputChange('seo_title', e.target.value.slice(0, 60))}
+                  disabled={previewMode}
+                  placeholder="e.g., AC gas refill in Bangalore — same-day service"
+                  maxLength={60}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label htmlFor="seo-desc">Meta description</Label>
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {formData.seo_description.length}/160
+                  </span>
+                </div>
+                <Textarea
+                  id="seo-desc"
+                  rows={4}
+                  value={formData.seo_description}
+                  onChange={(e) => handleInputChange('seo_description', e.target.value.slice(0, 160))}
+                  disabled={previewMode}
+                  placeholder="One or two sentences: what the customer gets, where you operate, and trust signals."
+                  maxLength={160}
+                />
+              </div>
+
+              <div className="space-y-3">
+                <Label>SEO keywords</Label>
+                <p className="text-xs text-muted-foreground">Short phrases; avoid stuffing. Same pattern as service tags.</p>
+                <div className="flex flex-wrap gap-2">
+                  {formData.seo_keywords.map((kw) => (
+                    <Badge key={kw} variant="secondary" className="gap-1 pr-1">
+                      {kw}
+                      <button
+                        type="button"
+                        className="rounded-full p-0.5 hover:bg-muted"
+                        onClick={() => removeSeoKeyword(kw)}
+                        disabled={previewMode}
+                        aria-label={`Remove ${kw}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    value={newSeoKeyword}
+                    onChange={(e) => setNewSeoKeyword(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        addSeoKeyword()
+                      }
+                    }}
+                    disabled={previewMode}
+                    placeholder="e.g., AC repair Bangalore"
+                  />
+                  <Button type="button" variant="outline" onClick={addSeoKeyword} disabled={previewMode}>
+                    Add
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Form Actions */}
@@ -2464,16 +2707,16 @@ export function CreateService() {
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
-              onClick={() => handleSubmit('draft')}
-              disabled={primaryActionsDisabled}
+              onClick={() => void handleSubmit('draft')}
+              disabled={draftDisabled}
             >
               Save as Draft
             </Button>
             <Button
               loading={loading}
               leftIcon={!loading ? <Save className="h-4 w-4" /> : undefined}
-              onClick={() => handleSubmit('publish')}
-              disabled={primaryActionsDisabled}
+              onClick={() => void handleSubmit('publish')}
+              disabled={publishDisabled}
             >
               {loading
                 ? isEditMode

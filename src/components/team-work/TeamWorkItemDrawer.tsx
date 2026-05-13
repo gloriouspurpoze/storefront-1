@@ -1,11 +1,15 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { format } from 'date-fns'
+import DOMPurify from 'dompurify'
+import ReactQuill from 'react-quill-new'
+import 'react-quill-new/dist/quill.snow.css'
 import {
   CalendarPlus,
   Loader2,
   MessageSquare,
   Paperclip,
   PencilLine,
+  Smile,
   Trash2,
   UserPlus,
   X,
@@ -15,6 +19,7 @@ import { teamWorkApi } from '../../services/api/teamWork.api'
 import { apiClient } from '../../services/apiClient'
 import type {
   TeamWorkAttachment,
+  TeamWorkComment,
   TeamWorkItem,
   TeamWorkMeta,
   TeamWorkSprint,
@@ -36,6 +41,7 @@ import { RichTextField } from '../forms/RichTextField'
 import { cn } from '../../lib/utils'
 import { sprintIdForTeamWorkApi } from '../../lib/mongoObjectId'
 import { hierarchicalIssueLabel, parentIssueItem, subtasksOfParent } from '../../lib/teamWorkIssueDisplay'
+import { teamWorkCommentCount } from '../../lib/teamWorkCommentCount'
 import { resolveBackendMediaUrl } from '../../lib/apiMediaOrigin'
 import { muiMdUp, useMediaQuery } from '../../hooks/useMediaQuery'
 import { Button } from '../ui/button'
@@ -45,7 +51,8 @@ import { Checkbox } from '../ui/checkbox'
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
 import { Separator } from '../ui/separator'
-import { Textarea } from '../ui/textarea'
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
+import { useToast } from '../ui'
 import {
   Dialog,
   DialogContent,
@@ -96,6 +103,90 @@ function userLabel(u: User): string {
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+function commentEditorHasText(html: string): boolean {
+  return stripHtml(html).length > 0
+}
+
+const COMMENT_QUILL_FORMATS = [
+  'bold',
+  'italic',
+  'underline',
+  'strike',
+  'list',
+  'bullet',
+  'link',
+  'image',
+]
+
+const COMMENT_EMOJI_PALETTE = [
+  '👍',
+  '👎',
+  '✅',
+  '❌',
+  '🔥',
+  '💡',
+  '❓',
+  '⚠️',
+  '🚀',
+  '🙏',
+  '👀',
+  '💬',
+  '📎',
+  '🎉',
+  '⏳',
+  '📝',
+  '✨',
+  '🐛',
+  '🔧',
+  '📌',
+]
+
+function sanitizeTeamWorkCommentHtml(html: string): string {
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: [
+      'p',
+      'br',
+      'strong',
+      'b',
+      'em',
+      'i',
+      'u',
+      's',
+      'strike',
+      'a',
+      'ul',
+      'ol',
+      'li',
+      'span',
+      'img',
+      'h1',
+      'h2',
+      'h3',
+      'blockquote',
+      'pre',
+      'code',
+    ],
+    ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'class'],
+  })
+}
+
+function displayCommentAuthor(
+  c: TeamWorkComment,
+  assigneeMap: Map<string, string>,
+): { primary: string; hint?: string } {
+  const fromMap = assigneeMap.get(c.userId)
+  if (fromMap) return { primary: fromMap }
+  const raw = (c.authorName || '').trim()
+  if (raw) {
+    if (raw.includes('@') && !raw.includes(' ') && raw.length > 2) {
+      const handle = raw.split('@')[0]
+      if (handle) return { primary: handle, hint: raw }
+    }
+    return { primary: raw }
+  }
+  return { primary: c.userId }
 }
 
 async function uploadAttachmentFile(file: File): Promise<TeamWorkAttachment> {
@@ -224,6 +315,11 @@ export function TeamWorkItemDrawer({
   const [creatingSubtask, setCreatingSubtask] = useState(false)
   const [unsavedCloseOpen, setUnsavedCloseOpen] = useState(false)
 
+  const { toast } = useToast()
+  const commentQuillRef = useRef<ReactQuill>(null)
+  const commentFileInputRef = useRef<HTMLInputElement>(null)
+  const [commentImageUploading, setCommentImageUploading] = useState(false)
+
   const fileRef = useRef<HTMLInputElement>(null)
   const baselineItemId = useRef<string | null>(null)
   const baselineRef = useRef<string>('')
@@ -253,6 +349,60 @@ export function TeamWorkItemDrawer({
     })
   }, [item, form, assigneeUserIds, attachments, assigneePoolUsers])
 
+  const commentQuillModules = useMemo(
+    () => ({
+      toolbar: {
+        container: [
+          ['bold', 'italic', 'underline', 'strike'],
+          [{ list: 'ordered' }, { list: 'bullet' }],
+          ['link', 'image'],
+          ['clean'],
+        ],
+        handlers: {
+          image: () => commentFileInputRef.current?.click(),
+        },
+      },
+      clipboard: { matchVisual: false },
+    }),
+    [],
+  )
+
+  const insertCommentEmoji = useCallback((emoji: string) => {
+    const editor = commentQuillRef.current?.getEditor()
+    if (!editor) return
+    const range = editor.getSelection(true)
+    const idx = range ? range.index : Math.max(0, editor.getLength() - 1)
+    editor.insertText(idx, emoji, 'user')
+    editor.setSelection(idx + emoji.length, 0)
+  }, [])
+
+  const onCommentImagePicked = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      e.target.value = ''
+      if (!file) return
+      setCommentImageUploading(true)
+      try {
+        const att = await uploadAttachmentFile(file)
+        const editor = commentQuillRef.current?.getEditor()
+        if (!editor) return
+        const range = editor.getSelection(true)
+        const idx = range ? range.index : Math.max(0, editor.getLength() - 1)
+        editor.insertEmbed(idx, 'image', att.url, 'user')
+        editor.setSelection(idx + 1, 0)
+      } catch (err) {
+        toast({
+          title: 'Upload failed',
+          description: err instanceof Error ? err.message : 'Could not attach image',
+          variant: 'destructive',
+        })
+      } finally {
+        setCommentImageUploading(false)
+      }
+    },
+    [toast],
+  )
+
   useLayoutEffect(() => {
     baselineItemId.current = null
   }, [itemId])
@@ -266,7 +416,7 @@ export function TeamWorkItemDrawer({
 
   const hasUnsavedEdits = Boolean(
     item &&
-      (comment.trim().length > 0 || (canManage && computeSignature() !== baselineRef.current)),
+      (commentEditorHasText(comment) || (canManage && computeSignature() !== baselineRef.current)),
   )
 
   const requestClose = () => {
@@ -515,10 +665,12 @@ export function TeamWorkItemDrawer({
   }
 
   const postCommentThenClose = async () => {
-    if (!item || !comment.trim()) return
+    if (!item || !commentEditorHasText(comment)) return
     setPosting(true)
     try {
-      await teamWorkApi.addComment(item.id, comment.trim())
+      const body = sanitizeTeamWorkCommentHtml(comment.trim())
+      if (!commentEditorHasText(body)) return
+      await teamWorkApi.addComment(item.id, body)
       setComment('')
       clearTeamWorkDrawerDraft(tenantId, item.id)
       onUpdated()
@@ -530,10 +682,12 @@ export function TeamWorkItemDrawer({
   }
 
   const postComment = async () => {
-    if (!item || !comment.trim()) return
+    if (!item || !commentEditorHasText(comment)) return
     setPosting(true)
     try {
-      const updated = await teamWorkApi.addComment(item.id, comment.trim())
+      const body = sanitizeTeamWorkCommentHtml(comment.trim())
+      if (!commentEditorHasText(body)) return
+      const updated = await teamWorkApi.addComment(item.id, body)
       setItem(updated)
       setComment('')
       clearTeamWorkDrawerDraft(tenantId, item.id)
@@ -1090,31 +1244,103 @@ export function TeamWorkItemDrawer({
         ) : (
           [...(item.comments || [])]
             .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-            .map((c) => (
-              <Card key={c.id} className="border-border/80 bg-muted/20">
-                <CardContent className="space-y-2 pt-4">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <p className="text-sm font-semibold">{c.authorName || c.userId}</p>
-                    <p className="text-xs text-muted-foreground">{format(new Date(c.createdAt), 'PPp')}</p>
-                  </div>
-                  <Separator />
-                  <p className="whitespace-pre-wrap text-sm">{c.body}</p>
-                </CardContent>
-              </Card>
-            ))
+            .map((c) => {
+              const who = displayCommentAuthor(c, assigneeMap)
+              const safe = sanitizeTeamWorkCommentHtml(c.body)
+              return (
+                <Card key={c.id} className="border-border/80 bg-muted/20">
+                  <CardContent className="space-y-2 pt-4">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <p className="text-sm font-semibold" title={who.hint}>
+                        {who.primary}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{format(new Date(c.createdAt), 'PPp')}</p>
+                    </div>
+                    <Separator />
+                    <div
+                      className="max-w-none text-sm [&_a]:text-primary [&_a]:underline [&_img]:my-2 [&_img]:max-h-48 [&_img]:rounded-md [&_img]:border [&_ol]:my-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-1 [&_ul]:my-1 [&_ul]:list-disc [&_ul]:pl-5"
+                      dangerouslySetInnerHTML={{ __html: safe }}
+                    />
+                  </CardContent>
+                </Card>
+              )
+            })
         )}
       </div>
       <Card className="shrink-0 border-border/80">
-        <CardContent className="space-y-2 pt-4">
-          <p className="text-sm font-semibold">Add comment</p>
-          <Textarea
-            placeholder="Context, blockers, handoff…"
-            rows={3}
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
+        <CardContent className="space-y-3 pt-4">
+          <div>
+            <p className="text-sm font-semibold">Add comment</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Rich text, images (toolbar or attach), and emoji — same upload pipeline as chat attachments.
+            </p>
+          </div>
+          <input
+            ref={commentFileInputRef}
+            type="file"
+            className="hidden"
+            accept="image/*,.pdf,.doc,.docx,.zip"
+            onChange={(e) => void onCommentImagePicked(e)}
           />
+          <div className="flex flex-wrap items-center gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 px-2 text-xs">
+                  <Smile className="h-3.5 w-3.5" aria-hidden />
+                  Emoji
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[240px] p-2" align="start">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Insert at cursor
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {COMMENT_EMOJI_PALETTE.map((em) => (
+                    <button
+                      key={em}
+                      type="button"
+                      className="flex h-8 w-8 items-center justify-center rounded-md text-lg hover:bg-muted"
+                      onClick={() => insertCommentEmoji(em)}
+                      aria-label={`Insert ${em}`}
+                    >
+                      {em}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 px-2 text-xs"
+              loading={commentImageUploading}
+              leftIcon={<Paperclip className="h-3.5 w-3.5" />}
+              onClick={() => commentFileInputRef.current?.click()}
+            >
+              Attach file
+            </Button>
+          </div>
+          <div className="teamwork-comment-editor rounded-md border border-input bg-background">
+            <ReactQuill
+              ref={commentQuillRef}
+              theme="snow"
+              value={comment}
+              onChange={setComment}
+              modules={commentQuillModules}
+              formats={COMMENT_QUILL_FORMATS}
+              placeholder="Context, blockers, handoff…"
+              className="[&_.ql-container]:min-h-[120px] [&_.ql-editor]:min-h-[120px] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-container]:border-0"
+            />
+          </div>
           <div className="flex justify-end">
-            <Button type="button" size="sm" loading={posting} disabled={!comment.trim()} onClick={() => void postComment()}>
+            <Button
+              type="button"
+              size="sm"
+              loading={posting}
+              disabled={!commentEditorHasText(comment)}
+              onClick={() => void postComment()}
+            >
               Post
             </Button>
           </div>
@@ -1216,7 +1442,7 @@ export function TeamWorkItemDrawer({
                   </TabsTrigger>
                   <TabsTrigger value="comments" className="gap-1.5 text-xs sm:text-sm">
                     <MessageSquare className="h-3.5 w-3.5 shrink-0" />
-                    Comments{item.comments?.length ? ` (${item.comments.length})` : ''}
+                    Comments{teamWorkCommentCount(item) ? ` (${teamWorkCommentCount(item)})` : ''}
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="details" className="mt-0 min-h-0 flex-1 overflow-auto px-4 pb-4 pt-3">
@@ -1247,7 +1473,7 @@ export function TeamWorkItemDrawer({
             <DialogTitle>Unsaved changes</DialogTitle>
             <DialogDescription>
               You have edits or a draft comment that are not saved to the server. Choose how to close this issue.
-              {canManage && comment.trim() ? (
+              {canManage && commentEditorHasText(comment) ? (
                 <>
                   {' '}
                   <span className="font-semibold text-foreground">Save & close</span> only updates the issue fields — post the
@@ -1268,7 +1494,7 @@ export function TeamWorkItemDrawer({
                 Save & close
               </Button>
             ) : null}
-            {comment.trim() ? (
+            {commentEditorHasText(comment) ? (
               <Button type="button" variant="secondary" loading={posting} onClick={() => void postCommentThenClose()}>
                 Post comment & close
               </Button>
