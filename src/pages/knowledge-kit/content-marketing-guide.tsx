@@ -81,9 +81,13 @@ export function ContentMarketingGuide() {
             organic social drafts (workspace data is primarily local in the browser until backend APIs are connected).
           </p>
           <p>
-            Sliders live under <GuideLink to="/sliders">Banners & sliders</GuideLink> (same product area as homepage
-            carousels). Coupons and referrals sit under <GuideLink to="/coupons">Coupons</GuideLink> and{' '}
-            <GuideLink to="/referrals">Referrals</GuideLink> with their own permissions.
+            Sliders and CMS banners (carousels + hero / pop-ups) live in one workspace:{' '}
+            <GuideLink to="/sliders">Sliders &amp; site banners</GuideLink>
+            <span className="text-muted-foreground"> (second tab). Old URL </span>
+            <code className="rounded bg-muted px-1 py-0.5 text-xs">/cms/banners</code>
+            <span className="text-muted-foreground"> redirects there.</span> Coupons and referrals sit under{' '}
+            <GuideLink to="/coupons">Coupons</GuideLink> and <GuideLink to="/referrals">Referrals</GuideLink> with their
+            own permissions.
           </p>
         </CardContent>
       </Card>
@@ -168,21 +172,16 @@ export function ContentMarketingGuide() {
             <TableBody>
               <TableRow>
                 <TableCell className="align-top font-medium">
-                  <GuideLink to="/sliders">Banners & sliders</GuideLink>
+                  <GuideLink to="/sliders">Sliders &amp; site banners</GuideLink>
                 </TableCell>
                 <TableCell className="align-top text-sm text-muted-foreground">
-                  Carousel slides and hero imagery with links to offers or category pages.
+                  Tab 1: carousel slides (sliders API). Tab 2: CMS banners — hero, bars, modals, timed announcements,
+                  optional product targets. <span className="text-foreground/80">/cms/banners</span> redirects to the
+                  banners tab.
                 </TableCell>
-                <TableCell className="align-top text-sm">High-visibility promotions on home and key landings.</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="align-top font-medium">
-                  <GuideLink to="/cms/banners">Announcements & pop-ups</GuideLink>
+                <TableCell className="align-top text-sm">
+                  High-visibility promotions; interruptive surfaces — schedule carefully to avoid fatigue.
                 </TableCell>
-                <TableCell className="align-top text-sm text-muted-foreground">
-                  Bars, modals, timed notices for outages, sales, or consent messaging.
-                </TableCell>
-                <TableCell className="align-top text-sm">Interruptive by design — schedule carefully to avoid fatigue.</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="align-top font-medium">

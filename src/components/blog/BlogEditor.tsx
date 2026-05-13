@@ -25,7 +25,7 @@ import { BlogService, type BlogPlagiarismAnalysis } from '../../services/api/blo
 import { UploadService } from '../../services/api/upload.service'
 import { useToast } from '../ui'
 import { useAppConfirm } from '../providers/AppDialogsProvider'
-import type { BlogPostStatus } from '../../types/cms.types'
+import type { BlogPostSeo, BlogPostStatus } from '../../types/cms.types'
 import {
   buildExportHtmlDocument,
   buildExportPlainDocument,
@@ -65,6 +65,7 @@ import {
 import {
   defaultLeadMagnetSettings,
   buildBlogStructuredAppendixHtml,
+  buildBlogRichResultsJsonLdPreview,
   buildFaqJsonLdString,
 } from './blog-lead-magnet-utils'
 import {
@@ -326,6 +327,11 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
   const [slugTouched, setSlugTouched] = useState(false)
   const [seoTitle, setSeoTitle] = useState('')
   const [metaDescription, setMetaDescription] = useState('')
+  const [blogCanonicalUrl, setBlogCanonicalUrl] = useState('')
+  const [blogOgTitle, setBlogOgTitle] = useState('')
+  const [blogOgType, setBlogOgType] = useState('article')
+  const [blogTwitterCard, setBlogTwitterCard] = useState<'summary' | 'summary_large_image'>('summary_large_image')
+  const [blogRobotsMeta, setBlogRobotsMeta] = useState('')
   const [featuredImageUrl, setFeaturedImageUrl] = useState('')
   const [featuredImageAlt, setFeaturedImageAlt] = useState('')
   const [featuredUploading, setFeaturedUploading] = useState(false)
@@ -336,6 +342,20 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
   const [relatedProductSearch, setRelatedProductSearch] = useState('')
   const [relatedProductOptions, setRelatedProductOptions] = useState<ProductOption[]>([])
   const [relatedProductLoading, setRelatedProductLoading] = useState(false)
+  const [linkedProductNames, setLinkedProductNames] = useState<Record<string, string>>({})
+  const [relatedServiceIds, setRelatedServiceIds] = useState<string[]>([])
+  const [relatedServiceSearch, setRelatedServiceSearch] = useState('')
+  const [relatedServiceOptions, setRelatedServiceOptions] = useState<ProductOption[]>([])
+  const [relatedServiceLoading, setRelatedServiceLoading] = useState(false)
+  const [linkedServiceNames, setLinkedServiceNames] = useState<Record<string, string>>({})
+  type EditorWorkspaceTab = 'basics' | 'content' | 'faq'
+  const [editorWorkspaceTab, setEditorWorkspaceTab] = useState<EditorWorkspaceTab>('basics')
+  const [linkPickerQuery, setLinkPickerQuery] = useState('')
+  const [linkPickerLoading, setLinkPickerLoading] = useState(false)
+  const [linkPickerResults, setLinkPickerResults] = useState<{
+    products: { _id: string; name: string; slug?: string }[]
+    services: { _id: string; name: string; slug?: string }[]
+  }>({ products: [], services: [] })
   const [contentHtml, setContentHtml] = useState('')
   const [primaryKeyword, setPrimaryKeyword] = useState('pillar topic')
   const [secondaryKeywordsInput, setSecondaryKeywordsInput] = useState('')
@@ -445,6 +465,75 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
     }
   }, [relatedProductSearch])
 
+  // Related platform services (bookable catalog) for stored cross-links
+  useEffect(() => {
+    const q = relatedServiceSearch.trim()
+    const controller = new AbortController()
+
+    const run = async () => {
+      try {
+        setRelatedServiceLoading(true)
+        const token = localStorage.getItem('token')
+        const base = process.env.REACT_APP_API_URL || 'http://localhost:5000/api'
+        const url = `${base}/platform-services?${new URLSearchParams({
+          page: '1',
+          limit: '12',
+          ...(q ? { search: q } : {}),
+        }).toString()}`
+        const res = await fetch(url, {
+          method: 'GET',
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          signal: controller.signal,
+        })
+        const json = await res.json()
+        const data = json?.data ?? json
+        const items = (data?.services ?? []) as any[]
+        setRelatedServiceOptions(
+          items.map((s) => ({
+            id: String(s.id ?? s._id),
+            name: String(s.display_name ?? s.displayName ?? s.name ?? 'Service'),
+            slug: s.slug ? String(s.slug) : undefined,
+          })),
+        )
+      } catch (e: any) {
+        if (e?.name === 'AbortError') return
+        setRelatedServiceOptions([])
+      } finally {
+        setRelatedServiceLoading(false)
+      }
+    }
+
+    const t = window.setTimeout(() => void run(), 350)
+    return () => {
+      window.clearTimeout(t)
+      controller.abort()
+    }
+  }, [relatedServiceSearch])
+
+  // Content tab: debounced combined catalog search (CMS admin endpoint)
+  useEffect(() => {
+    const q = linkPickerQuery.trim()
+    let cancelled = false
+    const t = window.setTimeout(() => {
+      void (async () => {
+        try {
+          setLinkPickerLoading(true)
+          const res = await BlogService.getBlogLinkSuggestions(q, 14)
+          if (cancelled) return
+          setLinkPickerResults(res)
+        } catch {
+          if (!cancelled) setLinkPickerResults({ products: [], services: [] })
+        } finally {
+          if (!cancelled) setLinkPickerLoading(false)
+        }
+      })()
+    }, 320)
+    return () => {
+      cancelled = true
+      window.clearTimeout(t)
+    }
+  }, [linkPickerQuery])
+
   // Load existing post when editing (route: /cms/blogs/:id/edit)
   useEffect(() => {
     if (!postId) {
@@ -464,15 +553,36 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
         const postTitle = post.title?.trim() ?? ''
         setSeoTitle(loadedSeoTitle && loadedSeoTitle !== postTitle ? loadedSeoTitle : '')
         setMetaDescription(post.seo?.description ?? post.excerpt ?? '')
+        const ext = post.seo as BlogPostSeo | undefined
+        setBlogCanonicalUrl(ext?.canonicalUrl?.trim() ?? '')
+        setBlogOgTitle(ext?.ogTitle?.trim() ?? '')
+        setBlogOgType(ext?.ogType?.trim() || 'article')
+        setBlogTwitterCard(
+          ext?.twitterCard === 'summary' || ext?.twitterCard === 'summary_large_image'
+            ? ext.twitterCard
+            : 'summary_large_image',
+        )
+        setBlogRobotsMeta(ext?.robots?.trim() ?? '')
         setFeaturedImageUrl(post.featuredImage ?? '')
         setFeaturedImageAlt(post.featuredImageAlt?.trim() ?? '')
         setCategoryId(
           typeof post.category === 'object' && post.category?._id ? post.category._id : '',
         )
         setTagsInput((post.tags ?? []).join(', '))
-        setRelatedProductIds(
-          Array.isArray(post.relatedProducts) ? post.relatedProducts.map((p) => p._id).filter(Boolean) : [],
-        )
+        const rp = post.relatedProducts ?? []
+        setRelatedProductIds(rp.map((p) => p._id).filter(Boolean))
+        const pm: Record<string, string> = {}
+        rp.forEach((p) => {
+          if (p._id) pm[p._id] = p.name
+        })
+        setLinkedProductNames(pm)
+        const rs = post.relatedServices ?? []
+        setRelatedServiceIds(rs.map((s) => s._id).filter(Boolean))
+        const sm: Record<string, string> = {}
+        rs.forEach((s) => {
+          if (s._id) sm[s._id] = s.name
+        })
+        setLinkedServiceNames(sm)
         setContentHtml(sanitizeBlogBodyHtml(post.content ?? ''))
         const allKw = post.seo?.keywords ?? []
         if (allKw[0]) setPrimaryKeyword(allKw[0])
@@ -837,14 +947,19 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
   const titleLen = title.length
   const blogTitleWordCount = title.trim() ? title.trim().split(/\s+/).filter(Boolean).length : 0
 
-  const publicSiteOrigin = (process.env.REACT_APP_PUBLIC_SITE_ORIGIN || 'https://www.profixer.in').replace(
+  const publicSiteOrigin = (process.env.REACT_APP_PUBLIC_SITE_ORIGIN || 'https://my.profixer.in').replace(
     /\/$/,
     '',
   )
-  const serpPreview = useMemo(() => {
+  const computedPublicPageUrl = useMemo(() => {
     const pathSlug = (slug.trim() || slugify(title)).replace(/^\/+/, '')
     const path = pathSlug ? `/blog/${pathSlug}` : '/blog/…'
-    const url = `${publicSiteOrigin}${path}`
+    return `${publicSiteOrigin}${path}`
+  }, [slug, title, publicSiteOrigin])
+
+  const serpPreview = useMemo(() => {
+    const canonicalTrim = blogCanonicalUrl.trim()
+    const url = /^https?:\/\//i.test(canonicalTrim) ? canonicalTrim : computedPublicPageUrl
     const rawTitle = effectiveSeoTitle.trim() || title.trim()
     const titleShown =
       rawTitle.length === 0
@@ -871,7 +986,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
       titleCharCount: rawTitle.length,
       snippetCharCount: rawSnip.length,
     }
-  }, [slug, title, effectiveSeoTitle, metaDescription, publicSiteOrigin])
+  }, [slug, title, effectiveSeoTitle, metaDescription, publicSiteOrigin, blogCanonicalUrl, computedPublicPageUrl])
 
   const tags = useMemo(
     () =>
@@ -926,6 +1041,9 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
   const checklist = useMemo(() => {
     const serp = seoTitle.trim() || title.trim()
     const kw = primaryKeyword.trim().toLowerCase()
+    const faqPairs = faqRows.filter((r) => r.question.trim() && r.answer.trim()).length
+    const canonicalTrim = blogCanonicalUrl.trim()
+    const canonicalHttpsOk = !canonicalTrim || /^https:\/\//i.test(canonicalTrim)
     const keywordInTitle =
       !kw ||
       serp.toLowerCase().includes(kw) ||
@@ -967,6 +1085,16 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
         id: 'm',
         label: `Meta description in optimal band ${META_DESC_MIN_CHARS}–${META_DESC_OPTIMAL_MAX_CHARS} chars (hard max ${META_DESC_HARD_MAX_CHARS})`,
         ok: metaLen > 0 && isMetaDescriptionOptimalBand(metaLen),
+      },
+      {
+        id: 'canon',
+        label: 'Canonical URL: optional; if set, use absolute HTTPS (avoids mixed signals vs slug changes)',
+        ok: canonicalHttpsOk,
+      },
+      {
+        id: 'faqschema',
+        label: 'FAQ JSON-LD: 0 or ≥2 complete Q&A pairs (single pair is usually skipped for FAQ rich results)',
+        ok: faqPairs === 0 || faqPairs >= 2,
       },
       { id: 'w', label: `Word count ≥ ${PILLAR_WORD_TARGET} (pillar target, live)`, ok: liveWordCount >= PILLAR_WORD_TARGET },
       {
@@ -1042,6 +1170,8 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
     fre,
     keywordRows,
     secondaryKeywordsInput,
+    faqRows,
+    blogCanonicalUrl,
   ])
 
   /** One headline %: checklist, SEO, content/readability; adds scan originality when a run exists. */
@@ -1173,6 +1303,18 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
   )
 
   const previewFaqJsonLd = useMemo(() => buildFaqJsonLdString(faqItemsResolved), [faqItemsResolved])
+
+  const previewRichResultsJsonLd = useMemo(
+    () =>
+      buildBlogRichResultsJsonLdPreview({
+        headline: title.trim() || 'Untitled',
+        description: (metaDescription.trim() || title.trim()).slice(0, 500),
+        pageUrl: serpPreview.url,
+        imageUrl: featuredImageUrl.trim() || undefined,
+        faqItems: faqItemsResolved,
+      }),
+    [title, metaDescription, serpPreview.url, featuredImageUrl, faqItemsResolved],
+  )
 
   const previewPurifyConfig = useMemo(
     () => ({
@@ -1436,6 +1578,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
         isFeatured,
         allowComments,
         relatedProductIds,
+        relatedServiceIds,
         featuredImage: trimmedUrl || undefined,
         featuredImageAlt: featuredImageAlt.trim() || undefined,
         scheduledPublishAt,
@@ -1455,6 +1598,11 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             ),
           ),
           ogImage: trimmedUrl || undefined,
+          ...(blogCanonicalUrl.trim() ? { canonicalUrl: blogCanonicalUrl.trim() } : {}),
+          ...(blogOgTitle.trim() ? { ogTitle: blogOgTitle.trim() } : {}),
+          ...(blogOgType.trim() ? { ogType: blogOgType.trim() } : {}),
+          ...(blogTwitterCard ? { twitterCard: blogTwitterCard } : {}),
+          ...(blogRobotsMeta.trim() ? { robots: blogRobotsMeta.trim() } : {}),
         },
         faqItems: faqItemsResolved,
         leadMagnet: {
@@ -1493,6 +1641,32 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
   const quickSaveDraft = () => void handleSave('draft')
   const quickPublish = () => void handleSave('published')
 
+  const insertInternalLinkAtCaret = useCallback(
+    (kind: 'product' | 'service', item: { name: string; slug?: string }) => {
+      const quill = reactQuillRef.current?.getEditor() ?? quillEditorRef.current
+      if (!quill) {
+        toast({
+          title: 'Editor not ready',
+          description: 'Open the Content tab and click inside the article body, then insert again.',
+          variant: 'destructive',
+        })
+        return
+      }
+      const slug = (item.slug || '').trim() || 'item'
+      const href = kind === 'product' ? `/products/${encodeURIComponent(slug)}` : `/services/${encodeURIComponent(slug)}`
+      const esc = (s: string) =>
+        s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+      const label = (item.name || slug).trim()
+      const html = `<a href="${esc(href)}" rel="noopener noreferrer">${esc(label)}</a>`
+      const sel = quill.getSelection(true)
+      const index = sel ? sel.index : Math.max(0, quill.getLength() - 1)
+      quill.focus()
+      quill.clipboard.dangerouslyPasteHTML(index, html, 'user')
+      toast({ title: 'Link inserted', description: label })
+    },
+    [toast],
+  )
+
   if (loadState === 'loading') {
     return (
       <div className="flex min-h-[50vh] items-center justify-center bg-slate-50 text-slate-600">
@@ -1519,7 +1693,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-slate-50 to-slate-100/90 text-slate-900">
       <div className="mx-auto max-w-[1400px] px-4 py-8">
         <header className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-wrap items-start gap-3">
@@ -1535,7 +1709,8 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             <div>
               <h1 className="text-2xl font-semibold tracking-tight">{postId ? 'Edit post' : 'New post'}</h1>
               <p className="text-sm text-slate-600">
-                Checklist, SEO score, readability, and keyword table update in real time as you edit.
+                Editorial workspace for <strong className="font-medium text-slate-800">my.profixer.in</strong> — live SEO score, technical metadata,
+                structured data preview, and checklist aligned with how modern content teams ship URLs, snippets, and rich results.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
@@ -1654,9 +1829,48 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_minmax(22rem,26rem)]">
-          {/* Left: form + editor */}
-          <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,26rem)]">
+          <div className="flex min-w-0 flex-col gap-3">
+            <div
+              className="flex flex-wrap gap-1 rounded-xl border border-slate-200 bg-slate-100/90 p-1 shadow-sm"
+              role="tablist"
+              aria-label="Blog editor sections"
+            >
+              {(
+                [
+                  { id: 'basics' as const, label: 'Basics & SEO' },
+                  { id: 'content' as const, label: 'Content & internal links' },
+                  { id: 'faq' as const, label: 'FAQ & lead magnet' },
+                ] as const
+              ).map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={editorWorkspaceTab === tab.id}
+                  onClick={() => setEditorWorkspaceTab(tab.id)}
+                  className={`rounded-lg px-3 py-2 text-xs font-semibold transition-colors sm:text-sm ${
+                    editorWorkspaceTab === tab.id
+                      ? 'bg-white text-indigo-900 shadow-sm ring-1 ring-slate-200/80'
+                      : 'text-slate-600 hover:bg-white/70 hover:text-slate-900'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+          <div className="space-y-6 rounded-xl border border-slate-200/90 bg-white p-6 shadow-md ring-1 ring-slate-100">
+            <div className={editorWorkspaceTab !== 'basics' ? 'hidden' : 'space-y-6'}>
+            <div className="rounded-lg border border-indigo-200/80 bg-gradient-to-r from-indigo-50/95 to-white px-4 py-3 text-sm text-slate-700 shadow-sm">
+              <p className="font-semibold text-indigo-950">Industry publishing — ProFixer blog</p>
+              <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                Primary URL preview defaults to <strong className="text-slate-800">https://my.profixer.in</strong> (override with{' '}
+                <code className="rounded bg-white px-1 font-mono text-[11px]">REACT_APP_PUBLIC_SITE_ORIGIN</code>). Extra{' '}
+                <code className="rounded bg-white px-1 font-mono text-[11px]">seo.*</code> keys are safe to store; backends that do not persist them yet
+                can ignore unknown fields.
+              </p>
+            </div>
             <div>
               <label className="mb-1 block text-sm font-medium">Blog title</label>
               <input
@@ -1734,6 +1948,80 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                 <span className="shrink-0 tabular-nums">
                   {metaLen} / {META_DESC_HARD_MAX_CHARS}
                 </span>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50/50 via-white to-slate-50/90 p-5 shadow-sm ring-1 ring-indigo-100/70">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-semibold text-indigo-950">Technical SEO &amp; social metadata</h2>
+                  <p className="mt-1 max-w-prose text-xs leading-relaxed text-slate-600">
+                    Maps to extended <code className="rounded bg-white px-1 font-mono text-[11px]">seo</code> on the post. Your consumer app should emit{' '}
+                    <code className="font-mono text-[11px]">link rel=&quot;canonical&quot;</code>, <code className="font-mono text-[11px]">meta name=&quot;robots&quot;</code>,{' '}
+                    <code className="font-mono text-[11px]">og:*</code> / <code className="font-mono text-[11px]">twitter:*</code>, and JSON-LD from the same
+                    document — that is how you avoid title/snippet/schema drift (a common enterprise audit finding).
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBlogCanonicalUrl(computedPublicPageUrl)}
+                  className="shrink-0 rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-xs font-medium text-indigo-800 shadow-sm hover:bg-indigo-50"
+                >
+                  Fill canonical from preview URL
+                </button>
+              </div>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <label className="mb-1 block text-xs font-medium text-slate-700">Canonical URL (optional)</label>
+                  <input
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    value={blogCanonicalUrl}
+                    onChange={(e) => setBlogCanonicalUrl(e.target.value)}
+                    placeholder={`${publicSiteOrigin}/blog/your-slug`}
+                  />
+                  <p className="mt-1 text-[11px] text-slate-500">Prefer HTTPS absolute URLs on the host you want indexed.</p>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-700">Open Graph title override</label>
+                  <input
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    value={blogOgTitle}
+                    onChange={(e) => setBlogOgTitle(e.target.value)}
+                    placeholder="Leave blank → SEO title / blog title"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-700">Open Graph type</label>
+                  <select
+                    value={blogOgType}
+                    onChange={(e) => setBlogOgType(e.target.value)}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  >
+                    <option value="article">article</option>
+                    <option value="website">website</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-700">Twitter / X card</label>
+                  <select
+                    value={blogTwitterCard}
+                    onChange={(e) => setBlogTwitterCard(e.target.value as 'summary' | 'summary_large_image')}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  >
+                    <option value="summary_large_image">summary_large_image (recommended with hero)</option>
+                    <option value="summary">summary</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-700">Robots meta hint</label>
+                  <input
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    value={blogRobotsMeta}
+                    onChange={(e) => setBlogRobotsMeta(e.target.value)}
+                    placeholder="index, follow"
+                  />
+                  <p className="mt-1 text-[11px] text-slate-500">Use noindex for thin drafts; keep published articles indexable unless legal/comms requires otherwise.</p>
+                </div>
               </div>
             </div>
 
@@ -1879,6 +2167,13 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                           setRelatedProductIds((prev) =>
                             selected ? prev.filter((id) => id !== p.id) : [...prev, p.id],
                           )
+                          setLinkedProductNames((prev) => {
+                            if (selected) {
+                              const { [p.id]: _, ...rest } = prev
+                              return rest
+                            }
+                            return { ...prev, [p.id]: p.name }
+                          })
                         }}
                       >
                         <span className="min-w-0 flex-1 truncate">{p.name}</span>
@@ -1898,11 +2193,17 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                       key={id}
                       className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs"
                     >
-                      <span className="font-medium text-slate-700">{id}</span>
+                      <span className="font-medium text-slate-700">{linkedProductNames[id] || id}</span>
                       <button
                         type="button"
                         className="rounded-full px-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-                        onClick={() => setRelatedProductIds((prev) => prev.filter((x) => x !== id))}
+                        onClick={() => {
+                          setRelatedProductIds((prev) => prev.filter((x) => x !== id))
+                          setLinkedProductNames((prev) => {
+                            const { [id]: _, ...rest } = prev
+                            return rest
+                          })
+                        }}
                         aria-label="Remove related product"
                       >
                         ×
@@ -1914,6 +2215,86 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
 
               <p className="mt-1 text-xs text-slate-500">
                 These are stored on the post and can be used to render “Related products” blocks on the public blog / product pages.
+              </p>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium">Related platform services</label>
+              <div className="flex gap-2">
+                <input
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  value={relatedServiceSearch}
+                  onChange={(e) => setRelatedServiceSearch(e.target.value)}
+                  placeholder="Search bookable services to link…"
+                />
+                <button
+                  type="button"
+                  className="shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm hover:bg-slate-50"
+                  onClick={() => setRelatedServiceSearch('')}
+                >
+                  Clear
+                </button>
+              </div>
+              {relatedServiceLoading && <p className="mt-1 text-xs text-slate-500">Searching…</p>}
+              {relatedServiceOptions.length > 0 && (
+                <div className="mt-2 max-h-40 overflow-auto rounded-lg border border-slate-200 bg-white">
+                  {relatedServiceOptions.map((s) => {
+                    const selected = relatedServiceIds.includes(s.id)
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-slate-50 ${
+                          selected ? 'bg-indigo-50' : ''
+                        }`}
+                        onClick={() => {
+                          setRelatedServiceIds((prev) =>
+                            selected ? prev.filter((id) => id !== s.id) : [...prev, s.id],
+                          )
+                          setLinkedServiceNames((prev) => {
+                            if (selected) {
+                              const { [s.id]: _, ...rest } = prev
+                              return rest
+                            }
+                            return { ...prev, [s.id]: s.name }
+                          })
+                        }}
+                      >
+                        <span className="min-w-0 flex-1 truncate">{s.name}</span>
+                        <span className="shrink-0 text-xs text-slate-500">{selected ? 'Linked' : 'Link'}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+              {relatedServiceIds.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {relatedServiceIds.map((id) => (
+                    <span
+                      key={id}
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs"
+                    >
+                      <span className="font-medium text-slate-700">{linkedServiceNames[id] || id}</span>
+                      <button
+                        type="button"
+                        className="rounded-full px-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                        onClick={() => {
+                          setRelatedServiceIds((prev) => prev.filter((x) => x !== id))
+                          setLinkedServiceNames((prev) => {
+                            const { [id]: _, ...rest } = prev
+                            return rest
+                          })
+                        }}
+                        aria-label="Remove related service"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <p className="mt-1 text-xs text-slate-500">
+                Stored as <code className="rounded bg-white px-1 text-[11px]">relatedServices</code> for “Related services” modules and topical clustering with the catalog.
               </p>
             </div>
 
@@ -1954,7 +2335,9 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                 placeholder="yoursite.com — used to classify absolute URLs as internal"
               />
             </div>
+            </div>
 
+            <div className={editorWorkspaceTab !== 'faq' ? 'hidden' : ''}>
             <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4">
               <h3 className="text-sm font-semibold text-slate-800">FAQ schema &amp; lead magnet</h3>
               <p className="mt-1 text-xs text-slate-600">
@@ -2079,14 +2462,122 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                 </div>
               </div>
             </div>
+            </div>
+
+            <div className={editorWorkspaceTab !== 'content' ? 'hidden' : 'space-y-5'}>
+            <section className="rounded-xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/50 to-white p-4 shadow-sm ring-1 ring-emerald-100/60">
+              <h3 className="text-sm font-semibold text-emerald-950">Insert internal links</h3>
+              <p className="mt-1 text-xs text-slate-600">
+                Combined search via <code className="rounded bg-white px-1 font-mono text-[11px]">GET /api/cms/admin/blogs/link-suggestions</code>. Inserts at the caret using <span className="font-mono text-[11px]">/products/&lt;slug&gt;</span> and <span className="font-mono text-[11px]">/services/&lt;slug&gt;</span>; map these routes on <strong className="text-slate-800">my.profixer.in</strong> (or your consumer app).
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <input
+                  className="min-w-[12rem] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  value={linkPickerQuery}
+                  onChange={(e) => setLinkPickerQuery(e.target.value)}
+                  placeholder="Search products & services…"
+                  aria-label="Search catalog for internal links"
+                />
+                <button
+                  type="button"
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm hover:bg-slate-50"
+                  onClick={() => setLinkPickerQuery('')}
+                >
+                  Clear
+                </button>
+              </div>
+              {linkPickerLoading ? (
+                <p className="mt-2 text-xs text-slate-500">Searching catalog…</p>
+              ) : null}
+              <div className="mt-3 grid gap-4 lg:grid-cols-2">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Products</p>
+                  <ul className="mt-1 max-h-52 space-y-1 overflow-auto rounded-lg border border-slate-200 bg-white p-1 text-sm">
+                    {linkPickerResults.products.length === 0 ? (
+                      <li className="px-2 py-2 text-xs text-slate-500">No matches — try another query.</li>
+                    ) : (
+                      linkPickerResults.products.map((p) => (
+                        <li key={p._id} className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 hover:bg-slate-50">
+                          <span className="min-w-0 flex-1 truncate font-medium text-slate-800">{p.name}</span>
+                          <button
+                            type="button"
+                            className="shrink-0 rounded-md bg-emerald-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-emerald-700"
+                            onClick={() => insertInternalLinkAtCaret('product', p)}
+                          >
+                            Insert
+                          </button>
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Platform services</p>
+                  <ul className="mt-1 max-h-52 space-y-1 overflow-auto rounded-lg border border-slate-200 bg-white p-1 text-sm">
+                    {linkPickerResults.services.length === 0 ? (
+                      <li className="px-2 py-2 text-xs text-slate-500">No matches — try another query.</li>
+                    ) : (
+                      linkPickerResults.services.map((s) => (
+                        <li key={s._id} className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 hover:bg-slate-50">
+                          <span className="min-w-0 flex-1 truncate font-medium text-slate-800">{s.name}</span>
+                          <button
+                            type="button"
+                            className="shrink-0 rounded-md bg-emerald-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-emerald-700"
+                            onClick={() => insertInternalLinkAtCaret('service', s)}
+                          >
+                            Insert
+                          </button>
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                </div>
+              </div>
+            </section>
 
             <div>
               <label className="mb-1 block text-sm font-medium">Content</label>
               <p className="mb-2 text-xs text-slate-500">
-                Use one H1 in the body, then H2/H3 for sections (avoid skipping levels). The rich-text toolbar stays pinned at the top of the editor while you scroll — use it for headings, lists, links, images, and tables. Paste or import HTML from the toolbar (HTML markup button): content is sanitized (allowlisted tags) and converted for the editor. Images: upload max {formatImageSizeCap(BLOG_IMAGE_MAX_FILE_BYTES)} per file (compress to ~{formatImageSizeCap(BLOG_IMAGE_RECOMMENDED_MAX_BYTES)} when possible). Alt text is required on insert; publish/schedule also requires featured-image alt. Editor preview caps display size only — saved HTML is unchanged.
+                Use one H1 in the body, then H2/H3 for sections (avoid skipping levels). The rich-text toolbar stays pinned at the top of the editor while you scroll — use it for headings, lists, links, images, and tables. Paste or import HTML from the toolbar (HTML markup button): content is sanitized (allowlisted tags) and converted for the editor. Images: upload max {formatImageSizeCap(BLOG_IMAGE_MAX_FILE_BYTES)} per file (compress to ~{formatImageSizeCap(BLOG_IMAGE_RECOMMENDED_MAX_BYTES)} when possible). Alt text is required on insert; publish/schedule also requires featured-image alt.{' '}
+                <strong className="text-slate-700">Draft canvas</strong> uses a larger, readable type size here only; body copy on the public site follows your consumer theme. Inline “small” styles from pasted HTML are preserved; image max-height here is display-only.
               </p>
-              <div className="blog-quill relative rounded-lg border border-slate-300 [&_.ql-container]:min-h-[320px] [&_.ql-editor]:min-h-[280px] [&_.ql-toolbar]:rounded-t-lg [&_.ql-container]:rounded-b-lg">
+              <div className="blog-quill relative min-h-[min(72vh,720px)] rounded-lg border border-slate-300 [&_.ql-container]:min-h-[min(68vh,640px)] [&_.ql-editor]:min-h-[min(62vh,560px)] [&_.ql-toolbar]:rounded-t-lg [&_.ql-container]:rounded-b-lg">
                 <style>{`
+                  /* Comfortable drafting — does not rewrite saved HTML (Quill default ~13px feels tiny). */
+                  .blog-quill .ql-container.ql-snow {
+                    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                    font-size: 1.0625rem;
+                    line-height: 1.65;
+                  }
+                  .blog-quill .ql-editor {
+                    font-size: 1.0625rem;
+                    line-height: 1.65;
+                  }
+                  .blog-quill .ql-editor h1 {
+                    font-size: 1.875rem;
+                    line-height: 1.25;
+                    font-weight: 700;
+                    margin: 1rem 0 0.5rem;
+                  }
+                  .blog-quill .ql-editor h2 {
+                    font-size: 1.5rem;
+                    line-height: 1.3;
+                    font-weight: 700;
+                    margin: 0.9rem 0 0.45rem;
+                  }
+                  .blog-quill .ql-editor h3 {
+                    font-size: 1.25rem;
+                    line-height: 1.35;
+                    font-weight: 600;
+                    margin: 0.75rem 0 0.4rem;
+                  }
+                  .blog-quill .ql-editor p,
+                  .blog-quill .ql-editor li {
+                    font-size: 1.0625rem;
+                  }
+                  .blog-quill .ql-editor p {
+                    margin: 0.5rem 0;
+                  }
                   .blog-quill .ql-toolbar.ql-snow {
                     position: sticky;
                     top: 0;
@@ -2197,6 +2688,8 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                 )}
               </div>
             </div>
+            </div>
+          </div>
           </div>
 
           {/* Right column: workflow order (checklist → SEO → content → coach) */}
@@ -2279,11 +2772,11 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                 </span>
               </div>
               <p className="mb-3 text-[11px] leading-snug text-slate-500">
-                Google-style listing (desktop). Set{' '}
+                Google-style listing (desktop). Default origin is <strong className="font-medium text-slate-700">https://my.profixer.in</strong>; override with{' '}
                 <code className="rounded bg-white px-1 py-0.5 font-mono text-[10px] text-slate-700">
                   REACT_APP_PUBLIC_SITE_ORIGIN
                 </code>{' '}
-                in <code className="rounded bg-white px-1 font-mono text-[10px]">.env</code> for your live URL.
+                in <code className="rounded bg-white px-1 font-mono text-[10px]">.env</code>. When canonical is set (left column), this preview uses it for the green URL line.
               </p>
               <div
                 className="rounded-lg border border-slate-200 bg-white px-3 py-3 shadow-sm"
@@ -2310,6 +2803,58 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                   {META_DESC_HARD_MAX_CHARS}. Tighten copy so the important words appear early.
                 </p>
               )}
+            </section>
+
+            <section className="rounded-xl border border-indigo-100/90 bg-gradient-to-br from-white to-indigo-50/40 p-4 shadow-sm ring-1 ring-indigo-100/60">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-indigo-900/90">Technical SEO &amp; rich results</h2>
+              <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                Growth on <strong className="text-slate-800">my.profixer.in</strong> depends on consistent URLs, crawl directives, share cards, and valid structured data — not keyword density alone.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                    !blogCanonicalUrl.trim() || /^https:\/\//i.test(blogCanonicalUrl.trim())
+                      ? 'bg-emerald-100 text-emerald-900'
+                      : 'bg-amber-100 text-amber-950'
+                  }`}
+                >
+                  Canonical {!blogCanonicalUrl.trim() ? '(optional)' : /^https:\/\//i.test(blogCanonicalUrl.trim()) ? 'HTTPS' : 'check HTTPS'}
+                </span>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                    faqItemsResolved.length === 0 || faqItemsResolved.length >= 2
+                      ? 'bg-emerald-100 text-emerald-900'
+                      : 'bg-amber-100 text-amber-950'
+                  }`}
+                >
+                  FAQ JSON-LD {faqItemsResolved.length === 0 ? 'off' : faqItemsResolved.length >= 2 ? `${faqItemsResolved.length} pairs` : 'use 0 or ≥2 pairs'}
+                </span>
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                  twitter:{blogTwitterCard}
+                </span>
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">og:type {blogOgType}</span>
+              </div>
+              <p className="mt-3 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Suggested head tags (consumer)</p>
+              <pre className="mt-1 max-h-28 overflow-auto whitespace-pre-wrap break-all rounded border border-slate-200 bg-slate-50/90 p-2 font-mono text-[9px] leading-snug text-slate-800">
+                {[
+                  blogRobotsMeta.trim() ? `<meta name="robots" content="${blogRobotsMeta.trim()}" />` : `<!-- default: index,follow if omitted -->`,
+                  `<link rel="canonical" href="${(blogCanonicalUrl.trim() || serpPreview.url).replace(/"/g, '&quot;')}" />`,
+                  `<meta property="og:title" content="${(blogOgTitle.trim() || effectiveSeoTitle).replace(/"/g, '&quot;')}" />`,
+                  `<meta property="og:description" content="${metaDescription.replace(/\s+/g, ' ').trim().slice(0, 200).replace(/"/g, '&quot;')}${metaDescription.length > 200 ? '…' : ''}" />`,
+                  featuredImageUrl.trim()
+                    ? `<meta property="og:image" content="${featuredImageUrl.trim().replace(/"/g, '&quot;')}" />`
+                    : `<!-- og:image from featured image URL when set -->`,
+                  `<meta property="og:type" content="${blogOgType.replace(/"/g, '&quot;')}" />`,
+                  `<meta name="twitter:card" content="${blogTwitterCard}" />`,
+                ].join('\n')}
+              </pre>
+              <p className="mt-3 text-[10px] font-semibold uppercase tracking-wide text-slate-500">JSON-LD preview (BlogPosting ± FAQPage)</p>
+              <p className="mt-0.5 text-[10px] leading-snug text-slate-500">
+                Elide <code className="rounded bg-white px-0.5 font-mono">datePublished</code> until the consumer sets it at go-live; keep FAQ and article in lockstep with visible HTML.
+              </p>
+              <pre className="mt-1 max-h-44 overflow-auto whitespace-pre-wrap break-all rounded border border-slate-200 bg-white p-2 font-mono text-[9px] text-slate-800">
+                {`<script type="application/ld+json">\n${previewRichResultsJsonLd}\n</script>`}
+              </pre>
             </section>
 
             <section className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm">

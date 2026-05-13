@@ -64,7 +64,6 @@ import {
   Newspaper,
   Sparkles,
   Layers,
-  LayoutPanelTop,
   Lightbulb as LightbulbIcon,
   FlaskConical as LabIcon,
   Target as TargetIcon,
@@ -545,8 +544,7 @@ const navigationGroups = [
         permissions: ['view_cms', 'manage_cms', 'manage_marketing'],
         badge: null,
         subItems: [
-          { name: 'Sliders', href: '/sliders', icon: SlideshowIcon, permissions: ['manage_cms'] },
-          { name: 'Banners & pop-ups', href: '/cms/banners', icon: LayoutPanelTop, permissions: ['manage_cms'] },
+          { name: 'Sliders & banners', href: '/sliders', icon: SlideshowIcon, permissions: ['manage_cms'] },
           { name: 'Promotions', href: '/cms/promotions', icon: CouponIcon, permissions: ['manage_marketing'] },
           { name: 'Coupons', href: '/coupons', icon: TicketPercent, permissions: ['manage_marketing'] },
           { name: 'Referrals', href: '/referrals', icon: ReferralIcon, permissions: ['manage_marketing'] },

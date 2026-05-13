@@ -302,7 +302,6 @@ const SupportTicketsQueuePage = lazy(() => import('./pages/support/SupportTicket
 
 const CMSDashboard = lazy(() => import('./pages/cms/CMSDashboard'))
 const SiteAppearancePage = lazy(() => import('./pages/cms/SiteAppearancePage'))
-const BannerManagement = lazy(() => import('./pages/cms/BannerManagement'))
 const PromotionManagement = lazy(() => import('./pages/cms/PromotionManagement'))
 const TestimonialManagement = lazy(() => import('./pages/cms/TestimonialManagement'))
 const ReviewsManagement = lazy(() => import('./pages/cms/ReviewsManagement'))
@@ -1144,14 +1143,14 @@ function App() {
                         }
                       />
                       
-                      {/* Sliders */}
-                      <Route 
-                        path="/sliders" 
+                      {/* Sliders + CMS banners (single hub) */}
+                      <Route
+                        path="/sliders"
                         element={
-                          <RoleBasedRoute permissions={['view_settings']}>
+                          <RoleBasedRoute permissions={['view_settings', 'manage_system_settings']}>
                             <Sliders />
                           </RoleBasedRoute>
-                        } 
+                        }
                       />
                       
                       {/* Coupons */}
@@ -1453,13 +1452,13 @@ function App() {
                           </RoleBasedRoute>
                         }
                       />
-                      <Route 
-                        path="/cms/banners" 
+                      <Route
+                        path="/cms/banners"
                         element={
-                          <RoleBasedRoute permissions={['manage_system_settings']}>
-                            <BannerManagement />
+                          <RoleBasedRoute permissions={['manage_system_settings', 'view_settings']}>
+                            <Navigate to="/sliders?tab=banners" replace />
                           </RoleBasedRoute>
-                        } 
+                        }
                       />
                       <Route 
                         path="/cms/promotions" 

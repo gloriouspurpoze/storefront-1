@@ -1,14 +1,24 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Loader2, ChevronDown, Trash2, Plus, Megaphone, Image as ImageIconLucide } from 'lucide-react'
+import {
+  Loader2,
+  Trash2,
+  Plus,
+  Megaphone,
+  Image as ImageIconLucide,
+  CheckCircle2,
+  AlertTriangle,
+  Info,
+  GitCompareArrows,
+} from 'lucide-react'
 import { Button } from '../../components/ui/button'
-import { Card, CardContent } from '../../components/ui/card'
+import { Badge } from '../../components/ui/badge'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
 import { Checkbox } from '../../components/ui/checkbox'
 import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
 import { Textarea } from '../../components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs'
-import { Switch } from '../../components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -62,7 +72,9 @@ import { appToast } from '../../lib/appToast'
 import { useIndustryServicePagesCatalog } from './IndustryServicePagesContext'
 import { useServiceCatalogLocalities } from '../../hooks/useServiceCatalogLocalities'
 import { IndustryLandingWorkspaceOverview } from '../../components/cms/IndustryLandingWorkspaceOverview'
+import { IndustryLandingEditorPreview } from '../../components/cms/IndustryLandingEditorPreview'
 import { localitySlugFromCompositeKey } from '../../lib/categoryMarketingCoverageOverview'
+import { diffCategoryMarketingConfigs } from '../../lib/categoryMarketingConfigDiff'
 
 type TabKey =
   | 'metadata'
@@ -76,6 +88,9 @@ type TabKey =
   | 'faqs'
   | 'localityGuide'
   | 'closing'
+
+/** Consumer site origin — placeholders and checklist copy only. */
+const PROFIXER_PUBLIC_ORIGIN = 'https://my.profixer.in'
 
 function charCountColor(len: number, min: number, optimal: number, hard: number): string {
   if (len > hard) return 'text-destructive'
@@ -110,6 +125,7 @@ export default function CategoryMarketingManagement() {
   const [duplicateSourceKey, setDuplicateSourceKey] = useState('')
   const [importJsonText, setImportJsonText] = useState('')
   const [tab, setTab] = useState<TabKey>('metadata')
+  const [localityDiffExpanded, setLocalityDiffExpanded] = useState(false)
 
   const normalizedLocalitySlug = useMemo(
     () =>
@@ -125,6 +141,10 @@ export default function CategoryMarketingManagement() {
     if (!normalizedLocalitySlug) return selectedCategory
     return `${selectedCategory}__${normalizedLocalitySlug}`
   }, [selectedCategory, normalizedLocalitySlug])
+
+  useEffect(() => {
+    setLocalityDiffExpanded(false)
+  }, [effectiveKey])
 
   const sortedManagedLocalities = useMemo(
     () =>
@@ -244,6 +264,186 @@ export default function CategoryMarketingManagement() {
       },
     })
   }
+
+  const seoReadinessRows = useMemo(() => {
+    type Tone = 'ok' | 'warn' | 'info'
+    const rows: { tone: Tone; title: string; detail: string }[] = []
+    const tLen = config.seoTitle.trim().length
+    const mLen = config.metaDescription.trim().length
+    const isLocalKey = Boolean(normalizedLocalitySlug)
+    const can = config.technicalSeo.canonicalUrl.trim()
+    const faqFilled = config.faqs.filter((f) => f.question.trim() && f.answer.trim()).length
+    const sumLen = config.technicalSeo.answerEngineSummary.trim()
+
+    if (tLen === 0) {
+      rows.push({
+        tone: 'warn',
+        title: 'SEO title',
+        detail: 'Empty — the live site may fall back to a generic title.',
+      })
+    } else if (tLen < SEO_TITLE_MIN_CHARS) {
+      rows.push({
+        tone: 'warn',
+        title: 'SEO title',
+        detail: `Short (${tLen} chars). Aim for at least ${SEO_TITLE_MIN_CHARS} so the SERP snippet states offer + area.`,
+      })
+    } else if (tLen > SEO_TITLE_HARD_MAX_CHARS) {
+      rows.push({
+        tone: 'warn',
+        title: 'SEO title',
+        detail: `Likely truncated (${tLen} chars). Stay near or below ~${SEO_TITLE_HARD_MAX_CHARS} visible characters.`,
+      })
+    } else {
+      rows.push({
+        tone: tLen > SEO_TITLE_OPTIMAL_MAX_CHARS ? 'info' : 'ok',
+        title: 'SEO title',
+        detail:
+          tLen > SEO_TITLE_OPTIMAL_MAX_CHARS
+            ? `Within limits; may still truncate on narrow devices (${tLen} chars).`
+            : `Length in a healthy band (${tLen} chars).`,
+      })
+    }
+
+    if (mLen === 0) {
+      rows.push({
+        tone: 'warn',
+        title: 'Meta description',
+        detail: 'Empty — you lose control of the snippet; add a benefit-led line with a soft CTA.',
+      })
+    } else if (mLen < META_DESC_MIN_CHARS) {
+      rows.push({
+        tone: 'warn',
+        title: 'Meta description',
+        detail: `Thin (${mLen} chars). Aim for ~${META_DESC_MIN_CHARS}–${META_DESC_OPTIMAL_MAX_CHARS} to use the full snippet.`,
+      })
+    } else if (mLen > META_DESC_HARD_MAX_CHARS) {
+      rows.push({
+        tone: 'warn',
+        title: 'Meta description',
+        detail: `Often truncated (${mLen} chars). Target ≤ ~${META_DESC_HARD_MAX_CHARS} characters.`,
+      })
+    } else {
+      rows.push({
+        tone: mLen > META_DESC_OPTIMAL_MAX_CHARS ? 'info' : 'ok',
+        title: 'Meta description',
+        detail:
+          mLen > META_DESC_OPTIMAL_MAX_CHARS
+            ? `Long but acceptable; check preview (${mLen} chars).`
+            : `Good use of snippet space (${mLen} chars).`,
+      })
+    }
+
+    if (!config.primaryKeyword.trim()) {
+      rows.push({
+        tone: 'warn',
+        title: 'Primary keyword',
+        detail: 'Set one head term so H1, intro, and internal language match the query you want to win.',
+      })
+    } else {
+      rows.push({
+        tone: 'ok',
+        title: 'Primary keyword',
+        detail: `“${config.primaryKeyword.trim()}” is set.`,
+      })
+    }
+
+    if (isLocalKey) {
+      if (!/^https?:\/\//i.test(can)) {
+        rows.push({
+          tone: 'warn',
+          title: 'Canonical URL',
+          detail: `Hyperlocal key “${effectiveKey}”: set one absolute URL (e.g. ${PROFIXER_PUBLIC_ORIGIN}/services/...) so Google merges signals.`,
+        })
+      } else {
+        rows.push({
+          tone: 'ok',
+          title: 'Canonical URL',
+          detail: 'Absolute canonical — helps consolidate locality variants and tracking params.',
+        })
+      }
+    } else {
+      rows.push({
+        tone: 'info',
+        title: 'Canonical URL',
+        detail: `Industry-wide template: optional here; locality overrides should almost always set canonical on ${PROFIXER_PUBLIC_ORIGIN}.`,
+      })
+    }
+
+    if (sumLen.length < 40) {
+      rows.push({
+        tone: 'warn',
+        title: 'Answer-engine summary',
+        detail: 'Technical SEO: add 2–4 factual sentences (who, where, what is included). Helps AI overviews and SERP clarity.',
+      })
+    } else {
+      rows.push({
+        tone: 'ok',
+        title: 'Answer-engine summary',
+        detail: `~${sumLen.length} characters of answer-first copy.`,
+      })
+    }
+
+    if (faqFilled === 0) {
+      rows.push({
+        tone: 'warn',
+        title: 'FAQ content',
+        detail: 'No complete Q&A pairs in this record — use the FAQs tab (rich results + long-tail coverage).',
+      })
+    } else {
+      rows.push({
+        tone: 'ok',
+        title: 'FAQ content',
+        detail: `${faqFilled} complete FAQ(s); pair with consumer FAQPage schema when enabled.`,
+      })
+    }
+
+    const ogOverride = config.localSeo.ogImageOverride.trim()
+    const ogAlt = config.technicalSeo.ogImageAlt.trim()
+    if (ogOverride && !ogAlt) {
+      rows.push({
+        tone: 'warn',
+        title: 'Social preview image',
+        detail: 'Local SEO has a share image URL but OG image alt is empty — add descriptive alt text under Technical SEO.',
+      })
+    } else if (ogOverride && ogAlt) {
+      rows.push({
+        tone: 'ok',
+        title: 'Social preview image',
+        detail: 'Image URL and alt are set — better for accessibility, shares, and image-related signals.',
+      })
+    }
+
+    const ar = config.technicalSeo.aggregateRating
+    if (ar.ratingValue.trim() || ar.reviewCount.trim()) {
+      rows.push({
+        tone: 'info',
+        title: 'Aggregate rating',
+        detail: 'Schema fields are filled — only keep if the same numbers appear visibly on this URL (Google structured-data policy).',
+      })
+    }
+
+    const rob = config.technicalSeo.robotsMeta.toLowerCase()
+    if (rob.includes('noindex')) {
+      rows.push({
+        tone: 'info',
+        title: 'Robots',
+        detail: 'Meta contains noindex — intentional for staging or thin pages; remove for growth pages.',
+      })
+    }
+
+    const warnCount = rows.filter((r) => r.tone === 'warn').length
+    const okCount = rows.filter((r) => r.tone === 'ok').length
+    return { rows, warnCount, okCount }
+  }, [config, normalizedLocalitySlug, effectiveKey])
+
+  const localityVersusIndustryDiff = useMemo(() => {
+    if (!normalizedLocalitySlug || loading) return null
+    const industry = mergeCategoryConfig(data[selectedCategory] ?? emptyCategoryMarketingConfig())
+    const locality = mergeCategoryConfig(config)
+    const rows = diffCategoryMarketingConfigs(industry, locality)
+    const hasSavedIndustryKey = selectedCategory in data
+    return { rows, hasSavedIndustryKey }
+  }, [config, data, loading, normalizedLocalitySlug, selectedCategory])
 
   const handleSave = async () => {
     try {
@@ -482,17 +682,117 @@ export default function CategoryMarketingManagement() {
         </CardContent>
       </Card>
 
+      {!loading && normalizedLocalitySlug && localityVersusIndustryDiff ? (
+        <Card className="overflow-hidden border-border/80 shadow-sm">
+          <Accordion type="single" collapsible defaultValue="locality-diff">
+            <AccordionItem value="locality-diff" className="border-0">
+              <AccordionTrigger className="px-4 py-3 hover:no-underline sm:px-5">
+                <div className="flex w-full flex-col gap-2 text-left sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <GitCompareArrows className="hidden h-4 w-4 shrink-0 text-muted-foreground sm:block" aria-hidden />
+                    <span className="text-sm font-semibold text-foreground">Diff vs industry-wide template</span>
+                    {localityVersusIndustryDiff.rows.length === 0 ? (
+                      <Badge variant="success">No field overrides</Badge>
+                    ) : (
+                      <Badge variant="secondary">{localityVersusIndustryDiff.rows.length} changed path(s)</Badge>
+                    )}
+                  </div>
+                  <span className="text-[11px] text-muted-foreground">
+                    <span className="font-mono">{selectedCategory}</span> → <span className="font-mono">{effectiveKey}</span>
+                  </span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="border-t border-border/60 px-4 pb-4 pt-2 sm:px-5">
+                {!localityVersusIndustryDiff.hasSavedIndustryKey ? (
+                  <div
+                    role="status"
+                    className="mb-3 rounded-md border border-amber-200/90 bg-amber-50/70 px-3 py-2 text-xs text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100"
+                  >
+                    There is no saved CMS row for{' '}
+                    <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">{selectedCategory}</code> in this
+                    payload yet — the baseline below is the merged <strong>empty template</strong>, not necessarily what the
+                    consumer shows (the live site may still merge static fallbacks). Save an industry-wide template first for
+                    a meaningful diff.
+                  </div>
+                ) : null}
+                {localityVersusIndustryDiff.rows.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Every normalized field matches the industry-wide key — the locality record does not override JSON at the
+                    leaf level. You can still add locality-only copy later; remember to <strong>Save</strong> this key.
+                  </p>
+                ) : (
+                  <>
+                    <p className="mb-3 text-xs text-muted-foreground">
+                      Staged edits are included. Values are truncated; hover or copy from the editor tabs for full text.
+                    </p>
+                    <div className="max-h-[min(420px,50vh)] overflow-auto rounded-md border border-border/80">
+                      <table className="w-full min-w-[640px] border-collapse text-left text-[11px] sm:text-xs">
+                        <thead className="sticky top-0 z-[1] bg-muted/95 backdrop-blur-sm">
+                          <tr className="border-b border-border/80">
+                            <th className="px-2 py-2 font-semibold sm:px-3">Path</th>
+                            <th className="px-2 py-2 font-semibold sm:px-3">Industry ({selectedCategory})</th>
+                            <th className="px-2 py-2 font-semibold sm:px-3">This locality</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(localityDiffExpanded
+                            ? localityVersusIndustryDiff.rows
+                            : localityVersusIndustryDiff.rows.slice(0, 100)
+                          ).map((row) => (
+                            <tr key={row.path} className="border-b border-border/40 align-top last:border-0 hover:bg-muted/30">
+                              <td className="max-w-[200px] whitespace-normal break-all px-2 py-1.5 font-mono text-[10px] text-muted-foreground sm:max-w-none sm:px-3 sm:text-[11px]">
+                                {row.path}
+                              </td>
+                              <td className="whitespace-pre-wrap break-words px-2 py-1.5 text-muted-foreground sm:px-3">
+                                {row.industry}
+                              </td>
+                              <td className="whitespace-pre-wrap break-words px-2 py-1.5 text-foreground sm:px-3">
+                                {row.locality}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {localityVersusIndustryDiff.rows.length > 100 ? (
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <span className="text-xs text-muted-foreground">
+                          Showing {localityDiffExpanded ? localityVersusIndustryDiff.rows.length : 100} of{' '}
+                          {localityVersusIndustryDiff.rows.length} paths.
+                        </span>
+                        <Button type="button" size="sm" variant="outline" onClick={() => setLocalityDiffExpanded((v) => !v)}>
+                          {localityDiffExpanded ? 'Show fewer' : 'Show all'}
+                        </Button>
+                      </div>
+                    ) : null}
+                  </>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </Card>
+      ) : null}
+
       {!loading ? (
-        <IndustryLandingWorkspaceOverview
-          industrySlug={selectedCategory}
-          industryLabel={industryLabel}
-          localitySlug={normalizedLocalitySlug}
-          localityDisplayLabel={localityDisplayLabel}
-          effectiveStorageKey={effectiveKey}
-          config={config}
-          allData={data}
-          onOpenSavedKey={openSavedStorageKey}
-        />
+        <>
+          <IndustryLandingEditorPreview
+            config={config}
+            effectiveKey={effectiveKey}
+            industryLabel={industryLabel}
+            localityDisplayLabel={localityDisplayLabel}
+            publicOrigin={PROFIXER_PUBLIC_ORIGIN}
+          />
+          <IndustryLandingWorkspaceOverview
+            industrySlug={selectedCategory}
+            industryLabel={industryLabel}
+            localitySlug={normalizedLocalitySlug}
+            localityDisplayLabel={localityDisplayLabel}
+            effectiveStorageKey={effectiveKey}
+            config={config}
+            allData={data}
+            onOpenSavedKey={openSavedStorageKey}
+          />
+        </>
       ) : null}
 
       <Accordion type="single" collapsible className="rounded-lg border border-border/80 bg-card px-1 shadow-sm">
@@ -660,8 +960,8 @@ export default function CategoryMarketingManagement() {
             2 · Page content — tabs apply to <span className="font-mono text-foreground">{effectiveKey}</span>
           </p>
           <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="w-full">
-            <div className="overflow-x-auto rounded-lg border border-border/80 bg-muted/20">
-              <TabsList className="mb-0 inline-flex h-auto min-h-9 w-max min-w-full justify-start gap-0.5 rounded-none border-0 bg-transparent p-1">
+            <div className="overflow-x-auto rounded-lg border border-border/80 bg-muted/25 shadow-sm">
+              <TabsList className="mb-0 inline-flex h-auto min-h-9 w-max min-w-full justify-start gap-0.5 rounded-none border-0 bg-transparent p-1.5">
                 <TabsTrigger value="metadata" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
                   Metadata &amp; SEO
                 </TabsTrigger>
@@ -699,18 +999,81 @@ export default function CategoryMarketingManagement() {
             </div>
 
             <TabsContent value="metadata" className="mt-3 px-0 outline-none">
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-4">
+                <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/[0.06] via-transparent to-transparent">
+                  <CardHeader className="pb-2">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0 space-y-1">
+                        <CardTitle className="text-lg font-semibold tracking-tight">SEO readiness</CardTitle>
+                        <CardDescription>
+                          Quick checks for <span className="font-mono text-foreground">{effectiveKey}</span> ·{' '}
+                          {industryLabel}. Public pages merge this JSON on{' '}
+                          <span className="font-medium text-foreground">{PROFIXER_PUBLIC_ORIGIN}</span> — also run Search
+                          Console, sitemaps, and internal links (Cross-linking tab).
+                        </CardDescription>
+                      </div>
+                      <div className="flex shrink-0 flex-wrap gap-2">
+                        <Badge variant="success">{seoReadinessRows.okCount} OK</Badge>
+                        {seoReadinessRows.warnCount > 0 ? (
+                          <Badge variant="warning">{seoReadinessRows.warnCount} needs work</Badge>
+                        ) : (
+                          <Badge variant="secondary">No blockers flagged</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="grid gap-2 pt-0 sm:grid-cols-2">
+                    {seoReadinessRows.rows.map((row, idx) => (
+                      <div
+                        key={`${row.title}-${idx}`}
+                        className={cn(
+                          'flex gap-2.5 rounded-lg border p-3 text-sm',
+                          row.tone === 'ok' &&
+                            'border-emerald-200/90 bg-emerald-50/50 dark:border-emerald-900/60 dark:bg-emerald-950/25',
+                          row.tone === 'warn' &&
+                            'border-amber-200/90 bg-amber-50/55 dark:border-amber-900/55 dark:bg-amber-950/25',
+                          row.tone === 'info' && 'border-border/80 bg-muted/25',
+                        )}
+                      >
+                        {row.tone === 'ok' ? (
+                          <CheckCircle2
+                            className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400"
+                            aria-hidden
+                          />
+                        ) : row.tone === 'warn' ? (
+                          <AlertTriangle
+                            className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400"
+                            aria-hidden
+                          />
+                        ) : (
+                          <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                        )}
+                        <div className="min-w-0">
+                          <p className="font-medium text-foreground">{row.title}</p>
+                          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{row.detail}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+
                 <div
                   role="alert"
-                  className="rounded-md border border-blue-200/80 bg-blue-50/70 px-3 py-2 text-xs leading-relaxed dark:border-blue-900 dark:bg-blue-950/30 sm:text-sm"
+                  className="rounded-md border border-blue-200/80 bg-blue-50/70 px-3 py-2.5 text-xs leading-relaxed dark:border-blue-900 dark:bg-blue-950/30 sm:text-sm"
                 >
                   <span className="font-medium text-foreground">Editorial flow:</span> one H1 (Hero tab). H2 → sections, H3 →
                   subsections; no skipped levels. Primary keyword in H1, intro, and ≥2 headings. Use [City] / [Location] where
                   the site substitutes area.
                 </div>
-                <Card>
-                  <CardContent>
-                    <div className="flex flex-col gap-4">
+                <Card className="overflow-hidden">
+                  <CardHeader className="border-b border-border/60 bg-muted/20 pb-4">
+                    <CardTitle className="text-lg font-semibold tracking-tight">SERP snippet &amp; intent</CardTitle>
+                    <CardDescription>
+                      Title, meta, URL pattern, and primary query — these drive the blue link and snippet on Google for{' '}
+                      {PROFIXER_PUBLIC_ORIGIN} service URLs.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4 pt-6">
                       <div className="space-y-2">
                       <Label htmlFor="cmm-f-3">SEO title</Label>
                       <Input id="cmm-f-3" className="w-full" value={config.seoTitle} onChange={(e) => updateConfig({ seoTitle: e.target.value })} maxLength={SEO_TITLE_HARD_MAX_CHARS + 10} placeholder="AC Repair Near Me [City] – Same-Day, Transparent Pricing" />
@@ -749,13 +1112,31 @@ export default function CategoryMarketingManagement() {
                       </p>
                       <div className="space-y-2">
                       <Label htmlFor="cmm-f-5">URL slug pattern</Label>
-                      <Input id="cmm-f-5" className="w-full" value={config.urlSlugPattern} onChange={(e) => updateConfig({ urlSlugPattern: e.target.value })} placeholder="services/ac-repair-[city-slug]" />
+                      <Input
+                        id="cmm-f-5"
+                        className="w-full"
+                        value={config.urlSlugPattern}
+                        onChange={(e) => updateConfig({ urlSlugPattern: e.target.value })}
+                        placeholder={`${PROFIXER_PUBLIC_ORIGIN.replace(/^https:\/\//, '')}/services/ac-repair/[city-slug]`}
+                      />
                       <p className="text-xs text-muted-foreground">Pattern for the consumer site; actual routing may use params.</p>
                     </div>
                       <div className="space-y-2">
                       <Label htmlFor="cmm-f-6">Primary keyword</Label>
                       <Input id="cmm-f-6" className="w-full" value={config.primaryKeyword} onChange={(e) => updateConfig({ primaryKeyword: e.target.value })} />
                     </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="overflow-hidden">
+                  <CardHeader className="border-b border-border/60 bg-muted/20 pb-4">
+                    <CardTitle className="text-lg font-semibold tracking-tight">Hero microcopy &amp; chips</CardTitle>
+                    <CardDescription>
+                      Trust pill, highlight line, proof points, and topic chips above the fold. Supports [City], [Location],
+                      [ServiceName].
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4 pt-6">
                       <div className="space-y-2">
                       <Label htmlFor="cmm-f-7">Hero trust badge (pill beside H1)</Label>
                       <Input id="cmm-f-7" className="w-full" value={(config as any).heroTrustBadge ?? ''} onChange={(e) => updateConfig({ heroTrustBadge: e.target.value } as any)} placeholder="e.g. 30-day warranty · Verified pros" />
@@ -874,31 +1255,35 @@ export default function CategoryMarketingManagement() {
                       >
                         Add keyword
                       </Button>
-                    </div>
                   </CardContent>
                 </Card>
 
                 <div role="alert" className="rounded-md border border-blue-200 bg-blue-50/80 p-3 text-sm dark:border-blue-900 dark:bg-blue-950/30">
-                  <strong>Technical SEO:</strong> the consumer app should map <code>technicalSeo</code> to{' '}
-                  <code>rel=&quot;canonical&quot;</code>, Open Graph / Twitter meta, robots, hreflang{' '}
-                  <code>&lt;link&gt;</code>s, and JSON-LD (WebPage, Service, HowTo, BreadcrumbList, Speakable, VideoObject
-                  when enabled). Pair <strong>OG image alt</strong> with the absolute image under Local SEO → Social
-                  preview.
+                  <strong>Technical SEO:</strong> the consumer app maps <code>technicalSeo</code> to{' '}
+                  <code>rel=&quot;canonical&quot;</code>, Open Graph / Twitter, robots, hreflang, and JSON-LD (WebPage, Service,
+                  HowTo, BreadcrumbList, Speakable, VideoObject when enabled). Use absolute URLs on{' '}
+                  <span className="font-medium">{PROFIXER_PUBLIC_ORIGIN}</span>. Pair <strong>OG image alt</strong> with the
+                  image URL under Local SEO → Social preview.
                 </div>
 
-                <Card>
-                  <CardContent>
-                    <p className="mb-2 text-base font-semibold">
-                      Canonical, Open Graph &amp; Twitter
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Overrides are optional: when empty, the live site should fall back to SEO title / meta description.
-                      Use absolute URLs for canonical and share images.
-                    </p>
-                    <div className="flex flex-col gap-4">
+                <Card className="overflow-hidden">
+                  <CardHeader className="border-b border-border/60 bg-muted/20 pb-4">
+                    <CardTitle className="text-lg font-semibold tracking-tight">Canonical, Open Graph &amp; Twitter</CardTitle>
+                    <CardDescription>
+                      Overrides are optional: when empty, the live site falls back to SEO title and meta description. Always use
+                      absolute URLs for canonical and share images.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4 pt-6">
                       <div className="space-y-2">
                       <Label htmlFor="cmm-f-12">Canonical URL</Label>
-                      <Input id="cmm-f-12" className="w-full" value={config.technicalSeo.canonicalUrl} onChange={(e) => updateTechnicalSeo({ canonicalUrl: e.target.value })} placeholder="https://example.com/services/ac-repair/mumbai" />
+                      <Input
+                        id="cmm-f-12"
+                        className="w-full"
+                        value={config.technicalSeo.canonicalUrl}
+                        onChange={(e) => updateTechnicalSeo({ canonicalUrl: e.target.value })}
+                        placeholder={`${PROFIXER_PUBLIC_ORIGIN}/services/ac-repair/mumbai`}
+                      />
                       <p className="text-xs text-muted-foreground">One preferred URL for this landing; reduces duplicate signals across params or UTM variants.</p>
                     </div>
                       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-2">
@@ -944,28 +1329,26 @@ export default function CategoryMarketingManagement() {
                       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-2">
                         <div className="space-y-2">
                       <Label htmlFor="cmm-f-17">Twitter site (@handle optional)</Label>
-                      <Input id="cmm-f-17" className="w-full" value={config.technicalSeo.twitterSite} onChange={(e) => updateTechnicalSeo({ twitterSite: e.target.value.replace(/^@/, '') })} placeholder="yourbrand" />
+                      <Input id="cmm-f-17" className="w-full" value={config.technicalSeo.twitterSite} onChange={(e) => updateTechnicalSeo({ twitterSite: e.target.value.replace(/^@/, '') })} placeholder="profixer_in" />
                     </div>
                         <div className="space-y-2">
                       <Label htmlFor="cmm-f-18">Twitter creator (@handle optional)</Label>
                       <Input id="cmm-f-18" className="w-full" value={config.technicalSeo.twitterCreator} onChange={(e) => updateTechnicalSeo({ twitterCreator: e.target.value.replace(/^@/, '') })} placeholder="founder_handle" />
                     </div>
                       </div>
-                    </div>
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardContent>
-                    <p className="mb-2 text-base font-semibold">
-                      Robots, hreflang &amp; breadcrumbs
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Robots string is passed through to <code>&lt;meta name=&quot;robots&quot;&gt;</code> when set.
-                      Hreflang rows power <code>link rel=&quot;alternate&quot;</code> for multilingual / regional
+                <Card className="overflow-hidden">
+                  <CardHeader className="border-b border-border/60 bg-muted/20 pb-4">
+                    <CardTitle className="text-lg font-semibold tracking-tight">Robots, hreflang &amp; breadcrumbs</CardTitle>
+                    <CardDescription>
+                      Robots string maps to <code className="text-xs">&lt;meta name=&quot;robots&quot;&gt;</code> when set.
+                      Hreflang rows become <code className="text-xs">link rel=&quot;alternate&quot;</code> for regional
                       variants.
-                    </p>
-                    <div className="flex flex-col gap-4">
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4 pt-6">
                       <div className="space-y-2">
                       <Label htmlFor="cmm-f-19">Robots meta content</Label>
                       <Input id="cmm-f-19" className="w-full" value={config.technicalSeo.robotsMeta} onChange={(e) => updateTechnicalSeo({ robotsMeta: e.target.value })} placeholder="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
@@ -999,7 +1382,7 @@ export default function CategoryMarketingManagement() {
                               const next = [...base]
                               next[i] = { ...next[i], href: e.target.value }
                               updateTechnicalSeo({ hreflangAlternates: next })
-                            }} placeholder="https://…" />
+                            }} placeholder={`${PROFIXER_PUBLIC_ORIGIN}/services/ac-repair/mumbai`} />
                     </div>
                           <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive" onClick={() =>
                               updateTechnicalSeo({
@@ -1060,7 +1443,7 @@ export default function CategoryMarketingManagement() {
                               if (!config.technicalSeo.breadcrumbItems.length) next.push({ name: '', url: '' })
                               next[i] = { ...next[i], url: e.target.value }
                               updateTechnicalSeo({ breadcrumbItems: next })
-                            }} placeholder="https://…" />
+                            }} placeholder={`${PROFIXER_PUBLIC_ORIGIN}/services/ac-repair/mumbai`} />
                     </div>
                           <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive" onClick={() =>
                               updateTechnicalSeo({
@@ -1080,20 +1463,20 @@ export default function CategoryMarketingManagement() {
                       >
                         Add breadcrumb item
                       </Button>
-                    </div>
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardContent>
-                    <p className="mb-2 text-base font-semibold">
+                <Card className="overflow-hidden">
+                  <CardHeader className="border-b border-border/60 bg-muted/20 pb-4">
+                    <CardTitle className="text-lg font-semibold tracking-tight">
                       Structured data, entities &amp; answer engines
-                    </p>
-                    <p className="text-sm text-muted-foreground">
+                    </CardTitle>
+                    <CardDescription>
                       Clear entities and factual summaries help Google and LLM-based search cite you accurately. Only use
                       aggregate rating when it matches visible, genuine reviews.
-                    </p>
-                    <div className="flex flex-col gap-4">
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4 pt-6">
                       <div className="space-y-2">
                       <Label htmlFor="cmm-f-24">Primary schema.org @type hint</Label>
                       <Input id="cmm-f-24" className="w-full" value={config.technicalSeo.schemaPrimaryType} onChange={(e) => updateTechnicalSeo({ schemaPrimaryType: e.target.value })} placeholder="ProfessionalService or HomeAndConstructionBusiness" />
@@ -1271,7 +1654,6 @@ export default function CategoryMarketingManagement() {
                       >
                         Add video URL
                       </Button>
-                    </div>
                   </CardContent>
                 </Card>
               </div>

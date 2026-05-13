@@ -903,8 +903,8 @@ export const routePermissions: RoutePermission[] = [
 
   {
     path: '/sliders',
-    requiredPermissions: ['view_settings'],
-    allowedRoles: ['super_admin', 'admin', 'manager']
+    requiredPermissions: ['view_settings', 'manage_system_settings'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
   },
 
   {

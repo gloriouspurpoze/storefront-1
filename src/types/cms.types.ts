@@ -35,6 +35,23 @@ export interface BlogAuthorRef {
   email?: string;
 }
 
+export interface BlogPostSeo {
+  title?: string
+  description?: string
+  keywords?: string[]
+  ogImage?: string
+  /** Absolute canonical URL — consumer should emit `rel=canonical` when set */
+  canonicalUrl?: string
+  /** Open Graph / social title override */
+  ogTitle?: string
+  /** e.g. `article` (Open Graph) */
+  ogType?: string
+  /** `summary` | `summary_large_image` — Twitter/X card hint */
+  twitterCard?: string
+  /** Raw robots meta, e.g. `index, follow` or `noindex` for thin drafts */
+  robots?: string
+}
+
 export interface BlogPost {
   _id: string;
   title: string;
@@ -54,16 +71,13 @@ export interface BlogPost {
   featuredImage?: string | null;
   /** Accessibility + SEO; stored when the API accepts it. */
   featuredImageAlt?: string | null;
-  seo?: {
-    title?: string;
-    description?: string;
-    keywords?: string[];
-    ogImage?: string;
-  };
+  seo?: BlogPostSeo;
   faqItems?: BlogFaqItem[];
   leadMagnet?: BlogLeadMagnetSettings;
   /** Optional: product cross-links for internal linking + conversion */
   relatedProducts?: Array<{ _id: string; name: string; slug?: string }>;
+  /** Optional: platform-service cross-links (bookable catalog) */
+  relatedServices?: Array<{ _id: string; name: string; slug?: string }>;
   createdAt: string;
   updatedAt?: string;
 }
@@ -92,16 +106,13 @@ export interface BlogPostCreatePayload {
   featuredImage?: string;
   featuredImageAlt?: string;
   scheduledPublishAt?: string | null;
-  seo?: {
-    title?: string;
-    description?: string;
-    keywords?: string[];
-    ogImage?: string;
-  };
+  seo?: BlogPostSeo;
   faqItems?: BlogFaqItem[];
   leadMagnet?: BlogLeadMagnetSettings;
   /** Product IDs to store in `relatedProducts` */
   relatedProductIds?: string[];
+  /** PlatformService IDs to store in `relatedServices` */
+  relatedServiceIds?: string[];
 }
 
 export interface BlogListResponse {

@@ -11,6 +11,7 @@ import axios from 'axios';
 import type {
   BlogPost,
   BlogPostCreatePayload,
+  BlogPostSeo,
   BlogListResponse,
   BlogCategory,
   BlogFaqItem,
@@ -57,7 +58,7 @@ interface BackendBlogPost {
   status: string;
   publishedAt?: string;
   scheduledFor?: string;
-  seo?: { title?: string; description?: string; keywords?: string[]; ogImage?: string };
+  seo?: BlogPostSeo;
   settings?: { allowComments?: boolean; isFeatured?: boolean; isSticky?: boolean };
   analytics?: { views?: number; likes?: number; shares?: number };
   readingTime?: number;
@@ -67,6 +68,7 @@ interface BackendBlogPost {
   faqItems?: BlogFaqItem[];
   leadMagnet?: BlogLeadMagnetSettings;
   relatedProducts?: Array<{ _id: string; name: string; slug?: string }>;
+  relatedServices?: Array<{ _id: string; name: string; slug?: string }>;
   [key: string]: unknown;
 }
 
@@ -115,6 +117,11 @@ function mapBackendPostToFrontend(raw: BackendBlogPost): BlogPost {
           .filter((p): p is { _id: string; name: string; slug?: string } => !!p && typeof p._id === 'string' && typeof p.name === 'string')
           .map((p) => ({ _id: p._id, name: p.name, slug: p.slug }))
       : undefined,
+    relatedServices: Array.isArray(raw.relatedServices)
+      ? raw.relatedServices
+          .filter((s): s is { _id: string; name: string; slug?: string } => !!s && typeof s._id === 'string' && typeof s.name === 'string')
+          .map((s) => ({ _id: s._id, name: s.name, slug: s.slug }))
+      : undefined,
     createdAt: raw.createdAt ?? new Date().toISOString(),
     updatedAt: raw.updatedAt,
   };
@@ -149,11 +156,13 @@ function mapPayloadToBackend(payload: BlogPostCreatePayload): Record<string, unk
     isFeatured,
     allowComments,
     relatedProductIds,
+    relatedServiceIds,
     ...rest
   } = payload;
   return {
     ...rest,
     ...(Array.isArray(relatedProductIds) ? { relatedProducts: relatedProductIds } : {}),
+    ...(Array.isArray(relatedServiceIds) ? { relatedServices: relatedServiceIds } : {}),
     settings: {
       allowComments: allowComments ?? true,
       isFeatured: isFeatured ?? false,
@@ -186,6 +195,22 @@ export const BlogService = {
   async getPostById(id: string): Promise<BlogPost> {
     const response = await axios.get(`${API_BASE}/cms/admin/blogs/${id}`, getAuthHeaders());
     return normalizePost(response);
+  },
+
+  /** Admin blog editor: combined product + platform-service search for internal links. */
+  async getBlogLinkSuggestions(q: string, limit = 12): Promise<{
+    products: { _id: string; name: string; slug?: string }[];
+    services: { _id: string; name: string; slug?: string }[];
+  }> {
+    const response = await axios.get(`${API_BASE}/cms/admin/blogs/link-suggestions`, {
+      ...getAuthHeaders(),
+      params: { q, limit },
+    });
+    const data = response.data?.data ?? response.data;
+    return {
+      products: Array.isArray(data?.products) ? data.products : [],
+      services: Array.isArray(data?.services) ? data.services : [],
+    };
   },
 
   async createPost(payload: BlogPostCreatePayload): Promise<BlogPost> {

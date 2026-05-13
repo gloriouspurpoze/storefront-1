@@ -1,6 +1,6 @@
 import React from 'react'
-import SlidersManagement from './sliders-management'
+import SlidersBannersHub from '../cms/SlidersBannersHub'
 
 export function Sliders() {
-  return <SlidersManagement />
+  return <SlidersBannersHub />
 }

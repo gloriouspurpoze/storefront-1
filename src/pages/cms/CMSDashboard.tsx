@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import {
   Home,
   Images,
-  LayoutPanelTop,
   LayoutGrid,
   FileText,
   FolderOpen,
@@ -114,16 +113,10 @@ const HUB_SECTIONS: HubSection[] = [
     subtitle: 'On-site placements, offers, and referral growth.',
     tiles: [
       {
-        title: 'Sliders',
-        description: 'Homepage and landing carousel banners.',
+        title: 'Sliders & site banners',
+        description: 'Carousels (sliders API) and hero / pop-up / announcement banners (CMS API) in one workspace.',
         to: '/sliders',
         icon: Images,
-      },
-      {
-        title: 'Banners & pop-ups',
-        description: 'Notice bars, modals, and timed announcements.',
-        to: '/cms/banners',
-        icon: LayoutPanelTop,
       },
       {
         title: 'Promotions',

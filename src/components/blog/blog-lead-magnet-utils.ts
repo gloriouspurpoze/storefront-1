@@ -58,6 +58,53 @@ export function buildFaqJsonLdString(items: BlogFaqItem[]): string | null {
 }
 
 /**
+ * Admin-only preview: `@graph` with BlogPosting plus optional FAQPage (when valid FAQ rows exist).
+ * The consumer app should still emit canonical meta, OG tags, and this JSON-LD from the same post payload.
+ */
+export function buildBlogRichResultsJsonLdPreview(opts: {
+  headline: string
+  description: string
+  pageUrl: string
+  imageUrl?: string
+  datePublished?: string
+  faqItems: BlogFaqItem[]
+}): string {
+  const pageUrl = opts.pageUrl.trim() || 'https://my.profixer.in/blog/'
+  const graph: Record<string, unknown>[] = []
+  const article: Record<string, unknown> = {
+    '@type': 'BlogPosting',
+    '@id': `${pageUrl}#blogposting`,
+    headline: opts.headline.trim() || 'Untitled',
+    description: opts.description.trim() || undefined,
+    url: pageUrl,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': pageUrl },
+    publisher: {
+      '@type': 'Organization',
+      name: 'ProFixer',
+      url: 'https://my.profixer.in',
+    },
+  }
+  const img = opts.imageUrl?.trim()
+  if (img) article.image = [img]
+  const dp = opts.datePublished?.trim()
+  if (dp) article.datePublished = dp
+  graph.push(article)
+
+  const faqStr = buildFaqJsonLdString(opts.faqItems)
+  if (faqStr) {
+    try {
+      const faqDoc = JSON.parse(faqStr) as Record<string, unknown>
+      faqDoc['@id'] = `${pageUrl}#faq`
+      graph.push(faqDoc)
+    } catch {
+      /* ignore malformed */
+    }
+  }
+
+  return JSON.stringify({ '@context': 'https://schema.org', '@graph': graph }, null, 2)
+}
+
+/**
  * Visible FAQ block as a native HTML accordion (`<details>` / `<summary>`).
  * Pairs with the same Q&A as FAQPage JSON-LD (`buildFaqJsonLdString`).
  */

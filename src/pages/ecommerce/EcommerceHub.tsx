@@ -24,7 +24,8 @@ type HubCard = {
   description: string
   href: string
   icon: React.ElementType<{ className?: string }>
-  permission: Permission
+  /** One or more permissions — card is shown if the user has any */
+  permission: Permission | Permission[]
 }
 
 /**
@@ -85,11 +86,11 @@ export default function EcommerceHub() {
       permission: 'manage_system_settings',
     },
     {
-      title: 'Hero & sliders',
-      description: 'Homepage and category heroes featuring products or collections.',
+      title: 'Sliders & site banners',
+      description: 'Carousels (sliders API) and CMS hero / pop-up banners — one hub, two tabs.',
       href: '/sliders',
       icon: GalleryHorizontal,
-      permission: 'view_settings',
+      permission: ['view_settings', 'manage_system_settings'],
     },
     {
       title: 'Media library',
@@ -107,7 +108,10 @@ export default function EcommerceHub() {
     },
   ]
 
-  const visible = cards.filter((c) => checkPermission(c.permission))
+  const visible = cards.filter((c) => {
+    const perms = Array.isArray(c.permission) ? c.permission : [c.permission]
+    return perms.some((p) => checkPermission(p))
+  })
 
   return (
     <div className="p-4 sm:p-6">

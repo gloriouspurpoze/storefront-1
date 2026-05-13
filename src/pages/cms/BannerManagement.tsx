@@ -79,7 +79,12 @@ function bannerTypeClass(type: string): string {
   return colors[type] || 'bg-muted text-muted-foreground'
 }
 
-export default function BannerManagement() {
+export type BannerManagementProps = {
+  /** When true, omit outer padding and PageHeader (used inside Sliders & banners hub). */
+  embedded?: boolean
+}
+
+export default function BannerManagement({ embedded = false }: BannerManagementProps) {
   const confirm = useAppConfirm()
   const [banners, setBanners] = useState<Banner[]>([])
   const [loading, setLoading] = useState(true)
@@ -303,20 +308,33 @@ export default function BannerManagement() {
 
   return (
     <TooltipProvider>
-      <div className="p-4 sm:p-6 md:p-8">
-        <PageHeader
-          title="Banner Management"
-          subtitle="Create and schedule promotional banners for your website"
-          action={
+      <div className={cn(!embedded && 'p-4 sm:p-6 md:p-8')}>
+        {!embedded ? (
+          <PageHeader
+            title="Banner Management"
+            subtitle="Create and schedule promotional banners for your website"
+            action={
+              <Button
+                className="rounded-md"
+                onClick={() => setShowForm(true)}
+                leftIcon={<Plus className="h-4 w-4" />}
+              >
+                Create Banner
+              </Button>
+            }
+          />
+        ) : (
+          <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
             <Button
               className="rounded-md"
+              size="sm"
               onClick={() => setShowForm(true)}
               leftIcon={<Plus className="h-4 w-4" />}
             >
-              Create Banner
+              Create banner
             </Button>
-          }
-        />
+          </div>
+        )}
 
         {loading ? (
           <div className="flex min-h-[400px] items-center justify-center">

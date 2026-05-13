@@ -75,7 +75,12 @@ interface SliderStats {
   scheduled_sliders: number;
 }
 
-export default function SlidersManagement() {
+export type SlidersManagementProps = {
+  /** When true, omit outer page padding and list PageHeader (used inside Sliders & banners hub). */
+  embedded?: boolean
+}
+
+export default function SlidersManagement({ embedded = false }: SlidersManagementProps) {
   const confirm = useAppConfirm();
   const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
   const [sliders, setSliders] = useState<Slider[]>([]);
@@ -526,7 +531,7 @@ export default function SlidersManagement() {
 
     return (
       <TooltipProvider>
-      <div className="p-4 sm:p-6 md:p-8">
+      <div className={cn(!embedded && 'p-4 sm:p-6 md:p-8')}>
         <PageHeader
           title={formMode === 'edit' ? 'Edit Slider' : 'Create New Slider'}
           subtitle={formMode === 'edit' ? 'Update slider details and settings' : 'Add a new banner/slider to your website'}
@@ -1224,17 +1229,26 @@ export default function SlidersManagement() {
   // List View
   return (
     <TooltipProvider>
-      <div className="p-4 sm:p-6 md:p-8">
-        <PageHeader
-          title="Slider Management"
-          subtitle="Manage banners and sliders for the client-side website"
-          action={
-            <Button onClick={handleCreate}>
+      <div className={cn(!embedded && 'p-4 sm:p-6 md:p-8')}>
+        {!embedded ? (
+          <PageHeader
+            title="Slider Management"
+            subtitle="Manage banners and sliders for the client-side website"
+            action={
+              <Button onClick={handleCreate}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Slider
+              </Button>
+            }
+          />
+        ) : (
+          <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
+            <Button onClick={handleCreate} size="sm">
               <Plus className="mr-2 h-4 w-4" />
-              Add Slider
+              Add slider
             </Button>
-          }
-        />
+          </div>
+        )}
 
         <div className="mb-6 grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-4">
           <Card className="rounded-lg border border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5">
