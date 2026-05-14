@@ -2,7 +2,8 @@
  * Opinionated hyperlocal SEO scaffolding for `CategoryMarketingConfig` locality keys
  * (`{industry}__{locality-slug}`). Editors should review NAP, canonicals, and ratings before publish.
  */
-import type { CategoryMarketingConfig, FaqBlock, RelatedLinkBlock } from '../types/categoryMarketing'
+import type { CategoryMarketingConfig, FaqBlock, LocalityGuideSectionBlock, RelatedLinkBlock } from '../types/categoryMarketing'
+import { buildVerticalTabsPrefill, getVerticalExtraLocalityGuideSections } from './categoryMarketingVerticalPrefill'
 import {
   META_DESC_HARD_MAX_CHARS,
   META_DESC_MIN_CHARS,
@@ -63,7 +64,6 @@ function defaultFaqsForLocality(input: {
   const { industryLabel, localityLabel, locShort, origin, metro } = input
   const site = siteLabel(origin)
   const bookUrl = `${origin}/book`
-  const servicesUrl = `${origin}/services`
 
   return [
     {
@@ -174,7 +174,37 @@ export function buildLocalitySeoAutofillPack(input: CategoryMarketingSeoAutofill
   })
   const relatedLinks = defaultRelatedLinks(origin, industrySlug)
 
+  const verticalCtx = {
+    industrySlug,
+    industryLabel,
+    localitySlug,
+    localityLabel,
+    locShort,
+    metro: defaultMetroName,
+    origin,
+  }
+  const verticalTabs = buildVerticalTabsPrefill(verticalCtx)
+  const extraGuideSections: LocalityGuideSectionBlock[] = getVerticalExtraLocalityGuideSections(verticalCtx)
+
+  const baseLocalitySections: LocalityGuideSectionBlock[] = [
+    {
+      h2: `What customers in ${locShort} book most`,
+      paragraphs: [
+        `Typical ${industryLabel.toLowerCase()} jobs here mirror wider ${defaultMetroName} trends—planned upgrades plus urgent fixes after load or weather stress.`,
+        `Tell us the exact room, photos of the problem area, and society gate rules when you book so we can dispatch the right partner with the right kit.`,
+      ],
+    },
+    {
+      h2: 'How Profixer keeps quality consistent',
+      paragraphs: [
+        'Partners are onboarded with document checks; you get clear scope before material-heavy work begins.',
+        'If something is unsafe or out of scope, we say so upfront instead of improvising hidden surcharges.',
+      ],
+    },
+  ]
+
   return {
+    ...verticalTabs,
     seoTitle,
     metaDescription,
     urlSlugPattern: slugPath,
@@ -205,22 +235,7 @@ export function buildLocalitySeoAutofillPack(input: CategoryMarketingSeoAutofill
         `${localityLabel} sits inside ${defaultMetroName}’s service demand curve—short notice visits, society access rules, and parking time all affect how quickly a partner can reach you.`,
         `This guide explains what Profixer covers in ${locShort}, how we price, and how to get the fastest resolution on the first visit.`,
       ],
-      sections: [
-        {
-          h2: `What customers in ${locShort} book most`,
-          paragraphs: [
-            `Typical ${industryLabel.toLowerCase()} jobs here mirror wider ${defaultMetroName} trends—planned upgrades plus urgent fixes after load or weather stress.`,
-            `Tell us the exact room, photos of the problem area, and society gate rules when you book so we can dispatch the right partner with the right kit.`,
-          ],
-        },
-        {
-          h2: 'How Profixer keeps quality consistent',
-          paragraphs: [
-            'Partners are onboarded with document checks; you get clear scope before material-heavy work begins.',
-            'If something is unsafe or out of scope, we say so upfront instead of improvising hidden surcharges.',
-          ],
-        },
-      ],
+      sections: [...extraGuideSections, ...baseLocalitySections],
       summaryLead: `Book ${industryLabel.toLowerCase()} in ${localityLabel} with clear estimates and accountable support.`,
       takeaways: [
         'Photos + exact address speed up dispatch',

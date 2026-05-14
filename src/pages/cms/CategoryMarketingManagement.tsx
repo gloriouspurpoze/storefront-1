@@ -289,7 +289,10 @@ export default function CategoryMarketingManagement() {
       publicOrigin: publicSiteOrigin,
     })
     updateConfig(pack)
-    appToast('SEO pack applied — review tabs, replace placeholders (hours, NAP, images), then Save.', 'success')
+    appToast(
+      'Starter pack applied across tabs — review and replace placeholders (hours, NAP, images, prices), then Save.',
+      'success',
+    )
     setTab('metadata')
     setSeoAutofillConfirmOpen(false)
   }
@@ -713,14 +716,14 @@ export default function CategoryMarketingManagement() {
               <div className="min-w-0 space-y-1">
                 <p className="text-xs font-semibold text-foreground">Technical SEO automation</p>
                 <p className="text-[11px] leading-snug text-muted-foreground">
-                  One pass fills SERP title &amp; meta (length-checked), URL slug pattern, hero + intro,{' '}
-                  <strong className="font-medium text-foreground">Open Graph</strong>,{' '}
-                  <strong className="font-medium text-foreground">technical SEO</strong> (canonical, robots, breadcrumbs, answer
-                  summary, schema toggles), <strong className="font-medium text-foreground">local SEO</strong> (service area copy
-                  — LocalBusiness stays off until NAP is real), <strong className="font-medium text-foreground">locality guide</strong>{' '}
-                  shell, a starter <strong className="font-medium text-foreground">FAQ</strong> set (for FAQPage rich results),{' '}
-                  <strong className="font-medium text-foreground">related links</strong> on your domain, and a <strong className="font-medium text-foreground">JSON-LD</strong> note. Service cards and pricing blocks are
-                  untouched.
+                  One pass uses your <strong className="font-medium text-foreground">category</strong> and{' '}
+                  <strong className="font-medium text-foreground">location</strong> to prefill every tab with a realistic starter:
+                  metadata (length-checked title and description), URL slug pattern, hero and intro,{' '}
+                  <strong className="font-medium text-foreground">service cards</strong> and detailed options, trust and areas
+                  copy, booking steps, pricing and comparison blocks, FAQs (FAQPage-ready), locality guide (base plus
+                  category-specific sections where defined), related links, technical and local SEO shells, closing copy, and
+                  JSON-LD notes. <strong className="font-medium text-foreground">LocalBusiness</strong> stays off until NAP is
+                  verified. Expect to tune numbers, hours, and brand voice before publish.
                 </p>
               </div>
               <Button
@@ -731,13 +734,13 @@ export default function CategoryMarketingManagement() {
                 leftIcon={<Sparkles className="h-4 w-4" aria-hidden />}
                 onClick={() => setSeoAutofillConfirmOpen(true)}
               >
-                Auto-generate SEO pack
+                Fill all tabs — starter pack
               </Button>
             </div>
           ) : (
             <p className="border-t border-border/60 pt-4 text-[11px] leading-snug text-muted-foreground">
-              Choose a <strong className="text-foreground">location</strong> (not &quot;All areas&quot;) to enable the SEO / Open Graph / JSON-LD
-              autofill for this storage key.
+              Choose a <strong className="text-foreground">location</strong> (not &quot;All areas&quot;) to enable the full-tab starter autofill for this
+              storage key.
             </p>
           )}
         </CardContent>
@@ -3038,9 +3041,9 @@ export default function CategoryMarketingManagement() {
 
       <ConfirmDialog
         open={seoAutofillConfirmOpen}
-        title="Apply hyperlocal SEO pack?"
-        message={`This will overwrite SEO-related fields for key “${effectiveKey}”: metadata & primary keyword, hero chips, intro, FAQs (starter Q&A), related links (using your public origin), locality guide (enabled), local SEO (service area copy — not NAP), technical SEO (canonical, OG/Twitter shells, robots, breadcrumbs, schema toggles, answer summary), closing line, and JSON-LD notes. Service cards and pricing blocks stay unchanged. Set REACT_APP_PUBLIC_SITE_ORIGIN for correct URLs (currently ${publicSiteOrigin}).`}
-        confirmText="Apply pack"
+        title="Apply full-tab starter pack?"
+        message={`This will overwrite many fields for key “${effectiveKey}” using your selected category and location: metadata and keywords, hero and intro, service cards and detailed options, trust and areas, booking and pricing blocks, FAQs, locality guide (including any extra category-specific sections), related links, local and technical SEO shells, closing copy, and JSON-LD notes. Review hours, NAP, prices, and ratings before publish. Set REACT_APP_PUBLIC_SITE_ORIGIN for correct URLs (currently ${publicSiteOrigin}).`}
+        confirmText="Apply starter pack"
         cancelText="Cancel"
         severity="warning"
         onCancel={() => setSeoAutofillConfirmOpen(false)}
