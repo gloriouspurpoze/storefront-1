@@ -328,6 +328,7 @@ export function TeamWorkHub() {
   const [newProjectName, setNewProjectName] = useState('')
   const [newProjectKey, setNewProjectKey] = useState('')
   const [accessMemberIds, setAccessMemberIds] = useState<string[]>([])
+  const [boardAccessSearch, setBoardAccessSearch] = useState('')
   const [savingAccess, setSavingAccess] = useState(false)
   const [savingNewProject, setSavingNewProject] = useState(false)
   const [scheduleMeetingOpen, setScheduleMeetingOpen] = useState(false)
@@ -639,20 +640,23 @@ export function TeamWorkHub() {
       setLoadError(null)
       const qEff = (override?.q !== undefined ? override.q : searchApplied).trim() || undefined
       try {
+        const listParams: Record<string, string | undefined> = {
+          projectId,
+          limit: '100',
+          q: qEff,
+          tags: tagFilters.length ? tagFilters.join(',') : undefined,
+        }
+        if (mineOnly && authUser?.id) {
+          listParams.assigneeUserId = authUser.id
+        } else if (assigneeFilter === '__unassigned__') {
+          listParams.unassigned = '1'
+        } else if (assigneeFilter !== '__all__') {
+          listParams.assigneeUserId = assigneeFilter
+        }
+
         const [m, list, epicList, admins] = await Promise.all([
           teamWorkApi.getMeta(),
-          teamWorkApi.listItems({
-            projectId,
-            limit: '100',
-            q: qEff,
-            tags: tagFilters.length ? tagFilters.join(',') : undefined,
-            assigneeUserId:
-              mineOnly && authUser?.id
-                ? authUser.id
-                : assigneeFilter !== '__all__'
-                  ? assigneeFilter
-                  : undefined,
-          }),
+          teamWorkApi.listItems(listParams),
           teamWorkApi.listItems({ projectId, issueType: 'epic', limit: '80' }),
           usersService.getUsers({ scope: 'members', limit: 100, page: 1 }),
         ])
@@ -722,6 +726,16 @@ export function TeamWorkHub() {
   const sortedMembersForAccess = useMemo(() => {
     return [...adminUsers].sort((a, b) => userLabel(a).localeCompare(userLabel(b)))
   }, [adminUsers])
+
+  const membersForAccessPicker = useMemo(() => {
+    const q = boardAccessSearch.trim().toLowerCase()
+    if (!q) return sortedMembersForAccess
+    return sortedMembersForAccess.filter((u) => {
+      const label = userLabel(u).toLowerCase()
+      const email = (u.email || '').toLowerCase()
+      return label.includes(q) || email.includes(q)
+    })
+  }, [sortedMembersForAccess, boardAccessSearch])
 
   /** Pre-fill Calendar guests when the board is restricted to a roster. */
   const boardMemberGuestEmails = useMemo(() => {
@@ -1015,11 +1029,16 @@ export function TeamWorkHub() {
   }
 
   useEffect(() => {
-    if (projectSettingsOpen && currentProject) {
+    if (!projectSettingsOpen) {
+      setBoardAccessSearch('')
+      return
+    }
+    if (currentProject) {
       setAccessMemberIds([...currentProject.memberUserIds])
       setProjectDetailName(currentProject.name)
       setProjectDetailKey(currentProject.key)
       setProjectDetailDesc(currentProject.description ?? '')
+      setBoardAccessSearch('')
     }
   }, [projectSettingsOpen, currentProject])
 
@@ -1192,10 +1211,7 @@ export function TeamWorkHub() {
               <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="text-sm font-semibold text-foreground">Workspace</p>
-                  <p className="text-xs text-muted-foreground">
-                    Jira-style areas — the board appears on <strong className="font-medium text-foreground">Active sprint</strong>,{' '}
-                    <strong className="font-medium text-foreground">Backlog</strong>, and <strong className="font-medium text-foreground">All work</strong>.
-                  </p>
+                
                 </div>
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -1469,9 +1485,9 @@ export function TeamWorkHub() {
               >
                 Apply
               </Button>
-              <Button type="button" variant="ghost" size="sm" onClick={() => void load()}>
+              {/* <Button type="button" variant="ghost" size="sm" onClick={() => void load()}>
                 Refresh
-              </Button>
+              </Button> */}
               <Button
                 type="button"
                 variant="outline"
@@ -1485,7 +1501,7 @@ export function TeamWorkHub() {
               </Button>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-muted/30 px-3 py-1.5">
+              {/* <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-muted/30 px-3 py-1.5">
                 <span className="text-xs text-muted-foreground">Sprint scope</span>
                 {hubTab === 'all-issues' ? (
                   <Select value={sprintViewFilter} onValueChange={setSprintViewFilter}>
@@ -1518,16 +1534,17 @@ export function TeamWorkHub() {
                       : 'Active sprint (none set)'}
                   </Badge>
                 )}
-              </div>
-              <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-muted/30 px-3 py-1.5">
-                <UserCircle2 className="h-4 w-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">Assignee</span>
+              </div> */}
+              <div className="flex min-w-0 items-center gap-2 rounded-lg border border-border/70 bg-muted/30 px-3 py-1.5">
+                <UserCircle2 className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                <span className="shrink-0 text-xs text-muted-foreground">Assignee</span>
                 <Select value={assigneeFilter} onValueChange={setAssigneeFilter} disabled={mineOnly}>
-                  <SelectTrigger className="h-8 w-[160px] border-0 bg-transparent shadow-none">
-                    <SelectValue />
+                  <SelectTrigger className="h-8 min-w-[11rem] max-w-[220px] flex-1 border-0 bg-transparent px-1 shadow-none sm:min-w-[12rem]">
+                    <SelectValue placeholder="Filter by assignee" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent align="start" className="max-h-[min(320px,70vh)] w-[var(--radix-select-trigger-width)] min-w-[240px]">
                     <SelectItem value="__all__">Everyone</SelectItem>
+                    <SelectItem value="__unassigned__">Unassigned</SelectItem>
                     {teamMembers.map((u) => (
                       <SelectItem key={u.id} value={u.id}>
                         {userLabel(u)}
@@ -1568,10 +1585,10 @@ export function TeamWorkHub() {
                     </Button>
                   ) : null}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                {/* <p className="text-xs text-muted-foreground">
                   Shows issues that include at least one of the selected tags. Counts are tickets in the current sprint
                   scope. Managers can remove a tag from the board catalog (trash); issues keep labels until you edit them.
-                </p>
+                </p> */}
                 <div className="flex flex-wrap gap-2">
                   {tagFilterChipSlugs.map((slug) => {
                     const active = tagFilters.includes(slug)
@@ -2316,40 +2333,80 @@ export function TeamWorkHub() {
                 placeholder="What this board is for — visible to your team in admin."
               />
             </div>
-            <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3">
-              <p className="text-xs font-medium text-muted-foreground">Board access</p>
-              <Button type="button" variant="ghost" size="sm" className="h-8 shrink-0" onClick={() => setAccessMemberIds([])}>
-                Clear all (org-wide)
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">Select members from your dashboard directory.</p>
-            <div className="min-h-0 flex-1 overflow-y-auto rounded-md border border-border/70 p-2">
-              {sortedMembersForAccess.length === 0 ? (
-                <p className="py-6 text-center text-sm text-muted-foreground">Load the board once to fetch the member directory, or no users were returned.</p>
-              ) : (
-                <ul className="space-y-1">
-                  {sortedMembersForAccess.map((u) => {
-                    const checked = accessMemberIds.includes(u.id)
-                    return (
-                      <li key={u.id}>
-                        <label className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/50">
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={(v) => {
-                              const on = v === true
-                              setAccessMemberIds((prev) =>
-                                on ? (prev.includes(u.id) ? prev : [...prev, u.id]) : prev.filter((x) => x !== u.id),
-                              )
-                            }}
-                          />
-                          <span className="text-sm">{userLabel(u)}</span>
-                          <span className="ml-auto truncate font-mono text-[11px] text-muted-foreground">{u.email}</span>
-                        </label>
-                      </li>
-                    )
-                  })}
-                </ul>
-              )}
+            <div className="rounded-lg border border-border/60 bg-muted/15 p-3">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0 space-y-0.5">
+                  <p className="text-xs font-semibold text-foreground">Board access</p>
+                  <p className="text-[11px] leading-snug text-muted-foreground">
+                    Choose who can open this board. Search by name or email, then tick people to add. Leave empty and save
+                    for an <span className="font-medium text-foreground">organization-wide</span> board.
+                  </p>
+                </div>
+                <Button type="button" variant="outline" size="sm" className="h-8 shrink-0 text-xs" onClick={() => setAccessMemberIds([])}>
+                  Clear all
+                </Button>
+              </div>
+              <div className="relative mt-3">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+                <Input
+                  type="search"
+                  value={boardAccessSearch}
+                  onChange={(e) => setBoardAccessSearch(e.target.value)}
+                  placeholder="Search directory by name or email…"
+                  className="h-9 border-border/80 bg-background pl-8 text-sm"
+                  autoComplete="off"
+                  aria-label="Filter board members"
+                />
+              </div>
+              <div className="mt-2 max-h-[min(280px,42vh)] overflow-y-auto rounded-md border border-border/70 bg-background">
+                {sortedMembersForAccess.length === 0 ? (
+                  <p className="px-3 py-8 text-center text-sm text-muted-foreground">
+                    Open this hub once so we can load your directory. If the list stays empty, your tenant may have no
+                    member users yet.
+                  </p>
+                ) : membersForAccessPicker.length === 0 ? (
+                  <p className="px-3 py-8 text-center text-sm text-muted-foreground">No people match “{boardAccessSearch.trim()}”.</p>
+                ) : (
+                  <ul className="divide-y divide-border/50 p-1">
+                    {membersForAccessPicker.map((u) => {
+                      const checked = accessMemberIds.includes(u.id)
+                      return (
+                        <li key={u.id}>
+                          <label
+                            className={cn(
+                              'flex cursor-pointer gap-3 rounded-md px-2 py-2.5 transition-colors',
+                              checked ? 'bg-primary/6 ring-1 ring-primary/15' : 'hover:bg-muted/40',
+                            )}
+                          >
+                            <Checkbox
+                              className="mt-0.5 shrink-0"
+                              checked={checked}
+                              onCheckedChange={(v) => {
+                                const on = v === true
+                                setAccessMemberIds((prev) =>
+                                  on ? (prev.includes(u.id) ? prev : [...prev, u.id]) : prev.filter((x) => x !== u.id),
+                                )
+                              }}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium leading-tight">{userLabel(u)}</p>
+                              {u.email ? (
+                                <p className="mt-0.5 break-all font-mono text-[11px] leading-snug text-muted-foreground">
+                                  {u.email}
+                                </p>
+                              ) : null}
+                            </div>
+                          </label>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </div>
+              <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+                {accessMemberIds.length} selected · super admins and users with <span className="font-medium">manage team projects</span>{' '}
+                can still manage any board.
+              </p>
             </div>
           </div>
           <DialogFooter className="flex-col gap-3 border-t border-border/60 pt-3 sm:flex-row sm:items-start sm:justify-between">

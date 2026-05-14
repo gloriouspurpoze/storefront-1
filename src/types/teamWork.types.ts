@@ -61,6 +61,8 @@ export interface TeamWorkComment {
   authorName?: string
   body: string
   createdAt: string
+  /** Present when the author updated the body after posting. */
+  editedAt?: string
 }
 
 /** File or image linked to an issue (URLs from upload APIs). */

@@ -20,6 +20,8 @@ export type TeamWorkDrawerDraft = {
   assigneeUserIds: string[]
   attachments: TeamWorkAttachment[]
   commentDraft: string
+  editingCommentId?: string | null
+  editCommentDraft?: string
   tab: 'details' | 'comments'
 }
 

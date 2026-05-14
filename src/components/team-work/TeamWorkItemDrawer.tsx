@@ -8,6 +8,7 @@ import {
   Loader2,
   MessageSquare,
   Paperclip,
+  Pencil,
   PencilLine,
   Smile,
   Trash2,
@@ -42,6 +43,7 @@ import { cn } from '../../lib/utils'
 import { sprintIdForTeamWorkApi } from '../../lib/mongoObjectId'
 import { hierarchicalIssueLabel, parentIssueItem, subtasksOfParent } from '../../lib/teamWorkIssueDisplay'
 import { teamWorkCommentCount } from '../../lib/teamWorkCommentCount'
+import { TEAM_WORK_COMMENT_BODY_MAX_CHARS } from '../../lib/teamWorkCommentLimits'
 import { resolveBackendMediaUrl } from '../../lib/apiMediaOrigin'
 import { muiMdUp, useMediaQuery } from '../../hooks/useMediaQuery'
 import { Button } from '../ui/button'
@@ -300,6 +302,8 @@ export function TeamWorkItemDrawer({
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [comment, setComment] = useState('')
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
+  const [editDraft, setEditDraft] = useState('')
   const [posting, setPosting] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [scheduleMeetingOpen, setScheduleMeetingOpen] = useState(false)
@@ -316,6 +320,24 @@ export function TeamWorkItemDrawer({
   const [unsavedCloseOpen, setUnsavedCloseOpen] = useState(false)
 
   const { toast } = useToast()
+
+  const sanitizedComposerDraft = useMemo(
+    () => sanitizeTeamWorkCommentHtml((editingCommentId ? editDraft : comment).trim()),
+    [editingCommentId, comment, editDraft],
+  )
+  const commentBodyCharCount = sanitizedComposerDraft.length
+  const commentOverMaxLength = commentBodyCharCount > TEAM_WORK_COMMENT_BODY_MAX_CHARS
+
+  const commentEditDirty = useMemo(() => {
+    if (!editingCommentId || !item) return false
+    const orig = item.comments?.find((x) => x.id === editingCommentId)
+    if (!orig) return false
+    return (
+      sanitizeTeamWorkCommentHtml(editDraft.trim()) !==
+      sanitizeTeamWorkCommentHtml(String(orig.body || '').trim())
+    )
+  }, [editingCommentId, item, editDraft])
+
   const commentQuillRef = useRef<ReactQuill>(null)
   const commentFileInputRef = useRef<HTMLInputElement>(null)
   const [commentImageUploading, setCommentImageUploading] = useState(false)
@@ -416,7 +438,9 @@ export function TeamWorkItemDrawer({
 
   const hasUnsavedEdits = Boolean(
     item &&
-      (commentEditorHasText(comment) || (canManage && computeSignature() !== baselineRef.current)),
+      (commentEditorHasText(comment) ||
+        commentEditDirty ||
+        (canManage && computeSignature() !== baselineRef.current)),
   )
 
   const requestClose = () => {
@@ -429,6 +453,8 @@ export function TeamWorkItemDrawer({
 
   const discardAndClose = () => {
     if (item) clearTeamWorkDrawerDraft(tenantId, item.id)
+    setEditingCommentId(null)
+    setEditDraft('')
     setUnsavedCloseOpen(false)
     onClose()
   }
@@ -524,6 +550,8 @@ export function TeamWorkItemDrawer({
       assigneeUserIds,
       attachments,
       commentDraft: comment,
+      editingCommentId: editingCommentId ?? undefined,
+      editCommentDraft: editingCommentId ? editDraft : undefined,
       tab: tab === 1 ? 'comments' : 'details',
     }
     saveTeamWorkDrawerDraft(tenantId, itemId, draft)
@@ -544,6 +572,8 @@ export function TeamWorkItemDrawer({
     assigneeUserIds,
     attachments,
     comment,
+    editingCommentId,
+    editDraft,
     tab,
     tenantId,
   ])
@@ -579,6 +609,8 @@ export function TeamWorkItemDrawer({
         setAssigneeUserIds(assigneeIdsFromItem(row).filter((id) => poolIds.has(id)))
         setAttachments(row.attachments ?? [])
         setComment('')
+        setEditingCommentId(null)
+        setEditDraft('')
         setTab(0)
 
         const draft = loadTeamWorkDrawerDraft(tenantId, row.id)
@@ -588,6 +620,13 @@ export function TeamWorkItemDrawer({
           if (draft.attachments?.length) setAttachments(draft.attachments)
           setComment(draft.commentDraft ?? '')
           setTab(draft.tab === 'comments' ? 1 : 0)
+          if (draft.editingCommentId && draft.editCommentDraft != null) {
+            const still = row.comments?.some((c) => c.id === draft.editingCommentId)
+            if (still) {
+              setEditingCommentId(draft.editingCommentId)
+              setEditDraft(draft.editCommentDraft)
+            }
+          }
         }
       })
       .catch(() => {
@@ -665,36 +704,117 @@ export function TeamWorkItemDrawer({
   }
 
   const postCommentThenClose = async () => {
-    if (!item || !commentEditorHasText(comment)) return
+    if (!item || editingCommentId || !commentEditorHasText(comment)) return
+    const body = sanitizeTeamWorkCommentHtml(comment.trim())
+    if (!commentEditorHasText(body)) return
+    if (body.length > TEAM_WORK_COMMENT_BODY_MAX_CHARS) {
+      toast({
+        variant: 'destructive',
+        title: 'Comment is too long',
+        description: `Comments are limited to ${TEAM_WORK_COMMENT_BODY_MAX_CHARS.toLocaleString()} characters after formatting. Shorten the text or split into multiple comments.`,
+      })
+      return
+    }
     setPosting(true)
     try {
-      const body = sanitizeTeamWorkCommentHtml(comment.trim())
-      if (!commentEditorHasText(body)) return
       await teamWorkApi.addComment(item.id, body)
       setComment('')
       clearTeamWorkDrawerDraft(tenantId, item.id)
       onUpdated()
       setUnsavedCloseOpen(false)
       onClose()
+    } catch {
+      /* apiClient already showed an error toast */
     } finally {
       setPosting(false)
     }
   }
 
   const postComment = async () => {
-    if (!item || !commentEditorHasText(comment)) return
+    if (!item || editingCommentId || !commentEditorHasText(comment)) return
+    const body = sanitizeTeamWorkCommentHtml(comment.trim())
+    if (!commentEditorHasText(body)) return
+    if (body.length > TEAM_WORK_COMMENT_BODY_MAX_CHARS) {
+      toast({
+        variant: 'destructive',
+        title: 'Comment is too long',
+        description: `Comments are limited to ${TEAM_WORK_COMMENT_BODY_MAX_CHARS.toLocaleString()} characters after formatting. Shorten the text or split into multiple comments.`,
+      })
+      return
+    }
     setPosting(true)
     try {
-      const body = sanitizeTeamWorkCommentHtml(comment.trim())
-      if (!commentEditorHasText(body)) return
       const updated = await teamWorkApi.addComment(item.id, body)
       setItem(updated)
       setComment('')
       clearTeamWorkDrawerDraft(tenantId, item.id)
       onUpdated()
+    } catch {
+      /* apiClient already showed an error toast */
     } finally {
       setPosting(false)
     }
+  }
+
+  const cancelCommentEdit = () => {
+    setEditingCommentId(null)
+    setEditDraft('')
+  }
+
+  const beginCommentEdit = (c: TeamWorkComment) => {
+    if (!currentUserId || c.userId !== currentUserId) return
+    if (editingCommentId && editingCommentId !== c.id && commentEditDirty) {
+      toast({
+        variant: 'destructive',
+        title: 'Finish your current edit',
+        description: 'Save or cancel the comment you are editing before opening another.',
+      })
+      return
+    }
+    setEditingCommentId(c.id)
+    setEditDraft(c.body)
+    setTab(1)
+  }
+
+  const saveEditedComment = async (): Promise<boolean> => {
+    if (!item || !editingCommentId) return false
+    const body = sanitizeTeamWorkCommentHtml(editDraft.trim())
+    if (!commentEditorHasText(body)) {
+      toast({
+        variant: 'destructive',
+        title: 'Comment is empty',
+        description: 'Add some text or cancel the edit.',
+      })
+      return false
+    }
+    if (body.length > TEAM_WORK_COMMENT_BODY_MAX_CHARS) {
+      toast({
+        variant: 'destructive',
+        title: 'Comment is too long',
+        description: `Comments are limited to ${TEAM_WORK_COMMENT_BODY_MAX_CHARS.toLocaleString()} characters after formatting. Shorten the text or split into multiple comments.`,
+      })
+      return false
+    }
+    setPosting(true)
+    try {
+      const updated = await teamWorkApi.updateComment(item.id, editingCommentId, body)
+      setItem(updated)
+      setEditingCommentId(null)
+      setEditDraft('')
+      onUpdated()
+      return true
+    } catch {
+      return false
+    } finally {
+      setPosting(false)
+    }
+  }
+
+  const saveEditedCommentThenClose = async () => {
+    if (!(await saveEditedComment())) return
+    if (item) clearTeamWorkDrawerDraft(tenantId, item.id)
+    setUnsavedCloseOpen(false)
+    onClose()
   }
 
   const remove = async () => {
@@ -795,10 +915,10 @@ export function TeamWorkItemDrawer({
   }
 
   const detailsBody = item ? (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-3">
       <Card className="border-border/80 bg-muted/25">
-        <CardContent className="space-y-3 pt-4">
-          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">People</p>
+        <CardContent className="space-y-2 p-3">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">People</p>
           {canManage && currentUserId ? (
             <Button
               type="button"
@@ -829,7 +949,7 @@ export function TeamWorkItemDrawer({
                     disabled={!canManage}
                     onCheckedChange={() => canManage && toggleAssignee(u.id)}
                   />
-                  <span className="text-sm">{userLabel(u)}</span>
+                  <span className="text-xs leading-snug">{userLabel(u)}</span>
                 </label>
               ))}
             </div>
@@ -858,7 +978,7 @@ export function TeamWorkItemDrawer({
             ))}
           </SelectContent>
         </Select>
-        <p className="text-xs text-muted-foreground">Move work in or out of the current iteration. Save to persist (API + local overlay).</p>
+        {/* <p className="text-xs text-muted-foreground">Move work in or out of the current iteration. Save to persist (API + local overlay).</p> */}
       </div>
 
       <div className="space-y-2">
@@ -953,17 +1073,15 @@ export function TeamWorkItemDrawer({
         onChange={(html) => setForm((f) => ({ ...f, description: html }))}
         disabled={!canManage}
         placeholder="Goals, acceptance criteria, links…"
-        height={220}
+        height={180}
         modules={DESC_MODULES}
         formats={DESC_FORMATS}
-        helperText="Rich text is saved with the issue. Drafts persist in this browser session if you close the drawer."
+        // helperText="Rich text is saved with the issue. Drafts persist in this browser session if you close the drawer."
       />
 
       <div className="space-y-2">
         <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Attachments</p>
-        <p className="text-xs text-muted-foreground">
-          Images and documents upload via the chat file endpoint, then attach to this issue.
-        </p>
+        
         <input
           ref={fileRef}
           type="file"
@@ -1019,11 +1137,7 @@ export function TeamWorkItemDrawer({
       <Card className="border-border/80">
         <CardContent className="space-y-3 pt-4">
           <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Sub-tasks</p>
-          <p className="text-xs text-muted-foreground">
-            Numbers follow the parent ticket (e.g. <span className="font-mono font-semibold">PF-12.1</span>,{' '}
-            <span className="font-mono font-semibold">PF-12.2</span>) in board order. The smaller monospace key is the stored
-            server id when it differs.
-          </p>
+          
           {subtasks.length ? (
             <div className="mb-3 space-y-2">
               {subtasks.map((st) => {
@@ -1214,10 +1328,10 @@ export function TeamWorkItemDrawer({
       </div>
 
       <Card className="border-border/80">
-        <CardContent className="space-y-2 pt-4">
-          <p className="text-sm font-semibold">Meetings</p>
-          <p className="text-xs text-muted-foreground">Open Google Calendar with this issue prefilled.</p>
-          <Button type="button" variant="outline" size="sm" className="mt-1" leftIcon={<CalendarPlus className="h-4 w-4" />} onClick={() => setScheduleMeetingOpen(true)}>
+        <CardContent className="space-y-1.5 p-3">
+          <p className="text-xs font-semibold leading-tight">Meetings</p>
+          <p className="text-[11px] leading-snug text-muted-foreground">Open Google Calendar with this issue prefilled.</p>
+          <Button type="button" variant="outline" size="sm" className="h-8" leftIcon={<CalendarPlus className="h-3.5 w-3.5" />} onClick={() => setScheduleMeetingOpen(true)}>
             Schedule in Google Calendar
           </Button>
         </CardContent>
@@ -1237,28 +1351,58 @@ export function TeamWorkItemDrawer({
   ) : null
 
   const commentsBody = item ? (
-    <div className="flex h-full min-h-0 flex-col gap-4">
-      <div className="min-h-0 flex-1 space-y-3 overflow-auto pr-1">
+    <div className="flex h-full min-h-0 flex-col gap-2">
+      <div className="min-h-0 flex-1 space-y-2 overflow-auto pr-0.5">
         {(item.comments || []).length === 0 ? (
-          <p className="text-sm text-muted-foreground">No comments yet.</p>
+          <p className="text-xs text-muted-foreground">No comments yet.</p>
         ) : (
           [...(item.comments || [])]
             .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
             .map((c) => {
               const who = displayCommentAuthor(c, assigneeMap)
               const safe = sanitizeTeamWorkCommentHtml(c.body)
+              const isEditingCard = editingCommentId === c.id
               return (
-                <Card key={c.id} className="border-border/80 bg-muted/20">
-                  <CardContent className="space-y-2 pt-4">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <p className="text-sm font-semibold" title={who.hint}>
+                <Card
+                  key={c.id}
+                  className={cn(
+                    'border-border/80 bg-muted/20',
+                    isEditingCard &&
+                      'border-amber-500/50 bg-amber-50/60 ring-2 ring-amber-400/45 dark:border-amber-600/40 dark:bg-amber-950/30',
+                  )}
+                >
+                  <CardContent className="space-y-1.5 p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="min-w-0 text-xs font-semibold leading-tight" title={who.hint}>
                         {who.primary}
                       </p>
-                      <p className="text-xs text-muted-foreground">{format(new Date(c.createdAt), 'PPp')}</p>
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        <div className="text-right text-[10px] leading-tight text-muted-foreground sm:text-xs">
+                          <span className="whitespace-nowrap">{format(new Date(c.createdAt), 'PPp')}</span>
+                          {c.editedAt ? (
+                            <span className="mt-0.5 block whitespace-nowrap font-medium text-amber-800 dark:text-amber-200">
+                              Edited {format(new Date(c.editedAt), 'PPp')}
+                            </span>
+                          ) : null}
+                        </div>
+                        {currentUserId === c.userId ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 gap-1 px-2 text-[11px]"
+                            disabled={Boolean(posting)}
+                            onClick={() => beginCommentEdit(c)}
+                          >
+                            <Pencil className="h-3 w-3 shrink-0" aria-hidden />
+                            Edit
+                          </Button>
+                        ) : null}
+                      </div>
                     </div>
                     <Separator />
                     <div
-                      className="max-w-none text-sm [&_a]:text-primary [&_a]:underline [&_img]:my-2 [&_img]:max-h-48 [&_img]:rounded-md [&_img]:border [&_ol]:my-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-1 [&_ul]:my-1 [&_ul]:list-disc [&_ul]:pl-5"
+                      className="max-w-none text-xs leading-snug [&_a]:text-primary [&_a]:underline [&_img]:my-1.5 [&_img]:max-h-40 [&_img]:rounded-md [&_img]:border [&_ol]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:my-0.5 [&_ul]:my-0.5 [&_ul]:list-disc [&_ul]:pl-4"
                       dangerouslySetInnerHTML={{ __html: safe }}
                     />
                   </CardContent>
@@ -1267,14 +1411,27 @@ export function TeamWorkItemDrawer({
             })
         )}
       </div>
-      <Card className="shrink-0 border-border/80">
-        <CardContent className="space-y-3 pt-4">
-          <div>
-            <p className="text-sm font-semibold">Add comment</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Rich text, images (toolbar or attach), and emoji — same upload pipeline as chat attachments.
-            </p>
-          </div>
+      <Card
+        className={cn(
+          'shrink-0 border-border/80',
+          editingCommentId && 'border-amber-500/45 ring-1 ring-amber-400/35 dark:border-amber-700/40',
+        )}
+      >
+        <CardContent className="space-y-2 p-3">
+          {editingCommentId ? (
+            <div
+              role="status"
+              className="rounded-md border border-amber-400/50 bg-amber-50 px-2.5 py-1.5 dark:border-amber-700/50 dark:bg-amber-950/35"
+            >
+              <p className="text-xs font-medium text-amber-950 dark:text-amber-50">
+                <span className="font-semibold">Editing comment</span>
+                <span className="font-normal text-amber-900/90 dark:text-amber-100/90">
+                  {' '}
+                  — save to update the thread or use Cancel beside Save to discard changes.
+                </span>
+              </p>
+            </div>
+          ) : null}
           <input
             ref={commentFileInputRef}
             type="file"
@@ -1282,67 +1439,98 @@ export function TeamWorkItemDrawer({
             accept="image/*,.pdf,.doc,.docx,.zip"
             onChange={(e) => void onCommentImagePicked(e)}
           />
-          <div className="flex flex-wrap items-center gap-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 px-2 text-xs">
-                  <Smile className="h-3.5 w-3.5" aria-hidden />
-                  Emoji
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[240px] p-2" align="start">
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Insert at cursor
-                </p>
-                <div className="flex flex-wrap gap-1">
-                  {COMMENT_EMOJI_PALETTE.map((em) => (
-                    <button
-                      key={em}
-                      type="button"
-                      className="flex h-8 w-8 items-center justify-center rounded-md text-lg hover:bg-muted"
-                      onClick={() => insertCommentEmoji(em)}
-                      aria-label={`Insert ${em}`}
-                    >
-                      {em}
-                    </button>
-                  ))}
-                </div>
-              </PopoverContent>
-            </Popover>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1.5 px-2 text-xs"
-              loading={commentImageUploading}
-              leftIcon={<Paperclip className="h-3.5 w-3.5" />}
-              onClick={() => commentFileInputRef.current?.click()}
-            >
-              Attach file
-            </Button>
-          </div>
           <div className="teamwork-comment-editor rounded-md border border-input bg-background">
             <ReactQuill
+              key={editingCommentId ?? 'new-comment'}
               ref={commentQuillRef}
               theme="snow"
-              value={comment}
-              onChange={setComment}
+              value={editingCommentId ? editDraft : comment}
+              onChange={editingCommentId ? setEditDraft : setComment}
               modules={commentQuillModules}
               formats={COMMENT_QUILL_FORMATS}
-              placeholder="Context, blockers, handoff…"
-              className="[&_.ql-container]:min-h-[120px] [&_.ql-editor]:min-h-[120px] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-container]:border-0"
+              placeholder={editingCommentId ? 'Edit your comment…' : 'Context, blockers, handoff…'}
+              className="[&_.ql-container]:min-h-[96px] [&_.ql-editor]:min-h-[96px] [&_.ql-toolbar]:flex [&_.ql-toolbar]:flex-nowrap [&_.ql-toolbar]:overflow-x-auto [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-container]:border-0"
             />
           </div>
-          <div className="flex justify-end">
-            <Button
-              type="button"
-              size="sm"
-              loading={posting}
-              disabled={!commentEditorHasText(comment)}
-              onClick={() => void postComment()}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p
+              className={cn(
+                'min-w-0 text-xs tabular-nums text-muted-foreground',
+                commentOverMaxLength && 'font-medium text-destructive',
+              )}
+              aria-live="polite"
             >
-              Post
-            </Button>
+              {commentBodyCharCount.toLocaleString()} / {TEAM_WORK_COMMENT_BODY_MAX_CHARS.toLocaleString()}
+            </p>
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button type="button" variant="outline" size="sm" className="h-8 shrink-0 gap-1 px-2 text-xs">
+                    <Smile className="h-3.5 w-3.5" aria-hidden />
+                    Emoji
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[240px] p-2" align="end">
+                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Insert at cursor
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {COMMENT_EMOJI_PALETTE.map((em) => (
+                      <button
+                        key={em}
+                        type="button"
+                        className="flex h-8 w-8 items-center justify-center rounded-md text-lg hover:bg-muted"
+                        onClick={() => insertCommentEmoji(em)}
+                        aria-label={`Insert ${em}`}
+                      >
+                        {em}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 shrink-0 gap-1 px-2 text-xs"
+                loading={commentImageUploading}
+                leftIcon={<Paperclip className="h-3.5 w-3.5" />}
+                onClick={() => commentFileInputRef.current?.click()}
+              >
+                Attach file
+              </Button>
+              {editingCommentId ? (
+                <>
+                  <Button type="button" variant="outline" size="sm" className="h-8 px-2 text-xs" disabled={posting} onClick={cancelCommentEdit}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-8 px-3"
+                    loading={posting}
+                    disabled={
+                      !commentEditorHasText(editDraft) || commentOverMaxLength || posting || !commentEditDirty
+                    }
+                    onClick={() => void saveEditedComment()}
+                  >
+                    Save
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-8 px-3"
+                  loading={posting}
+                  disabled={!commentEditorHasText(comment) || commentOverMaxLength || posting}
+                  onClick={() => void postComment()}
+                >
+                  Post
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -1357,7 +1545,7 @@ export function TeamWorkItemDrawer({
           side="right"
           className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-[640px] md:max-w-[min(960px,96vw)]"
         >
-          <div className="flex shrink-0 items-start justify-between gap-2 border-b border-border px-4 py-3">
+          <div className="flex shrink-0 items-start justify-between gap-2 border-b border-border px-3 py-2 sm:px-4">
             <div className="min-w-0 flex-1">
               {loading ? (
                 <div className="flex items-center gap-2 text-muted-foreground">
@@ -1366,28 +1554,30 @@ export function TeamWorkItemDrawer({
                 </div>
               ) : item ? (
                 <>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="font-mono text-sm font-bold text-primary">{issueDisplayLabel}</span>
+                  <div className="flex max-w-full flex-nowrap items-center gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <span className="shrink-0 font-mono text-sm font-bold text-primary">{issueDisplayLabel}</span>
                     {issueDisplayLabel !== item.issueKey ? (
-                      <span className="font-mono text-xs font-semibold text-muted-foreground" title="Stored issue key from server">
+                      <span className="shrink-0 font-mono text-xs font-semibold text-muted-foreground" title="Stored issue key from server">
                         {item.issueKey}
                       </span>
                     ) : null}
                     {item.parentWorkItemId ? (
-                      <Badge variant="secondary" className="text-[0.65rem] font-bold">
+                      <Badge variant="secondary" className="shrink-0 text-[0.65rem] font-bold">
                         Subtask
                       </Badge>
                     ) : null}
-                    <Badge variant="outline" className="text-[0.65rem] capitalize">
+                    <Badge variant="outline" className="shrink-0 text-[0.65rem] capitalize">
                       {item.issueType}
                     </Badge>
-                    <Badge variant="default" className="text-[0.65rem] capitalize">
+                    <Badge variant="default" className="shrink-0 text-[0.65rem] capitalize">
                       {item.status.replace(/_/g, ' ')}
                     </Badge>
-                    <Badge className={cn('text-[0.65rem] font-semibold', PRIORITY_CHIP[item.priority])}>{priorityLabel(item.priority)}</Badge>
+                    <Badge className={cn('shrink-0 text-[0.65rem] font-semibold', PRIORITY_CHIP[item.priority])}>
+                      {priorityLabel(item.priority)}
+                    </Badge>
                   </div>
                   {parentRowItem ? (
-                    <div className="mt-2 flex flex-wrap items-center gap-1 text-xs">
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1 text-xs">
                       <span className="font-semibold text-muted-foreground">Parent</span>
                       {onNavigateItem ? (
                         <button
@@ -1405,18 +1595,26 @@ export function TeamWorkItemDrawer({
                       )}
                     </div>
                   ) : null}
-                  <p className="mt-2 block text-xs text-muted-foreground">
-                    Created by {reporterLabel}
-                    {item.createdAt ? ` · ${format(new Date(item.createdAt), 'PPp')}` : ''}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Updated {format(new Date(item.updatedAt), 'PPp')}</p>
-                  <div className="mt-2 flex items-center gap-2">
-                    <span className="text-xs font-semibold text-muted-foreground">Assignees</span>
-                    {assigneeUserIds.length ? (
-                      <AssigneeAvatarStack ids={assigneeUserIds} assigneeMap={assigneeMap} />
-                    ) : (
-                      <span className="text-xs text-muted-foreground">Unassigned</span>
-                    )}
+                  <div className="mt-1.5 flex max-w-full flex-nowrap items-center gap-x-2 gap-y-0 overflow-x-auto text-[11px] leading-tight text-muted-foreground [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <span className="shrink-0 whitespace-nowrap">
+                      Created by {reporterLabel}
+                      {item.createdAt ? ` · ${format(new Date(item.createdAt), 'PPp')}` : ''}
+                    </span>
+                    <span className="shrink-0 text-muted-foreground/70" aria-hidden>
+                      ·
+                    </span>
+                    <span className="shrink-0 whitespace-nowrap">Updated {format(new Date(item.updatedAt), 'PPp')}</span>
+                    <span className="shrink-0 text-muted-foreground/70" aria-hidden>
+                      ·
+                    </span>
+                    <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap">
+                      <span className="font-semibold text-muted-foreground">Assignees</span>
+                      {assigneeUserIds.length ? (
+                        <AssigneeAvatarStack ids={assigneeUserIds} assigneeMap={assigneeMap} />
+                      ) : (
+                        <span>Unassigned</span>
+                      )}
+                    </span>
                   </div>
                 </>
               ) : (
@@ -1435,31 +1633,31 @@ export function TeamWorkItemDrawer({
                 onValueChange={(v) => setTab(v === 'comments' ? 1 : 0)}
                 className="flex min-h-0 flex-1 flex-col px-0"
               >
-                <TabsList className="mx-2 mt-2 grid h-10 w-auto shrink-0 grid-cols-2 rounded-md">
-                  <TabsTrigger value="details" className="gap-1.5 text-xs sm:text-sm">
+                <TabsList className="mx-2 mt-1.5 grid h-9 w-auto shrink-0 grid-cols-2 rounded-md">
+                  <TabsTrigger value="details" className="gap-1 text-xs sm:text-sm">
                     <PencilLine className="h-3.5 w-3.5 shrink-0" />
                     Details
                   </TabsTrigger>
-                  <TabsTrigger value="comments" className="gap-1.5 text-xs sm:text-sm">
+                  <TabsTrigger value="comments" className="gap-1 text-xs sm:text-sm">
                     <MessageSquare className="h-3.5 w-3.5 shrink-0" />
                     Comments{teamWorkCommentCount(item) ? ` (${teamWorkCommentCount(item)})` : ''}
                   </TabsTrigger>
                 </TabsList>
-                <TabsContent value="details" className="mt-0 min-h-0 flex-1 overflow-auto px-4 pb-4 pt-3">
+                <TabsContent value="details" className="mt-0 min-h-0 flex-1 overflow-auto px-3 pb-3 pt-2 sm:px-4">
                   {detailsBody}
                 </TabsContent>
-                <TabsContent value="comments" className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-4 pt-3">
+                <TabsContent value="comments" className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-3 pt-2 sm:px-4">
                   {commentsBody}
                 </TabsContent>
               </Tabs>
             ) : (
               <PanelGroup direction="horizontal" autoSaveId="fixer-team-work-drawer-split" className="flex min-h-0 flex-1">
                 <Panel defaultSize={62} minSize={32} className="min-w-0">
-                  <div className="h-full overflow-auto px-4 py-4">{detailsBody}</div>
+                  <div className="h-full overflow-auto px-3 py-3 sm:px-4">{detailsBody}</div>
                 </Panel>
                 <PanelResizeHandle className="w-1.5 shrink-0 bg-border/60 hover:bg-border" />
                 <Panel defaultSize={38} minSize={26} className="min-w-0 border-l border-border">
-                  <div className="h-full overflow-auto px-4 py-4">{commentsBody}</div>
+                  <div className="h-full overflow-auto px-3 py-3 sm:px-4">{commentsBody}</div>
                 </Panel>
               </PanelGroup>
             )
@@ -1473,11 +1671,18 @@ export function TeamWorkItemDrawer({
             <DialogTitle>Unsaved changes</DialogTitle>
             <DialogDescription>
               You have edits or a draft comment that are not saved to the server. Choose how to close this issue.
-              {canManage && commentEditorHasText(comment) ? (
+              {canManage && commentEditorHasText(comment) && !editingCommentId ? (
                 <>
                   {' '}
                   <span className="font-semibold text-foreground">Save & close</span> only updates the issue fields — post the
                   comment separately if needed.
+                </>
+              ) : null}
+              {editingCommentId && commentEditDirty ? (
+                <>
+                  {' '}
+                  <span className="font-semibold text-foreground">Save comment & close</span> updates your edited comment on the
+                  server, then closes the drawer.
                 </>
               ) : null}
             </DialogDescription>
@@ -1494,9 +1699,26 @@ export function TeamWorkItemDrawer({
                 Save & close
               </Button>
             ) : null}
-            {commentEditorHasText(comment) ? (
-              <Button type="button" variant="secondary" loading={posting} onClick={() => void postCommentThenClose()}>
+            {commentEditorHasText(comment) && !editingCommentId ? (
+              <Button
+                type="button"
+                variant="secondary"
+                loading={posting}
+                disabled={commentOverMaxLength}
+                onClick={() => void postCommentThenClose()}
+              >
                 Post comment & close
+              </Button>
+            ) : null}
+            {editingCommentId && commentEditDirty ? (
+              <Button
+                type="button"
+                variant="secondary"
+                loading={posting}
+                disabled={commentOverMaxLength}
+                onClick={() => void saveEditedCommentThenClose()}
+              >
+                Save comment & close
               </Button>
             ) : null}
           </DialogFooter>

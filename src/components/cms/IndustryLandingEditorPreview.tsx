@@ -15,6 +15,30 @@ import {
   buildIndustryLandingPreviewJsonLd,
   resolveIndustryLandingPreviewUrl,
 } from '../../lib/buildIndustryLandingPreviewJsonLd'
+import { sanitizeCategoryMarketingRichHtml } from '../../lib/categoryMarketingRichHtml'
+
+function PreviewRichHtml({ html, className }: { html: string; className?: string }) {
+  const raw = html.trim()
+  if (!raw) return null
+  if (!raw.includes('<')) {
+    return (
+      <div className={cn('whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground', className)}>{raw}</div>
+    )
+  }
+  const safe = sanitizeCategoryMarketingRichHtml(raw)
+  if (!safe.trim()) return null
+  return (
+    <div
+      className={cn(
+        'prose prose-sm max-w-none dark:prose-invert [&_a]:text-primary [&_a]:underline',
+        'text-xs leading-relaxed text-muted-foreground',
+        className,
+      )}
+      // eslint-disable-next-line react/no-danger -- admin-only preview; HTML sanitized with DOMPurify
+      dangerouslySetInnerHTML={{ __html: safe }}
+    />
+  )
+}
 
 export interface IndustryLandingEditorPreviewProps {
   config: CategoryMarketingConfig
@@ -319,10 +343,8 @@ export function IndustryLandingEditorPreview({
                   </div>
                 ) : null}
                 {merged.intro.trim() ? (
-                  <div className="mt-2 space-y-2 text-xs leading-relaxed text-muted-foreground">
-                    {merged.intro.split(/\n{2,}/).map((para, i) => (
-                      <p key={i}>{para.trim()}</p>
-                    ))}
+                  <div className="mt-2">
+                    <PreviewRichHtml html={merged.intro} />
                   </div>
                 ) : null}
                 {merged.introLeadMagnetLabel.trim() ? (
@@ -338,11 +360,18 @@ export function IndustryLandingEditorPreview({
 
               <PreviewSection title="Service cards" kicker={String(merged.serviceCards.length)}>
                 {merged.serviceCards.some((c) => c.title.trim()) ? (
-                  <ul className="list-inside list-decimal text-xs text-muted-foreground">
+                  <ul className="list-inside list-decimal space-y-2 text-xs text-muted-foreground">
                     {merged.serviceCards
                       .filter((c) => c.title.trim())
                       .map((c, i) => (
-                        <li key={i}>{c.title}</li>
+                        <li key={i} className="list-item">
+                          <span className="font-medium text-foreground">{c.title}</span>
+                          {c.description.trim() ? (
+                            <div className="mt-0.5 font-normal">
+                              <PreviewRichHtml html={c.description} />
+                            </div>
+                          ) : null}
+                        </li>
                       ))}
                   </ul>
                 ) : (
@@ -358,7 +387,11 @@ export function IndustryLandingEditorPreview({
                       .map((t, i) => (
                         <div key={i}>
                           <PreviewH2 text={t.title} />
-                          {t.description.trim() ? <p className="mt-1 text-xs text-muted-foreground">{t.description}</p> : null}
+                          {t.description.trim() ? (
+                            <div className="mt-1">
+                              <PreviewRichHtml html={t.description} />
+                            </div>
+                          ) : null}
                           {t.bullets.filter((b) => b.trim()).length ? (
                             <ul className="mt-1 list-inside list-disc text-xs text-muted-foreground">
                               {t.bullets.filter((b) => b.trim()).map((b, j) => (
@@ -376,16 +409,20 @@ export function IndustryLandingEditorPreview({
 
               <PreviewSection title="Trust & ways">
                 {merged.trustBenefits.some((b) => b.heading.trim()) ? (
-                  <ul className="mb-2 space-y-1 text-xs">
+                  <div className="mb-2 space-y-2 text-xs">
                     {merged.trustBenefits
                       .filter((b) => b.heading.trim())
                       .map((b, i) => (
-                        <li key={i}>
-                          <span className="font-medium">{b.heading}</span>
-                          {b.body.trim() ? <span className="text-muted-foreground"> — {b.body}</span> : null}
-                        </li>
+                        <div key={i}>
+                          <div className="font-medium text-foreground">{b.heading}</div>
+                          {b.body.trim() ? (
+                            <div className="mt-0.5">
+                              <PreviewRichHtml html={b.body} />
+                            </div>
+                          ) : null}
+                        </div>
                       ))}
-                  </ul>
+                  </div>
                 ) : null}
                 {merged.experienceIncluded.filter((x) => x.trim()).length ? (
                   <div className="mb-2">
@@ -408,7 +445,11 @@ export function IndustryLandingEditorPreview({
               </PreviewSection>
 
               <PreviewSection title="Areas & booking">
-                {merged.areasCopy.trim() ? <p className="text-xs text-muted-foreground">{merged.areasCopy}</p> : null}
+                {merged.areasCopy.trim() ? (
+                  <div className="text-xs">
+                    <PreviewRichHtml html={merged.areasCopy} />
+                  </div>
+                ) : null}
                 {merged.areasList.filter((x) => x.trim()).length ? (
                   <ul className="mt-1 list-inside list-disc text-xs text-muted-foreground">
                     {merged.areasList.filter((x) => x.trim()).map((x, i) => (
@@ -425,13 +466,17 @@ export function IndustryLandingEditorPreview({
                   </p>
                 ) : null}
                 {merged.bookingSteps.some((s) => s.title.trim()) ? (
-                  <ol className="mt-2 list-inside list-decimal space-y-1 text-xs text-muted-foreground">
+                  <ol className="mt-2 list-decimal space-y-2 pl-4 text-xs text-muted-foreground marker:font-medium">
                     {merged.bookingSteps
                       .filter((s) => s.title.trim())
                       .map((s, i) => (
-                        <li key={i}>
-                          <span className="font-medium">{s.title}</span>
-                          {s.description.trim() ? ` — ${s.description}` : null}
+                        <li key={i} className="pl-1">
+                          <span className="font-medium text-foreground">{s.title}</span>
+                          {s.description.trim() ? (
+                            <div className="mt-0.5 font-normal">
+                              <PreviewRichHtml html={s.description} />
+                            </div>
+                          ) : null}
                         </li>
                       ))}
                   </ol>
@@ -508,7 +553,9 @@ export function IndustryLandingEditorPreview({
                       .map((f, i) => (
                         <div key={i}>
                           <dt className="font-medium text-foreground">{f.question}</dt>
-                          <dd className="mt-0.5 whitespace-pre-wrap text-muted-foreground">{f.answer.trim() || '—'}</dd>
+                          <dd className="mt-0.5 text-muted-foreground">
+                            {f.answer.trim() ? <PreviewRichHtml html={f.answer} /> : '—'}
+                          </dd>
                         </div>
                       ))}
                   </dl>
@@ -536,7 +583,7 @@ export function IndustryLandingEditorPreview({
 
               <PreviewSection title="Closing">
                 {merged.closingParagraph.trim() ? (
-                  <p className="whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">{merged.closingParagraph}</p>
+                  <PreviewRichHtml html={merged.closingParagraph} />
                 ) : (
                   <p className="text-xs text-muted-foreground">—</p>
                 )}
@@ -544,16 +591,21 @@ export function IndustryLandingEditorPreview({
 
               <PreviewSection title="Locality guide" kicker={merged.localityGuide.enabled ? 'On' : 'Off'}>
                 {merged.localityGuide.enabled ? (
-                  <div className="space-y-2 text-xs text-muted-foreground">
+                  <div className="space-y-3 text-xs text-muted-foreground">
                     {merged.localityGuide.articleH2.trim() ? <PreviewH2 text={merged.localityGuide.articleH2} /> : null}
-                    {merged.localityGuide.summaryLead.trim() ? <p>{merged.localityGuide.summaryLead}</p> : null}
+                    {merged.localityGuide.summaryLead.trim() ? (
+                      <PreviewRichHtml html={merged.localityGuide.summaryLead} />
+                    ) : null}
+                    {merged.localityGuide.leadParagraphs.filter((p) => p.trim()).map((p, j) => (
+                      <PreviewRichHtml key={`lead-${j}`} html={p} className="mt-1" />
+                    ))}
                     {merged.localityGuide.sections.filter((s) => s.h2.trim()).map((s, i) => (
-                      <div key={i} className="border-l-2 border-primary/30 pl-2">
+                      <div key={i} className="rounded-md border border-border/60 bg-muted/20 p-3">
                         <div className="font-medium text-foreground">{s.h2}</div>
                         {s.paragraphs.filter((p) => p.trim()).map((p, j) => (
-                          <p key={j} className="mt-1">
-                            {p}
-                          </p>
+                          <div key={j} className="mt-2">
+                            <PreviewRichHtml html={p} />
+                          </div>
                         ))}
                       </div>
                     ))}
@@ -567,7 +619,9 @@ export function IndustryLandingEditorPreview({
                 {merged.leadMagnet.headline.trim() || merged.leadMagnet.description.trim() ? (
                   <div className="text-xs">
                     <p className="font-medium">{merged.leadMagnet.headline}</p>
-                    <p className="mt-1 text-muted-foreground">{merged.leadMagnet.description}</p>
+                    <div className="mt-1 text-muted-foreground">
+                      <PreviewRichHtml html={merged.leadMagnet.description} />
+                    </div>
                     {merged.leadMagnet.ctaLabel.trim() ? (
                       <p className="mt-2 inline-block rounded-md bg-primary px-2 py-1 text-primary-foreground">
                         {merged.leadMagnet.ctaLabel}

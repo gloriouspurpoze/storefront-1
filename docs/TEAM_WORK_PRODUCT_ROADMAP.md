@@ -19,7 +19,7 @@ This document describes the **current** team-work capability (fixer-admin + fixe
 | **Models** | `TeamWorkItem` (work + embedded `comments[]`), `TeamWorkItemCounter` (monotonic `issueKey`, e.g. `PF-1`). |
 | **Statuses** | Fixed enum: `backlog`, `todo`, `in_progress`, `in_review`, `blocked`, `done`, `cancelled`. |
 | **Issue types** | `task`, `bug`, `story`, `epic` (`epicId` links a row to an epic work item). |
-| **Routes** | `GET /meta`, `GET /items`, `GET /items/:id`, `POST /items`, `PUT /items/:id`, `PATCH /items/:id/status`, `DELETE /items/:id`, `POST /items/:id/comments`. |
+| **Routes** | `GET /meta`, `GET /items` (supports `unassigned=1` for no assignee), `GET /items/:id`, `POST /items`, `PUT /items/:id`, `PATCH /items/:id/status`, `DELETE /items/:id`, `POST /items/:id/comments`, `PATCH /items/:id/comments/:commentId` (author-only body update). |
 
 Optional environment variable:
 

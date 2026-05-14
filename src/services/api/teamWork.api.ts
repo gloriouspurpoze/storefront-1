@@ -41,6 +41,7 @@ function mapComment(c: Record<string, unknown>): TeamWorkComment {
     authorName: c.authorName ? String(c.authorName) : undefined,
     body: String(c.body || ''),
     createdAt: c.createdAt ? new Date(c.createdAt as string).toISOString() : new Date().toISOString(),
+    editedAt: c.editedAt ? new Date(c.editedAt as string).toISOString() : undefined,
   }
 }
 
@@ -373,6 +374,13 @@ export const teamWorkApi = {
 
   async addComment(id: string, body: string): Promise<TeamWorkItem> {
     const row = await sendJson<Record<string, unknown>>('POST', `/team-work/items/${id}/comments`, { body })
+    return mapItem(row)
+  },
+
+  async updateComment(itemId: string, commentId: string, body: string): Promise<TeamWorkItem> {
+    const row = await sendJson<Record<string, unknown>>('PATCH', `/team-work/items/${itemId}/comments/${commentId}`, {
+      body,
+    })
     return mapItem(row)
   },
 

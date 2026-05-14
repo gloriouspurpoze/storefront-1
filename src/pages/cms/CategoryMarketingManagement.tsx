@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   Info,
   GitCompareArrows,
+  Sparkles,
 } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Badge } from '../../components/ui/badge'
@@ -35,8 +36,11 @@ import {
 import { cn } from '../../lib/utils'
 import { CMSService } from '../../services/api'
 import { PageHeader } from '../../components/common/PageHeader'
+import { ConfirmDialog } from '../../components/common/ConfirmDialog'
 import ImageUploadField from '../../components/forms/ImageUploadField'
 import type { ImageFile } from '../../components/forms/ImageUploadField'
+import { RichTextField } from '../../components/forms/RichTextField'
+import { CATEGORY_MARKETING_RTE_FORMATS, CATEGORY_MARKETING_RTE_MODULES } from '../../lib/categoryMarketingRichHtml'
 import { CMS_DEFAULT_FALLBACK_SLUG } from '../../constants/cmsCatalogCategories'
 import { useCmsCatalogCategories } from '../../hooks/useCmsCatalogCategories'
 import {
@@ -75,6 +79,7 @@ import { IndustryLandingWorkspaceOverview } from '../../components/cms/IndustryL
 import { IndustryLandingEditorPreview } from '../../components/cms/IndustryLandingEditorPreview'
 import { localitySlugFromCompositeKey } from '../../lib/categoryMarketingCoverageOverview'
 import { diffCategoryMarketingConfigs } from '../../lib/categoryMarketingConfigDiff'
+import { buildLocalitySeoAutofillPack } from '../../lib/categoryMarketingSeoAutofill'
 
 type TabKey =
   | 'metadata'
@@ -126,6 +131,7 @@ export default function CategoryMarketingManagement() {
   const [importJsonText, setImportJsonText] = useState('')
   const [tab, setTab] = useState<TabKey>('metadata')
   const [localityDiffExpanded, setLocalityDiffExpanded] = useState(false)
+  const [seoAutofillConfirmOpen, setSeoAutofillConfirmOpen] = useState(false)
 
   const normalizedLocalitySlug = useMemo(
     () =>
@@ -175,6 +181,14 @@ export default function CategoryMarketingManagement() {
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(' ')
   }, [normalizedLocalitySlug, sortedManagedLocalities])
+
+  const publicSiteOrigin = useMemo(
+    () =>
+      (typeof process !== 'undefined' && process.env.REACT_APP_PUBLIC_SITE_ORIGIN
+        ? String(process.env.REACT_APP_PUBLIC_SITE_ORIGIN).replace(/\/$/, '')
+        : '') || PROFIXER_PUBLIC_ORIGIN.replace(/\/$/, ''),
+    [],
+  )
 
   const openSavedStorageKey = useCallback(
     (storageKey: string) => {
@@ -263,6 +277,21 @@ export default function CategoryMarketingManagement() {
           : config.technicalSeo.aggregateRating,
       },
     })
+  }
+
+  const applySeoAutofillPack = () => {
+    if (!normalizedLocalitySlug) return
+    const pack = buildLocalitySeoAutofillPack({
+      industrySlug: selectedCategory,
+      industryLabel,
+      localitySlug: normalizedLocalitySlug,
+      localityLabel: localityDisplayLabel,
+      publicOrigin: publicSiteOrigin,
+    })
+    updateConfig(pack)
+    appToast('SEO pack applied — review tabs, replace placeholders (hours, NAP, images), then Save.', 'success')
+    setTab('metadata')
+    setSeoAutofillConfirmOpen(false)
   }
 
   const seoReadinessRows = useMemo(() => {
@@ -679,6 +708,38 @@ export default function CategoryMarketingManagement() {
               </code>
             </div>
           </div>
+          {normalizedLocalitySlug ? (
+            <div className="flex flex-col gap-2 border-t border-border/60 pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0 space-y-1">
+                <p className="text-xs font-semibold text-foreground">Technical SEO automation</p>
+                <p className="text-[11px] leading-snug text-muted-foreground">
+                  One pass fills SERP title &amp; meta (length-checked), URL slug pattern, hero + intro,{' '}
+                  <strong className="font-medium text-foreground">Open Graph</strong>,{' '}
+                  <strong className="font-medium text-foreground">technical SEO</strong> (canonical, robots, breadcrumbs, answer
+                  summary, schema toggles), <strong className="font-medium text-foreground">local SEO</strong> (service area copy
+                  — LocalBusiness stays off until NAP is real), <strong className="font-medium text-foreground">locality guide</strong>{' '}
+                  shell, a starter <strong className="font-medium text-foreground">FAQ</strong> set (for FAQPage rich results),{' '}
+                  <strong className="font-medium text-foreground">related links</strong> on your domain, and a <strong className="font-medium text-foreground">JSON-LD</strong> note. Service cards and pricing blocks are
+                  untouched.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="h-9 shrink-0 gap-2 self-start sm:self-center"
+                leftIcon={<Sparkles className="h-4 w-4" aria-hidden />}
+                onClick={() => setSeoAutofillConfirmOpen(true)}
+              >
+                Auto-generate SEO pack
+              </Button>
+            </div>
+          ) : (
+            <p className="border-t border-border/60 pt-4 text-[11px] leading-snug text-muted-foreground">
+              Choose a <strong className="text-foreground">location</strong> (not &quot;All areas&quot;) to enable the SEO / Open Graph / JSON-LD
+              autofill for this storage key.
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -703,6 +764,15 @@ export default function CategoryMarketingManagement() {
                 </div>
               </AccordionTrigger>
               <AccordionContent className="border-t border-border/60 px-4 pb-4 pt-2 sm:px-5">
+                <div className="mb-4 rounded-lg border border-border/70 bg-gradient-to-br from-muted/35 via-background to-background p-4 shadow-sm sm:p-5">
+                  <p className="text-sm font-semibold tracking-tight text-foreground">What this diff shows</p>
+                  <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                    Each row is a JSON <span className="font-mono text-[11px]">path</span>: values from the saved{' '}
+                    <strong className="font-medium text-foreground">industry-wide</strong> key versus this{' '}
+                    <strong className="font-medium text-foreground">locality</strong> record, including staged edits before Save.
+                    Snippets are truncated; rich-text fields are easier to review under each tab and in the Site outline preview.
+                  </p>
+                </div>
                 {!localityVersusIndustryDiff.hasSavedIndustryKey ? (
                   <div
                     role="status"
@@ -1718,10 +1788,16 @@ export default function CategoryMarketingManagement() {
                       <Label htmlFor="cmm-f-35">Service area headline</Label>
                       <Input id="cmm-f-35" className="w-full" value={config.localSeo.serviceAreaHeadline} onChange={(e) => updateLocalSeo({ serviceAreaHeadline: e.target.value })} placeholder="Same-day AC repair across [Location] and surrounding suburbs" />
                     </div>
-                      <div className="space-y-2">
-                      <Label htmlFor="cmm-f-36">Service area narrative</Label>
-                      <Textarea id="cmm-f-36" className="w-full" rows={4} value={config.localSeo.serviceAreaNarrative} onChange={(e) => updateLocalSeo({ serviceAreaNarrative: e.target.value })} placeholder="Unique paragraph describing coverage, dispatch times, and why you win locally." />
-                    </div>
+                      <RichTextField
+                        label="Service area narrative"
+                        value={config.localSeo.serviceAreaNarrative}
+                        onChange={(html) => updateLocalSeo({ serviceAreaNarrative: html })}
+                        height={200}
+                        modules={CATEGORY_MARKETING_RTE_MODULES}
+                        formats={CATEGORY_MARKETING_RTE_FORMATS}
+                        placeholder="Coverage, dispatch, and why you win locally — links and lists supported."
+                        helperText="Used for local context and schema-adjacent copy; keep facts accurate."
+                      />
                       <p className="text-sm text-muted-foreground">
                         Places served (suburbs / neighborhoods)
                       </p>
@@ -1884,27 +1960,37 @@ export default function CategoryMarketingManagement() {
             <TabsContent value="hero" className="mt-2 px-0 outline-none">
               <div className="flex flex-col gap-4">
                 <Card>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      H1 and intro (no heading for intro on the live page)
-                    </p>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Hero &amp; lead copy</CardTitle>
+                    <CardDescription>
+                      The H1 is plain text for SERP consistency. Use the rich editor for the intro: links, bullets, and emphasis
+                      render on the consumer site when the template supports HTML.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6 pt-0">
                     <div className="space-y-2">
                       <Label htmlFor="cmm-f-48">Main heading (H1)</Label>
                       <Input id="cmm-f-48" className="w-full" value={config.mainHeading} onChange={(e) => updateConfig({ mainHeading: e.target.value })} placeholder="AC Repair & Service in [City] – Same-Day, Transparent Pricing" />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="cmm-f-49">Intro paragraph</Label>
-                      <Textarea id="cmm-f-49" className="w-full" rows={5} value={config.intro} onChange={(e) => updateConfig({ intro: e.target.value })} />
-                    </div>
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-2">
+                    <RichTextField
+                      label="Intro (rich text)"
+                      value={config.intro}
+                      onChange={(html) => updateConfig({ intro: html })}
+                      height={240}
+                      modules={CATEGORY_MARKETING_RTE_MODULES}
+                      formats={CATEGORY_MARKETING_RTE_FORMATS}
+                      placeholder="Two short paragraphs: who you serve in this area and what happens after booking."
+                      helperText="Tip: keep the primary keyword in the first paragraph; use lists for skimmable trust points."
+                    />
+                    <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
-                      <Label htmlFor="cmm-f-50">Intro lead magnet label (optional)</Label>
-                      <Input id="cmm-f-50" className="w-full" value={config.introLeadMagnetLabel} onChange={(e) => updateConfig({ introLeadMagnetLabel: e.target.value })} placeholder="Free AC health check" />
-                    </div>
+                        <Label htmlFor="cmm-f-50">Intro lead magnet label (optional)</Label>
+                        <Input id="cmm-f-50" className="w-full" value={config.introLeadMagnetLabel} onChange={(e) => updateConfig({ introLeadMagnetLabel: e.target.value })} placeholder="Free AC health check" />
+                      </div>
                       <div className="space-y-2">
-                      <Label htmlFor="cmm-f-51">Intro lead magnet URL (optional)</Label>
-                      <Input id="cmm-f-51" className="w-full" value={config.introLeadMagnetUrl} onChange={(e) => updateConfig({ introLeadMagnetUrl: e.target.value })} />
-                    </div>
+                        <Label htmlFor="cmm-f-51">Intro lead magnet URL (optional)</Label>
+                        <Input id="cmm-f-51" className="w-full" value={config.introLeadMagnetUrl} onChange={(e) => updateConfig({ introLeadMagnetUrl: e.target.value })} />
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -2000,14 +2086,19 @@ export default function CategoryMarketingManagement() {
                               updateConfig({ serviceCards: next })
                             }} />
                     </div>
-                          <div className="space-y-2">
-                      <Label htmlFor="cmm-f-53">Short description</Label>
-                      <Textarea id="cmm-f-53" className="w-full" rows={2} value={card.description} onChange={(e) => {
+                          <RichTextField
+                            label="Short description"
+                            value={card.description}
+                            onChange={(html) => {
                               const next = [...config.serviceCards]
-                              next[i] = { ...next[i], description: e.target.value }
+                              next[i] = { ...next[i], description: html }
                               updateConfig({ serviceCards: next })
-                            }} />
-                    </div>
+                            }}
+                            height={150}
+                            modules={CATEGORY_MARKETING_RTE_MODULES}
+                            formats={CATEGORY_MARKETING_RTE_FORMATS}
+                            placeholder="One or two lines with optional link to detail page."
+                          />
                           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-2">
                             <div className="space-y-2">
                       <Label htmlFor="cmm-f-54">Price</Label>
@@ -2105,10 +2196,14 @@ export default function CategoryMarketingManagement() {
                       <Label htmlFor="cmm-f-59">Title (H3)</Label>
                       <Input id="cmm-f-59" className="w-full" value={block.title} onChange={(e) => updateServiceType(typeIndex, 'title', e.target.value)} placeholder="Foam & power jet AC service" />
                     </div>
-                          <div className="space-y-2">
-                      <Label htmlFor="cmm-f-60">Description</Label>
-                      <Textarea id="cmm-f-60" className="w-full" rows={2} value={block.description} onChange={(e) => updateServiceType(typeIndex, 'description', e.target.value)} />
-                    </div>
+                          <RichTextField
+                            label="Description"
+                            value={block.description}
+                            onChange={(html) => updateServiceType(typeIndex, 'description', html)}
+                            height={160}
+                            modules={CATEGORY_MARKETING_RTE_MODULES}
+                            formats={CATEGORY_MARKETING_RTE_FORMATS}
+                          />
                           <div>
                             <p className="text-xs text-muted-foreground">
                               What&apos;s included (bullets)
@@ -2162,14 +2257,18 @@ export default function CategoryMarketingManagement() {
                               updateConfig({ trustBenefits: next })
                             }} />
                     </div>
-                          <div className="space-y-2">
-                      <Label htmlFor="cmm-f-63">Paragraph</Label>
-                      <Textarea id="cmm-f-63" className="w-full" rows={2} value={row.body} onChange={(e) => {
+                          <RichTextField
+                            label="Supporting copy"
+                            value={row.body}
+                            onChange={(html) => {
                               const next = [...config.trustBenefits]
-                              next[i] = { ...next[i], body: e.target.value }
+                              next[i] = { ...next[i], body: html }
                               updateConfig({ trustBenefits: next })
-                            }} />
-                    </div>
+                            }}
+                            height={160}
+                            modules={CATEGORY_MARKETING_RTE_MODULES}
+                            formats={CATEGORY_MARKETING_RTE_FORMATS}
+                          />
                         </div>
                         <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0 text-destructive hover:text-destructive" onClick={() =>
                             updateConfig({ trustBenefits: config.trustBenefits.filter((_, j) => j !== i) })
@@ -2236,10 +2335,15 @@ export default function CategoryMarketingManagement() {
                     <p className="text-sm text-muted-foreground">
                       Areas we serve
                     </p>
-                    <div className="space-y-2">
-                      <Label htmlFor="cmm-f-67">Optional intro copy</Label>
-                      <Textarea id="cmm-f-67" className="w-full" rows={2} value={config.areasCopy} onChange={(e) => updateConfig({ areasCopy: e.target.value })} />
-                    </div>
+                    <RichTextField
+                      label="Optional intro copy"
+                      value={config.areasCopy}
+                      onChange={(html) => updateConfig({ areasCopy: html })}
+                      height={150}
+                      modules={CATEGORY_MARKETING_RTE_MODULES}
+                      formats={CATEGORY_MARKETING_RTE_FORMATS}
+                      helperText="Shown above the locality list; supports links and short lists."
+                    />
                     <p className="text-xs text-muted-foreground">
                       Localities (one per line)
                     </p>
@@ -2292,14 +2396,18 @@ export default function CategoryMarketingManagement() {
                               updateConfig({ bookingSteps: next })
                             }} />
                     </div>
-                          <div className="space-y-2">
-                      <Label htmlFor="cmm-f-72">Description</Label>
-                      <Textarea id="cmm-f-72" className="w-full" rows={2} value={step.description} onChange={(e) => {
+                          <RichTextField
+                            label="Step description"
+                            value={step.description}
+                            onChange={(html) => {
                               const next = [...config.bookingSteps]
-                              next[i] = { ...next[i], description: e.target.value }
+                              next[i] = { ...next[i], description: html }
                               updateConfig({ bookingSteps: next })
-                            }} />
-                    </div>
+                            }}
+                            height={130}
+                            modules={CATEGORY_MARKETING_RTE_MODULES}
+                            formats={CATEGORY_MARKETING_RTE_FORMATS}
+                          />
                         </div>
                         <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0 text-destructive hover:text-destructive" onClick={() =>
                             updateConfig({ bookingSteps: config.bookingSteps.filter((_, j) => j !== i) })
@@ -2504,14 +2612,18 @@ export default function CategoryMarketingManagement() {
                                 updateConfig({ faqs: next })
                               }} />
                     </div>
-                            <div className="space-y-2">
-                      <Label htmlFor="cmm-f-83">Answer</Label>
-                      <Textarea id="cmm-f-83" className="w-full" rows={3} value={faq.answer} onChange={(e) => {
+                            <RichTextField
+                              label="Answer (rich text — good for FAQPage links)"
+                              value={faq.answer}
+                              onChange={(html) => {
                                 const next = [...config.faqs]
-                                next[i] = { ...next[i], answer: e.target.value }
+                                next[i] = { ...next[i], answer: html }
                                 updateConfig({ faqs: next })
-                              }} />
-                    </div>
+                              }}
+                              height={200}
+                              modules={CATEGORY_MARKETING_RTE_MODULES}
+                              formats={CATEGORY_MARKETING_RTE_FORMATS}
+                            />
                           </div>
                           </AccordionContent>
                         </AccordionItem>
@@ -2573,19 +2685,27 @@ export default function CategoryMarketingManagement() {
 
             <TabsContent value="localityGuide" className="mt-2 px-0 outline-none">
               <div className="flex flex-col gap-4">
-                <div role="alert" className="rounded-md border border-blue-200 bg-blue-50/80 p-3 text-sm dark:border-blue-900 dark:bg-blue-950/30">
-                  For hyperlocal landings, choose the root service category (slug drives the key). Set Locality slug to
-                  the path segment (example <code>mira-road</code>). The CMS key is{' '}
-                  <code>
-                    {selectedCategory}__mira-road
-                  </code>{' '}
-                  with your real locality instead of <code>mira-road</code>. The separator is{' '}
-                  <strong className="font-mono font-normal">__</strong> (two underscores), e.g.{' '}
-                  <code>electric__mira-road</code>, not a single <code>_</code>. Fill Metadata + FAQs, then enable the
-                  article here.
-                </div>
-                <Card>
-                  <CardContent>
+                <Card className="overflow-hidden border-border/80 shadow-sm">
+                  <CardHeader className="border-b border-border/60 bg-muted/15 pb-4">
+                    <CardTitle className="text-base">Locality article</CardTitle>
+                    <CardDescription className="text-sm leading-relaxed">
+                      Hyperlocal guide body for this CMS key. Use headings and lists for scanability; the consumer site should
+                      render this HTML safely (same allowlist as other rich fields).
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6 pt-6">
+                    <div
+                      role="note"
+                      className="rounded-lg border border-primary/20 bg-primary/[0.04] p-4 text-sm leading-snug text-foreground dark:bg-primary/10"
+                    >
+                      <p className="font-medium text-foreground">Key format</p>
+                      <p className="mt-1.5 text-xs text-muted-foreground">
+                        Slug drives storage: <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">{selectedCategory}__mira-road</code>{' '}
+                        (replace <code className="font-mono">mira-road</code> with your segment). Separator is{' '}
+                        <strong className="font-mono font-normal text-foreground">__</strong> (two underscores), e.g.{' '}
+                        <code className="font-mono">electric__mira-road</code> — not a single underscore.
+                      </p>
+                    </div>
                     <div className="flex flex-col gap-4">
                       <div className="flex items-start gap-3">
                         <Checkbox
@@ -2612,40 +2732,67 @@ export default function CategoryMarketingManagement() {
                         </Label>
                       </div>
                       <div className="space-y-2">
-                      <Label htmlFor="cmm-f-86">Article H2 (section under the catalogue)</Label>
-                      <Input id="cmm-f-86" className="w-full" value={config.localityGuide.articleH2} onChange={(e) => updateLocalityGuide({ articleH2: e.target.value })} />
-                    </div>
-                      <div className="space-y-2">
-                      <Label htmlFor="cmm-f-87">Summary lead (visible under H2)</Label>
-                      <Textarea id="cmm-f-87" className="w-full" rows={3} value={config.localityGuide.summaryLead} onChange={(e) => updateLocalityGuide({ summaryLead: e.target.value })} />
-                    </div>
-                      <p className="text-sm text-muted-foreground">
-                        Lead paragraphs (main article body)
-                      </p>
+                        <Label htmlFor="cmm-f-86">Article H2 (section under the catalogue)</Label>
+                        <Input id="cmm-f-86" className="w-full" value={config.localityGuide.articleH2} onChange={(e) => updateLocalityGuide({ articleH2: e.target.value })} />
+                      </div>
+                      <RichTextField
+                        label="Summary lead (visible under H2)"
+                        value={config.localityGuide.summaryLead}
+                        onChange={(html) => updateLocalityGuide({ summaryLead: html })}
+                        height={160}
+                        modules={CATEGORY_MARKETING_RTE_MODULES}
+                        formats={CATEGORY_MARKETING_RTE_FORMATS}
+                        helperText="One tight value proposition; readers see this before they expand depth sections."
+                      />
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Lead paragraphs</p>
+                          <p className="text-xs text-muted-foreground">Main article body — add as many blocks as you need.</p>
+                        </div>
                       {(config.localityGuide.leadParagraphs.length
                         ? config.localityGuide.leadParagraphs
                         : ['']
                       ).map((para: string, i: number) => (
-                        <div key={i} className="flex flex-row items-start gap-2">
-                          <div className="space-y-2">
-                      <Label htmlFor="cmm-f-88">{`Paragraph ${i + 1}`}</Label>
-                      <Textarea id="cmm-f-88" className="w-full" rows={3} value={para} onChange={(e) => {
-                              const base = config.localityGuide.leadParagraphs.length
-                                ? [...config.localityGuide.leadParagraphs]
-                                : ['']
-                              base[i] = e.target.value
-                              updateLocalityGuide({ leadParagraphs: base })
-                            }} />
-                    </div>
-                          <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0 text-destructive hover:text-destructive" onClick={() => {
+                        <div
+                          key={i}
+                          className="flex flex-col gap-2 rounded-lg border border-border/70 bg-muted/10 p-3 sm:flex-row sm:items-start"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <RichTextField
+                              label={`Lead paragraph ${i + 1}`}
+                              value={para}
+                              onChange={(html) => {
+                                const base = config.localityGuide.leadParagraphs.length
+                                  ? [...config.localityGuide.leadParagraphs]
+                                  : ['']
+                                base[i] = html
+                                updateLocalityGuide({ leadParagraphs: base })
+                              }}
+                              height={180}
+                              modules={CATEGORY_MARKETING_RTE_MODULES}
+                              formats={CATEGORY_MARKETING_RTE_FORMATS}
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-10 w-10 shrink-0 self-end text-destructive hover:text-destructive sm:self-start"
+                            onClick={() => {
                               const base = [...config.localityGuide.leadParagraphs]
                               base.splice(i, 1)
                               updateLocalityGuide({ leadParagraphs: base.length ? base : [''] })
-                            }}  aria-label="Remove paragraph"><Trash2 className="h-4 w-4" /></Button>
+                            }}
+                            aria-label="Remove paragraph"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       ))}
                       <Button
                         size="sm"
+                        variant="secondary"
+                        className="w-full sm:w-auto"
                         leftIcon={<Plus className="h-4 w-4" />}
                         onClick={() =>
                           updateLocalityGuide({
@@ -2655,16 +2802,18 @@ export default function CategoryMarketingManagement() {
                       >
                         Add lead paragraph
                       </Button>
-                      <p className="text-sm text-muted-foreground">
-                        Depth sections (optional H2 blocks)
-                      </p>
+                      </div>
+                      <div className="border-t border-border/60 pt-4">
+                        <p className="text-sm font-medium text-foreground">Depth sections</p>
+                        <p className="text-xs text-muted-foreground">Optional H2 blocks for long-tail topics (pricing quirks, access, seasonality).</p>
+                      </div>
                       {config.localityGuide.sections.map((sec: LocalityGuideSectionBlock, si: number) => (
                         <Accordion
                           key={si}
                           type="single"
                           collapsible
                           defaultValue={si === 0 ? `loc-sec-${si}` : undefined}
-                          className="mb-2 rounded-md border"
+                          className="mb-2 overflow-hidden rounded-lg border border-border/80 bg-card shadow-sm"
                         >
                           <AccordionItem value={`loc-sec-${si}`} className="border-0">
                             <AccordionTrigger className="px-2 py-3 text-left text-sm hover:no-underline">
@@ -2681,16 +2830,22 @@ export default function CategoryMarketingManagement() {
                                 }} />
                     </div>
                               {(sec.paragraphs.length ? sec.paragraphs : ['']).map((p: string, pi: number) => (
-                                <div className="space-y-2">
-                      <Label htmlFor="cmm-f-90">{`Paragraph ${pi + 1}`}</Label>
-                      <Textarea id="cmm-f-90" className="w-full h-9 text-sm" rows={2} value={p} onChange={(e) => {
-                                    const next = [...config.localityGuide.sections]
-                                    const paras = [...(next[si].paragraphs.length ? next[si].paragraphs : [''])]
-                                    paras[pi] = e.target.value
-                                    next[si] = { ...next[si], paragraphs: paras }
-                                    updateLocalityGuide({ sections: next })
-                                  }} />
-                    </div>
+                                <div key={pi} className="rounded-md border border-border/50 bg-muted/10 p-2">
+                                  <RichTextField
+                                    label={`Section paragraph ${pi + 1}`}
+                                    value={p}
+                                    onChange={(html) => {
+                                      const next = [...config.localityGuide.sections]
+                                      const paras = [...(next[si].paragraphs.length ? next[si].paragraphs : [''])]
+                                      paras[pi] = html
+                                      next[si] = { ...next[si], paragraphs: paras }
+                                      updateLocalityGuide({ sections: next })
+                                    }}
+                                    height={170}
+                                    modules={CATEGORY_MARKETING_RTE_MODULES}
+                                    formats={CATEGORY_MARKETING_RTE_FORMATS}
+                                  />
+                                </div>
                               ))}
                               <div className="flex flex-row gap-2">
                                 <Button
@@ -2809,14 +2964,19 @@ export default function CategoryMarketingManagement() {
             <TabsContent value="closing" className="mt-2 px-0 outline-none">
               <div className="flex flex-col gap-4">
                 <Card>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      Closing content
-                    </p>
-                    <div className="space-y-2">
-                      <Label htmlFor="cmm-f-93">Closing paragraph(s)</Label>
-                      <Textarea id="cmm-f-93" className="w-full" rows={5} value={config.closingParagraph} onChange={(e) => updateConfig({ closingParagraph: e.target.value })} />
-                    </div>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Closing content</CardTitle>
+                    <CardDescription>Final persuasive block before the footer; same rich formatting as the hero intro.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <RichTextField
+                      label="Closing paragraph(s)"
+                      value={config.closingParagraph}
+                      onChange={(html) => updateConfig({ closingParagraph: html })}
+                      height={220}
+                      modules={CATEGORY_MARKETING_RTE_MODULES}
+                      formats={CATEGORY_MARKETING_RTE_FORMATS}
+                    />
                   </CardContent>
                 </Card>
                 <Card>
@@ -2830,12 +2990,16 @@ export default function CategoryMarketingManagement() {
                         updateConfig({ leadMagnet: { ...config.leadMagnet, headline: e.target.value } })
                       } />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="cmm-f-95">Description</Label>
-                      <Textarea id="cmm-f-95" className="w-full" rows={2} value={config.leadMagnet.description} onChange={(e) =>
-                        updateConfig({ leadMagnet: { ...config.leadMagnet, description: e.target.value } })
-                      } />
-                    </div>
+                    <RichTextField
+                      label="Description"
+                      value={config.leadMagnet.description}
+                      onChange={(html) =>
+                        updateConfig({ leadMagnet: { ...config.leadMagnet, description: html } })
+                      }
+                      height={140}
+                      modules={CATEGORY_MARKETING_RTE_MODULES}
+                      formats={CATEGORY_MARKETING_RTE_FORMATS}
+                    />
                     <div className="space-y-2">
                       <Label htmlFor="cmm-f-96">CTA label</Label>
                       <Input id="cmm-f-96" className="w-full" value={config.leadMagnet.ctaLabel} onChange={(e) =>
@@ -2871,6 +3035,17 @@ export default function CategoryMarketingManagement() {
           </Button>
         </div>
       )}
+
+      <ConfirmDialog
+        open={seoAutofillConfirmOpen}
+        title="Apply hyperlocal SEO pack?"
+        message={`This will overwrite SEO-related fields for key “${effectiveKey}”: metadata & primary keyword, hero chips, intro, FAQs (starter Q&A), related links (using your public origin), locality guide (enabled), local SEO (service area copy — not NAP), technical SEO (canonical, OG/Twitter shells, robots, breadcrumbs, schema toggles, answer summary), closing line, and JSON-LD notes. Service cards and pricing blocks stay unchanged. Set REACT_APP_PUBLIC_SITE_ORIGIN for correct URLs (currently ${publicSiteOrigin}).`}
+        confirmText="Apply pack"
+        cancelText="Cancel"
+        severity="warning"
+        onCancel={() => setSeoAutofillConfirmOpen(false)}
+        onConfirm={applySeoAutofillPack}
+      />
     </div>
   )
 }
