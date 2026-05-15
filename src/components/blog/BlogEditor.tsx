@@ -947,7 +947,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
   const titleLen = title.length
   const blogTitleWordCount = title.trim() ? title.trim().split(/\s+/).filter(Boolean).length : 0
 
-  const publicSiteOrigin = (process.env.REACT_APP_PUBLIC_SITE_ORIGIN || 'https://my.profixer.in').replace(
+  const publicSiteOrigin = (process.env.REACT_APP_PUBLIC_SITE_ORIGIN || 'https://www.profixer.in/blog').replace(
     /\/$/,
     '',
   )
@@ -1868,7 +1868,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             <div className="rounded-lg border border-indigo-200/80 bg-gradient-to-r from-indigo-50/95 to-white px-4 py-3 text-sm text-slate-700 shadow-sm">
               <p className="font-semibold text-indigo-950">Industry publishing — ProFixer blog</p>
               <p className="mt-1 text-xs leading-relaxed text-slate-600">
-                Primary URL preview defaults to <strong className="text-slate-800">https://my.profixer.in</strong> (override with{' '}
+                Primary URL preview defaults to <strong className="text-slate-800">https://www.profixer.in/blog</strong> (override with{' '}
                 <code className="rounded bg-white px-1 font-mono text-[11px]">REACT_APP_PUBLIC_SITE_ORIGIN</code>). Extra{' '}
                 <code className="rounded bg-white px-1 font-mono text-[11px]">seo.*</code> keys are safe to store; backends that do not persist them yet
                 can ignore unknown fields.
@@ -2775,7 +2775,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                 </span>
               </div>
               <p className="mb-3 text-[11px] leading-snug text-slate-500">
-                Google-style listing (desktop). Default origin is <strong className="font-medium text-slate-700">https://my.profixer.in</strong>; override with{' '}
+                Google-style listing (desktop). Default origin is <strong className="font-medium text-slate-700">https://www.profixer.in/blog</strong>; override with{' '}
                 <code className="rounded bg-white px-1 py-0.5 font-mono text-[10px] text-slate-700">
                   REACT_APP_PUBLIC_SITE_ORIGIN
                 </code>{' '}

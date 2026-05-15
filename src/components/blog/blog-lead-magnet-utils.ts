@@ -69,7 +69,7 @@ export function buildBlogRichResultsJsonLdPreview(opts: {
   datePublished?: string
   faqItems: BlogFaqItem[]
 }): string {
-  const pageUrl = opts.pageUrl.trim() || 'https://my.profixer.in/blog/'
+  const pageUrl = opts.pageUrl.trim() || 'https://profixer.in/blog'
   const graph: Record<string, unknown>[] = []
   const article: Record<string, unknown> = {
     '@type': 'BlogPosting',
@@ -81,7 +81,7 @@ export function buildBlogRichResultsJsonLdPreview(opts: {
     publisher: {
       '@type': 'Organization',
       name: 'ProFixer',
-      url: 'https://my.profixer.in',
+      url: 'https://www.profixer.in/blog',
     },
   }
   const img = opts.imageUrl?.trim()

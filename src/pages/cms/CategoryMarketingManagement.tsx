@@ -95,7 +95,7 @@ type TabKey =
   | 'closing'
 
 /** Consumer site origin — placeholders and checklist copy only. */
-const PROFIXER_PUBLIC_ORIGIN = 'https://my.profixer.in'
+const PROFIXER_PUBLIC_ORIGIN = 'https://www.profixer.in/'
 
 function charCountColor(len: number, min: number, optimal: number, hard: number): string {
   if (len > hard) return 'text-destructive'
@@ -230,12 +230,13 @@ export default function CategoryMarketingManagement() {
     }
   }
 
-  const config = data[effectiveKey] ?? emptyCategoryMarketingConfig()
+  /** Always merged so API/import quirks never leave `.map`/`.filter` targets undefined at runtime. */
+  const config = useMemo(() => mergeCategoryConfig(data[effectiveKey] ?? {}), [data, effectiveKey])
 
   const updateConfig = (updates: Partial<CategoryMarketingConfig>) => {
     setData((prev) => {
-      const base = prev[effectiveKey] ?? emptyCategoryMarketingConfig()
-      const next: CategoryMarketingConfig = {
+      const base = mergeCategoryConfig(prev[effectiveKey] ?? {})
+      const nextRaw: CategoryMarketingConfig = {
         ...base,
         ...updates,
         leadMagnet: updates.leadMagnet
@@ -255,6 +256,7 @@ export default function CategoryMarketingManagement() {
             }
           : base.technicalSeo,
       }
+      const next = mergeCategoryConfig(nextRaw)
       return { ...prev, [effectiveKey]: next }
     })
   }

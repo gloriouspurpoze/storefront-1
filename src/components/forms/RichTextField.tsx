@@ -1,9 +1,63 @@
-import React, { useRef } from 'react'
+import React, { Component, type ErrorInfo, useLayoutEffect, useRef, useState } from 'react'
 import { Info, CheckCircle2, AlertCircle, AlertTriangle } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import { Label } from '../ui/label'
+import { Textarea } from '../ui/textarea'
 import { cn } from '../../lib/utils'
 import 'react-quill-new/dist/quill.snow.css'
+
+/** Stable references — `react-quill-new` treats unequal `modules` as a full editor teardown/rebuild. */
+const RICH_TEXT_DEFAULT_MODULES = {
+  toolbar: [
+    [{ header: [1, 2, 3, 4, 5, 6, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ color: [] }, { background: [] }],
+    [{ list: 'ordered' }, { list: 'bullet' }],
+    [{ indent: '-1' }, { indent: '+1' }],
+    [{ align: [] }],
+    ['link', 'image', 'video'],
+    ['clean'],
+  ],
+  clipboard: { matchVisual: false },
+} as const
+
+const RICH_TEXT_DEFAULT_FORMATS = [
+  'header',
+  'bold',
+  'italic',
+  'underline',
+  'strike',
+  'color',
+  'background',
+  'list',
+  'bullet',
+  'indent',
+  'align',
+  'link',
+  'image',
+  'video',
+] as const
+
+/** Catches Quill / React 19 edge cases during mount or reconciliation; keeps the form usable. */
+class QuillGuard extends Component<
+  { children: React.ReactNode; fallback: React.ReactNode },
+  { error: Error | null }
+> {
+  state = { error: null }
+
+  static getDerivedStateFromError(error: Error) {
+    return { error }
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('[RichTextField] Quill failed:', error, info.componentStack)
+  }
+
+  render() {
+    if (this.state.error) return <>{this.props.fallback}</>
+    return this.props.children
+  }
+}
 
 export interface RichTextFieldProps {
   label: string
@@ -60,39 +114,11 @@ export const RichTextField: React.FC<RichTextFieldProps> = ({
   maxLength,
 }) => {
   const quillRef = useRef<ReactQuill>(null)
-
-  const defaultModules = {
-    toolbar: [
-      [{ header: [1, 2, 3, 4, 5, 6, false] }],
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ color: [] }, { background: [] }],
-      [{ list: 'ordered' }, { list: 'bullet' }],
-      [{ indent: '-1' }, { indent: '+1' }],
-      [{ align: [] }],
-      ['link', 'image', 'video'],
-      ['clean'],
-    ],
-    clipboard: {
-      matchVisual: false,
-    },
-  }
-
-  const defaultFormats = [
-    'header',
-    'bold',
-    'italic',
-    'underline',
-    'strike',
-    'color',
-    'background',
-    'list',
-    'bullet',
-    'indent',
-    'align',
-    'link',
-    'image',
-    'video',
-  ]
+  /** Mount Quill after DOM commit (layout phase) — fewer races with React 19 concurrent passes than useEffect. */
+  const [editorReady, setEditorReady] = useState(false)
+  useLayoutEffect(() => {
+    setEditorReady(true)
+  }, [])
 
   const handleChange = (content: string) => {
     if (maxLength && content.length > maxLength) {
@@ -134,16 +160,39 @@ export const RichTextField: React.FC<RichTextFieldProps> = ({
           .rich-text-field .ql-container { min-height: ${height}px; }
           .rich-text-field .ql-editor { min-height: ${Math.max(0, height - 42)}px; padding: 12px 15px; }
         `}</style>
-        <ReactQuill
-          ref={quillRef}
-          theme="snow"
-          value={value}
-          onChange={handleChange}
-          modules={modules || defaultModules}
-          formats={formats || defaultFormats}
-          placeholder={placeholder}
-          readOnly={disabled}
-        />
+        {editorReady ? (
+          <QuillGuard
+            fallback={
+              <Textarea
+                className="min-h-[120px] rounded-b-md border border-t-0 border-input bg-background px-3 py-2 font-mono text-sm"
+                style={{ minHeight: height }}
+                value={value}
+                onChange={(e) => handleChange(e.target.value)}
+                placeholder={placeholder}
+                disabled={disabled}
+                aria-label={label}
+              />
+            }
+          >
+            <ReactQuill
+              ref={quillRef}
+              theme="snow"
+              value={value}
+              onChange={handleChange}
+              modules={(modules ?? (RICH_TEXT_DEFAULT_MODULES as Record<string, unknown>)) as ReactQuill.ReactQuillProps['modules']}
+              formats={(formats ?? [...RICH_TEXT_DEFAULT_FORMATS]) as string[]}
+              placeholder={placeholder}
+              readOnly={disabled}
+            />
+          </QuillGuard>
+        ) : (
+          <div
+            className="flex items-center rounded-b-md border border-t-0 border-input bg-muted/30 px-3 text-sm text-muted-foreground"
+            style={{ minHeight: height }}
+          >
+            Loading editor…
+          </div>
+        )}
       </div>
 
       <div className="mt-1.5 flex items-center justify-between gap-2">

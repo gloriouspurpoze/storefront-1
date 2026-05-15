@@ -25,7 +25,16 @@ function PreviewRichHtml({ html, className }: { html: string; className?: string
       <div className={cn('whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground', className)}>{raw}</div>
     )
   }
-  const safe = sanitizeCategoryMarketingRichHtml(raw)
+  let safe = ''
+  try {
+    safe = sanitizeCategoryMarketingRichHtml(raw)
+  } catch {
+    return (
+      <p className={cn('text-xs text-muted-foreground', className)}>
+        Preview skipped (sanitize error). Raw length: {raw.length} chars.
+      </p>
+    )
+  }
   if (!safe.trim()) return null
   return (
     <div
@@ -85,7 +94,7 @@ export function IndustryLandingEditorPreview({
   className,
   publicOrigin: publicOriginProp,
 }: IndustryLandingEditorPreviewProps) {
-  const publicOrigin = (publicOriginProp || process.env.REACT_APP_PUBLIC_SITE_ORIGIN || 'https://my.profixer.in').replace(
+  const publicOrigin = (publicOriginProp || process.env.REACT_APP_PUBLIC_SITE_ORIGIN || 'https://www.profixer.in/blog').replace(
     /\/$/,
     '',
   )
