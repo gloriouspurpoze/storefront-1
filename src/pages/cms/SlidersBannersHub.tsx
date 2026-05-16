@@ -45,7 +45,7 @@ export default function SlidersBannersHub() {
     <div className="p-4 sm:p-6 md:p-8">
       <PageHeader
         title="Sliders & site banners"
-        subtitle="Carousels (Sliders API: placement, ordering, schedules) and CMS banners (hero, pop-ups, announcements, product targets). Same screen — two API surfaces the consumer may read separately."
+        subtitle="Carousels with image, GIF, video, or Lottie slides (placement, schedules, playback) plus CMS banners for pop-ups and announcements."
         icon={<Images className="h-7 w-7" aria-hidden />}
       />
 

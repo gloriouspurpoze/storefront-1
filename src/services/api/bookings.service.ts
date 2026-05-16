@@ -590,6 +590,8 @@ export class BookingsService {
       loadingMessage: 'Assigning professional...',
       successMessage: 'Professional assigned successfully!',
       errorMessage: 'Failed to assign professional.',
+      // Assign runs invoice, notifications, email, and chat — often >10s
+      timeout: 60000,
     })
   }
 

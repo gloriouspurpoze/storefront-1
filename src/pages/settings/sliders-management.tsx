@@ -65,8 +65,19 @@ import { SlidersService } from '../../services/api/sliders.service';
 import { CategoriesService } from '../../services/api/categories.service';
 import { Slider, SliderPlacement, SLIDER_PLACEMENT_LABELS } from '../../types';
 import type { Category } from '../../types';
-import { ImageUploadField, FormField, type ImageFile } from '../../components/forms';
+import { FormField, type ImageFile } from '../../components/forms';
 import { useAppConfirm } from '../../components/providers/AppDialogsProvider';
+import { SliderMediaFormSection } from '../../components/sliders/SliderMediaFormSection';
+import { SliderResponsivePreview } from '../../components/sliders/SliderResponsivePreview';
+import {
+  DEFAULT_SLIDER_PLAYBACK,
+  normalizeSliderMediaType,
+  sliderFromApi,
+  sliderThumbnailUrl,
+  buildSliderPreviewSources,
+  SLIDER_MEDIA_TYPE_LABELS,
+} from '../../lib/sliderMedia';
+import type { SliderMediaType } from '../../types';
 
 interface SliderStats {
   total_sliders: number;
@@ -123,6 +134,12 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
     image_url: '',
     image_url_mobile: '',
     image_alt: '',
+    media_type: 'image' as SliderMediaType,
+    video_url: '',
+    video_url_mobile: '',
+    poster_url: '',
+    lottie_url: '',
+    playback: { ...DEFAULT_SLIDER_PLAYBACK },
     button_text: '',
     button_url: '',
     position: 1,
@@ -134,9 +151,8 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
     target_audience: 'all' as 'all' | 'customers' | 'providers',
   });
 
-  // Image upload state (web + mobile)
   const [uploadedImages, setUploadedImages] = useState<ImageFile[]>([]);
-  const [uploadedMobileImages, setUploadedMobileImages] = useState<ImageFile[]>([]);
+  const [uploadedPoster, setUploadedPoster] = useState<ImageFile[]>([]);
 
 
   useEffect(() => {
@@ -178,7 +194,7 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
       
       if (response && response.data) {
         if (response.data.sliders) {
-          setSliders(response.data.sliders);
+          setSliders(response.data.sliders.map((s: Slider) => sliderFromApi(s)));
           setTotal(response.data.pagination?.total || response.data.sliders.length);
         } else if (Array.isArray(response.data)) {
           // Handle case where response.data is directly an array
@@ -238,46 +254,55 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
   };
 
   const handleEdit = (slider: Slider) => {
+    const s = sliderFromApi(slider);
     setFormMode('edit');
-    setSelectedSlider(slider);
+    setSelectedSlider(s);
     setFormData({
-      title: slider.title || '',
-      subtitle: slider.subtitle || '',
-      description: slider.description || '',
-      image_url: slider.image_url || '',
-      image_url_mobile: slider.image_url_mobile || '',
-      image_alt: slider.image_alt || '',
-      button_text: slider.button_text || '',
-      button_url: slider.button_url || '',
-      position: slider.position || 1,
-      is_active: slider.is_active ?? true,
-      placement: (slider.placement as SliderPlacement) || 'home_page_hero',
-      category_id: slider.category_id || '',
-      start_date: slider.start_date ? slider.start_date.split('T')[0] : '',
-      end_date: slider.end_date ? slider.end_date.split('T')[0] : '',
-      target_audience: slider.target_audience || 'all',
+      title: s.title || '',
+      subtitle: s.subtitle || '',
+      description: s.description || '',
+      image_url: s.image_url || '',
+      image_url_mobile: s.image_url_mobile || '',
+      image_alt: s.image_alt || '',
+      media_type: normalizeSliderMediaType(s.media_type),
+      video_url: s.video_url || '',
+      video_url_mobile: s.video_url_mobile || '',
+      poster_url: s.poster_url || '',
+      lottie_url: s.lottie_url || '',
+      playback: { ...DEFAULT_SLIDER_PLAYBACK, ...(s.playback || {}) },
+      button_text: s.button_text || '',
+      button_url: s.button_url || '',
+      position: s.position || 1,
+      is_active: s.is_active ?? true,
+      placement: (s.placement as SliderPlacement) || 'home_page_hero',
+      category_id: s.category_id || '',
+      start_date: s.start_date ? s.start_date.split('T')[0] : '',
+      end_date: s.end_date ? s.end_date.split('T')[0] : '',
+      target_audience: s.target_audience || 'all',
     });
-    if (slider.image_url) {
+    const thumb = sliderThumbnailUrl(s);
+    if (thumb && normalizeSliderMediaType(s.media_type) !== 'video') {
       setUploadedImages([{
         id: 'existing',
-        url: slider.image_url,
-        alt: slider.image_alt || slider.title,
+        url: thumb,
+        alt: s.image_alt || s.title,
         isPrimary: true,
         order: 0,
       }]);
     } else {
       setUploadedImages([]);
     }
-    if (slider.image_url_mobile) {
-      setUploadedMobileImages([{
-        id: 'existing-mobile',
-        url: slider.image_url_mobile,
-        alt: (slider.image_alt || slider.title) + ' (mobile)',
+    const poster = s.poster_url || (normalizeSliderMediaType(s.media_type) === 'video' ? s.image_url : '');
+    if (poster) {
+      setUploadedPoster([{
+        id: 'existing-poster',
+        url: poster,
+        alt: (s.image_alt || s.title) + ' poster',
         isPrimary: true,
         order: 0,
       }]);
     } else {
-      setUploadedMobileImages([]);
+      setUploadedPoster([]);
     }
     setActiveTab(0);
     setFormErrors({});
@@ -352,13 +377,25 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
       errors.title = 'Title must be 100 characters or less';
     }
 
-    // Use uploaded image URL if available, otherwise use manual URL
-    const imageUrl = uploadedImages.length > 0 
-      ? uploadedImages[0].url 
-      : formData.image_url;
+    const imageUrl = uploadedImages.length > 0 ? uploadedImages[0].url : formData.image_url;
+    const posterUrl = uploadedPoster.length > 0 ? uploadedPoster[0].url : formData.poster_url;
+    const mediaType = formData.media_type;
 
-    if (!imageUrl.trim()) {
-      errors.image_url = 'Image is required. Please upload an image or provide an image URL';
+    if (mediaType === 'image' || mediaType === 'gif') {
+      if (!imageUrl.trim()) {
+        errors.image_url =
+          mediaType === 'gif'
+            ? 'GIF is required. Upload or paste a GIF URL'
+            : 'Image is required. Upload or paste an image URL';
+      }
+    } else if (mediaType === 'video') {
+      if (!formData.video_url.trim()) {
+        errors.video_url = 'Video URL is required. Upload a video or paste a URL';
+      }
+    } else if (mediaType === 'lottie') {
+      if (!formData.lottie_url.trim()) {
+        errors.lottie_url = 'Lottie JSON URL is required';
+      }
     }
 
     if (formData.button_text && !formData.button_url) {
@@ -387,13 +424,16 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
     }
 
     // Use uploaded image URL if available, otherwise use manual URL
-    const imageUrl = uploadedImages.length > 0 
-      ? uploadedImages[0].url 
-      : formData.image_url;
+    const imageUrl = uploadedImages.length > 0 ? uploadedImages[0].url : formData.image_url;
+    const posterUrl = uploadedPoster.length > 0 ? uploadedPoster[0].url : formData.poster_url;
+    const mediaType = formData.media_type;
 
-    const mobileImageUrl = uploadedMobileImages.length > 0
-      ? uploadedMobileImages[0].url
-      : formData.image_url_mobile;
+    let resolvedImageUrl = imageUrl;
+    if (mediaType === 'video') {
+      resolvedImageUrl = posterUrl || imageUrl || formData.video_url;
+    } else if (mediaType === 'lottie') {
+      resolvedImageUrl = posterUrl || imageUrl;
+    }
 
     try {
       setFormLoading(true);
@@ -401,11 +441,17 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
         title: formData.title,
         subtitle: formData.subtitle || undefined,
         description: formData.description || undefined,
-        image_url: imageUrl,
-        image_url_mobile: mobileImageUrl || undefined,
+        image_url: resolvedImageUrl,
+        image_url_mobile: resolvedImageUrl,
         image_alt: uploadedImages.length > 0
           ? uploadedImages[0].alt
           : (formData.image_alt || formData.title),
+        media_type: mediaType,
+        video_url: mediaType === 'video' ? formData.video_url : undefined,
+        video_url_mobile: mediaType === 'video' ? formData.video_url : undefined,
+        poster_url: posterUrl || undefined,
+        lottie_url: mediaType === 'lottie' ? formData.lottie_url : undefined,
+        playback: formData.playback,
         button_text: formData.button_text || undefined,
         button_url: formData.button_url || undefined,
         position: formData.position,
@@ -458,6 +504,12 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
       image_url: '',
       image_url_mobile: '',
       image_alt: '',
+      media_type: 'image',
+      video_url: '',
+      video_url_mobile: '',
+      poster_url: '',
+      lottie_url: '',
+      playback: { ...DEFAULT_SLIDER_PLAYBACK },
       button_text: '',
       button_url: '',
       position: 1,
@@ -469,7 +521,7 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
       target_audience: 'all',
     });
     setUploadedImages([]);
-    setUploadedMobileImages([]);
+    setUploadedPoster([]);
     setSelectedSlider(null);
     setActiveTab(0);
     setFormErrors({});
@@ -519,15 +571,20 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
   if (viewMode === 'form') {
     const tabs = [
       { label: 'Basic Info', icon: <InfoIcon />, value: 0 },
-      { label: 'Image & Media', icon: <ImageIcon />, value: 1 },
+      { label: 'Media', icon: <ImageIcon />, value: 1 },
       { label: 'Call to Action', icon: <CampaignIcon />, value: 2 },
       { label: 'Settings', icon: <SettingsIcon />, value: 3 },
       { label: 'Preview', icon: <PreviewIcon />, value: 4 },
     ];
 
-    const imageUrl = uploadedImages.length > 0 
-      ? uploadedImages[0].url 
-      : formData.image_url;
+    const previewSources = buildSliderPreviewSources({
+      media_type: formData.media_type,
+      image_url: uploadedImages[0]?.url || formData.image_url,
+      video_url: formData.video_url,
+      poster_url: uploadedPoster[0]?.url || formData.poster_url,
+      lottie_url: formData.lottie_url,
+      playback: formData.playback,
+    });
 
     return (
       <TooltipProvider>
@@ -537,14 +594,16 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
           subtitle={formMode === 'edit' ? 'Update slider details and settings' : 'Add a new banner/slider to your website'}
           action={
             <div className="flex flex-row gap-2">
-              <Button
-                variant="outline"
-                className="rounded-lg"
-                onClick={() => setShowPreview(!showPreview)}
-              >
-                <PreviewIcon className="mr-2 h-4 w-4" />
-                {showPreview ? 'Hide Preview' : 'Show Preview'}
-              </Button>
+              {activeTab !== 1 && (
+                <Button
+                  variant="outline"
+                  className="rounded-lg"
+                  onClick={() => setShowPreview(!showPreview)}
+                >
+                  <PreviewIcon className="mr-2 h-4 w-4" />
+                  {showPreview ? 'Hide Preview' : 'Show Preview'}
+                </Button>
+              )}
               <Button
                 variant="outline"
                 className="rounded-lg"
@@ -606,7 +665,7 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
 
         <div className="flex flex-col gap-8 lg:flex-row">
           {/* Main Form */}
-          <div className="flex-1 lg:max-w-none" style={{ flex: showPreview ? '2 1 0%' : '1 1 0%' }}>
+          <div className="flex-1 lg:max-w-none" style={{ flex: showPreview && activeTab !== 1 ? '2 1 0%' : '1 1 0%' }}>
             <Card className="overflow-hidden rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.08)]">
               {/* Tab Navigation */}
               <div className="border-b border-border bg-card">
@@ -756,137 +815,42 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
                       </div>
                   )}
 
-                  {/* Tab 1: Image & Media */}
+                  {/* Tab 1: Media — single asset + responsive preview */}
                   {activeTab === 1 && (
-                    <div>
-                        <h3 className="mb-6 flex items-center gap-2 text-xl font-bold text-primary">
-                          <ImageIcon className="h-6 w-6" />
-                          Image & Media
-                        </h3>
-                        <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
-                          <div className="col-span-12">
-                            <div className="mb-6 rounded-lg border border-sky-500/30 bg-sky-500/10 p-4 text-sm">
-                              <p>
-                                <strong>Recommended size:</strong> 1920x600px for best results. Maximum file size: 5MB.
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="col-span-12">
-                            <ImageUploadField
-                              label="Slider Image"
-                              value={uploadedImages}
-                              onChange={(images) => {
-                                setUploadedImages(images);
-                                if (images.length > 0) {
-                                  setFormData({
-                                    ...formData,
-                                    image_url: images[0].url,
-                                    image_alt: images[0].alt,
-                                  });
-                                  if (formErrors.image_url) {
-                                    setFormErrors({ ...formErrors, image_url: '' });
-                                  }
-                                } else {
-                                  setFormData({
-                                    ...formData,
-                                    image_url: '',
-                                  });
-                                }
-                              }}
-                              required
-                              maxFiles={1}
-                              maxSize={5}
-                              folder="sliders"
-                              helperText="Upload a high-quality image for your slider"
-                              tooltip="Drag and drop or click to upload. Maximum 5MB. Supported formats: JPG, PNG, GIF, WebP"
-                            />
-                            {formErrors.image_url && (
-                              <p className="mt-2 block text-xs text-destructive">{formErrors.image_url}</p>
-                            )}
-                          </div>
-
-                          <div className="col-span-12">
-                            <p className="mb-2 text-sm font-semibold">Mobile image (optional)</p>
-                            <p className="mb-4 text-sm text-muted-foreground">
-                              Used by the mobile app and mobile web. Fallback: desktop image.
-                            </p>
-                            <ImageUploadField
-                              label="Mobile / App image"
-                              value={uploadedMobileImages}
-                              onChange={(images) => {
-                                setUploadedMobileImages(images);
-                                if (images.length > 0) {
-                                  setFormData((prev) => ({ ...prev, image_url_mobile: images[0].url }));
-                                } else {
-                                  setFormData((prev) => ({ ...prev, image_url_mobile: '' }));
-                                }
-                              }}
-                              maxFiles={1}
-                              maxSize={5}
-                              folder="sliders"
-                              helperText="Recommended: 768×400 or 1080×600 for app"
-                            />
-                            <FormField
-                              label="Mobile image URL (optional)"
-                              value={formData.image_url_mobile}
-                              onChange={(value) => setFormData({ ...formData, image_url_mobile: value })}
-                              placeholder="https://example.com/mobile-banner.jpg"
-                            />
-                          </div>
-
-                          <div className="col-span-12">
-                            <Separator className="my-6" />
-                            <p className="text-center text-sm text-muted-foreground">OR</p>
-                            <Separator className="my-6" />
-                          </div>
-
-                          <div className="col-span-12">
-                            <FormField
-                              label="Image URL"
-                              value={formData.image_url}
-                              onChange={(value) => {
-                                setFormData({ ...formData, image_url: value });
-                                if (formErrors.image_url) {
-                                  setFormErrors({ ...formErrors, image_url: '' });
-                                }
-                              }}
-                              placeholder="https://example.com/image.jpg"
-                              helperText="Enter the full URL of the slider image if you prefer to use an external image"
-                              type="url"
-                              error={formErrors.image_url || undefined}
-                            />
-                          </div>
-
-                          <div className="col-span-12">
-                            <FormField
-                              label="Image Alt Text"
-                              value={formData.image_alt}
-                              onChange={(value) => setFormData({ ...formData, image_alt: value })}
-                              placeholder="Enter descriptive alt text for accessibility"
-                              helperText="Alt text helps with SEO and accessibility for screen readers"
-                            />
-                          </div>
-
-                          {/* Image Preview */}
-                          {imageUrl && (
-                            <div className="col-span-12">
-                              <Card className="overflow-hidden rounded-lg border-2 border-primary/20 shadow-md">
-                                <div className="relative flex h-[200px] w-full items-center justify-center overflow-hidden bg-muted/50 sm:h-[300px]">
-                                  <img
-                                    src={imageUrl}
-                                    alt={formData.image_alt || formData.title || 'Slider preview'}
-                                    className="h-full w-full object-cover"
-                                    onError={(e) => {
-                                      (e.target as HTMLImageElement).style.display = 'none';
-                                    }}
-                                  />
-                                </div>
-                              </Card>
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                    <SliderMediaFormSection
+                      values={{
+                        media_type: formData.media_type,
+                        image_url: formData.image_url,
+                        video_url: formData.video_url,
+                        poster_url: formData.poster_url,
+                        lottie_url: formData.lottie_url,
+                        playback: formData.playback,
+                      }}
+                      onChange={(patch) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          ...patch,
+                          playback: patch.playback ? { ...prev.playback, ...patch.playback } : prev.playback,
+                        }))
+                      }
+                      uploadedImages={uploadedImages}
+                      onUploadedImagesChange={setUploadedImages}
+                      uploadedPoster={uploadedPoster}
+                      onUploadedPosterChange={setUploadedPoster}
+                      imageAlt={formData.image_alt}
+                      onImageAltChange={(value) => setFormData({ ...formData, image_alt: value })}
+                      errors={formErrors}
+                      onClearError={(key) =>
+                        setFormErrors((prev) => {
+                          const next = { ...prev };
+                          delete next[key];
+                          return next;
+                        })
+                      }
+                      previewTitle={formData.title}
+                      previewSubtitle={formData.subtitle}
+                      previewButton={formData.button_text}
+                    />
                   )}
 
                   {/* Tab 2: Call to Action */}
@@ -1073,54 +1037,12 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
                           <PreviewIcon className="h-6 w-6" />
                           Live Preview
                         </h3>
-                        {imageUrl ? (
-                          <Card className="overflow-hidden rounded-3xl border-2 border-primary/20 shadow-lg">
-                            <div className="relative flex h-[300px] w-full items-center justify-center overflow-hidden bg-muted/50 sm:h-[400px] md:h-[500px]">
-                              <img
-                                src={imageUrl}
-                                alt={formData.image_alt || formData.title || 'Slider preview'}
-                                className="h-full w-full object-cover"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).style.display = 'none';
-                                }}
-                              />
-                              {(formData.title || formData.subtitle || formData.button_text) && (
-                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/85 to-transparent p-4 text-white sm:p-6 md:p-8">
-                                  {formData.title && (
-                                    <p className="mb-2 text-2xl font-bold sm:text-3xl md:text-4xl">
-                                      {formData.title}
-                                    </p>
-                                  )}
-                                  {formData.subtitle && (
-                                    <p className="mb-4 text-base opacity-95 sm:text-xl">
-                                      {formData.subtitle}
-                                    </p>
-                                  )}
-                                  {formData.button_text && (
-                                    <Button size="lg" className="mt-2 px-8 font-semibold" disabled>
-                                      {formData.button_text}
-                                    </Button>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </Card>
-                        ) : (
-                          <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 p-4">
-                            <p className="mb-4 text-sm">
-                              Add an image to see how your slider will look. Go to the{' '}
-                              <strong>Image & Media</strong> tab to upload a file or paste an image URL.
-                            </p>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setActiveTab(1)}
-                            >
-                              <ImageIcon className="mr-2 h-4 w-4" />
-                              Go to Image & Media
-                            </Button>
-                          </div>
-                        )}
+                        <SliderResponsivePreview
+                          sources={previewSources}
+                          title={formData.title}
+                          subtitle={formData.subtitle}
+                          buttonText={formData.button_text}
+                        />
                       </div>
                   )}
 
@@ -1182,42 +1104,15 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
             </Card>
           </div>
 
-          {/* Side Preview Panel */}
-          {showPreview && imageUrl && (
+          {/* Side preview (Media tab has built-in preview) */}
+          {showPreview && activeTab !== 1 && (
             <div className="h-fit flex-1 lg:sticky lg:top-6">
-              <Card className="overflow-hidden rounded-3xl border-2 border-primary/20 shadow-lg">
-                <div className="border-b border-primary/20 bg-primary/10 p-4">
-                  <p className="flex items-center gap-2 font-semibold">
-                    <PreviewIcon className="h-4 w-4" />
-                    Live Preview
-                  </p>
-                </div>
-                <div className="relative flex h-[250px] w-full items-center justify-center overflow-hidden bg-muted/50 sm:h-[350px] lg:h-[400px]">
-                  <img
-                    src={imageUrl}
-                    alt={formData.image_alt || formData.title || 'Slider preview'}
-                    className="h-full w-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                  {(formData.title || formData.subtitle || formData.button_text) && (
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/85 to-transparent p-6 text-white">
-                      {formData.title && (
-                        <p className="mb-1 text-xl font-bold">{formData.title}</p>
-                      )}
-                      {formData.subtitle && (
-                        <p className="mb-2 text-sm opacity-95">{formData.subtitle}</p>
-                      )}
-                      {formData.button_text && (
-                        <Button className="mt-2" disabled>
-                          {formData.button_text}
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </Card>
+              <SliderResponsivePreview
+                sources={previewSources}
+                title={formData.title}
+                subtitle={formData.subtitle}
+                buttonText={formData.button_text}
+              />
             </div>
           )}
         </div>
@@ -1435,7 +1330,7 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
                             if (slider.image_url) window.open(slider.image_url, '_blank');
                           }}
                         >
-                          <AvatarImage src={slider.image_url || undefined} className="object-cover" />
+                          <AvatarImage src={sliderThumbnailUrl(slider) || undefined} className="object-cover" />
                           <AvatarFallback className="rounded-md">
                             <ImageIcon className="h-6 w-6" />
                           </AvatarFallback>
@@ -1447,6 +1342,11 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
                           {slider.subtitle && (
                             <p className="text-xs text-muted-foreground">{slider.subtitle}</p>
                           )}
+                          {slider.media_type && slider.media_type !== 'image' ? (
+                            <Badge variant="outline" className="mt-1 text-[10px]">
+                              {SLIDER_MEDIA_TYPE_LABELS[slider.media_type]}
+                            </Badge>
+                          ) : null}
                         </div>
                       </TableCell>
                       <TableCell>

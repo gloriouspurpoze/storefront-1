@@ -32,6 +32,7 @@ import {
   bookingScheduledDayHint,
   scheduleSummaryLines,
 } from '../../lib/professionalSchedule'
+import { normalizeProfessionalFromApi } from '../../lib/professionalAdmin'
 
 interface AssignProfessionalDialogProps {
   open: boolean
@@ -108,7 +109,8 @@ export function AssignProfessionalDialog({
         limit: 100,
         isVerified: true,
       })
-      setProfessionals(response.data.professionals || [])
+      const list = response.data.professionals || []
+      setProfessionals(list.map((p) => normalizeProfessionalFromApi(p)))
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load professionals')
     } finally {

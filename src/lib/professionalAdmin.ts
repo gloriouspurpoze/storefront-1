@@ -78,6 +78,19 @@ export function normalizeProfessionalFromApi(raw: unknown): Professional {
     p.weeklyAvailability ?? p.time_slots ?? p.timeSlots,
   )
 
+  const ratingRaw = p.rating ?? p.averageRating ?? p.average_rating ?? merged.rating ?? 0
+  const totalReviewsRaw =
+    p.totalReviews ?? p.totalRatings ?? p.total_ratings ?? merged.totalReviews ?? 0
+  const completedJobsRaw =
+    p.completedJobs ?? p.completedBookings ?? p.completed_bookings ?? merged.completedJobs ?? 0
+  const cancelledJobsRaw =
+    p.cancelledJobs ?? p.cancelledBookings ?? p.cancelled_bookings ?? merged.cancelledJobs ?? 0
+
+  merged.rating = Math.round(Number(ratingRaw) * 10) / 10 || 0
+  merged.totalReviews = Number(totalReviewsRaw) || 0
+  merged.completedJobs = Number(completedJobsRaw) || 0
+  merged.cancelledJobs = Number(cancelledJobsRaw) || 0
+
   const rawSd = p.securityDeposit as Record<string, unknown> | undefined
   if (rawSd && typeof rawSd === 'object') {
     const n = (v: unknown) => {

@@ -117,6 +117,15 @@ export type SliderPlacement =
   | 'promo'          // Inline promo blocks
   | 'seasonal'       // Seasonal / campaign banners
 
+export type SliderMediaType = 'image' | 'video' | 'gif' | 'lottie'
+
+export interface SliderPlaybackSettings {
+  autoplay: boolean
+  loop: boolean
+  muted: boolean
+  playsInline: boolean
+}
+
 export const SLIDER_PLACEMENT_LABELS: Record<SliderPlacement, string> = {
   home_page_hero: 'Home Page Hero',
   offers: 'Offers & Promotions',
@@ -135,6 +144,13 @@ export interface Slider {
   image_url: string
   image_url_mobile?: string
   image_alt?: string
+  media_type?: SliderMediaType
+  video_url?: string
+  video_url_mobile?: string
+  poster_url?: string
+  poster_url_mobile?: string
+  lottie_url?: string
+  playback?: SliderPlaybackSettings
   button_text?: string
   button_url?: string
   position: number
@@ -157,6 +173,13 @@ export interface CreateSliderRequest {
   image_url: string
   image_url_mobile?: string
   image_alt?: string
+  media_type?: SliderMediaType
+  video_url?: string
+  video_url_mobile?: string
+  poster_url?: string
+  poster_url_mobile?: string
+  lottie_url?: string
+  playback?: SliderPlaybackSettings
   button_text?: string
   button_url?: string
   position: number
@@ -176,6 +199,13 @@ export interface UpdateSliderRequest {
   image_url?: string
   image_url_mobile?: string
   image_alt?: string
+  media_type?: SliderMediaType
+  video_url?: string
+  video_url_mobile?: string
+  poster_url?: string
+  poster_url_mobile?: string
+  lottie_url?: string
+  playback?: SliderPlaybackSettings
   button_text?: string
   button_url?: string
   position?: number

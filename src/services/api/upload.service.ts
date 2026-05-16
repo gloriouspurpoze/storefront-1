@@ -140,6 +140,58 @@ export class UploadService {
     }
   }
 
+  private static async uploadMultipart(
+    endpoint: string,
+    file: File,
+    fieldName: string,
+    folder: string,
+  ): Promise<UploadResponse & { mediaType?: string; duration?: number }> {
+    const formData = new FormData()
+    formData.append(fieldName, file)
+    formData.append('file', file)
+    formData.append('folder', folder)
+
+    const response = await apiClient.uploadFile<ApiResponse>(endpoint, formData, {
+      showLoading: false,
+      showSuccessToast: false,
+      showErrorToast: false,
+    })
+    return this.extractUploadData(response) as UploadResponse & {
+      mediaType?: string
+      duration?: number
+    }
+  }
+
+  /** Hero carousel video (MP4 / WebM) */
+  static async uploadVideo(file: File, folder: string = 'homeservice/sliders/video') {
+    const endpoints = ['/upload/video', '/uploads/video']
+    let lastError: unknown = null
+    for (const endpoint of endpoints) {
+      try {
+        return await this.uploadMultipart(endpoint, file, 'video', folder)
+      } catch (err) {
+        lastError = err
+        if (!this.isNotFoundError(err)) throw err
+      }
+    }
+    throw lastError instanceof Error ? lastError : new Error('Video upload failed')
+  }
+
+  /** Lottie JSON animation */
+  static async uploadLottie(file: File, folder: string = 'homeservice/sliders/lottie') {
+    const endpoints = ['/upload/lottie', '/uploads/lottie']
+    let lastError: unknown = null
+    for (const endpoint of endpoints) {
+      try {
+        return await this.uploadMultipart(endpoint, file, 'lottie', folder)
+      } catch (err) {
+        lastError = err
+        if (!this.isNotFoundError(err)) throw err
+      }
+    }
+    throw lastError instanceof Error ? lastError : new Error('Lottie upload failed')
+  }
+
   /**
    * Upload single image
    */

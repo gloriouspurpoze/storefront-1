@@ -413,6 +413,18 @@ class ApiBase {
 
       return result
     } catch (error) {
+      const isAbort =
+        (error instanceof DOMException && error.name === 'AbortError') ||
+        (error instanceof Error &&
+          /aborted|abort/i.test(error.message) &&
+          !('status' in error))
+      if (isAbort) {
+        throw {
+          code: 'INTERNAL_ERROR',
+          message: 'Request timed out. Please try again.',
+          status: 408,
+        } as ApiError
+      }
       const apiError = error as ApiError
       // Error toast is handled in retryRequest once retries are exhausted (avoids
       // 3 identical toast when a 5xx is retried up to retryAttempts).
