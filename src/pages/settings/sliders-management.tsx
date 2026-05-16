@@ -63,7 +63,15 @@ import {
 } from '../../components/ui/dropdown-menu';
 import { SlidersService } from '../../services/api/sliders.service';
 import { CategoriesService } from '../../services/api/categories.service';
-import { Slider, SliderPlacement, SLIDER_PLACEMENT_LABELS } from '../../types';
+import {
+  Slider,
+  SliderPlacement,
+  SLIDER_PLACEMENT_LABELS,
+  PRODUCT_PLACEMENTS,
+  STORE_CATEGORY_PLACEMENTS,
+  SERVICE_CATEGORY_PLACEMENTS,
+} from '../../types';
+import { SliderTargetingFields } from '../../components/sliders/SliderTargetingFields';
 import type { Category } from '../../types';
 import { FormField, type ImageFile } from '../../components/forms';
 import { useAppConfirm } from '../../components/providers/AppDialogsProvider';
@@ -146,6 +154,9 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
     is_active: true,
     placement: 'home_page_hero' as SliderPlacement,
     category_id: '' as string,
+    product_id: '',
+    product_slug: '',
+    product_name: '',
     start_date: '',
     end_date: '',
     target_audience: 'all' as 'all' | 'customers' | 'providers',
@@ -276,6 +287,9 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
       is_active: s.is_active ?? true,
       placement: (s.placement as SliderPlacement) || 'home_page_hero',
       category_id: s.category_id || '',
+      product_id: s.product_id || '',
+      product_slug: s.product_slug || '',
+      product_name: s.product_name || '',
       start_date: s.start_date ? s.start_date.split('T')[0] : '',
       end_date: s.end_date ? s.end_date.split('T')[0] : '',
       target_audience: s.target_audience || 'all',
@@ -402,6 +416,10 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
       errors.button_url = 'Button URL is required when button text is provided';
     }
 
+    if (PRODUCT_PLACEMENTS.includes(formData.placement) && !formData.product_id) {
+      errors.product_id = 'Select a product for Product Page Promo slides';
+    }
+
     if (formData.start_date && formData.end_date) {
       const startDate = new Date(formData.start_date);
       const endDate = new Date(formData.end_date);
@@ -475,6 +493,16 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
         payload.category_slug = undefined;
       }
 
+      if (PRODUCT_PLACEMENTS.includes(formData.placement) && formData.product_id) {
+        payload.product_id = formData.product_id;
+        payload.product_slug = formData.product_slug || undefined;
+        payload.product_name = formData.product_name || undefined;
+      } else {
+        payload.product_id = undefined;
+        payload.product_slug = undefined;
+        payload.product_name = undefined;
+      }
+
       if (formMode === 'create') {
         await SlidersService.createSlider(payload);
         appToast('Slider created successfully', 'success');
@@ -516,6 +544,9 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
       is_active: true,
       placement: 'home_page_hero',
       category_id: '',
+      product_id: '',
+      product_slug: '',
+      product_name: '',
       start_date: '',
       end_date: '',
       target_audience: 'all',
@@ -732,9 +763,27 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
                               <Label>Placement</Label>
                               <Select
                                 value={formData.placement}
-                                onValueChange={(v) =>
-                                  setFormData({ ...formData, placement: v as SliderPlacement })
-                                }
+                                onValueChange={(v) => {
+                                  const placement = v as SliderPlacement
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    placement,
+                                    category_id:
+                                      SERVICE_CATEGORY_PLACEMENTS.includes(placement) ||
+                                      STORE_CATEGORY_PLACEMENTS.includes(placement)
+                                        ? prev.category_id
+                                        : '',
+                                    product_id: PRODUCT_PLACEMENTS.includes(placement)
+                                      ? prev.product_id
+                                      : '',
+                                    product_slug: PRODUCT_PLACEMENTS.includes(placement)
+                                      ? prev.product_slug
+                                      : '',
+                                    product_name: PRODUCT_PLACEMENTS.includes(placement)
+                                      ? prev.product_name
+                                      : '',
+                                  }))
+                                }}
                               >
                                 <SelectTrigger className="rounded-lg">
                                   <SelectValue />
@@ -750,40 +799,32 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
                                 </SelectContent>
                               </Select>
                               <p className="text-xs text-muted-foreground">
-                                Where this banner appears (Home, Offers, Mobile App, etc.)
+                                Home, store, service category, product page, mobile app, etc.
                               </p>
                             </div>
                           </div>
 
-                          <div className="col-span-12 md:col-span-6">
-                            <div className="space-y-2">
-                              <Label>Category (optional)</Label>
-                              <Select
-                                value={formData.category_id || '__all__'}
-                                onValueChange={(v) =>
-                                  setFormData({
-                                    ...formData,
-                                    category_id: v === '__all__' ? '' : v,
-                                  })
-                                }
-                              >
-                                <SelectTrigger className="rounded-lg">
-                                  <SelectValue placeholder="All categories" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="__all__">All categories</SelectItem>
-                                  {categories.map((cat) => (
-                                    <SelectItem key={cat.id} value={cat.id}>
-                                      {cat.name}
-                                      {cat.slug ? ` (${cat.slug})` : ''}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <p className="text-xs text-muted-foreground">
-                                Show this slider only on this category (e.g. AC, Electrician)
-                              </p>
-                            </div>
+                          <div className="col-span-12">
+                            <SliderTargetingFields
+                              placement={formData.placement}
+                              categoryId={formData.category_id}
+                              onCategoryIdChange={(id) =>
+                                setFormData((prev) => ({ ...prev, category_id: id }))
+                              }
+                              productId={formData.product_id}
+                              productSlug={formData.product_slug}
+                              productName={formData.product_name}
+                              onProductChange={(patch) =>
+                                setFormData((prev) => ({ ...prev, ...patch }))
+                              }
+                              buttonUrl={formData.button_url}
+                              onButtonUrlChange={(url) =>
+                                setFormData((prev) => ({ ...prev, button_url: url }))
+                              }
+                            />
+                            {formErrors.product_id ? (
+                              <p className="mt-2 text-xs text-destructive">{formErrors.product_id}</p>
+                            ) : null}
                           </div>
 
                           <div className="col-span-12">

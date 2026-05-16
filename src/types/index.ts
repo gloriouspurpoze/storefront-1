@@ -111,8 +111,11 @@ export interface ProvidersQuery {
 export type SliderPlacement =
   | 'home_page_hero'   // Home page main hero carousel
   | 'offers'          // Offers & promotions section
-  | 'category'        // Category / listing page banners
+  | 'category'        // Service category / listing page banners
   | 'mobile_app_home' // Mobile app home hero
+  | 'store_home'      // E-commerce store landing hero
+  | 'store_category'  // Store aisle / product category page
+  | 'product_page'    // Product detail promotional hero
   | 'announcement'    // Announcement / notice bar
   | 'promo'          // Inline promo blocks
   | 'seasonal'       // Seasonal / campaign banners
@@ -129,12 +132,24 @@ export interface SliderPlaybackSettings {
 export const SLIDER_PLACEMENT_LABELS: Record<SliderPlacement, string> = {
   home_page_hero: 'Home Page Hero',
   offers: 'Offers & Promotions',
-  category: 'Category Banner',
+  category: 'Service Category Banner',
   mobile_app_home: 'Mobile App Home',
+  store_home: 'Store Home',
+  store_category: 'Store Category (Aisle)',
+  product_page: 'Product Page Promo',
   announcement: 'Announcement Bar',
   promo: 'Inline Promo',
   seasonal: 'Seasonal / Campaign',
 }
+
+/** Placements that use service category targeting */
+export const SERVICE_CATEGORY_PLACEMENTS: SliderPlacement[] = ['category']
+
+/** Placements that use product catalog category (aisle) targeting */
+export const STORE_CATEGORY_PLACEMENTS: SliderPlacement[] = ['store_category']
+
+/** Placements that use product targeting */
+export const PRODUCT_PLACEMENTS: SliderPlacement[] = ['product_page']
 
 export interface Slider {
   id: string
@@ -159,6 +174,9 @@ export interface Slider {
   category_id?: string
   category_slug?: string
   category_name?: string
+  product_id?: string
+  product_slug?: string
+  product_name?: string
   start_date?: string
   end_date?: string
   target_audience?: 'all' | 'customers' | 'providers'
@@ -187,6 +205,9 @@ export interface CreateSliderRequest {
   placement?: SliderPlacement
   category_id?: string
   category_slug?: string
+  product_id?: string
+  product_slug?: string
+  product_name?: string
   start_date?: string
   end_date?: string
   target_audience?: 'all' | 'customers' | 'providers'
@@ -213,6 +234,9 @@ export interface UpdateSliderRequest {
   placement?: SliderPlacement
   category_id?: string
   category_slug?: string
+  product_id?: string
+  product_slug?: string
+  product_name?: string
   start_date?: string
   end_date?: string
   target_audience?: 'all' | 'customers' | 'providers'
