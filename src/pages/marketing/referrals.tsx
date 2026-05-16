@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '../../components/common/PageHeader';
 import { appToast } from '../../lib/appToast';
+import { cn } from '../../lib/utils';
 import { useAppConfirm } from '../../components/providers/AppDialogsProvider';
 import {
   ReferralsService,
@@ -66,7 +67,8 @@ export default function Referrals() {
 
   const [progLoading, setProgLoading] = useState(false);
   const [progEnabled, setProgEnabled] = useState(false);
-  const [creditRupee, setCreditRupee] = useState(0);
+  /** Rupees as string so empty input is not coerced to 0 on save. */
+  const [creditRupeeInput, setCreditRupeeInput] = useState('100');
   /** Empty string = backend uses env default for that field */
   const [refereeRewardRupee, setRefereeRewardRupee] = useState('');
   const [referrerRewardRupee, setReferrerRewardRupee] = useState('');
@@ -131,7 +133,8 @@ export default function Referrals() {
       const res = await ReferralsService.getProgramSettings();
       if (res.success && res.data) {
         setProgEnabled(res.data.firstSignupCreditEnabled);
-        setCreditRupee(res.data.firstSignupCreditAmountPaise / 100);
+        const rupees = res.data.firstSignupCreditAmountPaise / 100;
+        setCreditRupeeInput(rupees > 0 ? String(rupees) : '100');
         setRefereeRewardRupee(
           res.data.referralDefaultRefereeRewardPaise != null
             ? String(res.data.referralDefaultRefereeRewardPaise / 100)
@@ -214,9 +217,23 @@ export default function Referrals() {
       return;
     }
 
+    if (progEnabled) {
+      const trimmed = creditRupeeInput.trim();
+      if (trimmed === '') {
+        appToast('Enter a signup credit amount (₹) or turn off admin control to use the server env default only', 'error');
+        return;
+      }
+      const rupees = parseFloat(trimmed);
+      if (Number.isNaN(rupees) || rupees < 1) {
+        appToast('Signup credit must be at least ₹1 when admin control is enabled', 'error');
+        return;
+      }
+    }
+
     setSavingProg(true);
     try {
-      const paise = Math.round(Math.max(0, creditRupee) * 100);
+      const creditRupee = progEnabled ? parseFloat(creditRupeeInput.trim()) : 0;
+      const paise = progEnabled ? Math.round(Math.max(0, creditRupee) * 100) : 0;
       const res = await ReferralsService.updateProgramSettings({
         firstSignupCreditEnabled: progEnabled,
         firstSignupCreditAmountPaise: paise,
@@ -226,6 +243,15 @@ export default function Referrals() {
       });
       if (res.success) {
         appToast('Signup credit settings saved', 'success');
+        if (res.data) {
+          setProgEnabled(res.data.firstSignupCreditEnabled);
+          const savedRupees = res.data.firstSignupCreditAmountPaise / 100;
+          setCreditRupeeInput(
+            res.data.firstSignupCreditEnabled && savedRupees > 0 ? String(savedRupees) : '100',
+          );
+        } else {
+          void loadProgram();
+        }
       } else {
         appToast(res.message || 'Could not save settings', 'error');
       }
@@ -389,29 +415,58 @@ export default function Referrals() {
               ) : (
                 <div className="flex max-w-xl flex-col gap-6">
                   <p className="text-sm text-muted-foreground">
-                    When enabled, new customers receive this wallet credit once after email / OAuth signup
-                    (Mongo auth flow). Amount is stored in paise internally. If disabled here, the server falls back to
-                    the <code className="rounded bg-muted px-1">WALLET_SIGNUP_BONUS_PAISE</code> environment default.
+                    New customers (email register or Google sign-in) receive a one-time{' '}
+                    <code className="rounded bg-muted px-1">signup_bonus</code> wallet credit after account creation.
                   </p>
+                  <div
+                    className={cn(
+                      'rounded-lg border px-4 py-3 text-sm',
+                      progEnabled
+                        ? 'border-primary/30 bg-primary/5 text-foreground'
+                        : 'border-border bg-muted/40 text-muted-foreground',
+                    )}
+                  >
+                    {progEnabled ? (
+                      <>
+                        <strong className="font-medium">Admin amount active.</strong> New users get ₹
+                        {creditRupeeInput.trim() || '—'} once. Set at least ₹1 before saving.
+                      </>
+                    ) : (
+                      <>
+                        <strong className="font-medium">Server env default.</strong> Uses API env{' '}
+                        <code className="rounded bg-muted px-1">WALLET_SIGNUP_BONUS_PAISE</code> (often ₹100). Enable
+                        admin control below to set a fixed ₹ amount.
+                      </>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2">
                     <Switch
                       id="prog-enabled"
                       checked={progEnabled}
-                      onCheckedChange={(checked) => setProgEnabled(checked)}
+                      onCheckedChange={(checked) => {
+                        setProgEnabled(checked);
+                        if (checked && (!creditRupeeInput.trim() || Number(creditRupeeInput) < 1)) {
+                          setCreditRupeeInput('100');
+                        }
+                      }}
                     />
-                    <Label htmlFor="prog-enabled">Enable admin-controlled signup credit</Label>
+                    <Label htmlFor="prog-enabled">Use admin signup credit amount (override env default)</Label>
                   </div>
-                  <div className="space-y-2">
+                  <div className={cn('space-y-2', !progEnabled && 'pointer-events-none opacity-50')}>
                     <Label htmlFor="credit-rupee">Credit amount (₹)</Label>
                     <Input
                       id="credit-rupee"
                       type="number"
-                      min={0}
+                      min={1}
                       step={1}
-                      value={creditRupee}
-                      onChange={(e) => setCreditRupee(Number(e.target.value))}
+                      value={creditRupeeInput}
+                      disabled={!progEnabled}
+                      onChange={(e) => setCreditRupeeInput(e.target.value)}
                     />
-                    <p className="text-xs text-muted-foreground">Whole rupees; converted to paise for the wallet.</p>
+                    <p className="text-xs text-muted-foreground">
+                      Required when admin control is on (₹50–₹150 typical). Saving ₹0 with the toggle on previously
+                      blocked welcome credits for new users.
+                    </p>
                   </div>
                   <Separator />
                   <p className="text-sm font-medium text-muted-foreground">Default referral rewards (new share codes)</p>
