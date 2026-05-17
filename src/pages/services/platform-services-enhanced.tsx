@@ -34,10 +34,6 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
 } from '../../components/ui'
 import {
   DropdownMenu,
@@ -72,79 +68,24 @@ import { useNavigate } from 'react-router-dom'
 import { appToast } from '../../lib/appToast'
 import { formatCurrency, cn } from '../../lib/utils'
 import { normalizeRefToMongoIdString } from '../../lib/mongoObjectId'
+import {
+  buildSubcategoryLookup,
+  formatSubcategoryLabel,
+  getCategoryDisplayName,
+  groupServicesIntoCatalog,
+} from './platform-services-catalog-utils'
+import { PlatformServicesCatalogView } from './PlatformServicesCatalogView'
+import type { Subcategory } from '../../services/api/subcategories.service'
 
 const CATEGORIES_FALLBACK = ['home_repair', 'home_improvement', 'cleaning', 'outdoor', 'maintenance', 'installation']
 
 const CATALOG_PAGE_LIMIT = 500
-
-function formatSubcategoryLabel(rawKey: string): string {
-  if (rawKey === '__general__') return 'No subcategory assigned'
-  return rawKey
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase())
-    .trim()
-}
 
 function displayPlatformSubcategory(service: PlatformService): string {
   const t = service.subcategory?.trim()
   if (!t) return '—'
   if (/^[a-f\d]{24}$/i.test(t)) return t
   return formatSubcategoryLabel(t.toLowerCase())
-}
-
-type CatalogSubgroup = {
-  subKey: string
-  subLabel: string
-  services: PlatformService[]
-}
-
-type CatalogCategoryGroup = {
-  categoryKey: string
-  categoryLabel: string
-  serviceCount: number
-  subgroups: CatalogSubgroup[]
-}
-
-function groupServicesIntoCatalog(
-  list: PlatformService[],
-  categoryNameById: Record<string, string>,
-): CatalogCategoryGroup[] {
-  const byCat = new Map<string, Map<string, PlatformService[]>>()
-  for (const s of list) {
-    const catKey = String(s.category ?? 'uncategorized').toLowerCase()
-    const rawSub = (s.subcategory ?? '').trim()
-    const subKey = rawSub ? rawSub.toLowerCase() : '__general__'
-    if (!byCat.has(catKey)) byCat.set(catKey, new Map())
-    const subMap = byCat.get(catKey)!
-    if (!subMap.has(subKey)) subMap.set(subKey, [])
-    subMap.get(subKey)!.push(s)
-  }
-
-  const groups: CatalogCategoryGroup[] = []
-
-  for (const [categoryKey, subMap] of Array.from(byCat.entries())) {
-    const subgroups: CatalogSubgroup[] = []
-    for (const [subKey, svcs] of Array.from(subMap.entries())) {
-      subgroups.push({
-        subKey,
-        subLabel: formatSubcategoryLabel(subKey),
-        services: [...svcs].sort(
-          (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.name.localeCompare(b.name),
-        ),
-      })
-    }
-    subgroups.sort((a, b) => a.subLabel.localeCompare(b.subLabel))
-    const serviceCount = subgroups.reduce((n, sg) => n + sg.services.length, 0)
-    groups.push({
-      categoryKey,
-      categoryLabel: getCategoryDisplayName(categoryNameById, categoryKey),
-      serviceCount,
-      subgroups,
-    })
-  }
-
-  groups.sort((a, b) => a.categoryLabel.localeCompare(b.categoryLabel))
-  return groups
 }
 
 function hasDisplayableBasePrice(v: number | string | undefined | null): boolean {
@@ -157,12 +98,6 @@ function hasDisplayableBasePrice(v: number | string | undefined | null): boolean
 function displayBasePrice(v: number | string | undefined | null): string {
   if (!hasDisplayableBasePrice(v)) return 'N/A'
   return formatCurrency(Number(v))
-}
-
-function getCategoryDisplayName(categoryNameById: Record<string, string>, categoryId: string | undefined) {
-  if (!categoryId) return 'Uncategorized'
-  const name = categoryNameById[String(categoryId).toLowerCase()]
-  return name || categoryId
 }
 
 type PreviewTab = 'overview' | 'pricing' | 'features' | 'availability' | 'products'
@@ -550,10 +485,32 @@ export function PlatformServicesEnhanced() {
   const [layoutMode, setLayoutMode] = useState<'catalog' | 'list' | 'grid'>('catalog')
   const [showFilters, setShowFilters] = useState(false)
   const [categoryNameById, setCategoryNameById] = useState<Record<string, string>>({})
+  const [categorySlugById, setCategorySlugById] = useState<Record<string, string>>({})
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false)
   const [selectedService, setSelectedService] = useState<PlatformService | null>(null)
   const [stats, setStats] = useState({ total: 0, active: 0, featured: 0, total_requests: 0 })
+  const [allSubcategories, setAllSubcategories] = useState<Subcategory[]>([])
+
+  const loadAllSubcategories = async () => {
+    try {
+      const res = await SubcategoriesService.getSubcategories({ is_active: true })
+      const raw = res?.data as { subcategories?: Subcategory[] } | Subcategory[] | undefined
+      const list =
+        raw && typeof raw === 'object' && 'subcategories' in raw && Array.isArray(raw.subcategories)
+          ? raw.subcategories
+          : Array.isArray(raw)
+            ? raw
+            : []
+      setAllSubcategories(list)
+    } catch {
+      setAllSubcategories([])
+    }
+  }
+
+  useEffect(() => {
+    void loadAllSubcategories()
+  }, [])
 
   useEffect(() => {
     let isMounted = true
@@ -566,12 +523,20 @@ export function PlatformServicesEnhanced() {
         }).catch(() => [] as { id: string; name: string }[])
         if (!isMounted) return
         const byId: Record<string, string> = {}
-        ;(Array.isArray(cats) ? cats : []).forEach((c: { id?: string; _id?: string; name?: string; title?: string }) => {
-          const id = (c?.id ?? c?._id ?? '').toString().toLowerCase()
-          const name = (c?.name ?? c?.title ?? '').toString().trim()
-          if (id) byId[id] = name || id
-        })
+        const slugById: Record<string, string> = {}
+        ;(Array.isArray(cats) ? cats : []).forEach(
+          (c: { id?: string; _id?: string; name?: string; title?: string; slug?: string }) => {
+            const id = (c?.id ?? c?._id ?? '').toString().toLowerCase()
+            const name = (c?.name ?? c?.title ?? '').toString().trim()
+            const slug = (c?.slug ?? '').toString().trim().toLowerCase()
+            if (id) {
+              byId[id] = name || id
+              if (slug) slugById[id] = slug
+            }
+          },
+        )
         setCategoryNameById(byId)
+        setCategorySlugById(slugById)
       } catch {
         // ignore
       }
@@ -630,10 +595,35 @@ export function PlatformServicesEnhanced() {
     return CATEGORIES_FALLBACK
   }, [categoryNameById])
 
-  const catalogGroups = useMemo(
-    () => groupServicesIntoCatalog(services, categoryNameById),
-    [services, categoryNameById],
+  const subcategoryLookup = useMemo(
+    () => buildSubcategoryLookup(allSubcategories, categoryNameById, categorySlugById),
+    [allSubcategories, categoryNameById, categorySlugById],
   )
+
+  const catalogGroups = useMemo(
+    () => groupServicesIntoCatalog(services, categoryNameById, subcategoryLookup),
+    [services, categoryNameById, subcategoryLookup],
+  )
+
+  const handleServicesReordered = (updates: { id: string; sort_order: number }[]) => {
+    if (!updates.length) return
+    const byId = new Map(updates.map((u) => [u.id, u.sort_order]))
+    setServices((prev) =>
+      prev.map((s) => (byId.has(s.id) ? { ...s, sort_order: byId.get(s.id)! } : s)),
+    )
+  }
+
+  const handleSubcategoriesReordered = (updates: { id: string; sort_order: number }[]) => {
+    if (!updates.length) return
+    const byId = new Map(updates.map((u) => [u.id.toLowerCase(), u.sort_order]))
+    setAllSubcategories((prev) =>
+      prev.map((sub) => {
+        const key = String(sub.id ?? sub._id ?? '').toLowerCase()
+        return key && byId.has(key) ? { ...sub, sortOrder: byId.get(key)! } : sub
+      }),
+    )
+    void loadAllSubcategories()
+  }
 
   useEffect(() => {
     let isMounted = true
@@ -1009,217 +999,27 @@ export function PlatformServicesEnhanced() {
         </Card>
 
         {layoutMode === 'catalog' && (
-          <div className="space-y-4">
-            {truncatedCatalog && (
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
-                <span>
-                  Showing {services.length} of {totalCount} services (catalog loads up to {CATALOG_PAGE_LIMIT}).
-                </span>
-                <Button
-                  type="button"
-                  variant="link"
-                  className="h-auto p-0 text-amber-900 underline dark:text-amber-50"
-                  onClick={() => setLayoutMode('list')}
-                >
-                  Open table view
-                </Button>
-                <span className="text-muted-foreground dark:text-amber-200/90">for full pagination.</span>
-              </div>
-            )}
-
-            <Card className="overflow-hidden rounded-xl border shadow-sm">
-              <CardContent className="p-0">
-                {loading ? (
-                  <div className="py-16 text-center text-muted-foreground">Loading catalog…</div>
-                ) : catalogGroups.length === 0 ? (
-                  <div className="flex flex-col items-center gap-3 py-16">
-                    <p className="text-muted-foreground">No services match your filters.</p>
-                    <Button size="sm" onClick={handleCreate}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Create service
-                    </Button>
-                  </div>
-                ) : (
-                  <Accordion type="multiple" className="w-full">
-                    {catalogGroups.map((cat) => (
-                      <AccordionItem
-                        key={cat.categoryKey}
-                        value={`cat-${cat.categoryKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`}
-                        className="border-b border-border/60 px-0"
-                      >
-                        <AccordionTrigger className="rounded-none px-4 py-4 hover:bg-muted/40 hover:no-underline sm:px-6">
-                          <div className="flex flex-1 flex-wrap items-center gap-3 text-left">
-                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
-                              <Layers className="h-5 w-5" />
-                            </span>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-base font-semibold tracking-tight">{cat.categoryLabel}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {cat.subgroups.length} subcategor{cat.subgroups.length === 1 ? 'y' : 'ies'} ·{' '}
-                                {cat.serviceCount} service{cat.serviceCount === 1 ? '' : 's'}
-                              </p>
-                            </div>
-                            <Badge variant="secondary" className="shrink-0 tabular-nums">
-                              {cat.serviceCount}
-                            </Badge>
-                          </div>
-                        </AccordionTrigger>
-                        <AccordionContent className="pb-0">
-                          <div className="border-t bg-muted/20 px-2 pb-3 pt-2 sm:px-4">
-                            <Accordion type="multiple" className="w-full border-l-2 border-primary/20 pl-3 sm:pl-4">
-                              {cat.subgroups.map((sub) => (
-                                <AccordionItem
-                                  key={`${cat.categoryKey}::${sub.subKey}`}
-                                  value={`sub-${cat.categoryKey.replace(/[^a-zA-Z0-9_-]/g, '_')}__${sub.subKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`}
-                                  className="border-border/80"
-                                >
-                                  <AccordionTrigger className="py-3 text-sm hover:bg-muted/50 hover:no-underline">
-                                    <div className="flex min-w-0 flex-1 flex-col items-stretch gap-0.5 pr-2 sm:flex-row sm:items-center sm:gap-2">
-                                      <div className="flex min-w-0 flex-1 items-center gap-2">
-                                        <FolderTree className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                        <span className="font-medium">{sub.subLabel}</span>
-                                        <Badge variant="outline" className="ml-auto shrink-0 tabular-nums sm:ml-0">
-                                          {sub.services.length}
-                                        </Badge>
-                                      </div>
-                                      {sub.subKey === '__general__' ? (
-                                        <span className="text-xs text-muted-foreground sm:ml-8">
-                                          Only for this category — assign a subcategory on each service to organize them.
-                                        </span>
-                                      ) : null}
-                                    </div>
-                                  </AccordionTrigger>
-                                  <AccordionContent className="pb-3 pt-0">
-                                    <ul className="space-y-2">
-                                      {sub.services.map((service) => (
-                                        <li
-                                          key={service.id}
-                                          className="rounded-lg border bg-background p-3 shadow-sm transition-colors hover:border-primary/25"
-                                        >
-                                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                            <div className="flex min-w-0 flex-1 items-start gap-3">
-                                              <Avatar className="h-11 w-11 shrink-0 rounded-lg">
-                                                {service.image ? <AvatarImage src={service.image} alt="" /> : null}
-                                                <AvatarFallback className="rounded-lg bg-primary/10 text-primary">
-                                                  {service.name.charAt(0)}
-                                                </AvatarFallback>
-                                              </Avatar>
-                                              <div className="min-w-0">
-                                                <p className="truncate font-semibold leading-tight">{service.name}</p>
-                                                <p className="truncate text-xs text-muted-foreground">{service.slug}</p>
-                                                <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                                                  <Badge variant="outline" className="text-[10px] capitalize">
-                                                    {service.service_type}
-                                                  </Badge>
-                                                  <Badge
-                                                    variant={service.is_active ? 'default' : 'secondary'}
-                                                    className="cursor-pointer text-[10px]"
-                                                    role="button"
-                                                    tabIndex={0}
-                                                    onClick={(e) => {
-                                                      e.stopPropagation()
-                                                      void handleToggleActive(service)
-                                                    }}
-                                                    onKeyDown={(e) => {
-                                                      if (e.key === 'Enter') {
-                                                        e.stopPropagation()
-                                                        void handleToggleActive(service)
-                                                      }
-                                                    }}
-                                                  >
-                                                    {service.is_active ? 'Active' : 'Inactive'}
-                                                  </Badge>
-                                                  <Badge variant="outline" className="text-[10px] capitalize">
-                                                    {service.status}
-                                                  </Badge>
-                                                  {service.is_featured && (
-                                                    <Badge className="border-amber-200 bg-amber-50 text-[10px] text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
-                                                      <Star className="mr-1 h-3 w-3" />
-                                                      Featured
-                                                    </Badge>
-                                                  )}
-                                                </div>
-                                              </div>
-                                            </div>
-                                            <div className="flex shrink-0 items-center justify-between gap-3 sm:flex-col sm:items-end sm:justify-center">
-                                              <div className="text-right">
-                                                <p className="text-lg font-bold tabular-nums text-primary">
-                                                  {displayBasePrice(service.base_price)}
-                                                </p>
-                                                <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
-                                                  <Star className="h-3.5 w-3.5 text-amber-500" />
-                                                  {service.average_rating
-                                                    ? Number(service.average_rating).toFixed(1)
-                                                    : '0.0'}
-                                                </div>
-                                              </div>
-                                              <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                  <Button variant="outline" size="sm" className="h-8 gap-1 px-2">
-                                                    <MoreVertical className="h-4 w-4" />
-                                                    <span className="sr-only">Actions</span>
-                                                  </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="w-52">
-                                                  <DropdownMenuItem onClick={() => handlePreview(service)}>
-                                                    <Eye className="mr-2 h-4 w-4 text-sky-600" />
-                                                    View details
-                                                  </DropdownMenuItem>
-                                                  <DropdownMenuItem onClick={() => handleEdit(service)}>
-                                                    <Pencil className="mr-2 h-4 w-4 text-amber-600" />
-                                                    Edit
-                                                  </DropdownMenuItem>
-                                                  <DropdownMenuItem onClick={() => void handleDuplicate(service)}>
-                                                    <Copy className="mr-2 h-4 w-4 text-primary" />
-                                                    Duplicate
-                                                  </DropdownMenuItem>
-                                                  <DropdownMenuSeparator />
-                                                  <DropdownMenuItem onClick={() => void handleToggleActive(service)}>
-                                                    {service.is_active ? (
-                                                      <>
-                                                        <CircleOff className="mr-2 h-4 w-4 text-destructive" />
-                                                        Deactivate
-                                                      </>
-                                                    ) : (
-                                                      <>
-                                                        <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-600" />
-                                                        Activate
-                                                      </>
-                                                    )}
-                                                  </DropdownMenuItem>
-                                                  <DropdownMenuItem onClick={() => void handleToggleFeatured(service)}>
-                                                    <Star className="mr-2 h-4 w-4" />
-                                                    {service.is_featured ? 'Unfeature' : 'Feature'}
-                                                  </DropdownMenuItem>
-                                                  <DropdownMenuSeparator />
-                                                  <DropdownMenuItem
-                                                    className="text-destructive focus:text-destructive"
-                                                    onClick={() => handleDelete(service)}
-                                                  >
-                                                    <Trash2 className="mr-2 h-4 w-4" />
-                                                    Delete
-                                                  </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                              </DropdownMenu>
-                                            </div>
-                                          </div>
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </AccordionContent>
-                                </AccordionItem>
-                              ))}
-                            </Accordion>
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+          <PlatformServicesCatalogView
+            loading={loading}
+            catalogGroups={catalogGroups}
+            truncatedCatalog={truncatedCatalog}
+            servicesShown={services.length}
+            totalCount={totalCount}
+            catalogPageLimit={CATALOG_PAGE_LIMIT}
+            onOpenTableView={() => setLayoutMode('list')}
+            onCreate={handleCreate}
+            onServicesReordered={handleServicesReordered}
+            onSubcategoriesReordered={handleSubcategoriesReordered}
+            subcategoryLookup={subcategoryLookup}
+            onPreview={handlePreview}
+            onEdit={handleEdit}
+            onDuplicate={handleDuplicate}
+            onToggleActive={handleToggleActive}
+            onToggleFeatured={handleToggleFeatured}
+            onDelete={handleDelete}
+          />
         )}
+
 
         {layoutMode === 'list' ? (
           <Card className="rounded-xl">

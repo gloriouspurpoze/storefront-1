@@ -121,6 +121,7 @@ export interface CreatePlatformServiceRequest {
   emergency_service?: boolean
   emergency_charge?: number
   product_options?: any[]
+  service_addons?: Array<{ name?: string; price?: string | number; description?: string }>
   service_areas?: any[]
   metadata?: Record<string, any>
   seo_title?: string
@@ -176,6 +177,7 @@ export interface UpdatePlatformServiceRequest {
   emergency_service?: boolean
   emergency_charge?: number
   product_options?: any[]
+  service_addons?: Array<{ name?: string; price?: string | number; description?: string }>
   service_areas?: any[]
   metadata?: Record<string, any>
   seo_title?: string
@@ -265,6 +267,20 @@ export const platformServicesService = {
       showErrorToast: true
     }) as any
     return response.data.service
+  },
+
+  /** Batch-update sort_order without per-item toasts (catalog drag-and-drop). */
+  async reorderServices(updates: { id: string; sort_order: number }[]): Promise<void> {
+    if (!updates.length) return
+    await Promise.all(
+      updates.map(({ id, sort_order }) =>
+        apiClient.put(`/platform-services/${id}`, { sort_order }, {
+          showSuccessToast: false,
+          showErrorToast: false,
+          showLoading: false,
+        }),
+      ),
+    )
   },
 
   /**

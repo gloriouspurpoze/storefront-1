@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import {
   Loader2,
   ArrowLeft,
@@ -23,6 +23,9 @@ import {
   ListOrdered,
   Search,
   X,
+  MessageSquare,
+  Layers,
+  Puzzle,
 } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from '../../components/ui/button'
@@ -53,7 +56,9 @@ import {
   TooltipTrigger,
 } from '../../components/ui/tooltip'
 import { appToast } from '../../lib/appToast'
+import { normalizeRefToMongoIdString } from '../../lib/mongoObjectId'
 import { platformServicesService } from '../../services/api/platformServices.service'
+import { ReviewsService, type BookingReview } from '../../services/api/reviews.service'
 import { CategoriesService } from '../../services/api/categories.service'
 import { SubcategoriesService } from '../../services/api/subcategories.service'
 import { ProvidersService } from '../../services/api/providers.service'
@@ -131,6 +136,27 @@ function resolveSubcategoryPick(raw: unknown, subs: any[]): string {
   return hint
 }
 
+/** Read category/subcategory from GET payload (ids, populated objects, or slugs). */
+function extractServiceCategoryRefs(service: unknown): { category: string; subcategory: string } {
+  const s = service as Record<string, unknown>
+  const category =
+    normalizeRefToMongoIdString(s.category_id) ??
+    normalizeRefToMongoIdString(s.categoryId) ??
+    normalizeRefToMongoIdString(s.category) ??
+    extractIdLikeString(s.category_id ?? s.categoryId ?? s.category)
+
+  const subcategory =
+    normalizeRefToMongoIdString(s.subcategory_id) ??
+    normalizeRefToMongoIdString(s.subcategoryId) ??
+    normalizeRefToMongoIdString(s.subcategory) ??
+    extractIdLikeString(s.subcategory_id ?? s.subcategoryId ?? s.subcategory)
+
+  return {
+    category: category ?? '',
+    subcategory: subcategory ?? '',
+  }
+}
+
 /** Rich text often saves as `<p><br></p>` — treat as empty for required validation. */
 function richTextHasPlainText(html: string): boolean {
   if (!html || !String(html).trim()) return false
@@ -158,6 +184,8 @@ export function CreateService() {
   const [products, setProducts] = useState<any[]>([])
   const [loadingCategories, setLoadingCategories] = useState(true)
   const [loadingSubcategories, setLoadingSubcategories] = useState(false)
+  const categoriesRef = useRef<any[]>([])
+  const subcategoriesRef = useRef<any[]>([])
   const [loadingProviders, setLoadingProviders] = useState(false)
   const [loadingProducts, setLoadingProducts] = useState(false)
 
@@ -200,6 +228,7 @@ export function CreateService() {
       { name: 'Standard Service', price: '0', brand: '', warranty: '30 days', description: 'Basic repair or installation as per booking.' },
       { name: 'Premium / Extended Warranty', price: '99', brand: '', warranty: '90 days', description: 'Extended warranty on workmanship and parts.' },
     ] as any[],
+    service_addons: [] as Array<{ name: string; price: string; description: string }>,
     // Service Areas — real-world defaults
     service_areas: [
       { name: 'Within city (0–15 km)', multiplier: 1.0, active: true },
@@ -262,6 +291,9 @@ export function CreateService() {
     warranty: '',
     description: ''
   })
+  const [newAddon, setNewAddon] = useState({ name: '', price: '', description: '' })
+  const [serviceReviews, setServiceReviews] = useState<BookingReview[]>([])
+  const [loadingReviews, setLoadingReviews] = useState(false)
   const [newServiceArea, setNewServiceArea] = useState({
     name: '',
     multiplier: 1.0,
@@ -392,6 +424,40 @@ export function CreateService() {
         ...prev,
       product_options: prev.product_options.filter((_, i) => i !== index)
       }))
+  }
+
+  const updateProductOption = (index: number, field: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      product_options: prev.product_options.map((p, i) =>
+        i === index ? { ...p, [field]: value } : p,
+      ),
+    }))
+  }
+
+  const addAddon = () => {
+    if (!newAddon.name.trim()) return
+    setFormData((prev) => ({
+      ...prev,
+      service_addons: [...prev.service_addons, { ...newAddon }],
+    }))
+    setNewAddon({ name: '', price: '', description: '' })
+  }
+
+  const removeAddon = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      service_addons: prev.service_addons.filter((_, i) => i !== index),
+    }))
+  }
+
+  const updateAddon = (index: number, field: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      service_addons: prev.service_addons.map((a, i) =>
+        i === index ? { ...a, [field]: value } : a,
+      ),
+    }))
   }
 
   const addServiceArea = () => {
@@ -671,6 +737,7 @@ export function CreateService() {
         emergency_service: formData.emergency_service,
         emergency_charge: formData.emergency_charge ? parseFloat(String(formData.emergency_charge)) : undefined,
         product_options: formData.product_options?.length ? formData.product_options : undefined,
+        service_addons: formData.service_addons?.length ? formData.service_addons : undefined,
         service_areas: formData.service_areas?.length ? formData.service_areas : undefined,
         icon: formData.icon?.trim() || undefined,
         image: primaryImage?.url || undefined,
@@ -739,16 +806,13 @@ export function CreateService() {
       try {
         setLoadingService(true)
         const service = await platformServicesService.getServiceById(id)
-        
-        // Normalize category/subcategory to lowercase string id (API returns e.g. "690b45c8b1b9905e4aefb06f")
-        const rawCat = (service as any).category
-        const rawSub = (service as any).subcategory
-        const categoryId = rawCat != null
-          ? String((typeof rawCat === 'object' ? (rawCat?.id ?? rawCat?._id) : rawCat) ?? '').toLowerCase()
-          : ''
-        const subcategoryId = rawSub != null
-          ? String((typeof rawSub === 'object' ? (rawSub?.id ?? rawSub?._id) : rawSub) ?? '').toLowerCase()
-          : ''
+
+        const { category: rawCategory, subcategory: rawSubcategory } = extractServiceCategoryRefs(service)
+        const cats = categoriesRef.current
+        const categoryId = cats.length ? resolveCategoryPick(rawCategory, cats) : rawCategory
+        const subs = subcategoriesRef.current
+        const subcategoryId =
+          subs.length && categoryId ? resolveSubcategoryPick(rawSubcategory, subs) : rawSubcategory
         // Normalize images: support image (string), images (array of strings or objects with url)
         const rawImages = (service as any).images ?? ((service as any).image ? [(service as any).image] : [])
         const images: ImageFile[] = (Array.isArray(rawImages) ? rawImages : []).map((img: any, i: number) => {
@@ -813,8 +877,24 @@ export function CreateService() {
           features: service.features || [],
           requirements: service.requirements || [],
           
-          // Product Options
-          product_options: service.product_options || [],
+          // Packages & add-ons
+          product_options: (service.product_options || []).map((p: any) => ({
+            name: String(p.name ?? ''),
+            price: String(p.price ?? ''),
+            brand: String(p.brand ?? ''),
+            warranty: String(p.warranty ?? ''),
+            description: String(p.description ?? ''),
+          })),
+          service_addons: (
+            (service as any).serviceAddons ||
+            (service as any).service_addons ||
+            (service as any).addons ||
+            []
+          ).map((a: any) => ({
+            name: String(a.name ?? ''),
+            price: String(a.price ?? ''),
+            description: String(a.description ?? ''),
+          })),
           
           // Service Areas (backend returns { city, areas?, pincodes? }; form uses { name, multiplier, active })
           service_areas: (service.service_areas || []).map((a: any) => ({
@@ -853,26 +933,55 @@ export function CreateService() {
     loadService()
   }, [id])
 
-  // When catalog loads, align stored category with dropdown ids (slug/name/object → Mongo id).
   useEffect(() => {
-    if (loadingCategories || categories.length === 0) return
+    if (!id || !isEditMode) {
+      setServiceReviews([])
+      return
+    }
+    let cancelled = false
+    const loadReviews = async () => {
+      try {
+        setLoadingReviews(true)
+        const data = await ReviewsService.getBookingReviews({
+          platformServiceId: id,
+          limit: 50,
+        })
+        if (!cancelled) setServiceReviews(data.reviews ?? [])
+      } catch {
+        if (!cancelled) setServiceReviews([])
+      } finally {
+        if (!cancelled) setLoadingReviews(false)
+      }
+    }
+    void loadReviews()
+    return () => {
+      cancelled = true
+    }
+  }, [id, isEditMode])
+
+  categoriesRef.current = categories
+  subcategoriesRef.current = subcategories
+
+  // Align category/subcategory with dropdown ids after service + catalogs finish loading (fixes edit race).
+  useEffect(() => {
+    if (loadingCategories || loadingService || categories.length === 0) return
     setFormData((prev) => {
       if (!prev.category?.trim()) return prev
       const resolved = resolveCategoryPick(prev.category, categories)
       if (resolved === prev.category) return prev
       return { ...prev, category: resolved }
     })
-  }, [categories, loadingCategories])
+  }, [categories, loadingCategories, loadingService])
 
-  // Align subcategory once options load (slug/name vs id).
   useEffect(() => {
-    if (loadingSubcategories || subcategories.length === 0 || !formData.subcategory?.trim()) return
+    if (loadingSubcategories || loadingService || subcategories.length === 0) return
     setFormData((prev) => {
+      if (!prev.subcategory?.trim()) return prev
       const resolved = resolveSubcategoryPick(prev.subcategory, subcategories)
       if (resolved === prev.subcategory) return prev
       return { ...prev, subcategory: resolved }
     })
-  }, [subcategories, loadingSubcategories])
+  }, [subcategories, loadingSubcategories, loadingService])
 
   // Fetch categories for dropdown: full service/both list so ids match API (not only root parents).
   useEffect(() => {
@@ -966,10 +1075,13 @@ export function CreateService() {
       setSubcategories([])
       return
     }
+    const resolvedCategoryId = categoriesRef.current.length
+      ? resolveCategoryPick(categoryId, categoriesRef.current)
+      : categoryId
     try {
       setLoadingSubcategories(true)
       const response = await SubcategoriesService.getSubcategories({
-        categoryId,
+        categoryId: resolvedCategoryId,
         is_active: true,
       })
       const raw = response?.data
@@ -1207,8 +1319,8 @@ export function CreateService() {
                 Features & Requirements
               </TabsTrigger>
               <TabsTrigger value="4" className="gap-2 data-[state=active]:bg-muted sm:min-h-16">
-                <Wrench className="h-4 w-4 shrink-0" />
-                Product Options
+                <Layers className="h-4 w-4 shrink-0" />
+                Packages & Add-ons
               </TabsTrigger>
               <TabsTrigger value="5" className="gap-2 data-[state=active]:bg-muted sm:min-h-16">
                 <MapPin className="h-4 w-4 shrink-0" />
@@ -1233,6 +1345,10 @@ export function CreateService() {
               <TabsTrigger value="10" className="gap-2 data-[state=active]:bg-muted sm:min-h-16">
                 <Search className="h-4 w-4 shrink-0" />
                 SEO
+              </TabsTrigger>
+              <TabsTrigger value="11" className="gap-2 data-[state=active]:bg-muted sm:min-h-16">
+                <MessageSquare className="h-4 w-4 shrink-0" />
+                Reviews
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -1842,17 +1958,20 @@ export function CreateService() {
             </div>
           )}
 
-          {/* Product Options Tab */}
+          {/* Packages & Add-ons Tab */}
           {activeTab === 4 && (
             <>
               <div>
-                <h2 className="mb-6 text-lg font-semibold">Product Options</h2>
+                <h2 className="mb-2 text-lg font-semibold">Choose a package</h2>
+                <p className="mb-6 text-sm text-muted-foreground">
+                  Shown on the customer site as &quot;Choose a package&quot; before add to cart.
+                </p>
 
                 <div className="flex flex-col gap-6">
                   {formData.product_options.map((product, index) => (
                     <Card key={index} className="border p-4">
                       <div className="mb-3 flex items-start justify-between">
-                        <p className="font-semibold">{product.name}</p>
+                        <p className="font-semibold">Package {index + 1}</p>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -1865,31 +1984,58 @@ export function CreateService() {
                       </div>
                       <div className="flex flex-col gap-4 md:flex-row">
                         <div className="flex-1 space-y-2">
-                          <Label>Product Name</Label>
-                          <Input value={product.name} disabled={previewMode} className="w-full" readOnly />
+                          <Label>Package name</Label>
+                          <Input
+                            value={product.name}
+                            onChange={(e) => updateProductOption(index, 'name', e.target.value)}
+                            disabled={previewMode}
+                            className="w-full"
+                          />
                         </div>
                         <div className="flex-1 space-y-2">
                           <Label>Price (₹)</Label>
-                          <Input type="number" value={product.price} disabled={previewMode} className="w-full" readOnly />
+                          <Input
+                            type="number"
+                            value={product.price}
+                            onChange={(e) => updateProductOption(index, 'price', e.target.value)}
+                            disabled={previewMode}
+                            className="w-full"
+                          />
                         </div>
                         <div className="flex-1 space-y-2">
                           <Label>Brand</Label>
-                          <Input value={product.brand} disabled={previewMode} className="w-full" readOnly />
+                          <Input
+                            value={product.brand}
+                            onChange={(e) => updateProductOption(index, 'brand', e.target.value)}
+                            disabled={previewMode}
+                            className="w-full"
+                          />
                         </div>
                         <div className="flex-1 space-y-2">
                           <Label>Warranty</Label>
-                          <Input value={product.warranty} disabled={previewMode} className="w-full" readOnly />
+                          <Input
+                            value={product.warranty}
+                            onChange={(e) => updateProductOption(index, 'warranty', e.target.value)}
+                            disabled={previewMode}
+                            className="w-full"
+                          />
                         </div>
                       </div>
                       <div className="mt-4 space-y-2">
                         <Label>Description</Label>
-                        <Textarea value={product.description} disabled={previewMode} rows={2} className="w-full" readOnly />
+                        <Textarea
+                          value={product.description}
+                          onChange={(e) => updateProductOption(index, 'description', e.target.value)}
+                          disabled={previewMode}
+                          rows={2}
+                          className="w-full"
+                        />
                       </div>
                     </Card>
                   ))}
 
                   <Card className="border-2 border-dashed p-4">
-                    <p className="mb-4 text-sm font-semibold">Add New Product Option</p>
+                    <p className="mb-4 text-sm font-semibold">Add package</p>
                     <div className="mb-4 flex flex-col gap-4 md:flex-row">
                       <div className="flex-1 space-y-2">
                         <Label htmlFor="np-name">Product Name</Label>
@@ -1950,7 +2096,7 @@ export function CreateService() {
                       disabled={previewMode || !newProduct.name.trim()}
                       leftIcon={<Plus className="h-4 w-4" />}
                     >
-                      Add Product
+                      Add package
                     </Button>
                   </Card>
                 </div>
@@ -1958,6 +2104,61 @@ export function CreateService() {
 
               <div className="mt-8 space-y-3">
                 <p className="text-sm font-semibold">Associated Products (Optional)</p>
+              <div className="mt-10 border-t pt-8">
+                <h2 className="mb-2 flex items-center gap-2 text-lg font-semibold">
+                  <Puzzle className="h-5 w-5" />
+                  Add-ons (optional)
+                </h2>
+                <p className="mb-6 text-sm text-muted-foreground">
+                  Optional extras customers can select in the service modal.
+                </p>
+                <div className="flex flex-col gap-4">
+                  {formData.service_addons.map((addon, index) => (
+                    <Card key={`addon-${index}`} className="border p-4">
+                      <div className="mb-3 flex items-start justify-between">
+                        <p className="font-semibold">{addon.name || `Add-on ${index + 1}`}</p>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => removeAddon(index)} disabled={previewMode}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="flex flex-col gap-4 md:flex-row">
+                        <div className="flex-1 space-y-2">
+                          <Label>Name</Label>
+                          <Input value={addon.name} onChange={(e) => updateAddon(index, 'name', e.target.value)} disabled={previewMode} />
+                        </div>
+                        <div className="w-32 space-y-2">
+                          <Label>Price (₹)</Label>
+                          <Input type="number" value={addon.price} onChange={(e) => updateAddon(index, 'price', e.target.value)} disabled={previewMode} />
+                        </div>
+                      </div>
+                      <div className="mt-3 space-y-2">
+                        <Label>Description</Label>
+                        <Textarea value={addon.description} onChange={(e) => updateAddon(index, 'description', e.target.value)} disabled={previewMode} rows={2} />
+                      </div>
+                    </Card>
+                  ))}
+                  <Card className="border-2 border-dashed p-4">
+                    <p className="mb-3 text-sm font-semibold">Add add-on</p>
+                    <div className="flex flex-col gap-3 md:flex-row md:items-end">
+                      <div className="flex-1 space-y-2">
+                        <Label>Name</Label>
+                        <Input value={newAddon.name} onChange={(e) => setNewAddon((p) => ({ ...p, name: e.target.value }))} disabled={previewMode} placeholder="e.g. Deep cleaning" />
+                      </div>
+                      <div className="w-32 space-y-2">
+                        <Label>Price (₹)</Label>
+                        <Input type="number" value={newAddon.price} onChange={(e) => setNewAddon((p) => ({ ...p, price: e.target.value }))} disabled={previewMode} />
+                      </div>
+                      <Button variant="outline" onClick={addAddon} disabled={previewMode || !newAddon.name.trim()} leftIcon={<Plus className="h-4 w-4" />}>Add</Button>
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      <Label>Description</Label>
+                      <Textarea value={newAddon.description} onChange={(e) => setNewAddon((p) => ({ ...p, description: e.target.value }))} disabled={previewMode} rows={2} />
+                    </div>
+                  </Card>
+                </div>
+              </div>
+
+
                 <div className="max-h-48 space-y-2 overflow-y-auto rounded-md border border-input p-3">
                   {loadingProducts ? (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -2695,6 +2896,70 @@ export function CreateService() {
                   </Button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeTab === 11 && (
+            <div className="space-y-6">
+              <p className="text-sm text-muted-foreground">
+                Booking reviews linked to this service (from completed jobs). Shown on the customer service modal when
+                customers view this offering.
+              </p>
+              {!isEditMode || !id ? (
+                <Card className="border border-dashed p-6 text-center text-sm text-muted-foreground">
+                  Save the service first, then return here to see customer reviews for this service.
+                </Card>
+              ) : loadingReviews ? (
+                <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  Loading reviews…
+                </div>
+              ) : serviceReviews.length === 0 ? (
+                <Card className="border border-dashed p-6 text-center text-sm text-muted-foreground">
+                  No reviews yet for this service. Reviews appear after customers complete bookings and submit feedback.
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-foreground">
+                    {serviceReviews.length} review{serviceReviews.length === 1 ? '' : 's'}
+                  </p>
+                  {serviceReviews.map((review) => {
+                    const customer =
+                      typeof review.customerId === 'object' && review.customerId
+                        ? `${(review.customerId as { firstName?: string }).firstName ?? ''} ${(review.customerId as { lastName?: string }).lastName ?? ''}`.trim()
+                        : 'Customer'
+                    return (
+                      <Card key={review._id} className="p-4">
+                        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-foreground">{customer || 'Customer'}</span>
+                            {review.isVerified ? (
+                              <Badge variant="secondary" className="text-xs">
+                                Verified
+                              </Badge>
+                            ) : null}
+                          </div>
+                          <span className="text-sm text-muted-foreground">
+                            {new Date(review.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p className="mb-1 text-sm font-medium text-amber-700">
+                          {'★'.repeat(review.rating)}
+                          <span className="text-muted-foreground"> ({review.rating}/5)</span>
+                        </p>
+                        {review.comment ? (
+                          <p className="text-sm text-muted-foreground">{review.comment}</p>
+                        ) : (
+                          <p className="text-sm italic text-muted-foreground">No written comment</p>
+                        )}
+                        {review.variantName ? (
+                          <p className="mt-2 text-xs text-muted-foreground">Package: {review.variantName}</p>
+                        ) : null}
+                      </Card>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>

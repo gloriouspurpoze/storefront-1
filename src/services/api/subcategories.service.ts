@@ -109,6 +109,20 @@ export class SubcategoriesService {
     return response
   }
 
+  /** Batch-update sort_order without per-item toasts (catalog drag-and-drop). */
+  static async reorderSubcategories(updates: { id: string; sort_order: number }[]): Promise<void> {
+    if (!updates.length) return
+    await Promise.all(
+      updates.map(({ id, sort_order }) =>
+        api.put(`/subcategories/${id}`, { sort_order }, {
+          showSuccessToast: false,
+          showErrorToast: false,
+          showLoading: false,
+        }),
+      ),
+    )
+  }
+
   /**
    * Delete subcategory (admin)
    */
