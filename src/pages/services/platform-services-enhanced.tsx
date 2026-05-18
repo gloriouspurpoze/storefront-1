@@ -42,6 +42,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../../components/ui/dropdown-menu'
+import { MobileServiceCardPreview } from '../../components/services/MobileServiceCardPreview'
+import { ServiceImageGuidancePanel } from '../../components/services/ServiceImageGuidancePanel'
 import {
   Plus,
   Search,
@@ -124,7 +126,7 @@ function ServicePreviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] max-w-3xl gap-0 overflow-hidden p-0">
+      <DialogContent className="max-h-[90vh] max-w-4xl gap-0 overflow-hidden p-0">
         <DialogHeader className="space-y-0 bg-gradient-to-r from-sky-600 to-indigo-700 px-6 py-4 text-primary-foreground">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -137,12 +139,19 @@ function ServicePreviewDialog({
           </div>
         </DialogHeader>
 
-        {service.image && (
-          <div
-            className="h-48 w-full bg-muted bg-cover bg-center"
-            style={{ backgroundImage: `url(${service.image})` }}
-          />
-        )}
+        <div className="border-b bg-muted/30 px-6 py-5">
+          <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:justify-center">
+            <MobileServiceCardPreview
+              imageUrl={service.image}
+              name={service.name}
+              description={service.short_description}
+              price={service.base_price}
+              popular={service.is_popular}
+              framed
+            />
+            <ServiceImageGuidancePanel compact className="max-w-sm flex-1" />
+          </div>
+        </div>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as PreviewTab)} className="px-0">
           <div className="border-b px-4">

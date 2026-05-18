@@ -8,6 +8,8 @@ export interface PlatformService {
   short_description?: string
   icon?: string
   image?: string
+  /** Gallery URLs; `image` is the mobile card hero */
+  images?: string[]
   /** May be slug or id depending on API transform; prefer `category_id` for writes. */
   category: string
   category_id?: string
@@ -96,6 +98,7 @@ export interface CreatePlatformServiceRequest {
   short_description?: string
   icon?: string
   image?: string
+  images?: string[]
   category: string
   subcategory?: string
   service_type?: 'fixed' | 'hourly' | 'consultation'
@@ -152,6 +155,7 @@ export interface UpdatePlatformServiceRequest {
   short_description?: string
   icon?: string
   image?: string
+  images?: string[]
   category?: string
   subcategory?: string
   service_type?: 'fixed' | 'hourly' | 'consultation'

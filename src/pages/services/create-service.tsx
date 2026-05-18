@@ -68,6 +68,9 @@ import {
   ImageUploadField,
   type ImageFile,
 } from '../../components/forms'
+import { MobileServiceCardPreview } from '../../components/services/MobileServiceCardPreview'
+import { ServiceImageGuidancePanel } from '../../components/services/ServiceImageGuidancePanel'
+import { SERVICE_CARD_IMAGE_SPEC } from '../../constants/serviceImageSpec'
 
 const PRICE_TYPES = [
   { value: 'fixed', label: 'Fixed Price' },
@@ -1183,6 +1186,22 @@ export function CreateService() {
 
   const hasPrimaryImage = Boolean(formData.images?.some((img) => Boolean(img.url)))
 
+  const primaryImageUrl = useMemo(() => {
+    const primary = formData.images.find((img) => img.isPrimary) || formData.images[0]
+    return primary?.url?.trim() || undefined
+  }, [formData.images])
+
+  const previewCardPrice = useMemo(() => {
+    if (formData.service_type === 'hourly') return formData.hourly_rate
+    if (formData.service_type === 'consultation') return formData.consultation_fee
+    return formData.base_price
+  }, [
+    formData.service_type,
+    formData.hourly_rate,
+    formData.consultation_fee,
+    formData.base_price,
+  ])
+
   return (
     <div className="p-4 md:p-6">
       {/* Loading indicator for edit mode */}
@@ -1499,20 +1518,36 @@ export function CreateService() {
                   Service Images
                 </p>
                 <p className="mb-4 text-sm text-muted-foreground">
-                  Add at least one image so customers can see the service. First image is used as the main image.
+                  Primary image powers the customer app service card (Home, Services, search). Use the live
+                  preview to check crop before publishing.
                 </p>
-                <ImageUploadField
-                  label="Upload Service Images"
-                  value={formData.images}
-                  onChange={(images) => handleInputChange('images', images)}
-                  maxFiles={5}
-                  maxSize={5}
-                  disabled={previewMode}
-                  allowPrimary
-                  showPreview
-                  helperText="Up to 5 images. Recommended size: 800×600px. Max 5MB each. First image = primary."
-                  error={formData.images.length === 0 ? 'Add at least one image for a better listing' : undefined}
-                />
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <div className="space-y-4">
+                    <ImageUploadField
+                      label="Upload Service Images"
+                      value={formData.images}
+                      onChange={(images) => handleInputChange('images', images)}
+                      maxFiles={SERVICE_CARD_IMAGE_SPEC.maxGalleryImages}
+                      maxSize={SERVICE_CARD_IMAGE_SPEC.maxUploadMb}
+                      disabled={previewMode}
+                      allowPrimary
+                      showPreview
+                      folder="platform-services"
+                      helperText={`Up to ${SERVICE_CARD_IMAGE_SPEC.maxGalleryImages} images · ${SERVICE_CARD_IMAGE_SPEC.recommendedWidth}×${SERVICE_CARD_IMAGE_SPEC.recommendedHeight}px (${SERVICE_CARD_IMAGE_SPEC.aspectLabel}) · max ${SERVICE_CARD_IMAGE_SPEC.maxUploadMb}MB · first = card hero`}
+                      error={formData.images.length === 0 ? 'Add at least one image for a better listing' : undefined}
+                    />
+                    <ServiceImageGuidancePanel />
+                  </div>
+                  <div className="flex justify-center lg:justify-end">
+                    <MobileServiceCardPreview
+                      imageUrl={primaryImageUrl}
+                      name={formData.name.trim() || 'Service name'}
+                      description={formData.short_description?.trim()}
+                      price={previewCardPrice}
+                      popular={formData.is_popular}
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="mb-6 rounded-lg border bg-card p-6">
