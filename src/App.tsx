@@ -139,6 +139,7 @@ const CreateService = lazy(() => import('./pages/services/create-service').then(
 const PlatformServices = lazy(() => import('./pages/services/platform-services-enhanced').then((m) => ({ default: m.PlatformServicesEnhanced })))
 const Marketplace = lazy(() => import('./pages/marketplace/Marketplace'))
 const EcommerceHub = lazy(() => import('./pages/ecommerce/EcommerceHub'))
+const StoreCategoryPlpManagement = lazy(() => import('./pages/ecommerce/StoreCategoryPlpManagement'))
 const BazaarMarketplaceHub = lazy(() => import('./pages/bazaar/BazaarMarketplaceHub'))
 const BazaarListingModeration = lazy(() => import('./pages/bazaar/BazaarListingModeration'))
 const BazaarListingReviewDetailPage = lazy(() => import('./pages/bazaar/BazaarListingReviewDetailPage'))
@@ -553,6 +554,16 @@ function App() {
                             ]}
                           >
                             <EcommerceHub />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/ecommerce/store-category-plp"
+                        element={
+                          <RoleBasedRoute
+                            permissions={['manage_system_settings', 'view_categories', 'view_products']}
+                          >
+                            <StoreCategoryPlpManagement />
                           </RoleBasedRoute>
                         }
                       />

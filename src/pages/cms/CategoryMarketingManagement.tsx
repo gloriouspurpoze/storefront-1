@@ -80,6 +80,17 @@ import { IndustryLandingEditorPreview } from '../../components/cms/IndustryLandi
 import { localitySlugFromCompositeKey } from '../../lib/categoryMarketingCoverageOverview'
 import { diffCategoryMarketingConfigs } from '../../lib/categoryMarketingConfigDiff'
 import { buildLocalitySeoAutofillPack } from '../../lib/categoryMarketingSeoAutofill'
+import {
+  PRODUCTION_INDEXABLE_ROBOTS_META,
+  resolveConsumerRobotsPreview,
+} from '../../lib/consumerRobotsPreview'
+import { filterValidBreadcrumbItems } from '../../lib/breadcrumbSchema'
+import { ELECTRICIAN_SERVICE_SEO_CHECKLIST } from '../../lib/electricalCategorySeoChecklist'
+import { resolveMarketingVerticalKey } from '../../lib/categoryMarketingVerticalPrefill'
+import {
+  buildServiceLocalityPublicPath,
+  getPreferredServiceCategoryUrlSlug,
+} from '../../lib/serviceCatalogUrlSlugs'
 
 type TabKey =
   | 'metadata'
@@ -281,6 +292,44 @@ export default function CategoryMarketingManagement() {
     })
   }
 
+  const industryRobotsMeta = useMemo(
+    () => mergeCategoryConfig(data[selectedCategory] ?? emptyCategoryMarketingConfig()).technicalSeo.robotsMeta,
+    [data, selectedCategory],
+  )
+
+  const showElectricianSeoChecklist = resolveMarketingVerticalKey(selectedCategory) === 'electrician'
+
+  const applyProductionIndexableRobots = () => {
+    updateTechnicalSeo({ robotsMeta: PRODUCTION_INDEXABLE_ROBOTS_META })
+    appToast('Set production indexable robots on this key. Save to publish.', 'success')
+  }
+
+  const fixAllLocalityNoindexKeys = () => {
+    const prefix = `${selectedCategory}__`
+    let touched = 0
+    const next: Record<string, CategoryMarketingConfig> = { ...data }
+    for (const key of Object.keys(next)) {
+      if (!key.startsWith(prefix)) continue
+      const row = mergeCategoryConfig(next[key] ?? emptyCategoryMarketingConfig())
+      if (!row.technicalSeo.robotsMeta.toLowerCase().includes('noindex')) continue
+      next[key] = mergeCategoryConfig({
+        ...row,
+        technicalSeo: { ...row.technicalSeo, robotsMeta: PRODUCTION_INDEXABLE_ROBOTS_META },
+      })
+      touched += 1
+    }
+    setData(next)
+    if (normalizedLocalitySlug) {
+      updateTechnicalSeo({ robotsMeta: PRODUCTION_INDEXABLE_ROBOTS_META })
+    }
+    appToast(
+      touched > 0
+        ? `Updated robots on ${touched} locality key(s). Review and Save.`
+        : 'No locality keys with noindex found for this industry.',
+      touched > 0 ? 'success' : 'info',
+    )
+  }
+
   const applySeoAutofillPack = () => {
     if (!normalizedLocalitySlug) return
     const pack = buildLocalitySeoAutofillPack({
@@ -456,19 +505,43 @@ export default function CategoryMarketingManagement() {
       })
     }
 
-    const rob = config.technicalSeo.robotsMeta.toLowerCase()
-    if (rob.includes('noindex')) {
+    const industryRobots = mergeCategoryConfig(data[selectedCategory] ?? emptyCategoryMarketingConfig())
+      .technicalSeo.robotsMeta
+    const consumerRobots = resolveConsumerRobotsPreview({
+      isLocalityKey: isLocalKey,
+      catalogStorageSlug: selectedCategory,
+      localityRobotsMeta: config.technicalSeo.robotsMeta,
+      industryRobotsMeta: industryRobots,
+    })
+    if (consumerRobots.tone === 'ok') {
       rows.push({
-        tone: 'info',
-        title: 'Robots',
-        detail: 'Meta contains noindex — intentional for staging or thin pages; remove for growth pages.',
+        tone: 'ok',
+        title: 'Robots (live site)',
+        detail: consumerRobots.effectiveLabel,
       })
+    } else {
+      rows.push({
+        tone: 'warn',
+        title: 'Robots (live site)',
+        detail: consumerRobots.detail,
+      })
+    }
+    const preferredSlug = getPreferredServiceCategoryUrlSlug(selectedCategory)
+    if (isLocalKey && config.technicalSeo.canonicalUrl.trim()) {
+      const expected = `${publicSiteOrigin}${buildServiceLocalityPublicPath(selectedCategory, normalizedLocalitySlug)}`
+      if (config.technicalSeo.canonicalUrl.trim() !== expected) {
+        rows.push({
+          tone: 'warn',
+          title: 'Canonical URL',
+          detail: `Prefer ${expected} (public path uses /services/${preferredSlug}/…, not the raw CMS catalog slug).`,
+        })
+      }
     }
 
     const warnCount = rows.filter((r) => r.tone === 'warn').length
     const okCount = rows.filter((r) => r.tone === 'ok').length
     return { rows, warnCount, okCount }
-  }, [config, normalizedLocalitySlug, effectiveKey])
+  }, [config, data, normalizedLocalitySlug, effectiveKey, publicSiteOrigin, selectedCategory])
 
   const localityVersusIndustryDiff = useMemo(() => {
     if (!normalizedLocalitySlug || loading) return null
@@ -482,7 +555,14 @@ export default function CategoryMarketingManagement() {
   const handleSave = async () => {
     try {
       setSaving(true)
-      const payload = { ...data, [effectiveKey]: config }
+      const configToSave: CategoryMarketingConfig = {
+        ...config,
+        technicalSeo: {
+          ...config.technicalSeo,
+          breadcrumbItems: filterValidBreadcrumbItems(config.technicalSeo.breadcrumbItems),
+        },
+      }
+      const payload = { ...data, [effectiveKey]: configToSave }
       await CMSService.updateCategoryMarketing(payload)
       appToast('Category marketing saved.', 'success')
       fetchData()
@@ -855,8 +935,33 @@ export default function CategoryMarketingManagement() {
             effectiveKey={effectiveKey}
             industryLabel={industryLabel}
             localityDisplayLabel={localityDisplayLabel}
-            publicOrigin={PROFIXER_PUBLIC_ORIGIN}
+            publicOrigin={publicSiteOrigin}
+            catalogStorageSlug={selectedCategory}
+            industryRobotsMeta={industryRobotsMeta}
           />
+          {showElectricianSeoChecklist && normalizedLocalitySlug ? (
+            <Card className="border-primary/20 bg-primary/[0.03]">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Electrician SEO checklist (2026)</CardTitle>
+                <CardDescription>
+                  Align this locality with your organic growth plan — technical, content depth, and local signals.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-3 sm:grid-cols-2">
+                {ELECTRICIAN_SERVICE_SEO_CHECKLIST.map((item) => (
+                  <div key={item.id} className="rounded-lg border border-border/60 bg-card/80 p-3 text-sm">
+                    <p className="font-medium text-foreground">{item.title}</p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{item.detail}</p>
+                    {item.tab ? (
+                      <Badge variant="outline" className="mt-2 text-[10px]">
+                        Tab: {item.tab}
+                      </Badge>
+                    ) : null}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ) : null}
           <IndustryLandingWorkspaceOverview
             industrySlug={selectedCategory}
             industryLabel={industryLabel}
@@ -1426,8 +1531,26 @@ export default function CategoryMarketingManagement() {
                   <CardContent className="space-y-4 pt-6">
                       <div className="space-y-2">
                       <Label htmlFor="cmm-f-19">Robots meta content</Label>
-                      <Input id="cmm-f-19" className="w-full" value={config.technicalSeo.robotsMeta} onChange={(e) => updateTechnicalSeo({ robotsMeta: e.target.value })} placeholder="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
-                      <p className="text-xs text-muted-foreground">Use noindex for thin or duplicate landings only. Rich-result-friendly previews often include max-image-preview:large.</p>
+                      <Input
+                        id="cmm-f-19"
+                        className="w-full"
+                        value={config.technicalSeo.robotsMeta}
+                        onChange={(e) => updateTechnicalSeo({ robotsMeta: e.target.value })}
+                        placeholder={PRODUCTION_INDEXABLE_ROBOTS_META}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Production locality pages should use <strong>index, follow</strong> (recommended string above).
+                        fixer-client ignores accidental <code className="text-[11px]">noindex</code> on canonical URLs like{' '}
+                        <code className="text-[11px]">/services/electrician/mumbai</code> — but clear it here to avoid duplicate meta tags.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button type="button" variant="secondary" size="sm" onClick={applyProductionIndexableRobots}>
+                          Apply indexable robots (this key)
+                        </Button>
+                        <Button type="button" variant="outline" size="sm" onClick={fixAllLocalityNoindexKeys}>
+                          Fix all locality keys with noindex
+                        </Button>
+                      </div>
                     </div>
                       <p className="text-sm text-muted-foreground">
                         Hreflang alternates
@@ -1495,7 +1618,8 @@ export default function CategoryMarketingManagement() {
                         </Label>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        Breadcrumb trail (name + URL per item)
+                        Breadcrumb trail (name + absolute URL per item). Incomplete rows are stripped on save.
+                        Leave empty to use the consumer&apos;s default trail (Home → Services → hub → locality).
                       </p>
                       {(config.technicalSeo.breadcrumbItems.length
                         ? config.technicalSeo.breadcrumbItems

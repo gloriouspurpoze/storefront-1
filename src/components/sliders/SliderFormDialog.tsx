@@ -228,7 +228,7 @@ export function SliderFormDialog({
               rows={3}
               value={formData.description}
               onChange={(e) => handleChange('description', e.target.value)}
-              placeholder="Enter slider description..."
+              placeholder="Internal notes only (not shown on store hero — use Subtitle for on-slide text, max ~140 chars)"
             />
           </div>
 

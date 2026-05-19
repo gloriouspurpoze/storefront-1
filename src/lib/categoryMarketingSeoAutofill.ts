@@ -3,7 +3,12 @@
  * (`{industry}__{locality-slug}`). Editors should review NAP, canonicals, and ratings before publish.
  */
 import type { CategoryMarketingConfig, FaqBlock, LocalityGuideSectionBlock, RelatedLinkBlock } from '../types/categoryMarketing'
+import { PRODUCTION_INDEXABLE_ROBOTS_META } from './consumerRobotsPreview'
 import { buildVerticalTabsPrefill, getVerticalExtraLocalityGuideSections } from './categoryMarketingVerticalPrefill'
+import {
+  buildServiceLocalityPublicPath,
+  getPreferredServiceCategoryUrlSlug,
+} from './serviceCatalogUrlSlugs'
 import {
   META_DESC_HARD_MAX_CHARS,
   META_DESC_MIN_CHARS,
@@ -129,8 +134,9 @@ export function buildLocalitySeoAutofillPack(input: CategoryMarketingSeoAutofill
   } = input
 
   const origin = publicOrigin.replace(/\/$/, '')
-  const slugPath = `/services/${industrySlug.replace(/^\/+|\/+$/g, '')}/${localitySlug.replace(/^\/+|\/+$/g, '')}`
+  const slugPath = buildServiceLocalityPublicPath(industrySlug, localitySlug)
   const canonicalUrl = `${origin}${slugPath}`
+  const preferredSlug = getPreferredServiceCategoryUrlSlug(industrySlug)
 
   const primaryKeyword = `${industryLabel} in ${localityLabel}`.replace(/\s+/g, ' ').trim()
   const locShort = localityLabel.split(',')[0]?.trim() || localityLabel
@@ -172,7 +178,7 @@ export function buildLocalitySeoAutofillPack(input: CategoryMarketingSeoAutofill
     origin,
     metro: defaultMetroName,
   })
-  const relatedLinks = defaultRelatedLinks(origin, industrySlug)
+  const relatedLinks = defaultRelatedLinks(origin, preferredSlug)
 
   const verticalCtx = {
     industrySlug,
@@ -276,7 +282,7 @@ export function buildLocalitySeoAutofillPack(input: CategoryMarketingSeoAutofill
       twitterCard: 'summary_large_image',
       twitterSite: '',
       twitterCreator: '',
-      robotsMeta: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
+      robotsMeta: PRODUCTION_INDEXABLE_ROBOTS_META,
       hreflangAlternates: [],
       knowsAbout: [
         industryLabel,
@@ -290,7 +296,7 @@ export function buildLocalitySeoAutofillPack(input: CategoryMarketingSeoAutofill
       breadcrumbItems: [
         { name: 'Home', url: `${origin}/` },
         { name: 'Services', url: `${origin}/services` },
-        { name: industryLabel, url: `${origin}/services/${industrySlug}` },
+        { name: industryLabel, url: `${origin}/services/${preferredSlug}` },
         { name: localityLabel, url: canonicalUrl },
       ],
       speakableSelectors: ['article h1', '.answer-engine-summary', '[data-faq-answer]'],

@@ -100,8 +100,15 @@ export default function EcommerceHub() {
       permission: 'manage_system_settings',
     },
     {
+      title: 'Store category PLP',
+      description: 'SEO, intro, subcategories, FAQs, and filters for each /store/[category] aisle.',
+      href: '/ecommerce/store-category-plp',
+      icon: Search,
+      permission: ['manage_system_settings', 'view_categories'],
+    },
+    {
       title: 'SEO for store',
-      description: 'Meta templates and discoverability for product and category URLs.',
+      description: 'Global meta templates and page-level SEO entries.',
       href: '/cms/seo',
       icon: Search,
       permission: 'manage_system_settings',

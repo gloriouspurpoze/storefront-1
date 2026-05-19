@@ -1,5 +1,7 @@
 import type { CategoryMarketingConfig } from '../types/categoryMarketing'
 import { mergeCategoryConfig } from '../types/categoryMarketing'
+import { filterValidBreadcrumbItems } from './breadcrumbSchema'
+import { buildServiceLocalityPublicPath, getPreferredServiceCategoryUrlSlug } from './serviceCatalogUrlSlugs'
 
 const CONTEXT = 'https://schema.org'
 
@@ -19,8 +21,9 @@ export function resolveIndustryLandingPreviewUrl(
   const sep = effectiveKey.indexOf('__')
   const cat = sep === -1 ? effectiveKey : effectiveKey.slice(0, sep)
   const loc = sep === -1 ? '' : effectiveKey.slice(sep + 2)
-  if (loc) return `${o}/services/${cat}/${loc}`
-  return `${o}/services/${cat}`
+  const preferred = getPreferredServiceCategoryUrlSlug(cat)
+  if (loc) return `${o}${buildServiceLocalityPublicPath(cat, loc)}`
+  return `${o}/services/${preferred}`
 }
 
 function nonempty(s: string | undefined): boolean {
@@ -155,7 +158,7 @@ export function buildIndustryLandingPreviewJsonLd(
   }
 
   if (cfg.technicalSeo.enableBreadcrumbSchema) {
-    const items = cfg.technicalSeo.breadcrumbItems.filter((b) => nonempty(b.name) && nonempty(b.url))
+    const items = filterValidBreadcrumbItems(cfg.technicalSeo.breadcrumbItems)
     if (items.length) {
       graph.push({
         '@type': 'BreadcrumbList',

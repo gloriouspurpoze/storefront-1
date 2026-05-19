@@ -16,6 +16,7 @@ import {
   resolveIndustryLandingPreviewUrl,
 } from '../../lib/buildIndustryLandingPreviewJsonLd'
 import { sanitizeCategoryMarketingRichHtml } from '../../lib/categoryMarketingRichHtml'
+import { resolveConsumerRobotsPreview } from '../../lib/consumerRobotsPreview'
 
 function PreviewRichHtml({ html, className }: { html: string; className?: string }) {
   const raw = html.trim()
@@ -57,6 +58,10 @@ export interface IndustryLandingEditorPreviewProps {
   className?: string
   /** Public origin without trailing slash — SERP URL + JSON-LD `@id` hints */
   publicOrigin?: string
+  /** CMS storage slug for the industry row (e.g. `electric` → public `electrician`). */
+  catalogStorageSlug?: string
+  /** Industry-wide robots string — used to explain consumer merge on locality keys. */
+  industryRobotsMeta?: string
 }
 
 function pickSeoTitle(cfg: CategoryMarketingConfig): string {
@@ -93,6 +98,8 @@ export function IndustryLandingEditorPreview({
   localityDisplayLabel,
   className,
   publicOrigin: publicOriginProp,
+  catalogStorageSlug,
+  industryRobotsMeta = '',
 }: IndustryLandingEditorPreviewProps) {
   const publicOrigin = (publicOriginProp || process.env.REACT_APP_PUBLIC_SITE_ORIGIN || 'https://www.profixer.in/blog').replace(
     /\/$/,
@@ -122,7 +129,17 @@ export function IndustryLandingEditorPreview({
   const ogDesc = merged.technicalSeo.ogDescription.trim() || merged.metaDescription.trim() || '—'
   const ogImage = merged.localSeo.ogImageOverride.trim()
   const ogType = merged.technicalSeo.ogType.trim() || 'website'
-  const robots = merged.technicalSeo.robotsMeta.trim() || '(consumer default, usually index, follow)'
+  const isLocalityKey = effectiveKey.includes('__')
+  const robotsPreview = useMemo(
+    () =>
+      resolveConsumerRobotsPreview({
+        isLocalityKey,
+        catalogStorageSlug: catalogStorageSlug ?? (isLocalityKey ? effectiveKey.split('__')[0]! : effectiveKey),
+        localityRobotsMeta: merged.technicalSeo.robotsMeta,
+        industryRobotsMeta,
+      }),
+    [catalogStorageSlug, effectiveKey, industryRobotsMeta, isLocalityKey, merged.technicalSeo.robotsMeta],
+  )
   const hreflangCount = merged.technicalSeo.hreflangAlternates.filter(
     (h) => h.hreflang.trim() && h.href.trim(),
   ).length
@@ -210,8 +227,21 @@ export function IndustryLandingEditorPreview({
                     </dd>
                   </div>
                   <div>
-                    <dt className="font-mono text-[10px] text-muted-foreground">meta name=&quot;robots&quot;</dt>
-                    <dd className="mt-0.5 break-words">{robots}</dd>
+                    <dt className="font-mono text-[10px] text-muted-foreground">meta name=&quot;robots&quot; (live site)</dt>
+                    <dd className="mt-0.5 break-words font-medium text-foreground">{robotsPreview.effectiveLabel}</dd>
+                    <dd className="mt-1.5 text-[11px] text-muted-foreground">
+                      CMS field on this key: {robotsPreview.cmsFieldLabel}
+                    </dd>
+                    <dd
+                      className={cn(
+                        'mt-1 text-[11px]',
+                        robotsPreview.tone === 'ok' && 'text-emerald-700 dark:text-emerald-400',
+                        robotsPreview.tone === 'warn' && 'text-amber-700 dark:text-amber-400',
+                        robotsPreview.tone === 'error' && 'text-destructive',
+                      )}
+                    >
+                      {robotsPreview.detail}
+                    </dd>
                   </div>
                   <div>
                     <dt className="font-mono text-[10px] text-muted-foreground">hreflang</dt>

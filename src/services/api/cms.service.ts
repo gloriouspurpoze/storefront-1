@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { CategoryMarketingConfig } from '../../types/categoryMarketing';
+import type { StoreCategoryPlpConfig } from '../../types/storeCategoryPlp';
 
 // API_BASE should include /api (e.g., http://localhost:8005/api)
 // Endpoints should NOT include /api prefix (e.g., /cms/admin/testimonials)
@@ -575,6 +576,25 @@ export class CMSService {
   static async updateCategoryMarketing(data: Record<string, CategoryMarketingConfig>) {
     const response = await axios.put(
       `${API_BASE}/cms/admin/static-content/category-marketing`,
+      data,
+      this.getAuthHeaders()
+    );
+    return response.data?.data ?? response.data;
+  }
+
+  // ==================== STORE CATEGORY PLP (`/store/:slug`) ====================
+
+  static async getStoreCategoryPlp(): Promise<Record<string, StoreCategoryPlpConfig>> {
+    const response = await axios.get(
+      `${API_BASE}/cms/admin/static-content/store-category-plp`,
+      this.getAuthHeaders()
+    );
+    return response.data?.data ?? response.data ?? {};
+  }
+
+  static async updateStoreCategoryPlp(data: Record<string, StoreCategoryPlpConfig>) {
+    const response = await axios.put(
+      `${API_BASE}/cms/admin/static-content/store-category-plp`,
       data,
       this.getAuthHeaders()
     );
