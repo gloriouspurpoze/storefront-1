@@ -78,6 +78,7 @@ import {
   CircleDollarSign as OperatingCommercialIcon,
   Boxes as ProviderAssetsIcon,
   Gavel as ProfessionalConductIcon,
+  Repeat as SubscriptionsIcon,
 } from 'lucide-react'
 import { useAppSelector, useAppDispatch } from '../../store/hooks'
 import { setChatUnreadMessages } from '../../store/slices/chatInboxSlice'
@@ -380,6 +381,13 @@ const navigationGroups = [
         permissions: ['view_finance'],
         badge: null,
       },
+      {
+        name: 'Subscriptions',
+        href: '/subscriptions',
+        icon: SubscriptionsIcon,
+        permissions: ['view_subscriptions'],
+        badge: null,
+      },
       { name: 'Chat', href: '/chat', icon: ChatIcon, permissions: ['view_messages'], badge: null },
     ]
   },
@@ -545,8 +553,9 @@ const navigationGroups = [
         badge: null,
         subItems: [
           { name: 'Sliders & banners', href: '/sliders', icon: SlideshowIcon, permissions: ['manage_cms'] },
-          { name: 'Promotions', href: '/cms/promotions', icon: CouponIcon, permissions: ['manage_marketing'] },
-          { name: 'Coupons', href: '/coupons', icon: TicketPercent, permissions: ['manage_marketing'] },
+          // Unified discount-code module (was previously split between
+          // `/cms/promotions` and `/coupons`). `/cms/promotions` redirects here.
+          { name: 'Coupons & promo codes', href: '/coupons', icon: TicketPercent, permissions: ['manage_marketing'] },
           { name: 'Referrals', href: '/referrals', icon: ReferralIcon, permissions: ['manage_marketing'] },
         ],
       },
@@ -803,6 +812,35 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const user = authState?.user || null
   const { checkRouteAccess } = usePermissions()
   const [openSubmenus, setOpenSubmenus] = useState<{ [key: string]: boolean }>({})
+  // Sidebar group collapse state. Default: every group is OPEN.
+  // We persist user toggles in localStorage so collapses survive page navigation /
+  // reload, but the default for any group the user hasn't touched is always open.
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    if (typeof window === 'undefined') return {}
+    try {
+      const raw = window.localStorage.getItem('admin.sidebar.groups')
+      return raw ? (JSON.parse(raw) as Record<string, boolean>) : {}
+    } catch {
+      return {}
+    }
+  })
+
+  const isGroupOpen = React.useCallback(
+    (title: string) => (title in openGroups ? !!openGroups[title] : true),
+    [openGroups],
+  )
+
+  const handleGroupToggle = React.useCallback((title: string, next: boolean) => {
+    setOpenGroups((prev) => {
+      const updated = { ...prev, [title]: next }
+      try {
+        window.localStorage.setItem('admin.sidebar.groups', JSON.stringify(updated))
+      } catch {
+        /* ignore quota */
+      }
+      return updated
+    })
+  }, [])
 
   const canPollChatUnread = Boolean(authState?.token) && checkRouteAccess('/chat')
 
@@ -1086,15 +1124,21 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             >
               {sidebarOpen ? (
                 <details
-                  className="mb-1 border-b border-border/50 pb-2 last:border-b-0"
-                  {...({ defaultOpen: true } as Record<string, unknown>)}
+                  className="group/section mb-1 border-b border-border/50 pb-2 last:border-b-0"
+                  open={isGroupOpen(group.title)}
+                  onToggle={(e) =>
+                    handleGroupToggle(group.title, (e.target as HTMLDetailsElement).open)
+                  }
                 >
                   <summary className="flex cursor-pointer list-none items-center gap-2 px-2 py-1.5 text-[0.65rem] font-bold uppercase tracking-wider text-muted-foreground [&::-webkit-details-marker]:hidden">
                     {group.icon ? (
                       <group.icon className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
                     ) : null}
                     <span className="min-w-0 flex-1 truncate">{group.title}</span>
-                    <ExpandMore className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+                    <ExpandMore
+                      className="h-3.5 w-3.5 shrink-0 opacity-70 transition-transform group-open/section:rotate-180"
+                      aria-hidden
+                    />
                   </summary>
                   <ul className="space-y-0.5 px-0.5 pt-1">{rows}</ul>
                 </details>

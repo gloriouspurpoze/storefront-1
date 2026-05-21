@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   RefreshCw,
   Save,
+  Sparkles,
 } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent } from '../../components/ui/card'
@@ -26,6 +27,11 @@ import {
   normalizeProductImagesFromApi,
   type ProductFormLike,
 } from '../../lib/productFormPayload'
+import {
+  buildProductSeoSuggestion,
+  fillMissingProductSeo,
+  type ProductSeoInput,
+} from '../../lib/productSeoAutogen'
 import { ProductsService } from '../../services/api/products.service'
 import { CategoriesService } from '../../services/api/categories.service'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
@@ -703,6 +709,58 @@ export function AddProduct() {
     setActiveStep((s) => Math.min(steps.length - 1, s + 1))
   }
 
+  /** Build the SEO source payload from current form + category lookup. */
+  const buildSeoSource = React.useCallback((): ProductSeoInput => {
+    const cat = categories.find((c: any) => c?.id === formData.categoryId || c?._id === formData.categoryId)
+    return {
+      name: formData.name,
+      brand: formData.brand,
+      model: formData.model,
+      categoryLabel: (cat?.name ?? cat?.title ?? '') as string,
+      shortDescription: formData.shortDescription,
+      description: formData.description,
+      price: formData.price,
+      originalPrice: formData.originalPrice,
+      tags: formData.tags,
+      specifications: formData.specifications,
+      isOnSale: formData.isOnSale,
+      isNew: formData.isNew,
+      isFeatured: formData.isFeatured,
+      freeShipping: formData.freeShipping,
+      warrantyPeriod: formData.warrantyPeriod,
+    }
+  }, [formData, categories])
+
+  /** Regenerate all SEO fields from scratch (user-initiated, overwrites current). */
+  const handleAutoGenerateSeo = () => {
+    const src = buildSeoSource()
+    if (!src.name?.trim()) {
+      dispatch(addToast({
+        message: 'Add the product name first — we use it to craft SEO copy.',
+        severity: 'warning',
+        duration: 3500,
+      }))
+      return
+    }
+    const suggestion = buildProductSeoSuggestion(src)
+    setFormData((prev) => ({
+      ...prev,
+      seoTitle: suggestion.title,
+      seoDescription: suggestion.description,
+      seoKeywords: suggestion.keywords,
+    }))
+    setErrors((prev: any) => ({
+      ...prev,
+      seoTitle: undefined,
+      seoDescription: undefined,
+    }))
+    dispatch(addToast({
+      message: 'SEO copy auto-generated from product details.',
+      severity: 'success',
+      duration: 3000,
+    }))
+  }
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     
@@ -715,10 +773,33 @@ export function AddProduct() {
       return
     }
 
+    // Silently auto-fill any blank SEO field so we never persist a product with empty meta.
+    const autofilled = fillMissingProductSeo(
+      {
+        seoTitle: formData.seoTitle,
+        seoDescription: formData.seoDescription,
+        seoKeywords: formData.seoKeywords,
+      },
+      buildSeoSource(),
+    )
+    const formForSubmit: ProductFormData = {
+      ...formData,
+      seoTitle: autofilled.seoTitle,
+      seoDescription: autofilled.seoDescription,
+      seoKeywords: autofilled.seoKeywords,
+    }
+    if (
+      formForSubmit.seoTitle !== formData.seoTitle ||
+      formForSubmit.seoDescription !== formData.seoDescription ||
+      formForSubmit.seoKeywords !== formData.seoKeywords
+    ) {
+      setFormData(formForSubmit)
+    }
+
     setIsLoading(true)
     
     try {
-      const productData = buildProductCreateBody(formData as ProductFormLike)
+      const productData = buildProductCreateBody(formForSubmit as ProductFormLike)
       let response
       if (isEditMode && id) {
         response = await ProductsService.updateProduct(id, productData, { showErrorToast: false })
@@ -1196,9 +1277,27 @@ export function AddProduct() {
 
             <Card>
               <CardContent>
-                        <h2 className="mb-6 flex items-center gap-2 text-lg font-semibold text-primary">
-                          SEO & Marketing
-                        </h2>
+                        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <h2 className="flex items-center gap-2 text-lg font-semibold text-primary">
+                              SEO & Marketing
+                            </h2>
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              We auto-fill anything you leave blank when you save. Click <span className="font-medium">Auto-generate</span> to (re)write everything from the product details.
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleAutoGenerateSeo}
+                            disabled={!formData.name.trim()}
+                            className="gap-1.5"
+                          >
+                            <Sparkles className="h-4 w-4" />
+                            Auto-generate SEO
+                          </Button>
+                        </div>
                         
                         <div className="flex flex-col gap-6">
                           <FormField
@@ -1206,8 +1305,8 @@ export function AddProduct() {
                             value={formData.seoTitle}
                             onChange={handleInputChange('seoTitle')}
                             error={errors.seoTitle}
-                            helperText="Optimized title for search engines"
-                            placeholder="SEO-optimized product title"
+                            helperText="We auto-fill this from the product name on save if blank — or click Auto-generate to refresh."
+                            placeholder="Auto-generated from product details if left blank"
                             showCharCount
                             maxLength={60}
                           />
@@ -1217,8 +1316,8 @@ export function AddProduct() {
                             value={formData.seoDescription}
                             onChange={handleInputChange('seoDescription')}
                             error={errors.seoDescription}
-                            helperText="Meta description for search results"
-                            placeholder="Compelling description for search results"
+                            helperText="Auto-filled from short description, price and trust signals when left blank."
+                            placeholder="Auto-generated from product details if left blank"
                             multiline
                             rows={3}
                             showCharCount
@@ -1229,10 +1328,10 @@ export function AddProduct() {
                             label="SEO Keywords"
                             value={formData.seoKeywords}
                               onChange={(keywords: string[]) => setFormData((prev: ProductFormData) => ({ ...prev, seoKeywords: keywords }))}
-                            placeholder="Add keywords for better search visibility"
+                            placeholder="Auto-generated from product name, brand, category & tags if blank"
                             suggestions={['premium', 'quality', 'professional', 'wireless', 'bluetooth']}
                             maxTags={20}
-                            helperText="Add relevant keywords to improve search visibility"
+                            helperText="We synthesize keywords from name, brand, category, tags & specs on save."
                           />
                           
                           <div className="flex flex-wrap gap-4">

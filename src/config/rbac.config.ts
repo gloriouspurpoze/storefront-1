@@ -133,6 +133,9 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       'view_professional_conduct',
       'manage_professional_conduct',
 
+      'view_subscriptions',
+      'manage_subscriptions',
+
       // Boards (collaborative canvas)
       'view_boards',
       'manage_boards',
@@ -256,6 +259,9 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       'view_professional_conduct',
       'manage_professional_conduct',
 
+      'view_subscriptions',
+      'manage_subscriptions',
+
       // Boards (collaborative canvas)
       'view_boards',
       'manage_boards',
@@ -338,6 +344,9 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       'view_professional_conduct',
       'manage_professional_conduct',
 
+      'view_subscriptions',
+      'manage_subscriptions',
+
       'view_coupons',
       'edit_coupons',
       'manage_coupons',
@@ -403,6 +412,8 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       'view_provider_assets',
 
       'view_professional_conduct',
+
+      'view_subscriptions',
 
       'view_coupons',
       'edit_coupons',
@@ -758,6 +769,12 @@ export const routePermissions: RoutePermission[] = [
   {
     path: '/amc',
     requiredPermissions: ['view_amc'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+
+  {
+    path: '/subscriptions',
+    requiredPermissions: ['view_subscriptions'],
     allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
   },
 

@@ -150,6 +150,10 @@ export type Permission =
   | 'view_professional_conduct'
   | 'manage_professional_conduct'
 
+  /** Recurring revenue plans & subscriber lifecycle (`/api/admin/subscriptions`) */
+  | 'view_subscriptions'
+  | 'manage_subscriptions'
+
 export interface RolePermissions {
   role: UserRole
   permissions: Permission[]

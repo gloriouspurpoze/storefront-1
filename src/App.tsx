@@ -264,6 +264,10 @@ const InvoiceBrandingPage = lazy(() =>
   import('./pages/payments/invoice-branding').then((m) => ({ default: m.InvoiceBrandingPage }))
 )
 
+const SubscriptionsHub = lazy(() =>
+  import('./pages/subscriptions/SubscriptionsHub').then((m) => ({ default: m.SubscriptionsHub })),
+)
+
 const Messages = lazy(() => import('./pages/communication/messages').then((m) => ({ default: m.Messages })))
 const ChatPage = lazy(() => import('./pages/communication/chat'))
 const Notifications = lazy(() => import('./pages/communication/notifications').then((m) => ({ default: m.Notifications })))
@@ -311,7 +315,8 @@ const SupportTicketsQueuePage = lazy(() => import('./pages/support/SupportTicket
 
 const CMSDashboard = lazy(() => import('./pages/cms/CMSDashboard'))
 const SiteAppearancePage = lazy(() => import('./pages/cms/SiteAppearancePage'))
-const PromotionManagement = lazy(() => import('./pages/cms/PromotionManagement'))
+// PromotionManagement was removed in favour of the unified `/coupons` module.
+// `/cms/promotions` is now a permanent redirect (see route definition below).
 const TestimonialManagement = lazy(() => import('./pages/cms/TestimonialManagement'))
 const ReviewsManagement = lazy(() => import('./pages/cms/ReviewsManagement'))
 const FAQManagement = lazy(() => import('./pages/cms/FAQManagement'))
@@ -964,6 +969,48 @@ function App() {
                         <Route path="contracts/:id" element={<AmcContractDetailPage />} />
                       </Route>
 
+                      {/* Subscriptions — recurring revenue: plans + subscriber lifecycle */}
+                      <Route
+                        path="/subscriptions"
+                        element={
+                          <RoleBasedRoute permissions={['view_subscriptions']}>
+                            <SubscriptionsHub />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/subscriptions/plans"
+                        element={
+                          <RoleBasedRoute permissions={['view_subscriptions']}>
+                            <SubscriptionsHub />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/subscriptions/plans/new"
+                        element={
+                          <RoleBasedRoute permissions={['manage_subscriptions']}>
+                            <SubscriptionsHub />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/subscriptions/plans/:id/edit"
+                        element={
+                          <RoleBasedRoute permissions={['manage_subscriptions']}>
+                            <SubscriptionsHub />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/subscriptions/subscribers"
+                        element={
+                          <RoleBasedRoute permissions={['view_subscriptions']}>
+                            <SubscriptionsHub />
+                          </RoleBasedRoute>
+                        }
+                      />
+
                       <Route
                         path="/company-documents"
                         element={
@@ -1479,13 +1526,14 @@ function App() {
                           </RoleBasedRoute>
                         }
                       />
-                      <Route 
-                        path="/cms/promotions" 
-                        element={
-                          <RoleBasedRoute permissions={['manage_system_settings']}>
-                            <PromotionManagement />
-                          </RoleBasedRoute>
-                        } 
+                      {/*
+                        `/cms/promotions` is now unified with `/coupons` — a single discount-code
+                        engine. We keep this route as a permanent redirect so old bookmarks /
+                        external campaign links continue to land on the right place.
+                      */}
+                      <Route
+                        path="/cms/promotions"
+                        element={<Navigate to="/coupons" replace />}
                       />
                       <Route 
                         path="/cms/testimonials" 

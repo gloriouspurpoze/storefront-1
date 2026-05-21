@@ -39,6 +39,7 @@ export { ProfessionalConductService } from './professional-conduct.service'
 export { marketingWorkspaceApi } from './marketingWorkspace.api'
 export { platformTenantsService } from './platformTenants.service'
 export { BazaarMarketplaceService } from './bazaarMarketplace.service'
+export { SubscriptionsService } from './subscriptions.service'
 export { ErrorHandler } from './error-handler'
 
 // Export types from base

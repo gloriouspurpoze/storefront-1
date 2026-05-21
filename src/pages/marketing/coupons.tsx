@@ -500,8 +500,8 @@ export default function Coupons() {
     <TooltipProvider>
       <div className="p-4 sm:p-6 md:p-8">
         <PageHeader
-          title="Coupon Management"
-          subtitle="Create and manage discount coupons"
+          title="Coupons & promo codes"
+          subtitle="One place for all discount codes — promotions, seasonal offers, first-order codes and more."
           action={
             <Button
               className="rounded-lg"
