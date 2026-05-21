@@ -53,7 +53,10 @@ export function InvoiceBrandingPage() {
   const [draft, setDraft] = useState<InvoiceBranding>(() => loadInvoiceBranding())
   const [addressText, setAddressText] = useState(() => loadInvoiceBranding().supplierAddressLines.join('\n'))
 
-  const previewComputed = useMemo(() => computeInvoiceFromLines(SAMPLE_ITEMS, 150), [])
+  const previewComputed = useMemo(
+    () => computeInvoiceFromLines(SAMPLE_ITEMS, 150, { applyGst: true, gstRate: 18 }),
+    []
+  )
   const sampleBilling = useMemo(
     () => ({
       name: 'Sample Customer Pvt Ltd',

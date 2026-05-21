@@ -1,37 +1,40 @@
-import React, { useState, useEffect, useCallback } from 'react';
+/**
+ * Notifications hub — industry layout:
+ *   Inbox (default) → Compose → Templates → Settings
+ */
+
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   Bell,
   Send,
   FileText,
-  TrendingUp,
-  Users,
-  CheckCircle2,
-  RefreshCw,
-  Megaphone,
+  Inbox,
   SlidersHorizontal,
-  ExternalLink,
   Loader2,
-} from 'lucide-react';
-import { NotificationTemplates } from './NotificationTemplates';
-import { NotificationCenter } from './NotificationCenter';
-import { useNotifications } from '../../hooks/useNotifications';
+  Megaphone,
+  Users,
+  AlertTriangle,
+} from 'lucide-react'
+import { NotificationTemplates } from './NotificationTemplates'
+import { NotificationInbox } from './NotificationInbox'
+import { useNotifications } from '../../hooks/useNotifications'
 import {
   notificationsService,
   CreateNotificationRequest,
   NotificationStats,
   NotificationTemplate,
-} from '../../services/api/notifications.service';
-import { useAppDispatch } from '../../store/hooks';
-import { addToast } from '../../store/slices/uiSlice';
+} from '../../services/api/notifications.service'
+import { useAppDispatch } from '../../store/hooks'
+import { addToast } from '../../store/slices/uiSlice'
+import {
+  NOTIFICATION_TYPE_OPTIONS,
+  parseRecipientIds,
+  formatNotificationType,
+} from '../../lib/notificationUi'
 import {
   Button,
   Card,
   CardContent,
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   Input,
   Label,
   Select,
@@ -44,30 +47,34 @@ import {
   TabsList,
   TabsTrigger,
   Switch,
-  Separator,
   Badge,
   Textarea,
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-  Avatar,
-  AvatarFallback,
-} from '../ui';
+} from '../ui'
+import { cn } from '../../lib/utils'
+
+type HubTab = 'inbox' | 'compose' | 'templates' | 'settings'
 
 interface NotificationManagerProps {
-  onClose?: () => void;
+  /** Controlled tab (optional). */
+  activeTab?: HubTab
+  onTabChange?: (tab: HubTab) => void
 }
 
-export function NotificationManager({ onClose: _onClose }: NotificationManagerProps) {
-  const [tab, setTab] = useState('0');
-  const [sendDialogOpen, setSendDialogOpen] = useState(false);
-  const [notificationCenterOpen, setNotificationCenterOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [statsLoading, setStatsLoading] = useState(true);
-  const [broadcastStats, setBroadcastStats] = useState<NotificationStats | null>(null);
-  const [recipientIdsCsv, setRecipientIdsCsv] = useState('');
-  const dispatch = useAppDispatch();
+export function NotificationManager({ activeTab: controlledTab, onTabChange }: NotificationManagerProps) {
+  const [internalTab, setInternalTab] = useState<HubTab>('inbox')
+  const tab = controlledTab ?? internalTab
+  const setTab = (t: HubTab) => {
+    if (onTabChange) onTabChange(t)
+    else setInternalTab(t)
+  }
+
+  const [loading, setLoading] = useState(false)
+  const [statsLoading, setStatsLoading] = useState(true)
+  const [broadcastStats, setBroadcastStats] = useState<NotificationStats | null>(null)
+  const [recipientIdsCsv, setRecipientIdsCsv] = useState('')
+  const [audienceMode, setAudienceMode] = useState<'specific' | 'broadcast'>('specific')
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const dispatch = useAppDispatch()
 
   const {
     notifications,
@@ -77,8 +84,7 @@ export function NotificationManager({ onClose: _onClose }: NotificationManagerPr
     updatePreferences,
     registerDevice,
     unregisterDevice,
-    isLoading,
-  } = useNotifications();
+  } = useNotifications()
 
   const [sendForm, setSendForm] = useState<CreateNotificationRequest>({
     title: '',
@@ -88,7 +94,7 @@ export function NotificationManager({ onClose: _onClose }: NotificationManagerPr
     actionUrl: '',
     data: {},
     userIds: [],
-  });
+  })
 
   const [localPrefs, setLocalPrefs] = useState({
     pushNotifications: true,
@@ -98,7 +104,7 @@ export function NotificationManager({ onClose: _onClose }: NotificationManagerPr
     userNotifications: true,
     systemNotifications: true,
     marketingNotifications: false,
-  });
+  })
 
   useEffect(() => {
     if (preferences) {
@@ -110,77 +116,75 @@ export function NotificationManager({ onClose: _onClose }: NotificationManagerPr
         userNotifications: preferences.userNotifications,
         systemNotifications: preferences.systemNotifications,
         marketingNotifications: preferences.marketingNotifications,
-      });
+      })
     }
-  }, [preferences]);
+  }, [preferences])
 
   const loadBroadcastStats = useCallback(async () => {
     try {
-      setStatsLoading(true);
-      const s = await notificationsService.getNotificationStats();
+      setStatsLoading(true)
+      const s = await notificationsService.getNotificationStats()
       const hasData =
         s.totalSent > 0 ||
         s.totalRead > 0 ||
         s.totalUnread > 0 ||
-        Object.keys(s.byType || {}).length > 0;
-      setBroadcastStats(hasData ? s : null);
+        Object.keys(s.byType || {}).length > 0
+      setBroadcastStats(hasData ? s : null)
     } finally {
-      setStatsLoading(false);
+      setStatsLoading(false)
     }
-  }, []);
+  }, [])
 
   useEffect(() => {
-    loadBroadcastStats();
-  }, [loadBroadcastStats]);
+    void loadBroadcastStats()
+  }, [loadBroadcastStats])
 
-  const notificationTypes = [
-    { value: 'quote_received', label: 'Quote Received' },
-    { value: 'quote_accepted', label: 'Quote Accepted' },
-    { value: 'booking_confirmed', label: 'Booking Confirmed' },
-    { value: 'message_received', label: 'Message Received' },
-    { value: 'order_placed', label: 'Order Placed' },
-    { value: 'order_updated', label: 'Order Updated' },
-    { value: 'payment_received', label: 'Payment Received' },
-    { value: 'service_completed', label: 'Service Completed' },
-    { value: 'review_requested', label: 'Review Requested' },
-    { value: 'system_alert', label: 'System Alert' },
-    { value: 'marketing', label: 'Marketing' },
-    { value: 'reminder', label: 'Reminder' },
-  ];
-
-  const parseRecipientIds = (csv: string): string[] =>
-    csv
-      .split(/[\s,;]+/)
-      .map((s) => s.trim())
-      .filter(Boolean);
+  const readCount = Math.max(0, notifications.length - unreadCount)
+  const readRate =
+    notifications.length > 0
+      ? (((notifications.length - unreadCount) / notifications.length) * 100).toFixed(0)
+      : '0'
 
   const handleSendNotification = async () => {
-    const userIds = parseRecipientIds(recipientIdsCsv);
+    const userIds =
+      audienceMode === 'specific' ? parseRecipientIds(recipientIdsCsv) : []
+
+    if (audienceMode === 'specific' && userIds.length === 0) {
+      dispatch(addToast({ message: 'Add at least one recipient user ID, or switch to broadcast mode.', severity: 'error' }))
+      return
+    }
+
+    if (sendForm.type === 'marketing' && !localPrefs.marketingNotifications) {
+      dispatch(
+        addToast({
+          message: 'Marketing is disabled in your preferences. Enable it under Settings before sending.',
+          severity: 'warning',
+        }),
+      )
+    }
+
     const payload: CreateNotificationRequest = {
       ...sendForm,
       iconUrl: sendForm.iconUrl?.trim() || undefined,
       actionUrl: sendForm.actionUrl?.trim() || undefined,
-      userIds: userIds.length > 0 ? userIds : [],
-    };
+      userIds,
+    }
 
     try {
-      setLoading(true);
-      const result = await notificationsService.sendNotification(payload);
-
-      const delivered = Number(result.success ?? 0);
-      const failed = Number(result.failed ?? 0);
+      setLoading(true)
+      const result = await notificationsService.sendNotification(payload)
+      const delivered = Number(result.success ?? 0)
+      const failed = Number(result.failed ?? 0)
       dispatch(
         addToast({
           message:
             delivered === 0 && failed === 0
-              ? 'Send completed. If nothing was delivered, confirm recipient user IDs and server configuration.'
+              ? 'Send completed. Confirm recipient IDs and server configuration if nothing was delivered.'
               : `Delivered: ${delivered}${failed ? `, failed: ${failed}` : ''}.`,
           severity: delivered > 0 ? 'success' : 'warning',
-        })
-      );
-
-      setSendDialogOpen(false);
-      setRecipientIdsCsv('');
+        }),
+      )
+      setRecipientIdsCsv('')
       setSendForm({
         title: '',
         body: '',
@@ -189,24 +193,24 @@ export function NotificationManager({ onClose: _onClose }: NotificationManagerPr
         actionUrl: '',
         data: {},
         userIds: [],
-      });
-      await Promise.all([refreshNotifications(), loadBroadcastStats()]);
+      })
+      setTab('inbox')
+      await Promise.all([refreshNotifications(), loadBroadcastStats()])
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to send notification';
       dispatch(
         addToast({
-          message: errorMessage,
+          message: error instanceof Error ? error.message : 'Failed to send notification',
           severity: 'error',
-        })
-      );
+        }),
+      )
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleSendFromTemplate = (template: NotificationTemplate) => {
     const stripPlaceholders = (s: string) =>
-      s.replace(/\{\{[^}]+\}\}/g, (m) => m.replace(/[{}]/g, '').replace(/_/g, ' '));
+      s.replace(/\{\{[^}]+\}\}/g, (m) => m.replace(/[{}]/g, '').replace(/_/g, ' '))
 
     setSendForm({
       title: stripPlaceholders(template.titleTemplate).slice(0, 120) || template.name,
@@ -216,522 +220,368 @@ export function NotificationManager({ onClose: _onClose }: NotificationManagerPr
       actionUrl: template.actionUrl || '',
       data: { templateId: template.id },
       userIds: [],
-    });
-    setRecipientIdsCsv('');
-    setTab('1');
-    setSendDialogOpen(true);
-  };
-
-  const recentNotifications = notifications.slice(0, 5);
-  const notificationStats = {
-    total: notifications.length,
-    unread: unreadCount,
-    read: Math.max(0, notifications.length - unreadCount),
-    readRate:
-      notifications.length > 0
-        ? (((notifications.length - unreadCount) / notifications.length) * 100).toFixed(1)
-        : '0',
-  };
+    })
+    setRecipientIdsCsv('')
+    setTab('compose')
+  }
 
   const handleSavePreferences = async () => {
     try {
-      await updatePreferences(localPrefs);
+      await updatePreferences(localPrefs)
     } catch {
       /* toast in hook */
     }
-  };
+  }
 
-  const renderOverview = () => (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
-      <div className="md:col-span-12">
-        <div className="rounded-md border border-blue-200 bg-blue-50 p-4 text-sm dark:border-blue-900/50 dark:bg-blue-950/40">
-          <p className="font-medium text-foreground">Operational scope</p>
-          <p className="mt-1 text-muted-foreground">
-            In-app items below reflect this admin session&apos;s feed. Broadcast metrics (if your API exposes them)
-            appear when the stats endpoint returns data. Marketing sends should respect consent flags under
-            Preferences.
-          </p>
-        </div>
-      </div>
-
-      <div className="md:col-span-6 lg:col-span-3">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10 bg-primary text-primary-foreground">
-                <AvatarFallback className="bg-primary text-primary-foreground">
-                  <Bell className="h-5 w-5" />
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="text-2xl font-semibold leading-none">{notificationStats.total}</p>
-                <p className="text-sm text-muted-foreground">In-app (loaded)</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="md:col-span-6 lg:col-span-3">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10 bg-amber-500 text-white">
-                <AvatarFallback className="bg-amber-500 text-white">
-                  <TrendingUp className="h-5 w-5" />
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="text-2xl font-semibold leading-none">{notificationStats.unread}</p>
-                <p className="text-sm text-muted-foreground">Unread</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="md:col-span-6 lg:col-span-3">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10 bg-green-600 text-white">
-                <AvatarFallback className="bg-green-600 text-white">
-                  <CheckCircle2 className="h-5 w-5" />
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="text-2xl font-semibold leading-none">{notificationStats.read}</p>
-                <p className="text-sm text-muted-foreground">Read</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="md:col-span-6 lg:col-span-3">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10 bg-sky-600 text-white">
-                <AvatarFallback className="bg-sky-600 text-white">
-                  <Users className="h-5 w-5" />
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="text-2xl font-semibold leading-none">{notificationStats.readRate}%</p>
-                <p className="text-sm text-muted-foreground">Read rate (in-app)</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+  return (
+    <div className="w-full">
+      {/* KPI strip */}
+      <div className="grid grid-cols-2 gap-3 border-b border-border bg-muted/20 px-4 py-4 sm:grid-cols-4 md:px-6">
+        {[
+          { label: 'Unread', value: unreadCount, accent: unreadCount > 0 ? 'text-amber-600' : '' },
+          { label: 'Loaded', value: notifications.length, accent: '' },
+          { label: 'Read', value: readCount, accent: '' },
+          { label: 'Read rate', value: `${readRate}%`, accent: '' },
+        ].map((k) => (
+          <div key={k.label} className="rounded-lg border border-border/80 bg-card px-3 py-2.5">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{k.label}</p>
+            <p className={cn('text-xl font-bold tabular-nums', k.accent)}>{k.value}</p>
+          </div>
+        ))}
       </div>
 
       {broadcastStats && (
-        <>
-          <div className="md:col-span-12">
-            <p className="text-base font-semibold">Broadcast pipeline (API)</p>
-            <p className="text-xs text-muted-foreground">
-              Totals from <code className="rounded bg-muted px-1 py-0.5">/notifications/stats</code> when available.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 md:col-span-12">
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-2xl font-semibold">{broadcastStats.totalSent}</p>
-                <p className="text-sm text-muted-foreground">Sent</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-2xl font-semibold">{broadcastStats.totalRead}</p>
-                <p className="text-sm text-muted-foreground">Read</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-2xl font-semibold">{broadcastStats.totalUnread}</p>
-                <p className="text-sm text-muted-foreground">Unread</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-2xl font-semibold">{broadcastStats.readRate}%</p>
-                <p className="text-sm text-muted-foreground">Read rate</p>
-              </CardContent>
-            </Card>
-          </div>
-        </>
+        <div className="flex flex-wrap gap-4 border-b border-border bg-muted/10 px-4 py-2 text-xs text-muted-foreground md:px-6">
+          <span>
+            <strong className="text-foreground">Broadcast API:</strong> {broadcastStats.totalSent} sent ·{' '}
+            {broadcastStats.totalRead} read · {broadcastStats.readRate}% rate
+          </span>
+        </div>
       )}
-
       {statsLoading && (
-        <div className="flex items-center gap-2 md:col-span-12">
-          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Checking broadcast stats…</p>
+        <div className="flex items-center gap-2 border-b border-border px-4 py-2 text-xs text-muted-foreground md:px-6">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          Loading broadcast stats…
         </div>
       )}
 
-      <div className="md:col-span-6">
-        <Card>
-          <CardContent className="pt-6">
-            <h3 className="mb-4 text-lg font-semibold leading-none">Quick actions</h3>
-            <div className="flex flex-col gap-3">
-              <Button
-                className="w-full"
-                leftIcon={<Send className="h-4 w-4" />}
-                onClick={() => {
-                  setTab('1');
-                  setSendDialogOpen(true);
-                }}
-              >
-                Compose broadcast
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full"
-                leftIcon={<FileText className="h-4 w-4" />}
-                onClick={() => setTab('2')}
-              >
-                Templates
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full"
-                leftIcon={<SlidersHorizontal className="h-4 w-4" />}
-                onClick={() => setTab('3')}
-              >
-                Preferences &amp; channels
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full"
-                leftIcon={<Bell className="h-4 w-4" />}
-                onClick={() => setNotificationCenterOpen(true)}
-              >
-                Open notification center
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="md:col-span-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold leading-none">Recent in-app</h3>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => void refreshNotifications()}
-                      disabled={isLoading}
-                      aria-label="Refresh"
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Refresh</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            {recentNotifications.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No notifications in the current window. Use Refresh after new activity.
-              </p>
-            ) : (
-              <ul className="divide-y divide-border rounded-md border">
-                {recentNotifications.map((notification) => (
-                  <li key={notification.id}>
-                    <div className="flex cursor-default items-start gap-3 px-3 py-2.5 hover:bg-muted/50">
-                      <div className="relative shrink-0 pt-0.5">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="text-xs">
-                            <Bell className="h-4 w-4" />
-                          </AvatarFallback>
-                        </Avatar>
-                        {!notification.isRead && (
-                          <span
-                            className="absolute right-0 top-0 h-2 w-2 rounded-full bg-destructive ring-2 ring-background"
-                            aria-hidden
-                          />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p
-                          className={`text-sm ${notification.isRead ? 'font-normal' : 'font-semibold'}`}
-                        >
-                          {notification.title}
-                        </p>
-                        <p className="line-clamp-1 text-xs text-muted-foreground">{notification.body}</p>
-                      </div>
-                      <Badge variant="outline" className="shrink-0 capitalize">
-                        {notification.type.replace(/_/g, ' ')}
-                      </Badge>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-
-  const renderBroadcast = () => (
-    <div className="space-y-6">
-      <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm dark:border-amber-900/50 dark:bg-amber-950/40">
-        <p>
-          Broadcasts may reach real users. Confirm copy, audience, and compliance (especially for{' '}
-          <strong>marketing</strong>) before sending. Recipient IDs must match your backend&apos;s user identifiers.
-        </p>
-      </div>
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            <h3 className="flex-1 text-lg font-semibold">Compose</h3>
-            <Button leftIcon={<Send className="h-4 w-4" />} onClick={() => setSendDialogOpen(true)}>
-              Open send dialog
-            </Button>
-            <Button variant="outline" leftIcon={<ExternalLink className="h-4 w-4" />} onClick={() => setTab('2')}>
-              Pick a template first
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const renderPreferences = () => (
-    <div className="space-y-6">
-      <p className="text-sm text-muted-foreground">
-        Channel toggles are stored per user via <code className="rounded bg-muted px-1 py-0.5">PUT /notifications/preferences</code>.
-        Web push also requires a subscribed browser endpoint.
-      </p>
-      <Card>
-        <CardContent className="pt-6">
-          <h3 className="mb-3 text-base font-semibold">Web push (this browser)</h3>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => void registerDevice()}>
-              Enable push on this device
-            </Button>
-            <Button variant="outline" onClick={() => void unregisterDevice()}>
-              Disable push on this device
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="pt-6">
-          <h3 className="mb-3 text-base font-semibold">Categories</h3>
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <Switch
-                id="pref-push"
-                checked={localPrefs.pushNotifications}
-                onCheckedChange={(v) => setLocalPrefs((p) => ({ ...p, pushNotifications: v }))}
-              />
-              <Label htmlFor="pref-push">Push notifications</Label>
-            </div>
-            <div className="flex items-center gap-3">
-              <Switch
-                id="pref-email"
-                checked={localPrefs.emailNotifications}
-                onCheckedChange={(v) => setLocalPrefs((p) => ({ ...p, emailNotifications: v }))}
-              />
-              <Label htmlFor="pref-email">Email</Label>
-            </div>
-            <div className="flex items-center gap-3">
-              <Switch
-                id="pref-sms"
-                checked={localPrefs.smsNotifications}
-                onCheckedChange={(v) => setLocalPrefs((p) => ({ ...p, smsNotifications: v }))}
-              />
-              <Label htmlFor="pref-sms">SMS</Label>
-            </div>
-            <Separator className="my-2" />
-            <div className="flex items-center gap-3">
-              <Switch
-                id="pref-order"
-                checked={localPrefs.orderNotifications}
-                onCheckedChange={(v) => setLocalPrefs((p) => ({ ...p, orderNotifications: v }))}
-              />
-              <Label htmlFor="pref-order">Orders & bookings</Label>
-            </div>
-            <div className="flex items-center gap-3">
-              <Switch
-                id="pref-user"
-                checked={localPrefs.userNotifications}
-                onCheckedChange={(v) => setLocalPrefs((p) => ({ ...p, userNotifications: v }))}
-              />
-              <Label htmlFor="pref-user">Account & messages</Label>
-            </div>
-            <div className="flex items-center gap-3">
-              <Switch
-                id="pref-system"
-                checked={localPrefs.systemNotifications}
-                onCheckedChange={(v) => setLocalPrefs((p) => ({ ...p, systemNotifications: v }))}
-              />
-              <Label htmlFor="pref-system">System & security</Label>
-            </div>
-            <div className="flex items-center gap-3">
-              <Switch
-                id="pref-marketing"
-                checked={localPrefs.marketingNotifications}
-                onCheckedChange={(v) => setLocalPrefs((p) => ({ ...p, marketingNotifications: v }))}
-              />
-              <Label htmlFor="pref-marketing">Marketing (opt-in)</Label>
-            </div>
-          </div>
-          <div className="mt-4">
-            <Button onClick={() => void handleSavePreferences()}>Save preferences</Button>
-          </div>
-        </CardContent>
-      </Card>
-      <p className="text-xs text-muted-foreground">
-        Product documentation: keep an audit trail of high-impact sends in your backend.{' '}
-        <a
-          href="https://web.dev/articles/push-notifications-overview"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-primary underline-offset-4 hover:underline"
-        >
-          Web Push overview
-        </a>
-      </p>
-    </div>
-  );
-
-  return (
-    <TooltipProvider>
-      <div className="p-4 md:p-6">
-        <Tabs value={tab} onValueChange={setTab} className="w-full">
-          <TabsList className="mb-6 h-auto w-full flex-wrap justify-start gap-1 bg-transparent p-0">
-            <TabsTrigger value="0" className="data-[state=active]:shadow-sm">
-              Overview
+      <Tabs value={tab} onValueChange={(v) => setTab(v as HubTab)} className="w-full">
+        <div className="border-b border-border px-4 md:px-6">
+          <TabsList className="h-auto w-full justify-start gap-0 rounded-none border-0 bg-transparent p-0">
+            <TabsTrigger
+              value="inbox"
+              className="gap-1.5 rounded-none border-b-2 border-transparent px-4 py-3 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+            >
+              <Inbox className="h-4 w-4" />
+              Inbox
+              {unreadCount > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1 text-[10px]">
+                  {unreadCount}
+                </Badge>
+              )}
             </TabsTrigger>
-            <TabsTrigger value="1" className="gap-1.5 data-[state=active]:shadow-sm">
-              <Megaphone className="h-4 w-4" />
-              Broadcast
+            <TabsTrigger
+              value="compose"
+              className="gap-1.5 rounded-none border-b-2 border-transparent px-4 py-3 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+            >
+              <Send className="h-4 w-4" />
+              Compose
             </TabsTrigger>
-            <TabsTrigger value="2" className="gap-1.5 data-[state=active]:shadow-sm">
+            <TabsTrigger
+              value="templates"
+              className="gap-1.5 rounded-none border-b-2 border-transparent px-4 py-3 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+            >
               <FileText className="h-4 w-4" />
               Templates
             </TabsTrigger>
-            <TabsTrigger value="3" className="gap-1.5 data-[state=active]:shadow-sm">
+            <TabsTrigger
+              value="settings"
+              className="gap-1.5 rounded-none border-b-2 border-transparent px-4 py-3 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+            >
               <SlidersHorizontal className="h-4 w-4" />
-              Preferences
+              Settings
             </TabsTrigger>
           </TabsList>
+        </div>
 
-          <TabsContent value="0" className="mt-0">
-            {renderOverview()}
-          </TabsContent>
-          <TabsContent value="1" className="mt-0">
-            {renderBroadcast()}
-          </TabsContent>
-          <TabsContent value="2" className="mt-0">
-            <NotificationTemplates onSendFromTemplate={handleSendFromTemplate} />
-          </TabsContent>
-          <TabsContent value="3" className="mt-0">
-            {renderPreferences()}
-          </TabsContent>
-        </Tabs>
+        {/* INBOX */}
+        <TabsContent value="inbox" className="mt-0">
+          <Card className="m-4 overflow-hidden border-0 shadow-none md:m-6">
+            <NotificationInbox variant="page" />
+          </Card>
+        </TabsContent>
 
-        <Dialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Send notification</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4 py-2">
+        {/* COMPOSE */}
+        <TabsContent value="compose" className="mt-0 p-4 md:p-6">
+          <div className="grid gap-6 lg:grid-cols-5">
+            <div className="space-y-4 lg:col-span-3">
+              {sendForm.type === 'marketing' && (
+                <div className="flex gap-2 rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p>Marketing sends require user consent. Confirm compliance before broadcasting.</p>
+                </div>
+              )}
+
               <div className="space-y-2">
-                <Label htmlFor="send-title">Title</Label>
+                <Label htmlFor="compose-title">Title</Label>
                 <Input
-                  id="send-title"
+                  id="compose-title"
+                  placeholder="e.g. Your booking is confirmed"
                   value={sendForm.title}
                   onChange={(e) => setSendForm({ ...sendForm, title: e.target.value })}
-                  required
                 />
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="send-body">Message</Label>
+                <Label htmlFor="compose-body">Message</Label>
                 <Textarea
-                  id="send-body"
+                  id="compose-body"
+                  rows={4}
+                  placeholder="Short, actionable copy works best on mobile."
                   value={sendForm.body}
                   onChange={(e) => setSendForm({ ...sendForm, body: e.target.value })}
-                  required
-                  rows={3}
                 />
+                <p className="text-xs text-muted-foreground">{sendForm.body.length} characters</p>
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="send-type">Type</Label>
-                <Select
-                  value={sendForm.type}
-                  onValueChange={(v) => setSendForm({ ...sendForm, type: v })}
-                >
-                  <SelectTrigger id="send-type">
-                    <SelectValue placeholder="Type" />
+                <Label htmlFor="compose-type">Category</Label>
+                <Select value={sendForm.type} onValueChange={(v) => setSendForm({ ...sendForm, type: v })}>
+                  <SelectTrigger id="compose-type">
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {notificationTypes.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.label}
+                    {NOTIFICATION_TYPE_OPTIONS.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>
+                        {t.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="send-recipients">Recipient user IDs</Label>
-                <Textarea
-                  id="send-recipients"
-                  value={recipientIdsCsv}
-                  onChange={(e) => setRecipientIdsCsv(e.target.value)}
-                  placeholder="e.g. 507f1f77bcf86cd799439011, 507f191e810c19729de860ea"
-                  rows={3}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Comma, space, or newline separated. If your API targets everyone when empty, you may leave this
-                  blank—confirm in your backend contract.
-                </p>
+                <Label>Audience</Label>
+                <div className="inline-flex rounded-lg border border-border p-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={audienceMode === 'specific' ? 'default' : 'ghost'}
+                    className="rounded-md"
+                    onClick={() => setAudienceMode('specific')}
+                  >
+                    <Users className="mr-1.5 h-3.5 w-3.5" />
+                    Specific users
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={audienceMode === 'broadcast' ? 'default' : 'ghost'}
+                    className="rounded-md"
+                    onClick={() => setAudienceMode('broadcast')}
+                  >
+                    <Megaphone className="mr-1.5 h-3.5 w-3.5" />
+                    Broadcast
+                  </Button>
+                </div>
+                {audienceMode === 'specific' ? (
+                  <Textarea
+                    id="compose-recipients"
+                    value={recipientIdsCsv}
+                    onChange={(e) => setRecipientIdsCsv(e.target.value)}
+                    placeholder="Mongo user IDs — comma, space, or newline separated"
+                    rows={3}
+                  />
+                ) : (
+                  <p className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                    Sends with an empty recipient list when your API supports platform-wide broadcast.
+                    Confirm behaviour in your backend contract before using in production.
+                  </p>
+                )}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="send-icon">Icon URL (https only)</Label>
-                <Input
-                  id="send-icon"
-                  value={sendForm.iconUrl}
-                  onChange={(e) => setSendForm({ ...sendForm, iconUrl: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="send-action">Action URL (https only)</Label>
-                <Input
-                  id="send-action"
-                  value={sendForm.actionUrl}
-                  onChange={(e) => setSendForm({ ...sendForm, actionUrl: e.target.value })}
-                />
+
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-xs text-muted-foreground"
+                onClick={() => setShowAdvanced((v) => !v)}
+              >
+                {showAdvanced ? 'Hide' : 'Show'} advanced options
+              </Button>
+              {showAdvanced && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="compose-icon">Icon URL (https)</Label>
+                    <Input
+                      id="compose-icon"
+                      value={sendForm.iconUrl}
+                      onChange={(e) => setSendForm({ ...sendForm, iconUrl: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="compose-action">Deep link / action URL</Label>
+                    <Input
+                      id="compose-action"
+                      placeholder="/bookings/… or https://…"
+                      value={sendForm.actionUrl}
+                      onChange={(e) => setSendForm({ ...sendForm, actionUrl: e.target.value })}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-2 pt-2">
+                <Button
+                  onClick={() => void handleSendNotification()}
+                  disabled={loading || !sendForm.title?.trim() || !sendForm.body?.trim()}
+                  loading={loading}
+                  leftIcon={<Send className="h-4 w-4" />}
+                >
+                  Send notification
+                </Button>
+                <Button type="button" variant="outline" onClick={() => setTab('templates')}>
+                  Use a template
+                </Button>
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setSendDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={() => void handleSendNotification()}
-                disabled={loading || !sendForm.title?.trim() || !sendForm.body?.trim()}
-                loading={loading}
-              >
-                Send
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
-        <NotificationCenter open={notificationCenterOpen} onClose={() => setNotificationCenterOpen(false)} />
-      </div>
-    </TooltipProvider>
-  );
+            {/* Live preview */}
+            <div className="lg:col-span-2">
+              <Card className="sticky top-4 overflow-hidden">
+                <div className="border-b border-border bg-muted/40 px-4 py-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Push preview
+                  </p>
+                </div>
+                <CardContent className="space-y-4 p-4">
+                  <div className="rounded-xl border border-border bg-background p-3 shadow-sm">
+                    <div className="flex items-start gap-2">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                        <Bell className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs text-muted-foreground">Profixer · now</p>
+                        <p className="font-semibold leading-tight">
+                          {sendForm.title.trim() || 'Notification title'}
+                        </p>
+                        <p className="mt-0.5 line-clamp-3 text-sm text-muted-foreground">
+                          {sendForm.body.trim() || 'Your message will appear here.'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <dl className="space-y-1 text-xs text-muted-foreground">
+                    <div className="flex justify-between">
+                      <dt>Type</dt>
+                      <dd className="font-medium text-foreground">{formatNotificationType(sendForm.type)}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt>Audience</dt>
+                      <dd className="font-medium text-foreground">
+                        {audienceMode === 'broadcast'
+                          ? 'Broadcast'
+                          : `${parseRecipientIds(recipientIdsCsv).length} user(s)`}
+                      </dd>
+                    </div>
+                  </dl>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* TEMPLATES */}
+        <TabsContent value="templates" className="mt-0 p-4 md:p-6">
+          <NotificationTemplates onSendFromTemplate={handleSendFromTemplate} />
+        </TabsContent>
+
+        {/* SETTINGS */}
+        <TabsContent value="settings" className="mt-0 p-4 md:p-6">
+          <div className="mx-auto max-w-2xl space-y-6">
+            <Card>
+              <CardContent className="space-y-4 pt-6">
+                <div>
+                  <h3 className="font-semibold">Channels</h3>
+                  <p className="text-sm text-muted-foreground">
+                    How this admin account receives alerts. Stored via{' '}
+                    <code className="rounded bg-muted px-1 text-xs">PUT /notifications/preferences</code>.
+                  </p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {(
+                    [
+                      ['pushNotifications', 'Push', 'Browser & mobile push'],
+                      ['emailNotifications', 'Email', 'Transactional email'],
+                      ['smsNotifications', 'SMS', 'Text messages'],
+                    ] as const
+                  ).map(([key, title, hint]) => (
+                    <div
+                      key={key}
+                      className="flex flex-col justify-between rounded-lg border border-border p-3"
+                    >
+                      <div>
+                        <p className="text-sm font-medium">{title}</p>
+                        <p className="text-xs text-muted-foreground">{hint}</p>
+                      </div>
+                      <Switch
+                        className="mt-3"
+                        checked={localPrefs[key]}
+                        onCheckedChange={(v) => setLocalPrefs((p) => ({ ...p, [key]: v }))}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="space-y-4 pt-6">
+                <div>
+                  <h3 className="font-semibold">Categories</h3>
+                  <p className="text-sm text-muted-foreground">Fine-grained control by notification type.</p>
+                </div>
+                <div className="space-y-3">
+                  {(
+                    [
+                      ['orderNotifications', 'Orders & bookings'],
+                      ['userNotifications', 'Account & messages'],
+                      ['systemNotifications', 'System & security'],
+                      ['marketingNotifications', 'Marketing (opt-in)'],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <div key={key} className="flex items-center justify-between gap-4 rounded-md border border-border/60 px-3 py-2">
+                      <Label className="font-normal">{label}</Label>
+                      <Switch
+                        checked={localPrefs[key]}
+                        onCheckedChange={(v) => setLocalPrefs((p) => ({ ...p, [key]: v }))}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <Button onClick={() => void handleSavePreferences()}>Save preferences</Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="space-y-3 pt-6">
+                <h3 className="font-semibold">Web push on this device</h3>
+                <p className="text-sm text-muted-foreground">
+                  Subscribe this browser to receive push when the API exposes a VAPID key.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" onClick={() => void registerDevice()}>
+                    Enable push
+                  </Button>
+                  <Button variant="outline" onClick={() => void unregisterDevice()}>
+                    Disable push
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  )
 }

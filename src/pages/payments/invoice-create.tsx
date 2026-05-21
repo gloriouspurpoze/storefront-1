@@ -18,7 +18,12 @@ import {
   type ManualInvoicePayload,
 } from '../../services/api/invoices.service'
 import { appToast } from '../../lib/appToast'
-import { computeInvoiceFromLines, isInterStateForPreview } from './invoicePreviewData'
+import {
+  computeInvoiceFromLines,
+  DEFAULT_GST_RATE,
+  GST_RATE_CHOICES,
+  isInterStateForPreview,
+} from './invoicePreviewData'
 import { InvoicePreviewPanel } from './InvoicePreviewPanel'
 import { useInvoiceBranding } from '../../hooks/useInvoiceBranding'
 import {
@@ -153,7 +158,11 @@ export function InvoiceCreate() {
 
   const [customerMode, setCustomerMode] = useState<'platform' | 'offline'>('offline')
   const [type, setType] = useState<ManualInvoicePayload['type']>('service')
-  const [pdfTemplate, setPdfTemplate] = useState<InvoicePdfTemplateId>('customer_gst')
+  // GST is OPT-IN per request — admin must explicitly tick "Apply GST". Default off
+  // so we never silently add tax to a walk-in receipt.
+  const [applyGst, setApplyGst] = useState(false)
+  const [gstRate, setGstRate] = useState<number>(DEFAULT_GST_RATE)
+  const [pdfTemplate, setPdfTemplate] = useState<InvoicePdfTemplateId>('customer_non_gst')
   const [customerId, setCustomerId] = useState('')
   const [bookingId, setBookingId] = useState('')
   const [orderId, setOrderId] = useState('')
@@ -188,20 +197,25 @@ export function InvoiceCreate() {
     [type]
   )
 
-  const applyGstPreview = pdfTemplate !== 'customer_non_gst'
+  // Frontend treats "Apply GST" as the source of truth for tax math and the
+  // chosen PDF template. Vendor payouts handle their own template enum below.
+  const applyGstPreview = applyGst
 
-  const { lines, subtotal, totalTax, discount: discountN, grandTotal } = useMemo(
-    () => computeInvoiceFromLines(items, discount, { applyGst: applyGstPreview }),
-    [items, discount, applyGstPreview]
+  const { lines, subtotal, totalTax, discount: discountN, grandTotal, effectiveGstRate } = useMemo(
+    () => computeInvoiceFromLines(items, discount, { applyGst: applyGstPreview, gstRate }),
+    [items, discount, applyGstPreview, gstRate]
   )
+
+  // Whenever the admin toggles GST, keep the PDF template in sync for the
+  // customer flow so the issued PDF matches the preview.
+  useEffect(() => {
+    if (type === 'provider_payout') return
+    setPdfTemplate(applyGst ? 'customer_gst' : 'customer_non_gst')
+  }, [applyGst, type])
 
   useEffect(() => {
     if (type === 'provider_payout') {
       setPdfTemplate((t) => (t === 'vendor_gst' || t === 'vendor_non_gst' ? t : 'vendor_non_gst'))
-    } else {
-      setPdfTemplate((t) =>
-        t === 'vendor_gst' || t === 'vendor_non_gst' ? 'customer_gst' : t === 'customer_non_gst' ? t : 'customer_gst'
-      )
     }
   }, [type])
 
@@ -512,7 +526,15 @@ export function InvoiceCreate() {
                   </div>
                   <div className="space-y-2 md:max-w-xl">
                     <Label htmlFor="pdf-template">PDF template</Label>
-                    <Select value={pdfTemplate} onValueChange={(v) => setPdfTemplate(v as InvoicePdfTemplateId)}>
+                    <Select
+                      value={pdfTemplate}
+                      onValueChange={(v) => {
+                        const next = v as InvoicePdfTemplateId
+                        setPdfTemplate(next)
+                        if (next === 'customer_gst') setApplyGst(true)
+                        if (next === 'customer_non_gst') setApplyGst(false)
+                      }}
+                    >
                       <SelectTrigger id="pdf-template">
                         <SelectValue />
                       </SelectTrigger>
@@ -527,6 +549,12 @@ export function InvoiceCreate() {
                     <p className="text-xs text-muted-foreground">
                       {templateOpts.find((x) => x.value === pdfTemplate)?.hint}
                     </p>
+                    {type !== 'provider_payout' && (
+                      <p className="text-[11px] text-muted-foreground">
+                        Tip: enable <strong>Apply GST</strong> in step 2 to switch to the Tax-invoice
+                        template — or pick it here directly.
+                      </p>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -789,7 +817,58 @@ export function InvoiceCreate() {
               </Card>
               <Card>
                 <CardContent className="space-y-4 pt-6">
-                  <p className="font-semibold">Collection &amp; terms</p>
+                  <p className="font-semibold">Tax, collection &amp; terms</p>
+
+                  {type !== 'provider_payout' && (
+                    <div className="space-y-2 rounded-md border border-border bg-muted/30 p-3">
+                      <div className="flex items-start gap-2">
+                        <Checkbox
+                          id="apply-gst"
+                          checked={applyGst}
+                          onCheckedChange={(c) => setApplyGst(c === true)}
+                        />
+                        <div className="space-y-0.5">
+                          <Label htmlFor="apply-gst" className="text-sm font-semibold">
+                            Apply GST on this invoice
+                          </Label>
+                          <p className="text-xs text-muted-foreground">
+                            Off by default — tick only when the supplier is GST-registered for this
+                            transaction. Toggling also switches the PDF template between Tax invoice
+                            and Bill of supply.
+                          </p>
+                        </div>
+                      </div>
+                      {applyGst && (
+                        <div className="ml-7 space-y-1">
+                          <Label htmlFor="gst-rate" className="text-xs">
+                            GST rate
+                          </Label>
+                          <Select
+                            value={String(gstRate)}
+                            onValueChange={(v) => setGstRate(Number(v))}
+                          >
+                            <SelectTrigger id="gst-rate" className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {GST_RATE_CHOICES.map((c) => (
+                                <SelectItem key={c.value} value={String(c.value)}>
+                                  {c.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {gstRate !== DEFAULT_GST_RATE && (
+                            <p className="text-[11px] text-amber-700 dark:text-amber-300">
+                              Backend default is {DEFAULT_GST_RATE}%. Confirm InvoiceService config
+                              if you choose a different slab.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                     <Label htmlFor="pay-method">Payment method</Label>
                     <Select
@@ -838,16 +917,21 @@ export function InvoiceCreate() {
               </Card>
               <Card className="border-primary/20 bg-primary/5 md:col-span-2">
                 <CardContent className="space-y-2 pt-6">
-                  <p className="font-bold text-primary">Live summary (matches backend)</p>
+                  <p className="font-bold text-primary">Live summary</p>
                   <Line label={applyGstPreview ? 'Taxable (lines)' : 'Line amounts'} v={subtotal} />
                   {applyGstPreview ? (
-                    <Line label="GST 18% (lines)" v={totalTax} />
+                    <Line label={`GST ${effectiveGstRate}% (lines)`} v={totalTax} />
                   ) : (
-                    <Line label="GST on document" v={0} muted />
+                    <Line label="GST" v={0} muted />
                   )}
                   <Line label="Less discount" v={-discountN} muted />
                   <Separator />
                   <Line label={applyGstPreview ? 'Net payable' : 'Total payable'} v={grandTotal} bold />
+                  <p className="pt-1 text-[11px] text-muted-foreground">
+                    {applyGstPreview
+                      ? 'GST will appear on the issued PDF (Tax invoice).'
+                      : 'No GST applied — Bill of supply / receipt PDF will be issued.'}
+                  </p>
                 </CardContent>
               </Card>
             </div>
@@ -881,6 +965,7 @@ export function InvoiceCreate() {
             <InvoicePreviewPanel
               branding={invoiceBranding}
               previewVariant={type === 'provider_payout' ? 'gst' : applyGstPreview ? 'gst' : 'non_gst'}
+              gstRate={effectiveGstRate}
               documentTypeLabel={documentTypeLabel}
               customerMode={customerMode}
               customerReference={customerReference || undefined}

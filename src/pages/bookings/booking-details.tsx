@@ -3432,6 +3432,31 @@ export function BookingDetails() {
         onClose={() => setAssignProfessionalOpen(false)}
         bookingId={id || ''}
         scheduledDateIso={booking?.scheduledDateIso}
+        bookingCategory={booking?.service?.category}
+        bookingSkills={(() => {
+          const out = new Set<string>()
+          if (booking?.service?.name) out.add(booking.service.name.toLowerCase())
+          if (booking?.service?.category) out.add(booking.service.category.toLowerCase())
+          ;(booking?.services || []).forEach((s) => {
+            if (s.serviceName) out.add(s.serviceName.toLowerCase())
+            if (s.serviceDetails?.category) out.add(s.serviceDetails.category.toLowerCase())
+          })
+          return Array.from(out)
+        })()}
+        bookingCity={booking?.address?.city}
+        bookingPincode={booking?.address?.pincode || booking?.address?.zipCode}
+        bookingLatitude={(() => {
+          const c = (booking?.address as unknown as { coordinates?: { lat?: number; latitude?: number } })?.coordinates
+          if (typeof c?.lat === 'number') return c.lat
+          if (typeof c?.latitude === 'number') return c.latitude
+          return undefined
+        })()}
+        bookingLongitude={(() => {
+          const c = (booking?.address as unknown as { coordinates?: { lng?: number; longitude?: number } })?.coordinates
+          if (typeof c?.lng === 'number') return c.lng
+          if (typeof c?.longitude === 'number') return c.longitude
+          return undefined
+        })()}
         onAssigned={() => {
           loadBooking()
           setAssignProfessionalOpen(false)

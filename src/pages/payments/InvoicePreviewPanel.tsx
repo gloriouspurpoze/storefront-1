@@ -1,26 +1,31 @@
+/**
+ * InvoicePreviewPanel — A4-style invoice preview used by the create flow and the
+ * branding editor.
+ *
+ * Goals (post-redesign):
+ *   1. Industry-grade layout — paper-like surface, accent header band, clear
+ *      "Bill to / From" cards, neat ruled item grid, prominent grand-total card.
+ *   2. Print-friendly — light background (`bg-white`) regardless of the app's
+ *      light/dark theme; the dialog wrapper keeps the surrounding chrome dark
+ *      where the user wants it, but the invoice itself always looks like paper.
+ *   3. Tax block fully driven by props — `previewVariant` and `gstRate` decide
+ *      whether GST appears, never auto-derived.
+ */
+
 import React from 'react'
-import { BadgeCheck, FileText } from 'lucide-react'
+import { BadgeCheck, FileText, Mail, MapPin, Phone, ReceiptText } from 'lucide-react'
 import type { LineComputed } from './invoicePreviewData'
 import type { InvoiceBranding } from '../../lib/invoiceBranding'
 import { cn } from '../../lib/utils'
 import { Badge } from '../../components/ui/badge'
-import { Separator } from '../../components/ui/separator'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../../components/ui/table'
 
 const ru = (n: number) =>
   n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
-/** Hex #RRGGBB → rgba() for borders/backgrounds from branding colours. */
+/** Hex #RRGGBB → rgba() — used for tinted backgrounds from branding colours. */
 function hexAlpha(hex: string, a: number): string {
   const h = hex.replace('#', '').trim()
-  if (h.length !== 6 || Number.isNaN(parseInt(h, 16))) return `rgba(0,0,0,${a})`
+  if (h.length !== 6 || Number.isNaN(parseInt(h, 16))) return `rgba(15,23,42,${a})`
   const r = parseInt(h.slice(0, 2), 16)
   const g = parseInt(h.slice(2, 4), 16)
   const b = parseInt(h.slice(4, 6), 16)
@@ -48,16 +53,18 @@ export type InvoicePreviewPanelProps = {
   notes?: string
   companyStateLabel: string
   companyHint?: string
-  /** e.g. “Pro forma — matches server PDF layout” */
+  /** "Pro forma — matches server PDF layout" — UI hint only. */
   mode?: 'proforma' | 'final'
   /** Custom logo, colours, supplier block — from Invoice branding settings */
   branding?: InvoiceBranding | null
   /** GST tax invoice vs bill-of-supply style preview */
   previewVariant?: 'gst' | 'non_gst'
+  /** Effective GST rate to display (default 18, ignored when previewVariant is 'non_gst'). */
+  gstRate?: number
 }
 
 /**
- * A4-width style tax invoice preview (read-only) — similar to printed GST invoice layout.
+ * A4-width style tax invoice preview (read-only) — similar to a printed GST invoice layout.
  */
 export function InvoicePreviewPanel({
   documentTypeLabel,
@@ -83,412 +90,475 @@ export function InvoicePreviewPanel({
   mode = 'proforma',
   branding,
   previewVariant = 'gst',
+  gstRate = 18,
 }: InvoicePreviewPanelProps) {
+  const isNonGstDoc = previewVariant === 'non_gst'
   const cgst = isInterState ? 0 : totalTax / 2
   const sgst = isInterState ? 0 : totalTax / 2
   const igst = isInterState ? totalTax : 0
-  const isNonGstDoc = previewVariant === 'non_gst'
 
-  const primary = branding?.primaryColor ?? 'hsl(var(--primary))'
-  const accent = branding?.accentColor ?? 'hsl(var(--primary))'
+  const primaryRaw = branding?.primaryColor?.trim() || '#0F172A'
+  const accentRaw = branding?.accentColor?.trim() || primaryRaw
+  const primaryIsHex = primaryRaw.startsWith('#')
+  const accentIsHex = accentRaw.startsWith('#')
+  // Fallback to a tasteful slate when no branding hex is set.
+  const primary = primaryIsHex ? primaryRaw : '#0F172A'
+  const accent = accentIsHex ? accentRaw : primary
+
+  const accentBand = hexAlpha(primary, 1)
+  const softBg = hexAlpha(primary, 0.04)
+  const softBorder = hexAlpha(primary, 0.16)
+  const tableHeaderBg = hexAlpha(primary, 0.06)
+
   const docTitle =
     (isNonGstDoc ? undefined : branding?.documentTitle?.trim()) ||
     (isNonGstDoc ? 'BILL OF SUPPLY' : 'TAX INVOICE')
 
-  const primaryIsHex = primary.startsWith('#')
-  const borderTint = branding && primaryIsHex ? hexAlpha(primary, 0.35) : undefined
-  const chipBorder = branding && primaryIsHex ? hexAlpha(primary, 0.55) : undefined
-  const supplierBg =
-    branding && primaryIsHex ? hexAlpha(primary, 0.06) : 'rgba(0,0,0,0.04)'
-  const supplierBorder = branding && primaryIsHex ? hexAlpha(primary, 0.25) : undefined
-  const headerCellBg = branding && primaryIsHex ? hexAlpha(primary, 0.1) : undefined
+  const taxStripText = isNonGstDoc
+    ? 'No GST applied on this document'
+    : isInterState
+      ? `Inter-state · IGST ${gstRate}%`
+      : `Intra-state · CGST ${gstRate / 2}% + SGST ${gstRate / 2}%`
 
   return (
-    <div
-      className={cn(
-        'mx-auto max-w-[900px] rounded-md border bg-card p-4 text-foreground shadow-sm sm:p-6 md:p-8',
-        mode === 'proforma' ? 'shadow-md' : 'shadow-lg'
-      )}
-      style={
-        borderTint
-          ? { borderColor: borderTint }
-          : branding
-            ? { borderColor: 'hsl(var(--border))' }
-            : undefined
-      }
-    >
-      <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
-        <div className="flex flex-wrap items-start gap-4">
-          {branding?.showLogo && branding.logoDataUrl && (
-            <img
-              src={branding.logoDataUrl}
-              alt=""
-              className="h-auto max-h-14 w-auto max-w-[180px] object-contain"
-            />
-          )}
-          <div>
-            <h2
-              className="text-xl font-bold tracking-wide sm:text-2xl"
-              style={branding && primaryIsHex ? { color: primary } : undefined}
-            >
-              {!branding || !primaryIsHex ? (
-                <span className="text-primary">{docTitle}</span>
-              ) : (
-                docTitle
-              )}
-            </h2>
-            {branding?.tagline ? (
-              <p className="mt-0.5 block text-xs text-muted-foreground">{branding.tagline}</p>
-            ) : (
-              <p className="mt-0.5 block text-xs text-muted-foreground">
-                {mode === 'proforma' ? 'Preview — for review before issue' : 'Original for recipient'}
-              </p>
-            )}
-          </div>
-        </div>
-        <div className="flex flex-col items-end gap-0.5">
-          <Badge
-            variant="outline"
-            className="gap-1 font-medium"
-            style={
-              chipBorder && primaryIsHex
-                ? { borderColor: chipBorder, color: primary }
-                : undefined
-            }
-          >
-            <BadgeCheck
-              className="h-3.5 w-3.5 shrink-0"
-              style={primaryIsHex && branding ? { color: primary } : undefined}
-            />
-            {documentTypeLabel}
-          </Badge>
-          <div className="flex items-center gap-1 text-muted-foreground">
-            <FileText className="h-4 w-4 shrink-0 opacity-80" />
-            <span className="text-xs">Number & date are assigned on issue</span>
-          </div>
-        </div>
-      </div>
-
-      <p className="mb-4 block text-xs text-muted-foreground">
-        Place of supply: {placeOfSupply}
-        {isNonGstDoc
-          ? ' · No GST breakdown on this document'
-          : ` · ${isInterState ? 'Inter-state (IGST)' : 'Intra-state (CGST + SGST)'}`}
-        {companyStateLabel && ` · Seller state: ${companyStateLabel}`}
-      </p>
-
-      <GridTwoCol
-        leftTitle="Bill to (customer)"
-        rightTitle="From (supplier)"
-        left={
-          <div className="space-y-1">
-            <p className="text-base font-bold">{billingName || '—'}</p>
-            {billingAddressLines.map((l, i) => (
-              <p key={i} className="text-sm text-muted-foreground">
-                {l}
-              </p>
-            ))}
-            <p className="text-sm">Ph: {billingPhone}</p>
-            {billingEmail && <p className="text-sm text-muted-foreground">{billingEmail}</p>}
-            {billingGstin && (
-              <p className="mt-1 text-sm">
-                GSTIN: <strong>{billingGstin}</strong>{' '}
-                {customerMode === 'platform' ? '(B2B / registered)' : ''}
-              </p>
-            )}
-            <div className="flex flex-wrap gap-1 pt-1">
-              <Badge variant="outline" className="text-xs">
-                {customerMode === 'offline' ? 'Walk-in / offline' : 'Platform customer'}
-              </Badge>
-              {customerReference && (
-                <Badge variant="secondary" className="text-xs">
-                  Ref: {customerReference}
-                </Badge>
-              )}
-              {platformCustomerIdMasked && (
-                <Badge variant="secondary" className="text-xs">
-                  User: {platformCustomerIdMasked}
-                </Badge>
-              )}
-            </div>
-          </div>
-        }
-        right={
-          branding ? (
-            <div
-              className="rounded-md border p-4"
-              style={{
-                backgroundColor: supplierBg,
-                borderColor: supplierBorder ?? 'hsl(var(--border))',
-              }}
-            >
-              <p
-                className="text-base font-bold"
-                style={primaryIsHex ? { color: primary } : { color: 'hsl(var(--primary))' }}
-              >
-                {branding.companyDisplayName}
-              </p>
-              {branding.companyLegalName && branding.companyLegalName !== branding.companyDisplayName && (
-                <span className="mt-0.5 block text-xs text-muted-foreground">{branding.companyLegalName}</span>
-              )}
-              {(branding.supplierAddressLines.length > 0
-                ? branding.supplierAddressLines
-                : ['Add registered address in Invoice appearance']
-              ).map((l, i) => (
-                <p key={i} className="text-sm text-muted-foreground">
-                  {l}
-                </p>
-              ))}
-              {branding.supplierPhone && <p className="mt-1 text-sm">Ph: {branding.supplierPhone}</p>}
-              {branding.supplierEmail && (
-                <p className="text-sm text-muted-foreground">{branding.supplierEmail}</p>
-              )}
-              {branding.supplierWebsite && (
-                <p className="text-sm text-muted-foreground">{branding.supplierWebsite}</p>
-              )}
-              {branding.supplierGstin && (
-                <p className="mt-2 text-sm">
-                  GSTIN: <strong>{branding.supplierGstin}</strong>
-                </p>
-              )}
-              {branding.supplierPan && (
-                <p className="text-sm text-muted-foreground">PAN: {branding.supplierPan}</p>
-              )}
-              {branding.bankDetails?.trim() && (
-                <pre className="mt-2 whitespace-pre-wrap rounded-md border border-border/80 bg-muted/40 p-2 font-sans text-xs">
-                  {branding.bankDetails.trim()}
-                </pre>
-              )}
-            </div>
-          ) : (
-            <div className="rounded-md border border-dashed border-border bg-muted/30 p-4 dark:bg-muted/20">
-              <p className="mb-1 block text-xs text-muted-foreground">{companyHint}</p>
-              <p className="text-sm text-muted-foreground">
-                Invoices you issue use the same PDF engine as online orders and service bookings (fixer-backend{' '}
-                <code className="text-[0.8em]">PDFService</code> / company config). Customize logo & colours in{' '}
-                <strong>Invoices → Invoice appearance</strong>.
-              </p>
-            </div>
-          )
-        }
-      />
-
-      <div className="my-4 overflow-hidden rounded-md border border-border">
-        <Table>
-          <TableHeader>
-            <TableRow
-              className={cn(
-                'border-b hover:bg-transparent',
-                !headerCellBg && 'bg-muted/50'
-              )}
-            >
-              <TableHead
-                className="h-10 w-[5%] px-2 py-2 text-xs font-bold"
-                style={headerCellBg ? { backgroundColor: headerCellBg, color: primaryIsHex ? primary : undefined } : undefined}
-              >
-                #
-              </TableHead>
-              <TableHead
-                className="h-10 px-2 py-2 text-xs font-bold"
-                style={headerCellBg ? { backgroundColor: headerCellBg, color: primaryIsHex ? primary : undefined } : undefined}
-              >
-                Description
-              </TableHead>
-              {!isNonGstDoc && (
-                <TableHead
-                  className="h-10 w-[10%] px-2 py-2 text-right text-xs font-bold"
-                  style={headerCellBg ? { backgroundColor: headerCellBg, color: primaryIsHex ? primary : undefined } : undefined}
-                >
-                  HSN/SAC
-                </TableHead>
-              )}
-              <TableHead
-                className="h-10 w-[8%] px-2 py-2 text-right text-xs font-bold"
-                style={headerCellBg ? { backgroundColor: headerCellBg, color: primaryIsHex ? primary : undefined } : undefined}
-              >
-                Qty
-              </TableHead>
-              <TableHead
-                className="h-10 w-[10%] px-2 py-2 text-right text-xs font-bold"
-                style={headerCellBg ? { backgroundColor: headerCellBg, color: primaryIsHex ? primary : undefined } : undefined}
-              >
-                Rate (₹)
-              </TableHead>
-              {!isNonGstDoc && (
-                <TableHead
-                  className="h-10 w-[11%] px-2 py-2 text-right text-xs font-bold"
-                  style={headerCellBg ? { backgroundColor: headerCellBg, color: primaryIsHex ? primary : undefined } : undefined}
-                >
-                  Taxable
-                </TableHead>
-              )}
-              {!isNonGstDoc && (
-                <TableHead
-                  className="h-10 w-[10%] px-2 py-2 text-right text-xs font-bold"
-                  style={headerCellBg ? { backgroundColor: headerCellBg, color: primaryIsHex ? primary : undefined } : undefined}
-                >
-                  GST
-                </TableHead>
-              )}
-              <TableHead
-                className="h-10 w-[12%] px-2 py-2 text-right text-xs font-bold"
-                style={headerCellBg ? { backgroundColor: headerCellBg, color: primaryIsHex ? primary : undefined } : undefined}
-              >
-                Amount (₹)
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {lineRows.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={isNonGstDoc ? 5 : 8} className="py-8 text-center text-sm text-muted-foreground">
-                  No line items
-                </TableCell>
-              </TableRow>
-            )}
-            {lineRows.map((r, i) => (
-              <TableRow key={i}>
-                <TableCell className="px-2 py-2 text-sm">{i + 1}</TableCell>
-                <TableCell className="px-2 py-2 text-sm">
-                  {r.description}
-                  {r.lineKind && (
-                    <span className="mt-0.5 block text-xs text-muted-foreground">
-                      {r.lineKind === 'product' ? 'Goods' : 'Service'}
-                    </span>
-                  )}
-                </TableCell>
-                {!isNonGstDoc && (
-                  <TableCell className="px-2 py-2 text-right text-sm tabular-nums">{r.hsnSac}</TableCell>
-                )}
-                <TableCell className="px-2 py-2 text-right text-sm">{r.quantity}</TableCell>
-                <TableCell className="px-2 py-2 text-right text-sm tabular-nums">{ru(r.unitPrice)}</TableCell>
-                {!isNonGstDoc && (
-                  <TableCell className="px-2 py-2 text-right text-sm tabular-nums">{ru(r.taxable)}</TableCell>
-                )}
-                {!isNonGstDoc && (
-                  <TableCell className="px-2 py-2 text-right text-sm tabular-nums">{ru(r.taxAmount)}</TableCell>
-                )}
-                <TableCell className="px-2 py-2 text-right text-sm font-semibold tabular-nums">{ru(r.lineTotal)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      <div className="ml-auto flex max-w-[400px] flex-col items-end gap-1">
-        <Row
-          label={isNonGstDoc ? 'Subtotal (line amounts)' : 'Subtotal (taxable value)'}
-          value={ru(subtotal)}
-        />
-        {!isNonGstDoc && (
-          <>
-            <Row label="Total GST @ 18%" value={ru(totalTax)} muted bold={false} />
-            {!isInterState && totalTax > 0 && (
-              <p className="self-start pl-1 text-xs text-muted-foreground">
-                CGST {ru(cgst)} + SGST {ru(sgst)}
-              </p>
-            )}
-            {isInterState && totalTax > 0 && (
-              <p className="pl-1 text-xs text-muted-foreground">IGST {ru(igst)}</p>
-            )}
-          </>
+    <div className="mx-auto max-w-[860px]">
+      {/* Paper card — fixed light surface so the preview reads like a printed invoice */}
+      <div
+        className={cn(
+          'relative overflow-hidden rounded-lg border border-slate-200 bg-white text-slate-900 shadow-md',
+          mode === 'final' && 'shadow-lg',
         )}
-        {discount > 0 && <Row label="Less: discount / adjustment" value={`−${ru(discount)}`} />}
-        <Separator className="my-1 w-full" />
-        <Row
-          label={isNonGstDoc ? 'Total payable (INR)' : 'Net payable (INR)'}
-          value={ru(grandTotal)}
-          large
-          accentColor={accent}
-        />
-      </div>
+      >
+        {/* Accent band */}
+        <div className="h-1.5 w-full" style={{ backgroundColor: accentBand }} aria-hidden />
 
-      {(paymentMethod || notes) && (
-        <div className="mt-4 border-t border-border pt-4">
-          {paymentMethod && (
-            <p className="mb-2 text-sm">
-              <strong>Payment / mode:</strong> {paymentMethod}
-            </p>
-          )}
-          {notes && (
-            <p className="text-sm text-muted-foreground">
-              <strong>Remarks:</strong> {notes}
-            </p>
-          )}
+        <div className="p-5 sm:p-7 md:p-9">
+          {/* Header: logo / title (left) — meta (right) */}
+          <header className="flex flex-wrap items-start justify-between gap-6">
+            <div className="flex flex-wrap items-start gap-4">
+              {branding?.showLogo && branding.logoDataUrl ? (
+                <img
+                  src={branding.logoDataUrl}
+                  alt=""
+                  className="h-12 w-auto max-w-[180px] object-contain"
+                />
+              ) : (
+                <div
+                  className="flex h-12 w-12 items-center justify-center rounded-md text-white"
+                  style={{ backgroundColor: primary }}
+                  aria-hidden
+                >
+                  <ReceiptText className="h-6 w-6" />
+                </div>
+              )}
+              <div>
+                <h1
+                  className="text-2xl font-bold uppercase tracking-[0.18em] sm:text-[1.7rem]"
+                  style={{ color: primary }}
+                >
+                  {docTitle}
+                </h1>
+                <p className="mt-1 text-xs text-slate-500">
+                  {branding?.tagline ||
+                    (mode === 'proforma' ? 'Preview — for review before issue' : 'Original for recipient')}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-end gap-2">
+              <Badge
+                variant="outline"
+                className="gap-1 border-slate-300 bg-white font-medium text-slate-700"
+              >
+                <BadgeCheck className="h-3.5 w-3.5" style={{ color: accent }} />
+                {documentTypeLabel}
+              </Badge>
+              <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-right text-xs text-slate-600">
+                <p>
+                  <span className="font-semibold text-slate-700">Invoice #</span> assigned on issue
+                </p>
+                <p>
+                  <span className="font-semibold text-slate-700">Date</span> assigned on issue
+                </p>
+                <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-slate-500">
+                  <FileText className="h-3 w-3" />
+                  PDF rendered by server (PDFService)
+                </p>
+              </div>
+            </div>
+          </header>
+
+          {/* Place of supply strip */}
+          <div
+            className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md border px-3 py-2 text-[11px]"
+            style={{ backgroundColor: softBg, borderColor: softBorder, color: primary }}
+          >
+            <span>
+              <strong>Place of supply:</strong> {placeOfSupply || '—'}
+            </span>
+            <span className="text-slate-400">·</span>
+            <span>{taxStripText}</span>
+            {companyStateLabel && (
+              <>
+                <span className="text-slate-400">·</span>
+                <span>
+                  <strong>Seller state:</strong> {companyStateLabel}
+                </span>
+              </>
+            )}
+          </div>
+
+          {/* Parties */}
+          <section className="mt-6 grid gap-5 md:grid-cols-2">
+            <PartyCard
+              eyebrow="Bill to"
+              accent={accent}
+              borderColor={softBorder}
+            >
+              <p className="text-base font-semibold text-slate-900">{billingName || '—'}</p>
+              {billingAddressLines.length > 0 && (
+                <div className="mt-1 space-y-0.5">
+                  {billingAddressLines.map((l, i) => (
+                    <p key={i} className="flex items-start gap-1.5 text-sm text-slate-600">
+                      {i === 0 && <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />}
+                      <span className={i === 0 ? '' : 'ml-[18px]'}>{l}</span>
+                    </p>
+                  ))}
+                </div>
+              )}
+              <p className="mt-1.5 flex items-center gap-1.5 text-sm text-slate-700">
+                <Phone className="h-3.5 w-3.5 text-slate-400" />
+                {billingPhone || '—'}
+              </p>
+              {billingEmail && (
+                <p className="flex items-center gap-1.5 text-sm text-slate-600">
+                  <Mail className="h-3.5 w-3.5 text-slate-400" />
+                  {billingEmail}
+                </p>
+              )}
+              {billingGstin && (
+                <p className="mt-2 text-sm text-slate-700">
+                  <span className="font-medium text-slate-500">GSTIN:</span>{' '}
+                  <strong className="font-mono">{billingGstin}</strong>{' '}
+                  {customerMode === 'platform' && (
+                    <span className="text-xs text-slate-500">(B2B / registered)</span>
+                  )}
+                </p>
+              )}
+              <div className="mt-2 flex flex-wrap gap-1">
+                <Badge
+                  variant="outline"
+                  className="border-slate-300 bg-white text-[11px] text-slate-600"
+                >
+                  {customerMode === 'offline' ? 'Walk-in / offline' : 'Platform customer'}
+                </Badge>
+                {customerReference && (
+                  <Badge variant="secondary" className="text-[11px]">
+                    Ref: {customerReference}
+                  </Badge>
+                )}
+                {platformCustomerIdMasked && (
+                  <Badge variant="secondary" className="text-[11px]">
+                    User: {platformCustomerIdMasked}
+                  </Badge>
+                )}
+              </div>
+            </PartyCard>
+
+            <PartyCard
+              eyebrow="From (supplier)"
+              accent={accent}
+              borderColor={softBorder}
+              tintBackground={softBg}
+            >
+              {branding ? (
+                <>
+                  <p className="text-base font-semibold" style={{ color: primary }}>
+                    {branding.companyDisplayName}
+                  </p>
+                  {branding.companyLegalName &&
+                    branding.companyLegalName !== branding.companyDisplayName && (
+                      <p className="mt-0.5 text-xs text-slate-500">{branding.companyLegalName}</p>
+                    )}
+                  <div className="mt-1 space-y-0.5">
+                    {(branding.supplierAddressLines.length > 0
+                      ? branding.supplierAddressLines
+                      : ['Add registered address in Invoice appearance']
+                    ).map((l, i) => (
+                      <p key={i} className="text-sm text-slate-600">
+                        {l}
+                      </p>
+                    ))}
+                  </div>
+                  {branding.supplierPhone && (
+                    <p className="mt-1.5 flex items-center gap-1.5 text-sm text-slate-700">
+                      <Phone className="h-3.5 w-3.5 text-slate-400" />
+                      {branding.supplierPhone}
+                    </p>
+                  )}
+                  {branding.supplierEmail && (
+                    <p className="flex items-center gap-1.5 text-sm text-slate-600">
+                      <Mail className="h-3.5 w-3.5 text-slate-400" />
+                      {branding.supplierEmail}
+                    </p>
+                  )}
+                  {branding.supplierWebsite && (
+                    <p className="text-sm text-slate-600">{branding.supplierWebsite}</p>
+                  )}
+                  {branding.supplierGstin && (
+                    <p className="mt-2 text-sm text-slate-700">
+                      <span className="font-medium text-slate-500">GSTIN:</span>{' '}
+                      <strong className="font-mono">{branding.supplierGstin}</strong>
+                    </p>
+                  )}
+                  {branding.supplierPan && (
+                    <p className="text-sm text-slate-600">
+                      <span className="font-medium text-slate-500">PAN:</span>{' '}
+                      <span className="font-mono">{branding.supplierPan}</span>
+                    </p>
+                  )}
+                  {branding.bankDetails?.trim() && (
+                    <pre className="mt-2 whitespace-pre-wrap rounded-md border border-slate-200 bg-white p-2 font-sans text-xs text-slate-600">
+                      {branding.bankDetails.trim()}
+                    </pre>
+                  )}
+                </>
+              ) : (
+                <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 p-3">
+                  <p className="text-xs text-slate-500">{companyHint}</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Customize logo &amp; colours in <strong>Invoices → Invoice appearance</strong>.
+                  </p>
+                </div>
+              )}
+            </PartyCard>
+          </section>
+
+          {/* Line items */}
+          <section className="mt-6 overflow-hidden rounded-md border border-slate-200">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr
+                  className="text-[11px] uppercase tracking-wider"
+                  style={{ backgroundColor: tableHeaderBg, color: primary }}
+                >
+                  <th className="w-[5%] px-3 py-2.5 text-left font-semibold">#</th>
+                  <th className="px-3 py-2.5 text-left font-semibold">Description</th>
+                  {!isNonGstDoc && (
+                    <th className="w-[10%] px-3 py-2.5 text-right font-semibold">HSN/SAC</th>
+                  )}
+                  <th className="w-[8%] px-3 py-2.5 text-right font-semibold">Qty</th>
+                  <th className="w-[10%] px-3 py-2.5 text-right font-semibold">Rate (₹)</th>
+                  {!isNonGstDoc && (
+                    <th className="w-[11%] px-3 py-2.5 text-right font-semibold">Taxable</th>
+                  )}
+                  {!isNonGstDoc && (
+                    <th className="w-[10%] px-3 py-2.5 text-right font-semibold">GST</th>
+                  )}
+                  <th className="w-[12%] px-3 py-2.5 text-right font-semibold">Amount (₹)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 bg-white">
+                {lineRows.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={isNonGstDoc ? 5 : 8}
+                      className="px-3 py-8 text-center text-sm text-slate-400"
+                    >
+                      No line items
+                    </td>
+                  </tr>
+                )}
+                {lineRows.map((r, i) => (
+                  <tr key={i} className="align-top">
+                    <td className="px-3 py-2.5 text-slate-500">{i + 1}</td>
+                    <td className="px-3 py-2.5">
+                      <p className="font-medium text-slate-900">{r.description}</p>
+                      {r.lineKind && (
+                        <p className="mt-0.5 text-[11px] text-slate-500">
+                          {r.lineKind === 'product' ? 'Goods' : 'Service'}
+                          {r.category ? ` · ${r.category}` : ''}
+                        </p>
+                      )}
+                    </td>
+                    {!isNonGstDoc && (
+                      <td className="px-3 py-2.5 text-right font-mono text-slate-700 tabular-nums">
+                        {r.hsnSac}
+                      </td>
+                    )}
+                    <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">
+                      {r.quantity}
+                    </td>
+                    <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">
+                      {ru(r.unitPrice)}
+                    </td>
+                    {!isNonGstDoc && (
+                      <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">
+                        {ru(r.taxable)}
+                      </td>
+                    )}
+                    {!isNonGstDoc && (
+                      <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">
+                        {ru(r.taxAmount)}
+                      </td>
+                    )}
+                    <td className="px-3 py-2.5 text-right font-semibold tabular-nums text-slate-900">
+                      {ru(r.lineTotal)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+
+          {/* Totals + Notes */}
+          <section className="mt-6 grid gap-6 md:grid-cols-5">
+            <div className="space-y-4 md:col-span-3">
+              {paymentMethod && (
+                <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                    Payment
+                  </p>
+                  <p className="mt-0.5 text-slate-800">{paymentMethod}</p>
+                </div>
+              )}
+              {notes && (
+                <div className="rounded-md border border-slate-200 px-3 py-2 text-sm">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                    Notes / remarks
+                  </p>
+                  <p className="mt-0.5 whitespace-pre-wrap text-slate-700">{notes}</p>
+                </div>
+              )}
+              <div className="rounded-md border border-dashed border-slate-200 p-3 text-[11px] text-slate-500">
+                <p className="font-semibold text-slate-600">Terms</p>
+                <p>
+                  This is a {mode === 'proforma' ? 'preview' : 'computer-generated invoice'}.
+                  {isNonGstDoc
+                    ? ' No tax has been charged on this document.'
+                    : ' Tax is computed per line and totalled below.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="md:col-span-2">
+              <div
+                className="overflow-hidden rounded-md border"
+                style={{ borderColor: softBorder, backgroundColor: softBg }}
+              >
+                <dl className="space-y-1 px-4 py-3">
+                  <SummaryRow
+                    label={isNonGstDoc ? 'Subtotal (line amounts)' : 'Subtotal (taxable value)'}
+                    value={ru(subtotal)}
+                  />
+                  {!isNonGstDoc && (
+                    <>
+                      <SummaryRow
+                        label={`GST @ ${gstRate}%`}
+                        value={ru(totalTax)}
+                        muted
+                      />
+                      {!isInterState && totalTax > 0 && (
+                        <div className="pl-1 text-[11px] text-slate-500">
+                          CGST {ru(cgst)} · SGST {ru(sgst)}
+                        </div>
+                      )}
+                      {isInterState && totalTax > 0 && (
+                        <div className="pl-1 text-[11px] text-slate-500">IGST {ru(igst)}</div>
+                      )}
+                    </>
+                  )}
+                  {discount > 0 && (
+                    <SummaryRow label="Less: discount / adjustment" value={`−₹${ru(discount)}`} muted />
+                  )}
+                </dl>
+                <div
+                  className="flex items-baseline justify-between px-4 py-3 text-white"
+                  style={{ backgroundColor: accent }}
+                >
+                  <span className="text-xs font-semibold uppercase tracking-wider">
+                    {isNonGstDoc ? 'Total payable' : 'Net payable'}
+                  </span>
+                  <span className="text-xl font-bold tabular-nums">₹{ru(grandTotal)}</span>
+                </div>
+              </div>
+              <p className="mt-1 text-right text-[10px] text-slate-400">
+                All amounts in INR. Errors &amp; omissions excepted.
+              </p>
+            </div>
+          </section>
+
+          {/* Footer note */}
+          <footer className="mt-6 border-t border-slate-200 pt-4 text-center text-[11px] text-slate-500">
+            {branding?.footerNote?.trim() ? (
+              <p className="whitespace-pre-wrap">{branding.footerNote.trim()}</p>
+            ) : (
+              <p>
+                {isNonGstDoc
+                  ? 'Bill-of-supply preview: no GST components; discount applied to total as on server.'
+                  : 'Amounts follow server calculation: per-line GST, then discount applied to grand total.'}
+              </p>
+            )}
+          </footer>
         </div>
-      )}
-
-      {branding?.footerNote?.trim() && (
-        <p className="mt-4 block whitespace-pre-wrap text-center text-xs text-muted-foreground">{branding.footerNote.trim()}</p>
-      )}
-      {!branding?.footerNote?.trim() && (
-        <p className="mt-4 block text-center text-xs text-muted-foreground">
-          {isNonGstDoc
-            ? 'Bill-of-supply preview: no GST components; discount applied to total as on server.'
-            : 'Amounts follow server calculation: per-line 18% GST, then discount applied to grand total.'}
-        </p>
-      )}
+      </div>
     </div>
   )
 }
 
-function Row({
+/* ------------------------------------------------------------------ */
+/* Sub-components                                                     */
+/* ------------------------------------------------------------------ */
+
+function PartyCard({
+  eyebrow,
+  accent,
+  borderColor,
+  tintBackground,
+  children,
+}: {
+  eyebrow: string
+  accent: string
+  borderColor: string
+  tintBackground?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div
+      className="rounded-md border p-4"
+      style={{
+        borderColor,
+        backgroundColor: tintBackground ?? '#ffffff',
+      }}
+    >
+      <div className="mb-2 flex items-center gap-2">
+        <span className="block h-1 w-6 rounded-full" style={{ backgroundColor: accent }} aria-hidden />
+        <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500">
+          {eyebrow}
+        </p>
+      </div>
+      <div className="text-slate-800">{children}</div>
+    </div>
+  )
+}
+
+function SummaryRow({
   label,
   value,
-  large,
   muted,
-  bold,
-  accentColor,
 }: {
   label: string
   value: string
-  large?: boolean
   muted?: boolean
-  bold?: boolean
-  accentColor?: string
 }) {
   return (
-    <div className="flex w-full items-baseline justify-between gap-4">
-      <span
-        className={cn(
-          large ? 'text-base font-semibold' : 'text-sm',
-          muted ? 'text-muted-foreground' : 'text-foreground',
-          bold === false ? 'font-normal' : 'font-semibold'
-        )}
-      >
+    <div className="flex items-baseline justify-between gap-4">
+      <dt className={cn('text-sm', muted ? 'text-slate-500' : 'font-medium text-slate-700')}>
         {label}
-      </span>
-      <span
-        className={cn('tabular-nums font-bold', large ? 'text-lg' : 'text-sm')}
-        style={{ color: accentColor ?? 'hsl(var(--primary))' }}
-      >
-        ₹{value}
-      </span>
-    </div>
-  )
-}
-
-function GridTwoCol({
-  leftTitle,
-  rightTitle,
-  left,
-  right,
-}: {
-  leftTitle: string
-  rightTitle: string
-  left: React.ReactNode
-  right: React.ReactNode
-}) {
-  return (
-    <div className="mb-0 grid gap-4 md:grid-cols-2">
-      <div>
-        <p className="text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground">{leftTitle}</p>
-        <div className="mt-1">{left}</div>
-      </div>
-      <div>
-        <p className="text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground">{rightTitle}</p>
-        <div className="mt-1">{right}</div>
-      </div>
+      </dt>
+      <dd className={cn('text-sm tabular-nums', muted ? 'text-slate-600' : 'font-semibold text-slate-900')}>
+        {value.startsWith('−') || value.startsWith('₹') ? value : `₹${value}`}
+      </dd>
     </div>
   )
 }

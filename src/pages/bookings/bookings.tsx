@@ -172,6 +172,12 @@ export function Bookings() {
     open: boolean
     bookingId: string | null
     scheduledDateIso?: string | null
+    bookingCategory?: string
+    bookingSkills?: string[]
+    bookingCity?: string
+    bookingPincode?: string
+    bookingLatitude?: number
+    bookingLongitude?: number
   }>({ open: false, bookingId: null })
 
   const [availableProviders, setAvailableProviders] = useState<any[]>([])
@@ -859,10 +865,40 @@ export function Bookings() {
                                     const d = new Date(raw as string)
                                     if (!Number.isNaN(d.getTime())) scheduledDateIso = d.toISOString()
                                   }
+                                  const anyRow = row as Record<string, any>
+                                  const addr = anyRow.address || anyRow.serviceRequest?.location || {}
+                                  const coords = addr.coordinates || anyRow.coordinates || {}
+                                  const skillSet = new Set<string>()
+                                  ;(anyRow.services ?? []).forEach((s: any) => {
+                                    if (s?.serviceName) skillSet.add(String(s.serviceName).toLowerCase())
+                                    if (s?.serviceDetails?.category)
+                                      skillSet.add(String(s.serviceDetails.category).toLowerCase())
+                                  })
+                                  if (anyRow.serviceName) skillSet.add(String(anyRow.serviceName).toLowerCase())
+                                  if (anyRow.category) skillSet.add(String(anyRow.category).toLowerCase())
                                   setAssignProfessionalModal({
                                     open: true,
                                     bookingId: String(row.id),
                                     scheduledDateIso,
+                                    bookingCategory:
+                                      (anyRow.category as string) ||
+                                      (anyRow.services?.[0]?.serviceDetails?.category as string) ||
+                                      undefined,
+                                    bookingSkills: Array.from(skillSet),
+                                    bookingCity: addr.city || anyRow.city || undefined,
+                                    bookingPincode: addr.zipCode || addr.pincode || undefined,
+                                    bookingLatitude:
+                                      typeof coords.lat === 'number'
+                                        ? coords.lat
+                                        : typeof coords.latitude === 'number'
+                                          ? coords.latitude
+                                          : undefined,
+                                    bookingLongitude:
+                                      typeof coords.lng === 'number'
+                                        ? coords.lng
+                                        : typeof coords.longitude === 'number'
+                                          ? coords.longitude
+                                          : undefined,
                                   })
                                 }}
                               >
@@ -993,6 +1029,12 @@ export function Bookings() {
           onClose={() => setAssignProfessionalModal({ open: false, bookingId: null })}
           bookingId={assignProfessionalModal.bookingId}
           scheduledDateIso={assignProfessionalModal.scheduledDateIso ?? undefined}
+          bookingCategory={assignProfessionalModal.bookingCategory}
+          bookingSkills={assignProfessionalModal.bookingSkills}
+          bookingCity={assignProfessionalModal.bookingCity}
+          bookingPincode={assignProfessionalModal.bookingPincode}
+          bookingLatitude={assignProfessionalModal.bookingLatitude}
+          bookingLongitude={assignProfessionalModal.bookingLongitude}
           onAssigned={() => {
             setAssignProfessionalModal({ open: false, bookingId: null })
             fetchBookings()

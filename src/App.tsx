@@ -1,4 +1,5 @@
 import React, { lazy, Suspense } from 'react'
+// import { LogLevel, OneSignal } from '-native-onesignal';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Provider } from 'react-redux'
 import { Loader2 } from 'lucide-react'
@@ -18,6 +19,13 @@ import { ToastProvider } from './components/providers/ToastProvider'
 import { AppDialogsProvider } from './components/providers/AppDialogsProvider'
 import { Toaster } from './components/ui'
 import type { Permission } from './types/rbac.types'
+
+
+// OneSignal.Debug.setLogLevel(LogLevel.Verbose); 
+// OneSignal.initialize("6450e064-5aac-4028-be33-2d7c5e02675f") 
+// OneSignal.Notifications.requestPermission(true); 
+// OneSignal.Notifications.addEventListener('click', (event) => { });
+// Here you paste the App ID shown in OneSignal install SDK step.
 
 // Route-level code splitting (industry standard for performance)
 const Auth = lazy(() => import('./pages/auth/auth').then((m) => ({ default: m.Auth })))
