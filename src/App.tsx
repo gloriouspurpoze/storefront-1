@@ -1,5 +1,4 @@
 import React, { lazy, Suspense } from 'react'
-// import { LogLevel, OneSignal } from '-native-onesignal';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Provider } from 'react-redux'
 import { Loader2 } from 'lucide-react'
@@ -14,18 +13,12 @@ import { MainLayout } from './components/layout/main-layout'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { RoleBasedRoute } from './components/auth/RoleBasedRoute'
 import { OneSignalWeb } from './components/push/OneSignalWeb'
+import { LiveOpsAdminGate } from './components/ops/LiveOpsAdminGate'
 import { LoadingProvider } from './components/providers/LoadingProvider'
 import { ToastProvider } from './components/providers/ToastProvider'
 import { AppDialogsProvider } from './components/providers/AppDialogsProvider'
 import { Toaster } from './components/ui'
 import type { Permission } from './types/rbac.types'
-
-
-// OneSignal.Debug.setLogLevel(LogLevel.Verbose); 
-// OneSignal.initialize("6450e064-5aac-4028-be33-2d7c5e02675f") 
-// OneSignal.Notifications.requestPermission(true); 
-// OneSignal.Notifications.addEventListener('click', (event) => { });
-// Here you paste the App ID shown in OneSignal install SDK step.
 
 // Route-level code splitting (industry standard for performance)
 const Auth = lazy(() => import('./pages/auth/auth').then((m) => ({ default: m.Auth })))
@@ -388,6 +381,14 @@ function App() {
   return (
     <Provider store={store}>
       <OneSignalWeb />
+      {/*
+        Live-ops socket gate — connects to the backend default namespace and
+        pipes professional `professional:presence` heartbeats into the
+        in-memory presence store so the Professionals table, Live Locations
+        page, and Admin Hub all show real-time online/busy/offline status
+        without waiting on the 30s poll.
+      */}
+      <LiveOpsAdminGate />
       <ThemeProvider>
         <AppMuiThemeProvider>
         <AppDialogsProvider>
@@ -1041,14 +1042,22 @@ function App() {
                         <Route path="catalog" element={<RateCardsCatalogPage />} />
                       </Route>
 
-                      {/* Users - Admin only */}
-                      <Route 
-                        path="/users" 
+                      {/*
+                        Users hub — split by audience for unambiguous URLs:
+                        - `/users`            → permanent redirect to `/users/customers`
+                                                (back-compat for old links / bookmarks)
+                        - `/users/customers`  → consumer (customer-role) accounts
+                        - `/users/members`    → dashboard / team accounts (admin-invited staff)
+                        Same pattern as `/finance`, `/amc`, `/rate-cards`, etc.
+                      */}
+                      <Route path="/users" element={<Navigate to="/users/customers" replace />} />
+                      <Route
+                        path="/users/customers"
                         element={
                           <RoleBasedRoute permissions={['view_users']}>
                             <Users />
                           </RoleBasedRoute>
-                        } 
+                        }
                       />
                       <Route
                         path="/users/members"

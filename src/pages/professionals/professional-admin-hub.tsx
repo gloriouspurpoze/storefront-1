@@ -5,7 +5,8 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, Link as RouterLink } from 'react-router-dom'
-import { ArrowLeft, ExternalLink, Loader2 } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Loader2, Radio } from 'lucide-react'
+import { useProfessionalPresence } from '../../state/professionalPresence'
 import {
   Avatar,
   AvatarFallback,
@@ -182,6 +183,13 @@ export function ProfessionalAdminHub() {
   const [loadingPro, setLoadingPro] = useState(true)
   const [proError, setProError] = useState<string | null>(null)
   const [professional, setProfessional] = useState<Professional | null>(null)
+  // Live presence (heartbeat-driven). Falls back to `professional.availability`
+  // until the live-ops socket delivers the first `professional:presence`
+  // event for this id this session.
+  const livePresence = useProfessionalPresence(professional?._id)
+  const liveAvailability = livePresence?.status ?? professional?.availability ?? 'offline'
+  const livePresenceFresh =
+    !!livePresence && Date.now() - livePresence.receivedAt < 90_000
 
   const [bookings, setBookings] = useState<Booking[]>([])
   const [bookingsLoading, setBookingsLoading] = useState(false)
@@ -732,7 +740,21 @@ export function ProfessionalAdminHub() {
                     Account: {accountStatus}
                   </Badge>
                   <Badge variant="outline">Verification: {professional.verificationStatus}</Badge>
-                  <Badge variant="outline">Availability: {professional.availability}</Badge>
+                  <Badge
+                    variant={
+                      liveAvailability === 'available'
+                        ? 'success'
+                        : liveAvailability === 'busy'
+                          ? 'warning'
+                          : 'outline'
+                    }
+                    className="inline-flex items-center gap-1"
+                  >
+                    {livePresenceFresh ? (
+                      <Radio className="h-3 w-3 animate-pulse" aria-label="Live" />
+                    ) : null}
+                    Availability: {liveAvailability}
+                  </Badge>
                 </div>
               </div>
             </div>
@@ -926,14 +948,18 @@ export function ProfessionalAdminHub() {
               <div className="mb-4 flex flex-wrap gap-2">
                 <Badge
                   variant={
-                    professional.availability === 'available'
+                    liveAvailability === 'available'
                       ? 'success'
-                      : professional.availability === 'busy'
+                      : liveAvailability === 'busy'
                         ? 'warning'
                         : 'outline'
                   }
+                  className="inline-flex items-center gap-1"
                 >
-                  Live status: {professional.availability}
+                  {livePresenceFresh ? (
+                    <Radio className="h-3 w-3 animate-pulse" aria-label="Live heartbeat" />
+                  ) : null}
+                  Live status: {liveAvailability}
                 </Badge>
                 <Badge variant="outline">Max bookings / day: {professional.maxBookingsPerDay ?? '—'}</Badge>
                 {professional.workingHours?.start && professional.workingHours?.end ? (

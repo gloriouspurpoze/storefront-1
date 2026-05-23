@@ -51,7 +51,7 @@ const SHORTCUTS: Shortcut[] = [
     icon: <Wallet className="h-5 w-5" aria-hidden />,
   },
   {
-    to: '/users',
+    to: '/users/customers',
     title: 'Users',
     description: 'User lifecycle reports and admin actions.',
     icon: <Users className="h-5 w-5" aria-hidden />,

@@ -15,10 +15,12 @@ import {
   Clock,
   CircleSlash2,
   Circle,
+  Radio,
 } from 'lucide-react'
 import { Professional } from '../../types/professional.types'
 import { professionalDisplayAccountStatus } from '../../lib/professionalAdmin'
 import { getProfessionalCategoryLabel } from '../../constants/professionalCategories'
+import { useProfessionalPresence } from '../../state/professionalPresence'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
 import { Card, CardContent } from '../ui/card'
@@ -31,6 +33,12 @@ import {
   TableHeader,
   TableRow,
 } from '../ui/table'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../ui/tooltip'
 
 interface ProfessionalTableProps {
   professionals: Professional[]
@@ -98,6 +106,64 @@ const accountBadgeVariant = (
   return 'destructive'
 }
 
+/**
+ * Live presence cell. Subscribes only to its own professional id so a
+ * heartbeat for prof B doesn't re-render prof A's row.
+ *
+ * Falls back to the persisted `professional.availability` (refreshed by the
+ * /professionals list query) when no live heartbeat has arrived yet —
+ * matches the static behaviour from before this hook existed.
+ */
+const AvailabilityCell: React.FC<{ professional: Professional }> = ({ professional }) => {
+  const live = useProfessionalPresence(professional._id)
+  const status = live?.status ?? professional.availability
+  const color = getAvailabilityColor(status)
+  const ageMs = live ? Date.now() - live.receivedAt : null
+  const isFresh = ageMs != null && ageMs < 90_000
+  const tooltipLabel = live
+    ? `Live · last heartbeat ${formatHeartbeatAge(ageMs ?? 0)} ago`
+    : 'No live heartbeat received this session — value from last sync.'
+
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="inline-flex items-center gap-1">
+            {isFresh ? (
+              <Radio
+                className="h-3 w-3 shrink-0 animate-pulse"
+                style={{ color }}
+                aria-hidden
+              />
+            ) : (
+              <Circle
+                className="h-2.5 w-2.5 shrink-0 fill-current"
+                style={{ color }}
+                aria-hidden
+              />
+            )}
+            <span className="text-sm font-medium capitalize" style={{ color }}>
+              {status}
+            </span>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>{tooltipLabel}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
+}
+
+function formatHeartbeatAge(ms: number): string {
+  if (ms < 1000) return 'just now'
+  const s = Math.round(ms / 1000)
+  if (s < 60) return `${s}s`
+  const m = Math.floor(s / 60)
+  const rs = s % 60
+  if (m < 60) return rs ? `${m}m ${rs}s` : `${m}m`
+  const h = Math.floor(m / 60)
+  return `${h}h`
+}
+
 export function ProfessionalTable({ professionals, loading, onMenuClick, onOpenHub }: ProfessionalTableProps) {
   if (loading) {
     return (
@@ -151,7 +217,6 @@ export function ProfessionalTable({ professionals, loading, onMenuClick, onOpenH
             const totalReviews = professional.totalReviews ?? 0
             const skills = professional.skills ?? []
             const categories = professional.categories ?? []
-            const ac = getAvailabilityColor(professional.availability)
             const acct = professionalDisplayAccountStatus(professional)
 
             return (
@@ -243,15 +308,7 @@ export function ProfessionalTable({ professionals, loading, onMenuClick, onOpenH
                   <span className="text-sm">{professional.experience} years</span>
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-1">
-                    <Circle
-                      className="h-2.5 w-2.5 shrink-0 fill-current"
-                      style={{ color: ac }}
-                    />
-                    <span className="text-sm font-medium capitalize" style={{ color: ac }}>
-                      {professional.availability}
-                    </span>
-                  </div>
+                  <AvailabilityCell professional={professional} />
                 </TableCell>
                 <TableCell>
                   <Badge

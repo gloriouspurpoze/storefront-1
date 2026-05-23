@@ -2,12 +2,16 @@
  * Admin view: last reported GPS + online/busy/offline for each professional (polling).
  */
 
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ExternalLink, Loader2, MapPin, RefreshCw } from 'lucide-react'
+import { ExternalLink, Loader2, MapPin, Radio, RefreshCw } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { ProfessionalsService } from '../../services/api/professionals.service'
 import type { ProfessionalLiveLocationRow } from '../../types/professional.types'
+import {
+  professionalPresenceStore,
+  useProfessionalPresenceVersion,
+} from '../../state/professionalPresence'
 import {
   Badge,
   Button,
@@ -41,6 +45,8 @@ export function ProfessionalsLiveLocations() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [autoRefresh, setAutoRefresh] = useState(true)
+  // Bumps every time a presence heartbeat arrives — `mergedRows` recomputes.
+  const presenceVersion = useProfessionalPresenceVersion()
 
   const load = useCallback(async () => {
     setError(null)
@@ -68,11 +74,38 @@ export function ProfessionalsLiveLocations() {
     return () => window.clearInterval(t)
   }, [autoRefresh, load])
 
+  /**
+   * Merge live `professional:presence` heartbeats into the poll dataset.
+   * Live wins when it's fresher than the poll's `lastLocationAt` (or when
+   * the poll has no timestamp at all).
+   */
+  const mergedRows = useMemo(() => {
+    // `presenceVersion` is the dep that re-runs this when a heartbeat
+    // arrives between polls; keep the eslint-exhaustive-deps rule honest.
+    void presenceVersion
+    return rows.map((r) => {
+      const id = r.professionalId ?? r.id
+      const live = professionalPresenceStore.get(id ?? null)
+      if (!live) return { ...r, _isLive: false as const }
+      const liveSeenMs = live.lastSeen ? new Date(live.lastSeen).getTime() : 0
+      const pollSeenMs = r.lastLocationAt ? new Date(r.lastLocationAt).getTime() : 0
+      const liveFresher = liveSeenMs > pollSeenMs
+      return {
+        ...r,
+        availability: liveFresher ? live.status : r.availability,
+        latitude: liveFresher && live.location ? live.location.latitude : r.latitude,
+        longitude: liveFresher && live.location ? live.location.longitude : r.longitude,
+        lastLocationAt: liveFresher ? live.lastSeen : r.lastLocationAt,
+        _isLive: true as const,
+      }
+    })
+  }, [rows, presenceVersion])
+
   return (
     <div>
       <PageHeader
         title="Live locations"
-        subtitle="Last GPS sample and availability from the provider app (refreshes every 30s when enabled)."
+        subtitle="Real-time presence + last GPS sample from the provider app. Heartbeats stream over the live-ops socket; the 30s poll is a fallback for missed sockets."
         action={
           <div className="flex flex-wrap items-center justify-end gap-2">
             <Button variant="outline" asChild>
@@ -112,7 +145,7 @@ export function ProfessionalsLiveLocations() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {loading && rows.length === 0 ? (
+                  {loading && mergedRows.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-muted-foreground">
                         <span className="inline-flex items-center gap-2">
@@ -121,14 +154,14 @@ export function ProfessionalsLiveLocations() {
                         </span>
                       </TableCell>
                     </TableRow>
-                  ) : rows.length === 0 ? (
+                  ) : mergedRows.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-muted-foreground">
                         No professionals returned.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    rows.map((r) => {
+                    mergedRows.map((r) => {
                       const hasCoords =
                         r.latitude != null &&
                         r.longitude != null &&
@@ -148,7 +181,15 @@ export function ProfessionalsLiveLocations() {
                           </TableCell>
                           <TableCell>{r.phone || '—'}</TableCell>
                           <TableCell>
-                            <Badge variant={variant}>{r.availability}</Badge>
+                            <div className="inline-flex items-center gap-1.5">
+                              <Badge variant={variant}>{r.availability}</Badge>
+                              {r._isLive ? (
+                                <Radio
+                                  className="h-3 w-3 animate-pulse text-emerald-600"
+                                  aria-label="Live heartbeat received"
+                                />
+                              ) : null}
+                            </div>
                           </TableCell>
                           <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                             {formatTime(r.lastLocationAt)}

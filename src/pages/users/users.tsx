@@ -426,7 +426,7 @@ function UsersPageContent({ mode }: { mode: UsersPageMode }) {
               <>
                 Admin-invited dashboard accounts (roles, scoped modules, and navigation). Customer accounts
                 are under{' '}
-                <Link to="/users" className="font-medium text-primary underline-offset-4 hover:underline">
+                <Link to="/users/customers" className="font-medium text-primary underline-offset-4 hover:underline">
                   Customers
                 </Link>
                 .

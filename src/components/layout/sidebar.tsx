@@ -105,6 +105,7 @@ const NAV_EXACT_ONLY_HREFS = new Set<string>([
   '/cms',
   '/crm',
   '/users',
+  '/users/customers',
   '/team-work',
   '/support',
   '/marketing',
@@ -637,7 +638,7 @@ const navigationGroups = [
     title: 'People & messaging',
     icon: UsersIcon,
     items: [
-      { name: 'Customers', href: '/users', icon: UsersIcon, permissions: ['view_users', 'manage_users'], badge: null },
+      { name: 'Customers', href: '/users/customers', icon: UsersIcon, permissions: ['view_users', 'manage_users'], badge: null },
       {
         name: 'Team members',
         href: '/users/members',

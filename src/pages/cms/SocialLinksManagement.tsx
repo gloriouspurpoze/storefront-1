@@ -112,9 +112,10 @@ export default function SocialLinksManagement() {
 
       <div className="mb-6 rounded-md border border-sky-200 bg-sky-50/80 p-4 text-sm dark:border-sky-900 dark:bg-sky-950/40">
         <p>
-          These URLs are typically displayed in the client website footer or contact section. Backend must persist{' '}
-          <code className="rounded bg-muted px-1">socialLinks</code> in client settings for them to appear on the
-          site.
+          URLs saved here are stored in global settings as{' '}
+          <code className="rounded bg-muted px-1">clientControls.socialLinks</code> and served publicly on the
+          customer site via <code className="rounded bg-muted px-1">GET /api/cms/social-links</code> (footer, about
+          page, and SEO JSON-LD).
         </p>
       </div>
 

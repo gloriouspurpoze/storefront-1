@@ -276,7 +276,7 @@ export const QUICK_NAV_ITEMS: QuickNavItem[] = [
   { label: 'Marketing tasks', path: '/marketing/tasks', group: 'Content & marketing', keywords: 'todo checklist' },
   { label: 'R&D & brainstorm', path: '/marketing/lab', group: 'Content & marketing', keywords: 'research hypothesis' },
 
-  { label: 'Customers', path: '/users', group: 'Users & communication' },
+  { label: 'Customers', path: '/users/customers', group: 'Users & communication' },
   { label: 'Team members', path: '/users/members', group: 'Users & communication' },
   { label: 'Notifications', path: '/notifications', group: 'Users & communication' },
   { label: 'Messages', path: '/messages', group: 'Users & communication' },
