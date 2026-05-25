@@ -730,7 +730,7 @@ export function HomeServicePOSPage() {
 
       const body = {
         customerId: selectedCustomer.id,
-        professionalId: selectedPro?.id,
+        professionalId: selectedPro?._id || selectedPro?.id || selectedPro?.professionalId,
         skipAutoAssign: skipAutoAssign && !selectedPro,
         scheduled_time: scheduledIso,
         notes: jobNotes.trim() || undefined,
