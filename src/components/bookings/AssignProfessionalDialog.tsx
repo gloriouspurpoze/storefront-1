@@ -139,7 +139,9 @@ interface CandidateCardProps {
   scheduledDateIso?: string
   assigning: boolean
   isAutoPick?: boolean
-  onAssign: (id: string) => void
+  /** Manual admin tab: allow assigning despite eligibility warnings (not inactive accounts). */
+  allowIneligibleAssign?: boolean
+  onAssign: (professional: Professional) => void
 }
 
 const CandidateCard: React.FC<CandidateCardProps> = ({
@@ -147,11 +149,24 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
   scheduledDateIso,
   assigning,
   isAutoPick,
+  allowIneligibleAssign,
   onAssign,
 }) => {
-  const { professional: p } = match
-  const schedLines = scheduleSummaryLines(p).slice(0, 2)
-  const dayHint = scheduledDateIso ? bookingScheduledDayHint(scheduledDateIso, p) : 'unknown'
+  const { professional } = match
+  const schedLines = scheduleSummaryLines(professional).slice(0, 2)
+  const dayHint = scheduledDateIso ? bookingScheduledDayHint(scheduledDateIso, professional) : 'unknown'
+  const inactiveBlocked = professional.isActive === false
+  const canAssign =
+    match.eligible || (allowIneligibleAssign === true && !inactiveBlocked)
+  const assignLabel = match.eligible
+    ? isAutoPick
+      ? 'Auto-assign this match'
+      : 'Assign'
+    : inactiveBlocked
+      ? 'Inactive — cannot assign'
+      : allowIneligibleAssign
+        ? 'Assign anyway'
+        : 'Not eligible'
 
   return (
     <Card
@@ -165,19 +180,19 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
         {/* Header: avatar + name + score */}
         <div className="flex items-start gap-2">
           <Avatar className="h-12 w-12">
-            {p.profileImage ? <AvatarImage src={p.profileImage} alt="" /> : null}
+            {professional.profileImage ? <AvatarImage src={professional.profileImage} alt="" /> : null}
             <AvatarFallback>
-              {p.firstName[0]}
-              {p.lastName[0]}
+              {professional.firstName[0]}
+              {professional.lastName[0]}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
             <p className="truncate font-semibold leading-tight">
-              {p.firstName} {p.lastName}
+              {professional.firstName} {professional.lastName}
             </p>
             <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
               <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
-              {(p.rating || 0).toFixed(1)} ({p.totalReviews || 0})
+              {(professional.rating || 0).toFixed(1)} ({professional.totalReviews || 0})
             </div>
           </div>
           <Tooltip>
@@ -227,13 +242,13 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
 
         {/* Status badges */}
         <div className="flex flex-wrap gap-1">
-          <Badge variant="outline" className={cn('text-xs capitalize', availabilityClass(p.availability))}>
-            {p.availability || 'unknown'}
+          <Badge variant="outline" className={cn('text-xs capitalize', availabilityClass(professional.availability))}>
+            {professional.availability || 'unknown'}
           </Badge>
-          <Badge variant="outline" className={cn('text-xs capitalize', expertiseClass(p.expertiseLevel))}>
-            {p.expertiseLevel || 'unknown'}
+          <Badge variant="outline" className={cn('text-xs capitalize', expertiseClass(professional.expertiseLevel))}>
+            {professional.expertiseLevel || 'unknown'}
           </Badge>
-          {p.isVerified ? (
+          {professional.isVerified ? (
             <Badge variant="outline" className="gap-1 border-emerald-500/40 bg-emerald-500/10 text-xs text-emerald-800 dark:text-emerald-200">
               <ShieldCheck className="h-3 w-3" />
               Verified
@@ -241,25 +256,25 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
           ) : null}
         </div>
 
-        {p.categories?.length ? (
+        {professional.categories?.length ? (
           <div className="flex flex-wrap gap-1">
-            {p.categories.slice(0, 3).map((cat) => (
+            {professional.categories.slice(0, 3).map((cat) => (
               <Badge key={cat} variant="secondary" className="text-xs">
                 {cat}
               </Badge>
             ))}
-            {p.categories.length > 3 && (
+            {professional.categories.length > 3 && (
               <Badge variant="outline" className="text-xs">
-                +{p.categories.length - 3}
+                +{professional.categories.length - 3}
               </Badge>
             )}
           </div>
         ) : null}
 
-        {p.address && (p.address.area || p.address.city) ? (
+        {professional.address && (professional.address.area || professional.address.city) ? (
           <p className="flex items-start gap-1 text-xs text-muted-foreground">
             <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            {[p.address.area, p.address.city].filter(Boolean).join(', ')}
+            {[professional.address.area, professional.address.city].filter(Boolean).join(', ')}
           </p>
         ) : null}
 
@@ -299,20 +314,20 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
         ) : null}
 
         <p className="text-xs text-muted-foreground">
-          {p.experience} yr{p.experience === 1 ? '' : 's'} · {p.completedJobs || 0} job
-          {p.completedJobs === 1 ? '' : 's'}
+          {professional.experience} yr{professional.experience === 1 ? '' : 's'} · {professional.completedJobs || 0} job
+          {professional.completedJobs === 1 ? '' : 's'}
         </p>
       </CardContent>
       <CardFooter className="pt-0">
         <Button
           type="button"
           className="w-full gap-1"
-          onClick={() => onAssign(p._id)}
-          disabled={assigning || !match.eligible}
-          variant={isAutoPick ? 'default' : 'outline'}
+          onClick={() => onAssign(professional)}
+          disabled={assigning || !canAssign}
+          variant={isAutoPick ? 'default' : !match.eligible && allowIneligibleAssign ? 'secondary' : 'outline'}
         >
           {assigning ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-          {match.eligible ? (isAutoPick ? 'Auto-assign this match' : 'Assign') : 'Not eligible'}
+          {assignLabel}
         </Button>
       </CardFooter>
     </Card>
@@ -348,7 +363,7 @@ export function AssignProfessionalDialog({
   const [categoryFilter, setCategoryFilter] = useState<string>(bookingCategory || 'all')
   const [availabilityFilter, setAvailabilityFilter] = useState<string>('all')
   const [expertiseFilter, setExpertiseFilter] = useState<string>('all')
-  const [hideIneligible, setHideIneligible] = useState(true)
+  const [hideIneligible, setHideIneligible] = useState(false)
 
   // Reset state every time dialog opens with a fresh booking.
   useEffect(() => {
@@ -357,7 +372,7 @@ export function AssignProfessionalDialog({
       setSearchQuery('')
       setAvailabilityFilter('all')
       setExpertiseFilter('all')
-      setHideIneligible(true)
+      setHideIneligible(false)
       setError(null)
       setSuccess(null)
       setTab('auto')
@@ -373,7 +388,6 @@ export function AssignProfessionalDialog({
       const response = await ProfessionalsService.getProfessionals({
         page: 1,
         limit: 100,
-        isVerified: true,
       })
       const list = response.data.professionals || []
       setProfessionals(list.map((p) => normalizeProfessionalFromApi(p)))
@@ -452,7 +466,16 @@ export function AssignProfessionalDialog({
 
   /* -------------------- assignment -------------------- */
 
-  const handleAssign = async (professionalId: string, mode: 'auto' | 'manual' = 'manual') => {
+  const resolveProfessionalId = (professional: Professional) =>
+    professional._id || professional.id || professional.professionalId
+
+  const handleAssign = async (professional: Professional, mode: 'auto' | 'manual' = 'manual') => {
+    const professionalId = resolveProfessionalId(professional)
+    if (!professionalId) {
+      setError('Professional record is missing an ID. Refresh and try again.')
+      return
+    }
+
     setAssigning(true)
     setError(null)
     setSuccess(null)
@@ -515,7 +538,10 @@ export function AssignProfessionalDialog({
               <User className="h-5 w-5" />
               Assign professional to booking
             </DialogTitle>
-          </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+            Manual admin assignment — any professional can be assigned regardless of skills, city, verification, or availability.
+          </p>
+        </DialogHeader>
 
           {success && (
             <div className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-800 dark:text-emerald-200">
@@ -602,7 +628,7 @@ export function AssignProfessionalDialog({
                     scheduledDateIso={scheduledDateIso}
                     assigning={assigning}
                     isAutoPick
-                    onAssign={(id) => void handleAssign(id, 'auto')}
+                    onAssign={(professional) => void handleAssign(professional, 'auto')}
                   />
                   {autoRunnerUps.length > 0 && (
                     <div>
@@ -616,7 +642,7 @@ export function AssignProfessionalDialog({
                             match={m}
                             scheduledDateIso={scheduledDateIso}
                             assigning={assigning}
-                            onAssign={(id) => void handleAssign(id, 'manual')}
+                            onAssign={(professional) => void handleAssign(professional, 'manual')}
                           />
                         ))}
                       </div>
@@ -724,7 +750,8 @@ export function AssignProfessionalDialog({
                       scheduledDateIso={scheduledDateIso}
                       assigning={assigning}
                       isAutoPick={m.professional._id === autoPick?.professional._id}
-                      onAssign={(id) => void handleAssign(id, 'manual')}
+                      allowIneligibleAssign
+                      onAssign={(professional) => void handleAssign(professional, 'manual')}
                     />
                   ))}
                 </div>
