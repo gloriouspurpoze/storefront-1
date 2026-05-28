@@ -266,6 +266,12 @@ export const QUICK_NAV_ITEMS: QuickNavItem[] = [
     path: '/cms/category-marketing?tab=cross-linking',
     group: 'Content & marketing',
   },
+  {
+    label: 'Pricing category meta',
+    path: '/cms/pricing-category-meta',
+    group: 'Content & marketing',
+    keywords: 'pricing answer engine summary rate card comparison ai overview perplexity mumbai',
+  },
   { label: 'Media library', path: '/cms/media', group: 'Content & marketing' },
   { label: 'SEO management', path: '/cms/seo', group: 'Content & marketing' },
   { label: 'Marketing workspace', path: '/marketing', group: 'Content & marketing', keywords: 'calendar social planning' },

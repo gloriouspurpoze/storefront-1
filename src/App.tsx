@@ -325,6 +325,7 @@ const NewsletterManagement = lazy(() => import('./pages/cms/NewsletterManagement
 const EmailTemplatesManagement = lazy(() => import('./pages/cms/EmailTemplatesManagement'))
 const SocialLinksManagement = lazy(() => import('./pages/cms/SocialLinksManagement'))
 const IndustryServicePagesHub = lazy(() => import('./pages/cms/IndustryServicePagesHub'))
+const PricingCategoryMetaManagement = lazy(() => import('./pages/cms/PricingCategoryMetaManagement'))
 
 const MarketingWorkspaceHub = lazy(() =>
   import('./pages/marketing-workspace/MarketingWorkspaceHub').then((m) => ({ default: m.MarketingWorkspaceHub })),
@@ -1671,6 +1672,14 @@ function App() {
                       <Route
                         path="/cms/cross-linking"
                         element={<Navigate to="/cms/category-marketing?tab=cross-linking" replace />}
+                      />
+                      <Route
+                        path="/cms/pricing-category-meta"
+                        element={
+                          <RoleBasedRoute permissions={['manage_system_settings']}>
+                            <PricingCategoryMetaManagement />
+                          </RoleBasedRoute>
+                        }
                       />
 
                       <Route

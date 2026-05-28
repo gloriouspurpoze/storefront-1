@@ -35,6 +35,12 @@ interface SEOMeta {
   description: string
   keywords: string[]
   ogImage?: string
+  /** Open Graph title override — backend already persists this, the UI was dropping it on edit. */
+  ogTitle?: string
+  /** Open Graph description override — same story. */
+  ogDescription?: string
+  /** `summary` | `summary_large_image` — Twitter/X card hint. */
+  twitterCard?: string
   canonical?: string
   robots: string
   isActive: boolean
@@ -148,9 +154,13 @@ export default function SEOManagement() {
       description: page.description,
       keywords: page.keywords.join(', '),
       ogImage: page.ogImage || '',
-      ogTitle: '',
-      ogDescription: '',
-      twitterCard: 'summary_large_image',
+      // Restore persisted social-card fields so editors don't silently re-blank them on save.
+      ogTitle: page.ogTitle || '',
+      ogDescription: page.ogDescription || '',
+      twitterCard:
+        page.twitterCard === 'summary' || page.twitterCard === 'summary_large_image'
+          ? page.twitterCard
+          : 'summary_large_image',
       canonical: page.canonical || '',
       robots: page.robots,
       isActive: page.isActive,

@@ -50,6 +50,13 @@ export interface BlogPostSeo {
   twitterCard?: string
   /** Raw robots meta, e.g. `index, follow` or `noindex` for thin drafts */
   robots?: string
+  /**
+   * Explicit indexing flag. Mirrors the consumer-site `blogQualityGate`
+   * (`src/shared/lib/seo/quality.ts`) — when `false` the post is excluded
+   * from `/sitemaps/blog.xml` regardless of `status`. Kept alongside
+   * `robots` so legacy noindex string overrides still work.
+   */
+  index?: boolean
 }
 
 export interface BlogPost {
@@ -63,6 +70,12 @@ export interface BlogPost {
   status: BlogPostStatus;
   isFeatured: boolean;
   allowComments?: boolean;
+  /**
+   * Explicit indexing flag. Top-level mirror of `seo.index` for backends that
+   * persist the flag at the post root. Consumer's `blogQualityGate` checks
+   * `post.index !== false` AND `post.seo?.index !== false`.
+   */
+  index?: boolean;
   publishedAt?: string | null;
   scheduledPublishAt?: string | null;
   viewCount: number;
@@ -103,6 +116,8 @@ export interface BlogPostCreatePayload {
   status: BlogPostStatus;
   isFeatured: boolean;
   allowComments?: boolean;
+  /** Top-level mirror of `seo.index`. See `BlogPost.index` doc-comment. */
+  index?: boolean;
   featuredImage?: string;
   featuredImageAlt?: string;
   scheduledPublishAt?: string | null;

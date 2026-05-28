@@ -15,7 +15,9 @@ import {
   TabsTrigger,
 } from '../../components/ui'
 import { PageHeader } from '../../components/common/PageHeader'
-import { Megaphone } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { CircleDollarSign, Megaphone } from 'lucide-react'
+import { Button } from '../../components/ui/button'
 import { useCmsCatalogCategories } from '../../hooks/useCmsCatalogCategories'
 import { IndustryServicePagesCatalogContext } from './IndustryServicePagesContext'
 import CategoryMarketingManagement from './CategoryMarketingManagement'
@@ -176,6 +178,14 @@ export default function IndustryServicePagesHub() {
                 Service areas drive the locality picker on the Landing tab and the consumer URL allowlist. Rate card and
                 cross-linking use the same catalog industry key as landings.
               </p>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Button type="button" variant="outline" size="sm" asChild>
+                  <Link to="/cms/pricing-category-meta">
+                    <CircleDollarSign className="mr-1.5 h-4 w-4" aria-hidden />
+                    Pricing category meta (answer-engine copy)
+                  </Link>
+                </Button>
+              </div>
             </CardContent>
           </Card>
 

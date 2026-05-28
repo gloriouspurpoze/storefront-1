@@ -1,6 +1,33 @@
 import axios from 'axios';
 import type { CategoryMarketingConfig } from '../../types/categoryMarketing';
 import type { StoreCategoryPlpConfig } from '../../types/storeCategoryPlp';
+import type { PricingCategoryMetaConfig } from '../../types/pricingCategoryMeta';
+
+/**
+ * Locality master record — hyperlocal CMS inputs + SEO quality signals.
+ * Mirrored on the user-site so the same registry can drive
+ * `localityRegistry.ts` gating at sitemap-generation time.
+ */
+export type ServiceCatalogLocalityWriteBody = {
+  name: string
+  slug?: string
+  sortOrder?: number
+  isActive?: boolean
+  parentCity?: string
+  neighborhoods?: string[]
+  societies?: string[]
+  infrastructureFacts?: string[]
+  isIndexable?: boolean
+  qualitySignals?: {
+    providerAvailability?: boolean
+    reviewCount?: boolean | number
+    hasUniqueContent?: boolean
+    faqCoverage?: boolean
+    hasPricingInfo?: boolean
+    searchDemand?: boolean
+    contentQualityScore?: number
+  }
+}
 
 // API_BASE should include /api (e.g., http://localhost:8005/api)
 // Endpoints should NOT include /api prefix (e.g., /cms/admin/testimonials)
@@ -582,6 +609,30 @@ export class CMSService {
     return response.data?.data ?? response.data;
   }
 
+  // ==================== PRICING CATEGORY META (`/pricing/:category`) ====================
+  /**
+   * Editorial narrative + 3-column rate rows surrounding a `/pricing/{slug}`
+   * page on the user site. Keyed by catalog industry slug (same key as
+   * category-marketing / rate-card). Schemaless JSON on the backend so the
+   * full `PricingCategoryMetaConfig` shape can evolve without migrations.
+   */
+  static async getPricingCategoryMeta(): Promise<Record<string, PricingCategoryMetaConfig>> {
+    const response = await axios.get(
+      `${API_BASE}/cms/admin/static-content/pricing-category-meta`,
+      this.getAuthHeaders()
+    );
+    return response.data?.data ?? response.data ?? {};
+  }
+
+  static async updatePricingCategoryMeta(data: Record<string, PricingCategoryMetaConfig>) {
+    const response = await axios.put(
+      `${API_BASE}/cms/admin/static-content/pricing-category-meta`,
+      data,
+      this.getAuthHeaders()
+    );
+    return response.data?.data ?? response.data;
+  }
+
   // ==================== STORE CATEGORY PLP (`/store/:slug`) ====================
 
   static async getStoreCategoryPlp(): Promise<Record<string, StoreCategoryPlpConfig>> {
@@ -603,6 +654,13 @@ export class CMSService {
 
   // ==================== SERVICE CATALOG LOCALITIES (hyperlocal `/services/.../{slug}`) ====================
 
+  /**
+   * Locality master directory. Now carries hyperlocal CMS inputs
+   * (neighborhoods, societies, infrastructureFacts) and SEO quality signals
+   * that the user-site's `localityRegistry.ts` would otherwise own in code.
+   * Backend should treat the new fields as optional/schemaless so this client
+   * stays forward-compatible until the API contract catches up.
+   */
   static async listServiceCatalogLocalities(): Promise<
     Array<{
       _id: string
@@ -610,6 +668,20 @@ export class CMSService {
       name: string
       sortOrder: number
       isActive: boolean
+      parentCity?: string
+      neighborhoods?: string[]
+      societies?: string[]
+      infrastructureFacts?: string[]
+      isIndexable?: boolean
+      qualitySignals?: {
+        providerAvailability?: boolean
+        reviewCount?: boolean | number
+        hasUniqueContent?: boolean
+        faqCoverage?: boolean
+        hasPricingInfo?: boolean
+        searchDemand?: boolean
+        contentQualityScore?: number
+      }
       createdAt?: string
       updatedAt?: string
     }>
@@ -618,12 +690,7 @@ export class CMSService {
     return response.data?.data ?? []
   }
 
-  static async createServiceCatalogLocality(body: {
-    name: string
-    slug?: string
-    sortOrder?: number
-    isActive?: boolean
-  }) {
+  static async createServiceCatalogLocality(body: ServiceCatalogLocalityWriteBody) {
     const response = await axios.post(
       `${API_BASE}/cms/admin/service-catalog-localities`,
       body,
@@ -634,7 +701,7 @@ export class CMSService {
 
   static async updateServiceCatalogLocality(
     id: string,
-    body: Partial<{ name: string; slug: string; sortOrder: number; isActive: boolean }>,
+    body: Partial<ServiceCatalogLocalityWriteBody>,
   ) {
     const response = await axios.put(
       `${API_BASE}/cms/admin/service-catalog-localities/${encodeURIComponent(id)}`,

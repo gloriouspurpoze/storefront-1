@@ -21,6 +21,7 @@ import {
   MapPin,
   Link2,
   Search,
+  CircleDollarSign,
   Tag,
   Newspaper,
   type LucideIcon,
@@ -218,6 +219,13 @@ const HUB_SECTIONS: HubSection[] = [
         description: 'Spare parts & price lines (opens Industry hub).',
         to: '/cms/category-marketing?tab=rate-card',
         icon: Receipt,
+      },
+      {
+        title: 'Pricing category meta',
+        description:
+          'Answer-engine summaries, Mumbai context, 3-column rate rows & FAQs for /pricing pages.',
+        to: '/cms/pricing-category-meta',
+        icon: CircleDollarSign,
       },
       {
         title: 'Cross-linking',

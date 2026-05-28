@@ -332,6 +332,13 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
   const [blogOgType, setBlogOgType] = useState('article')
   const [blogTwitterCard, setBlogTwitterCard] = useState<'summary' | 'summary_large_image'>('summary_large_image')
   const [blogRobotsMeta, setBlogRobotsMeta] = useState('')
+  /**
+   * Explicit "Allow search engines to index this post" toggle. Mirrors the
+   * consumer-site `blogQualityGate` (`post.index !== false`). Defaults to true
+   * so existing drafts stay indexable; flip to false for thin or evergreen-
+   * legal drafts (we sync `seo.robots` to "noindex, nofollow" in the payload).
+   */
+  const [blogAllowIndexing, setBlogAllowIndexing] = useState(true)
   const [featuredImageUrl, setFeaturedImageUrl] = useState('')
   const [featuredImageAlt, setFeaturedImageAlt] = useState('')
   const [featuredUploading, setFeaturedUploading] = useState(false)
@@ -563,6 +570,19 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             : 'summary_large_image',
         )
         setBlogRobotsMeta(ext?.robots?.trim() ?? '')
+        // Hydrate index toggle from top-level `index`, fall back to `seo.index`,
+        // then to parsing `seo.robots` (legacy posts only had the robots string).
+        const indexFromTop = post.index
+        const indexFromSeo = ext?.index
+        const robotsLower = (ext?.robots ?? '').toLowerCase()
+        const inferredFromRobots = !robotsLower.includes('noindex')
+        setBlogAllowIndexing(
+          typeof indexFromTop === 'boolean'
+            ? indexFromTop
+            : typeof indexFromSeo === 'boolean'
+              ? indexFromSeo
+              : inferredFromRobots,
+        )
         setFeaturedImageUrl(post.featuredImage ?? '')
         setFeaturedImageAlt(post.featuredImageAlt?.trim() ?? '')
         setCategoryId(
@@ -1567,6 +1587,23 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
           ? new Date(scheduledLocal).toISOString()
           : undefined
 
+      // Reconcile the explicit `index` toggle with the freeform `robots`
+      // field. The toggle is the source of truth; we synthesize a `robots`
+      // string when the editor left it blank so legacy consumers without
+      // explicit-index awareness still respect the editor's intent.
+      const robotsTrimmed = blogRobotsMeta.trim()
+      const robotsLower = robotsTrimmed.toLowerCase()
+      const robotsResolved = blogAllowIndexing
+        ? // When indexable, only emit robots if editor explicitly wrote something
+          // that isn't a `noindex` (we never want to send "index, noindex" garbage).
+          robotsTrimmed && !robotsLower.includes('noindex')
+          ? robotsTrimmed
+          : undefined
+        : // When de-indexing, force noindex,nofollow if the editor didn't already write it.
+          robotsTrimmed && robotsLower.includes('noindex')
+          ? robotsTrimmed
+          : 'noindex, nofollow'
+
       const payload = {
         title: title.trim(),
         slug: slug.trim() || slugify(title),
@@ -1577,6 +1614,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
         status: effectiveStatus,
         isFeatured,
         allowComments,
+        index: blogAllowIndexing,
         relatedProductIds,
         relatedServiceIds,
         featuredImage: trimmedUrl || undefined,
@@ -1602,7 +1640,8 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
           ...(blogOgTitle.trim() ? { ogTitle: blogOgTitle.trim() } : {}),
           ...(blogOgType.trim() ? { ogType: blogOgType.trim() } : {}),
           ...(blogTwitterCard ? { twitterCard: blogTwitterCard } : {}),
-          ...(blogRobotsMeta.trim() ? { robots: blogRobotsMeta.trim() } : {}),
+          ...(robotsResolved ? { robots: robotsResolved } : {}),
+          index: blogAllowIndexing,
         },
         faqItems: faqItemsResolved,
         leadMagnet: {
@@ -2016,14 +2055,50 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-700">Robots meta hint</label>
+                  <label className="mb-1 block text-xs font-medium text-slate-700">Allow search engines to index</label>
+                  <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                    <label className="inline-flex cursor-pointer items-center gap-2">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                        checked={blogAllowIndexing}
+                        onChange={(e) => {
+                          const next = e.target.checked
+                          setBlogAllowIndexing(next)
+                          // Keep the freeform robots field in step with the toggle so
+                          // editors see consistent UI. Editors can still override later.
+                          if (next) {
+                            if (blogRobotsMeta.toLowerCase().includes('noindex')) {
+                              setBlogRobotsMeta('')
+                            }
+                          } else {
+                            setBlogRobotsMeta('noindex, nofollow')
+                          }
+                        }}
+                      />
+                      <span className="text-sm font-medium text-slate-800">
+                        {blogAllowIndexing ? 'Indexable (included in /sitemaps/blog.xml)' : 'Hidden from search engines'}
+                      </span>
+                    </label>
+                  </div>
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Maps to the consumer-site <code className="font-mono">blogQualityGate</code>:
+                    when off, the post is excluded from the blog sitemap even if published.
+                  </p>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-700">Robots meta override (optional)</label>
                   <input
                     className="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     value={blogRobotsMeta}
                     onChange={(e) => setBlogRobotsMeta(e.target.value)}
                     placeholder="index, follow"
                   />
-                  <p className="mt-1 text-[11px] text-slate-500">Use noindex for thin drafts; keep published articles indexable unless legal/comms requires otherwise.</p>
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Advanced: write a custom directive (e.g. <code className="font-mono">noindex, follow</code> or{' '}
+                    <code className="font-mono">max-snippet:-1, max-image-preview:large</code>). Leave empty to let the
+                    toggle above drive the meta tag.
+                  </p>
                 </div>
               </div>
             </div>

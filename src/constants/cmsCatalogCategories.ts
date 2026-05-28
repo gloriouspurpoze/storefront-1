@@ -1,4 +1,4 @@
-/**
+  /**
  * CMS catalog keys (Rate Card, Category Marketing, Cross-Linking) use the same slug as **root service categories**
  * from Categories. Pull options via `useCmsCatalogCategories()` — do not hardcode verticals here.
  *
