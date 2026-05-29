@@ -8,8 +8,17 @@ export interface MobileServiceCardPreviewProps {
   name?: string
   description?: string
   price?: number | string
-  rating?: number
+  /** MRP / list price — shown struck through when greater than `price`. */
+  originalPrice?: number | string | null
+  discountPercentage?: number | null
+  /**
+   * Real average rating from the service. Pass `undefined` (or `0`) to hide
+   * the rating chip — never fabricate a value here so admins see the same
+   * empty state the customer would.
+   */
+  rating?: number | null
   popular?: boolean
+  emergency?: boolean
   priceType?: 'fixed' | 'hourly' | 'starting'
   className?: string
   /** Show phone frame chrome */
@@ -28,16 +37,36 @@ export const MobileServiceCardPreview: React.FC<MobileServiceCardPreviewProps> =
   name = 'Service name',
   description,
   price,
-  rating = 4.8,
+  originalPrice,
+  discountPercentage,
+  rating,
   popular = false,
+  emergency = false,
   priceType,
   className,
   framed = true,
 }) => {
-  const displayRating = (rating || 0).toFixed(1)
+  const ratingNum = typeof rating === 'number' && rating > 0 ? rating : null
+  const displayRating = ratingNum != null ? ratingNum.toFixed(1) : null
   const tagline =
     description?.trim() ||
     'Short description appears here on the customer app card.'
+
+  const offerNum =
+    typeof price === 'number' ? price : parseFloat(String(price ?? ''))
+  const mrpNum =
+    originalPrice != null && originalPrice !== ''
+      ? typeof originalPrice === 'number'
+        ? originalPrice
+        : parseFloat(String(originalPrice))
+      : NaN
+  const showMrp = Number.isFinite(mrpNum) && mrpNum > 0 && mrpNum > offerNum
+  const pct =
+    discountPercentage != null && discountPercentage > 0
+      ? Math.round(discountPercentage)
+      : showMrp
+        ? Math.round(((mrpNum - offerNum) / mrpNum) * 100)
+        : 0
 
   const card = (
     <div
@@ -64,6 +93,20 @@ export const MobileServiceCardPreview: React.FC<MobileServiceCardPreviewProps> =
           className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#00142F]/15 via-transparent to-[#00142F]/5"
           aria-hidden
         />
+        {pct > 0 ? (
+          <span className="absolute left-2 top-2 rounded-full bg-[#FE9D16] px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+            {pct}% OFF
+          </span>
+        ) : null}
+        {emergency ? (
+          <span
+            className={`absolute left-2 rounded-full bg-amber-400 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-950 shadow-sm ${
+              pct > 0 ? 'top-8' : 'top-2'
+            }`}
+          >
+            Insta Help
+          </span>
+        ) : null}
         <button
           type="button"
           className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full border border-[#00142F]/10 bg-white shadow-sm"
@@ -84,21 +127,35 @@ export const MobileServiceCardPreview: React.FC<MobileServiceCardPreviewProps> =
           ) : (
             <span />
           )}
-          <span className="inline-flex items-center gap-0.5 rounded bg-[#F4F6F9] px-2 py-0.5 text-[10px] font-semibold text-[#00142F]">
-            <Star className="h-3 w-3 fill-[#FE9D16] text-[#FE9D16]" aria-hidden />
-            {displayRating}
-          </span>
+          {displayRating ? (
+            <span className="inline-flex items-center gap-0.5 rounded bg-[#F4F6F9] px-2 py-0.5 text-[10px] font-semibold text-[#00142F]">
+              <Star className="h-3 w-3 fill-[#FE9D16] text-[#FE9D16]" aria-hidden />
+              {displayRating}
+            </span>
+          ) : (
+            <span className="text-[10px] text-[#8B95A5]">No ratings yet</span>
+          )}
         </div>
 
         <p className="line-clamp-2 text-sm font-bold leading-tight text-[#00142F]">{name}</p>
         <p className="line-clamp-1 text-[11px] text-[#4B5563]">{tagline}</p>
 
         <div className="flex items-center justify-between gap-2 pt-0.5">
-          <div className="flex items-baseline gap-1">
-            <span className="text-base font-bold text-[#00142F]">{formatPrice(price)}</span>
-            {priceType === 'starting' && (
-              <span className="text-[10px] text-[#8B95A5]">from</span>
-            )}
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <div className="flex flex-wrap items-baseline gap-1.5">
+              {priceType === 'starting' && (
+                <span className="text-[10px] text-[#8B95A5]">from</span>
+              )}
+              <span className="text-base font-bold text-[#00142F]">{formatPrice(price)}</span>
+              {showMrp ? (
+                <span className="text-xs text-[#8B95A5] line-through">{formatPrice(mrpNum)}</span>
+              ) : null}
+            </div>
+            {showMrp && pct > 0 ? (
+              <span className="text-[10px] font-medium text-emerald-700">
+                You save {formatPrice(Math.round(mrpNum - offerNum))}
+              </span>
+            ) : null}
           </div>
           <span className="inline-flex items-center gap-1 rounded-full bg-[#00142F] px-3 py-1.5 text-xs font-medium text-white">
             <ShoppingCart className="h-3.5 w-3.5" aria-hidden />

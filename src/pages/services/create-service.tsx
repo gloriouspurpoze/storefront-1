@@ -26,6 +26,11 @@ import {
   MessageSquare,
   Layers,
   Puzzle,
+  Package,
+  GripVertical,
+  MessageCircle,
+  Sparkles,
+  Pencil,
 } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from '../../components/ui/button'
@@ -45,6 +50,13 @@ import {
 } from '../../components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs'
 import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog'
+import {
   Accordion,
   AccordionContent,
   AccordionItem,
@@ -56,9 +68,20 @@ import {
   TooltipTrigger,
 } from '../../components/ui/tooltip'
 import { appToast } from '../../lib/appToast'
+import { cn } from '../../lib/utils'
 import { normalizeRefToMongoIdString } from '../../lib/mongoObjectId'
-import { platformServicesService } from '../../services/api/platformServices.service'
-import { ReviewsService, type BookingReview } from '../../services/api/reviews.service'
+import {
+  platformServicesService,
+  type ProductRelationType,
+  type ServiceProductLinkInput,
+} from '../../services/api/platformServices.service'
+import {
+  ReviewsService,
+  type BookingReview,
+  type ReviewStats,
+  type AdminCreateReviewPayload,
+  type AdminUpdateReviewPayload,
+} from '../../services/api/reviews.service'
 import { CategoriesService } from '../../services/api/categories.service'
 import { SubcategoriesService } from '../../services/api/subcategories.service'
 import { ProvidersService } from '../../services/api/providers.service'
@@ -88,6 +111,113 @@ const TIME_SLOTS = [
   { value: 'evening', label: 'Evening (3:00 PM - 6:00 PM)' },
   { value: 'night', label: 'Night (6:00 PM - 9:00 PM)' },
 ]
+
+type ServiceProductLink = {
+  product_id: string
+  relation_type: ProductRelationType
+  display_order: number
+}
+
+const PRODUCT_RELATION_TYPES: Array<{
+  value: ProductRelationType
+  label: string
+  hint: string
+}> = [
+  {
+    value: 'recommended',
+    label: 'Recommended',
+    hint: 'Suggested upsell — customer can skip',
+  },
+  {
+    value: 'required',
+    label: 'Required',
+    hint: 'Must be included to complete the booking',
+  },
+  {
+    value: 'optional',
+    label: 'Optional',
+    hint: 'Available but not highlighted',
+  },
+  {
+    value: 'alternative',
+    label: 'Alternative',
+    hint: 'Substitute option when multiple parts apply',
+  },
+]
+
+function reindexProductLinks(links: ServiceProductLink[]): ServiceProductLink[] {
+  return links
+    .slice()
+    .sort((a, b) => a.display_order - b.display_order)
+    .map((link, index) => ({ ...link, display_order: index }))
+}
+
+function productLinksFromApi(service: unknown): ServiceProductLink[] {
+  const s = service as Record<string, unknown>
+  const related = s?.relatedProducts
+  if (Array.isArray(related) && related.length) {
+    return reindexProductLinks(
+      related
+        .map((rp: any, i: number) => ({
+          product_id: String(rp?.product_id ?? rp?.productId ?? rp?.product?.id ?? ''),
+          relation_type: (rp?.relation_type ?? 'recommended') as ProductRelationType,
+          display_order: Number(rp?.display_order ?? i),
+        }))
+        .filter((l) => l.product_id),
+    )
+  }
+  const flat = s?.selected_products
+  if (Array.isArray(flat) && flat.length) {
+    if (typeof flat[0] === 'object' && flat[0] != null && 'product_id' in (flat[0] as object)) {
+      return reindexProductLinks(
+        (flat as ServiceProductLinkInput[]).map((item, i) => ({
+          product_id: String(item.product_id),
+          relation_type: (item.relation_type ?? 'recommended') as ProductRelationType,
+          display_order: Number(item.display_order ?? i),
+        })),
+      )
+    }
+    return reindexProductLinks(
+      (flat as string[]).map((id, i) => ({
+        product_id: String(id),
+        relation_type: 'recommended' as const,
+        display_order: i,
+      })),
+    )
+  }
+  return []
+}
+
+function serializeProductLinksForApi(links: ServiceProductLink[]): ServiceProductLinkInput[] {
+  return reindexProductLinks(links).map(({ product_id, relation_type, display_order }) => ({
+    product_id,
+    relation_type,
+    display_order,
+  }))
+}
+
+function deriveReviewCustomerName(review: BookingReview): string {
+  if (review.customerName?.trim()) return review.customerName.trim()
+  const cust = review.customerId
+  if (cust && typeof cust === 'object') {
+    const first = (cust as { firstName?: string }).firstName ?? ''
+    const last = (cust as { lastName?: string }).lastName ?? ''
+    const joined = `${first} ${last}`.trim()
+    if (joined) return joined
+  }
+  return 'Customer'
+}
+
+function formatRelativeDate(iso: string): string {
+  if (!iso) return ''
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
+}
 
 function getCategoryId(c: any): string {
   return String(c?.id ?? c?._id ?? '').toLowerCase()
@@ -202,7 +332,7 @@ export function CreateService() {
     category: '',
     subcategory: '',
     provider_id: '',
-    selected_products: [] as string[],
+    selected_products: [] as ServiceProductLink[],
     service_type: 'fixed' as 'fixed' | 'hourly' | 'consultation',
     duration: '60 mins',
     images: [] as ImageFile[],
@@ -210,6 +340,7 @@ export function CreateService() {
     is_active: true,
   // Pricing (pre-filled)
     base_price: '299',
+    original_price: '',
     hourly_rate: '199',
     consultation_fee: '99',
     min_hours: '1',
@@ -226,11 +357,7 @@ export function CreateService() {
   // Features & Requirements
     features: [] as string[],
     requirements: [] as string[],
-    // Product Options — industry defaults (edit as needed)
-    product_options: [
-      { name: 'Standard Service', price: '0', brand: '', warranty: '30 days', description: 'Basic repair or installation as per booking.' },
-      { name: 'Premium / Extended Warranty', price: '99', brand: '', warranty: '90 days', description: 'Extended warranty on workmanship and parts.' },
-    ] as any[],
+    product_options: [] as any[],
     service_addons: [] as Array<{ name: string; price: string; description: string }>,
     // Service Areas — real-world defaults
     service_areas: [
@@ -295,8 +422,33 @@ export function CreateService() {
     description: ''
   })
   const [newAddon, setNewAddon] = useState({ name: '', price: '', description: '' })
+  const [productToLink, setProductToLink] = useState('')
   const [serviceReviews, setServiceReviews] = useState<BookingReview[]>([])
   const [loadingReviews, setLoadingReviews] = useState(false)
+  const [reviewStats, setReviewStats] = useState<ReviewStats>({
+    averageRating: 0,
+    totalReviews: 0,
+    ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+  })
+  const [reviewSavingId, setReviewSavingId] = useState<string | null>(null)
+  const [reviewDeletingId, setReviewDeletingId] = useState<string | null>(null)
+  const blankAdminReview = useMemo(
+    () => ({
+      rating: 5,
+      customerName: '',
+      customerLocation: '',
+      customerAvatar: '',
+      variantName: '',
+      comment: '',
+      isVerified: true,
+      isFeatured: false,
+    }),
+    [],
+  )
+  const [reviewForm, setReviewForm] = useState(blankAdminReview)
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
+  const [editingReview, setEditingReview] = useState<BookingReview | null>(null)
+  const [editReviewForm, setEditReviewForm] = useState(blankAdminReview)
   const [newServiceArea, setNewServiceArea] = useState({
     name: '',
     multiplier: 1.0,
@@ -461,6 +613,74 @@ export function CreateService() {
         i === index ? { ...a, [field]: value } : a,
       ),
     }))
+  }
+
+  const sortedProductLinks = useMemo(
+    () => reindexProductLinks(formData.selected_products),
+    [formData.selected_products],
+  )
+
+  const linkedProductIdSet = useMemo(
+    () => new Set(sortedProductLinks.map((l) => l.product_id)),
+    [sortedProductLinks],
+  )
+
+  const availableCatalogProducts = useMemo(
+    () => products.filter((p) => p?.id && !linkedProductIdSet.has(String(p.id))),
+    [products, linkedProductIdSet],
+  )
+
+  const addLinkedProduct = () => {
+    const productId = productToLink.trim()
+    if (!productId) return
+    setFormData((prev) => {
+      if (prev.selected_products.some((l) => l.product_id === productId)) return prev
+      return {
+        ...prev,
+        selected_products: [
+          ...prev.selected_products,
+          {
+            product_id: productId,
+            relation_type: 'recommended',
+            display_order: prev.selected_products.length,
+          },
+        ],
+      }
+    })
+    setProductToLink('')
+  }
+
+  const removeLinkedProduct = (productId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      selected_products: reindexProductLinks(
+        prev.selected_products.filter((l) => l.product_id !== productId),
+      ),
+    }))
+  }
+
+  const updateLinkedProductRelation = (productId: string, relation_type: ProductRelationType) => {
+    setFormData((prev) => ({
+      ...prev,
+      selected_products: prev.selected_products.map((l) =>
+        l.product_id === productId ? { ...l, relation_type } : l,
+      ),
+    }))
+  }
+
+  const moveLinkedProduct = (productId: string, direction: 'up' | 'down') => {
+    setFormData((prev) => {
+      const sorted = reindexProductLinks(prev.selected_products)
+      const index = sorted.findIndex((l) => l.product_id === productId)
+      if (index < 0) return prev
+      const target = direction === 'up' ? index - 1 : index + 1
+      if (target < 0 || target >= sorted.length) return prev
+      const next = [...sorted]
+      const tmp = next[index]
+      next[index] = next[target]
+      next[target] = tmp
+      return { ...prev, selected_products: reindexProductLinks(next) }
+    })
   }
 
   const addServiceArea = () => {
@@ -716,10 +936,19 @@ export function CreateService() {
         category: formData.category?.trim() || undefined,
         subcategory: formData.subcategory?.trim() || undefined,
         provider_id: formData.provider_id?.trim() || undefined,
-        selected_products: formData.selected_products?.length ? formData.selected_products : undefined,
+        // Junction links with relation_type + display_order (idempotent on edit).
+        selected_products: isEditMode
+          ? serializeProductLinksForApi(formData.selected_products)
+          : formData.selected_products.length
+            ? serializeProductLinksForApi(formData.selected_products)
+            : undefined,
         service_type: formData.service_type as 'fixed' | 'hourly' | 'consultation',
         duration: formData.duration?.trim() || undefined,
         base_price: formData.base_price ? parseFloat(String(formData.base_price)) : undefined,
+        original_price:
+          formData.original_price !== '' && formData.original_price != null
+            ? parseFloat(String(formData.original_price))
+            : (isEditMode ? null : undefined),
         hourly_rate: formData.hourly_rate ? parseFloat(String(formData.hourly_rate)) : undefined,
         consultation_fee: formData.consultation_fee ? parseFloat(String(formData.consultation_fee)) : undefined,
         min_hours: formData.min_hours ? parseInt(String(formData.min_hours), 10) : undefined,
@@ -739,8 +968,12 @@ export function CreateService() {
         same_day_booking: formData.same_day_booking,
         emergency_service: formData.emergency_service,
         emergency_charge: formData.emergency_charge ? parseFloat(String(formData.emergency_charge)) : undefined,
-        product_options: formData.product_options?.length ? formData.product_options : undefined,
-        service_addons: formData.service_addons?.length ? formData.service_addons : undefined,
+        product_options: isEditMode
+          ? (Array.isArray(formData.product_options) ? formData.product_options : [])
+          : (formData.product_options?.length ? formData.product_options : undefined),
+        service_addons: isEditMode
+          ? (Array.isArray(formData.service_addons) ? formData.service_addons : [])
+          : (formData.service_addons?.length ? formData.service_addons : undefined),
         service_areas: formData.service_areas?.length ? formData.service_areas : undefined,
         icon: formData.icon?.trim() || undefined,
         image: primaryImage?.url || undefined,
@@ -852,7 +1085,7 @@ export function CreateService() {
           category: String(categoryId || ''),
           subcategory: String(subcategoryId || ''),
           provider_id: '', // Not available in API response
-          selected_products: [], // Not available in API response
+          selected_products: productLinksFromApi(service),
           service_type: service.service_type || 'fixed',
           duration: service.duration || '',
           images: finalImages,
@@ -861,6 +1094,10 @@ export function CreateService() {
           
           // Pricing
           base_price: service.base_price?.toString() || '',
+          original_price:
+            service.original_price != null && service.original_price !== 0
+              ? service.original_price.toString()
+              : '',
           hourly_rate: service.hourly_rate?.toString() || '',
           consultation_fee: service.consultation_fee?.toString() || '',
           min_hours: service.min_hours?.toString() || '',
@@ -936,22 +1173,69 @@ export function CreateService() {
     loadService()
   }, [id])
 
+  const reloadReviews = async (
+    options: { silent?: boolean } = {},
+  ): Promise<void> => {
+    if (!id || !isEditMode) {
+      setServiceReviews([])
+      return
+    }
+    if (!options.silent) setLoadingReviews(true)
+    try {
+      const data = await ReviewsService.getAdminServiceReviews(id, { limit: 100 })
+      setServiceReviews(data.reviews ?? [])
+      setReviewStats(
+        data.stats ?? {
+          averageRating: 0,
+          totalReviews: 0,
+          ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+        },
+      )
+    } catch {
+      setServiceReviews([])
+      setReviewStats({
+        averageRating: 0,
+        totalReviews: 0,
+        ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+      })
+    } finally {
+      if (!options.silent) setLoadingReviews(false)
+    }
+  }
+
   useEffect(() => {
     if (!id || !isEditMode) {
       setServiceReviews([])
+      setReviewStats({
+        averageRating: 0,
+        totalReviews: 0,
+        ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+      })
       return
     }
     let cancelled = false
     const loadReviews = async () => {
       try {
         setLoadingReviews(true)
-        const data = await ReviewsService.getBookingReviews({
-          platformServiceId: id,
-          limit: 50,
-        })
-        if (!cancelled) setServiceReviews(data.reviews ?? [])
+        const data = await ReviewsService.getAdminServiceReviews(id, { limit: 100 })
+        if (cancelled) return
+        setServiceReviews(data.reviews ?? [])
+        setReviewStats(
+          data.stats ?? {
+            averageRating: 0,
+            totalReviews: 0,
+            ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+          },
+        )
       } catch {
-        if (!cancelled) setServiceReviews([])
+        if (!cancelled) {
+          setServiceReviews([])
+          setReviewStats({
+            averageRating: 0,
+            totalReviews: 0,
+            ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+          })
+        }
       } finally {
         if (!cancelled) setLoadingReviews(false)
       }
@@ -961,6 +1245,149 @@ export function CreateService() {
       cancelled = true
     }
   }, [id, isEditMode])
+
+  const handleCreateAdminReview = async () => {
+    if (!id) return
+    const customerName = reviewForm.customerName.trim()
+    if (!customerName) {
+      appToast('Customer name is required', 'error')
+      return
+    }
+    const rating = Number(reviewForm.rating)
+    if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+      appToast('Rating must be between 1 and 5', 'error')
+      return
+    }
+    try {
+      setReviewSubmitting(true)
+      const payload: AdminCreateReviewPayload = {
+        platformServiceId: id,
+        rating,
+        customerName,
+        comment: reviewForm.comment.trim() || undefined,
+        customerLocation: reviewForm.customerLocation.trim() || undefined,
+        customerAvatar: reviewForm.customerAvatar.trim() || undefined,
+        variantName: reviewForm.variantName.trim() || undefined,
+        isVerified: reviewForm.isVerified,
+        isFeatured: reviewForm.isFeatured,
+      }
+      await ReviewsService.adminCreateReview(payload)
+      appToast('Review added', 'success')
+      setReviewForm(blankAdminReview)
+      await reloadReviews({ silent: true })
+    } catch (err: any) {
+      appToast(
+        err?.response?.data?.error ??
+          err?.response?.data?.message ??
+          err?.message ??
+          'Failed to create review',
+        'error',
+      )
+    } finally {
+      setReviewSubmitting(false)
+    }
+  }
+
+  const openEditReview = (review: BookingReview) => {
+    setEditingReview(review)
+    setEditReviewForm({
+      rating: review.rating,
+      customerName: review.customerName ?? deriveReviewCustomerName(review),
+      customerLocation: review.customerLocation ?? '',
+      customerAvatar: review.customerAvatar ?? '',
+      variantName: review.variantName ?? '',
+      comment: review.comment ?? '',
+      isVerified: review.isVerified ?? true,
+      isFeatured: review.isFeatured ?? false,
+    })
+  }
+
+  const handleSaveEditReview = async () => {
+    if (!editingReview) return
+    const rating = Number(editReviewForm.rating)
+    if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+      appToast('Rating must be between 1 and 5', 'error')
+      return
+    }
+    try {
+      setReviewSavingId(editingReview._id)
+      const payload: AdminUpdateReviewPayload = {
+        rating,
+        comment: editReviewForm.comment.trim(),
+        variantName: editReviewForm.variantName.trim() || undefined,
+        isVerified: editReviewForm.isVerified,
+        isFeatured: editReviewForm.isFeatured,
+      }
+      // Only update display fields when this is admin-curated (organic reviews
+      // keep their populated user identity).
+      if (editingReview.isAdminCurated) {
+        payload.customerName = editReviewForm.customerName.trim()
+        payload.customerLocation = editReviewForm.customerLocation.trim() || ''
+        payload.customerAvatar = editReviewForm.customerAvatar.trim() || ''
+      }
+      await ReviewsService.adminUpdateReview(editingReview._id, payload)
+      appToast('Review updated', 'success')
+      setEditingReview(null)
+      await reloadReviews({ silent: true })
+    } catch (err: any) {
+      appToast(
+        err?.response?.data?.error ??
+          err?.response?.data?.message ??
+          err?.message ??
+          'Failed to update review',
+        'error',
+      )
+    } finally {
+      setReviewSavingId(null)
+    }
+  }
+
+  const handleToggleReviewFlag = async (
+    review: BookingReview,
+    field: 'isVerified' | 'isFeatured',
+    next: boolean,
+  ) => {
+    try {
+      setReviewSavingId(review._id)
+      await ReviewsService.adminUpdateReview(review._id, { [field]: next })
+      await reloadReviews({ silent: true })
+    } catch (err: any) {
+      appToast(
+        err?.response?.data?.error ??
+          err?.response?.data?.message ??
+          err?.message ??
+          'Failed to update review',
+        'error',
+      )
+    } finally {
+      setReviewSavingId(null)
+    }
+  }
+
+  const handleDeleteReview = async (review: BookingReview) => {
+    if (typeof window !== 'undefined') {
+      const ok = window.confirm(
+        `Delete this review${review.customerName ? ` from ${review.customerName}` : ''}? This cannot be undone.`,
+      )
+      if (!ok) return
+    }
+    try {
+      setReviewDeletingId(review._id)
+      await ReviewsService.adminDeleteReview(review._id)
+      appToast('Review deleted', 'success')
+      await reloadReviews({ silent: true })
+    } catch (err: any) {
+      appToast(
+        err?.response?.data?.error ??
+          err?.response?.data?.message ??
+          err?.message ??
+          'Failed to delete review',
+        'error',
+      )
+    } finally {
+      setReviewDeletingId(null)
+    }
+  }
 
   categoriesRef.current = categories
   subcategoriesRef.current = subcategories
@@ -1544,7 +1971,9 @@ export function CreateService() {
                       name={formData.name.trim() || 'Service name'}
                       description={formData.short_description?.trim()}
                       price={previewCardPrice}
+                      originalPrice={formData.original_price}
                       popular={formData.is_popular}
+                      emergency={formData.emergency_service}
                     />
                   </div>
                 </div>
@@ -1675,25 +2104,81 @@ export function CreateService() {
               <h2 className="mb-6 text-lg font-semibold">Pricing Configuration</h2>
 
               <div className="flex flex-col gap-6">
-                {formData.service_type === 'fixed' && (
-                  <div className="space-y-2">
-                    <Label htmlFor="base-price">Base Price (₹) *</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                        ₹
-                      </span>
-                      <Input
-                        id="base-price"
-                        type="number"
-                        value={formData.base_price}
-                        onChange={(e) => handleInputChange('base_price', e.target.value)}
-                        placeholder="299"
-                        disabled={previewMode}
-                        className="w-full pl-8"
-                      />
+                {formData.service_type === 'fixed' && (() => {
+                  const basePriceNum = parseFloat(String(formData.base_price ?? '')) || 0
+                  const mrpNum = parseFloat(String(formData.original_price ?? '')) || 0
+                  const hasMrp = mrpNum > 0
+                  const mrpBelowBase = hasMrp && mrpNum < basePriceNum
+                  const savings = hasMrp && !mrpBelowBase ? Math.round(mrpNum - basePriceNum) : 0
+                  const pct =
+                    hasMrp && !mrpBelowBase && mrpNum > 0
+                      ? Math.round((savings / mrpNum) * 100)
+                      : 0
+                  return (
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="base-price">Offer Price (₹) *</Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                            ₹
+                          </span>
+                          <Input
+                            id="base-price"
+                            type="number"
+                            value={formData.base_price}
+                            onChange={(e) => handleInputChange('base_price', e.target.value)}
+                            placeholder="299"
+                            disabled={previewMode}
+                            className="w-full pl-8"
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          What the customer actually pays. Shown big &amp; bold on the booking card.
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="mrp">
+                          Original Price / MRP (₹){' '}
+                          <span className="text-xs font-normal text-muted-foreground">— optional</span>
+                        </Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                            ₹
+                          </span>
+                          <Input
+                            id="mrp"
+                            type="number"
+                            value={formData.original_price}
+                            onChange={(e) => handleInputChange('original_price', e.target.value)}
+                            placeholder="e.g. 499"
+                            disabled={previewMode}
+                            className={cn(
+                              'w-full pl-8',
+                              mrpBelowBase &&
+                                'border-destructive focus-visible:ring-destructive',
+                            )}
+                          />
+                        </div>
+                        {mrpBelowBase ? (
+                          <p className="text-xs font-medium text-destructive">
+                            MRP must be greater than or equal to the offer price.
+                          </p>
+                        ) : pct > 0 ? (
+                          <p className="text-xs font-medium text-success-700">
+                            Customers see <span className="font-bold">{pct}% OFF</span> · they
+                            save <span className="font-bold">₹{savings.toLocaleString()}</span>.
+                          </p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">
+                            Set a higher list price to show a strike-through discount badge.
+                            Industry data: anchored pricing lifts add-to-cart by 15–25%.
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )
+                })()}
 
                 {formData.service_type === 'hourly' && (
                   <div className="flex flex-col gap-4 md:flex-row">
@@ -2137,8 +2622,203 @@ export function CreateService() {
                 </div>
               </div>
 
-              <div className="mt-8 space-y-3">
-                <p className="text-sm font-semibold">Associated Products (Optional)</p>
+              <div className="mt-10 border-t pt-8">
+                <h2 className="mb-2 flex items-center gap-2 text-lg font-semibold">
+                  <Package className="h-5 w-5" />
+                  Associated catalog products
+                </h2>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  Link parts or materials customers can buy with this service. Set how each
+                  product appears at checkout and drag order with the arrows (top = shown first).
+                </p>
+
+                <Card className="mb-6 border-2 border-dashed p-4">
+                  <p className="mb-3 text-sm font-semibold">Add product from catalog</p>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <Label>Product</Label>
+                      {loadingProducts ? (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Loading products...
+                        </div>
+                      ) : (
+                        <Select
+                          value={productToLink || undefined}
+                          onValueChange={setProductToLink}
+                          disabled={previewMode || availableCatalogProducts.length === 0}
+                        >
+                          <SelectTrigger>
+                            <SelectValue
+                              placeholder={
+                                products.length === 0
+                                  ? 'No products in catalog'
+                                  : availableCatalogProducts.length === 0
+                                    ? 'All products already linked'
+                                    : 'Choose a product…'
+                              }
+                            />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableCatalogProducts.map((product) => (
+                              <SelectItem key={product.id} value={String(product.id)}>
+                                {product.name}
+                                {product.price != null ? ` — ₹${product.price}` : ''}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={addLinkedProduct}
+                      disabled={previewMode || !productToLink}
+                      leftIcon={<Plus className="h-4 w-4" />}
+                    >
+                      Link product
+                    </Button>
+                  </div>
+                </Card>
+
+                {sortedProductLinks.length > 0 ? (
+                  <div className="flex flex-col gap-3">
+                    {sortedProductLinks.map((link, index) => {
+                      const catalogProduct = products.find((p) => String(p.id) === link.product_id)
+                      const relationMeta = PRODUCT_RELATION_TYPES.find(
+                        (t) => t.value === link.relation_type,
+                      )
+                      return (
+                        <Card key={link.product_id} className="border p-4">
+                          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                            <div className="flex min-w-0 flex-1 items-start gap-3">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                                <GripVertical className="h-4 w-4" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="mb-1 flex flex-wrap items-center gap-2">
+                                  <span className="text-xs font-medium text-muted-foreground">
+                                    #{index + 1}
+                                  </span>
+                                  <p className="truncate font-semibold">
+                                    {catalogProduct?.name ?? link.product_id}
+                                  </p>
+                                  {catalogProduct?.price != null && (
+                                    <Badge variant="outline">₹{catalogProduct.price}</Badge>
+                                  )}
+                                </div>
+                                {relationMeta && (
+                                  <p className="text-xs text-muted-foreground">{relationMeta.hint}</p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-end gap-3">
+                              <div className="w-full min-w-[10rem] space-y-2 sm:w-44">
+                                <Label>Relation at checkout</Label>
+                                <Select
+                                  value={link.relation_type}
+                                  onValueChange={(v) =>
+                                    updateLinkedProductRelation(
+                                      link.product_id,
+                                      v as ProductRelationType,
+                                    )
+                                  }
+                                  disabled={previewMode}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {PRODUCT_RELATION_TYPES.map((opt) => (
+                                      <SelectItem key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div className="flex gap-1">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-9 w-9"
+                                      onClick={() => moveLinkedProduct(link.product_id, 'up')}
+                                      disabled={previewMode || index === 0}
+                                    >
+                                      <ArrowUp className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Move up (shown earlier)</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-9 w-9"
+                                      onClick={() => moveLinkedProduct(link.product_id, 'down')}
+                                      disabled={
+                                        previewMode || index === sortedProductLinks.length - 1
+                                      }
+                                    >
+                                      <ArrowDown className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Move down (shown later)</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-9 w-9 text-destructive hover:text-destructive"
+                                      onClick={() => removeLinkedProduct(link.product_id)}
+                                      disabled={previewMode}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Remove link</TooltipContent>
+                                </Tooltip>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border-2 border-dashed border-muted-foreground/30 bg-muted/30 p-8 text-center">
+                    <Package className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+                    <p className="text-sm font-medium text-muted-foreground">
+                      No catalog products linked yet
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Add products customers can purchase alongside this service
+                    </p>
+                  </div>
+                )}
+
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  {PRODUCT_RELATION_TYPES.map((opt) => (
+                    <div
+                      key={opt.value}
+                      className="rounded-md border bg-muted/30 px-3 py-2 text-xs"
+                    >
+                      <span className="font-semibold">{opt.label}</span>
+                      <span className="text-muted-foreground"> — {opt.hint}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="mt-10 border-t pt-8">
                 <h2 className="mb-2 flex items-center gap-2 text-lg font-semibold">
                   <Puzzle className="h-5 w-5" />
@@ -2191,53 +2871,6 @@ export function CreateService() {
                     </div>
                   </Card>
                 </div>
-              </div>
-
-
-                <div className="max-h-48 space-y-2 overflow-y-auto rounded-md border border-input p-3">
-                  {loadingProducts ? (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Loading products...
-                    </div>
-                  ) : products.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No products available</p>
-                  ) : (
-                    products.map((product) => (
-                      <div key={product.id} className="flex items-center gap-2">
-                        <Checkbox
-                          id={`assoc-${product.id}`}
-                          checked={formData.selected_products.includes(product.id)}
-                          onCheckedChange={(c) => {
-                            const set = new Set(formData.selected_products)
-                            if (c) set.add(product.id)
-                            else set.delete(product.id)
-                            handleInputChange('selected_products', Array.from(set))
-                          }}
-                          disabled={previewMode}
-                        />
-                        <Label htmlFor={`assoc-${product.id}`} className="font-normal">
-                          {product.name} - ₹{product.price}
-                        </Label>
-                      </div>
-                    ))
-                  )}
-                </div>
-                {formData.selected_products.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {formData.selected_products.map((id) => {
-                      const p = products.find((x) => x.id === id)
-                      return (
-                        <Badge key={id} variant="secondary">
-                          {p?.name || id}
-                        </Badge>
-                      )
-                    })}
-                  </div>
-                )}
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Link products that can be used or sold with this service
-                </p>
               </div>
             </>
           )}
@@ -2936,65 +3569,549 @@ export function CreateService() {
 
           {activeTab === 11 && (
             <div className="space-y-6">
-              <p className="text-sm text-muted-foreground">
-                Booking reviews linked to this service (from completed jobs). Shown on the customer service modal when
-                customers view this offering.
-              </p>
+              <div className="flex flex-col gap-2">
+                <h2 className="flex items-center gap-2 text-lg font-semibold">
+                  <MessageCircle className="h-5 w-5" />
+                  Customer reviews
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Build trust by curating reviews. Real booking reviews appear here automatically.
+                  You can also add featured testimonials to showcase on the customer-facing service page.
+                </p>
+              </div>
+
               {!isEditMode || !id ? (
                 <Card className="border border-dashed p-6 text-center text-sm text-muted-foreground">
-                  Save the service first, then return here to see customer reviews for this service.
-                </Card>
-              ) : loadingReviews ? (
-                <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                  Loading reviews…
-                </div>
-              ) : serviceReviews.length === 0 ? (
-                <Card className="border border-dashed p-6 text-center text-sm text-muted-foreground">
-                  No reviews yet for this service. Reviews appear after customers complete bookings and submit feedback.
+                  Save the service first, then return here to manage customer reviews.
                 </Card>
               ) : (
-                <div className="space-y-3">
-                  <p className="text-sm font-medium text-foreground">
-                    {serviceReviews.length} review{serviceReviews.length === 1 ? '' : 's'}
-                  </p>
-                  {serviceReviews.map((review) => {
-                    const customer =
-                      typeof review.customerId === 'object' && review.customerId
-                        ? `${(review.customerId as { firstName?: string }).firstName ?? ''} ${(review.customerId as { lastName?: string }).lastName ?? ''}`.trim()
-                        : 'Customer'
-                    return (
-                      <Card key={review._id} className="p-4">
-                        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-foreground">{customer || 'Customer'}</span>
-                            {review.isVerified ? (
-                              <Badge variant="secondary" className="text-xs">
-                                Verified
-                              </Badge>
-                            ) : null}
-                          </div>
-                          <span className="text-sm text-muted-foreground">
-                            {new Date(review.createdAt).toLocaleDateString()}
+                <>
+                  {/* Stats summary */}
+                  <Card className="bg-gradient-to-br from-amber-50 to-orange-50 p-5">
+                    <div className="flex flex-wrap items-center gap-6">
+                      <div className="text-center">
+                        <p className="text-4xl font-bold text-amber-900">
+                          {reviewStats.averageRating.toFixed(1)}
+                        </p>
+                        <div className="my-1 flex justify-center text-amber-500">
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <Star
+                              key={n}
+                              className={cn(
+                                'h-4 w-4',
+                                n <= Math.round(reviewStats.averageRating) ? 'fill-current' : 'opacity-30',
+                              )}
+                            />
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {reviewStats.totalReviews} review{reviewStats.totalReviews === 1 ? '' : 's'}
+                        </p>
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-1">
+                        {[5, 4, 3, 2, 1].map((star) => {
+                          const count =
+                            reviewStats.ratingDistribution[star as 1 | 2 | 3 | 4 | 5] ?? 0
+                          const total = reviewStats.totalReviews || 1
+                          const pct = Math.round((count / total) * 100)
+                          return (
+                            <div key={star} className="flex items-center gap-2 text-xs">
+                              <span className="w-12 text-muted-foreground">{star} star</span>
+                              <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-amber-100">
+                                <div
+                                  className="h-full rounded-full bg-amber-500"
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                              <span className="w-10 text-right text-muted-foreground">{count}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </Card>
+
+                  {/* Add new admin-curated review */}
+                  <Card className="border-2 border-dashed p-5">
+                    <div className="mb-4 flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                      <p className="font-semibold">Add a review</p>
+                      <Badge variant="outline" className="text-[10px] uppercase">
+                        Curated by admin
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label>Customer name *</Label>
+                        <Input
+                          value={reviewForm.customerName}
+                          onChange={(e) =>
+                            setReviewForm((p) => ({ ...p, customerName: e.target.value }))
+                          }
+                          placeholder="e.g. Anita S."
+                          disabled={previewMode || reviewSubmitting}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Location (optional)</Label>
+                        <Input
+                          value={reviewForm.customerLocation}
+                          onChange={(e) =>
+                            setReviewForm((p) => ({ ...p, customerLocation: e.target.value }))
+                          }
+                          placeholder="e.g. Bangalore"
+                          disabled={previewMode || reviewSubmitting}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Customer photo URL (optional)</Label>
+                        <Input
+                          type="url"
+                          value={reviewForm.customerAvatar}
+                          onChange={(e) =>
+                            setReviewForm((p) => ({ ...p, customerAvatar: e.target.value }))
+                          }
+                          placeholder="https://..."
+                          disabled={previewMode || reviewSubmitting}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Package / variant (optional)</Label>
+                        <Input
+                          value={reviewForm.variantName}
+                          onChange={(e) =>
+                            setReviewForm((p) => ({ ...p, variantName: e.target.value }))
+                          }
+                          placeholder="e.g. Premium plan"
+                          disabled={previewMode || reviewSubmitting}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-4 space-y-2">
+                      <Label>Rating *</Label>
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <button
+                            key={n}
+                            type="button"
+                            className="rounded-md p-1 transition-transform hover:scale-110"
+                            onClick={() =>
+                              setReviewForm((p) => ({ ...p, rating: n }))
+                            }
+                            disabled={previewMode || reviewSubmitting}
+                            aria-label={`${n} star${n === 1 ? '' : 's'}`}
+                          >
+                            <Star
+                              className={cn(
+                                'h-7 w-7',
+                                n <= reviewForm.rating
+                                  ? 'fill-amber-500 text-amber-500'
+                                  : 'text-muted-foreground/40',
+                              )}
+                            />
+                          </button>
+                        ))}
+                        <span className="ml-2 text-sm text-muted-foreground">
+                          {reviewForm.rating}/5
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 space-y-2">
+                      <Label>Review text</Label>
+                      <Textarea
+                        rows={3}
+                        value={reviewForm.comment}
+                        onChange={(e) =>
+                          setReviewForm((p) => ({ ...p, comment: e.target.value }))
+                        }
+                        placeholder="Share what the customer loved about the service…"
+                        disabled={previewMode || reviewSubmitting}
+                      />
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap items-center gap-6">
+                      <label className="flex items-center gap-2 text-sm">
+                        <Switch
+                          checked={reviewForm.isVerified}
+                          onCheckedChange={(v) =>
+                            setReviewForm((p) => ({ ...p, isVerified: !!v }))
+                          }
+                          disabled={previewMode || reviewSubmitting}
+                        />
+                        <span className="font-medium">Show on customer page</span>
+                        <span className="text-muted-foreground">(verified)</span>
+                      </label>
+                      <label className="flex items-center gap-2 text-sm">
+                        <Switch
+                          checked={reviewForm.isFeatured}
+                          onCheckedChange={(v) =>
+                            setReviewForm((p) => ({ ...p, isFeatured: !!v }))
+                          }
+                          disabled={previewMode || reviewSubmitting}
+                        />
+                        <span className="font-medium">Pin as featured</span>
+                      </label>
+                    </div>
+
+                    <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => setReviewForm(blankAdminReview)}
+                        disabled={previewMode || reviewSubmitting}
+                      >
+                        Clear
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={handleCreateAdminReview}
+                        loading={reviewSubmitting}
+                        leftIcon={!reviewSubmitting ? <Plus className="h-4 w-4" /> : undefined}
+                        disabled={
+                          previewMode ||
+                          reviewSubmitting ||
+                          !reviewForm.customerName.trim()
+                        }
+                      >
+                        Add review
+                      </Button>
+                    </div>
+                  </Card>
+
+                  {/* Existing reviews list */}
+                  {loadingReviews ? (
+                    <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                      Loading reviews…
+                    </div>
+                  ) : serviceReviews.length === 0 ? (
+                    <Card className="border border-dashed p-8 text-center">
+                      <MessageCircle className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+                      <p className="font-medium text-muted-foreground">
+                        No reviews yet for this service
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Add a curated review above, or wait for completed bookings to flow in.
+                      </p>
+                    </Card>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-foreground">
+                          {serviceReviews.length} review
+                          {serviceReviews.length === 1 ? '' : 's'}
+                        </p>
+                      </div>
+
+                      {serviceReviews.map((review) => {
+                        const customer = deriveReviewCustomerName(review)
+                        const isAdmin = !!review.isAdminCurated || review.source === 'admin'
+                        const isSaving = reviewSavingId === review._id
+                        const isDeleting = reviewDeletingId === review._id
+                        return (
+                          <Card
+                            key={review._id}
+                            className={cn(
+                              'p-4 transition-colors',
+                              review.isFeatured ? 'border-amber-300 bg-amber-50/40' : '',
+                            )}
+                          >
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div className="flex min-w-0 items-start gap-3">
+                                {review.customerAvatar ? (
+                                  <img
+                                    src={review.customerAvatar}
+                                    alt={customer}
+                                    className="h-10 w-10 shrink-0 rounded-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 font-semibold text-primary">
+                                    {customer.slice(0, 1).toUpperCase()}
+                                  </div>
+                                )}
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="font-semibold text-foreground">{customer}</span>
+                                    {isAdmin ? (
+                                      <Badge variant="outline" className="text-[10px]">
+                                        <Sparkles className="mr-1 h-3 w-3" />
+                                        Curated
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="secondary" className="text-[10px]">
+                                        <ShieldCheck className="mr-1 h-3 w-3" />
+                                        Booking
+                                      </Badge>
+                                    )}
+                                    {review.isFeatured && (
+                                      <Badge className="bg-amber-500 text-[10px] text-white hover:bg-amber-500">
+                                        Featured
+                                      </Badge>
+                                    )}
+                                    {!review.isVerified && (
+                                      <Badge variant="destructive" className="text-[10px]">
+                                        Hidden
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                    {review.customerLocation ? (
+                                      <span>{review.customerLocation}</span>
+                                    ) : null}
+                                    {review.customerLocation ? <span>•</span> : null}
+                                    <span>{formatRelativeDate(review.createdAt)}</span>
+                                    {review.variantName ? (
+                                      <>
+                                        <span>•</span>
+                                        <span>{review.variantName}</span>
+                                      </>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-1">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-8 w-8"
+                                      onClick={() => openEditReview(review)}
+                                      disabled={previewMode || isSaving || isDeleting}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Edit review</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-8 w-8 text-destructive hover:text-destructive"
+                                      onClick={() => handleDeleteReview(review)}
+                                      disabled={previewMode || isSaving || isDeleting}
+                                    >
+                                      {isDeleting ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <Trash2 className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Delete</TooltipContent>
+                                </Tooltip>
+                              </div>
+                            </div>
+
+                            <div className="mt-3 flex items-center gap-1 text-amber-500">
+                              {[1, 2, 3, 4, 5].map((n) => (
+                                <Star
+                                  key={n}
+                                  className={cn(
+                                    'h-4 w-4',
+                                    n <= review.rating ? 'fill-current' : 'opacity-30',
+                                  )}
+                                />
+                              ))}
+                              <span className="ml-1 text-xs text-muted-foreground">
+                                ({review.rating}/5)
+                              </span>
+                            </div>
+
+                            {review.comment ? (
+                              <p className="mt-2 text-sm text-foreground">{review.comment}</p>
+                            ) : (
+                              <p className="mt-2 text-sm italic text-muted-foreground">
+                                No written comment
+                              </p>
+                            )}
+
+                            <div className="mt-3 flex flex-wrap items-center gap-4 border-t pt-3 text-xs">
+                              <label className="flex items-center gap-2">
+                                <Switch
+                                  checked={!!review.isVerified}
+                                  onCheckedChange={(v) =>
+                                    handleToggleReviewFlag(review, 'isVerified', !!v)
+                                  }
+                                  disabled={previewMode || isSaving}
+                                />
+                                <span className="font-medium">Visible on customer page</span>
+                              </label>
+                              <label className="flex items-center gap-2">
+                                <Switch
+                                  checked={!!review.isFeatured}
+                                  onCheckedChange={(v) =>
+                                    handleToggleReviewFlag(review, 'isFeatured', !!v)
+                                  }
+                                  disabled={previewMode || isSaving}
+                                />
+                                <span className="font-medium">Featured</span>
+                              </label>
+                            </div>
+                          </Card>
+                        )
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Edit review modal */}
+              <Dialog
+                open={!!editingReview}
+                onOpenChange={(open) => {
+                  if (!open) setEditingReview(null)
+                }}
+              >
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle>Edit review</DialogTitle>
+                  </DialogHeader>
+                  {editingReview ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label>Display name</Label>
+                          <Input
+                            value={editReviewForm.customerName}
+                            onChange={(e) =>
+                              setEditReviewForm((p) => ({ ...p, customerName: e.target.value }))
+                            }
+                            disabled={!editingReview.isAdminCurated}
+                          />
+                          {!editingReview.isAdminCurated ? (
+                            <p className="text-[10px] text-muted-foreground">
+                              Linked to a real customer — name is read-only.
+                            </p>
+                          ) : null}
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Location</Label>
+                          <Input
+                            value={editReviewForm.customerLocation}
+                            onChange={(e) =>
+                              setEditReviewForm((p) => ({ ...p, customerLocation: e.target.value }))
+                            }
+                            disabled={!editingReview.isAdminCurated}
+                          />
+                        </div>
+                        <div className="md:col-span-2 space-y-2">
+                          <Label>Avatar URL</Label>
+                          <Input
+                            type="url"
+                            value={editReviewForm.customerAvatar}
+                            onChange={(e) =>
+                              setEditReviewForm((p) => ({ ...p, customerAvatar: e.target.value }))
+                            }
+                            disabled={!editingReview.isAdminCurated}
+                            placeholder="https://..."
+                          />
+                        </div>
+                        <div className="md:col-span-2 space-y-2">
+                          <Label>Package / variant</Label>
+                          <Input
+                            value={editReviewForm.variantName}
+                            onChange={(e) =>
+                              setEditReviewForm((p) => ({ ...p, variantName: e.target.value }))
+                            }
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Rating</Label>
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <button
+                              key={n}
+                              type="button"
+                              className="rounded-md p-1"
+                              onClick={() =>
+                                setEditReviewForm((p) => ({ ...p, rating: n }))
+                              }
+                            >
+                              <Star
+                                className={cn(
+                                  'h-6 w-6',
+                                  n <= editReviewForm.rating
+                                    ? 'fill-amber-500 text-amber-500'
+                                    : 'text-muted-foreground/40',
+                                )}
+                              />
+                            </button>
+                          ))}
+                          <span className="ml-2 text-sm text-muted-foreground">
+                            {editReviewForm.rating}/5
                           </span>
                         </div>
-                        <p className="mb-1 text-sm font-medium text-amber-700">
-                          {'★'.repeat(review.rating)}
-                          <span className="text-muted-foreground"> ({review.rating}/5)</span>
-                        </p>
-                        {review.comment ? (
-                          <p className="text-sm text-muted-foreground">{review.comment}</p>
-                        ) : (
-                          <p className="text-sm italic text-muted-foreground">No written comment</p>
-                        )}
-                        {review.variantName ? (
-                          <p className="mt-2 text-xs text-muted-foreground">Package: {review.variantName}</p>
-                        ) : null}
-                      </Card>
-                    )
-                  })}
-                </div>
-              )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Review text</Label>
+                        <Textarea
+                          rows={4}
+                          value={editReviewForm.comment}
+                          onChange={(e) =>
+                            setEditReviewForm((p) => ({ ...p, comment: e.target.value }))
+                          }
+                        />
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-6">
+                        <label className="flex items-center gap-2 text-sm">
+                          <Switch
+                            checked={editReviewForm.isVerified}
+                            onCheckedChange={(v) =>
+                              setEditReviewForm((p) => ({ ...p, isVerified: !!v }))
+                            }
+                          />
+                          <span>Visible on customer page</span>
+                        </label>
+                        <label className="flex items-center gap-2 text-sm">
+                          <Switch
+                            checked={editReviewForm.isFeatured}
+                            onCheckedChange={(v) =>
+                              setEditReviewForm((p) => ({ ...p, isFeatured: !!v }))
+                            }
+                          />
+                          <span>Featured</span>
+                        </label>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setEditingReview(null)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={handleSaveEditReview}
+                      loading={!!reviewSavingId && editingReview?._id === reviewSavingId}
+                      leftIcon={
+                        reviewSavingId && editingReview?._id === reviewSavingId
+                          ? undefined
+                          : <Save className="h-4 w-4" />
+                      }
+                      disabled={!editingReview}
+                    >
+                      Save changes
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           )}
         </div>

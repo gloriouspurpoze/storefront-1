@@ -42,12 +42,15 @@ export interface BookingReviewBookingEmbed {
   scheduledDate?: string;
 }
 
-/** Booking reviews (from completed bookings) */
+export type ReviewSource = 'booking' | 'admin' | 'imported'
+
+/** Booking reviews (from completed bookings) plus admin-curated testimonials. */
 export interface BookingReview {
   _id: string;
+  id?: string;
   bookingId?: string | BookingReviewBookingEmbed;
   /** Populated customer User when returned from admin list API */
-  customerId?: string | { firstName?: string; lastName?: string; email?: string };
+  customerId?: string | { firstName?: string; lastName?: string; email?: string; profilePicture?: string };
   professionalId?: string | BookingReviewProfessional;
   providerId?: string | BookingReviewProvider;
   /** Snapshot at review time + optional populated PlatformService */
@@ -56,10 +59,50 @@ export interface BookingReview {
   variantName?: string;
   rating: number;
   comment?: string;
+  images?: string[];
   isVerified?: boolean;
+  isFeatured?: boolean;
+  isAdminCurated?: boolean;
+  customerName?: string;
+  customerAvatar?: string;
+  customerLocation?: string;
+  source?: ReviewSource;
   helpfulCount?: number;
   createdAt: string;
   updatedAt?: string;
+}
+
+export interface ReviewStats {
+  averageRating: number;
+  totalReviews: number;
+  ratingDistribution: { 1: number; 2: number; 3: number; 4: number; 5: number };
+}
+
+export interface AdminCreateReviewPayload {
+  platformServiceId: string;
+  rating: number;
+  customerName: string;
+  comment?: string;
+  customerAvatar?: string;
+  customerLocation?: string;
+  serviceName?: string;
+  variantName?: string;
+  images?: string[];
+  isVerified?: boolean;
+  isFeatured?: boolean;
+}
+
+export interface AdminUpdateReviewPayload {
+  rating?: number;
+  comment?: string;
+  customerName?: string;
+  customerAvatar?: string;
+  customerLocation?: string;
+  serviceName?: string;
+  variantName?: string;
+  images?: string[];
+  isVerified?: boolean;
+  isFeatured?: boolean;
 }
 
 export interface BookingReviewsResponse {
@@ -119,5 +162,75 @@ export const ReviewsService = {
       feedback: response.data?.feedback ?? [],
       pagination: response.data?.pagination ?? { page: 1, limit: 50, total: 0, totalPages: 0 },
     };
+  },
+
+  /**
+   * Admin: list every review for a platform service (verified + curated +
+   * pending), with rating distribution. Backs the "Customer reviews" admin tab.
+   */
+  async getAdminServiceReviews(
+    platformServiceId: string,
+    params?: { page?: number; limit?: number },
+  ): Promise<{
+    reviews: BookingReview[];
+    pagination: { page: number; limit: number; total: number; totalPages: number };
+    stats: ReviewStats;
+  }> {
+    const page = params?.page ?? 1;
+    const limit = Math.min(100, Math.max(1, params?.limit ?? 50));
+    const response = await axios.get<{
+      success: boolean;
+      data?: {
+        reviews: BookingReview[];
+        pagination: { page: number; limit: number; total: number; totalPages: number };
+        stats: ReviewStats;
+      };
+    }>(`${API_BASE}/reviews/admin/service/${platformServiceId}`, {
+      ...getAuthHeaders(),
+      params: { page, limit },
+    });
+    return (
+      response.data?.data ?? {
+        reviews: [],
+        pagination: { page, limit, total: 0, totalPages: 0 },
+        stats: {
+          averageRating: 0,
+          totalReviews: 0,
+          ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+        },
+      }
+    );
+  },
+
+  /** Admin: create an admin-curated review (testimonial) for a service. */
+  async adminCreateReview(payload: AdminCreateReviewPayload): Promise<BookingReview> {
+    const response = await axios.post<{ success: boolean; data?: { review: BookingReview } }>(
+      `${API_BASE}/reviews/admin`,
+      payload,
+      getAuthHeaders(),
+    );
+    const review = response.data?.data?.review;
+    if (!review) throw new Error('Invalid response from review create endpoint');
+    return review;
+  },
+
+  /** Admin: update any review (rating, copy, verification, featured flag…). */
+  async adminUpdateReview(
+    reviewId: string,
+    payload: AdminUpdateReviewPayload,
+  ): Promise<BookingReview> {
+    const response = await axios.put<{ success: boolean; data?: { review: BookingReview } }>(
+      `${API_BASE}/reviews/admin/${reviewId}`,
+      payload,
+      getAuthHeaders(),
+    );
+    const review = response.data?.data?.review;
+    if (!review) throw new Error('Invalid response from review update endpoint');
+    return review;
+  },
+
+  /** Admin: delete any review. */
+  async adminDeleteReview(reviewId: string): Promise<void> {
+    await axios.delete(`${API_BASE}/reviews/admin/${reviewId}`, getAuthHeaders());
   },
 };

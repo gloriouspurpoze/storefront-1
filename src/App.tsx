@@ -34,6 +34,9 @@ const Analytics = lazy(() => import('./pages/dashboard/analytics').then((m) => (
 const GrowthFunnelsPage = lazy(() =>
   import('./pages/analytics/GrowthFunnelsPage').then((m) => ({ default: m.GrowthFunnelsPage })),
 )
+const CatalogAnalytics = lazy(() =>
+  import('./pages/analytics/CatalogAnalytics').then((m) => ({ default: m.CatalogAnalytics })),
+)
 const AdminEarningsOverview = lazy(() => import('./pages/payments/admin-earnings-overview').then((m) => ({ default: m.AdminEarningsOverview })))
 
 const FinanceLayout = lazy(() =>
@@ -1277,6 +1280,14 @@ function App() {
                         element={
                           <RoleBasedRoute permissions={['view_analytics']}>
                             <GrowthFunnelsPage />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/analytics/catalog"
+                        element={
+                          <RoleBasedRoute permissions={['view_analytics']}>
+                            <CatalogAnalytics />
                           </RoleBasedRoute>
                         }
                       />

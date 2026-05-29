@@ -235,6 +235,13 @@ const navigationGroups = [
       { name: 'Dashboard', href: '/', icon: DashboardIcon, permissions: ['view_dashboard'], badge: null },
       { name: 'Analytics', href: '/analytics', icon: BarChartIcon, permissions: ['view_analytics'], badge: null },
       {
+        name: 'Catalog performance',
+        href: '/analytics/catalog',
+        icon: BarChartIcon,
+        permissions: ['view_analytics'],
+        badge: null,
+      },
+      {
         name: 'Growth funnels',
         href: '/analytics/funnels',
         icon: TargetIcon,

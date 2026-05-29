@@ -259,6 +259,69 @@ export class AnalyticsService {
   }
 
   /**
+   * Catalog analytics — top platform services + top products by
+   * bookings/orders/revenue/completion-rate over an arbitrary period.
+   *
+   * Defaults to "last 30 days" if no range is provided.
+   */
+  static async getCatalogAnalytics(opts?: {
+    startDate?: string
+    endDate?: string
+    limit?: number
+    category?: string
+  }) {
+    const params = new URLSearchParams()
+    if (opts?.startDate) params.set('startDate', opts.startDate)
+    if (opts?.endDate) params.set('endDate', opts.endDate)
+    if (opts?.limit) params.set('limit', String(opts.limit))
+    if (opts?.category) params.set('category', opts.category)
+
+    const endpoint = `/analytics/catalog${params.toString() ? `?${params.toString()}` : ''}`
+    return api.get<{
+      generatedAt: string
+      period: { start: string; end: string }
+      totals: {
+        bookings: number
+        bookingRevenue: number
+        orders: number
+        orderRevenue: number
+      }
+      topServices: Array<{
+        serviceId: string
+        name: string
+        slug: string | null
+        category: string | null
+        image: string | null
+        averageRating: number
+        reviewCount: number
+        requests: number
+        completedBookings: number
+        completionRate: number
+        revenue: number
+        completedRevenue: number
+        averageOrderValue: number
+      }>
+      topProducts: Array<{
+        productId: string
+        name: string
+        slug: string | null
+        brand: string | null
+        sku: string | null
+        price: number
+        image: string | null
+        orders: number
+        unitsSold: number
+        deliveredOrders: number
+        revenue: number
+        averageOrderValue: number
+      }>
+    }>(endpoint, {
+      loadingMessage: 'Loading catalog analytics...',
+      showSuccessToast: false,
+    })
+  }
+
+  /**
    * Get geographic analytics
    */
   static async getGeographicAnalytics() {

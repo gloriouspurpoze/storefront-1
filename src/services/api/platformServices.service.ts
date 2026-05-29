@@ -1,5 +1,14 @@
 import { apiClient } from '../apiClient'
 
+export type ProductRelationType = 'required' | 'recommended' | 'optional' | 'alternative'
+
+/** Junction-table link sent on create/update and returned on GET. */
+export interface ServiceProductLinkInput {
+  product_id: string
+  relation_type?: ProductRelationType
+  display_order?: number
+}
+
 export interface PlatformService {
   id: string
   name: string
@@ -18,6 +27,12 @@ export interface PlatformService {
   service_type: 'fixed' | 'hourly' | 'consultation'
   duration?: string
   base_price?: number
+  /** Anchored MRP / list price for strike-through on customer app. */
+  original_price?: number
+  /** Server-computed from base vs MRP (1–99). */
+  discount_percentage?: number
+  /** Server-computed ₹ saved. */
+  savings_amount?: number
   hourly_rate?: number
   consultation_fee?: number
   min_hours?: number
@@ -27,6 +42,7 @@ export interface PlatformService {
   is_active: boolean
   is_featured: boolean
   is_popular?: boolean
+  review_count?: number
   sort_order: number
   tags: string[]
   features: string[]
@@ -44,6 +60,8 @@ export interface PlatformService {
   seo_description?: string
   seo_keywords?: string[]
   total_requests: number
+  /** Live count of bookings that have been completed for this service. */
+  total_bookings?: number
   average_rating: number
   status: 'draft' | 'published' | 'archived'
   created_at: string
@@ -63,6 +81,48 @@ export interface PlatformService {
     question: string
     answer: string
   }>
+
+  /** Backend-derived addons (junction-table populated). Same payload returned under `addons` too. */
+  serviceAddons?: Array<{
+    id: string
+    name: string
+    price: number
+    description?: string
+    slug?: string
+    priceType?: 'fixed' | 'per_unit' | 'percentage'
+    sortOrder?: number
+    isPopular?: boolean
+  }>
+  /** Junction-table linked products (recommended/required upsells). */
+  relatedProducts?: Array<{
+    id: string
+    product_id: string
+    relation_type?: 'required' | 'recommended' | 'optional' | 'alternative'
+    display_order?: number
+    product?: {
+      id: string
+      name: string
+      slug?: string
+      brand?: string
+      price?: number
+      image?: string
+      sku?: string
+    }
+  }>
+  /** Structured links for admin rehydration (relation + display order). */
+  selected_products?: ServiceProductLinkInput[]
+  /** Bookable packages (ServiceVariant rows). */
+  serviceVariants?: Array<{
+    id?: string
+    _id?: string
+    name?: string
+    price?: number
+    original_price?: number
+    description?: string
+    isPopular?: boolean
+    isDefault?: boolean
+  }>
+  variants?: PlatformService['serviceVariants']
 }
 
 export interface GetPlatformServicesParams {
@@ -104,6 +164,7 @@ export interface CreatePlatformServiceRequest {
   service_type?: 'fixed' | 'hourly' | 'consultation'
   duration?: string
   base_price?: number
+  original_price?: number | null
   hourly_rate?: number
   consultation_fee?: number
   min_hours?: number
@@ -125,6 +186,8 @@ export interface CreatePlatformServiceRequest {
   emergency_charge?: number
   product_options?: any[]
   service_addons?: Array<{ name?: string; price?: string | number; description?: string }>
+  /** Catalog product links (ObjectId strings or rich link objects). */
+  selected_products?: Array<string | ServiceProductLinkInput>
   service_areas?: any[]
   metadata?: Record<string, any>
   seo_title?: string
@@ -161,6 +224,7 @@ export interface UpdatePlatformServiceRequest {
   service_type?: 'fixed' | 'hourly' | 'consultation'
   duration?: string
   base_price?: number
+  original_price?: number | null
   hourly_rate?: number
   consultation_fee?: number
   min_hours?: number
@@ -182,6 +246,8 @@ export interface UpdatePlatformServiceRequest {
   emergency_charge?: number
   product_options?: any[]
   service_addons?: Array<{ name?: string; price?: string | number; description?: string }>
+  /** Catalog product links (ObjectId strings or rich link objects). */
+  selected_products?: Array<string | ServiceProductLinkInput>
   service_areas?: any[]
   metadata?: Record<string, any>
   seo_title?: string
@@ -209,7 +275,20 @@ export interface PlatformServiceStats {
   total_services: number
   active_services: number
   featured_services: number
+  /**
+   * Sum of denormalized `totalRequests` across every PlatformService.
+   * NOTE: this can drift from real bookings if seed values were ever set —
+   * run `/stats/recompute` to align with the Booking collection.
+   */
   total_requests: number
+  /** Sum of denormalized `totalBookings` (completed) across services. */
+  total_bookings?: number
+  /** Sum of denormalized `reviewCount` across services. */
+  total_reviews?: number
+  /** Ground truth — distinct bookings that include a platform service. */
+  real_total_bookings?: number
+  /** Ground truth — bookings that include a service AND are status=completed. */
+  real_completed_bookings?: number
   average_rating: number
 }
 
@@ -307,6 +386,23 @@ export const platformServicesService = {
     
     // Fallback if structure is different
     throw new Error('Invalid response structure from stats API')
+  },
+
+  /**
+   * Recompute `total_requests` and `total_bookings` for every (or selected)
+   * platform service from real Booking data. Wipes legacy seed placeholders.
+   */
+  async recomputeBookingStats(serviceIds?: string[]): Promise<{
+    servicesUpdated: number
+    servicesReset: number
+    generatedAt: string
+  }> {
+    const response = await apiClient.post(
+      '/platform-services/stats/recompute',
+      serviceIds && serviceIds.length > 0 ? { service_ids: serviceIds } : {},
+      { showSuccessToast: false, showErrorToast: true },
+    ) as any
+    return response?.data ?? { servicesUpdated: 0, servicesReset: 0, generatedAt: new Date().toISOString() }
   },
 
   /**

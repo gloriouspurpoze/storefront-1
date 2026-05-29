@@ -61,6 +61,9 @@ import {
   CheckCircle2,
   CircleOff,
   FolderTree,
+  RefreshCw,
+  Info,
+  AlertTriangle,
 } from 'lucide-react'
 import { platformServicesService, PlatformService, type GetPlatformServicesParams } from '../../services/api/platformServices.service'
 import { CategoriesService } from '../../services/api/categories.service'
@@ -108,12 +111,14 @@ function ServicePreviewDialog({
   open,
   onClose,
   service,
+  loadingDetails,
   categoryNameById,
   onEdit,
 }: {
   open: boolean
   onClose: () => void
   service: PlatformService | null
+  loadingDetails?: boolean
   categoryNameById: Record<string, string>
   onEdit: (s: PlatformService) => void
 }) {
@@ -124,10 +129,32 @@ function ServicePreviewDialog({
 
   if (!service) return null
 
+  const variants =
+    (Array.isArray(service.serviceVariants) && service.serviceVariants.length > 0
+      ? service.serviceVariants
+      : service.variants) ?? []
+  const addons = service.serviceAddons ?? []
+  const linkedProducts = service.relatedProducts ?? []
+  const mrp = Number(service.original_price ?? 0)
+  const offer = Number(service.base_price ?? 0)
+  const showMrp = mrp > 0 && mrp > offer
+  const discountPct =
+    service.discount_percentage ??
+    (showMrp ? Math.round(((mrp - offer) / mrp) * 100) : 0)
+
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] max-w-4xl gap-0 overflow-hidden p-0">
-        <DialogHeader className="space-y-0 bg-gradient-to-r from-sky-600 to-indigo-700 px-6 py-4 text-primary-foreground">
+      {/*
+        Industry-standard scroll layout:
+        - Outer DialogContent caps at 90vh and is a flex column.
+        - Header & footer are `shrink-0` so they stay anchored.
+        - The middle region is the only scrolling viewport, so the customer
+          app preview, tabs, and tab content all scroll together (no
+          competing nested scroll bars). The TabsList is sticky inside the
+          scroller so the user keeps tab context while reading long content.
+      */}
+      <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col gap-0 overflow-hidden p-0">
+        <DialogHeader className="shrink-0 space-y-0 bg-gradient-to-r from-sky-600 to-indigo-700 px-6 py-4 text-primary-foreground">
           <div className="flex items-start justify-between gap-3">
             <div>
               <DialogTitle className="text-xl font-bold text-white">{service.name}</DialogTitle>
@@ -139,41 +166,49 @@ function ServicePreviewDialog({
           </div>
         </DialogHeader>
 
-        <div className="border-b bg-muted/30 px-6 py-5">
-          <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:justify-center">
-            <MobileServiceCardPreview
-              imageUrl={service.image}
-              name={service.name}
-              description={service.short_description}
-              price={service.base_price}
-              popular={service.is_popular}
-              framed
-            />
-            <ServiceImageGuidancePanel compact className="max-w-sm flex-1" />
-          </div>
-        </div>
-
-        <Tabs value={tab} onValueChange={(v) => setTab(v as PreviewTab)} className="px-0">
-          <div className="border-b px-4">
-            <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-transparent py-2">
-              {(
-                [
-                  ['overview', 'Overview'],
-                  ['pricing', 'Pricing & Details'],
-                  ['features', 'Features'],
-                  ['availability', 'Availability'],
-                  ['products', 'Products'],
-                ] as const
-              ).map(([id, label]) => (
-                <TabsTrigger key={id} value={id} className="text-xs sm:text-sm">
-                  {label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <div className="border-b bg-muted/30 px-6 py-5">
+            {loadingDetails ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">Loading full service details…</p>
+            ) : null}
+            <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:justify-center">
+              <MobileServiceCardPreview
+                imageUrl={service.image}
+                name={service.name}
+                description={service.short_description}
+                price={service.base_price}
+                originalPrice={service.original_price}
+                discountPercentage={discountPct > 0 ? discountPct : undefined}
+                popular={service.is_popular}
+                emergency={service.emergency_service}
+                rating={service.average_rating}
+                framed
+              />
+              <ServiceImageGuidancePanel compact className="max-w-sm flex-1" />
+            </div>
           </div>
 
-          <div className="max-h-[min(50vh,480px)] overflow-y-auto px-6 py-4">
-            <TabsContent value="overview" className="mt-0 space-y-4">
+          <Tabs value={tab} onValueChange={(v) => setTab(v as PreviewTab)} className="px-0">
+            <div className="sticky top-0 z-10 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/75">
+              <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-transparent py-2">
+                {(
+                  [
+                    ['overview', 'Overview'],
+                    ['pricing', 'Pricing & Details'],
+                    ['features', 'Features'],
+                    ['availability', 'Availability'],
+                    ['products', 'Products'],
+                  ] as const
+                ).map(([id, label]) => (
+                  <TabsTrigger key={id} value={id} className="text-xs sm:text-sm">
+                    {label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+
+            <div className="px-6 py-4">
+              <TabsContent value="overview" className="mt-0 space-y-4">
               <div>
                 <p className="mb-1 text-sm font-semibold text-primary">Description</p>
                 <div className="rounded-lg bg-muted/50 p-3 text-sm">{service.description}</div>
@@ -182,27 +217,62 @@ function ServicePreviewDialog({
                 <Card className="border">
                   <CardContent className="pt-4">
                     <p className="mb-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400">Pricing</p>
-                    <p className="text-2xl font-bold text-emerald-600">{displayBasePrice(service.base_price)}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <div className="flex flex-wrap items-baseline gap-2">
+                      <p className="text-2xl font-bold text-emerald-600">{displayBasePrice(service.base_price)}</p>
+                      {showMrp ? (
+                        <p className="text-lg text-muted-foreground line-through">{displayBasePrice(mrp)}</p>
+                      ) : null}
+                      {discountPct > 0 ? (
+                        <Badge className="bg-emerald-100 text-emerald-800">{discountPct}% OFF</Badge>
+                      ) : null}
+                    </div>
+                    {showMrp && service.savings_amount != null && service.savings_amount > 0 ? (
+                      <p className="mt-1 text-xs font-medium text-emerald-700">
+                        Customer saves {formatCurrency(service.savings_amount)}
+                      </p>
+                    ) : null}
+                    <p className="mt-2 text-xs text-muted-foreground">
                       GST: {service.gst_percentage}% {service.tax_included ? '(included)' : '(extra)'}
                     </p>
                   </CardContent>
                 </Card>
                 <Card className="border">
                   <CardContent className="pt-4">
-                    <p className="mb-2 text-sm font-semibold text-amber-700 dark:text-amber-400">Statistics</p>
-                    <div className="flex gap-6">
+                    <p className="mb-2 text-sm font-semibold text-amber-700 dark:text-amber-400">
+                      Live booking stats
+                    </p>
+                    <div className="flex flex-wrap gap-6">
                       <div>
-                        <p className="text-2xl font-bold">{service.total_requests || 0}</p>
+                        <p className="text-2xl font-bold tabular-nums">
+                          {(service.total_requests || 0).toLocaleString('en-IN')}
+                        </p>
                         <p className="text-xs text-muted-foreground">Requests</p>
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold tabular-nums">
+                          {(service.total_bookings || 0).toLocaleString('en-IN')}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Completed</p>
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold tabular-nums">
+                          {(service.review_count || 0).toLocaleString('en-IN')}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Reviews</p>
                       </div>
                       <div className="flex items-center gap-1">
                         <Star className="h-5 w-5 text-amber-500" />
-                        <p className="text-2xl font-bold">
-                          {service.average_rating ? Number(service.average_rating).toFixed(1) : '0.0'}
+                        <p className="text-2xl font-bold tabular-nums">
+                          {service.average_rating
+                            ? Number(service.average_rating).toFixed(1)
+                            : '—'}
                         </p>
                       </div>
                     </div>
+                    <p className="mt-2 text-[11px] text-muted-foreground">
+                      Updated live from real bookings &amp; reviews. Use “Refresh stats” on the
+                      list page to recompute from the database.
+                    </p>
                   </CardContent>
                 </Card>
               </div>
@@ -255,8 +325,29 @@ function ServicePreviewDialog({
                     <p className="font-semibold text-emerald-700 dark:text-emerald-400">Pricing Details</p>
                     {hasDisplayableBasePrice(service.base_price) && (
                       <div>
-                        <p className="text-xs text-muted-foreground">Base Price</p>
+                        <p className="text-xs text-muted-foreground">Offer price (customer pays)</p>
                         <p className="font-medium">{displayBasePrice(service.base_price)}</p>
+                      </div>
+                    )}
+                    {showMrp && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Original price (MRP)</p>
+                        <p className="font-medium line-through">{displayBasePrice(mrp)}</p>
+                      </div>
+                    )}
+                    {variants.length > 0 && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Packages ({variants.length})</p>
+                        <ul className="mt-1 space-y-1">
+                          {variants.map((v, i) => (
+                            <li key={v.id ?? v._id ?? i} className="flex justify-between gap-2 text-xs">
+                              <span>{v.name ?? `Package ${i + 1}`}</span>
+                              <span className="font-medium tabular-nums">
+                                {displayBasePrice(v.price)}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     )}
                     {!!service.hourly_rate && (
@@ -387,8 +478,54 @@ function ServicePreviewDialog({
             </TabsContent>
 
             <TabsContent value="products" className="mt-0 space-y-4">
+              {addons.length > 0 && (
+                <div>
+                  <p className="mb-2 text-sm font-semibold">Add-ons</p>
+                  <div className="space-y-2">
+                    {addons.map((addon, idx) => (
+                      <div
+                        key={addon.id ?? idx}
+                        className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-sm"
+                      >
+                        <span className="font-medium">{addon.name}</span>
+                        <Badge variant="secondary">+{formatCurrency(addon.price)}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {linkedProducts.length > 0 && (
+                <>
+                  {addons.length > 0 ? <Separator /> : null}
+                  <div>
+                    <p className="mb-2 text-sm font-semibold">Linked catalog products</p>
+                    <div className="space-y-2">
+                      {linkedProducts.map((link, idx) => (
+                        <Card key={link.id ?? idx} className="border">
+                          <CardContent className="flex items-center justify-between gap-3 pt-4 text-sm">
+                            <div className="min-w-0">
+                              <p className="font-semibold">
+                                {link.product?.name ?? `Product ${link.product_id}`}
+                              </p>
+                              {link.relation_type ? (
+                                <p className="text-xs capitalize text-muted-foreground">
+                                  {link.relation_type}
+                                </p>
+                              ) : null}
+                            </div>
+                            {link.product?.price != null ? (
+                              <Badge>{formatCurrency(link.product.price)}</Badge>
+                            ) : null}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+              <Separator />
               <div>
-                <p className="mb-2 text-sm font-semibold">Product Options</p>
+                <p className="mb-2 text-sm font-semibold">Packages (product options)</p>
                 {service.product_options?.length ? (
                   <div className="space-y-3">
                     {service.product_options.map((product: Record<string, unknown>, idx: number) => (
@@ -424,10 +561,22 @@ function ServicePreviewDialog({
                       </Card>
                     ))}
                   </div>
+                ) : variants.length > 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Packages are synced to bookable variants — see Pricing tab.
+                  </p>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No product options added</p>
+                  <p className="text-sm text-muted-foreground">No packages or product options added</p>
                 )}
               </div>
+              {linkedProducts.length === 0 &&
+                addons.length === 0 &&
+                !service.product_options?.length &&
+                variants.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    No add-ons, linked products, or packages configured for this service.
+                  </p>
+                )}
               <Separator />
               <div>
                 <p className="mb-2 text-sm font-semibold">Service Areas</p>
@@ -455,10 +604,11 @@ function ServicePreviewDialog({
                 )}
               </div>
             </TabsContent>
-          </div>
-        </Tabs>
+            </div>
+          </Tabs>
+        </div>
 
-        <DialogFooter className="border-t bg-muted/30 px-6 py-3 sm:justify-end">
+        <DialogFooter className="shrink-0 border-t bg-muted/30 px-6 py-3 sm:justify-end">
           <Button type="button" variant="outline" onClick={onClose}>
             Close
           </Button>
@@ -497,8 +647,25 @@ export function PlatformServicesEnhanced() {
   const [categorySlugById, setCategorySlugById] = useState<Record<string, string>>({})
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false)
+  const [previewLoading, setPreviewLoading] = useState(false)
   const [selectedService, setSelectedService] = useState<PlatformService | null>(null)
-  const [stats, setStats] = useState({ total: 0, active: 0, featured: 0, total_requests: 0 })
+  /**
+   * Two parallel views of bookings, surfaced side-by-side so admins can spot
+   * drift between seed-data placeholders and the live Booking collection:
+   *   - `catalog_*` = sum of denormalized counters on every PlatformService
+   *     (fast read, but stale until "Refresh stats" runs).
+   *   - `real_*`    = ground truth straight from the Booking collection.
+   */
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    featured: 0,
+    catalog_requests: 0,
+    catalog_bookings: 0,
+    real_total_bookings: 0,
+    real_completed_bookings: 0,
+  })
+  const [recomputingStats, setRecomputingStats] = useState(false)
   const [allSubcategories, setAllSubcategories] = useState<Subcategory[]>([])
 
   const loadAllSubcategories = async () => {
@@ -683,15 +850,67 @@ export function PlatformServicesEnhanced() {
           total: statsData.total_services || 0,
           active: statsData.active_services || 0,
           featured: statsData.featured_services || 0,
-          total_requests: statsData.total_requests || 0,
+          catalog_requests: statsData.total_requests || 0,
+          catalog_bookings: statsData.total_bookings || 0,
+          real_total_bookings: statsData.real_total_bookings || 0,
+          real_completed_bookings: statsData.real_completed_bookings || 0,
         })
       }
     } catch {
-      setStats({ total: 0, active: 0, featured: 0, total_requests: 0 })
+      setStats({
+        total: 0,
+        active: 0,
+        featured: 0,
+        catalog_requests: 0,
+        catalog_bookings: 0,
+        real_total_bookings: 0,
+        real_completed_bookings: 0,
+      })
     }
   }
 
+  /**
+   * Drift = catalog counter (denormalized) - real booking count from DB.
+   * If non-zero, the catalog has seed-data or stale values that "Refresh stats"
+   * will reconcile.
+   */
+  const requestDrift = stats.catalog_requests - stats.real_total_bookings
+  const hasRequestDrift = Math.abs(requestDrift) >= 1
+  const fmtN = (n: number) => Number(n || 0).toLocaleString('en-IN')
+
   const handleCreate = () => navigate('/platform-services/create')
+
+  /**
+   * Wipe legacy seed-data placeholders (e.g. `total_requests = 1250`) and
+   * recompute every service's `total_requests` / `total_bookings` from real
+   * Booking documents. Idempotent — admins can re-run any time.
+   */
+  const handleRecomputeStats = async () => {
+    if (recomputingStats) return
+    // Defensive — older bundles of `platformServices.service.ts` may not
+    // expose `recomputeBookingStats` yet. Surface a clear message instead of
+    // crashing with "is not a function".
+    if (typeof platformServicesService.recomputeBookingStats !== 'function') {
+      appToast(
+        'Refresh stats is unavailable in this build. Restart the admin dev server (npm start) to pick up the new API method.',
+        'error',
+      )
+      return
+    }
+    setRecomputingStats(true)
+    try {
+      const result = await platformServicesService.recomputeBookingStats()
+      appToast(
+        `Booking stats refreshed — ${result.servicesUpdated} updated, ${result.servicesReset} reset`,
+        'success',
+      )
+      await Promise.all([fetchServices(), fetchStats()])
+    } catch (error: unknown) {
+      appToast((error as Error)?.message || 'Failed to recompute booking stats', 'error')
+    } finally {
+      setRecomputingStats(false)
+    }
+  }
 
   const handleEdit = (service: PlatformService) => {
     navigate(`/platform-services/edit/${service.id}`)
@@ -700,6 +919,18 @@ export function PlatformServicesEnhanced() {
   const handlePreview = (service: PlatformService) => {
     setSelectedService(service)
     setPreviewDialogOpen(true)
+    setPreviewLoading(true)
+    void platformServicesService
+      .getServiceById(service.id)
+      .then((full) => {
+        setSelectedService(full)
+      })
+      .catch(() => {
+        appToast('Could not load full service details — showing summary only', 'warning')
+      })
+      .finally(() => {
+        setPreviewLoading(false)
+      })
   }
 
   const handleDelete = (service: PlatformService) => {
@@ -878,6 +1109,29 @@ export function PlatformServicesEnhanced() {
                   <TooltipContent>Card grid</TooltipContent>
                 </Tooltip>
               </div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 gap-1.5"
+                    onClick={handleRecomputeStats}
+                    disabled={recomputingStats}
+                  >
+                    <RefreshCw
+                      className={`h-4 w-4 shrink-0 ${recomputingStats ? 'animate-spin' : ''}`}
+                    />
+                    <span className="hidden sm:inline">
+                      {recomputingStats ? 'Recomputing…' : 'Refresh stats'}
+                    </span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Recompute every service's `total_requests` &amp; `total_bookings` from real
+                  bookings (wipes seed placeholders).
+                </TooltipContent>
+              </Tooltip>
               <Button className="h-9 min-w-[140px]" onClick={handleCreate}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Service
@@ -885,35 +1139,140 @@ export function PlatformServicesEnhanced() {
             </div>
           </div>
 
-          <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
             <Card className="overflow-hidden rounded-xl border-0 bg-gradient-to-br from-indigo-500 to-purple-700 text-white">
               <CardContent className="p-4">
-                <p className="text-xs opacity-90">📊 Total</p>
-                <p className="text-2xl font-bold">{stats.total}</p>
+                <p className="text-xs opacity-90">📊 Total services</p>
+                <p className="text-2xl font-bold tabular-nums">{fmtN(stats.total)}</p>
               </CardContent>
             </Card>
             <Card className="overflow-hidden rounded-xl border-0 bg-gradient-to-br from-emerald-500 to-teal-400 text-white">
               <CardContent className="p-4">
                 <p className="text-xs opacity-90">✅ Active</p>
-                <p className="text-2xl font-bold">{stats.active}</p>
+                <p className="text-2xl font-bold tabular-nums">{fmtN(stats.active)}</p>
               </CardContent>
             </Card>
             <Card className="overflow-hidden rounded-xl border-0 bg-gradient-to-br from-fuchsia-500 to-rose-500 text-white">
               <CardContent className="p-4">
                 <p className="text-xs opacity-90">⭐ Featured</p>
-                <p className="text-2xl font-bold">{stats.featured}</p>
+                <p className="text-2xl font-bold tabular-nums">{fmtN(stats.featured)}</p>
               </CardContent>
             </Card>
-            <Card className="overflow-hidden rounded-xl border-0 bg-gradient-to-br from-sky-400 to-cyan-400 text-white">
+            {/*
+              Real bookings card — source of truth straight from the Booking
+              collection, NOT influenced by seed-data placeholders. This is
+              what an admin should trust for revenue / KPI reporting.
+            */}
+            <Card className="overflow-hidden rounded-xl border-0 bg-gradient-to-br from-sky-500 to-cyan-500 text-white">
               <CardContent className="p-4">
                 <div className="flex items-center gap-1 text-xs opacity-90">
                   <FolderTree className="h-3.5 w-3.5" />
-                  Job requests
+                  Real bookings
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label="What is real bookings?"
+                        className="ml-0.5 inline-flex"
+                      >
+                        <Info className="h-3 w-3 opacity-90" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[260px] text-xs leading-snug">
+                      Distinct bookings (excluding cancelled / refunded) where the customer
+                      added at least one platform service. Counted live from the Booking
+                      collection — never affected by seed values.
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
-                <p className="text-2xl font-bold tabular-nums">{stats.total_requests}</p>
+                <p className="text-2xl font-bold tabular-nums">{fmtN(stats.real_total_bookings)}</p>
+                <p className="mt-0.5 text-[11px] opacity-90">
+                  {fmtN(stats.real_completed_bookings)} completed
+                </p>
+              </CardContent>
+            </Card>
+            {/*
+              Catalog counter card — sum of denormalized `totalRequests` on
+              every service. Powers the "X+ booked" social proof on the
+              customer site. Will drift from real bookings until you click
+              "Refresh stats" (which recomputes from real bookings).
+            */}
+            <Card
+              className={`overflow-hidden rounded-xl border-0 text-white ${
+                hasRequestDrift
+                  ? 'bg-gradient-to-br from-amber-500 to-orange-600'
+                  : 'bg-gradient-to-br from-slate-500 to-slate-700'
+              }`}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center gap-1 text-xs opacity-90">
+                  <FolderTree className="h-3.5 w-3.5" />
+                  Catalog request counter
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label="What is the catalog request counter?"
+                        className="ml-0.5 inline-flex"
+                      >
+                        <Info className="h-3 w-3 opacity-90" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[280px] text-xs leading-snug">
+                      Sum of <code>totalRequests</code> across every service. This is what
+                      drives the customer site's "X+ booked" badge. It includes legacy
+                      seed-data placeholders until you click "Refresh stats", which
+                      recomputes every counter from real Booking data.
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <p className="text-2xl font-bold tabular-nums">{fmtN(stats.catalog_requests)}</p>
+                {hasRequestDrift ? (
+                  <p className="mt-0.5 flex items-center gap-1 text-[11px] font-medium">
+                    <AlertTriangle className="h-3 w-3" aria-hidden />
+                    {requestDrift > 0
+                      ? `${fmtN(Math.abs(requestDrift))} above real — likely seed data`
+                      : `${fmtN(Math.abs(requestDrift))} behind real — refresh to sync`}
+                  </p>
+                ) : (
+                  <p className="mt-0.5 text-[11px] opacity-90">In sync with real bookings</p>
+                )}
               </CardContent>
             </Card>
           </div>
+
+          {hasRequestDrift && (
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-3 rounded-xl border border-amber-300/70 bg-amber-50 px-4 py-3 text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-100">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                <div className="text-sm leading-snug">
+                  <p className="font-semibold">
+                    Catalog counter is out of sync with real bookings (
+                    {fmtN(Math.abs(requestDrift))} difference).
+                  </p>
+                  <p className="text-xs opacity-90">
+                    The "X+ booked" badge on the customer site reads from the catalog
+                    counter — it currently includes seed-data placeholders. Click
+                    Refresh&nbsp;stats to recompute every service's counter from real
+                    Booking documents (idempotent, safe to run any time).
+                  </p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="border-amber-400 bg-white text-amber-900 hover:bg-amber-100"
+                onClick={handleRecomputeStats}
+                disabled={recomputingStats}
+              >
+                <RefreshCw
+                  className={`mr-1.5 h-4 w-4 ${recomputingStats ? 'animate-spin' : ''}`}
+                />
+                {recomputingStats ? 'Recomputing…' : 'Refresh stats now'}
+              </Button>
+            </div>
+          )}
         </div>
 
         <Card className="mb-6 rounded-xl">
@@ -1305,8 +1664,12 @@ export function PlatformServicesEnhanced() {
 
         <ServicePreviewDialog
           open={previewDialogOpen}
-          onClose={() => setPreviewDialogOpen(false)}
+          onClose={() => {
+            setPreviewDialogOpen(false)
+            setPreviewLoading(false)
+          }}
           service={selectedService}
+          loadingDetails={previewLoading}
           categoryNameById={categoryNameById}
           onEdit={(s) => handleEdit(s)}
         />
