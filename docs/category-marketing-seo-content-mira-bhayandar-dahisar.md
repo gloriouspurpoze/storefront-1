@@ -3,6 +3,8 @@
 **CMS:** `http://localhost:3000/cms/category-marketing`  
 **Schema:** `CategoryMarketingConfig` in `src/types/categoryMarketing.ts` (keys must match your `cmsAdminContract` / API).
 
+
+
 **Categories:** Electrician · **Plumber**  
 **Localities:** **Mira Road** · **Mira Bhayandar** · **Dahisar**
 
