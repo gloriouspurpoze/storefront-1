@@ -9,6 +9,7 @@ const tabs = [
   { to: '/finance/founder/cac', label: 'CAC' },
   { to: '/finance/founder/provider-cost', label: 'Provider Cost' },
   { to: '/finance/founder/leaderboard', label: 'Leaderboard' },
+  { to: '/finance/founder/combo-performance', label: 'Combo Performance' },
 ] as const
 
 export function FounderFinanceLayout() {

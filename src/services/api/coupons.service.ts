@@ -40,7 +40,10 @@ export interface AdminCouponPayload {
   expires_at?: string;
   applicable_to?: 'all' | 'services' | 'products' | 'bookings';
   applicable_categories?: string[];
+  applicable_services?: string[];
   applicable_providers?: string[];
+  /** Quantity-combo floor — e.g. 2 = "book 2 eligible services to unlock". */
+  min_items?: number;
   is_active?: boolean;
 }
 
@@ -108,5 +111,39 @@ export class CouponsService {
 
   static async getCouponStats() {
     return api.get('/coupons/stats', { ...silentRead });
+  }
+
+  static async getSpendTiers() {
+    return api.get<{
+      id?: string
+      isActive: boolean
+      tiers: Array<{
+        minSpend: number
+        discountType: 'percentage' | 'fixed'
+        discountValue: number
+        maxDiscount?: number
+      }>
+    }>('/coupons/spend-tiers', { ...silentRead })
+  }
+
+  static async saveSpendTiers(body: {
+    isActive?: boolean
+    tiers: Array<{
+      minSpend: number
+      discountType: 'percentage' | 'fixed'
+      discountValue: number
+      maxDiscount?: number
+    }>
+  }) {
+    return api.put<{
+      id?: string
+      isActive: boolean
+      tiers: Array<{
+        minSpend: number
+        discountType: 'percentage' | 'fixed'
+        discountValue: number
+        maxDiscount?: number
+      }>
+    }>('/coupons/spend-tiers', body, { showSuccessToast: false })
   }
 }

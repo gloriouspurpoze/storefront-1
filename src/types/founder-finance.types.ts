@@ -116,6 +116,26 @@ export interface FounderProviderLeaderboardRow {
 
 export type ProviderCostStatus = 'ok' | 'overpaid' | 'underpaid'
 
+export interface FounderComboPerformance {
+  from: string
+  to: string
+  totalBookings: number
+  promoBookings: number
+  attachRatePercent: number
+  avgTicketWithPromo: number
+  avgTicketWithoutPromo: number
+  incrementalAov: number
+  totalDiscountGiven: number
+  estimatedCannibalisation: number
+  cannibalisationAssumptionPercent: number
+  byPromoCode: Array<{
+    code: string
+    bookings: number
+    totalDiscount: number
+    avgTicket: number
+  }>
+}
+
 export interface FounderProviderCostRow {
   providerId: string
   name: string

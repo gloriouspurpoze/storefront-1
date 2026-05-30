@@ -571,6 +571,8 @@ const navigationGroups = [
           // Unified discount-code module (was previously split between
           // `/cms/promotions` and `/coupons`). `/cms/promotions` redirects here.
           { name: 'Coupons & promo codes', href: '/coupons', icon: TicketPercent, permissions: ['manage_marketing'] },
+          { name: 'Service bundles', href: '/marketing/service-combos', icon: Layers, permissions: ['manage_marketing'] },
+          { name: 'Cart spend tiers', href: '/marketing/cart-tiers', icon: Sparkles, permissions: ['manage_marketing'] },
           { name: 'Referrals', href: '/referrals', icon: ReferralIcon, permissions: ['manage_marketing'] },
         ],
       },

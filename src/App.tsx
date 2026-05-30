@@ -141,6 +141,9 @@ const ProviderCostPage = lazy(() =>
 const ProviderLeaderboardPage = lazy(() =>
   import('./pages/finance/founder/provider-leaderboard').then((m) => ({ default: m.ProviderLeaderboardPage })),
 )
+const ComboPerformancePage = lazy(() =>
+  import('./pages/finance/founder/combo-performance').then((m) => ({ default: m.ComboPerformancePage })),
+)
 
 const CrmDashboard = lazy(() => import('./pages/crm/crm-dashboard').then((m) => ({ default: m.CrmDashboard })))
 const CrmLeads = lazy(() => import('./pages/crm/crm-leads').then((m) => ({ default: m.CrmLeads })))
@@ -328,6 +331,8 @@ const Sliders = lazy(() => import('./pages/settings/sliders').then((m) => ({ def
 const SystemStatus = lazy(() => import('./pages/settings/system-status'))
 
 const Coupons = lazy(() => import('./pages/marketing/coupons'))
+const CartTiers = lazy(() => import('./pages/marketing/cart-tiers'))
+const ServiceCombos = lazy(() => import('./pages/marketing/service-combos'))
 const Referrals = lazy(() => import('./pages/marketing/referrals'))
 const Support = lazy(() => import('./pages/support/support'))
 const Reports = lazy(() => import('./pages/support/reports'))
@@ -983,6 +988,7 @@ function App() {
                           <Route path="cac" element={<FounderCacPage />} />
                           <Route path="provider-cost" element={<ProviderCostPage />} />
                           <Route path="leaderboard" element={<ProviderLeaderboardPage />} />
+                          <Route path="combo-performance" element={<ComboPerformancePage />} />
                         </Route>
                         <Route path="operating" element={<FinanceOperatingHubPage />} />
                         <Route path="expenses" element={<FinanceExpensesPage />} />
@@ -1280,6 +1286,36 @@ function App() {
                             <Coupons />
                           </RoleBasedRoute>
                         } 
+                      />
+                      <Route
+                        path="/marketing/cart-tiers"
+                        element={
+                          <RoleBasedRoute
+                            permissions={[
+                              'manage_coupons',
+                              'edit_coupons',
+                              'create_coupons',
+                              'view_coupons',
+                            ]}
+                          >
+                            <CartTiers />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/marketing/service-combos"
+                        element={
+                          <RoleBasedRoute
+                            permissions={[
+                              'manage_coupons',
+                              'edit_coupons',
+                              'create_coupons',
+                              'view_coupons',
+                            ]}
+                          >
+                            <ServiceCombos />
+                          </RoleBasedRoute>
+                        }
                       />
                       
                       {/* Referrals */}

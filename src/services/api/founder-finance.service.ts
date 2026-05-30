@@ -10,6 +10,7 @@ import type {
   FounderProviderCostRow,
   FounderProviderLeaderboardRow,
   FounderLeaderboardSortBy,
+  FounderComboPerformance,
   UpdateFounderCacBody,
 } from '../../types/founder-finance.types'
 
@@ -87,5 +88,10 @@ export class FounderFinanceService {
   static getProviderCost(params: { from: string; to: string }) {
     const q = new URLSearchParams({ from: params.from, to: params.to })
     return api.get<FounderProviderCostRow[]>(`/finance/founder/provider-cost?${q}`, silent)
+  }
+
+  static getComboPerformance(params: { from: string; to: string }) {
+    const q = new URLSearchParams({ from: params.from, to: params.to })
+    return api.get<FounderComboPerformance>(`/finance/founder/combo-performance?${q}`, silent)
   }
 }
