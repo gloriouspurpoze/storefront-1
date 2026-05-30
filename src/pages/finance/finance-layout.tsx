@@ -5,6 +5,7 @@ import { PageHeader } from '../../components/common'
 
 const tabs = [
   { to: '/finance/overview', label: 'Overview' },
+  { to: '/finance/founder', label: 'Founder' },
   { to: '/finance/operating', label: 'Operating' },
   { to: '/finance/expenses', label: 'Expenses' },
   { to: '/finance/budgets', label: 'Budgets' },

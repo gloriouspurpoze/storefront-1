@@ -390,6 +390,13 @@ const navigationGroups = [
         badge: null,
       },
       {
+        name: 'Founder Finance',
+        href: '/finance/founder/dashboard',
+        icon: TrendingUpIcon,
+        permissions: ['view_finance'],
+        badge: null,
+      },
+      {
         name: 'Subscriptions',
         href: '/subscriptions',
         icon: SubscriptionsIcon,

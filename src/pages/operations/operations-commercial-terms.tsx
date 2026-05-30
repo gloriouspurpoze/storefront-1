@@ -3,6 +3,14 @@ import { Link } from 'react-router-dom'
 import { BookOpen, Loader2, Save } from 'lucide-react'
 import { OperationsCommercialService } from '../../services/api/operations-commercial.service'
 import type { TenantCommercialTermsDto } from '../../types/operating-commercial.types'
+import type { CommissionSlab } from '../../types/founder-finance.types'
+import {
+  DEFAULT_COMMISSION_SLABS,
+  DEFAULT_MARKETING_ALLOCATION_PERCENT,
+  DEFAULT_REFUND_RESERVE_PERCENT,
+  DEFAULT_SUPPORT_COST_PERCENT,
+} from '../../lib/founderFinanceMath'
+import { CommissionSlabEditor } from '../finance/founder/CommissionSlabEditor'
 import { usePermissions } from '../../hooks/usePermissions'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
@@ -54,6 +62,13 @@ export function OperationsCommercialTermsPage() {
   const [minimumPlatformFeePerBooking, setMinimumPlatformFeePerBooking] = useState('0')
   const [gstPercentOnFees, setGstPercentOnFees] = useState('18')
   const [afterHoursSurchargePercent, setAfterHoursSurchargePercent] = useState('0')
+  const [commissionSlabs, setCommissionSlabs] = useState<CommissionSlab[]>(DEFAULT_COMMISSION_SLABS)
+  const [supportCostPercent, setSupportCostPercent] = useState(String(DEFAULT_SUPPORT_COST_PERCENT))
+  const [refundReservePercent, setRefundReservePercent] = useState(String(DEFAULT_REFUND_RESERVE_PERCENT))
+  const [marketingAllocationPercent, setMarketingAllocationPercent] = useState(
+    String(DEFAULT_MARKETING_ALLOCATION_PERCENT),
+  )
+  const [visitingFeeFixed, setVisitingFeeFixed] = useState('0')
   const [internalNotes, setInternalNotes] = useState('')
 
   useEffect(() => {
@@ -74,6 +89,15 @@ export function OperationsCommercialTermsPage() {
         setMinimumPlatformFeePerBooking(String(t.minimumPlatformFeePerBooking ?? 0))
         setGstPercentOnFees(String(t.gstPercentOnFees ?? 18))
         setAfterHoursSurchargePercent(String(t.afterHoursSurchargePercent ?? 0))
+        setCommissionSlabs(
+          t.commissionSlabs?.length ? t.commissionSlabs : DEFAULT_COMMISSION_SLABS,
+        )
+        setSupportCostPercent(String(t.supportCostPercent ?? DEFAULT_SUPPORT_COST_PERCENT))
+        setRefundReservePercent(String(t.refundReservePercent ?? DEFAULT_REFUND_RESERVE_PERCENT))
+        setMarketingAllocationPercent(
+          String(t.marketingAllocationPercent ?? DEFAULT_MARKETING_ALLOCATION_PERCENT),
+        )
+        setVisitingFeeFixed(String(t.visitingFeeFixed ?? 0))
         setInternalNotes(t.internalNotes ?? '')
       } catch (e: unknown) {
         if (!cancelled) setErr(e instanceof Error ? e.message : 'Failed to load terms')
@@ -101,6 +125,11 @@ export function OperationsCommercialTermsPage() {
         minimumPlatformFeePerBooking: num(minimumPlatformFeePerBooking),
         gstPercentOnFees: num(gstPercentOnFees),
         afterHoursSurchargePercent: num(afterHoursSurchargePercent),
+        commissionSlabs,
+        supportCostPercent: num(supportCostPercent),
+        refundReservePercent: num(refundReservePercent),
+        marketingAllocationPercent: num(marketingAllocationPercent),
+        visitingFeeFixed: num(visitingFeeFixed),
         internalNotes,
       })
     } catch (e: unknown) {
@@ -275,10 +304,30 @@ export function OperationsCommercialTermsPage() {
               disabled={!canManage}
             />
             <FieldHint
-              customer="Small jobs still incur at least this platform fee when the fee path runs — total due may look higher on low-ticket carts."
+              customer="Small jobs still incur at least this platform fee when the fee path runs — total due may look higher on low-ticket carts. Also used by the Pricing Simulator as the flat platform-fee line."
               partner="Protects platform unit economics on small bookings."
             >
               Floor applied to the computed convenience fee (before GST on the fee line).
+            </FieldHint>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="oc-visit">Visiting / inspection fee — flat ({currency})</Label>
+            <Input
+              id="oc-visit"
+              type="number"
+              step="0.01"
+              min={0}
+              value={visitingFeeFixed}
+              onChange={(e) => setVisitingFeeFixed(e.target.value)}
+              disabled={!canManage}
+            />
+            <FieldHint
+              customer="Flat technician-visit charge shown on every booking (Urban Company's ₹49 visit fee model). Industry-standard line item — appears separately on the checkout summary."
+              partner="100% retained by the platform — does NOT enter the provider's slab commission base. Covers travel + diagnostic time."
+            >
+              Used by the Pricing Simulator to model true customer-pays and platform revenue. Set to 0 to omit the
+              line.
             </FieldHint>
           </div>
 
@@ -319,6 +368,56 @@ export function OperationsCommercialTermsPage() {
             >
               Hint for peak / night uplift; POS or catalog modules may consume separately from convenience fee.
             </FieldHint>
+          </div>
+
+          <div className="space-y-4 md:col-span-2 rounded-lg border border-border/80 bg-muted/20 p-4">
+            <p className="text-sm font-medium text-foreground">Founder finance — slab commission &amp; unit costs</p>
+            <p className="text-caption-sm text-muted-foreground">
+              Powers the Pricing Simulator and provider payout modeling. Slabs: below ₹500 → 20%, ₹500–₹999 → 17.5%, ₹1000+
+              → 15%.
+            </p>
+            <CommissionSlabEditor slabs={commissionSlabs} onChange={setCommissionSlabs} disabled={!canManage} />
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="oc-support">Support cost (% of ticket)</Label>
+                <Input
+                  id="oc-support"
+                  type="number"
+                  step="0.1"
+                  min={0}
+                  max={100}
+                  value={supportCostPercent}
+                  onChange={(e) => setSupportCostPercent(e.target.value)}
+                  disabled={!canManage}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="oc-refund">Refund reserve (%)</Label>
+                <Input
+                  id="oc-refund"
+                  type="number"
+                  step="0.1"
+                  min={0}
+                  max={100}
+                  value={refundReservePercent}
+                  onChange={(e) => setRefundReservePercent(e.target.value)}
+                  disabled={!canManage}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="oc-mkt">Marketing allocation (%)</Label>
+                <Input
+                  id="oc-mkt"
+                  type="number"
+                  step="0.1"
+                  min={0}
+                  max={100}
+                  value={marketingAllocationPercent}
+                  onChange={(e) => setMarketingAllocationPercent(e.target.value)}
+                  disabled={!canManage}
+                />
+              </div>
+            </div>
           </div>
 
           <div className="space-y-2 md:col-span-2">

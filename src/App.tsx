@@ -115,6 +115,32 @@ const FinanceReconciliationPage = lazy(() =>
 const FinanceRecurringPage = lazy(() =>
   import('./pages/finance/finance-recurring').then((m) => ({ default: m.FinanceRecurringPage })),
 )
+const FounderFinanceLayout = lazy(() =>
+  import('./pages/finance/founder/founder-finance-layout').then((m) => ({ default: m.FounderFinanceLayout })),
+)
+const FounderFinanceIndexRedirect = lazy(() =>
+  import('./pages/finance/founder/founder-finance-layout').then((m) => ({
+    default: m.FounderFinanceIndexRedirect,
+  })),
+)
+const FounderDashboardPage = lazy(() =>
+  import('./pages/finance/founder/founder-dashboard').then((m) => ({ default: m.FounderDashboardPage })),
+)
+const PricingSimulatorPage = lazy(() =>
+  import('./pages/finance/founder/pricing-simulator').then((m) => ({ default: m.PricingSimulatorPage })),
+)
+const CityPnlPage = lazy(() =>
+  import('./pages/finance/founder/city-pnl').then((m) => ({ default: m.CityPnlPage })),
+)
+const FounderCacPage = lazy(() =>
+  import('./pages/finance/founder/cac').then((m) => ({ default: m.CacPage })),
+)
+const ProviderCostPage = lazy(() =>
+  import('./pages/finance/founder/provider-cost').then((m) => ({ default: m.ProviderCostPage })),
+)
+const ProviderLeaderboardPage = lazy(() =>
+  import('./pages/finance/founder/provider-leaderboard').then((m) => ({ default: m.ProviderLeaderboardPage })),
+)
 
 const CrmDashboard = lazy(() => import('./pages/crm/crm-dashboard').then((m) => ({ default: m.CrmDashboard })))
 const CrmLeads = lazy(() => import('./pages/crm/crm-leads').then((m) => ({ default: m.CrmLeads })))
@@ -949,6 +975,15 @@ function App() {
                       >
                         <Route index element={<FinanceIndexRedirect />} />
                         <Route path="overview" element={<FinanceOverviewPage />} />
+                        <Route path="founder" element={<FounderFinanceLayout />}>
+                          <Route index element={<FounderFinanceIndexRedirect />} />
+                          <Route path="dashboard" element={<FounderDashboardPage />} />
+                          <Route path="simulator" element={<PricingSimulatorPage />} />
+                          <Route path="city-pnl" element={<CityPnlPage />} />
+                          <Route path="cac" element={<FounderCacPage />} />
+                          <Route path="provider-cost" element={<ProviderCostPage />} />
+                          <Route path="leaderboard" element={<ProviderLeaderboardPage />} />
+                        </Route>
                         <Route path="operating" element={<FinanceOperatingHubPage />} />
                         <Route path="expenses" element={<FinanceExpensesPage />} />
                         <Route path="budgets" element={<FinanceBudgetsPage />} />
