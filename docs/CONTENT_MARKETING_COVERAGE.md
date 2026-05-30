@@ -4,6 +4,10 @@ This doc maps **Content & Marketing** in fixer-admin to common market expectatio
 
 ---
 
+
+
+
+
 ## ✅ Covered (in admin)
 
 | Area | Location | Notes |
