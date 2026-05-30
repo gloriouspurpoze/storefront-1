@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+﻿import React, { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowRight,
@@ -139,13 +139,13 @@ export function Reports() {
       </div>
 
       {dashError && (
-        <Card className="border-amber-200 bg-amber-50/80 dark:border-amber-900 dark:bg-amber-950/30">
+        <Card className="border-bloom-coral/40 bg-bloom-rose/80 dark:border-bloom-coral dark:bg-bloom-coral/30">
           <CardContent className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-amber-900 dark:text-amber-100">
+            <p className="text-sm text-bloom-coral dark:text-bloom-deep">
               Snapshot unavailable: {dashError}. Open Analytics or individual modules — tables often include export
               actions when the backend supports them.
             </p>
-            <Button variant="outline" size="sm" className="shrink-0 border-amber-800/30" asChild>
+            <Button variant="outline" size="sm" className="shrink-0 border-bloom-coral/30" asChild>
               <Link to="/analytics">
                 Open analytics <ArrowRight className="ml-1 h-4 w-4" aria-hidden />
               </Link>

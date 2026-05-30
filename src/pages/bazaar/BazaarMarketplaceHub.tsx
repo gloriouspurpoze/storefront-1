@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Store,
@@ -59,15 +59,15 @@ const OFFER_STATUS_FILTERS: { value: string; label: string }[] = [
 
 function offerStatusBadgeClass(status: string) {
   const s = (status || '').toLowerCase()
-  if (s.includes('accept')) return 'border-emerald-500/50 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200'
+  if (s.includes('accept')) return 'border-storm-deep/50 bg-storm-mist/30 text-storm-deep dark:bg-storm-deep/50 dark:text-on-ink'
   if (s.includes('declin') || s.includes('withdraw')) {
     return 'border-destructive/50 bg-destructive/10 text-destructive'
   }
   if (s.includes('expir')) return 'border-border bg-muted text-muted-foreground'
   if (s.includes('counter') || s.includes('pending')) {
-    return 'border-amber-500/50 bg-amber-50 text-amber-900 dark:bg-amber-950/50 dark:text-amber-200'
+    return 'border-bloom-coral/50 bg-bloom-rose text-bloom-coral dark:bg-bloom-coral/50 dark:text-bloom-deep'
   }
-  return 'border-sky-500/50 bg-sky-50 text-sky-900 dark:bg-sky-950/50 dark:text-sky-200'
+  return 'border-primary/50 bg-primary-soft text-primary dark:bg-primary/50 dark:text-primary-deep'
 }
 
 function csvEscape(cell: string) {
@@ -256,7 +256,7 @@ export default function BazaarMarketplaceHub() {
 
       <BazaarGuidanceAccordion />
 
-      <div className="mb-4 rounded-md border border-amber-200 bg-amber-50/80 p-3 text-sm dark:border-amber-900 dark:bg-amber-950/30">
+      <div className="mb-4 rounded-md border border-bloom-coral/40 bg-bloom-rose/80 p-3 text-sm dark:border-bloom-coral dark:bg-bloom-coral/30">
         <p>
           <strong>Peer-to-peer disclaimer:</strong> Payments and handoffs may occur outside this admin app. Ensure
           customer-facing terms, liability, and regional rules (consumer protection, second-hand goods, etc.) are
@@ -264,7 +264,7 @@ export default function BazaarMarketplaceHub() {
         </p>
       </div>
 
-      <div className="mb-4 rounded-md border border-sky-200 bg-sky-50/80 p-3 text-sm dark:border-sky-900 dark:bg-sky-950/30">
+      <div className="mb-4 rounded-md border border-primary/20 bg-primary-soft/80 p-3 text-sm dark:border-primary dark:bg-primary/30">
         <p>
           This page loads read-only data from <strong>GET /api/bazaar/admin/offers</strong> and{' '}
           <strong>GET /api/bazaar/admin/conversations</strong>. Audit trails and enforcement belong in your API and app

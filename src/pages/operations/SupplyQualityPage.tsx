@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+﻿import React, { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Loader2, RefreshCw, Star } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
@@ -117,7 +117,7 @@ export function SupplyQualityPage() {
                       </TableCell>
                       <TableCell>
                         <span className="inline-flex items-center gap-1 tabular-nums">
-                          <Star className="h-3.5 w-3.5 text-amber-500" />
+                          <Star className="h-3.5 w-3.5 text-bloom-coral" />
                           {(pro.rating ?? 0).toFixed(1)}
                           <span className="text-muted-foreground">({pro.totalReviews ?? 0})</span>
                         </span>

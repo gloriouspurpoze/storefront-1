@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ============================================================================
  * PROFESSIONAL STATS WIDGET
  * ============================================================================
@@ -14,6 +14,7 @@ import { Card, CardContent } from '../ui/card'
 import { ProfessionalsService } from '../../services/api/professionals.service'
 import { ProfessionalStats } from '../../types/professional.types'
 import { getProfessionalCategoryLabel } from '../../constants/professionalCategories'
+import { CHART_PALETTE } from '../../lib/chartPalette'
 
 interface ProfessionalStatsWidgetProps {
   onRefresh?: number
@@ -64,8 +65,8 @@ export function ProfessionalStatsWidget({ onRefresh }: ProfessionalStatsWidgetPr
       title: 'Suspended (fleet)',
       value: stats.suspendedProfessionals,
       icon: Clock,
-      color: '#ca8a04',
-      bgColor: '#fefce8',
+      color: CHART_PALETTE.bloomCoral,
+      bgColor: CHART_PALETTE.bloomRose,
     })
   }
   if (stats.blockedProfessionals != null && stats.blockedProfessionals > 0) {
@@ -73,8 +74,8 @@ export function ProfessionalStatsWidget({ onRefresh }: ProfessionalStatsWidgetPr
       title: 'Blocked (fleet)',
       value: stats.blockedProfessionals,
       icon: Users,
-      color: '#b91c1c',
-      bgColor: '#fef2f2',
+      color: CHART_PALETTE.bloomDeep,
+      bgColor: CHART_PALETTE.bloomRose,
     })
   }
   if (stats.inactiveProfessionals != null && stats.inactiveProfessionals > 0) {
@@ -82,8 +83,8 @@ export function ProfessionalStatsWidget({ onRefresh }: ProfessionalStatsWidgetPr
       title: 'Inactive (fleet)',
       value: stats.inactiveProfessionals,
       icon: Users,
-      color: '#64748b',
-      bgColor: '#f8fafc',
+      color: CHART_PALETTE.graphite,
+      bgColor: CHART_PALETTE.cloud,
     })
   }
 
@@ -98,29 +99,29 @@ export function ProfessionalStatsWidget({ onRefresh }: ProfessionalStatsWidgetPr
       title: 'Total Professionals',
       value: stats.totalProfessionals,
       icon: Users,
-      color: '#2563eb',
-      bgColor: '#eff6ff',
+      color: CHART_PALETTE.primary,
+      bgColor: CHART_PALETTE.primarySoft,
     },
     {
       title: 'Verified',
       value: stats.verifiedProfessionals,
       icon: CheckCircle,
-      color: '#16a34a',
-      bgColor: '#f0fdf4',
+      color: CHART_PALETTE.stormDeep,
+      bgColor: CHART_PALETTE.stormMist,
     },
     {
       title: 'Available',
       value: stats.availableProfessionals,
       icon: Clock,
-      color: '#ea580c',
-      bgColor: '#fff7ed',
+      color: CHART_PALETTE.bloomCoral,
+      bgColor: CHART_PALETTE.bloomRose,
     },
     {
       title: 'Average Rating',
       value: stats.averageRating.toFixed(1),
       icon: Star,
-      color: '#eab308',
-      bgColor: '#fef9e7',
+      color: CHART_PALETTE.bloomCoral,
+      bgColor: CHART_PALETTE.bloomRose,
     },
   ]
 
@@ -165,7 +166,7 @@ export function ProfessionalStatsWidget({ onRefresh }: ProfessionalStatsWidgetPr
           {moderationCards.map((stat, index) => {
             const Icon = stat.icon
             return (
-              <Card key={`mod-${index}`} className="border-amber-200/80">
+              <Card key={`mod-${index}`} className="border-bloom-coral/80">
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between gap-2">
                     <div>

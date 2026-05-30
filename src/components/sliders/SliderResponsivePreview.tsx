@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import { Monitor, Smartphone } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { normalizeSliderMediaType, type SliderPreviewSources } from '../../lib/sliderMedia'
@@ -138,11 +138,11 @@ function MobileAppFrame({ children }: { children: React.ReactNode }) {
         Mobile app · 2.1:1 hero
       </div>
 
-      <div className="w-full overflow-hidden rounded-[2rem] border-[7px] border-zinc-800 bg-zinc-900 shadow-xl dark:border-zinc-700">
+      <div className="w-full overflow-hidden rounded-[2rem] border-[7px] border-ink-soft bg-ink shadow-xl dark:border-charcoal">
         {/* Status / notch */}
-        <div className="relative flex h-7 items-end justify-center bg-zinc-900 pb-1">
+        <div className="relative flex h-7 items-end justify-center bg-ink pb-1">
           <div className="absolute left-1/2 top-1.5 h-[18px] w-[72px] -translate-x-1/2 rounded-full bg-black" />
-          <span className="relative z-[1] text-[9px] font-medium text-zinc-500">9:41</span>
+          <span className="relative z-[1] text-[9px] font-medium text-graphite">9:41</span>
         </div>
 
         {/* App content */}
@@ -177,8 +177,8 @@ function MobileAppFrame({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Home indicator */}
-        <div className="flex justify-center bg-zinc-900 py-2">
-          <div className="h-1 w-[100px] rounded-full bg-zinc-600" />
+        <div className="flex justify-center bg-ink py-2">
+          <div className="h-1 w-[100px] rounded-full bg-graphite" />
         </div>
       </div>
     </div>

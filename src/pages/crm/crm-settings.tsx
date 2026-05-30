@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+﻿import React, { useCallback, useEffect, useState } from 'react'
 import { AlertCircle, CheckCircle2, Cloud, Link2, ListChecks, RefreshCw, Shield } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { CrmSubnav } from '../../components/crm/CrmSubnav'
@@ -234,8 +234,8 @@ export function CrmSettings() {
         className={cn(
           'mb-4 rounded-md border px-4 py-3 text-sm',
           isApi
-            ? 'border-emerald-600/40 bg-emerald-600/10 text-emerald-950 dark:text-emerald-100'
-            : 'border-amber-600/40 bg-amber-600/10 text-amber-950 dark:text-amber-100',
+            ? 'border-storm-deep/40 bg-storm-deep/10 text-storm-deep dark:text-on-ink'
+            : 'border-bloom-coral/40 bg-bloom-coral/10 text-bloom-coral dark:text-bloom-deep',
         )}
       >
         {isApi ? (
@@ -305,7 +305,7 @@ export function CrmSettings() {
               {status && !integrationError ? (
                 <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
                   <CheckCircle2
-                    className={cn('h-4 w-4 shrink-0', status.googleConnected ? 'text-emerald-600' : 'text-muted-foreground')}
+                    className={cn('h-4 w-4 shrink-0', status.googleConnected ? 'text-storm-deep' : 'text-muted-foreground')}
                     aria-hidden
                   />
                   <span>
@@ -323,7 +323,7 @@ export function CrmSettings() {
               {syncMsg ? (
                 <div
                   role="status"
-                  className="mb-4 rounded-md border border-sky-500/40 bg-sky-500/10 px-4 py-2 text-sm text-sky-900 dark:text-sky-100"
+                  className="mb-4 rounded-md border border-primary/40 bg-primary/10 px-4 py-2 text-sm text-primary dark:text-primary-deep"
                 >
                   {syncMsg}
                 </div>
@@ -450,7 +450,7 @@ export function CrmSettings() {
             'fixed bottom-4 left-1/2 z-[200] w-[min(100%,24rem)] -translate-x-1/2 rounded-md border px-4 py-2 text-sm shadow-md',
             snackbar.severity === 'error'
               ? 'border-destructive bg-destructive text-destructive-foreground'
-              : 'border-emerald-600 bg-emerald-600 text-white',
+              : 'border-storm-deep bg-storm-deep text-white',
           )}
         >
           {snackbar.message}

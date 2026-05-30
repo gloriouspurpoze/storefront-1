@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+﻿import React, { useCallback, useEffect, useState } from 'react'
 import {
   Button,
   Input,
@@ -301,7 +301,7 @@ export function OrderDetailDrawer({ open, orderId, onClose, onUpdated, canEdit }
                     <p className="text-xs text-muted-foreground">Total</p>
                     <p className="text-lg font-bold">{formatCurrency(order.totalAmount)}</p>
                     {order.discountAmount > 0 && (
-                      <p className="text-xs text-emerald-600">
+                      <p className="text-xs text-storm-deep">
                         Discount {formatCurrency(order.discountAmount)}
                         {order.couponCode ? ` (${order.couponCode})` : ''}
                       </p>

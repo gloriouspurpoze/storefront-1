@@ -1,4 +1,4 @@
-/**
+﻿/**
  * BlogEditor — blog form with live word count, checklist, SEO score, and keyword table (same tick of React as your typing).
  *
  * Dependencies (install if missing):
@@ -168,9 +168,9 @@ function fleschImprovementHints(score: number): string[] {
 /** Traffic-light style for on-page SEO score (editorial heuristic, not a Google metric). */
 function seoScorePresentation(score: number): { label: string; bar: string; text: string } {
   const s = Math.min(100, Math.max(0, Math.round(score)))
-  if (s >= 80) return { label: 'Strong', bar: 'bg-emerald-500', text: 'text-emerald-700' }
-  if (s >= 50) return { label: 'Needs polish', bar: 'bg-amber-500', text: 'text-amber-700' }
-  return { label: 'Weak', bar: 'bg-red-500', text: 'text-red-700' }
+  if (s >= 80) return { label: 'Strong', bar: 'bg-storm-deep', text: 'text-storm-deep' }
+  if (s >= 50) return { label: 'Needs polish', bar: 'bg-bloom-coral', text: 'text-bloom-coral' }
+  return { label: 'Weak', bar: 'bg-destructive', text: 'text-destructive' }
 }
 
 // --- Parse Quill HTML for structure metrics ----------------------------------
@@ -1389,7 +1389,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
       }
     }
     if (!previewStructuredAppendix) return inner
-    return `${inner}<div class="mt-8 border-t border-slate-200 pt-6">${previewStructuredAppendix}</div>`
+    return `${inner}<div class="mt-8 border-t border-fog pt-6">${previewStructuredAppendix}</div>`
   }, [
     contentHtml,
     previewPurifyConfig,
@@ -1711,7 +1711,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
 
   if (loadState === 'loading') {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center bg-slate-50 text-slate-600">
+      <div className="flex min-h-[50vh] items-center justify-center bg-cloud text-graphite">
         Loading post…
       </div>
     )
@@ -1720,12 +1720,12 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
   if (loadState === 'error' && postId) {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
-        <p className="text-slate-700">Could not load this post.</p>
+        <p className="text-charcoal">Could not load this post.</p>
         {onCancel && (
           <button
             type="button"
             onClick={onCancel}
-            className="mt-4 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium hover:bg-slate-50"
+            className="mt-4 rounded-lg border border-steel bg-white px-4 py-2 text-sm font-medium hover:bg-cloud"
           >
             Back to blog posts
           </button>
@@ -1735,7 +1735,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-slate-50 to-slate-100/90 text-slate-900">
+    <div className="min-h-screen bg-gradient-to-b from-cloud via-cloud to-fog/90 text-ink">
       <div className="mx-auto max-w-[1400px] px-4 py-8">
         <header className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-wrap items-start gap-3">
@@ -1743,43 +1743,43 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
               <button
                 type="button"
                 onClick={onCancel}
-                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+                className="rounded-lg border border-steel bg-white px-3 py-2 text-sm font-medium text-charcoal shadow-sm hover:bg-cloud"
               >
                 ← Back
               </button>
             )}
             <div>
               <h1 className="text-2xl font-semibold tracking-tight">{postId ? 'Edit post' : 'New post'}</h1>
-              <p className="text-sm text-slate-600">
-                Editorial workspace for <strong className="font-medium text-slate-800">my.profixer.in</strong> — live SEO score, technical metadata,
+              <p className="text-sm text-graphite">
+                Editorial workspace for <strong className="font-medium text-ink-soft">my.profixer.in</strong> — live SEO score, technical metadata,
                 structured data preview, and checklist aligned with how modern content teams ship URLs, snippets, and rich results.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => setPreviewOpen(true)}
-                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+                  className="rounded-lg border border-steel bg-white px-3 py-1.5 text-xs font-medium text-charcoal shadow-sm hover:bg-cloud"
                 >
                   Preview
                 </button>
                 <button
                   type="button"
                   onClick={handleExportTxt}
-                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+                  className="rounded-lg border border-steel bg-white px-3 py-1.5 text-xs font-medium text-charcoal shadow-sm hover:bg-cloud"
                 >
                   Export .txt
                 </button>
                 <button
                   type="button"
                   onClick={handleExportHtml}
-                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+                  className="rounded-lg border border-steel bg-white px-3 py-1.5 text-xs font-medium text-charcoal shadow-sm hover:bg-cloud"
                 >
                   Export .html
                 </button>
                 <button
                   type="button"
                   onClick={handlePrintPdf}
-                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+                  className="rounded-lg border border-steel bg-white px-3 py-1.5 text-xs font-medium text-charcoal shadow-sm hover:bg-cloud"
                 >
                   Print / PDF
                 </button>
@@ -1787,12 +1787,12 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             </div>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-            <label className="flex items-center gap-2 text-sm text-slate-600">
+            <label className="flex items-center gap-2 text-sm text-graphite">
               <span className="whitespace-nowrap">Status</span>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as BlogPostStatus)}
-                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="rounded-lg border border-steel bg-white px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 <option value="draft">Draft</option>
                 <option value="published">Published</option>
@@ -1805,7 +1805,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                 type="datetime-local"
                 value={scheduledLocal}
                 onChange={(e) => setScheduledLocal(e.target.value)}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="rounded-lg border border-steel px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             )}
             <div className="flex flex-wrap gap-2">
@@ -1813,7 +1813,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                 type="button"
                 onClick={() => void handleSave()}
                 disabled={submitting}
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-slate-50 disabled:opacity-50"
+                className="rounded-lg border border-steel bg-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-cloud disabled:opacity-50"
               >
                 {submitting ? 'Saving…' : 'Save'}
               </button>
@@ -1821,7 +1821,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                 type="button"
                 onClick={quickSaveDraft}
                 disabled={submitting}
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-slate-50 disabled:opacity-50"
+                className="rounded-lg border border-steel bg-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-cloud disabled:opacity-50"
               >
                 Save draft
               </button>
@@ -1829,7 +1829,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                 type="button"
                 onClick={quickPublish}
                 disabled={submitting}
-                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary disabled:opacity-50"
               >
                 Publish
               </button>
@@ -1838,14 +1838,14 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
         </header>
 
         {saveMessage && (
-          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800">{saveMessage}</div>
+          <div className="mb-4 rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-2 text-sm text-destructive">{saveMessage}</div>
         )}
 
-        <div className="mb-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-6 rounded-xl border border-fog bg-white p-4 shadow-sm">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Overall completion</p>
-              <p className="mt-0.5 text-sm text-slate-600">
+              <p className="text-xs font-semibold uppercase tracking-wide text-graphite">Overall completion</p>
+              <p className="mt-0.5 text-sm text-graphite">
                 {plagiarismResult ? (
                   <>
                     Weighted blend: 45% checklist · 30% SEO · 12% word target &amp; readability · 13% scan originality
@@ -1859,13 +1859,13 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
               </p>
             </div>
             <div className="flex shrink-0 items-baseline gap-2 sm:text-right">
-              <span className="text-3xl font-bold tabular-nums text-indigo-700">{overallCompletion}</span>
-              <span className="text-lg font-semibold text-indigo-600">%</span>
+              <span className="text-3xl font-bold tabular-nums text-primary">{overallCompletion}</span>
+              <span className="text-lg font-semibold text-primary">%</span>
             </div>
           </div>
-          <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-slate-100">
+          <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-fog">
             <div
-              className="h-full rounded-full bg-indigo-600 transition-all duration-300"
+              className="h-full rounded-full bg-primary transition-all duration-300"
               style={{ width: `${overallCompletion}%` }}
             />
           </div>
@@ -1874,7 +1874,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
         <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,26rem)]">
           <div className="flex min-w-0 flex-col gap-3">
             <div
-              className="flex flex-wrap gap-1 rounded-xl border border-slate-200 bg-slate-100/90 p-1 shadow-sm"
+              className="flex flex-wrap gap-1 rounded-xl border border-fog bg-fog/90 p-1 shadow-sm"
               role="tablist"
               aria-label="Blog editor sections"
             >
@@ -1893,8 +1893,8 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                   onClick={() => setEditorWorkspaceTab(tab.id)}
                   className={`rounded-lg px-3 py-2 text-xs font-semibold transition-colors sm:text-sm ${
                     editorWorkspaceTab === tab.id
-                      ? 'bg-white text-indigo-900 shadow-sm ring-1 ring-slate-200/80'
-                      : 'text-slate-600 hover:bg-white/70 hover:text-slate-900'
+                      ? 'bg-white text-primary shadow-sm ring-1 ring-fog/80'
+                      : 'text-graphite hover:bg-white/70 hover:text-ink'
                   }`}
                 >
                   {tab.label}
@@ -1902,12 +1902,12 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
               ))}
             </div>
 
-          <div className="space-y-6 rounded-xl border border-slate-200/90 bg-white p-6 shadow-md ring-1 ring-slate-100">
+          <div className="space-y-6 rounded-xl border border-fog/90 bg-white p-6 shadow-md ring-1 ring-fog">
             <div className={editorWorkspaceTab !== 'basics' ? 'hidden' : 'space-y-6'}>
-            <div className="rounded-lg border border-indigo-200/80 bg-gradient-to-r from-indigo-50/95 to-white px-4 py-3 text-sm text-slate-700 shadow-sm">
-              <p className="font-semibold text-indigo-950">Industry publishing — ProFixer blog</p>
-              <p className="mt-1 text-xs leading-relaxed text-slate-600">
-                Primary URL preview defaults to <strong className="text-slate-800">https://www.profixer.in/blog</strong> (override with{' '}
+            <div className="rounded-lg border border-primary/80 bg-gradient-to-r from-primary-soft/95 to-white px-4 py-3 text-sm text-charcoal shadow-sm">
+              <p className="font-semibold text-primary">Industry publishing — ProFixer blog</p>
+              <p className="mt-1 text-xs leading-relaxed text-graphite">
+                Primary URL preview defaults to <strong className="text-ink-soft">https://www.profixer.in/blog</strong> (override with{' '}
                 <code className="rounded bg-white px-1 font-mono text-[11px]">REACT_APP_PUBLIC_SITE_ORIGIN</code>). Extra{' '}
                 <code className="rounded bg-white px-1 font-mono text-[11px]">seo.*</code> keys are safe to store; backends that do not persist them yet
                 can ignore unknown fields.
@@ -1916,7 +1916,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             <div>
               <label className="mb-1 block text-sm font-medium">Blog title</label>
               <input
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-lg border border-steel px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 value={title}
                 onChange={(e) => onTitleChange(e.target.value)}
                 placeholder="How to …"
@@ -1925,16 +1925,16 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
               />
               <div
                 id="blog-title-stats"
-                className="mt-1 flex flex-col gap-0.5 text-xs text-slate-500 sm:flex-row sm:items-start sm:justify-between"
+                className="mt-1 flex flex-col gap-0.5 text-xs text-graphite sm:flex-row sm:items-start sm:justify-between"
               >
                 <span>
                   On-page headline (often the template H1). Aim for a tight phrase; many sites keep titles under ~{BLOG_TITLE_SOFT_MAX_CHARS}{' '}
-                  characters and roughly <strong className="font-medium text-slate-600">6–12 words</strong> for readability in SERPs and social
+                  characters and roughly <strong className="font-medium text-graphite">6–12 words</strong> for readability in SERPs and social
                   cards.
                 </span>
-                <span className="shrink-0 tabular-nums text-slate-700">
+                <span className="shrink-0 tabular-nums text-charcoal">
                   <span className="font-medium">{blogTitleWordCount}</span> {blogTitleWordCount === 1 ? 'word' : 'words'}
-                  <span className="mx-1.5 text-slate-300">·</span>
+                  <span className="mx-1.5 text-steel">·</span>
                   {titleLen} / {BLOG_TITLE_SOFT_MAX_CHARS} chars
                 </span>
               </div>
@@ -1943,13 +1943,13 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             <div>
               <label className="mb-1 block text-sm font-medium">SEO title (optional)</label>
               <input
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-lg border border-steel px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 value={seoTitle}
                 onChange={(e) => setSeoTitle(e.target.value)}
                 placeholder="Leave blank to use the blog title in search results"
                 maxLength={SEO_TITLE_HARD_MAX_CHARS}
               />
-              <div className="mt-1 flex flex-col gap-0.5 text-xs text-slate-500 sm:flex-row sm:justify-between">
+              <div className="mt-1 flex flex-col gap-0.5 text-xs text-graphite sm:flex-row sm:justify-between">
                 <span>
                   &lt;title&gt; / SERP: industry band ~{SEO_TITLE_MIN_CHARS}–{SEO_TITLE_OPTIMAL_MAX_CHARS} chars (max {SEO_TITLE_HARD_MAX_CHARS}).
                 </span>
@@ -1962,7 +1962,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             <div>
               <label className="mb-1 block text-sm font-medium">URL slug</label>
               <input
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-lg border border-steel px-3 py-2 font-mono text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 value={slug}
                 onChange={(e) => {
                   setSlugTouched(true)
@@ -1970,20 +1970,20 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                 }}
                 placeholder="auto-from-title"
               />
-              <p className="mt-1 text-xs text-slate-500">Generated from the title until you edit this field.</p>
+              <p className="mt-1 text-xs text-graphite">Generated from the title until you edit this field.</p>
             </div>
 
             <div>
               <label className="mb-1 block text-sm font-medium">Meta description</label>
               <textarea
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-lg border border-steel px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 rows={3}
                 value={metaDescription}
                 onChange={(e) => setMetaDescription(e.target.value)}
                 maxLength={META_DESC_HARD_MAX_CHARS}
                 placeholder="Search result snippet…"
               />
-              <div className="mt-1 flex flex-col gap-0.5 text-xs text-slate-500 sm:flex-row sm:justify-between">
+              <div className="mt-1 flex flex-col gap-0.5 text-xs text-graphite sm:flex-row sm:justify-between">
                 <span>
                   Google often shows ~{META_DESC_MIN_CHARS}–{META_DESC_OPTIMAL_MAX_CHARS} characters — put the hook in the first sentence.
                 </span>
@@ -1993,11 +1993,11 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
               </div>
             </div>
 
-            <div className="rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50/50 via-white to-slate-50/90 p-5 shadow-sm ring-1 ring-indigo-100/70">
+            <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary-soft/50 via-white to-cloud/90 p-5 shadow-sm ring-1 ring-primary-soft/70">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-sm font-semibold text-indigo-950">Technical SEO &amp; social metadata</h2>
-                  <p className="mt-1 max-w-prose text-xs leading-relaxed text-slate-600">
+                  <h2 className="text-sm font-semibold text-primary">Technical SEO &amp; social metadata</h2>
+                  <p className="mt-1 max-w-prose text-xs leading-relaxed text-graphite">
                     Maps to extended <code className="rounded bg-white px-1 font-mono text-[11px]">seo</code> on the post. Your consumer app should emit{' '}
                     <code className="font-mono text-[11px]">link rel=&quot;canonical&quot;</code>, <code className="font-mono text-[11px]">meta name=&quot;robots&quot;</code>,{' '}
                     <code className="font-mono text-[11px]">og:*</code> / <code className="font-mono text-[11px]">twitter:*</code>, and JSON-LD from the same
@@ -2007,60 +2007,60 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                 <button
                   type="button"
                   onClick={() => setBlogCanonicalUrl(computedPublicPageUrl)}
-                  className="shrink-0 rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-xs font-medium text-indigo-800 shadow-sm hover:bg-indigo-50"
+                  className="shrink-0 rounded-lg border border-primary/20 bg-white px-3 py-1.5 text-xs font-medium text-primary shadow-sm hover:bg-primary-soft"
                 >
                   Fill canonical from preview URL
                 </button>
               </div>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
-                  <label className="mb-1 block text-xs font-medium text-slate-700">Canonical URL (optional)</label>
+                  <label className="mb-1 block text-xs font-medium text-charcoal">Canonical URL (optional)</label>
                   <input
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full rounded-lg border border-steel px-3 py-2 font-mono text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                     value={blogCanonicalUrl}
                     onChange={(e) => setBlogCanonicalUrl(e.target.value)}
                     placeholder={`${publicSiteOrigin}/blog/your-slug`}
                   />
-                  <p className="mt-1 text-[11px] text-slate-500">Prefer HTTPS absolute URLs on the host you want indexed.</p>
+                  <p className="mt-1 text-[11px] text-graphite">Prefer HTTPS absolute URLs on the host you want indexed.</p>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-700">Open Graph title override</label>
+                  <label className="mb-1 block text-xs font-medium text-charcoal">Open Graph title override</label>
                   <input
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full rounded-lg border border-steel px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                     value={blogOgTitle}
                     onChange={(e) => setBlogOgTitle(e.target.value)}
                     placeholder="Leave blank → SEO title / blog title"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-700">Open Graph type</label>
+                  <label className="mb-1 block text-xs font-medium text-charcoal">Open Graph type</label>
                   <select
                     value={blogOgType}
                     onChange={(e) => setBlogOgType(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full rounded-lg border border-steel bg-white px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   >
                     <option value="article">article</option>
                     <option value="website">website</option>
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-700">Twitter / X card</label>
+                  <label className="mb-1 block text-xs font-medium text-charcoal">Twitter / X card</label>
                   <select
                     value={blogTwitterCard}
                     onChange={(e) => setBlogTwitterCard(e.target.value as 'summary' | 'summary_large_image')}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full rounded-lg border border-steel bg-white px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   >
                     <option value="summary_large_image">summary_large_image (recommended with hero)</option>
                     <option value="summary">summary</option>
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-700">Allow search engines to index</label>
-                  <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                  <label className="mb-1 block text-xs font-medium text-charcoal">Allow search engines to index</label>
+                  <div className="flex items-start gap-3 rounded-lg border border-fog bg-cloud px-3 py-2">
                     <label className="inline-flex cursor-pointer items-center gap-2">
                       <input
                         type="checkbox"
-                        className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                        className="h-4 w-4 rounded border-steel text-primary focus:ring-primary"
                         checked={blogAllowIndexing}
                         onChange={(e) => {
                           const next = e.target.checked
@@ -2076,25 +2076,25 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                           }
                         }}
                       />
-                      <span className="text-sm font-medium text-slate-800">
+                      <span className="text-sm font-medium text-ink-soft">
                         {blogAllowIndexing ? 'Indexable (included in /sitemaps/blog.xml)' : 'Hidden from search engines'}
                       </span>
                     </label>
                   </div>
-                  <p className="mt-1 text-[11px] text-slate-500">
+                  <p className="mt-1 text-[11px] text-graphite">
                     Maps to the consumer-site <code className="font-mono">blogQualityGate</code>:
                     when off, the post is excluded from the blog sitemap even if published.
                   </p>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-700">Robots meta override (optional)</label>
+                  <label className="mb-1 block text-xs font-medium text-charcoal">Robots meta override (optional)</label>
                   <input
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full rounded-lg border border-steel px-3 py-2 font-mono text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                     value={blogRobotsMeta}
                     onChange={(e) => setBlogRobotsMeta(e.target.value)}
                     placeholder="index, follow"
                   />
-                  <p className="mt-1 text-[11px] text-slate-500">
+                  <p className="mt-1 text-[11px] text-graphite">
                     Advanced: write a custom directive (e.g. <code className="font-mono">noindex, follow</code> or{' '}
                     <code className="font-mono">max-snippet:-1, max-image-preview:large</code>). Leave empty to let the
                     toggle above drive the meta tag.
@@ -2104,65 +2104,65 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             </div>
 
             <div>
-              <p className="mb-2 text-sm font-medium text-slate-800">Featured image</p>
-              <p className="mb-3 text-xs text-slate-600">
+              <p className="mb-2 text-sm font-medium text-ink-soft">Featured image</p>
+              <p className="mb-3 text-xs text-graphite">
                 Upload limit {formatImageSizeCap(BLOG_IMAGE_MAX_FILE_BYTES)} per file (industry: compress heroes to ~{formatImageSizeCap(BLOG_IMAGE_RECOMMENDED_MAX_BYTES)} or less for Core Web Vitals / LCP).
               </p>
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="sm:col-span-1">
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Image URL</label>
+                  <label className="mb-1 block text-xs font-medium text-graphite">Image URL</label>
                   <input
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full rounded-lg border border-steel px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                     value={featuredImageUrl}
                     onChange={(e) => setFeaturedImageUrl(e.target.value)}
                     placeholder="https://…"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Upload to Cloudinary</label>
+                  <label className="mb-1 block text-xs font-medium text-graphite">Upload to Cloudinary</label>
                   <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFeaturedFile} />
                   <button
                     type="button"
                     disabled={featuredUploading}
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-full rounded-lg border border-dashed border-slate-300 px-3 py-2 text-sm text-slate-600 hover:border-indigo-400 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="w-full rounded-lg border border-dashed border-steel px-3 py-2 text-sm text-graphite hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {featuredUploading ? 'Uploading…' : 'Choose file…'}
                   </button>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">From library</label>
+                  <label className="mb-1 block text-xs font-medium text-graphite">From library</label>
                   <button
                     type="button"
                     onClick={() => {
                       setCloudinaryPickerFor('featured')
                       setCloudinaryPickerOpen(true)
                     }}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-indigo-700 shadow-sm hover:bg-indigo-50"
+                    className="w-full rounded-lg border border-steel bg-white px-3 py-2 text-sm font-medium text-primary shadow-sm hover:bg-primary-soft"
                   >
                     Choose from Cloudinary
                   </button>
                 </div>
               </div>
               <div className="mt-3">
-                <label className="mb-1 block text-sm font-medium text-slate-800">
+                <label className="mb-1 block text-sm font-medium text-ink-soft">
                   Featured image alt text
-                  {featuredPresent && <span className="font-normal text-red-600"> *</span>}
+                  {featuredPresent && <span className="font-normal text-destructive"> *</span>}
                 </label>
                 <input
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full rounded-lg border border-steel px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   value={featuredImageAlt}
                   onChange={(e) => setFeaturedImageAlt(e.target.value)}
                   placeholder="Describe the image for accessibility and SEO"
                   aria-required={featuredPresent}
                 />
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-graphite">
                   Required when you publish or schedule and a featured image is set. Body images get alt text when you insert them.
                 </p>
               </div>
             </div>
             {featuredImageUrl.trim() && (
-              <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+              <div className="overflow-hidden rounded-lg border border-fog bg-fog">
                 <img
                   src={featuredImageUrl.trim()}
                   alt={featuredImageAlt.trim() || 'Featured image preview'}
@@ -2176,7 +2176,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
               <select
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-lg border border-steel bg-white px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 <option value="">Uncategorized</option>
                 {cmsCategories.map((c) => (
@@ -2189,11 +2189,11 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
 
             <div className="flex flex-wrap gap-6">
               <label className="inline-flex cursor-pointer items-center gap-2 text-sm">
-                <input type="checkbox" className="rounded border-slate-300" checked={isFeatured} onChange={(e) => setIsFeatured(e.target.checked)} />
+                <input type="checkbox" className="rounded border-steel" checked={isFeatured} onChange={(e) => setIsFeatured(e.target.checked)} />
                 Featured post
               </label>
               <label className="inline-flex cursor-pointer items-center gap-2 text-sm">
-                <input type="checkbox" className="rounded border-slate-300" checked={allowComments} onChange={(e) => setAllowComments(e.target.checked)} />
+                <input type="checkbox" className="rounded border-steel" checked={allowComments} onChange={(e) => setAllowComments(e.target.checked)} />
                 Allow comments
               </label>
             </div>
@@ -2201,7 +2201,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             <div>
               <label className="mb-1 block text-sm font-medium">Tags</label>
               <input
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-lg border border-steel px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 value={tagsInput}
                 onChange={(e) => setTagsInput(e.target.value)}
                 placeholder="seo, content, product (comma-separated)"
@@ -2212,14 +2212,14 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
               <label className="mb-1 block text-sm font-medium">Related products</label>
               <div className="flex gap-2">
                 <input
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full rounded-lg border border-steel px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   value={relatedProductSearch}
                   onChange={(e) => setRelatedProductSearch(e.target.value)}
                   placeholder="Search products to link…"
                 />
                 <button
                   type="button"
-                  className="shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm hover:bg-slate-50"
+                  className="shrink-0 rounded-lg border border-steel bg-white px-3 py-2 text-sm shadow-sm hover:bg-cloud"
                   onClick={() => setRelatedProductSearch('')}
                 >
                   Clear
@@ -2227,19 +2227,19 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
               </div>
 
               {relatedProductLoading && (
-                <p className="mt-1 text-xs text-slate-500">Searching…</p>
+                <p className="mt-1 text-xs text-graphite">Searching…</p>
               )}
 
               {relatedProductOptions.length > 0 && (
-                <div className="mt-2 max-h-40 overflow-auto rounded-lg border border-slate-200 bg-white">
+                <div className="mt-2 max-h-40 overflow-auto rounded-lg border border-fog bg-white">
                   {relatedProductOptions.map((p) => {
                     const selected = relatedProductIds.includes(p.id)
                     return (
                       <button
                         key={p.id}
                         type="button"
-                        className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-slate-50 ${
-                          selected ? 'bg-indigo-50' : ''
+                        className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-cloud ${
+                          selected ? 'bg-primary-soft' : ''
                         }`}
                         onClick={() => {
                           setRelatedProductIds((prev) =>
@@ -2255,7 +2255,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                         }}
                       >
                         <span className="min-w-0 flex-1 truncate">{p.name}</span>
-                        <span className="shrink-0 text-xs text-slate-500">
+                        <span className="shrink-0 text-xs text-graphite">
                           {selected ? 'Linked' : 'Link'}
                         </span>
                       </button>
@@ -2269,12 +2269,12 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                   {relatedProductIds.map((id) => (
                     <span
                       key={id}
-                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs"
+                      className="inline-flex items-center gap-2 rounded-full border border-fog bg-white px-2.5 py-1 text-xs"
                     >
-                      <span className="font-medium text-slate-700">{linkedProductNames[id] || id}</span>
+                      <span className="font-medium text-charcoal">{linkedProductNames[id] || id}</span>
                       <button
                         type="button"
-                        className="rounded-full px-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                        className="rounded-full px-1 text-graphite hover:bg-fog hover:text-charcoal"
                         onClick={() => {
                           setRelatedProductIds((prev) => prev.filter((x) => x !== id))
                           setLinkedProductNames((prev) => {
@@ -2291,7 +2291,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                 </div>
               )}
 
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-graphite">
                 These are stored on the post and can be used to render “Related products” blocks on the public blog / product pages.
               </p>
             </div>
@@ -2300,30 +2300,30 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
               <label className="mb-1 block text-sm font-medium">Related platform services</label>
               <div className="flex gap-2">
                 <input
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full rounded-lg border border-steel px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   value={relatedServiceSearch}
                   onChange={(e) => setRelatedServiceSearch(e.target.value)}
                   placeholder="Search bookable services to link…"
                 />
                 <button
                   type="button"
-                  className="shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm hover:bg-slate-50"
+                  className="shrink-0 rounded-lg border border-steel bg-white px-3 py-2 text-sm shadow-sm hover:bg-cloud"
                   onClick={() => setRelatedServiceSearch('')}
                 >
                   Clear
                 </button>
               </div>
-              {relatedServiceLoading && <p className="mt-1 text-xs text-slate-500">Searching…</p>}
+              {relatedServiceLoading && <p className="mt-1 text-xs text-graphite">Searching…</p>}
               {relatedServiceOptions.length > 0 && (
-                <div className="mt-2 max-h-40 overflow-auto rounded-lg border border-slate-200 bg-white">
+                <div className="mt-2 max-h-40 overflow-auto rounded-lg border border-fog bg-white">
                   {relatedServiceOptions.map((s) => {
                     const selected = relatedServiceIds.includes(s.id)
                     return (
                       <button
                         key={s.id}
                         type="button"
-                        className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-slate-50 ${
-                          selected ? 'bg-indigo-50' : ''
+                        className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-cloud ${
+                          selected ? 'bg-primary-soft' : ''
                         }`}
                         onClick={() => {
                           setRelatedServiceIds((prev) =>
@@ -2339,7 +2339,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                         }}
                       >
                         <span className="min-w-0 flex-1 truncate">{s.name}</span>
-                        <span className="shrink-0 text-xs text-slate-500">{selected ? 'Linked' : 'Link'}</span>
+                        <span className="shrink-0 text-xs text-graphite">{selected ? 'Linked' : 'Link'}</span>
                       </button>
                     )
                   })}
@@ -2350,12 +2350,12 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                   {relatedServiceIds.map((id) => (
                     <span
                       key={id}
-                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs"
+                      className="inline-flex items-center gap-2 rounded-full border border-fog bg-white px-2.5 py-1 text-xs"
                     >
-                      <span className="font-medium text-slate-700">{linkedServiceNames[id] || id}</span>
+                      <span className="font-medium text-charcoal">{linkedServiceNames[id] || id}</span>
                       <button
                         type="button"
-                        className="rounded-full px-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                        className="rounded-full px-1 text-graphite hover:bg-fog hover:text-charcoal"
                         onClick={() => {
                           setRelatedServiceIds((prev) => prev.filter((x) => x !== id))
                           setLinkedServiceNames((prev) => {
@@ -2371,7 +2371,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                   ))}
                 </div>
               )}
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-graphite">
                 Stored as <code className="rounded bg-white px-1 text-[11px]">relatedServices</code> for “Related services” modules and topical clustering with the catalog.
               </p>
             </div>
@@ -2379,12 +2379,12 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             <div>
               <label className="mb-1 block text-sm font-medium">Primary keyword</label>
               <input
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-lg border border-steel px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 value={primaryKeyword}
                 onChange={(e) => setPrimaryKeyword(e.target.value)}
                 placeholder="One main topic / search intent for this post"
               />
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-graphite">
                 <strong>Market norm:</strong> one primary per article (the topic you want to rank for). Use it in title, meta, intro, and headings
                 where it reads naturally — not in every sentence. Sidebar flags density &gt; ~2.5% as likely stuffing.
               </p>
@@ -2392,13 +2392,13 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             <div>
               <label className="mb-1 block text-sm font-medium">Secondary keywords</label>
               <textarea
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-lg border border-steel px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 rows={2}
                 value={secondaryKeywordsInput}
                 onChange={(e) => setSecondaryKeywordsInput(e.target.value)}
                 placeholder="Synonyms, long-tails, related questions (comma-separated)"
               />
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-graphite">
                 <strong>Typical range:</strong> about 3–8 supporting phrases. They help topical depth and internal linking ideas; avoid a long laundry
                 list. Saved with tags into SEO keywords; coverage table matches the live editor.
               </p>
@@ -2407,7 +2407,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             <div>
               <label className="mb-1 block text-sm font-medium">Internal link hostname (optional)</label>
               <input
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-lg border border-steel px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 value={siteHost}
                 onChange={(e) => setSiteHost(e.target.value)}
                 placeholder="yoursite.com — used to classify absolute URLs as internal"
@@ -2416,9 +2416,9 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             </div>
 
             <div className={editorWorkspaceTab !== 'faq' ? 'hidden' : ''}>
-            <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4">
-              <h3 className="text-sm font-semibold text-slate-800">FAQ schema &amp; lead magnet</h3>
-              <p className="mt-1 text-xs text-slate-600">
+            <div className="rounded-xl border border-primary/20 bg-primary-soft/40 p-4">
+              <h3 className="text-sm font-semibold text-ink-soft">FAQ schema &amp; lead magnet</h3>
+              <p className="mt-1 text-xs text-graphite">
                 Saved as <code className="rounded bg-white px-1 text-[11px]">faqItems</code> and{' '}
                 <code className="rounded bg-white px-1 text-[11px]">leadMagnet</code> on the post. The consumer site should inject FAQ JSON‑LD in{' '}
                 <code className="text-[11px]">&lt;head&gt;</code> and render the same Q&amp;A + form below the article. Preview shows the appendix and a
@@ -2427,20 +2427,20 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
 
               <div className="mt-3 space-y-3">
                 {faqRows.map((row, idx) => (
-                  <div key={row.id} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                  <div key={row.id} className="rounded-lg border border-fog bg-white p-3 shadow-sm">
                     <div className="mb-2 flex items-center justify-between gap-2">
-                      <span className="text-xs font-medium text-slate-500">FAQ {idx + 1}</span>
+                      <span className="text-xs font-medium text-graphite">FAQ {idx + 1}</span>
                       <button
                         type="button"
                         onClick={() => setFaqRows((rows) => rows.filter((r) => r.id !== row.id))}
-                        className="text-xs font-medium text-red-600 hover:text-red-700"
+                        className="text-xs font-medium text-destructive hover:text-destructive"
                       >
                         Remove
                       </button>
                     </div>
-                    <label className="mb-1 block text-xs text-slate-600">Question</label>
+                    <label className="mb-1 block text-xs text-graphite">Question</label>
                     <input
-                      className="mb-2 w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
+                      className="mb-2 w-full rounded border border-steel px-2 py-1.5 text-sm"
                       value={row.question}
                       onChange={(e) =>
                         setFaqRows((rows) =>
@@ -2449,9 +2449,9 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                       }
                       placeholder="e.g. What is included in the free guide?"
                     />
-                    <label className="mb-1 block text-xs text-slate-600">Answer</label>
+                    <label className="mb-1 block text-xs text-graphite">Answer</label>
                     <textarea
-                      className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
+                      className="w-full rounded border border-steel px-2 py-1.5 text-sm"
                       rows={2}
                       value={row.answer}
                       onChange={(e) =>
@@ -2478,17 +2478,17 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                       },
                     ])
                   }
-                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                  className="rounded-lg border border-steel bg-white px-3 py-1.5 text-xs font-medium text-charcoal hover:bg-cloud"
                 >
                   + Add FAQ
                 </button>
               </div>
 
-              <div className="mt-4 space-y-3 border-t border-indigo-100 pt-4">
-                <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
+              <div className="mt-4 space-y-3 border-t border-primary/20 pt-4">
+                <label className="flex items-center gap-2 text-sm font-medium text-ink-soft">
                   <input
                     type="checkbox"
-                    className="rounded border-slate-300"
+                    className="rounded border-steel"
                     checked={leadMagnet.enabled}
                     onChange={(e) => setLeadMagnet((m) => ({ ...m, enabled: e.target.checked }))}
                   />
@@ -2496,42 +2496,42 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                 </label>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="sm:col-span-2">
-                    <label className="mb-1 block text-xs text-slate-600">Headline</label>
+                    <label className="mb-1 block text-xs text-graphite">Headline</label>
                     <input
-                      className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
+                      className="w-full rounded border border-steel px-2 py-1.5 text-sm"
                       value={leadMagnet.headline}
                       onChange={(e) => setLeadMagnet((m) => ({ ...m, headline: e.target.value }))}
                     />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="mb-1 block text-xs text-slate-600">Subtext</label>
+                    <label className="mb-1 block text-xs text-graphite">Subtext</label>
                     <input
-                      className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
+                      className="w-full rounded border border-steel px-2 py-1.5 text-sm"
                       value={leadMagnet.subtext}
                       onChange={(e) => setLeadMagnet((m) => ({ ...m, subtext: e.target.value }))}
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs text-slate-600">Button label</label>
+                    <label className="mb-1 block text-xs text-graphite">Button label</label>
                     <input
-                      className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
+                      className="w-full rounded border border-steel px-2 py-1.5 text-sm"
                       value={leadMagnet.buttonLabel}
                       onChange={(e) => setLeadMagnet((m) => ({ ...m, buttonLabel: e.target.value }))}
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs text-slate-600">Form action URL (POST)</label>
+                    <label className="mb-1 block text-xs text-graphite">Form action URL (POST)</label>
                     <input
-                      className="w-full rounded border border-slate-300 px-2 py-1.5 font-mono text-xs"
+                      className="w-full rounded border border-steel px-2 py-1.5 font-mono text-xs"
                       value={leadMagnet.formActionUrl}
                       onChange={(e) => setLeadMagnet((m) => ({ ...m, formActionUrl: e.target.value }))}
                       placeholder="https://yoursite.com/api/leads"
                     />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="mb-1 block text-xs text-slate-600">Hidden field source</label>
+                    <label className="mb-1 block text-xs text-graphite">Hidden field source</label>
                     <input
-                      className="w-full rounded border border-slate-300 px-2 py-1.5 font-mono text-xs"
+                      className="w-full rounded border border-steel px-2 py-1.5 font-mono text-xs"
                       value={leadMagnet.sourceTag}
                       onChange={(e) => setLeadMagnet((m) => ({ ...m, sourceTag: e.target.value }))}
                       placeholder="blog-lead-magnet"
@@ -2543,14 +2543,14 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             </div>
 
             <div className={editorWorkspaceTab !== 'content' ? 'hidden' : 'space-y-5'}>
-            <section className="rounded-xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/50 to-white p-4 shadow-sm ring-1 ring-emerald-100/60">
-              <h3 className="text-sm font-semibold text-emerald-950">Insert internal links</h3>
-              <p className="mt-1 text-xs text-slate-600">
+            <section className="rounded-xl border border-storm-mist/80 bg-gradient-to-br from-storm-mist/50 to-white p-4 shadow-sm ring-1 ring-storm-mist/60">
+              <h3 className="text-sm font-semibold text-storm-deep">Insert internal links</h3>
+              <p className="mt-1 text-xs text-graphite">
                 Combined search via <code className="rounded bg-white px-1 font-mono text-[11px]">GET /api/cms/admin/blogs/link-suggestions</code>. Inserts at the caret using <span className="font-mono text-[11px]">/store/product/&lt;slug&gt;</span> (storefront PDP on my.profixer.in) and <span className="font-mono text-[11px]">/services/&lt;slug&gt;</span> for services. Legacy <span className="font-mono text-[11px]">/products/&lt;slug&gt;</span> URLs redirect to the store on the consumer app.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <input
-                  className="min-w-[12rem] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="min-w-[12rem] flex-1 rounded-lg border border-steel px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   value={linkPickerQuery}
                   onChange={(e) => setLinkPickerQuery(e.target.value)}
                   placeholder="Search products & services…"
@@ -2558,28 +2558,28 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                 />
                 <button
                   type="button"
-                  className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm hover:bg-slate-50"
+                  className="rounded-lg border border-steel bg-white px-3 py-2 text-sm shadow-sm hover:bg-cloud"
                   onClick={() => setLinkPickerQuery('')}
                 >
                   Clear
                 </button>
               </div>
               {linkPickerLoading ? (
-                <p className="mt-2 text-xs text-slate-500">Searching catalog…</p>
+                <p className="mt-2 text-xs text-graphite">Searching catalog…</p>
               ) : null}
               <div className="mt-3 grid gap-4 lg:grid-cols-2">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Products</p>
-                  <ul className="mt-1 max-h-52 space-y-1 overflow-auto rounded-lg border border-slate-200 bg-white p-1 text-sm">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-graphite">Products</p>
+                  <ul className="mt-1 max-h-52 space-y-1 overflow-auto rounded-lg border border-fog bg-white p-1 text-sm">
                     {linkPickerResults.products.length === 0 ? (
-                      <li className="px-2 py-2 text-xs text-slate-500">No matches — try another query.</li>
+                      <li className="px-2 py-2 text-xs text-graphite">No matches — try another query.</li>
                     ) : (
                       linkPickerResults.products.map((p) => (
-                        <li key={p._id} className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 hover:bg-slate-50">
-                          <span className="min-w-0 flex-1 truncate font-medium text-slate-800">{p.name}</span>
+                        <li key={p._id} className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 hover:bg-cloud">
+                          <span className="min-w-0 flex-1 truncate font-medium text-ink-soft">{p.name}</span>
                           <button
                             type="button"
-                            className="shrink-0 rounded-md bg-emerald-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-emerald-700"
+                            className="shrink-0 rounded-md bg-storm-deep px-2 py-1 text-[11px] font-semibold text-white hover:bg-storm-deep"
                             onClick={() => insertInternalLinkAtCaret('product', p)}
                           >
                             Insert
@@ -2590,17 +2590,17 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                   </ul>
                 </div>
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Platform services</p>
-                  <ul className="mt-1 max-h-52 space-y-1 overflow-auto rounded-lg border border-slate-200 bg-white p-1 text-sm">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-graphite">Platform services</p>
+                  <ul className="mt-1 max-h-52 space-y-1 overflow-auto rounded-lg border border-fog bg-white p-1 text-sm">
                     {linkPickerResults.services.length === 0 ? (
-                      <li className="px-2 py-2 text-xs text-slate-500">No matches — try another query.</li>
+                      <li className="px-2 py-2 text-xs text-graphite">No matches — try another query.</li>
                     ) : (
                       linkPickerResults.services.map((s) => (
-                        <li key={s._id} className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 hover:bg-slate-50">
-                          <span className="min-w-0 flex-1 truncate font-medium text-slate-800">{s.name}</span>
+                        <li key={s._id} className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 hover:bg-cloud">
+                          <span className="min-w-0 flex-1 truncate font-medium text-ink-soft">{s.name}</span>
                           <button
                             type="button"
-                            className="shrink-0 rounded-md bg-emerald-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-emerald-700"
+                            className="shrink-0 rounded-md bg-storm-deep px-2 py-1 text-[11px] font-semibold text-white hover:bg-storm-deep"
                             onClick={() => insertInternalLinkAtCaret('service', s)}
                           >
                             Insert
@@ -2615,11 +2615,11 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
 
             <div>
               <label className="mb-1 block text-sm font-medium">Content</label>
-              <p className="mb-2 text-xs text-slate-500">
+              <p className="mb-2 text-xs text-graphite">
                 Use one H1 in the body, then H2/H3 for sections (avoid skipping levels). The rich-text toolbar stays pinned at the top of the editor while you scroll — use it for headings, lists, links, images, and tables. Paste or import HTML from the toolbar (HTML markup button): content is sanitized (allowlisted tags) and converted for the editor. Images: upload max {formatImageSizeCap(BLOG_IMAGE_MAX_FILE_BYTES)} per file (compress to ~{formatImageSizeCap(BLOG_IMAGE_RECOMMENDED_MAX_BYTES)} when possible). Alt text is required on insert; publish/schedule also requires featured-image alt.{' '}
-                <strong className="text-slate-700">Draft canvas</strong> uses a larger, readable type size here only; body copy on the public site follows your consumer theme. Inline “small” styles from pasted HTML are preserved; image max-height here is display-only.
+                <strong className="text-charcoal">Draft canvas</strong> uses a larger, readable type size here only; body copy on the public site follows your consumer theme. Inline “small” styles from pasted HTML are preserved; image max-height here is display-only.
               </p>
-              <div className="blog-quill relative min-h-[min(72vh,720px)] rounded-lg border border-slate-300 [&_.ql-container]:min-h-[min(68vh,640px)] [&_.ql-editor]:min-h-[min(62vh,560px)] [&_.ql-toolbar]:rounded-t-lg [&_.ql-container]:rounded-b-lg">
+              <div className="blog-quill relative min-h-[min(72vh,720px)] rounded-lg border border-steel [&_.ql-container]:min-h-[min(68vh,640px)] [&_.ql-editor]:min-h-[min(62vh,560px)] [&_.ql-toolbar]:rounded-t-lg [&_.ql-container]:rounded-b-lg">
                 <style>{`
                   /* Comfortable drafting — does not rewrite saved HTML (Quill default ~13px feels tiny). */
                   .blog-quill .ql-container.ql-snow {
@@ -2660,8 +2660,8 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                     position: sticky;
                     top: 0;
                     z-index: 25;
-                    background: #f8fafc;
-                    border-bottom: 1px solid #cbd5e1;
+                    background: #f7f7f7; /* DESIGN.md cloud */
+                    border-bottom: 1px solid #c2c2c2; /* DESIGN.md steel */
                   }
                   .blog-quill .ql-toolbar button.ql-cloudinary::before {
                     content: '☁';
@@ -2687,13 +2687,13 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                   }
                   .blog-quill .ql-editor td,
                   .blog-quill .ql-editor th {
-                    border: 1px solid #cbd5e1;
+                    border: 1px solid #c2c2c2; /* DESIGN.md steel */
                     padding: 0.5rem 0.6rem;
                     min-width: 3rem;
                     vertical-align: top;
                   }
                   .blog-quill .ql-editor th {
-                    background: #f1f5f9;
+                    background: #f7f7f7; /* DESIGN.md cloud */
                     font-weight: 600;
                   }
                   /* Keep body images readable: override Cloudinary / pasted width×height */
@@ -2731,7 +2731,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                 />
                 {editorCaretHint && (
                   <div
-                    className="pointer-events-none fixed z-[60] max-w-[10.5rem] rounded-md border border-slate-200 bg-white/95 px-2 py-1 text-[10px] leading-tight text-slate-600 shadow-md"
+                    className="pointer-events-none fixed z-[60] max-w-[10.5rem] rounded-md border border-fog bg-white/95 px-2 py-1 text-[10px] leading-tight text-graphite shadow-md"
                     style={{
                       top: Math.max(6, editorCaretHint.top - 36),
                       left: Math.min(editorCaretHint.left, typeof window !== 'undefined' ? window.innerWidth - 140 : editorCaretHint.left),
@@ -2745,24 +2745,24 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
               <div
                 className={`mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-sm ${
                   liveWordCount >= PILLAR_WORD_TARGET
-                    ? 'border-emerald-200 bg-emerald-50/80'
-                    : 'border-amber-200 bg-amber-50/70'
+                    ? 'border-storm-mist/30 bg-storm-mist/80'
+                    : 'border-bloom-coral/40 bg-bloom-rose/70'
                 }`}
                 aria-live="polite"
               >
-                <span className="font-medium text-slate-700">Words (live)</span>
+                <span className="font-medium text-charcoal">Words (live)</span>
                 <span className="tabular-nums">
-                  <span className={liveWordCount >= PILLAR_WORD_TARGET ? 'text-lg font-bold text-emerald-800' : 'text-lg font-bold text-slate-900'}>
+                  <span className={liveWordCount >= PILLAR_WORD_TARGET ? 'text-lg font-bold text-storm-deep' : 'text-lg font-bold text-ink'}>
                     {liveWordCount.toLocaleString()}
                   </span>
-                  <span className="text-slate-500"> / {PILLAR_WORD_TARGET.toLocaleString()}</span>
+                  <span className="text-graphite"> / {PILLAR_WORD_TARGET.toLocaleString()}</span>
                 </span>
                 {liveWordCount < PILLAR_WORD_TARGET ? (
-                  <span className="w-full text-xs font-medium text-amber-900 sm:w-auto sm:text-right">
+                  <span className="w-full text-xs font-medium text-bloom-coral sm:w-auto sm:text-right">
                     {Math.max(0, PILLAR_WORD_TARGET - liveWordCount).toLocaleString()} words below pillar minimum — keep writing.
                   </span>
                 ) : (
-                  <span className="w-full text-xs font-medium text-emerald-800 sm:w-auto sm:text-right">Minimum length met.</span>
+                  <span className="w-full text-xs font-medium text-storm-deep sm:w-auto sm:text-right">Minimum length met.</span>
                 )}
               </div>
             </div>
@@ -2775,55 +2775,55 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             className="flex flex-col gap-4 lg:sticky lg:top-6 lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto lg:self-start lg:overscroll-contain lg:pr-0.5"
             aria-label="SEO and content analysis"
           >
-            <div className="shrink-0 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50/95 to-white p-4 shadow-sm ring-1 ring-slate-100/80">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Live overview</p>
-              <p className="mt-0.5 text-[11px] leading-snug text-slate-500">Word count, heuristic SEO score, checklist, and Flesch — same tick as the editor.</p>
+            <div className="shrink-0 rounded-xl border border-fog bg-gradient-to-br from-cloud/95 to-white p-4 shadow-sm ring-1 ring-fog/80">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-graphite">Live overview</p>
+              <p className="mt-0.5 text-[11px] leading-snug text-graphite">Word count, heuristic SEO score, checklist, and Flesch — same tick as the editor.</p>
               <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <div className="rounded-lg border border-slate-100 bg-white/95 px-2.5 py-2 shadow-sm">
-                  <p className="text-[10px] font-medium text-slate-500">Words</p>
+                <div className="rounded-lg border border-fog bg-white/95 px-2.5 py-2 shadow-sm">
+                  <p className="text-[10px] font-medium text-graphite">Words</p>
                   <p
-                    className={`mt-0.5 text-base font-bold tabular-nums leading-tight ${liveWordCount >= PILLAR_WORD_TARGET ? 'text-emerald-700' : 'text-slate-900'}`}
+                    className={`mt-0.5 text-base font-bold tabular-nums leading-tight ${liveWordCount >= PILLAR_WORD_TARGET ? 'text-storm-deep' : 'text-ink'}`}
                   >
                     {liveWordCount.toLocaleString()}
-                    <span className="block text-[10px] font-normal text-slate-400">goal {PILLAR_WORD_TARGET.toLocaleString()}</span>
+                    <span className="block text-[10px] font-normal text-steel">goal {PILLAR_WORD_TARGET.toLocaleString()}</span>
                   </p>
                 </div>
-                <div className="rounded-lg border border-slate-100 bg-white/95 px-2.5 py-2 shadow-sm">
-                  <p className="text-[10px] font-medium text-slate-500">SEO score</p>
+                <div className="rounded-lg border border-fog bg-white/95 px-2.5 py-2 shadow-sm">
+                  <p className="text-[10px] font-medium text-graphite">SEO score</p>
                   <p className={`mt-0.5 text-base font-bold tabular-nums leading-tight ${seoPresentation.text}`}>{seo.score}</p>
-                  <p className="text-[10px] text-slate-400">{seoPresentation.label}</p>
+                  <p className="text-[10px] text-steel">{seoPresentation.label}</p>
                 </div>
-                <div className="rounded-lg border border-slate-100 bg-white/95 px-2.5 py-2 shadow-sm">
-                  <p className="text-[10px] font-medium text-slate-500">Checklist</p>
-                  <p className="mt-0.5 text-base font-bold tabular-nums leading-tight text-indigo-700">{checklist.pct}%</p>
-                  <p className="text-[10px] text-slate-400">
+                <div className="rounded-lg border border-fog bg-white/95 px-2.5 py-2 shadow-sm">
+                  <p className="text-[10px] font-medium text-graphite">Checklist</p>
+                  <p className="mt-0.5 text-base font-bold tabular-nums leading-tight text-primary">{checklist.pct}%</p>
+                  <p className="text-[10px] text-steel">
                     {checklist.done}/{checklist.total} OK
                   </p>
                 </div>
-                <div className="rounded-lg border border-slate-100 bg-white/95 px-2.5 py-2 shadow-sm">
-                  <p className="text-[10px] font-medium text-slate-500">Flesch</p>
-                  <p className="mt-0.5 text-base font-bold tabular-nums leading-tight text-slate-900">{liveWordCount ? fre : '—'}</p>
-                  <p className="text-[10px] text-slate-400">{liveWordCount ? (fre >= 45 ? 'On target' : 'Lift score') : '—'}</p>
+                <div className="rounded-lg border border-fog bg-white/95 px-2.5 py-2 shadow-sm">
+                  <p className="text-[10px] font-medium text-graphite">Flesch</p>
+                  <p className="mt-0.5 text-base font-bold tabular-nums leading-tight text-ink">{liveWordCount ? fre : '—'}</p>
+                  <p className="text-[10px] text-steel">{liveWordCount ? (fre >= 45 ? 'On target' : 'Lift score') : '—'}</p>
                 </div>
               </div>
             </div>
 
-            <section className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm">
+            <section className="rounded-xl border border-fog/90 bg-white p-4 shadow-sm">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Pre-publish checklist</h2>
+                <h2 className="text-[11px] font-semibold uppercase tracking-wider text-graphite">Pre-publish checklist</h2>
                 <span
                   className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                    checklist.done === checklist.total ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'
+                    checklist.done === checklist.total ? 'bg-storm-mist/30 text-storm-deep' : 'bg-bloom-rose text-bloom-coral'
                   }`}
                 >
                   {checklist.total - checklist.done} open
                 </span>
               </div>
-              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                <div className="h-full rounded-full bg-indigo-600 transition-all duration-300" style={{ width: `${checklist.pct}%` }} />
+              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-fog">
+                <div className="h-full rounded-full bg-primary transition-all duration-300" style={{ width: `${checklist.pct}%` }} />
               </div>
-              <p className="mt-2 text-xs text-slate-600">
-                <span className="font-semibold text-slate-800">
+              <p className="mt-2 text-xs text-graphite">
+                <span className="font-semibold text-ink-soft">
                   {checklist.done}/{checklist.total}
                 </span>{' '}
                 passed · live fields + body · SEO title &amp; meta need optimal length for a green check.
@@ -2832,68 +2832,68 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                 {checklist.items.map((item) => (
                   <li key={item.id} className="flex gap-2">
                     <span className="mt-0.5 shrink-0 font-mono text-xs tabular-nums" aria-hidden>
-                      {item.ok ? <span className="text-emerald-600">✓</span> : <span className="text-slate-400">○</span>}
+                      {item.ok ? <span className="text-storm-deep">✓</span> : <span className="text-steel">○</span>}
                     </span>
-                    <span className={item.ok ? 'text-slate-700' : 'text-slate-500'}>{item.label}</span>
+                    <span className={item.ok ? 'text-charcoal' : 'text-graphite'}>{item.label}</span>
                   </li>
                 ))}
               </ul>
             </section>
 
-            <p className="px-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">SEO &amp; SERP</p>
+            <p className="px-0.5 text-[10px] font-semibold uppercase tracking-wider text-steel">SEO &amp; SERP</p>
 
-            <section className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 shadow-sm">
+            <section className="rounded-xl border border-fog bg-cloud/80 p-4 shadow-sm">
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">Search result preview</h2>
-                <span className="text-[10px] text-slate-500">
+                <h2 className="text-[11px] font-semibold uppercase tracking-wider text-graphite">Search result preview</h2>
+                <span className="text-[10px] text-graphite">
                   ~{serpPreview.titleCharCount} · ~{serpPreview.snippetCharCount} chars
                 </span>
               </div>
-              <p className="mb-3 text-[11px] leading-snug text-slate-500">
-                Google-style listing (desktop). Default origin is <strong className="font-medium text-slate-700">https://www.profixer.in/blog</strong>; override with{' '}
-                <code className="rounded bg-white px-1 py-0.5 font-mono text-[10px] text-slate-700">
+              <p className="mb-3 text-[11px] leading-snug text-graphite">
+                Google-style listing (desktop). Default origin is <strong className="font-medium text-charcoal">https://www.profixer.in/blog</strong>; override with{' '}
+                <code className="rounded bg-white px-1 py-0.5 font-mono text-[10px] text-charcoal">
                   REACT_APP_PUBLIC_SITE_ORIGIN
                 </code>{' '}
                 in <code className="rounded bg-white px-1 font-mono text-[10px]">.env</code>. When canonical is set (left column), this preview uses it for the green URL line.
               </p>
               <div
-                className="rounded-lg border border-slate-200 bg-white px-3 py-3 shadow-sm"
+                className="rounded-lg border border-fog bg-white px-3 py-3 shadow-sm"
                 style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
               >
                 <div className="text-base leading-tight text-[#1a0dab] line-clamp-2">{serpPreview.titleShown}</div>
                 <div className="mt-1 break-all text-xs leading-snug text-[#006621]">{serpPreview.url}</div>
                 <div className="mt-1 line-clamp-3 text-xs leading-snug text-[#4d5156]">{serpPreview.snipShown}</div>
               </div>
-              <div className="mt-3 flex flex-col gap-1 rounded-lg border border-dashed border-slate-200 bg-white/90 px-3 py-2 text-[11px] text-slate-600">
-                <span className="font-semibold uppercase tracking-wide text-slate-400">Browser tab</span>
+              <div className="mt-3 flex flex-col gap-1 rounded-lg border border-dashed border-fog bg-white/90 px-3 py-2 text-[11px] text-graphite">
+                <span className="font-semibold uppercase tracking-wide text-steel">Browser tab</span>
                 <span
-                  className="break-all font-mono text-[11px] text-slate-800"
+                  className="break-all font-mono text-[11px] text-ink-soft"
                   title={effectiveSeoTitle.trim() || title.trim() || undefined}
                 >
                   {serpPreview.tabTitleShown}
                 </span>
-                <span className="text-[10px] text-slate-400">SEO title or blog title.</span>
+                <span className="text-[10px] text-steel">SEO title or blog title.</span>
               </div>
               {(serpPreview.titleCharCount > SEO_TITLE_OPTIMAL_MAX_CHARS ||
                 serpPreview.snippetCharCount > META_DESC_OPTIMAL_MAX_CHARS) && (
-                <p className="mt-2 text-[11px] text-amber-800">
+                <p className="mt-2 text-[11px] text-bloom-coral">
                   Titles often truncate after ~{SEO_TITLE_OPTIMAL_MAX_CHARS} characters; meta snippets near ~{META_DESC_OPTIMAL_MAX_CHARS}–
                   {META_DESC_HARD_MAX_CHARS}. Tighten copy so the important words appear early.
                 </p>
               )}
             </section>
 
-            <section className="rounded-xl border border-indigo-100/90 bg-gradient-to-br from-white to-indigo-50/40 p-4 shadow-sm ring-1 ring-indigo-100/60">
-              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-indigo-900/90">Technical SEO &amp; rich results</h2>
-              <p className="mt-1 text-xs leading-relaxed text-slate-600">
-                Growth on <strong className="text-slate-800">my.profixer.in</strong> depends on consistent URLs, crawl directives, share cards, and valid structured data — not keyword density alone.
+            <section className="rounded-xl border border-primary/90 bg-gradient-to-br from-white to-primary-soft/40 p-4 shadow-sm ring-1 ring-primary-soft/60">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-primary/90">Technical SEO &amp; rich results</h2>
+              <p className="mt-1 text-xs leading-relaxed text-graphite">
+                Growth on <strong className="text-ink-soft">my.profixer.in</strong> depends on consistent URLs, crawl directives, share cards, and valid structured data — not keyword density alone.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <span
                   className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                     !blogCanonicalUrl.trim() || /^https:\/\//i.test(blogCanonicalUrl.trim())
-                      ? 'bg-emerald-100 text-emerald-900'
-                      : 'bg-amber-100 text-amber-950'
+                      ? 'bg-storm-mist/30 text-storm-deep'
+                      : 'bg-bloom-rose text-bloom-coral'
                   }`}
                 >
                   Canonical {!blogCanonicalUrl.trim() ? '(optional)' : /^https:\/\//i.test(blogCanonicalUrl.trim()) ? 'HTTPS' : 'check HTTPS'}
@@ -2901,19 +2901,19 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                 <span
                   className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                     faqItemsResolved.length === 0 || faqItemsResolved.length >= 2
-                      ? 'bg-emerald-100 text-emerald-900'
-                      : 'bg-amber-100 text-amber-950'
+                      ? 'bg-storm-mist/30 text-storm-deep'
+                      : 'bg-bloom-rose text-bloom-coral'
                   }`}
                 >
                   FAQ JSON-LD {faqItemsResolved.length === 0 ? 'off' : faqItemsResolved.length >= 2 ? `${faqItemsResolved.length} pairs` : 'use 0 or ≥2 pairs'}
                 </span>
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                <span className="rounded-full bg-fog px-2 py-0.5 text-[10px] font-semibold text-charcoal">
                   twitter:{blogTwitterCard}
                 </span>
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">og:type {blogOgType}</span>
+                <span className="rounded-full bg-fog px-2 py-0.5 text-[10px] font-semibold text-charcoal">og:type {blogOgType}</span>
               </div>
-              <p className="mt-3 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Suggested head tags (consumer)</p>
-              <pre className="mt-1 max-h-28 overflow-auto whitespace-pre-wrap break-all rounded border border-slate-200 bg-slate-50/90 p-2 font-mono text-[9px] leading-snug text-slate-800">
+              <p className="mt-3 text-[10px] font-semibold uppercase tracking-wide text-graphite">Suggested head tags (consumer)</p>
+              <pre className="mt-1 max-h-28 overflow-auto whitespace-pre-wrap break-all rounded border border-fog bg-cloud/90 p-2 font-mono text-[9px] leading-snug text-ink-soft">
                 {[
                   blogRobotsMeta.trim() ? `<meta name="robots" content="${blogRobotsMeta.trim()}" />` : `<!-- default: index,follow if omitted -->`,
                   `<link rel="canonical" href="${(blogCanonicalUrl.trim() || serpPreview.url).replace(/"/g, '&quot;')}" />`,
@@ -2926,36 +2926,36 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                   `<meta name="twitter:card" content="${blogTwitterCard}" />`,
                 ].join('\n')}
               </pre>
-              <p className="mt-3 text-[10px] font-semibold uppercase tracking-wide text-slate-500">JSON-LD preview (BlogPosting ± FAQPage)</p>
-              <p className="mt-0.5 text-[10px] leading-snug text-slate-500">
+              <p className="mt-3 text-[10px] font-semibold uppercase tracking-wide text-graphite">JSON-LD preview (BlogPosting ± FAQPage)</p>
+              <p className="mt-0.5 text-[10px] leading-snug text-graphite">
                 Elide <code className="rounded bg-white px-0.5 font-mono">datePublished</code> until the consumer sets it at go-live; keep FAQ and article in lockstep with visible HTML.
               </p>
-              <pre className="mt-1 max-h-44 overflow-auto whitespace-pre-wrap break-all rounded border border-slate-200 bg-white p-2 font-mono text-[9px] text-slate-800">
+              <pre className="mt-1 max-h-44 overflow-auto whitespace-pre-wrap break-all rounded border border-fog bg-white p-2 font-mono text-[9px] text-ink-soft">
                 {`<script type="application/ld+json">\n${previewRichResultsJsonLd}\n</script>`}
               </pre>
             </section>
 
-            <section className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm">
-              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Keyword coverage</h2>
-              <p className="mt-1 text-xs text-slate-500">
+            <section className="rounded-xl border border-fog/90 bg-white p-4 shadow-sm">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-graphite">Keyword coverage</h2>
+              <p className="mt-1 text-xs text-graphite">
                 Live body counts; title/meta columns use SEO title (or blog title) and meta. Match checklist bands: title {SEO_TITLE_MIN_CHARS}–
                 {SEO_TITLE_OPTIMAL_MAX_CHARS} chars, meta {META_DESC_MIN_CHARS}–{META_DESC_OPTIMAL_MAX_CHARS}.
               </p>
-              <p className="mt-2 text-[11px] text-slate-500">
-                <span className="font-medium text-slate-600">T/M:</span> <span title="In SEO or blog title">T</span> = title ·{' '}
+              <p className="mt-2 text-[11px] text-graphite">
+                <span className="font-medium text-graphite">T/M:</span> <span title="In SEO or blog title">T</span> = title ·{' '}
                 <span title="In meta description">M</span> = meta.
               </p>
-              <div className="mt-2 rounded-md border border-slate-100 bg-slate-50/90 px-2 py-2 text-[11px] leading-relaxed text-slate-600">
-                <strong className="text-slate-700">Anti-stuffing:</strong> ~≤2.5% primary density in body is a practical guardrail (plugin-style), not a
+              <div className="mt-2 rounded-md border border-fog bg-cloud/90 px-2 py-2 text-[11px] leading-relaxed text-graphite">
+                <strong className="text-charcoal">Anti-stuffing:</strong> ~≤2.5% primary density in body is a practical guardrail (plugin-style), not a
                 Google formula. Write for people first.
               </div>
               {keywordRows.length === 0 ? (
-                <p className="mt-2 text-sm text-slate-500">Add a primary or secondary keyword to populate this table.</p>
+                <p className="mt-2 text-sm text-graphite">Add a primary or secondary keyword to populate this table.</p>
               ) : (
-                <div className="mt-3 max-h-52 overflow-auto rounded-md border border-slate-100 text-xs">
+                <div className="mt-3 max-h-52 overflow-auto rounded-md border border-fog text-xs">
                   <table className="w-full border-collapse text-left">
                     <thead className="sticky top-0 z-[1] bg-white shadow-[0_1px_0_0_rgb(226_232_240)]">
-                      <tr className="text-slate-500">
+                      <tr className="text-graphite">
                         <th scope="col" className="py-1.5 pr-2 pl-1 font-medium">
                           Phrase
                         </th>
@@ -2974,12 +2974,12 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                       {keywordRows.map((row, idx) => (
                         <tr
                           key={row.phrase}
-                          className={`border-b border-slate-100 ${row.densityPercent > 2.5 ? 'bg-amber-50/90' : ''}`}
+                          className={`border-b border-fog ${row.densityPercent > 2.5 ? 'bg-bloom-rose/90' : ''}`}
                         >
-                          <td className="py-1.5 pr-2 pl-1 text-slate-800">
+                          <td className="py-1.5 pr-2 pl-1 text-ink-soft">
                             <span className="inline-flex flex-wrap items-center gap-1">
                               {idx === 0 && primaryKeyword.trim() ? (
-                                <span className="shrink-0 rounded bg-indigo-100 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-indigo-800">
+                                <span className="shrink-0 rounded bg-primary-soft px-1 py-px text-[9px] font-bold uppercase tracking-wide text-primary">
                                   Primary
                                 </span>
                               ) : null}
@@ -2990,12 +2990,12 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                           <td className="py-1.5 pr-2 tabular-nums">
                             {row.densityPercent}%
                             {row.densityPercent > 2.5 && (
-                              <span className="ml-1 text-amber-800" title="High density — may read as keyword stuffing">
+                              <span className="ml-1 text-bloom-coral" title="High density — may read as keyword stuffing">
                                 ⚠
                               </span>
                             )}
                           </td>
-                          <td className="py-1.5 pr-1 text-slate-600">
+                          <td className="py-1.5 pr-1 text-graphite">
                             {(row.inSeoTitle || row.inBlogTitle) && <span title="In SEO or blog title">T </span>}
                             {row.inMeta && <span title="In meta description">M</span>}
                             {!row.inSeoTitle && !row.inBlogTitle && !row.inMeta && '—'}
@@ -3008,87 +3008,87 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
               )}
             </section>
 
-            <section className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm">
+            <section className="rounded-xl border border-fog/90 bg-white p-4 shadow-sm">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">SEO analysis</h2>
+                <h2 className="text-[11px] font-semibold uppercase tracking-wider text-graphite">SEO analysis</h2>
                 <span className={`text-[10px] font-semibold ${seoPresentation.text}`}>
                   {seoPresentation.label} · /100
                 </span>
               </div>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-graphite">
                 From titles, meta, keyword placement, and body usage — editorial heuristic (like common plugins), not a Google score.
               </p>
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-fog">
                 <div className={`h-full rounded-full transition-all ${seoPresentation.bar}`} style={{ width: `${seo.score}%` }} />
               </div>
               <p className={`mt-2 text-2xl font-bold tabular-nums ${seoPresentation.text}`}>{seo.score}</p>
               {seo.hints.length > 0 ? (
-                <ul className="mt-2 max-h-40 list-disc space-y-1 overflow-y-auto pl-4 text-xs text-slate-600">
+                <ul className="mt-2 max-h-40 list-disc space-y-1 overflow-y-auto pl-4 text-xs text-graphite">
                   {seo.hints.slice(0, 8).map((h, i) => (
                     <li key={i}>{h}</li>
                   ))}
                 </ul>
               ) : (
-                <p className="mt-2 text-xs text-emerald-700">Nothing flagged here — still verify the checklist.</p>
+                <p className="mt-2 text-xs text-storm-deep">Nothing flagged here — still verify the checklist.</p>
               )}
             </section>
 
-            <p className="px-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Content &amp; readability</p>
+            <p className="px-0.5 text-[10px] font-semibold uppercase tracking-wider text-steel">Content &amp; readability</p>
 
-            <section className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm">
-              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Content metrics</h2>
-              <p className="mt-1 text-xs text-slate-500">
+            <section className="rounded-xl border border-fog/90 bg-white p-4 shadow-sm">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-graphite">Content metrics</h2>
+              <p className="mt-1 text-xs text-graphite">
                 Live structure from the editor: headings, paragraphs, images, links. Targets align with long-form web guides.
               </p>
               <dl className="mt-3 space-y-2 text-sm">
                 <div className="flex justify-between gap-4">
-                  <dt className="text-slate-600">Words</dt>
+                  <dt className="text-graphite">Words</dt>
                   <dd className="font-medium tabular-nums">
                     {liveWordCount.toLocaleString()}
-                    <span className="ml-1 text-xs font-normal text-slate-500">/ {PILLAR_WORD_TARGET.toLocaleString()} target</span>
+                    <span className="ml-1 text-xs font-normal text-graphite">/ {PILLAR_WORD_TARGET.toLocaleString()} target</span>
                   </dd>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <dt className="text-slate-600">Reading time</dt>
+                  <dt className="text-graphite">Reading time</dt>
                   <dd className="font-medium">~{readingTimeMinutes} min</dd>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <dt className="text-slate-600">H1 / H2 / H3</dt>
+                  <dt className="text-graphite">H1 / H2 / H3</dt>
                   <dd className="font-medium tabular-nums">
                     {liveContentStats.h1} / {liveContentStats.h2} / {liveContentStats.h3}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <dt className="text-slate-600">H4 / H5 / H6</dt>
+                  <dt className="text-graphite">H4 / H5 / H6</dt>
                   <dd className="font-medium tabular-nums">
                     {liveContentStats.h4} / {liveContentStats.h5} / {liveContentStats.h6}
                   </dd>
                 </div>
                 {liveWordCount >= LONGFORM_MIN_WORDS_FOR_SUBHEADINGS && (
-                  <p className="text-xs text-slate-600">
+                  <p className="text-xs text-graphite">
                     For ~{liveWordCount.toLocaleString()} words, aim for ≥{' '}
                     <strong>{suggestedMinSectionHeadings(liveWordCount)}</strong> combined H2+H3 sections (~1 per ~380 words).
                   </p>
                 )}
                 <div className="flex justify-between gap-4">
-                  <dt className="text-slate-600">Long paragraphs</dt>
+                  <dt className="text-graphite">Long paragraphs</dt>
                   <dd className="font-medium">
-                    {longParagraphCount} <span className="text-xs font-normal text-slate-500">({LONG_PARAGRAPH_WORD_THRESHOLD}+ words)</span>
+                    {longParagraphCount} <span className="text-xs font-normal text-graphite">({LONG_PARAGRAPH_WORD_THRESHOLD}+ words)</span>
                   </dd>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <dt className="text-slate-600">Images</dt>
+                  <dt className="text-graphite">Images</dt>
                   <dd className="font-medium">{liveContentStats.imageCount}</dd>
                 </div>
-                <div className="rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-900">
+                <div className="rounded-md bg-bloom-rose px-2 py-1.5 text-xs text-bloom-coral">
                   {liveContentStats.imageCount === 0
                     ? 'Add images where they clarify the story; set descriptive alt text in the image dialog.'
                     : liveContentStats.imagesMissingAlt > 0
                       ? `${liveContentStats.imagesMissingAlt} image(s) missing alt text — add alt in Quill when inserting images.`
                       : 'All images have alt text.'}
                 </div>
-                <div className="flex justify-between gap-4 border-t border-slate-100 pt-2">
-                  <dt className="text-slate-600">Internal / external links</dt>
+                <div className="flex justify-between gap-4 border-t border-fog pt-2">
+                  <dt className="text-graphite">Internal / external links</dt>
                   <dd className="font-medium">
                     {liveContentStats.internalLinkCount} / {liveContentStats.externalLinkCount}
                   </dd>
@@ -3096,27 +3096,27 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
               </dl>
             </section>
 
-            <section className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm">
-              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Readability</h2>
-              <p className="mt-2 text-2xl font-semibold text-slate-900">
-                {liveWordCount ? fre : '—'} <span className="text-base font-normal text-slate-500">/ 100</span>
+            <section className="rounded-xl border border-fog/90 bg-white p-4 shadow-sm">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-graphite">Readability</h2>
+              <p className="mt-2 text-2xl font-semibold text-ink">
+                {liveWordCount ? fre : '—'} <span className="text-base font-normal text-graphite">/ 100</span>
               </p>
-              <p className="text-sm text-slate-600">{liveWordCount ? fleschLabel(fre) : 'Add content to score.'}</p>
-              <p className="mt-2 text-xs text-slate-500">
+              <p className="text-sm text-graphite">{liveWordCount ? fleschLabel(fre) : 'Add content to score.'}</p>
+              <p className="mt-2 text-xs text-graphite">
                 Flesch Reading Ease (live text from the editor). Higher = easier; typical web targets are often ~50–60+ for mixed audiences.
               </p>
               {liveWordCount > 0 && Number.isFinite(fre) && fre > 0 && fre < 60 && (
-                <div className="mt-4 rounded-lg border border-sky-200 bg-sky-50/90 px-3 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-sky-900">How to raise this score</p>
-                  <ul className="mt-2 list-disc space-y-1.5 pl-4 text-xs leading-relaxed text-sky-950">
+                <div className="mt-4 rounded-lg border border-primary/20 bg-primary-soft/90 px-3 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-primary">How to raise this score</p>
+                  <ul className="mt-2 list-disc space-y-1.5 pl-4 text-xs leading-relaxed text-primary">
                     {fleschImprovementHints(fre).map((hint, i) => (
                       <li key={i}>{hint}</li>
                     ))}
                   </ul>
-                  <label className="mt-3 flex cursor-pointer items-start gap-2 text-xs text-sky-950">
+                  <label className="mt-3 flex cursor-pointer items-start gap-2 text-xs text-primary">
                     <input
                       type="checkbox"
-                      className="mt-0.5 rounded border-sky-300"
+                      className="mt-0.5 rounded border-primary"
                       checked={previewHighlightReadability}
                       onChange={(e) => setPreviewHighlightReadability(e.target.checked)}
                     />
@@ -3128,54 +3128,54 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                   </label>
                   {previewHighlightReadability && (
                     <div className="mt-3">
-                      <p className="text-[11px] font-medium text-sky-900">Body preview (coaching overlay)</p>
+                      <p className="text-[11px] font-medium text-primary">Body preview (coaching overlay)</p>
                       {readabilityLivePreviewHtml ? (
                         <>
                           <style>{`
                             .blog-readability-live-mount .blog-readability-long-paragraph {
-                              box-shadow: inset 3px 0 0 0 #0ea5e9;
-                              background-color: rgba(224, 242, 254, 0.45);
+                              box-shadow: inset 3px 0 0 0 #024ad8; /* DESIGN.md primary */
+                              background-color: rgba(201, 224, 252, 0.45); /* DESIGN.md primary-soft */
                               border-radius: 0 6px 6px 0;
                               padding-left: 0.35rem;
                             }
                           `}</style>
                           <div
-                            className="blog-readability-live-mount mt-1 max-h-56 overflow-y-auto rounded-md border border-sky-200/80 bg-white px-3 py-2 text-sm leading-relaxed text-slate-800 [&_a]:text-indigo-600 [&_h1]:text-lg [&_h1]:font-bold [&_h2]:mt-3 [&_h2]:text-base [&_h2]:font-semibold [&_h3]:mt-2 [&_h3]:text-sm [&_h3]:font-semibold [&_li]:my-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_ul]:list-disc [&_ul]:pl-5"
+                            className="blog-readability-live-mount mt-1 max-h-56 overflow-y-auto rounded-md border border-primary/80 bg-white px-3 py-2 text-sm leading-relaxed text-ink-soft [&_a]:text-primary [&_h1]:text-lg [&_h1]:font-bold [&_h2]:mt-3 [&_h2]:text-base [&_h2]:font-semibold [&_h3]:mt-2 [&_h3]:text-sm [&_h3]:font-semibold [&_li]:my-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_ul]:list-disc [&_ul]:pl-5"
                             // eslint-disable-next-line react/no-danger -- sanitized with DOMPurify + readability marks only
                             dangerouslySetInnerHTML={{ __html: readabilityLivePreviewHtml }}
                           />
                         </>
                       ) : (
-                        <p className="mt-1 text-[11px] text-sky-900/80">Add body content to see highlights.</p>
+                        <p className="mt-1 text-[11px] text-primary/80">Add body content to see highlights.</p>
                       )}
                     </div>
                   )}
                 </div>
               )}
               {liveWordCount > 0 && Number.isFinite(fre) && fre >= 60 && (
-                <p className="mt-3 text-xs text-emerald-800">
+                <p className="mt-3 text-xs text-storm-deep">
                   You&apos;re in a comfortable band for many readers. Tighten further only if your audience is time-poor, ESL, or mostly on mobile.
                 </p>
               )}
             </section>
 
-            <p className="px-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Editorial coach</p>
+            <p className="px-0.5 text-[10px] font-semibold uppercase tracking-wider text-steel">Editorial coach</p>
 
-            <section className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm">
-              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Suggestions for writer</h2>
-              <p className="mt-1 text-xs text-slate-500">
+            <section className="rounded-xl border border-fog/90 bg-white p-4 shadow-sm">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-graphite">Suggestions for writer</h2>
+              <p className="mt-1 text-xs text-graphite">
                 Topic and structure nudges only. SEO title, meta, and checklist items are intentionally{' '}
-                <strong className="font-medium text-slate-600">not</strong> repeated here — use <strong>SEO analysis</strong> and{' '}
+                <strong className="font-medium text-graphite">not</strong> repeated here — use <strong>SEO analysis</strong> and{' '}
                 <strong>Pre-publish checklist</strong> for those.
               </p>
               {naturalKeywordHints.length === 0 && writerSuggestions.length === 0 ? (
-                <p className="mt-2 text-sm text-emerald-700">No extra coaching flags — keep refining with the sections above.</p>
+                <p className="mt-2 text-sm text-storm-deep">No extra coaching flags — keep refining with the sections above.</p>
               ) : (
                 <div className="mt-3 space-y-3">
                   {naturalKeywordHints.length > 0 && (
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Topic &amp; keywords</p>
-                      <ul className="mt-1 list-disc space-y-1 pl-4 text-xs text-slate-700">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-steel">Topic &amp; keywords</p>
+                      <ul className="mt-1 list-disc space-y-1 pl-4 text-xs text-charcoal">
                         {naturalKeywordHints.map((s, i) => (
                           <li key={`kw-${i}`}>{s}</li>
                         ))}
@@ -3184,8 +3184,8 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                   )}
                   {writerSuggestions.length > 0 && (
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Structure &amp; flow</p>
-                      <ul className="mt-1 list-disc space-y-1 pl-4 text-sm text-slate-700">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-steel">Structure &amp; flow</p>
+                      <ul className="mt-1 list-disc space-y-1 pl-4 text-sm text-charcoal">
                         {writerSuggestions.map((s, i) => (
                           <li key={`ws-${i}`}>{s}</li>
                         ))}
@@ -3196,9 +3196,9 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
               )}
             </section>
 
-            <section className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm">
-              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Originality &amp; plagiarism</h2>
-              <p className="mt-2 text-xs text-slate-600">
+            <section className="rounded-xl border border-fog/90 bg-white p-4 shadow-sm">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-graphite">Originality &amp; plagiarism</h2>
+              <p className="mt-2 text-xs text-graphite">
                 <strong>Server scan</strong> runs on your backend — repetition &amp; vocabulary signals only (no web crawl, no third-party).
                 For matching against the public web, use an external tool below.
               </p>
@@ -3206,25 +3206,25 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                 type="button"
                 onClick={() => void runBackendPlagiarismScan()}
                 disabled={plagiarismScanning}
-                className="mt-3 w-full rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                className="mt-3 w-full rounded-lg bg-ink px-3 py-2 text-sm font-medium text-white hover:bg-ink-soft disabled:opacity-50"
               >
                 {plagiarismScanning ? 'Scanning on server…' : 'Scan draft (server)'}
               </button>
               {plagiarismError && (
-                <p className="mt-2 text-xs text-red-700">{plagiarismError}</p>
+                <p className="mt-2 text-xs text-destructive">{plagiarismError}</p>
               )}
               {plagiarismResult && (
-                <div className="mt-3 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs">
+                <div className="mt-3 space-y-2 rounded-lg border border-fog bg-cloud p-3 text-xs">
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="font-semibold text-slate-800">Originality score</span>
-                    <span className="text-2xl font-bold text-indigo-700">{plagiarismResult.originalityScore}</span>
+                    <span className="font-semibold text-ink-soft">Originality score</span>
+                    <span className="text-2xl font-bold text-primary">{plagiarismResult.originalityScore}</span>
                   </div>
-                  <p className="text-slate-600">
+                  <p className="text-graphite">
                     Words {plagiarismResult.wordCount} · Sentences {plagiarismResult.sentenceCount} · Lexical diversity{' '}
                     {plagiarismResult.lexicalDiversity}
                   </p>
                   {plagiarismResult.signals.length > 0 && (
-                    <ul className="list-disc space-y-1 pl-4 text-amber-900">
+                    <ul className="list-disc space-y-1 pl-4 text-bloom-coral">
                       {plagiarismResult.signals.map((s, i) => (
                         <li key={i}>{s}</li>
                       ))}
@@ -3232,8 +3232,8 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                   )}
                   {plagiarismResult.duplicateSamples.length > 0 && (
                     <div>
-                      <p className="font-medium text-slate-700">Duplicate sentences (server)</p>
-                      <ul className="mt-1 max-h-20 space-y-1 overflow-y-auto italic text-slate-600">
+                      <p className="font-medium text-charcoal">Duplicate sentences (server)</p>
+                      <ul className="mt-1 max-h-20 space-y-1 overflow-y-auto italic text-graphite">
                         {plagiarismResult.duplicateSamples.slice(0, 4).map((d, i) => (
                           <li key={i}>
                             ×{d.occurrences} {d.snippet}
@@ -3243,9 +3243,9 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                     </div>
                   )}
                   {plagiarismResult.repeatedFiveGrams && plagiarismResult.repeatedFiveGrams.length > 0 && (
-                    <div className="border-t border-slate-200 pt-2">
-                      <p className="font-medium text-slate-700">Repeated 5-word phrases</p>
-                      <p className="mt-0.5 text-slate-500">
+                    <div className="border-t border-fog pt-2">
+                      <p className="font-medium text-charcoal">Repeated 5-word phrases</p>
+                      <p className="mt-0.5 text-graphite">
                         These are highlighted in <strong>Preview</strong> (amber) when the toggle is on. Matches stay inside one HTML text block
                         (won&apos;t span e.g. bold across elements).
                       </p>
@@ -3255,47 +3255,47 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                           setPreviewHighlightRepeats(true)
                           setPreviewOpen(true)
                         }}
-                        className="mt-2 rounded-lg border border-indigo-200 bg-indigo-50 px-2 py-1 text-[11px] font-medium text-indigo-800 hover:bg-indigo-100"
+                        className="mt-2 rounded-lg border border-primary/20 bg-primary-soft px-2 py-1 text-[11px] font-medium text-primary hover:bg-primary-soft"
                       >
                         Open preview with highlights
                       </button>
-                      <ul className="mt-2 max-h-32 space-y-1 overflow-y-auto font-mono text-[11px] leading-snug text-slate-800">
+                      <ul className="mt-2 max-h-32 space-y-1 overflow-y-auto font-mono text-[11px] leading-snug text-ink-soft">
                         {plagiarismResult.repeatedFiveGrams.map((g, i) => (
                           <li key={i}>
-                            <span className="text-slate-500">×{g.count}</span> {g.phrase}
+                            <span className="text-graphite">×{g.count}</span> {g.phrase}
                           </li>
                         ))}
                       </ul>
                     </div>
                   )}
-                  <p className="border-t border-slate-200 pt-2 text-slate-500">{plagiarismResult.disclaimer}</p>
+                  <p className="border-t border-fog pt-2 text-graphite">{plagiarismResult.disclaimer}</p>
                 </div>
               )}
               <button
                 type="button"
                 onClick={copyPlainTextForExternalCheck}
-                className="mt-3 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50"
+                className="mt-3 w-full rounded-lg border border-steel bg-white px-3 py-2 text-sm font-medium hover:bg-cloud"
               >
                 Copy body text for external check
               </button>
-              <p className="mt-2 text-xs text-slate-500">
+              <p className="mt-2 text-xs text-graphite">
                 Suggested tools (your policy may vary):{' '}
-                <a href="https://www.copyscape.com/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline">
+                <a href="https://www.copyscape.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline">
                   Copyscape
                 </a>
                 {' · '}
-                <a href="https://quetext.com/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline">
+                <a href="https://quetext.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline">
                   Quetext
                 </a>
               </p>
-              <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-2 py-2 text-xs text-amber-950">
+              <div className="mt-3 rounded-md border border-bloom-coral/40 bg-bloom-rose px-2 py-2 text-xs text-bloom-coral">
                 <strong>In-draft repeats:</strong>{' '}
                 {repeatedSentenceGroups.length === 0
                   ? 'No duplicate sentences detected in this draft.'
                   : `${repeatedSentenceGroups.length} sentence(s) appear more than once — review for accidental copy-paste.`}
               </div>
               {repeatedSentenceGroups.length > 0 && (
-                <ul className="mt-2 max-h-24 space-y-1 overflow-y-auto text-xs text-slate-600">
+                <ul className="mt-2 max-h-24 space-y-1 overflow-y-auto text-xs text-graphite">
                   {repeatedSentenceGroups.slice(0, 5).map((r, i) => (
                     <li key={i} className="italic">
                       ×{r.count} {r.snippet}
@@ -3305,23 +3305,23 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
               )}
             </section>
 
-            <section className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm">
-              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Link-worthiness</h2>
-              <p className="mb-3 text-xs text-slate-600">Tick what applies — editors often know context Quill cannot see.</p>
+            <section className="rounded-xl border border-fog/90 bg-white p-4 shadow-sm">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-graphite">Link-worthiness</h2>
+              <p className="mb-3 text-xs text-graphite">Tick what applies — editors often know context Quill cannot see.</p>
               <label className="flex cursor-pointer items-start gap-2 text-sm">
-                <input type="checkbox" className="mt-0.5 rounded border-slate-300" checked={hasOriginalData} onChange={(e) => setHasOriginalData(e.target.checked)} />
+                <input type="checkbox" className="mt-0.5 rounded border-steel" checked={hasOriginalData} onChange={(e) => setHasOriginalData(e.target.checked)} />
                 <span>Original data, research, or first-hand reporting</span>
               </label>
               <label className="flex cursor-pointer items-start gap-2 text-sm">
-                <input type="checkbox" className="mt-0.5 rounded border-slate-300" checked={hasDownloadableAsset} onChange={(e) => setHasDownloadableAsset(e.target.checked)} />
+                <input type="checkbox" className="mt-0.5 rounded border-steel" checked={hasDownloadableAsset} onChange={(e) => setHasDownloadableAsset(e.target.checked)} />
                 <span>Downloadable asset (checklist, template, PDF, etc.)</span>
               </label>
               <label className="flex cursor-pointer items-start gap-2 text-sm">
-                <input type="checkbox" className="mt-0.5 rounded border-slate-300" checked={hasInternalLinksDeclared} onChange={(e) => setHasInternalLinksDeclared(e.target.checked)} />
+                <input type="checkbox" className="mt-0.5 rounded border-steel" checked={hasInternalLinksDeclared} onChange={(e) => setHasInternalLinksDeclared(e.target.checked)} />
                 <span>Internal links to related guides or product pages</span>
               </label>
               {linkWorthyWarnings.length > 0 && (
-                <ul className="mt-3 list-disc space-y-1 border-t border-slate-100 pt-3 pl-4 text-xs text-amber-800">
+                <ul className="mt-3 list-disc space-y-1 border-t border-fog pt-3 pl-4 text-xs text-bloom-coral">
                   {linkWorthyWarnings.map((w, i) => (
                     <li key={i}>{w}</li>
                   ))}
@@ -3334,44 +3334,44 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
 
       {cloudinaryPickerOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/60 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-label="Choose image from Cloudinary"
           onClick={() => closeCloudinaryPicker()}
         >
           <div
-            className="relative my-8 flex max-h-[min(90vh,720px)] w-[calc(100vw-1.5rem)] max-w-3xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl sm:w-full"
+            className="relative my-8 flex max-h-[min(90vh,720px)] w-[calc(100vw-1.5rem)] max-w-3xl flex-col overflow-hidden rounded-xl border border-fog bg-white shadow-xl sm:w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-fog px-4 py-3 sm:px-5">
               <div className="min-w-0">
-                <h2 className="text-sm font-semibold text-slate-900">
+                <h2 className="text-sm font-semibold text-ink">
                   {cloudinaryPickerFor === 'featured' ? 'Featured image from Cloudinary' : 'Insert from Cloudinary'}
                 </h2>
-                <p className="mt-0.5 text-xs text-slate-500">
+                <p className="mt-0.5 text-xs text-graphite">
                   Folder: {BLOG_BODY_CLOUDINARY_FOLDER}
                   {cloudinaryPickerFor === 'featured'
                     ? ' — click an image to use as the featured image.'
                     : ' — click an image, then enter alt text to insert at your cursor.'}
                 </p>
-                <p className="mt-1 text-xs text-slate-500">Scroll to browse all images.</p>
+                <p className="mt-1 text-xs text-graphite">Scroll to browse all images.</p>
               </div>
               <button
                 type="button"
                 onClick={() => closeCloudinaryPicker()}
-                className="shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100"
+                className="shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium text-graphite hover:bg-fog"
               >
                 Close
               </button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
-              {cloudinaryLoading && <p className="py-8 text-center text-sm text-slate-600">Loading library…</p>}
+              {cloudinaryLoading && <p className="py-8 text-center text-sm text-graphite">Loading library…</p>}
               {!cloudinaryLoading && cloudinaryError && (
-                <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">{cloudinaryError}</p>
+                <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{cloudinaryError}</p>
               )}
               {!cloudinaryLoading && !cloudinaryError && cloudinaryImages.length === 0 && (
-                <p className="py-8 text-sm text-slate-600">No images in this folder yet. Upload with the image button first.</p>
+                <p className="py-8 text-sm text-graphite">No images in this folder yet. Upload with the image button first.</p>
               )}
               {!cloudinaryLoading && !cloudinaryError && cloudinaryImages.length > 0 && (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
@@ -3380,15 +3380,15 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                       key={img.publicId?.trim() || img.url}
                       type="button"
                       onClick={() => handleCloudinaryLibraryPick(img.url)}
-                      className="group flex min-w-0 flex-col items-stretch overflow-hidden rounded-lg border border-slate-200 bg-slate-50 text-left shadow-sm transition hover:border-indigo-300 hover:ring-2 hover:ring-indigo-200"
+                      className="group flex min-w-0 flex-col items-stretch overflow-hidden rounded-lg border border-fog bg-cloud text-left shadow-sm transition hover:border-primary hover:ring-2 hover:ring-primary-soft"
                     >
                       <img
                         src={img.url}
                         alt={img.publicId.split('/').pop() ?? 'Library image'}
-                        className="h-40 w-full shrink-0 bg-slate-100 object-contain object-center sm:h-44"
+                        className="h-40 w-full shrink-0 bg-fog object-contain object-center sm:h-44"
                         loading="lazy"
                       />
-                      <span className="block truncate px-2 py-1.5 text-[10px] text-slate-500 group-hover:text-slate-700">
+                      <span className="block truncate px-2 py-1.5 text-[10px] text-graphite group-hover:text-charcoal">
                         {img.publicId.split('/').pop()}
                       </span>
                     </button>
@@ -3402,35 +3402,35 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
 
       {importHtmlOpen && (
         <div
-          className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-ink/60 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-label="Import HTML"
           onClick={() => closeImportHtml()}
         >
           <div
-            className="relative my-16 w-full max-w-2xl rounded-xl border border-slate-200 bg-white p-5 shadow-xl"
+            className="relative my-16 w-full max-w-2xl rounded-xl border border-fog bg-white p-5 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-sm font-semibold text-slate-900">Import HTML</h2>
-            <p className="mt-1 text-xs text-slate-500">
+            <h2 className="text-sm font-semibold text-ink">Import HTML</h2>
+            <p className="mt-1 text-xs text-graphite">
               Paste HTML from another CMS, a static page, or your notes. It is cleaned to allowed tags (headings, lists, links, images, tables, embeds, etc.), then converted into editor content — same rules as paste and save.
             </p>
-            <label className="mt-4 block text-xs font-medium text-slate-600" htmlFor="blog-import-html">
+            <label className="mt-4 block text-xs font-medium text-graphite" htmlFor="blog-import-html">
               HTML markup
             </label>
             <textarea
               id="blog-import-html"
-              className="mt-1 max-h-[min(50vh,420px)] min-h-[160px] w-full resize-y rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs leading-relaxed shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="mt-1 max-h-[min(50vh,420px)] min-h-[160px] w-full resize-y rounded-lg border border-steel px-3 py-2 font-mono text-xs leading-relaxed shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               value={importHtmlDraft}
               onChange={(e) => setImportHtmlDraft(e.target.value)}
               placeholder="<p>…</p>"
               autoFocus
             />
-            <label className="mt-3 flex cursor-pointer items-start gap-2 text-xs text-slate-600">
+            <label className="mt-3 flex cursor-pointer items-start gap-2 text-xs text-graphite">
               <input
                 type="checkbox"
-                className="mt-0.5 rounded border-slate-300"
+                className="mt-0.5 rounded border-steel"
                 checked={importHtmlStripStyles}
                 onChange={(e) => setImportHtmlStripStyles(e.target.checked)}
               />
@@ -3442,21 +3442,21 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
               <button
                 type="button"
                 onClick={() => closeImportHtml()}
-                className="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100"
+                className="rounded-lg px-3 py-1.5 text-sm font-medium text-graphite hover:bg-fog"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={() => applyImportHtmlAtCursor()}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-800 hover:bg-slate-50"
+                className="rounded-lg border border-fog bg-white px-3 py-1.5 text-sm font-medium text-ink-soft hover:bg-cloud"
               >
                 Insert at cursor
               </button>
               <button
                 type="button"
                 onClick={() => applyImportHtmlReplaceAll()}
-                className="rounded-lg bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700"
+                className="rounded-lg bg-bloom-coral px-3 py-1.5 text-sm font-medium text-white hover:bg-bloom-coral"
               >
                 Replace entire body
               </button>
@@ -3467,26 +3467,26 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
 
       {bodyImageAltDialogOpen && (
         <div
-          className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-ink/60 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-label="Image alt text"
           onClick={() => cancelBodyImageAlt()}
         >
           <div
-            className="relative my-24 w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-xl"
+            className="relative my-24 w-full max-w-md rounded-xl border border-fog bg-white p-5 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-sm font-semibold text-slate-900">Alt text for this image</h2>
-            <p className="mt-1 text-xs text-slate-500">
+            <h2 className="text-sm font-semibold text-ink">Alt text for this image</h2>
+            <p className="mt-1 text-xs text-graphite">
               Describe what the image shows. Required for accessibility and before you can publish with images in the body.
             </p>
-            <label className="mt-4 block text-xs font-medium text-slate-600" htmlFor="blog-body-img-alt">
+            <label className="mt-4 block text-xs font-medium text-graphite" htmlFor="blog-body-img-alt">
               Alt text
             </label>
             <input
               id="blog-body-img-alt"
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="mt-1 w-full rounded-lg border border-steel px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               value={bodyImageAltDraft}
               onChange={(e) => setBodyImageAltDraft(e.target.value)}
               placeholder="e.g. Technician checking AC outdoor unit in Mumbai"
@@ -3502,14 +3502,14 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
               <button
                 type="button"
                 onClick={() => cancelBodyImageAlt()}
-                className="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100"
+                className="rounded-lg px-3 py-1.5 text-sm font-medium text-graphite hover:bg-fog"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={() => confirmBodyImageAlt()}
-                className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
+                className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-primary"
               >
                 Insert image
               </button>
@@ -3520,24 +3520,24 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
 
       {previewOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/60 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-label="Post preview"
           onClick={() => setPreviewOpen(false)}
         >
           <div
-            className="relative my-8 w-full max-w-3xl rounded-xl border border-slate-200 bg-white shadow-xl"
+            className="relative my-8 w-full max-w-3xl rounded-xl border border-fog bg-white shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="sticky top-0 z-10 flex flex-col gap-2 border-b border-slate-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <span className="text-sm font-semibold text-slate-800">Reader preview</span>
+            <div className="sticky top-0 z-10 flex flex-col gap-2 border-b border-fog bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <span className="text-sm font-semibold text-ink-soft">Reader preview</span>
               <div className="flex flex-wrap items-center gap-3">
                 {readabilityCoachActive && (
-                  <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-600">
+                  <label className="flex cursor-pointer items-center gap-2 text-xs text-graphite">
                     <input
                       type="checkbox"
-                      className="rounded border-slate-300"
+                      className="rounded border-steel"
                       checked={previewHighlightReadability}
                       onChange={(e) => setPreviewHighlightReadability(e.target.checked)}
                     />
@@ -3545,10 +3545,10 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                   </label>
                 )}
                 {plagiarismResult && (plagiarismResult.repeatedFiveGrams?.length ?? 0) > 0 && (
-                  <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-600">
+                  <label className="flex cursor-pointer items-center gap-2 text-xs text-graphite">
                     <input
                       type="checkbox"
-                      className="rounded border-slate-300"
+                      className="rounded border-steel"
                       checked={previewHighlightRepeats}
                       onChange={(e) => setPreviewHighlightRepeats(e.target.checked)}
                     />
@@ -3558,7 +3558,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                 <button
                   type="button"
                   onClick={() => setPreviewOpen(false)}
-                  className="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100"
+                  className="rounded-lg px-3 py-1.5 text-sm font-medium text-graphite hover:bg-fog"
                 >
                   Close
                 </button>
@@ -3578,8 +3578,8 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                   border-radius: 0.5rem;
                 }
                 .blog-preview-content .blog-readability-long-paragraph {
-                  box-shadow: inset 3px 0 0 0 #0ea5e9;
-                  background-color: rgba(224, 242, 254, 0.35);
+                  box-shadow: inset 3px 0 0 0 #024ad8; /* DESIGN.md primary */
+                  background-color: rgba(201, 224, 252, 0.35); /* DESIGN.md primary-soft */
                   border-radius: 0 6px 6px 0;
                   padding-left: 0.35rem;
                 }
@@ -3589,13 +3589,13 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                   gap: 0.5rem;
                 }
                 .blog-preview-content .blog-faq__item {
-                  border: 1px solid #e2e8f0;
+                  border: 1px solid #e8e8e8; /* DESIGN.md hairline */
                   border-radius: 8px;
-                  background: #f8fafc;
+                  background: #f7f7f7; /* DESIGN.md cloud */
                   overflow: hidden;
                 }
                 .blog-preview-content .blog-faq__item[open] {
-                  background: #fff;
+                  background: #ffffff; /* DESIGN.md canvas */
                 }
                 .blog-preview-content .blog-faq__question {
                   cursor: pointer;
@@ -3608,10 +3608,10 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                 }
                 .blog-preview-content .blog-faq__answer {
                   padding: 0 1rem 1rem 1rem;
-                  color: #475569;
+                  color: #3d3d3d; /* DESIGN.md charcoal */
                   font-size: 0.9375rem;
                   line-height: 1.55;
-                  border-top: 1px solid #f1f5f9;
+                  border-top: 1px solid #e8e8e8; /* DESIGN.md hairline */
                 }
               `}</style>
               {featuredImageUrl.trim() && (
@@ -3621,20 +3621,20 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
                   className="mb-6 max-h-64 w-full rounded-lg object-cover"
                 />
               )}
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title || 'Untitled'}</h1>
-              <p className="mt-2 text-sm text-slate-500">{metaDescription || 'No meta description'}</p>
+              <h1 className="text-2xl font-bold tracking-tight text-ink">{title || 'Untitled'}</h1>
+              <p className="mt-2 text-sm text-graphite">{metaDescription || 'No meta description'}</p>
               <div
-                className="blog-preview-content mt-8 max-w-none text-slate-800 [&_a]:text-indigo-600 [&_blockquote]:border-l-4 [&_blockquote]:border-slate-200 [&_blockquote]:pl-4 [&_h1]:mt-8 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:mt-8 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:mt-6 [&_h3]:text-lg [&_h3]:font-semibold [&_iframe]:aspect-video [&_iframe]:max-h-96 [&_iframe]:w-full [&_iframe]:rounded-lg [&_mark]:rounded [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-3 [&_table]:my-4 [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm [&_td]:border [&_td]:border-slate-200 [&_td]:p-2 [&_td]:align-top [&_th]:border [&_th]:border-slate-200 [&_th]:bg-slate-50 [&_th]:p-2 [&_th]:text-left [&_th]:font-semibold [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6"
+                className="blog-preview-content mt-8 max-w-none text-ink-soft [&_a]:text-primary [&_blockquote]:border-l-4 [&_blockquote]:border-fog [&_blockquote]:pl-4 [&_h1]:mt-8 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:mt-8 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:mt-6 [&_h3]:text-lg [&_h3]:font-semibold [&_iframe]:aspect-video [&_iframe]:max-h-96 [&_iframe]:w-full [&_iframe]:rounded-lg [&_mark]:rounded [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-3 [&_table]:my-4 [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm [&_td]:border [&_td]:border-fog [&_td]:p-2 [&_td]:align-top [&_th]:border [&_th]:border-fog [&_th]:bg-cloud [&_th]:p-2 [&_th]:text-left [&_th]:font-semibold [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6"
                 // eslint-disable-next-line react/no-danger -- sanitized with DOMPurify (+ optional mark from scan)
                 dangerouslySetInnerHTML={{ __html: previewArticleHtml }}
               />
               {previewFaqJsonLd && (
-                <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50/90 p-4">
-                  <p className="text-xs font-semibold text-amber-950">FAQ JSON‑LD for the public page &lt;head&gt;</p>
-                  <p className="mt-1 text-[11px] leading-snug text-amber-900/90">
+                <div className="mt-6 rounded-lg border border-bloom-coral/40 bg-bloom-rose/90 p-4">
+                  <p className="text-xs font-semibold text-bloom-coral">FAQ JSON‑LD for the public page &lt;head&gt;</p>
+                  <p className="mt-1 text-[11px] leading-snug text-bloom-coral/90">
                     Not part of the rich-text body — your consumer app should inject this script on the blog detail route.
                   </p>
-                  <pre className="mt-2 max-h-56 overflow-auto whitespace-pre-wrap break-all rounded border border-amber-100/80 bg-white p-3 font-mono text-[10px] text-slate-800">
+                  <pre className="mt-2 max-h-56 overflow-auto whitespace-pre-wrap break-all rounded border border-bloom-coral/80 bg-white p-3 font-mono text-[10px] text-ink-soft">
                     {`<script type="application/ld+json">\n${previewFaqJsonLd}\n</script>`}
                   </pre>
                 </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import {
   Button,
   Card,
@@ -98,9 +98,9 @@ const statusVariant = {
 
 const statDotClass: Record<string, string> = {
   default: 'bg-muted-foreground',
-  info: 'bg-sky-500',
-  success: 'bg-green-500',
-  warning: 'bg-amber-500',
+  info: 'bg-primary',
+  success: 'bg-storm-deep',
+  warning: 'bg-bloom-coral',
 }
 
 export function ServiceRequests() {

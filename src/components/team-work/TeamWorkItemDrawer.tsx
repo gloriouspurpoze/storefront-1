@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+﻿import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { format } from 'date-fns'
 import DOMPurify from 'dompurify'
 import ReactQuill from 'react-quill-new'
@@ -1368,7 +1368,7 @@ export function TeamWorkItemDrawer({
                   className={cn(
                     'border-border/80 bg-muted/20',
                     isEditingCard &&
-                      'border-amber-500/50 bg-amber-50/60 ring-2 ring-amber-400/45 dark:border-amber-600/40 dark:bg-amber-950/30',
+                      'border-bloom-coral/50 bg-bloom-rose/60 ring-2 ring-bloom-coral/45 dark:border-bloom-coral/40 dark:bg-bloom-coral/30',
                   )}
                 >
                   <CardContent className="space-y-1.5 p-3">
@@ -1380,7 +1380,7 @@ export function TeamWorkItemDrawer({
                         <div className="text-right text-[10px] leading-tight text-muted-foreground sm:text-xs">
                           <span className="whitespace-nowrap">{format(new Date(c.createdAt), 'PPp')}</span>
                           {c.editedAt ? (
-                            <span className="mt-0.5 block whitespace-nowrap font-medium text-amber-800 dark:text-amber-200">
+                            <span className="mt-0.5 block whitespace-nowrap font-medium text-bloom-coral dark:text-bloom-deep">
                               Edited {format(new Date(c.editedAt), 'PPp')}
                             </span>
                           ) : null}
@@ -1414,18 +1414,18 @@ export function TeamWorkItemDrawer({
       <Card
         className={cn(
           'shrink-0 border-border/80',
-          editingCommentId && 'border-amber-500/45 ring-1 ring-amber-400/35 dark:border-amber-700/40',
+          editingCommentId && 'border-bloom-coral/45 ring-1 ring-bloom-coral/35 dark:border-bloom-coral/40',
         )}
       >
         <CardContent className="space-y-2 p-3">
           {editingCommentId ? (
             <div
               role="status"
-              className="rounded-md border border-amber-400/50 bg-amber-50 px-2.5 py-1.5 dark:border-amber-700/50 dark:bg-amber-950/35"
+              className="rounded-md border border-bloom-coral/50 bg-bloom-rose px-2.5 py-1.5 dark:border-bloom-coral/50 dark:bg-bloom-coral/35"
             >
-              <p className="text-xs font-medium text-amber-950 dark:text-amber-50">
+              <p className="text-xs font-medium text-bloom-coral dark:text-bloom-deep">
                 <span className="font-semibold">Editing comment</span>
-                <span className="font-normal text-amber-900/90 dark:text-amber-100/90">
+                <span className="font-normal text-bloom-coral/90 dark:text-bloom-deep/90">
                   {' '}
                   — save to update the thread or use Cancel beside Save to discard changes.
                 </span>
@@ -1691,7 +1691,7 @@ export function TeamWorkItemDrawer({
             <Button type="button" variant="outline" onClick={() => setUnsavedCloseOpen(false)}>
               Keep editing
             </Button>
-            <Button type="button" variant="outline" className="border-amber-600 text-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/30" onClick={discardAndClose}>
+            <Button type="button" variant="outline" className="border-bloom-coral text-bloom-coral hover:bg-bloom-rose dark:hover:bg-bloom-coral/30" onClick={discardAndClose}>
               Discard
             </Button>
             {canManage && item && computeSignature() !== baselineRef.current ? (

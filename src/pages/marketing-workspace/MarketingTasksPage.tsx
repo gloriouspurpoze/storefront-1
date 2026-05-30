@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+﻿import React, { useEffect, useMemo, useState } from 'react'
 import { CheckCircle2, Circle, ListTodo, Pencil, Plus, Trash2 } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { MarketingWorkspaceSubnav } from '../../components/marketing-workspace/MarketingWorkspaceSubnav'
@@ -518,7 +518,7 @@ export function MarketingTasksPage() {
                     {form.assigneeUserIds
                       .filter((id) => !teamMembers.some((u) => u.id === id))
                       .map((id) => (
-                        <div key={id} className="flex items-start gap-2 text-amber-800 dark:text-amber-200">
+                        <div key={id} className="flex items-start gap-2 text-bloom-coral dark:text-bloom-deep">
                           <Checkbox
                             id={`assign-orphan-${id}`}
                             checked

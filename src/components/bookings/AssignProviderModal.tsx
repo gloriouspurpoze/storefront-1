@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Assign Provider Modal — assign a provider to a booking (admin).
  */
 
@@ -225,7 +225,7 @@ export function AssignProviderModal({
                           </div>
                           {!!provider.rating && (
                             <div className="mt-0.5 flex items-center gap-0.5 text-xs text-muted-foreground">
-                              <Star className="h-3 w-3 text-amber-500" />
+                              <Star className="h-3 w-3 text-bloom-coral" />
                               {provider.rating} ({provider.totalJobs || 0} jobs)
                             </div>
                           )}

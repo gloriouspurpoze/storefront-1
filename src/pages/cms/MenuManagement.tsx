@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+﻿import React, { useState, useEffect, useMemo } from 'react'
 import {
   Plus,
   Pencil,
@@ -441,7 +441,7 @@ export default function MenuManagement() {
         </div>
 
         <div
-          className="mb-6 rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/40 dark:text-sky-100"
+          className="mb-6 rounded-lg border border-primary/20 bg-primary-soft p-4 text-sm text-primary dark:border-primary/50 dark:bg-primary/40 dark:text-primary-deep"
           role="status"
         >
           <strong>Note:</strong> Menu item builder with drag-and-drop functionality can be added in a future enhancement.

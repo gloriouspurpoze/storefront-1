@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react'
+﻿import React, { useMemo, useState, useEffect } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
   Search,
@@ -67,58 +67,61 @@ import {
   TooltipTrigger,
 } from '../../components/ui/tooltip'
 
+// DESIGN.md tokens (chartPalette) — no Material Design hexes.
+import { CHART_PALETTE } from '../../lib/chartPalette'
+
 const statusConfig: Record<
   string,
   { color: string; bg: string; icon: LucideIcon; label: string; gradient: string }
 > = {
   pending: {
-    color: '#FF9800',
-    bg: '#FFF3E0',
+    color: CHART_PALETTE.bloomCoral,
+    bg: CHART_PALETTE.bloomRose,
     icon: CalendarClock,
     label: 'Pending',
-    gradient: 'linear-gradient(135deg, #FF9800 0%, #F57C00 100%)',
+    gradient: `linear-gradient(135deg, ${CHART_PALETTE.bloomCoral} 0%, ${CHART_PALETTE.bloomDeep} 100%)`,
   },
   confirmed: {
-    color: '#2196F3',
-    bg: '#E3F2FD',
+    color: CHART_PALETTE.primary,
+    bg: CHART_PALETTE.primarySoft,
     icon: CheckCircle2,
     label: 'Confirmed',
-    gradient: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)',
+    gradient: `linear-gradient(135deg, ${CHART_PALETTE.primary} 0%, ${CHART_PALETTE.primaryDeep} 100%)`,
   },
   in_progress: {
-    color: '#9C27B0',
-    bg: '#F3E5F5',
+    color: CHART_PALETTE.primaryDeep,
+    bg: CHART_PALETTE.primarySoft,
     icon: Clock,
     label: 'In Progress',
-    gradient: 'linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%)',
+    gradient: `linear-gradient(135deg, ${CHART_PALETTE.primaryBright} 0%, ${CHART_PALETTE.primaryDeep} 100%)`,
   },
   completed: {
-    color: '#4CAF50',
-    bg: '#E8F5E9',
+    color: CHART_PALETTE.stormDeep,
+    bg: CHART_PALETTE.stormMist,
     icon: CheckCircle2,
     label: 'Completed',
-    gradient: 'linear-gradient(135deg, #4CAF50 0%, #388E3C 100%)',
+    gradient: `linear-gradient(135deg, ${CHART_PALETTE.stormSea} 0%, ${CHART_PALETTE.stormDeep} 100%)`,
   },
   cancelled: {
-    color: '#F44336',
-    bg: '#FFEBEE',
+    color: CHART_PALETTE.bloomDeep,
+    bg: CHART_PALETTE.bloomRose,
     icon: XCircle,
     label: 'Cancelled',
-    gradient: 'linear-gradient(135deg, #F44336 0%, #D32F2F 100%)',
+    gradient: `linear-gradient(135deg, ${CHART_PALETTE.bloomDeep} 0%, ${CHART_PALETTE.bloomWine} 100%)`,
   },
   scheduled: {
-    color: '#00ACC1',
-    bg: '#E0F7FA',
+    color: CHART_PALETTE.primaryBright,
+    bg: CHART_PALETTE.primarySoft,
     icon: Calendar,
     label: 'Scheduled',
-    gradient: 'linear-gradient(135deg, #00ACC1 0%, #00838F 100%)',
+    gradient: `linear-gradient(135deg, ${CHART_PALETTE.primaryBright} 0%, ${CHART_PALETTE.primary} 100%)`,
   },
   accepted: {
-    color: '#1565C0',
-    bg: '#E3F2FD',
+    color: CHART_PALETTE.primaryDeep,
+    bg: CHART_PALETTE.primarySoft,
     icon: CheckCircle2,
     label: 'Accepted',
-    gradient: 'linear-gradient(135deg, #1565C0 0%, #0D47A1 100%)',
+    gradient: `linear-gradient(135deg, ${CHART_PALETTE.primary} 0%, ${CHART_PALETTE.primaryDeep} 100%)`,
   },
 }
 
@@ -523,32 +526,32 @@ export function Bookings() {
             title: 'Total Bookings',
             value: resolvedStats.total,
             icon: UserCog,
-            color: '#2196F3',
-            gradient: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)',
+            color: '#024AD8',
+            gradient: 'linear-gradient(135deg, #024AD8 0%, #0E3191 100%)',
             onStatus: 'all' as const,
           },
           {
             title: 'Pending',
             value: resolvedStats.pending,
             icon: CalendarClock,
-            color: '#FF9800',
-            gradient: 'linear-gradient(135deg, #FF9800 0%, #F57C00 100%)',
+            color: '#FF5050',
+            gradient: 'linear-gradient(135deg, #FF5050 0%, #B3262B 100%)',
             onStatus: 'pending' as const,
           },
           {
             title: 'In Progress',
             value: resolvedStats.in_progress,
             icon: Clock,
-            color: '#9C27B0',
-            gradient: 'linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%)',
+            color: '#0E3191',
+            gradient: 'linear-gradient(135deg, #0E3191 0%, #0E3191 100%)',
             onStatus: 'in_progress' as const,
           },
           {
             title: 'Completed',
             value: resolvedStats.completed,
             icon: CheckCircle2,
-            color: '#4CAF50',
-            gradient: 'linear-gradient(135deg, #4CAF50 0%, #388E3C 100%)',
+            color: '#356373',
+            gradient: 'linear-gradient(135deg, #356373 0%, #356373 100%)',
             onStatus: 'completed' as const,
           },
         ].map((s) => {
@@ -778,7 +781,7 @@ export function Bookings() {
                           <div className="flex min-w-0 max-w-[200px] items-center gap-2">
                             <div
                               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
-                              style={{ background: 'rgb(102 126 234 / 0.15)', color: '#3f51b5' }}
+                              style={{ background: 'rgb(102 126 234 / 0.15)', color: '#0e3191' }}
                             >
                               {getInitials(name)}
                             </div>
@@ -807,7 +810,7 @@ export function Bookings() {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="text-right font-black text-emerald-600 align-top">
+                        <TableCell className="text-right font-black text-storm-deep align-top">
                           {formatCurrency(row.totalAmount || 0)}
                         </TableCell>
                         <TableCell className="align-top">
@@ -816,8 +819,8 @@ export function Bookings() {
                             className={cn(
                               'text-xs capitalize',
                               isPaid
-                                ? 'border-emerald-200 bg-emerald-500/10 text-emerald-800'
-                                : 'border-amber-200 bg-amber-500/10 text-amber-800',
+                                ? 'border-storm-mist/30 bg-storm-deep/10 text-storm-deep'
+                                : 'border-bloom-coral/40 bg-bloom-coral/10 text-bloom-coral',
                             )}
                           >
                             {(row.paymentStatus || '—').toString().replace(/_/g, ' ')}

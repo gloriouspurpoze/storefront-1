@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+﻿import React, { useEffect, useState } from 'react'
 import { Users, CheckCircle, Clock, Star } from 'lucide-react'
 import { Card, CardContent } from '../ui/card'
 import { ProvidersService, ProviderStats } from '../../services/api/providers.service'
@@ -129,7 +129,7 @@ export function ProviderStatsWidget({ onRefresh }: ProviderStatsWidgetProps) {
   if (error) {
     return (
       <div
-        className="mb-6 rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100"
+        className="mb-6 rounded-md border border-bloom-coral/50 bg-bloom-coral/10 px-3 py-2 text-sm text-bloom-coral dark:text-bloom-deep"
         role="status"
       >
         {error}. Showing fallback data.
@@ -167,32 +167,32 @@ export function ProviderStatsWidget({ onRefresh }: ProviderStatsWidgetProps) {
         title="Total Providers"
         value={stats.total_providers}
         icon={<Users className="h-6 w-6" />}
-        accentClass="text-blue-600"
-        iconBg="bg-blue-100 dark:bg-blue-950/50"
+        accentClass="text-primary"
+        iconBg="bg-primary-soft dark:bg-primary/50"
         subtitle="All registered providers"
       />
       <StatCard
         title="Verified Providers"
         value={stats.verified_providers}
         icon={<CheckCircle className="h-6 w-6" />}
-        accentClass="text-emerald-600"
-        iconBg="bg-emerald-100 dark:bg-emerald-950/50"
+        accentClass="text-storm-deep"
+        iconBg="bg-storm-mist/30 dark:bg-storm-deep/50"
         subtitle={`${verificationRate}% of total`}
       />
       <StatCard
         title="Pending Verification"
         value={stats.pending_providers}
         icon={<Clock className="h-6 w-6" />}
-        accentClass="text-amber-600"
-        iconBg="bg-amber-100 dark:bg-amber-950/50"
+        accentClass="text-bloom-coral"
+        iconBg="bg-bloom-rose dark:bg-bloom-coral/50"
         subtitle={`${pendingRate}% awaiting review`}
       />
       <StatCard
         title="Average Rating"
         value={averageRatingRaw !== null ? averageRatingRaw.toFixed(1) : '—'}
         icon={<Star className="h-6 w-6" />}
-        accentClass="text-sky-600"
-        iconBg="bg-sky-100 dark:bg-sky-950/50"
+        accentClass="text-primary"
+        iconBg="bg-primary-soft dark:bg-primary/50"
         subtitle="Provider rating"
       />
     </div>

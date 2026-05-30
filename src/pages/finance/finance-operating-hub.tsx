@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowRight,
@@ -598,7 +598,7 @@ export function FinanceOperatingHubPage() {
                       <p className="text-xs text-muted-foreground">You need finance manage permission to log.</p>
                     )}
                     {accounts.length === 0 && (
-                      <p className="text-xs text-amber-700 dark:text-amber-400">
+                      <p className="text-xs text-bloom-coral dark:text-bloom-coral">
                         Add a cash account under{' '}
                         <Link className="underline" to="/finance/directory">
                           Directory

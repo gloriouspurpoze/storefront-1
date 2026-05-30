@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+﻿import React, { useMemo, useState } from 'react'
 import { Loader2, MapPin, Pencil, Plus, Trash2 } from 'lucide-react'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
@@ -375,7 +375,7 @@ export function ServiceCatalogLocalitiesPanel({
                       <TableCell className="font-mono text-xs">{row.slug}</TableCell>
                       <TableCell className="hidden text-[11px] text-muted-foreground md:table-cell">
                         {richness === 0 ? (
-                          <span className="italic text-amber-600">No hyperlocal fields</span>
+                          <span className="italic text-bloom-coral">No hyperlocal fields</span>
                         ) : (
                           <span>
                             {(row.neighborhoods?.length ?? 0)} neighborhoods ·{' '}
@@ -390,7 +390,7 @@ export function ServiceCatalogLocalitiesPanel({
                           className={cn(
                             'tabular-nums text-[11px]',
                             summary.ready
-                              ? 'bg-emerald-600 hover:bg-emerald-600'
+                              ? 'bg-storm-deep hover:bg-storm-deep'
                               : 'text-muted-foreground',
                           )}
                           title={`${summary.hard}/${summary.total} signals · score ${summary.score.toFixed(2)} (floor 0.70)`}
@@ -548,7 +548,7 @@ export function ServiceCatalogLocalitiesPanel({
             </TabsContent>
 
             <TabsContent value="content" className="space-y-4">
-              <p className="rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              <p className="rounded-md border border-bloom-coral/60 bg-bloom-rose px-3 py-2 text-xs text-bloom-coral">
                 These inputs feed the CMS prompt in{' '}
                 <code className="font-mono">docs/seo/CMS_PROMPT_LOCALITY.md</code> — every locality
                 landing the editor generates anchors to these facts. Without them, AI output drifts
@@ -681,12 +681,12 @@ export function ServiceCatalogLocalitiesPanel({
                       const score = form.qualitySignals.contentQualityScore ?? 0
                       if (score >= 0.7)
                         return (
-                          <span className="font-medium text-emerald-700">
+                          <span className="font-medium text-storm-deep">
                             Passes — eligible for sitemap.
                           </span>
                         )
                       return (
-                        <span className="font-medium text-amber-700">
+                        <span className="font-medium text-bloom-coral">
                           Below floor — will stay out of sitemap.
                         </span>
                       )
@@ -702,9 +702,9 @@ export function ServiceCatalogLocalitiesPanel({
                     <span className="font-semibold">Readiness:</span> {summary.hard}/{summary.total}{' '}
                     hard signals · score {summary.score.toFixed(2)} ·{' '}
                     {summary.ready ? (
-                      <span className="font-medium text-emerald-700">ready to promote</span>
+                      <span className="font-medium text-storm-deep">ready to promote</span>
                     ) : (
-                      <span className="font-medium text-amber-700">not ready yet</span>
+                      <span className="font-medium text-bloom-coral">not ready yet</span>
                     )}
                   </div>
                 )

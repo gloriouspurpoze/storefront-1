@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import {
   Button,
   Card,
@@ -99,7 +99,7 @@ export function Settings() {
     },
     appearance: {
       theme: 'light',
-      primaryColor: '#1976d2',
+      primaryColor: '#0e3191',
       sidebarCollapsed: false,
       compactMode: false,
     },
@@ -215,12 +215,12 @@ export function Settings() {
                   Loading…
                 </Badge>
               ) : apiSynced ? (
-                <Badge variant="outline" className="gap-1 border-emerald-200 bg-emerald-50 font-normal text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100">
+                <Badge variant="outline" className="gap-1 border-storm-mist/30 bg-storm-mist/30 font-normal text-storm-deep dark:border-storm-deep dark:bg-storm-deep/40 dark:text-on-ink">
                   <Cloud className="h-3 w-3" aria-hidden />
                   API OK
                 </Badge>
               ) : (
-                <Badge variant="outline" className="gap-1 border-amber-200 bg-amber-50 font-normal text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+                <Badge variant="outline" className="gap-1 border-bloom-coral/40 bg-bloom-rose font-normal text-bloom-coral dark:border-bloom-coral dark:bg-bloom-coral/40 dark:text-bloom-deep">
                   <CloudOff className="h-3 w-3" aria-hidden />
                   Check connection
                 </Badge>
@@ -571,10 +571,10 @@ export function Settings() {
                     />
                   </div>
 
-                  <div className="flex items-center justify-between w-full p-4 border rounded-lg bg-yellow-50 border-yellow-200">
+                  <div className="flex items-center justify-between w-full p-4 border rounded-lg bg-bloom-rose border-bloom-coral/40">
                     <div>
-                      <p className="font-medium text-yellow-800">Maintenance Mode</p>
-                      <p className="text-sm text-yellow-600">
+                      <p className="font-medium text-bloom-coral">Maintenance Mode</p>
+                      <p className="text-sm text-bloom-coral">
                         Put the site in maintenance mode
                       </p>
                     </div>

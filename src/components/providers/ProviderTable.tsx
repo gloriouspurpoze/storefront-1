@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import {
   MoreVertical,
   Building2,
@@ -144,7 +144,7 @@ export function ProviderTable({
                 </TableCell>
                 <TableCell className="py-3">
                   <div className="flex items-center gap-1">
-                    <Star className="h-4 w-4 text-amber-500" aria-hidden />
+                    <Star className="h-4 w-4 text-bloom-coral" aria-hidden />
                     <span className="text-sm tabular-nums">{(provider.rating ?? 0).toFixed(1)}</span>
                     <span className="text-xs text-muted-foreground">
                       ({provider.total_reviews || 0})

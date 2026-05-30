@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { MessageCircle } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { cn } from '../../lib/utils'
@@ -12,10 +12,10 @@ export function CrmWhatsAppStaffPlaybook({ variant = 'default', className }: { v
   const compact = variant === 'compact'
 
   return (
-    <Card className={cn('border-emerald-600/25 bg-emerald-500/[0.06]', className)}>
+    <Card className={cn('border-storm-deep/25 bg-storm-deep/[0.06]', className)}>
       <CardHeader className="pb-2 pt-4">
         <div className="flex items-center gap-2">
-          <MessageCircle className="h-5 w-5 text-emerald-700 dark:text-emerald-400" aria-hidden />
+          <MessageCircle className="h-5 w-5 text-storm-deep dark:text-storm-sea" aria-hidden />
           <CardTitle className="text-base">WhatsApp & jobs — how staff should use CRM</CardTitle>
         </div>
         {!compact ? (

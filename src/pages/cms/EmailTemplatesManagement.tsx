@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+﻿import React, { useEffect, useMemo, useState } from 'react'
 import axios from 'axios'
 import {
   ChevronDown,
@@ -274,7 +274,7 @@ export default function EmailTemplatesManagement() {
   }
 
   const previewPanel = (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border bg-white dark:bg-zinc-950">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border bg-white dark:bg-ink">
       {previewHtml ? (
         <iframe title="Email preview" className="min-h-0 flex-1 w-full border-0" sandbox="" srcDoc={previewHtml} />
       ) : (
@@ -487,7 +487,7 @@ export default function EmailTemplatesManagement() {
 
                 {validationHints && (validationHints.missing.length > 0 || validationHints.unknown.length > 0) ? (
                   <div
-                    className="rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-xs text-foreground"
+                    className="rounded-md border border-bloom-coral/50 bg-bloom-coral/10 px-3 py-2 text-xs text-foreground"
                     role="status"
                   >
                     {validationHints.missing.length > 0 ? (

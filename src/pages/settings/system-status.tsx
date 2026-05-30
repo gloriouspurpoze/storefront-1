@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+﻿import React, { useCallback, useEffect, useState } from 'react'
 import {
   Activity,
   AlertTriangle,
@@ -69,8 +69,8 @@ export function SystemStatus() {
         className={cn(
           'border-2',
           loading && 'border-muted',
-          !loading && allOk && 'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900 dark:bg-emerald-950/25',
-          !loading && anyFail && 'border-amber-200 bg-amber-50/60 dark:border-amber-900 dark:bg-amber-950/25',
+          !loading && allOk && 'border-storm-mist/30 bg-storm-mist/60 dark:border-storm-deep dark:bg-storm-deep/25',
+          !loading && anyFail && 'border-bloom-coral/40 bg-bloom-rose/60 dark:border-bloom-coral dark:bg-bloom-coral/25',
           !loading && checks.length === 0 && error && 'border-destructive/40 bg-destructive/5',
         )}
       >
@@ -80,11 +80,11 @@ export function SystemStatus() {
               {loading ? (
                 <Activity className="mt-0.5 h-8 w-8 animate-pulse text-muted-foreground" aria-hidden />
               ) : allOk ? (
-                <CheckCircle2 className="mt-0.5 h-8 w-8 text-emerald-600" aria-hidden />
+                <CheckCircle2 className="mt-0.5 h-8 w-8 text-storm-deep" aria-hidden />
               ) : checks.length === 0 ? (
                 <XCircle className="mt-0.5 h-8 w-8 text-destructive" aria-hidden />
               ) : (
-                <AlertTriangle className="mt-0.5 h-8 w-8 text-amber-600" aria-hidden />
+                <AlertTriangle className="mt-0.5 h-8 w-8 text-bloom-coral" aria-hidden />
               )}
               <div>
                 <CardTitle className="text-lg">
@@ -144,7 +144,7 @@ export function SystemStatus() {
                   <li key={c.id} className="flex gap-3 px-4 py-3">
                     <div className="pt-0.5">
                       {c.ok ? (
-                        <Wifi className="h-5 w-5 text-emerald-600" aria-hidden />
+                        <Wifi className="h-5 w-5 text-storm-deep" aria-hidden />
                       ) : (
                         <WifiOff className="h-5 w-5 text-destructive" aria-hidden />
                       )}

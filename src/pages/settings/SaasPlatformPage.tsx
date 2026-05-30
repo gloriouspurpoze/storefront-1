@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+﻿import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Badge,
@@ -131,7 +131,7 @@ export function SaasPlatformPage() {
         </Card>
 
         {!SAAS_MODE && (
-          <Card className="border-amber-500/40 bg-amber-500/5">
+          <Card className="border-bloom-coral/40 bg-bloom-coral/5">
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">
                 <strong className="text-foreground">REACT_APP_SAAS_MODE</strong> is off. Enable it for organization

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ============================================================================
  * INVOICES PAGE - COMPREHENSIVE BILLING MANAGEMENT
  * ============================================================================
@@ -69,15 +69,15 @@ function statusTone(
 ): { badge: string; Icon: React.FC<{ className?: string }> } {
   switch (String(status).toLowerCase()) {
     case 'paid':
-      return { badge: 'border-green-500/45 bg-green-500/10 text-green-800 dark:text-green-300', Icon: CheckCircle2 }
+      return { badge: 'border-storm-deep/45 bg-storm-deep/10 text-storm-deep dark:text-storm-sea', Icon: CheckCircle2 }
     case 'pending':
     case 'issued':
-      return { badge: 'border-orange-500/45 bg-orange-500/10 text-orange-900 dark:text-orange-200', Icon: Clock }
+      return { badge: 'border-bloom-coral/45 bg-bloom-coral/10 text-bloom-coral dark:text-bloom-deep', Icon: Clock }
     case 'partially_paid':
-      return { badge: 'border-sky-500/45 bg-sky-500/10 text-sky-900 dark:text-sky-200', Icon: Clock }
+      return { badge: 'border-primary/45 bg-primary/10 text-primary dark:text-primary-deep', Icon: Clock }
     case 'refunded':
     case 'cancelled':
-      return { badge: 'border-neutral-500/45 bg-neutral-500/10 text-neutral-700 dark:text-neutral-300', Icon: Ban }
+      return { badge: 'border-graphite/45 bg-graphite/10 text-charcoal dark:text-steel', Icon: Ban }
     default:
       return { badge: 'border-border bg-muted/80 text-muted-foreground', Icon: Clock }
   }
@@ -511,7 +511,7 @@ export function Invoices() {
               Multiple from bookings
             </Button>
             <Button
-              className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700"
+              className="bg-gradient-to-r from-primary to-primary-deep text-white hover:from-primary hover:to-primary-deep"
               onClick={() => setGenerateDialogOpen(true)}
             >
               <Plus className="mr-2 h-4 w-4" />
@@ -522,7 +522,7 @@ export function Invoices() {
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="overflow-hidden border-0 bg-gradient-to-br from-green-600 to-green-800 text-white shadow-md">
+        <Card className="overflow-hidden border-0 bg-gradient-to-br from-storm-deep to-storm-deep text-white shadow-md">
           <CardContent className="flex items-start justify-between p-6">
             <div>
               <p className="mb-1 text-sm opacity-90">Total Paid Amount</p>
@@ -535,7 +535,7 @@ export function Invoices() {
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden border-0 bg-gradient-to-br from-orange-500 to-orange-800 text-white shadow-md">
+        <Card className="overflow-hidden border-0 bg-gradient-to-br from-bloom-coral to-bloom-coral text-white shadow-md">
           <CardContent className="flex items-start justify-between p-6">
             <div>
               <p className="mb-1 text-sm opacity-90">Total Pending Amount</p>
@@ -554,7 +554,7 @@ export function Invoices() {
               <p className="mb-1 text-sm text-muted-foreground">Total Invoices</p>
               <p className="text-2xl font-bold sm:text-3xl">{stats.totalInvoices}</p>
             </div>
-            <FileText className="h-12 w-12 shrink-0 text-sky-500/30" />
+            <FileText className="h-12 w-12 shrink-0 text-primary/30" />
           </CardContent>
         </Card>
 
@@ -562,8 +562,8 @@ export function Invoices() {
           <CardContent className="flex items-start justify-between p-6">
             <div>
               <p className="mb-1 text-sm text-muted-foreground">Summary</p>
-              <p className="text-sm font-semibold text-green-600 dark:text-green-400">Paid: {formatCurrency(stats.totalPaidAmount)}</p>
-              <p className="text-sm font-semibold text-orange-600 dark:text-orange-400">
+              <p className="text-sm font-semibold text-storm-deep dark:text-storm-sea">Paid: {formatCurrency(stats.totalPaidAmount)}</p>
+              <p className="text-sm font-semibold text-bloom-coral dark:text-bloom-coral">
                 Pending: {formatCurrency(stats.totalPendingAmount)}
               </p>
             </div>
@@ -623,7 +623,7 @@ export function Invoices() {
         </Tabs>
         {error ? (
           <div className="p-6">
-            <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-100">
+            <div className="rounded-md border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive dark:border-destructive dark:bg-destructive/40 dark:text-destructive-foreground">
               {error}
             </div>
           </div>
@@ -780,7 +780,7 @@ export function Invoices() {
                       <span>{formatCurrency(total)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-green-600 dark:text-green-400">Amount Paid</span>
+                      <span className="text-storm-deep dark:text-storm-sea">Amount Paid</span>
                       <span className="font-semibold">{formatCurrency(amountPaid)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
@@ -821,7 +821,7 @@ export function Invoices() {
             </DialogTitle>
           </DialogHeader>
           <div
-            className="rounded-md border border-sky-200 bg-sky-50 p-3 text-sm dark:border-sky-900 dark:bg-sky-950/40"
+            className="rounded-md border border-primary/20 bg-primary-soft p-3 text-sm dark:border-primary dark:bg-primary/40"
             role="status"
           >
             Enter a booking ID. The server will create or refresh the invoice for that booking (same flow as when a job
@@ -859,7 +859,7 @@ export function Invoices() {
             <DialogTitle>Generate multiple invoices from bookings</DialogTitle>
           </DialogHeader>
           <div
-            className="rounded-md border border-sky-200 bg-sky-50 p-3 text-sm dark:border-sky-900 dark:bg-sky-950/40"
+            className="rounded-md border border-primary/20 bg-primary-soft p-3 text-sm dark:border-primary dark:bg-primary/40"
             role="status"
           >
             Paste one booking Mongo ID per line (or separate with spaces/commas). The server runs the same flow as

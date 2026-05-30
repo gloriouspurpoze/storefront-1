@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+﻿import React, { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Filter, ShieldCheck, ShieldOff } from 'lucide-react'
 import { routePermissions, canAccessRoute } from '../../../config/rbac.config'
@@ -156,7 +156,7 @@ export function RoutesExplorerPage() {
                       {sim === null ? (
                         <span className="text-muted-foreground">—</span>
                       ) : sim ? (
-                        <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                        <span className="inline-flex items-center gap-1 text-storm-deep dark:text-storm-sea">
                           <ShieldCheck className="h-4 w-4" aria-hidden />
                           Allow
                         </span>

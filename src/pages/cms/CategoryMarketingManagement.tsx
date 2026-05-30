@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react'
+﻿import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Loader2,
@@ -110,8 +110,8 @@ const PROFIXER_PUBLIC_ORIGIN = 'https://www.profixer.in/'
 
 function charCountColor(len: number, min: number, optimal: number, hard: number): string {
   if (len > hard) return 'text-destructive'
-  if (len > optimal) return 'text-amber-600'
-  if (len >= min) return 'text-emerald-600'
+  if (len > optimal) return 'text-bloom-coral'
+  if (len >= min) return 'text-storm-deep'
   return 'text-muted-foreground'
 }
 
@@ -765,7 +765,7 @@ export default function CategoryMarketingManagement() {
                 />
               ) : null}
               {managedLocalitiesError ? (
-                <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                <p className="text-[11px] text-bloom-coral dark:text-bloom-coral">
                   Could not load managed areas — use Custom slug or open{' '}
                   <Link to="/cms/category-marketing?tab=service-areas" className="underline">
                     Service areas
@@ -861,7 +861,7 @@ export default function CategoryMarketingManagement() {
                 {!localityVersusIndustryDiff.hasSavedIndustryKey ? (
                   <div
                     role="status"
-                    className="mb-3 rounded-md border border-amber-200/90 bg-amber-50/70 px-3 py-2 text-xs text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100"
+                    className="mb-3 rounded-md border border-bloom-coral/90 bg-bloom-rose/70 px-3 py-2 text-xs text-bloom-coral dark:border-bloom-coral dark:bg-bloom-coral/30 dark:text-bloom-deep"
                   >
                     There is no saved CMS row for{' '}
                     <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">{selectedCategory}</code> in this
@@ -988,7 +988,7 @@ export default function CategoryMarketingManagement() {
             {Object.keys(data).filter((k) => k !== effectiveKey).length === 0 ? (
               <div
                 role="alert"
-                className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/30"
+                className="rounded-md border border-bloom-coral/40 bg-bloom-rose p-3 text-sm text-bloom-coral dark:border-bloom-coral dark:bg-bloom-coral/30"
               >
                 No other keys loaded yet — save a template once, or use JSON import below.
               </div>
@@ -1209,20 +1209,20 @@ export default function CategoryMarketingManagement() {
                         className={cn(
                           'flex gap-2.5 rounded-lg border p-3 text-sm',
                           row.tone === 'ok' &&
-                            'border-emerald-200/90 bg-emerald-50/50 dark:border-emerald-900/60 dark:bg-emerald-950/25',
+                            'border-storm-mist/90 bg-storm-mist/50 dark:border-storm-deep/60 dark:bg-storm-deep/25',
                           row.tone === 'warn' &&
-                            'border-amber-200/90 bg-amber-50/55 dark:border-amber-900/55 dark:bg-amber-950/25',
+                            'border-bloom-coral/90 bg-bloom-rose/55 dark:border-bloom-coral/55 dark:bg-bloom-coral/25',
                           row.tone === 'info' && 'border-border/80 bg-muted/25',
                         )}
                       >
                         {row.tone === 'ok' ? (
                           <CheckCircle2
-                            className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400"
+                            className="mt-0.5 h-4 w-4 shrink-0 text-storm-deep dark:text-storm-sea"
                             aria-hidden
                           />
                         ) : row.tone === 'warn' ? (
                           <AlertTriangle
-                            className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400"
+                            className="mt-0.5 h-4 w-4 shrink-0 text-bloom-coral dark:text-bloom-coral"
                             aria-hidden
                           />
                         ) : (
@@ -1239,7 +1239,7 @@ export default function CategoryMarketingManagement() {
 
                 <div
                   role="alert"
-                  className="rounded-md border border-blue-200/80 bg-blue-50/70 px-3 py-2.5 text-xs leading-relaxed dark:border-blue-900 dark:bg-blue-950/30 sm:text-sm"
+                  className="rounded-md border border-primary/80 bg-primary-soft/70 px-3 py-2.5 text-xs leading-relaxed dark:border-primary dark:bg-primary/30 sm:text-sm"
                 >
                   <span className="font-medium text-foreground">Editorial flow:</span> one H1 (Hero tab). H2 → sections, H3 →
                   subsections; no skipped levels. Primary keyword in H1, intro, and ≥2 headings. Use [City] / [Location] where
@@ -1438,7 +1438,7 @@ export default function CategoryMarketingManagement() {
                   </CardContent>
                 </Card>
 
-                <div role="alert" className="rounded-md border border-blue-200 bg-blue-50/80 p-3 text-sm dark:border-blue-900 dark:bg-blue-950/30">
+                <div role="alert" className="rounded-md border border-primary/20 bg-primary-soft/80 p-3 text-sm dark:border-primary dark:bg-primary/30">
                   <strong>Technical SEO:</strong> the consumer app maps <code>technicalSeo</code> to{' '}
                   <code>rel=&quot;canonical&quot;</code>, Open Graph / Twitter, robots, hreflang, and JSON-LD (WebPage, Service,
                   HowTo, BreadcrumbList, Speakable, VideoObject when enabled). Use absolute URLs on{' '}
@@ -1860,7 +1860,7 @@ export default function CategoryMarketingManagement() {
 
             <TabsContent value="localSeo" className="mt-2 px-0 outline-none">
               <div className="flex flex-col gap-4">
-                <div role="alert" className="rounded-md border border-blue-200 bg-blue-50/80 p-3 text-sm dark:border-blue-900 dark:bg-blue-950/30">
+                <div role="alert" className="rounded-md border border-primary/20 bg-primary-soft/80 p-3 text-sm dark:border-primary dark:bg-primary/30">
                   <strong>Consumer app contract:</strong> map-pack style data should be read only from this CMS record
                   (<code>localSeo</code> and related fields). Avoid hardcoding service areas, NAP, or GBP URLs in the
                   public bundle so hyperlocal pages stay editable from admin.
@@ -2560,7 +2560,7 @@ export default function CategoryMarketingManagement() {
 
             <TabsContent value="pricing" className="mt-2 px-0 outline-none">
               <div className="flex flex-col gap-4">
-                <div role="alert" className="rounded-md border border-blue-200 bg-blue-50/80 p-3 text-sm dark:border-blue-900 dark:bg-blue-950/30">
+                <div role="alert" className="rounded-md border border-primary/20 bg-primary-soft/80 p-3 text-sm dark:border-primary dark:bg-primary/30">
                   <p className="text-sm">
                     <strong>Service charges</strong> for this industry are maintained in{' '}
                     <Link to="/cms/category-marketing?tab=rate-card">Rate card</Link> (same catalog category key). Use spare parts and

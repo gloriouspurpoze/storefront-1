@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Tenant-facing invoice appearance for on-screen preview (and optional future API sync).
  * Persisted locally until backend stores company invoice profile.
  */
@@ -31,8 +31,8 @@ const STORAGE_KEY = 'fixer-admin-invoice-branding-v2'
 export const DEFAULT_INVOICE_BRANDING: InvoiceBranding = {
   logoDataUrl: null,
   showLogo: true,
-  primaryColor: '#1565c0',
-  accentColor: '#0d47a1',
+  primaryColor: '#0e3191',
+  accentColor: '#0e3191',
   documentTitle: 'TAX INVOICE',
   companyDisplayName: 'Your company',
   companyLegalName: '',

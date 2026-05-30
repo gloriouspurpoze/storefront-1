@@ -12,13 +12,22 @@ export interface StatCardProps {
   subtitle?: string
 }
 
+/**
+ * StatCard color → DESIGN.md token map.
+ *   primary   → colors.primary
+ *   secondary → colors.charcoal
+ *   success   → colors.storm-deep   (DESIGN.md neutral positive)
+ *   error     → destructive / bloom-deep
+ *   info      → colors.primary      (HP Electric Blue is the lone signal)
+ *   warning   → colors.bloom-coral
+ */
 const colorClass: Record<NonNullable<StatCardProps['color']>, string> = {
   primary: 'text-primary',
-  secondary: 'text-secondary-foreground',
-  success: 'text-green-600 dark:text-green-500',
+  secondary: 'text-charcoal',
+  success: 'text-storm-deep',
   error: 'text-destructive',
-  info: 'text-sky-600 dark:text-sky-400',
-  warning: 'text-amber-600 dark:text-amber-500',
+  info: 'text-primary',
+  warning: 'text-bloom-coral',
 }
 
 export function StatCard({ title, value, change, icon, color = 'primary', subtitle }: StatCardProps) {
@@ -26,26 +35,26 @@ export function StatCard({ title, value, change, icon, color = 'primary', subtit
 
   return (
     <Card className="h-full">
-      <CardContent className="p-6">
-        <div className="mb-2 flex items-center justify-between">
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+      <CardContent className="p-xl">
+        <div className="mb-xs flex items-center justify-between">
+          <p className="text-caption-md font-medium text-graphite">{title}</p>
           <div className={cn('text-2xl', colorClass[color])} aria-hidden>
             {icon}
           </div>
         </div>
         <p className="mb-1 text-3xl font-bold tracking-tight">{value}</p>
-        {subtitle && <p className="mb-1 text-sm text-muted-foreground">{subtitle}</p>}
+        {subtitle && <p className="mb-1 text-caption-md text-graphite">{subtitle}</p>}
         {change !== undefined && (
-          <div className="flex items-center gap-0.5 text-sm">
+          <div className="flex items-center gap-0.5 text-caption-md">
             {isPositive ? (
-              <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-500" aria-hidden />
+              <TrendingUp className="h-4 w-4 text-storm-deep" aria-hidden />
             ) : (
               <TrendingDown className="h-4 w-4 text-destructive" aria-hidden />
             )}
             <span
               className={cn(
                 'font-semibold',
-                isPositive ? 'text-green-600 dark:text-green-500' : 'text-destructive'
+                isPositive ? 'text-storm-deep' : 'text-destructive',
               )}
             >
               {isPositive ? '+' : ''}

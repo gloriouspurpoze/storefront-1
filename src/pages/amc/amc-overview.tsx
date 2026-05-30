@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+﻿import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Loader2, CalendarClock, ClipboardList, AlertTriangle, ArrowRight } from 'lucide-react'
 import { AmcService } from '../../services/api/amc.service'
@@ -93,7 +93,7 @@ export function AmcOverviewPage() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">Active</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold tabular-nums text-emerald-700 dark:text-emerald-400">
+                <p className="text-3xl font-bold tabular-nums text-storm-deep dark:text-storm-sea">
                   {summary?.byStatus?.active ?? 0}
                 </p>
               </CardContent>
@@ -106,7 +106,7 @@ export function AmcOverviewPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold tabular-nums text-amber-700 dark:text-amber-400">
+                <p className="text-3xl font-bold tabular-nums text-bloom-coral dark:text-bloom-coral">
                   {summary?.expiringWithin30Days ?? 0}
                 </p>
                 <p className="text-xs text-muted-foreground">Backend count · active &amp; ending soon</p>
@@ -182,7 +182,7 @@ export function AmcOverviewPage() {
                           {new Date(c.endDate).toLocaleDateString()}
                         </TableCell>
                         <TableCell
-                          className={`text-right font-medium tabular-nums ${d < 0 ? 'text-destructive' : d <= 7 ? 'text-amber-700 dark:text-amber-400' : ''}`}
+                          className={`text-right font-medium tabular-nums ${d < 0 ? 'text-destructive' : d <= 7 ? 'text-bloom-coral dark:text-bloom-coral' : ''}`}
                         >
                           {d < 0 ? `${d}` : `+${d}`}
                         </TableCell>

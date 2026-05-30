@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+﻿import React, { useState, useEffect, useCallback } from 'react'
 import {
   Plus,
   ArrowLeft,
@@ -235,7 +235,7 @@ export function CreateCategory() {
 
   return (
     <div className="min-h-screen flex-1 bg-muted/40">
-      <div className="mb-6 bg-gradient-to-br from-indigo-500 to-violet-600 text-white">
+      <div className="mb-6 bg-gradient-to-br from-primary to-primary-deep text-white">
         <div className="mx-auto max-w-4xl px-4 py-8">
           <div className="flex items-center gap-4">
             <Button
@@ -290,7 +290,7 @@ export function CreateCategory() {
                 {listScope && !isViewMode && (
                   <div
                     role="status"
-                    className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-950 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-100"
+                    className="rounded-md border border-primary/20 bg-primary-soft px-4 py-3 text-sm text-primary dark:border-primary dark:bg-primary/40 dark:text-primary-deep"
                   >
                     {listScope === 'products'
                       ? 'You are on the product categories flow. “Both” is available if a category should also be used for services.'

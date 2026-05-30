@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import { Card, Button, VStack, HStack, useToast } from '../../components/ui'
 import { ProductTable } from '../../components/products/ProductTable'
 import { ProductGrid } from '../../components/products/ProductGrid'
@@ -178,7 +178,7 @@ export function Products() {
               >
                 <span className="flex items-center gap-2">
                   Active
-                  <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs">
+                  <span className="px-2 py-0.5 rounded-full bg-storm-mist/30 text-storm-deep text-xs">
                     {activeCount}
                   </span>
                 </span>
@@ -193,7 +193,7 @@ export function Products() {
               >
                 <span className="flex items-center gap-2">
                   Drafts
-                  <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs">
+                  <span className="px-2 py-0.5 rounded-full bg-bloom-rose text-bloom-coral text-xs">
                     {inactiveCount}
                   </span>
                 </span>

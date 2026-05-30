@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+﻿import React, { useState, useEffect, useMemo } from 'react'
 import {
   Button,
   Card,
@@ -154,7 +154,7 @@ function ServicePreviewDialog({
           scroller so the user keeps tab context while reading long content.
       */}
       <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col gap-0 overflow-hidden p-0">
-        <DialogHeader className="shrink-0 space-y-0 bg-gradient-to-r from-sky-600 to-indigo-700 px-6 py-4 text-primary-foreground">
+        <DialogHeader className="shrink-0 space-y-0 bg-gradient-to-r from-primary to-primary px-6 py-4 text-primary-foreground">
           <div className="flex items-start justify-between gap-3">
             <div>
               <DialogTitle className="text-xl font-bold text-white">{service.name}</DialogTitle>
@@ -216,18 +216,18 @@ function ServicePreviewDialog({
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Card className="border">
                   <CardContent className="pt-4">
-                    <p className="mb-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400">Pricing</p>
+                    <p className="mb-2 text-sm font-semibold text-storm-deep dark:text-storm-sea">Pricing</p>
                     <div className="flex flex-wrap items-baseline gap-2">
-                      <p className="text-2xl font-bold text-emerald-600">{displayBasePrice(service.base_price)}</p>
+                      <p className="text-2xl font-bold text-storm-deep">{displayBasePrice(service.base_price)}</p>
                       {showMrp ? (
                         <p className="text-lg text-muted-foreground line-through">{displayBasePrice(mrp)}</p>
                       ) : null}
                       {discountPct > 0 ? (
-                        <Badge className="bg-emerald-100 text-emerald-800">{discountPct}% OFF</Badge>
+                        <Badge className="bg-storm-mist/30 text-storm-deep">{discountPct}% OFF</Badge>
                       ) : null}
                     </div>
                     {showMrp && service.savings_amount != null && service.savings_amount > 0 ? (
-                      <p className="mt-1 text-xs font-medium text-emerald-700">
+                      <p className="mt-1 text-xs font-medium text-storm-deep">
                         Customer saves {formatCurrency(service.savings_amount)}
                       </p>
                     ) : null}
@@ -238,7 +238,7 @@ function ServicePreviewDialog({
                 </Card>
                 <Card className="border">
                   <CardContent className="pt-4">
-                    <p className="mb-2 text-sm font-semibold text-amber-700 dark:text-amber-400">
+                    <p className="mb-2 text-sm font-semibold text-bloom-coral dark:text-bloom-coral">
                       Live booking stats
                     </p>
                     <div className="flex flex-wrap gap-6">
@@ -261,7 +261,7 @@ function ServicePreviewDialog({
                         <p className="text-xs text-muted-foreground">Reviews</p>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Star className="h-5 w-5 text-amber-500" />
+                        <Star className="h-5 w-5 text-bloom-coral" />
                         <p className="text-2xl font-bold tabular-nums">
                           {service.average_rating
                             ? Number(service.average_rating).toFixed(1)
@@ -287,7 +287,7 @@ function ServicePreviewDialog({
                       {service.status}
                     </Badge>
                     {service.is_featured && (
-                      <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-900">
+                      <Badge variant="outline" className="border-bloom-coral bg-bloom-rose text-bloom-coral">
                         <Star className="mr-1 h-3 w-3" />
                         Featured
                       </Badge>
@@ -322,7 +322,7 @@ function ServicePreviewDialog({
                 </Card>
                 <Card className="border">
                   <CardContent className="space-y-2 pt-4 text-sm">
-                    <p className="font-semibold text-emerald-700 dark:text-emerald-400">Pricing Details</p>
+                    <p className="font-semibold text-storm-deep dark:text-storm-sea">Pricing Details</p>
                     {hasDisplayableBasePrice(service.base_price) && (
                       <div>
                         <p className="text-xs text-muted-foreground">Offer price (customer pays)</p>
@@ -389,7 +389,7 @@ function ServicePreviewDialog({
                   <ul className="space-y-2">
                     {service.requirements.map((req, i) => (
                       <li key={i} className="flex gap-2 text-sm">
-                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-storm-deep" />
                         <span>{req}</span>
                       </li>
                     ))}
@@ -400,7 +400,7 @@ function ServicePreviewDialog({
               </div>
               <Separator />
               <div>
-                <p className="mb-2 text-sm font-semibold text-sky-700 dark:text-sky-400">Tags</p>
+                <p className="mb-2 text-sm font-semibold text-primary dark:text-primary">Tags</p>
                 {service.tags?.length ? (
                   <div className="flex flex-wrap gap-2">
                     {service.tags.map((t, i) => (
@@ -1140,19 +1140,19 @@ export function PlatformServicesEnhanced() {
           </div>
 
           <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
-            <Card className="overflow-hidden rounded-xl border-0 bg-gradient-to-br from-indigo-500 to-purple-700 text-white">
+            <Card className="overflow-hidden rounded-xl border-0 bg-gradient-to-br from-primary to-primary-deep text-white">
               <CardContent className="p-4">
                 <p className="text-xs opacity-90">📊 Total services</p>
                 <p className="text-2xl font-bold tabular-nums">{fmtN(stats.total)}</p>
               </CardContent>
             </Card>
-            <Card className="overflow-hidden rounded-xl border-0 bg-gradient-to-br from-emerald-500 to-teal-400 text-white">
+            <Card className="overflow-hidden rounded-xl border-0 bg-gradient-to-br from-storm-deep to-storm-sea text-white">
               <CardContent className="p-4">
                 <p className="text-xs opacity-90">✅ Active</p>
                 <p className="text-2xl font-bold tabular-nums">{fmtN(stats.active)}</p>
               </CardContent>
             </Card>
-            <Card className="overflow-hidden rounded-xl border-0 bg-gradient-to-br from-fuchsia-500 to-rose-500 text-white">
+            <Card className="overflow-hidden rounded-xl border-0 bg-gradient-to-br from-primary-deep to-destructive text-white">
               <CardContent className="p-4">
                 <p className="text-xs opacity-90">⭐ Featured</p>
                 <p className="text-2xl font-bold tabular-nums">{fmtN(stats.featured)}</p>
@@ -1163,7 +1163,7 @@ export function PlatformServicesEnhanced() {
               collection, NOT influenced by seed-data placeholders. This is
               what an admin should trust for revenue / KPI reporting.
             */}
-            <Card className="overflow-hidden rounded-xl border-0 bg-gradient-to-br from-sky-500 to-cyan-500 text-white">
+            <Card className="overflow-hidden rounded-xl border-0 bg-gradient-to-br from-primary to-primary text-white">
               <CardContent className="p-4">
                 <div className="flex items-center gap-1 text-xs opacity-90">
                   <FolderTree className="h-3.5 w-3.5" />
@@ -1200,8 +1200,8 @@ export function PlatformServicesEnhanced() {
             <Card
               className={`overflow-hidden rounded-xl border-0 text-white ${
                 hasRequestDrift
-                  ? 'bg-gradient-to-br from-amber-500 to-orange-600'
-                  : 'bg-gradient-to-br from-slate-500 to-slate-700'
+                  ? 'bg-gradient-to-br from-bloom-coral to-bloom-coral'
+                  : 'bg-gradient-to-br from-graphite to-charcoal'
               }`}
             >
               <CardContent className="p-4">
@@ -1242,7 +1242,7 @@ export function PlatformServicesEnhanced() {
           </div>
 
           {hasRequestDrift && (
-            <div className="mb-4 flex flex-wrap items-start justify-between gap-3 rounded-xl border border-amber-300/70 bg-amber-50 px-4 py-3 text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-100">
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-3 rounded-xl border border-bloom-coral/70 bg-bloom-rose px-4 py-3 text-bloom-coral dark:border-bloom-coral/60 dark:bg-bloom-coral/40 dark:text-bloom-deep">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
                 <div className="text-sm leading-snug">
@@ -1262,7 +1262,7 @@ export function PlatformServicesEnhanced() {
                 type="button"
                 size="sm"
                 variant="outline"
-                className="border-amber-400 bg-white text-amber-900 hover:bg-amber-100"
+                className="border-bloom-coral bg-white text-bloom-coral hover:bg-bloom-rose"
                 onClick={handleRecomputeStats}
                 disabled={recomputingStats}
               >
@@ -1464,7 +1464,7 @@ export function PlatformServicesEnhanced() {
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                className={cn('h-8 w-8', service.is_featured && 'text-amber-500')}
+                                className={cn('h-8 w-8', service.is_featured && 'text-bloom-coral')}
                                 onClick={() => void handleToggleFeatured(service)}
                               >
                                 <Star className="h-4 w-4" />
@@ -1476,7 +1476,7 @@ export function PlatformServicesEnhanced() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1 text-sm">
-                          <Star className="h-4 w-4 text-amber-500" />
+                          <Star className="h-4 w-4 text-bloom-coral" />
                           {service.average_rating ? Number(service.average_rating).toFixed(1) : '0.0'}
                         </div>
                       </TableCell>
@@ -1489,11 +1489,11 @@ export function PlatformServicesEnhanced() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-52">
                             <DropdownMenuItem onClick={() => handlePreview(service)}>
-                              <Eye className="mr-2 h-4 w-4 text-sky-600" />
+                              <Eye className="mr-2 h-4 w-4 text-primary" />
                               View Details
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleEdit(service)}>
-                              <Pencil className="mr-2 h-4 w-4 text-amber-600" />
+                              <Pencil className="mr-2 h-4 w-4 text-bloom-coral" />
                               Edit
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => void handleDuplicate(service)}>
@@ -1509,7 +1509,7 @@ export function PlatformServicesEnhanced() {
                                 </>
                               ) : (
                                 <>
-                                  <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-600" />
+                                  <CheckCircle2 className="mr-2 h-4 w-4 text-storm-deep" />
                                   Activate
                                 </>
                               )}
@@ -1640,7 +1640,7 @@ export function PlatformServicesEnhanced() {
                     <div className="flex items-center justify-between">
                       <p className="text-lg font-semibold text-primary">{displayBasePrice(service.base_price)}</p>
                       <div className="flex items-center gap-1 text-xs font-medium">
-                        <Star className="h-3.5 w-3.5 text-amber-500" />
+                        <Star className="h-3.5 w-3.5 text-bloom-coral" />
                         {service.average_rating ? Number(service.average_rating).toFixed(1) : '0.0'}
                       </div>
                     </div>
@@ -1649,7 +1649,7 @@ export function PlatformServicesEnhanced() {
                       {service.is_featured && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Star className="h-4 w-4 fill-amber-400 text-amber-500" />
+                            <Star className="h-4 w-4 fill-bloom-coral text-bloom-coral" />
                           </TooltipTrigger>
                           <TooltipContent>Featured</TooltipContent>
                         </Tooltip>

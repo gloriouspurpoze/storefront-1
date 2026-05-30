@@ -1,21 +1,27 @@
-import * as React from "react"
+import * as React from 'react'
 
-import { cn } from "../../lib/utils"
+import { cn } from '../../lib/utils'
 
-const Card = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      "rounded-lg border bg-card text-card-foreground shadow-sm",
-      className
-    )}
-    {...props}
-  />
-))
-Card.displayName = "Card"
+/**
+ * Card — projection of DESIGN.md `card-product` / `card-pricing-tier`.
+ * - rounded-xl    → DESIGN.md rounded.xl (16px)  — product cards & photo frames
+ * - shadow-soft-lift → DESIGN.md "Soft Lift" (Level 2 elevation)
+ * - border-hairline  → DESIGN.md hairline (#e8e8e8)
+ * - bg-card / text-card-foreground stay shadcn-semantic (canvas/ink)
+ */
+const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn(
+        'rounded-xl border border-hairline bg-card text-card-foreground shadow-soft-lift',
+        className,
+      )}
+      {...props}
+    />
+  ),
+)
+Card.displayName = 'Card'
 
 const CardHeader = React.forwardRef<
   HTMLDivElement,

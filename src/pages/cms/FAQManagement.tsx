@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import {
   Plus,
   Pencil,
@@ -386,7 +386,7 @@ export default function FAQManagement() {
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="inline-flex items-center gap-1.5">
-                              <ThumbsUp className="h-4 w-4 text-green-600" aria-hidden />
+                              <ThumbsUp className="h-4 w-4 text-storm-deep" aria-hidden />
                               <span className="font-semibold text-muted-foreground">{faq.helpfulCount}</span>
                             </span>
                           </TooltipTrigger>
@@ -486,6 +486,6 @@ export default function FAQManagement() {
 
 function cnFaqBtn(isActive: boolean) {
   return isActive
-    ? 'h-8 w-8 bg-green-500/10 text-green-700 hover:bg-green-500/20'
+    ? 'h-8 w-8 bg-storm-deep/10 text-storm-deep hover:bg-storm-deep/20'
     : 'h-8 w-8 bg-muted text-muted-foreground hover:bg-muted/80'
 }

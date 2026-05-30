@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+﻿import React, { useEffect, useMemo, useState } from 'react'
 import {
   AlarmClock,
   Handshake,
@@ -17,6 +17,7 @@ import {
   CartesianGrid,
   Tooltip,
 } from 'recharts'
+import { CHART_TOKENS } from '../../lib/chartPalette'
 import { PageHeader } from '../../components/common/PageHeader'
 import { CrmSubnav } from '../../components/crm/CrmSubnav'
 import { crmService } from '../../services/api/crm.service'
@@ -148,7 +149,7 @@ export function CrmDashboard() {
             <Card>
               <CardContent className="pt-6">
                 <div className="mb-1 flex items-center gap-2 text-muted-foreground">
-                  <Trophy className="h-4 w-4 text-emerald-600" aria-hidden />
+                  <Trophy className="h-4 w-4 text-storm-deep" aria-hidden />
                   <span className="text-sm">Paid (this month)</span>
                 </div>
                 <p className="text-2xl font-bold tracking-tight">{metrics.paidThisMonth}</p>
@@ -166,7 +167,7 @@ export function CrmDashboard() {
             <Card>
               <CardContent className="pt-6">
                 <div className="mb-1 flex items-center gap-2 text-muted-foreground">
-                  <AlarmClock className="h-4 w-4 text-amber-600" aria-hidden />
+                  <AlarmClock className="h-4 w-4 text-bloom-coral" aria-hidden />
                   <span className="text-sm">Overdue tasks</span>
                 </div>
                 <p className="text-2xl font-bold tracking-tight">{metrics.overdueTasks}</p>
@@ -185,7 +186,7 @@ export function CrmDashboard() {
                       <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                       <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
                       <Tooltip />
-                      <Bar dataKey="deals" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="deals" fill={CHART_TOKENS.primary} radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

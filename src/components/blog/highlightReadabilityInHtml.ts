@@ -15,7 +15,7 @@ export const READABILITY_LONG_SENTENCE_WORDS = 20
 const REPEAT_MARK_CLASS = 'blog-repeat-gram'
 
 const SENTENCE_MARK_STYLE =
-  'background-color:#e0f2fe;color:#0c4a6e;border-radius:3px;padding:0 2px;box-decoration-break:clone;-webkit-box-decoration-break:clone'
+  'background-color:#c9e0fc;color:#0e3191;border-radius:3px;padding:0 2px;box-decoration-break:clone;-webkit-box-decoration-break:clone'
 
 /** Rough sentence chunks (period / ? / !); good enough for coaching overlays. */
 function segmentRoughSentences(text: string): string[] {

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ============================================================================
  * BOOKING DETAILS PAGE - MODERN & USER-FRIENDLY DESIGN
  * ============================================================================
@@ -9,7 +9,7 @@
  */
 
 import React, { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { Link, useParams, useNavigate } from 'react-router-dom'
 import {
   Button as ShadcnButton,
   Card as ShCard,
@@ -31,6 +31,7 @@ import {
   TableBody,
   TableCell as ShTableCell,
   TableHead,
+  TableHeader as ShTableHeader,
   TableRow as ShTableRow,
   Tooltip as ShTooltip,
   TooltipContent,
@@ -76,6 +77,7 @@ import { resolveBookingIdLabel } from '../../lib/bookingDisplay'
 import { isLikelyImageUrl, parseBookingNotesContent } from '../../lib/parseBookingNotesContent'
 import { appToast } from '../../lib/appToast'
 import { cn } from '../../lib/utils'
+import { CHART_PALETTE } from '../../lib/chartPalette'
 
 /** rgba() from #RRGGBB + opacity (replaces legacy alpha helper) */
 function muiAlpha(hex: string, opacity: number): string {
@@ -309,9 +311,9 @@ function Alert({ severity, children, sx: _s, icon, ...rest }: any) {
       className={cn(
         'rounded-md border p-3 text-sm',
         severity === 'error' && 'border-destructive/40 bg-destructive/10 text-destructive',
-        severity === 'warning' && 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-100',
-        severity === 'success' && 'border-emerald-500/40 bg-emerald-500/10 text-emerald-900 dark:text-emerald-100',
-        (severity === 'info' || !severity) && 'border-sky-500/40 bg-sky-500/10',
+        severity === 'warning' && 'border-bloom-coral/40 bg-bloom-coral/10 text-bloom-coral dark:text-bloom-deep',
+        severity === 'success' && 'border-storm-deep/40 bg-storm-deep/10 text-storm-deep dark:text-on-ink',
+        (severity === 'info' || !severity) && 'border-primary/40 bg-primary/10',
       )}
       {...rest}
     >
@@ -642,42 +644,43 @@ interface BookingDetails {
   updatedAt: string
 }
 
+// DESIGN.md tokens via chartPalette — no Material Design hexes.
 const statusConfig: Record<string, { color: string; bg: string; label: string; gradient: string }> = {
-  pending: { 
-    color: '#FF9800', 
-    bg: '#FFF3E0', 
+  pending: {
+    color: CHART_PALETTE.bloomCoral,
+    bg: CHART_PALETTE.bloomRose,
     label: 'Pending',
-    gradient: 'linear-gradient(135deg, #FF9800 0%, #F57C00 100%)'
+    gradient: `linear-gradient(135deg, ${CHART_PALETTE.bloomCoral} 0%, ${CHART_PALETTE.bloomDeep} 100%)`,
   },
-  confirmed: { 
-    color: '#2196F3', 
-    bg: '#E3F2FD', 
+  confirmed: {
+    color: CHART_PALETTE.primary,
+    bg: CHART_PALETTE.primarySoft,
     label: 'Confirmed',
-    gradient: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)'
+    gradient: `linear-gradient(135deg, ${CHART_PALETTE.primary} 0%, ${CHART_PALETTE.primaryDeep} 100%)`,
   },
-  scheduled: { 
-    color: '#00ACC1', 
-    bg: '#E0F7FA', 
+  scheduled: {
+    color: CHART_PALETTE.primaryBright,
+    bg: CHART_PALETTE.primarySoft,
     label: 'Scheduled',
-    gradient: 'linear-gradient(135deg, #00ACC1 0%, #00838F 100%)'
+    gradient: `linear-gradient(135deg, ${CHART_PALETTE.primaryBright} 0%, ${CHART_PALETTE.primary} 100%)`,
   },
-  in_progress: { 
-    color: '#9C27B0', 
-    bg: '#F3E5F5', 
+  in_progress: {
+    color: CHART_PALETTE.primaryDeep,
+    bg: CHART_PALETTE.primarySoft,
     label: 'In Progress',
-    gradient: 'linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%)'
+    gradient: `linear-gradient(135deg, ${CHART_PALETTE.primaryBright} 0%, ${CHART_PALETTE.primaryDeep} 100%)`,
   },
-  completed: { 
-    color: '#4CAF50', 
-    bg: '#E8F5E9', 
+  completed: {
+    color: CHART_PALETTE.stormDeep,
+    bg: CHART_PALETTE.stormMist,
     label: 'Completed',
-    gradient: 'linear-gradient(135deg, #4CAF50 0%, #388E3C 100%)'
+    gradient: `linear-gradient(135deg, ${CHART_PALETTE.stormSea} 0%, ${CHART_PALETTE.stormDeep} 100%)`,
   },
-  cancelled: { 
-    color: '#F44336', 
-    bg: '#FFEBEE', 
+  cancelled: {
+    color: CHART_PALETTE.bloomDeep,
+    bg: CHART_PALETTE.bloomRose,
     label: 'Cancelled',
-    gradient: 'linear-gradient(135deg, #F44336 0%, #D32F2F 100%)'
+    gradient: `linear-gradient(135deg, ${CHART_PALETTE.bloomDeep} 0%, ${CHART_PALETTE.bloomWine} 100%)`,
   },
 }
 
@@ -1450,158 +1453,83 @@ export function BookingDetails() {
     ? [booking.professional.firstName, booking.professional.lastName].filter(Boolean).join(' ').trim() || `Professional #${(booking.professional._id || booking.professional.id || '').slice(-6)}`
     : ''
 
-  return (
-    <Box sx={{ 
-      p: { xs: 2, md: 4 },
-      bgcolor: '#f5f7fa',
-      minHeight: '100vh',
-    }}>
-      {/* Premium Header Section */}
-      <Box
-        sx={{
-          background: `linear-gradient(135deg, ${config.color} 0%, ${config.color}dd 50%, ${config.color}cc 100%)`,
-          borderRadius: 4,
-          mb: 3,
-          position: 'relative',
-          overflow: 'hidden',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            width: '40%',
-            height: '100%',
-            background: 'rgba(255,255,255,0.1)',
-            borderRadius: '50%',
-            transform: 'translate(30%, -30%)',
-          }
-        }}
-      >
-        <Box sx={{ position: 'relative', zIndex: 1, p: { xs: 2.5, md: 4 } }}>
-          <Box display="flex" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2}>
-            <Box display="flex" alignItems="center" gap={3}>
-              <Tooltip title="Back to Bookings">
-                <IconButton 
-                  onClick={() => navigate('/bookings')}
-                  sx={{ 
-                    bgcolor: 'rgba(255,255,255,0.25)', 
-                    color: 'white',
-                    width: 48,
-                    height: 48,
-                    backdropFilter: 'blur(10px)',
-                    '&:hover': { 
-                      bgcolor: 'rgba(255,255,255,0.35)',
-                      transform: 'scale(1.05)',
-                    },
-                    transition: 'all 0.2s ease',
-                  }}
-                >
-                  <ArrowLeft />
-                </IconButton>
-              </Tooltip>
-              <Box>
-                <Typography 
-                  variant="h4" 
-                  fontWeight="800"
-                  sx={{ 
-                    color: 'white',
-                    mb: 0.5,
-                    textShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                    fontSize: { xs: '1.75rem', md: '2rem' }
-                  }}
-                >
-                  {booking.bookingId}
-                </Typography>
-                <Typography 
-                  variant="body1" 
-                  sx={{ 
-                    color: 'rgba(255,255,255,0.95)',
-                    fontWeight: 500,
-                    fontSize: { xs: '0.9rem', md: '1rem' }
-                  }}
-                >
-                  {booking.service.name}
-                </Typography>
-                <Box
-                  sx={{
-                    mt: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 0.75,
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <Typography
-                    variant="caption"
-                    component="span"
-                    sx={{
-                      color: 'rgba(255,255,255,0.82)',
-                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                      fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                      letterSpacing: 0.2,
-                      wordBreak: 'break-all',
-                      maxWidth: { xs: '100%', sm: 'min(100%, 28rem)' },
-                    }}
-                  >
-                    ID {booking._id}
-                  </Typography>
-                  <Tooltip title="Copy full booking ID">
-                    <IconButton
-                      size="small"
-                      onClick={async () => {
-                        try {
-                          await navigator.clipboard.writeText(booking._id)
-                          appToast('Booking ID copied', 'success', 2500)
-                        } catch {
-                          appToast('Could not copy', 'error')
-                        }
-                      }}
-                      sx={{
-                        color: 'white',
-                        bgcolor: 'rgba(255,255,255,0.2)',
-                        width: 28,
-                        height: 28,
-                        '&:hover': { bgcolor: 'rgba(255,255,255,0.32)' },
-                      }}
-                      aria-label="Copy booking ID"
-                    >
-                      <Copy size={14} />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-              </Box>
-            </Box>
-            <Chip
-              label={config.label}
-              sx={{
-                bgcolor: 'rgba(255,255,255,0.25)',
-                color: 'white',
-                fontWeight: 700,
-                fontSize: { xs: 13, md: 15 },
-                px: 2.5,
-                py: 1,
-                height: 'auto',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255,255,255,0.3)',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              }}
-            />
-          </Box>
-        </Box>
-      </Box>
+  // DESIGN.md: map booking status -> shadcn Badge variant so the pill respects the design system.
+  const statusBadgeVariant: Record<string, React.ComponentProps<typeof Badge>['variant']> = {
+    pending: 'warning',
+    confirmed: 'info',
+    scheduled: 'info',
+    accepted: 'info',
+    in_progress: 'default',
+    completed: 'success',
+    cancelled: 'destructive',
+  }
+  const badgeVariant = statusBadgeVariant[booking.status] ?? 'secondary'
 
-      {/* Premium Action Buttons Section */}
-      <Card 
-        sx={{ 
-          mb: 3, 
-          borderRadius: 3,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-          border: '1px solid rgba(0,0,0,0.05)',
-        }}
-      >
-        <CardContent sx={{ p: 3 }}>
-          <Stack direction="row" spacing={2} flexWrap="wrap" gap={1.5}>
+  const paymentSettled = (status?: string) => {
+    const s = (status ?? '').toLowerCase()
+    return ['paid', 'completed', 'success', 'received', 'customer_paid', 'verified'].includes(s)
+  }
+
+  const formatPaymentLabel = (value?: string) =>
+    value ? String(value).replace(/_/g, ' ') : '—'
+
+  const paymentStatusBadgeVariant = (status?: string): React.ComponentProps<typeof Badge>['variant'] =>
+    paymentSettled(status) ? 'success' : 'warning'
+
+  return (
+    <div className="min-h-screen bg-cloud">
+      <div className="mx-auto max-w-screen-2xl px-4 py-6 md:px-8 md:py-8">
+        {/* Clean header: breadcrumb + title + status pill */}
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <ShadcnButton
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate('/bookings')}
+              aria-label="Back to bookings"
+              className="mt-0.5 h-9 w-9 shrink-0 text-graphite hover:text-ink"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </ShadcnButton>
+            <div className="min-w-0">
+              <nav aria-label="Breadcrumb" className="mb-1 flex items-center gap-1.5 text-caption-md text-graphite">
+                <Link to="/dashboard" className="hover:text-ink">Dashboard</Link>
+                <span aria-hidden>/</span>
+                <Link to="/bookings" className="hover:text-ink">Bookings</Link>
+                <span aria-hidden>/</span>
+                <span className="text-charcoal">Booking details</span>
+              </nav>
+              <h1 className="text-display-md font-bold text-ink">{booking.bookingId}</h1>
+              <p className="mt-0.5 text-body-md text-charcoal">{booking.service.name}</p>
+              <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                <span className="break-all font-mono text-[11px] leading-snug text-graphite">
+                  ID {booking._id}
+                </span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(booking._id)
+                      appToast('Booking ID copied', 'success', 2500)
+                    } catch {
+                      appToast('Could not copy', 'error')
+                    }
+                  }}
+                  aria-label="Copy full booking ID"
+                  className="rounded p-0.5 text-graphite transition hover:bg-fog hover:text-ink"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+          <Badge variant={badgeVariant} className="shrink-0 self-start">
+            {config.label}
+          </Badge>
+        </div>
+
+        {/* Action toolbar — flat, no surrounding card elevation. DESIGN.md: actions are not metrics. */}
+        <div className="mb-6 flex flex-wrap items-center gap-2">
           {isAdmin ? (
             // Admin buttons
             <>
@@ -2022,925 +1950,464 @@ export function BookingDetails() {
               </Alert>
             )
           ) : null}
-        </Stack>
-        </CardContent>
-      </Card>
+        </div>
 
-      <Grid container spacing={3}>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Left Column */}
-        <Grid item xs={12} md={8}>
-          {/* Premium Customer Card */}
-          <Card 
-            sx={{ 
-              mb: 3, 
-              borderRadius: 3,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-              border: '1px solid rgba(0,0,0,0.05)',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
-                transform: 'translateY(-2px)',
-              }
-            }}
-          >
-            <CardContent sx={{ p: 3.5 }}>
-              <Box display="flex" alignItems="center" gap={2} mb={3}>
-                <Avatar
-                  sx={{
-                    width: 72,
-                    height: 72,
-                    bgcolor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    fontSize: 28,
-                    fontWeight: 700,
-                    boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
-                  }}
-                >
-                  {([booking.customer.firstName, booking.customer.lastName].filter(Boolean).join(' ').trim().slice(0, 2) || 'C').toUpperCase()}
-                </Avatar>
-                <Box flex={1}>
-                  <Box display="flex" alignItems="center" gap={1.5} mb={0.5}>
-                    <Typography variant="h5" fontWeight="700" color="text.primary">
+        <div className="space-y-6 lg:col-span-8">
+          {/* Customer card — clean, single elevation, no nested tinted tiles. */}
+          <ShCard>
+            <ShCardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <ShAvatar className="h-14 w-14 shrink-0 bg-primary text-on-primary">
+                  <AvatarFallback className="bg-primary text-base font-semibold text-on-primary">
+                    {([booking.customer.firstName, booking.customer.lastName]
+                      .filter(Boolean)
+                      .join(' ')
+                      .trim()
+                      .slice(0, 2) || 'C').toUpperCase()}
+                  </AvatarFallback>
+                </ShAvatar>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <h2 className="truncate text-display-sm font-semibold text-ink">
                       {booking.customer.firstName} {booking.customer.lastName}
-                    </Typography>
-                    <BadgeCheck className="h-5 w-5 text-green-600" />
-                  </Box>
-                  {(booking.customer.totalBookings != null && booking.customer.totalBookings > 0) && (
-                    <Chip
-                      icon={<User className="h-4 w-4" />}
-                      label={`${booking.customer.totalBookings} Previous Bookings`}
-                      size="small"
-                      sx={{
-                        bgcolor: muiAlpha('#4CAF50', 0.1),
-                        color: 'success.dark',
-                        fontWeight: 600,
-                        height: 24,
-                      }}
-                    />
+                    </h2>
+                    <BadgeCheck className="h-4 w-4 shrink-0 text-storm-deep" aria-label="Verified" />
+                  </div>
+                  {booking.customer.totalBookings != null && booking.customer.totalBookings > 0 && (
+                    <p className="mt-1 inline-flex items-center gap-1 text-caption-md text-graphite">
+                      <User className="h-3.5 w-3.5" />
+                      {booking.customer.totalBookings} previous bookings
+                    </p>
                   )}
-                </Box>
-              </Box>
+                </div>
+              </div>
 
-              <Separator className="mb-3" />
+              <Separator className="my-5" />
 
-              <Grid container spacing={2.5}>
-                <Grid item xs={12} sm={6}>
-                  <Box 
-                    display="flex" 
-                    alignItems="center" 
-                    gap={2} 
-                    p={2} 
-                    bgcolor={muiAlpha('#2196F3', 0.08)} 
-                    borderRadius={2.5}
-                    sx={{
-                      border: '1px solid',
-                      borderColor: muiAlpha('#2196F3', 0.2),
-                      transition: 'all 0.2s ease',
-                      '&:hover': {
-                        bgcolor: muiAlpha('#2196F3', 0.12),
-                        transform: 'translateX(4px)',
-                      }
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        p: 1.5,
-                        borderRadius: 2,
-                        bgcolor: 'primary.main',
-                        color: 'white',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Phone className="h-[22px] w-[22px]" />
-                    </Box>
-                    <Box>
-                      <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                        Phone
-                      </Typography>
-                      <Typography variant="body1" fontWeight="600" sx={{ mt: 0.5 }}>
-                        {booking.customer.phone}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <Box 
-                    display="flex" 
-                    alignItems="center" 
-                    gap={2} 
-                    p={2} 
-                    bgcolor={muiAlpha('#2196F3', 0.08)} 
-                    borderRadius={2.5}
-                    sx={{
-                      border: '1px solid',
-                      borderColor: muiAlpha('#2196F3', 0.2),
-                      transition: 'all 0.2s ease',
-                      '&:hover': {
-                        bgcolor: muiAlpha('#2196F3', 0.12),
-                        transform: 'translateX(4px)',
-                      }
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        p: 1.5,
-                        borderRadius: 2,
-                        bgcolor: 'primary.main',
-                        color: 'white',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Mail className="h-[22px] w-[22px]" />
-                    </Box>
-                    <Box flex={1} minWidth={0}>
-                      <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                        Email
-                      </Typography>
-                      <Typography variant="body1" fontWeight="600" noWrap sx={{ mt: 0.5 }}>
-                        {booking.customer.email}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
+              <dl className="grid grid-cols-1 gap-y-4 sm:grid-cols-2 sm:gap-x-8">
+                <div className="flex items-start gap-3">
+                  <Phone className="mt-0.5 h-4 w-4 shrink-0 text-graphite" aria-hidden />
+                  <div className="min-w-0">
+                    <dt className="text-caption-md text-graphite">Phone</dt>
+                    <dd className="text-body-md font-medium text-ink">{booking.customer.phone || '—'}</dd>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Mail className="mt-0.5 h-4 w-4 shrink-0 text-graphite" aria-hidden />
+                  <div className="min-w-0">
+                    <dt className="text-caption-md text-graphite">Email</dt>
+                    <dd className="truncate text-body-md font-medium text-ink">{booking.customer.email || '—'}</dd>
+                  </div>
+                </div>
+              </dl>
+            </ShCardContent>
+          </ShCard>
 
-          {/* Service Details & Order Items */}
-          <Card 
-            sx={{ 
-              mb: 3, 
-              borderRadius: 3,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-              border: '1px solid rgba(0,0,0,0.05)',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
-                transform: 'translateY(-2px)',
-              }
-            }}
-          >
-            <CardContent sx={{ p: 3.5 }}>
-              <Box display="flex" alignItems="center" gap={1.5} mb={3}>
-                <Box
-                  sx={{
-                    p: 1.5,
-                    borderRadius: 2,
-                    bgcolor: 'primary.main',
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <CalendarClock className="h-6 w-6" />
-                </Box>
-                <Typography variant="h6" fontWeight="700" color="text.primary">
-                  Service & Order Items
-                </Typography>
-              </Box>
-              <Separator className="mb-3" />
-              
-              <Box mb={3}>
-                <Typography variant="h5" color="primary.main" fontWeight="700" gutterBottom>
-                  {booking.service.name}
-                </Typography>
-                <Chip 
-                  label={booking.service.category} 
-                  size="medium" 
-                  sx={{ 
-                    bgcolor: muiAlpha('#2196F3', 0.1),
-                    color: 'primary.dark',
-                    fontWeight: 600,
-                    height: 28,
-                    px: 1,
-                  }} 
-                />
-              </Box>
+          {/* Service & Order Items — single card, no nested elevations or tinted tiles. */}
+          <ShCard>
+            <ShCardContent className="p-6">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="text-display-sm font-semibold text-ink">Service &amp; order items</h3>
+                  <p className="mt-1 text-body-md font-semibold text-primary">{booking.service.name}</p>
+                </div>
+                {booking.service.category && (
+                  <Badge variant="secondary" className="shrink-0">
+                    {booking.service.category}
+                  </Badge>
+                )}
+              </div>
 
-              {booking.services && booking.services.length > 0 ? (
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow sx={{ bgcolor: muiAlpha('#2196F3', 0.08) }}>
-                        <TableCell sx={{ fontWeight: 700 }}>Service</TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 700 }}>Qty</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 700 }}>Unit Price</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 700 }}>Total</TableCell>
-                      </TableRow>
-                    </TableHead>
+              {booking.services && booking.services.length > 0 && (
+                <div className="mt-5 overflow-hidden rounded-lg border border-hairline">
+                  <ShTable>
+                    <ShTableHeader>
+                      <ShTableRow className="bg-cloud hover:bg-cloud">
+                        <TableHead className="text-charcoal">Service</TableHead>
+                        <TableHead className="text-center text-charcoal">Qty</TableHead>
+                        <TableHead className="text-right text-charcoal">Unit Price</TableHead>
+                        <TableHead className="text-right text-charcoal">Total</TableHead>
+                      </ShTableRow>
+                    </ShTableHeader>
                     <TableBody>
                       {booking.services.map((item, idx) => {
                         const lineTotal = item.quantity * item.price
                         return (
-                          <TableRow key={idx}>
-                            <TableCell>
-                              <Typography variant="body2" fontWeight={600}>
-                                {item.serviceName}
-                              </Typography>
+                          <ShTableRow key={idx}>
+                            <ShTableCell>
+                              <div className="text-body-md font-medium text-ink">{item.serviceName}</div>
                               {item.variantName && (
-                                <Typography variant="caption" color="text.secondary">
-                                  {item.variantName}
-                                </Typography>
+                                <div className="text-caption-md text-graphite">{item.variantName}</div>
                               )}
-                            </TableCell>
-                            <TableCell align="center">{item.quantity}</TableCell>
-                            <TableCell align="right">₹{item.price}</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 700 }}>₹{lineTotal}</TableCell>
-                          </TableRow>
+                            </ShTableCell>
+                            <ShTableCell className="text-center">{item.quantity}</ShTableCell>
+                            <ShTableCell className="text-right">₹{item.price}</ShTableCell>
+                            <ShTableCell className="text-right font-semibold text-ink">₹{lineTotal}</ShTableCell>
+                          </ShTableRow>
                         )
                       })}
                     </TableBody>
-                  </Table>
-                </TableContainer>
-              ) : null}
+                  </ShTable>
+                </div>
+              )}
 
-              <Grid container spacing={2.5}>
-                <Grid item xs={12} sm={4}>
-                  <Box 
-                    p={2.5}
-                    bgcolor={muiAlpha('#FF9800', 0.08)}
-                    borderRadius={2.5}
-                    sx={{
-                      border: '1px solid',
-                      borderColor: muiAlpha('#FF9800', 0.2),
-                      transition: 'all 0.2s ease',
-                      '&:hover': {
-                        bgcolor: muiAlpha('#FF9800', 0.12),
-                        transform: 'scale(1.02)',
-                      }
-                    }}
-                  >
-                    <Box display="flex" alignItems="center" gap={1.5} mb={1}>
-                      <Calendar className="h-6 w-6 text-orange-500" />
-                      <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                        Date
-                      </Typography>
-                    </Box>
-                    <Typography variant="body1" fontWeight="700" color="text.primary">
-                      {booking.scheduledDate}
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <Box 
-                    p={2.5}
-                    bgcolor={muiAlpha('#9C27B0', 0.08)}
-                    borderRadius={2.5}
-                    sx={{
-                      border: '1px solid',
-                      borderColor: muiAlpha('#9C27B0', 0.2),
-                      transition: 'all 0.2s ease',
-                      '&:hover': {
-                        bgcolor: muiAlpha('#9C27B0', 0.12),
-                        transform: 'scale(1.02)',
-                      }
-                    }}
-                  >
-                    <Box display="flex" alignItems="center" gap={1.5} mb={1}>
-                      <Clock className="h-6 w-6 text-purple-600" />
-                      <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                        Time
-                      </Typography>
-                    </Box>
-                    <Typography variant="body1" fontWeight="700" color="text.primary">
-                      {booking.scheduledTime}
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <Box 
-                    p={2.5}
-                    bgcolor={muiAlpha('#4CAF50', 0.08)}
-                    borderRadius={2.5}
-                    sx={{
-                      border: '1px solid',
-                      borderColor: muiAlpha('#4CAF50', 0.2),
-                      transition: 'all 0.2s ease',
-                      '&:hover': {
-                        bgcolor: muiAlpha('#4CAF50', 0.12),
-                        transform: 'scale(1.02)',
-                      }
-                    }}
-                  >
-                    <Box display="flex" alignItems="center" gap={1.5} mb={1}>
-                      <CalendarClock className="h-6 w-6 text-green-600" />
-                      <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                        Duration
-                      </Typography>
-                    </Box>
-                    <Typography variant="body1" fontWeight="700" color="text.primary">
-                      {booking.service.duration} min
-                    </Typography>
-                  </Box>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
+              <dl className="mt-5 grid grid-cols-1 gap-y-4 border-t border-hairline pt-5 sm:grid-cols-3 sm:gap-x-6">
+                <div className="flex items-start gap-3">
+                  <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-graphite" aria-hidden />
+                  <div className="min-w-0">
+                    <dt className="text-caption-md text-graphite">Date</dt>
+                    <dd className="text-body-md font-medium text-ink">{booking.scheduledDate || '—'}</dd>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Clock className="mt-0.5 h-4 w-4 shrink-0 text-graphite" aria-hidden />
+                  <div className="min-w-0">
+                    <dt className="text-caption-md text-graphite">Time</dt>
+                    <dd className="text-body-md font-medium text-ink">{booking.scheduledTime || '—'}</dd>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-graphite" aria-hidden />
+                  <div className="min-w-0">
+                    <dt className="text-caption-md text-graphite">Duration</dt>
+                    <dd className="text-body-md font-medium text-ink">{booking.service.duration} min</dd>
+                  </div>
+                </div>
+              </dl>
+            </ShCardContent>
+          </ShCard>
 
-          {/* Premium Address Card */}
-          <Card 
-            sx={{ 
-              mb: 3, 
-              borderRadius: 3,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-              border: '1px solid rgba(0,0,0,0.05)',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
-                transform: 'translateY(-2px)',
-              }
-            }}
-          >
-            <CardContent sx={{ p: 3.5 }}>
-              <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-                <Box display="flex" alignItems="center" gap={1.5}>
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      borderRadius: 2,
-                      bgcolor: 'error.main',
-                      color: 'white',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <MapPin className="h-6 w-6" />
-                  </Box>
-                  <Typography variant="h6" fontWeight="700" color="text.primary">
-                    Service Location
-                  </Typography>
-                </Box>
-                <Button
-                  startIcon={<Navigation />}
-                  onClick={handleNavigate}
-                  variant="contained"
-                  sx={{ 
-                    borderRadius: 2,
-                    px: 2.5,
-                    py: 1,
-                    fontWeight: 600,
-                    textTransform: 'none',
-                    boxShadow: '0 4px 12px rgba(244, 67, 54, 0.3)',
-                    '&:hover': {
-                      boxShadow: '0 6px 16px rgba(244, 67, 54, 0.4)',
-                      transform: 'translateY(-2px)',
-                    },
-                    transition: 'all 0.2s ease',
-                  }}
-                >
+          {/* Service Location — quiet card, no inline tinted tile. */}
+          <ShCard>
+            <ShCardContent className="p-6">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-graphite" aria-hidden />
+                  <h3 className="text-display-sm font-semibold text-ink">Service location</h3>
+                </div>
+                <ShadcnButton variant="outline" size="sm" onClick={handleNavigate}>
+                  <Navigation className="mr-2 h-4 w-4" />
                   Navigate
-                </Button>
-              </Box>
-              <Separator className="mb-3" />
-              
-              <Box 
-                display="flex" 
-                gap={3}
-                p={2.5}
-                bgcolor={muiAlpha('#F44336', 0.05)}
-                borderRadius={2.5}
-                sx={{
-                  border: '1px solid',
-                  borderColor: muiAlpha('#F44336', 0.15),
-                }}
-              >
-                <MapPin className="h-10 w-10 shrink-0 text-destructive" />
-                <Box flex={1}>
-                  {(booking.address.firstName || booking.address.lastName) && (
-                    <Typography variant="body2" color="text.secondary" mb={0.5}>
-                      {[booking.address.firstName, booking.address.lastName].filter(Boolean).join(' ')}
-                    </Typography>
-                  )}
-                  <Typography variant="body1" fontWeight="700" color="text.primary" mb={1}>
-                    {displayAddress}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" mb={0.5}>
-                    {[booking.address.city, booking.address.state].filter(Boolean).join(', ')}
-                    {displayPincode ? ` - ${displayPincode}` : ''}
-                  </Typography>
-                  {booking.address.country && (
-                    <Typography variant="body2" color="text.secondary" mb={0.5}>
-                      {booking.address.country}
-                    </Typography>
-                  )}
-                  {booking.address.phone && (
-                    <Typography variant="body2" color="text.secondary" display="flex" alignItems="center" gap={0.5} mt={1}>
-                      <Phone className="h-4 w-4" />{booking.address.phone}
-                    </Typography>
-                  )}
-                  {booking.address.landmark && (
-                    <Box 
-                      mt={1.5}
-                      p={1.5}
-                      bgcolor={muiAlpha('#FF9800', 0.1)}
-                      borderRadius={1.5}
-                      display="inline-flex"
-                      alignItems="center"
-                      gap={1}
-                    >
-                      <MapPin className="h-4 w-4 text-orange-500" />
-                      <Typography variant="caption" color="text.secondary" fontWeight="600">
-                        Landmark: {booking.address.landmark}
-                      </Typography>
-                    </Box>
-                  )}
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
+                </ShadcnButton>
+              </div>
 
-          {/* Notes & context — professional log strips duplicated evidence; rich render for any remaining URLs */}
+              <div className="mt-4 space-y-1 text-body-md text-ink">
+                {(booking.address.firstName || booking.address.lastName) && (
+                  <p className="text-caption-md text-graphite">
+                    {[booking.address.firstName, booking.address.lastName].filter(Boolean).join(' ')}
+                  </p>
+                )}
+                <p className="font-medium">{displayAddress}</p>
+                <p className="text-charcoal">
+                  {[booking.address.city, booking.address.state].filter(Boolean).join(', ')}
+                  {displayPincode ? ` - ${displayPincode}` : ''}
+                </p>
+                {booking.address.country && <p className="text-charcoal">{booking.address.country}</p>}
+                {booking.address.phone && (
+                  <p className="inline-flex items-center gap-1.5 text-charcoal">
+                    <Phone className="h-3.5 w-3.5 text-graphite" />
+                    {booking.address.phone}
+                  </p>
+                )}
+                {booking.address.landmark && (
+                  <p className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-hairline bg-cloud px-2.5 py-1 text-caption-md text-charcoal">
+                    <MapPin className="h-3.5 w-3.5 text-graphite" aria-hidden />
+                    <span className="font-medium">Landmark:</span> {booking.address.landmark}
+                  </p>
+                )}
+              </div>
+            </ShCardContent>
+          </ShCard>
+
+          {/* Notes & context */}
           {(booking.customerNotes || professionalNotesForAdminDisplay(booking.notes || '')) && (
-            <ShCard className="mt-6 rounded-lg border border-border shadow-sm">
-              <ShCardContent className="p-4 sm:p-6">
-                <Stack direction="row" alignItems="flex-start" spacing={1.5} mb={2}>
-                  <StickyNote className="mt-1 h-7 w-7 shrink-0 text-primary" />
-                  <Box flex={1}>
-                    <Typography variant="h6" fontWeight={700}>
-                      Notes & context
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5, maxWidth: 720 }}>
+            <ShCard>
+              <ShCardContent className="p-6">
+                <div className="flex items-start gap-3">
+                  <StickyNote className="mt-0.5 h-4 w-4 shrink-0 text-graphite" aria-hidden />
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-display-sm font-semibold text-ink">Notes &amp; context</h3>
+                    <p className="mt-1 max-w-2xl text-caption-md text-graphite">
                       Booking log and professional comments. After-service and pre-start photos are de-duplicated here
-                      and shown in <strong>Professional photo evidence</strong> below.
-                    </Typography>
-                  </Box>
-                </Stack>
-                <Separator className="mb-2" />
-                <Stack spacing={2.5}>
+                      and shown in <span className="font-medium text-charcoal">Professional photo evidence</span> below.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-5 space-y-4">
                   {professionalNotesForAdminDisplay(booking.notes || '') ? (
-                    <Paper className="rounded-lg border border-border bg-muted/30 p-4">
-                      <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={0.8}>
-                        Booking & professional
-                      </Typography>
-                      <Box sx={{ mt: 1.5 }}>
+                    <div className="rounded-lg border border-hairline bg-cloud p-4">
+                      <p className="text-caption-md font-medium uppercase tracking-wide text-graphite">
+                        Booking &amp; professional
+                      </p>
+                      <div className="mt-3">
                         <AdminNotesRichBody text={professionalNotesForAdminDisplay(booking.notes || '')} />
-                      </Box>
-                    </Paper>
+                      </div>
+                    </div>
                   ) : null}
                   {booking.customerNotes ? (
-                    <Paper className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
-                      <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-                        <User className="h-5 w-5 text-amber-700" />
-                        <Typography variant="overline" color="warning.dark" fontWeight={700} letterSpacing={0.8}>
-                          Customer instructions
-                        </Typography>
-                      </Stack>
-                      <Typography
-                        variant="body2"
-                        color="text.primary"
-                        sx={{ lineHeight: 1.75, whiteSpace: 'pre-wrap' }}
-                      >
-                        {booking.customerNotes}
-                      </Typography>
-                    </Paper>
+                    <div className="rounded-lg border border-hairline p-4">
+                      <p className="mb-2 inline-flex items-center gap-1.5 text-caption-md font-medium text-graphite">
+                        <User className="h-3.5 w-3.5" aria-hidden />
+                        Customer instructions
+                      </p>
+                      <p className="whitespace-pre-wrap text-body-md leading-relaxed text-ink">{booking.customerNotes}</p>
+                    </div>
                   ) : null}
-                </Stack>
+                </div>
               </ShCardContent>
             </ShCard>
           )}
 
-          {/* Professional-submitted photo evidence (pre-start + completion) — surfaced for admin oversight */}
+          {/* Professional photo evidence */}
           {((booking.completionPhotoUrls?.length ?? 0) > 0 ||
             Boolean(booking.preStartSelfieUrl) ||
             (booking.preStartSitePhotoUrls?.length ?? 0) > 0) && (
-            <Card
-              sx={{
-                mt: 3,
-                borderRadius: 3,
-                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                border: '1px solid rgba(0,0,0,0.05)',
-              }}
-            >
-              <CardContent sx={{ p: 3.5 }}>
-                <Box display="flex" alignItems="center" gap={1.5} mb={2}>
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      borderRadius: 2,
-                      bgcolor: '#00897B',
-                      color: 'white',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Camera className="h-6 w-6" />
-                  </Box>
-                  <Box>
-                    <Typography variant="h6" fontWeight="700" color="text.primary">
-                      Professional photo evidence
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
+            <ShCard>
+              <ShCardContent className="p-6">
+                <div className="flex items-start gap-3">
+                  <Camera className="mt-0.5 h-4 w-4 shrink-0 text-graphite" aria-hidden />
+                  <div>
+                    <h3 className="text-display-sm font-semibold text-ink">Professional photo evidence</h3>
+                    <p className="mt-1 text-caption-md text-graphite">
                       Images from start-of-job and completion flows (opens in new tab).
-                    </Typography>
-                  </Box>
-                </Box>
-                <Separator className="mb-2" />
-                {booking.preStartSelfieUrl ? (
-                  <Box mb={2}>
-                    <Typography variant="subtitle2" color="text.secondary" fontWeight="600" mb={1}>
-                      Pre-start — on-site selfie
-                    </Typography>
-                    <Box
-                      component="a"
-                      href={booking.preStartSelfieUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      display="inline-block"
-                      borderRadius={2}
-                      overflow="hidden"
-                      sx={{ border: '1px solid', borderColor: 'divider' }}
-                    >
-                      <Box
-                        component="img"
-                        src={booking.preStartSelfieUrl}
-                        alt="Professional pre-start selfie"
-                        sx={{ width: 160, height: 160, objectFit: 'cover', display: 'block' }}
-                      />
-                    </Box>
-                  </Box>
-                ) : null}
-                {(booking.preStartSitePhotoUrls?.length ?? 0) > 0 ? (
-                  <Box mb={2}>
-                    <Typography variant="subtitle2" color="text.secondary" fontWeight="600" mb={1}>
-                      Pre-start — site photos
-                    </Typography>
-                    <Box display="flex" flexWrap="wrap" gap={1.5}>
-                      {(booking.preStartSitePhotoUrls ?? []).map((url) => (
-                        <Box
-                          key={url}
-                          component="a"
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          borderRadius={2}
-                          overflow="hidden"
-                          sx={{ border: '1px solid', borderColor: 'divider' }}
-                        >
-                          <Box
-                            component="img"
-                            src={url}
-                            alt="Pre-start site"
-                            sx={{ width: 120, height: 120, objectFit: 'cover', display: 'block' }}
-                          />
-                        </Box>
-                      ))}
-                    </Box>
-                  </Box>
-                ) : null}
-                {(booking.completionPhotoUrls?.length ?? 0) > 0 ? (
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary" fontWeight="600" mb={1}>
-                      After-service / completion photos
-                    </Typography>
-                    <Box display="flex" flexWrap="wrap" gap={1.5}>
-                      {(booking.completionPhotoUrls ?? []).map((url) => (
-                        <Box
-                          key={url}
-                          component="a"
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          borderRadius={2}
-                          overflow="hidden"
-                          sx={{ border: '1px solid', borderColor: 'divider' }}
-                        >
-                          <Box
-                            component="img"
-                            src={url}
-                            alt="Completion evidence"
-                            sx={{ width: 120, height: 120, objectFit: 'cover', display: 'block' }}
-                          />
-                        </Box>
-                      ))}
-                    </Box>
-                  </Box>
-                ) : null}
-              </CardContent>
-            </Card>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-5 space-y-5">
+                  {booking.preStartSelfieUrl ? (
+                    <section>
+                      <p className="mb-2 text-caption-md font-medium text-graphite">Pre-start — on-site selfie</p>
+                      <a
+                        href={booking.preStartSelfieUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block overflow-hidden rounded-lg border border-hairline"
+                      >
+                        <img
+                          src={booking.preStartSelfieUrl}
+                          alt="Professional pre-start selfie"
+                          className="block h-40 w-40 object-cover"
+                        />
+                      </a>
+                    </section>
+                  ) : null}
+                  {(booking.preStartSitePhotoUrls?.length ?? 0) > 0 ? (
+                    <section>
+                      <p className="mb-2 text-caption-md font-medium text-graphite">Pre-start — site photos</p>
+                      <div className="flex flex-wrap gap-2">
+                        {(booking.preStartSitePhotoUrls ?? []).map((url) => (
+                          <a
+                            key={url}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="overflow-hidden rounded-lg border border-hairline"
+                          >
+                            <img src={url} alt="Pre-start site" className="block h-28 w-28 object-cover" />
+                          </a>
+                        ))}
+                      </div>
+                    </section>
+                  ) : null}
+                  {(booking.completionPhotoUrls?.length ?? 0) > 0 ? (
+                    <section>
+                      <p className="mb-2 text-caption-md font-medium text-graphite">After-service / completion photos</p>
+                      <div className="flex flex-wrap gap-2">
+                        {(booking.completionPhotoUrls ?? []).map((url) => (
+                          <a
+                            key={url}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="overflow-hidden rounded-lg border border-hairline"
+                          >
+                            <img src={url} alt="Completion evidence" className="block h-28 w-28 object-cover" />
+                          </a>
+                        ))}
+                      </div>
+                    </section>
+                  ) : null}
+                </div>
+              </ShCardContent>
+            </ShCard>
           )}
 
-          {/* Activity Timeline */}
+          {/* Activity timeline */}
           {booking.activity && booking.activity.length > 0 && (
-            <Card 
-              sx={{ 
-                mt: 3,
-                borderRadius: 3,
-                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                border: '1px solid rgba(0,0,0,0.05)',
-              }}
-            >
-              <CardContent sx={{ p: 3.5 }}>
-                <Box display="flex" alignItems="center" gap={1.5} mb={3}>
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      borderRadius: 2,
-                      bgcolor: '#9C27B0',
-                      color: 'white',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <History className="h-6 w-6" />
-                  </Box>
-                  <Typography variant="h6" fontWeight="700" color="text.primary">
-                    Activity Timeline
-                  </Typography>
-                </Box>
-                <Separator className="mb-3" />
-                
-                <Stack spacing={2}>
+            <ShCard>
+              <ShCardContent className="p-6">
+                <div className="flex items-center gap-2">
+                  <History className="h-4 w-4 text-graphite" aria-hidden />
+                  <h3 className="text-display-sm font-semibold text-ink">Activity timeline</h3>
+                </div>
+                <ul className="mt-5 space-y-4 border-l border-hairline pl-5">
                   {booking.activity.map((activity, index) => (
-                    <Box
-                      key={index}
-                      sx={{
-                        position: 'relative',
-                        pl: 4,
-                        pb: index < booking.activity.length - 1 ? 2 : 0,
-                        '&::before': {
-                          content: '""',
-                          position: 'absolute',
-                          left: 7,
-                          top: 8,
-                          bottom: index < booking.activity.length - 1 ? -16 : 0,
-                          width: 2,
-                          bgcolor: muiAlpha('#9C27B0', 0.2),
-                        },
-                        '&::after': {
-                          content: '""',
-                          position: 'absolute',
-                          left: 4,
-                          top: 4,
-                          width: 8,
-                          height: 8,
-                          borderRadius: '50%',
-                          bgcolor: '#9C27B0',
-                          border: '2px solid white',
-                          boxShadow: '0 0 0 2px rgba(156, 39, 176, 0.2)',
-                        }
-                      }}
-                    >
-                      <Box
-                        p={2}
-                        bgcolor={muiAlpha('#9C27B0', 0.05)}
-                        borderRadius={2}
-                        sx={{
-                          border: '1px solid',
-                          borderColor: muiAlpha('#9C27B0', 0.15),
-                        }}
-                      >
-                        <Typography variant="subtitle2" fontWeight="700" color="text.primary" mb={0.5}>
-                          {activity.action}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {activity.user} • {new Date(activity.timestamp).toLocaleString()}
-                        </Typography>
-                        {activity.details && (
-                          <Typography variant="body2" color="text.secondary" mt={1} sx={{ fontStyle: 'italic' }}>
-                            {activity.details}
-                          </Typography>
-                        )}
-                      </Box>
-                    </Box>
+                    <li key={index} className="relative">
+                      <span
+                        className="absolute -left-[22px] top-2 h-2 w-2 rounded-full bg-primary ring-4 ring-paper"
+                        aria-hidden
+                      />
+                      <div className="rounded-lg border border-hairline bg-cloud px-4 py-3">
+                        <p className="text-body-md font-semibold text-ink">{activity.action}</p>
+                        <p className="mt-0.5 text-caption-md text-graphite">
+                          {activity.user} · {new Date(activity.timestamp).toLocaleString()}
+                        </p>
+                        {activity.details ? (
+                          <p className="mt-2 text-body-md italic text-charcoal">{activity.details}</p>
+                        ) : null}
+                      </div>
+                    </li>
                   ))}
-                </Stack>
-              </CardContent>
-            </Card>
+                </ul>
+              </ShCardContent>
+            </ShCard>
           )}
-        </Grid>
+        </div>
 
         {/* Right Column */}
-        <Grid item xs={12} md={4}>
-          {/* Premium Professional Assignment Card */}
-          <Card 
-            sx={{ 
-              mb: 3, 
-              borderRadius: 3,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-              border: '1px solid rgba(0,0,0,0.05)',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
-                transform: 'translateY(-2px)',
-              }
-            }}
-          >
-            <CardContent sx={{ p: 3.5 }}>
-              <Box display="flex" alignItems="center" gap={1.5} mb={3}>
-                <Box
-                  sx={{
-                    p: 1.5,
-                    borderRadius: 2,
-                    bgcolor: 'primary.main',
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <UserCheck className="h-6 w-6" />
-                </Box>
-                <Typography variant="h6" fontWeight="700" color="text.primary">
-                  Assigned Professional
-                </Typography>
-              </Box>
-              <Separator className="mb-3" />
-              
+        <div className="space-y-6 lg:col-span-4">
+          {/* Assigned Professional — clean, no nested tinted tiles. */}
+          <ShCard>
+            <ShCardContent className="p-6">
+              <h3 className="text-display-sm font-semibold text-ink">Assigned professional</h3>
+
               {booking.professional ? (
-                <Box>
-                  <Box display="flex" alignItems="center" gap={2.5} mb={3}>
-                    <Avatar 
-                      src={booking.professional.avatar}
-                      sx={{ 
-                        width: 72, 
-                        height: 72,
-                        bgcolor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        fontSize: 28,
-                        fontWeight: 700,
-                        boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
-                      }}
-                    >
-                      {professionalDisplayName ? professionalDisplayName.slice(0, 2).toUpperCase() : 'P'}
-                    </Avatar>
-                    <Box flex={1}>
-                      <Typography variant="h6" fontWeight="700" color="text.primary" mb={0.5}>
-                        {professionalDisplayName}
-                      </Typography>
-                      <Box display="flex" alignItems="center" gap={1} mb={1}>
-                        <Star className="h-5 w-5 text-amber-500" />
-                        <Typography variant="body1" fontWeight="700" color="text.primary">
-                          {Number(booking.professional.rating).toFixed(1)}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" ml={0.5}>
-                          Rating
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Box>
+                <>
+                  <div className="mt-4 flex items-center gap-3">
+                    <ShAvatar className="h-12 w-12 shrink-0">
+                      {booking.professional.avatar ? (
+                        <AvatarImage src={booking.professional.avatar} alt={professionalDisplayName} />
+                      ) : null}
+                      <AvatarFallback className="bg-primary text-on-primary">
+                        {professionalDisplayName ? professionalDisplayName.slice(0, 2).toUpperCase() : 'P'}
+                      </AvatarFallback>
+                    </ShAvatar>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-body-md font-semibold text-ink">{professionalDisplayName}</p>
+                      <p className="mt-0.5 inline-flex items-center gap-1 text-caption-md text-graphite">
+                        <Star className="h-3.5 w-3.5 fill-bloom-coral text-bloom-coral" />
+                        <span className="font-medium text-ink">{Number(booking.professional.rating || 0).toFixed(1)}</span>
+                        <span>rating</span>
+                      </p>
+                    </div>
+                  </div>
 
                   {(booking.professional.phone || booking.professional.email) && (
-                    <Box 
-                      display="flex" 
-                      alignItems="center" 
-                      gap={2} 
-                      mb={2.5} 
-                      p={2} 
-                      bgcolor={muiAlpha('#2196F3', 0.08)} 
-                      borderRadius={2.5}
-                      sx={{
-                        border: '1px solid',
-                        borderColor: muiAlpha('#2196F3', 0.2),
-                      }}
-                    >
-                      {booking.professional.phone ? (
-                        <>
-                          <Phone className="h-[22px] w-[22px] text-primary" />
-                          <Typography variant="body1" fontWeight="600">
-                            {booking.professional.phone}
-                          </Typography>
-                        </>
-                      ) : (
-                        <>
-                          <Mail className="h-[22px] w-[22px] text-primary" />
-                          <Typography variant="body1" fontWeight="600">
-                            {booking.professional.email}
-                          </Typography>
-                        </>
+                    <dl className="mt-5 space-y-3">
+                      {booking.professional.phone && (
+                        <div className="flex items-start gap-3">
+                          <Phone className="mt-0.5 h-4 w-4 shrink-0 text-graphite" aria-hidden />
+                          <div className="min-w-0">
+                            <dt className="text-caption-md text-graphite">Phone</dt>
+                            <dd className="text-body-md font-medium text-ink">{booking.professional.phone}</dd>
+                          </div>
+                        </div>
                       )}
-                    </Box>
+                      {booking.professional.email && (
+                        <div className="flex items-start gap-3">
+                          <Mail className="mt-0.5 h-4 w-4 shrink-0 text-graphite" aria-hidden />
+                          <div className="min-w-0">
+                            <dt className="text-caption-md text-graphite">Email</dt>
+                            <dd className="truncate text-body-md font-medium text-ink">{booking.professional.email}</dd>
+                          </div>
+                        </div>
+                      )}
+                    </dl>
                   )}
 
                   {booking.professional.categories && booking.professional.categories.length > 0 && (
-                    <>
-                      <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, mb: 1, display: 'block' }}>
-                        Specializations
-                      </Typography>
-                      <Box display="flex" flexWrap="wrap" gap={1}>
-                        {booking.professional.categories.map(cat => (
-                          <Chip 
-                            key={cat} 
-                            label={cat} 
-                            size="small"
-                            sx={{
-                              bgcolor: muiAlpha('#2196F3', 0.1),
-                              color: 'primary.dark',
-                              fontWeight: 600,
-                              height: 28,
-                            }}
-                          />
+                    <div className="mt-5 border-t border-hairline pt-4">
+                      <p className="mb-2 text-caption-md font-medium text-graphite">Specializations</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {booking.professional.categories.map((cat) => (
+                          <Badge key={cat} variant="secondary">{cat}</Badge>
                         ))}
-                      </Box>
-                    </>
+                      </div>
+                    </div>
                   )}
-                </Box>
+                </>
               ) : (
-                <Alert 
-                  severity="info"
-                  sx={{
-                    borderRadius: 2,
-                    bgcolor: muiAlpha('#2196F3', 0.05),
-                  }}
-                >
-                  No professional assigned yet
-                </Alert>
+                <p className="mt-4 rounded-md border border-hairline bg-cloud px-3 py-2 text-body-md text-graphite">
+                  No professional assigned yet.
+                </p>
               )}
-            </CardContent>
-          </Card>
+            </ShCardContent>
+          </ShCard>
 
           {isAdmin && (
-            <Card
-              sx={{
-                mb: 3,
-                borderRadius: 3,
-                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                border: '1px solid rgba(0,0,0,0.05)',
-              }}
-            >
-              <CardContent sx={{ p: 3 }}>
-                <Typography variant="h6" fontWeight="700" color="text.primary" gutterBottom>
-                  Support and ledger
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            <ShCard>
+              <ShCardContent className="p-6">
+                <h3 className="text-display-sm font-semibold text-ink">Support and ledger</h3>
+                <p className="mt-1 text-caption-md text-graphite">
                   Partial refunds are recorded on the booking for accounting; they do not call a payment gateway.
-                </Typography>
-                <Separator className="mb-2" />
+                </p>
+
                 {booking.status === 'pending' && booking.acceptDeadlineAt && (
-                  <Alert severity="info" sx={{ mb: 2 }}>
-                    <strong>Accept-by (assign SLA)</strong>
-                    <br />
+                  <div className="mt-4 rounded-md border border-hairline bg-cloud px-3 py-2 text-body-md text-charcoal">
+                    <span className="font-medium text-ink">Accept-by (assign SLA):</span>{' '}
                     {new Date(booking.acceptDeadlineAt).toLocaleString(undefined, {
                       dateStyle: 'medium',
                       timeStyle: 'short',
                     })}
-                  </Alert>
+                  </div>
                 )}
+
                 {booking.preJobDamagePhotoUrls && booking.preJobDamagePhotoUrls.length > 0 && (
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" fontWeight="600" gutterBottom>
-                      Pre-job condition photos
-                    </Typography>
-                    <Stack direction="row" flexWrap="wrap" gap={1}>
+                  <section className="mt-5">
+                    <p className="mb-2 text-caption-md font-medium text-graphite">Pre-job condition photos</p>
+                    <div className="flex flex-wrap gap-2">
                       {booking.preJobDamagePhotoUrls.map((u) => (
-                        <Box
+                        <a
                           key={u}
-                          component="a"
                           href={u}
                           target="_blank"
                           rel="noopener noreferrer"
-                          sx={{ display: 'block' }}
+                          className="overflow-hidden rounded-lg border border-hairline"
                         >
-                          <Box
-                            component="img"
-                            src={u}
-                            alt=""
-                            sx={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}
-                          />
-                        </Box>
+                          <img src={u} alt="" className="block h-20 w-20 object-cover" />
+                        </a>
                       ))}
-                    </Stack>
-                  </Box>
+                    </div>
+                  </section>
                 )}
+
                 {booking.partialRefundRecords && booking.partialRefundRecords.length > 0 && (
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" fontWeight="600" gutterBottom>
-                      Recorded partial refunds
-                    </Typography>
-                    <TableContainer>
-                      <Table size="small">
-                        <TableHead>
-                          <TableRow>
-                            <TableCell>Amount</TableCell>
-                            <TableCell>Reason</TableCell>
-                            <TableCell>When</TableCell>
-                          </TableRow>
-                        </TableHead>
+                  <section className="mt-5">
+                    <p className="mb-2 text-caption-md font-medium text-graphite">Recorded partial refunds</p>
+                    <div className="overflow-hidden rounded-lg border border-hairline">
+                      <ShTable>
+                        <ShTableHeader>
+                          <ShTableRow className="bg-cloud hover:bg-cloud">
+                            <TableHead className="text-charcoal">Amount</TableHead>
+                            <TableHead className="text-charcoal">Reason</TableHead>
+                            <TableHead className="text-charcoal">When</TableHead>
+                          </ShTableRow>
+                        </ShTableHeader>
                         <TableBody>
                           {booking.partialRefundRecords.map((r, idx) => (
-                            <TableRow key={`${r.recordedAt || idx}-${r.amount}`}>
-                              <TableCell>₹{Number(r.amount).toLocaleString()}</TableCell>
-                              <TableCell>{r.reason}</TableCell>
-                              <TableCell>
+                            <ShTableRow key={`${r.recordedAt || idx}-${r.amount}`}>
+                              <ShTableCell className="font-medium">₹{Number(r.amount).toLocaleString()}</ShTableCell>
+                              <ShTableCell>{r.reason}</ShTableCell>
+                              <ShTableCell className="text-graphite">
                                 {r.recordedAt
-                                  ? new Date(r.recordedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
+                                  ? new Date(r.recordedAt).toLocaleString(undefined, {
+                                      dateStyle: 'short',
+                                      timeStyle: 'short',
+                                    })
                                   : '—'}
-                              </TableCell>
-                            </TableRow>
+                              </ShTableCell>
+                            </ShTableRow>
                           ))}
                         </TableBody>
-                      </Table>
-                    </TableContainer>
-                  </Box>
+                      </ShTable>
+                    </div>
+                  </section>
                 )}
-                <Stack spacing={1.5}>
+
+                <div className="mt-5 space-y-3 border-t border-hairline pt-5">
                   <TextField
                     label="Partial refund amount (₹)"
                     type="number"
@@ -2959,472 +2426,369 @@ export function BookingDetails() {
                     multiline
                     minRows={2}
                   />
-                  <Button
-                    variant="contained"
-                    color="warning"
+                  <ShadcnButton
+                    variant="default"
                     disabled={adminRefundBusy}
                     onClick={() => void handleRecordAdminPartialRefund()}
+                    className="w-full sm:w-auto"
                   >
                     Record partial refund
-                  </Button>
-                </Stack>
-              </CardContent>
-            </Card>
+                  </ShadcnButton>
+                </div>
+              </ShCardContent>
+            </ShCard>
           )}
 
-          {/* Premium Payment Card */}
-          <Card 
-            sx={{ 
-              borderRadius: 3,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-              border: '1px solid rgba(0,0,0,0.05)',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
-                transform: 'translateY(-2px)',
-              }
-            }}
-          >
-            <CardContent sx={{ p: 3.5 }}>
-              <Box display="flex" alignItems="center" gap={1.5} mb={3}>
-                <Box
-                  sx={{
-                    p: 1.5,
-                    borderRadius: 2,
-                    bgcolor: '#4CAF50',
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Receipt className="h-6 w-6" />
-                </Box>
-                <Typography variant="h6" fontWeight="700" color="text.primary">
-                  Payment Details
-                </Typography>
-              </Box>
-              <Separator className="mb-3" />
-              
-              <Stack spacing={2.5}>
-                <Box 
-                  display="flex" 
-                  justifyContent="space-between" 
-                  alignItems="center"
-                  p={1.5}
-                  bgcolor={muiAlpha('#2196F3', 0.05)}
-                  borderRadius={1.5}
-                >
-                  <Typography variant="body2" color="text.secondary" fontWeight="600">
-                    Total Amount
-                  </Typography>
-                  <Typography variant="body1" fontWeight="700" color="text.primary">
-                    ₹{booking.totalAmount.toLocaleString()}
-                  </Typography>
-                </Box>
-                {(booking.paidAmount != null && Number(booking.paidAmount) > 0) && (
-                  <Box 
-                    display="flex" 
-                    justifyContent="space-between" 
-                    alignItems="center"
-                    p={1.5}
-                    bgcolor={muiAlpha('#4CAF50', 0.08)}
-                    borderRadius={1.5}
-                  >
-                    <Typography variant="body2" color="text.secondary" fontWeight="600">
-                      Paid Amount
-                    </Typography>
-                    <Typography variant="body1" fontWeight="700" color="success.main">
+          {/* Payment details */}
+          <ShCard>
+            <ShCardContent className="p-6">
+              <div className="flex items-center gap-2">
+                <Receipt className="h-4 w-4 text-graphite" aria-hidden />
+                <h3 className="text-display-sm font-semibold text-ink">Payment details</h3>
+              </div>
+              <dl className="mt-5 divide-y divide-hairline">
+                <div className="flex items-center justify-between gap-3 py-3 first:pt-0">
+                  <dt className="text-caption-md text-graphite">Total amount</dt>
+                  <dd className="text-body-md font-semibold text-ink">₹{booking.totalAmount.toLocaleString()}</dd>
+                </div>
+                {booking.paidAmount != null && Number(booking.paidAmount) > 0 && (
+                  <div className="flex items-center justify-between gap-3 py-3">
+                    <dt className="text-caption-md text-graphite">Paid amount</dt>
+                    <dd className="text-body-md font-semibold text-storm-deep">
                       ₹{Number(booking.paidAmount).toLocaleString()}
-                    </Typography>
-                  </Box>
+                    </dd>
+                  </div>
                 )}
-                <Box 
-                  display="flex" 
-                  justifyContent="space-between" 
-                  alignItems="center"
-                  p={2}
-                  bgcolor={muiAlpha('#FF9800', 0.05)}
-                  borderRadius={2}
-                >
-                  <Typography variant="body2" color="text.secondary" fontWeight="600">
-                    Payment Status
-                  </Typography>
-                  <Chip
-                    label={String(booking.paymentStatus).replace(/_/g, ' ')}
-                    size="medium"
-                    color={['paid', 'completed', 'customer_paid', 'verified'].includes(String(booking.paymentStatus).toLowerCase()) ? 'success' : 'warning'}
-                    sx={{
-                      fontWeight: 700,
-                      textTransform: 'capitalize',
-                    }}
-                  />
-                </Box>
+                <div className="flex items-center justify-between gap-3 py-3">
+                  <dt className="text-caption-md text-graphite">Payment status</dt>
+                  <dd>
+                    <Badge variant={paymentStatusBadgeVariant(booking.paymentStatus)} className="capitalize">
+                      {formatPaymentLabel(booking.paymentStatus)}
+                    </Badge>
+                  </dd>
+                </div>
                 {booking.paymentMethod && (
-                  <Box 
-                    display="flex" 
-                    justifyContent="space-between" 
-                    alignItems="center"
-                    p={2}
-                    bgcolor={muiAlpha('#9C27B0', 0.05)}
-                    borderRadius={2}
-                  >
-                    <Typography variant="body2" color="text.secondary" fontWeight="600">
-                      Payment Method
-                    </Typography>
-                    <Chip
-                      label={String(booking.paymentMethod).replace(/_/g, ' ')}
-                      size="small"
-                      sx={{
-                        bgcolor: muiAlpha('#9C27B0', 0.1),
-                        color: '#9C27B0',
-                        fontWeight: 600,
-                        textTransform: 'capitalize',
-                      }}
-                    />
-                  </Box>
+                  <div className="flex items-center justify-between gap-3 py-3">
+                    <dt className="text-caption-md text-graphite">Payment method</dt>
+                    <dd>
+                      <Badge variant="secondary" className="capitalize">
+                        {formatPaymentLabel(booking.paymentMethod)}
+                      </Badge>
+                    </dd>
+                  </div>
                 )}
                 {booking.bookingType && (
-                  <Box 
-                    display="flex" 
-                    justifyContent="space-between" 
-                    alignItems="center"
-                    p={2}
-                    bgcolor={muiAlpha('#2196F3', 0.05)}
-                    borderRadius={2}
-                  >
-                    <Typography variant="body2" color="text.secondary" fontWeight="600">
-                      Booking Type
-                    </Typography>
-                    <Chip
-                      label={String(booking.bookingType).replace(/_/g, ' ')}
-                      size="small"
-                      sx={{ textTransform: 'capitalize' }}
-                    />
-                  </Box>
+                  <div className="flex items-center justify-between gap-3 py-3">
+                    <dt className="text-caption-md text-graphite">Booking type</dt>
+                    <dd>
+                      <Badge variant="outline" className="capitalize">
+                        {formatPaymentLabel(booking.bookingType)}
+                      </Badge>
+                    </dd>
+                  </div>
                 )}
-              </Stack>
-            </CardContent>
-          </Card>
+              </dl>
+            </ShCardContent>
+          </ShCard>
 
-          {/* Booking meta: assigned at, completed at, cancellation reason */}
-          <Card sx={{ mb: 3, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', border: '1px solid rgba(0,0,0,0.05)' }}>
-            <CardContent sx={{ p: 2.5 }}>
-              <Typography variant="subtitle2" color="text.secondary" fontWeight="700" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, mb: 1.5 }}>
-                Booking Info
-              </Typography>
-              <Stack spacing={1.5}>
+          {/* Booking meta */}
+          <ShCard>
+            <ShCardContent className="p-6">
+              <h3 className="text-display-sm font-semibold text-ink">Booking info</h3>
+              <ul className="mt-4 space-y-3 text-body-md text-charcoal">
                 {booking.assignedAt && (
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <UserCheck className="h-[18px] w-[18px] text-muted-foreground" />
-                    <Typography variant="body2">
-                      Assigned on {new Date(booking.assignedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
-                    </Typography>
-                  </Box>
+                  <li className="flex items-start gap-2">
+                    <UserCheck className="mt-0.5 h-4 w-4 shrink-0 text-graphite" aria-hidden />
+                    <span>
+                      Assigned on{' '}
+                      {new Date(booking.assignedAt).toLocaleString(undefined, {
+                        dateStyle: 'medium',
+                        timeStyle: 'short',
+                      })}
+                    </span>
+                  </li>
                 )}
                 {booking.completedDate && (
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <CheckCircle className="h-[18px] w-[18px] text-green-600" />
-                    <Typography variant="body2">
-                      Completed on {new Date(booking.completedDate).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
-                    </Typography>
-                  </Box>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-storm-deep" aria-hidden />
+                    <span>
+                      Completed on{' '}
+                      {new Date(booking.completedDate).toLocaleString(undefined, {
+                        dateStyle: 'medium',
+                        timeStyle: 'short',
+                      })}
+                    </span>
+                  </li>
                 )}
                 {booking.status === 'cancelled' && booking.cancellationReason && (
-                  <Box display="flex" alignItems="flex-start" gap={1}>
-                    <XCircle className="mt-0.5 h-[18px] w-[18px] text-destructive" />
-                    <Typography variant="body2" color="text.secondary">
-                      <strong>Reason:</strong> {booking.cancellationReason}
-                    </Typography>
-                  </Box>
+                  <li className="flex items-start gap-2">
+                    <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden />
+                    <span>
+                      <span className="font-medium text-ink">Reason:</span> {booking.cancellationReason}
+                    </span>
+                  </li>
                 )}
                 {!booking.assignedAt && !booking.completedDate && booking.status !== 'cancelled' && (
-                  <Typography variant="body2" color="text.secondary">
-                    Created {new Date(booking.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
-                  </Typography>
+                  <li>
+                    Created{' '}
+                    {new Date(booking.createdAt).toLocaleString(undefined, {
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
+                    })}
+                  </li>
                 )}
-                {(booking as any).source && (
-                  <Typography variant="body2" color="text.secondary">
-                    <strong>Source:</strong> {(booking as any).source === 'web' ? 'Website' : 'Mobile app'}
-                  </Typography>
+                {(booking as { source?: string }).source && (
+                  <li>
+                    <span className="font-medium text-ink">Source:</span>{' '}
+                    {(booking as { source?: string }).source === 'web' ? 'Website' : 'Mobile app'}
+                  </li>
                 )}
-              </Stack>
-            </CardContent>
-          </Card>
+              </ul>
+            </ShCardContent>
+          </ShCard>
 
-          {/* Invoice card */}
+          {/* Invoice */}
           {booking.invoice && booking.invoice.id && (
-            <Card sx={{ mb: 3, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', border: '1px solid rgba(0,0,0,0.05)' }}>
-              <CardContent sx={{ p: 3.5 }}>
-                <Box display="flex" alignItems="center" gap={1.5} mb={3}>
-                  <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: '#4CAF50', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Receipt className="h-6 w-6" />
-                  </Box>
-                  <Typography variant="h6" fontWeight="700" color="text.primary">
-                    Invoice
-                  </Typography>
-                </Box>
-                <Separator className="mb-3" />
-                <Stack spacing={1.5}>
+            <ShCard>
+              <ShCardContent className="p-6">
+                <div className="flex items-center gap-2">
+                  <Receipt className="h-4 w-4 text-graphite" aria-hidden />
+                  <h3 className="text-display-sm font-semibold text-ink">Invoice</h3>
+                </div>
+                <dl className="mt-5 divide-y divide-hairline">
                   {booking.invoice.invoiceNumber && (
-                    <Box display="flex" justifyContent="space-between" alignItems="center">
-                      <Typography variant="body2" color="text.secondary">Invoice #</Typography>
-                      <Typography variant="body2" fontWeight={600}>{booking.invoice.invoiceNumber}</Typography>
-                    </Box>
+                    <div className="flex items-center justify-between gap-3 py-3 first:pt-0">
+                      <dt className="text-caption-md text-graphite">Invoice #</dt>
+                      <dd className="text-body-md font-medium text-ink">{booking.invoice.invoiceNumber}</dd>
+                    </div>
                   )}
                   {booking.invoice.invoiceDate && (
-                    <Box display="flex" justifyContent="space-between" alignItems="center">
-                      <Typography variant="body2" color="text.secondary">Date</Typography>
-                      <Typography variant="body2">{new Date(booking.invoice.invoiceDate).toLocaleDateString()}</Typography>
-                    </Box>
+                    <div className="flex items-center justify-between gap-3 py-3">
+                      <dt className="text-caption-md text-graphite">Date</dt>
+                      <dd className="text-body-md text-ink">
+                        {new Date(booking.invoice.invoiceDate).toLocaleDateString()}
+                      </dd>
+                    </div>
                   )}
                   {booking.invoice.status && (
-                    <Box display="flex" justifyContent="space-between" alignItems="center">
-                      <Typography variant="body2" color="text.secondary">Status</Typography>
-                      <Chip label={String(booking.invoice.status)} size="small" sx={{ textTransform: 'capitalize' }} />
-                    </Box>
+                    <div className="flex items-center justify-between gap-3 py-3">
+                      <dt className="text-caption-md text-graphite">Status</dt>
+                      <dd>
+                        <Badge variant="secondary" className="capitalize">
+                          {String(booking.invoice.status)}
+                        </Badge>
+                      </dd>
+                    </div>
                   )}
                   {booking.invoice.total != null && (
-                    <Box display="flex" justifyContent="space-between" alignItems="center">
-                      <Typography variant="body2" color="text.secondary">Total</Typography>
-                      <Typography variant="body1" fontWeight={700}>₹{Number(booking.invoice.total).toLocaleString()}</Typography>
-                    </Box>
+                    <div className="flex items-center justify-between gap-3 py-3">
+                      <dt className="text-caption-md text-graphite">Total</dt>
+                      <dd className="text-body-md font-semibold text-ink">
+                        ₹{Number(booking.invoice.total).toLocaleString()}
+                      </dd>
+                    </div>
                   )}
-                  {booking.invoice.pdfUrl && (
-                    <Button
-                      component="a"
-                      href={booking.invoice.pdfUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      variant="outlined"
-                      size="small"
-                      startIcon={<Receipt />}
-                      fullWidth
-                      sx={{ mt: 1 }}
-                    >
+                </dl>
+                {booking.invoice.pdfUrl && (
+                  <ShadcnButton variant="outline" size="sm" className="mt-4 w-full" asChild>
+                    <a href={booking.invoice.pdfUrl} target="_blank" rel="noopener noreferrer">
+                      <Receipt className="mr-2 h-4 w-4" />
                       Download PDF
-                    </Button>
-                  )}
-                </Stack>
-              </CardContent>
-            </Card>
+                    </a>
+                  </ShadcnButton>
+                )}
+              </ShCardContent>
+            </ShCard>
           )}
 
-          {/* Admin: Payment & earnings — pending receivable, professional payout status */}
+          {/* Admin: Payment & earnings */}
           {isAdmin && booking.status === 'completed' && (
-            <Card
-              sx={{
-                borderRadius: 3,
-                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                border: '1px solid',
-                borderColor: 'primary.200',
-                mb: 3,
-              }}
-            >
-              <CardContent sx={{ p: 3.5 }}>
-                <Box display="flex" alignItems="center" gap={1.5} mb={3}>
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      borderRadius: 2,
-                      bgcolor: 'primary.main',
-                      color: 'white',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Wallet className="h-6 w-6" />
-                  </Box>
-                  <Typography variant="h6" fontWeight="700" color="text.primary">
-                    Payment & earnings
-                  </Typography>
-                  <Chip label="Admin view" size="small" color="primary" variant="outlined" />
-                </Box>
-                <Separator className="mb-3" />
+            <ShCard>
+              <ShCardContent className="p-6">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Wallet className="h-4 w-4 text-graphite" aria-hidden />
+                  <h3 className="text-display-sm font-semibold text-ink">Payment &amp; earnings</h3>
+                  <Badge variant="outline">Admin view</Badge>
+                </div>
+
                 {earningData?.earning ? (
-                  <Stack spacing={2}>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" p={1.5} bgcolor={muiAlpha('#2196F3', 0.06)} borderRadius={1.5}>
-                      <Typography variant="body2" color="text.secondary" fontWeight="600">Booking amount</Typography>
-                      <Typography variant="body1" fontWeight="700">₹{Number(earningData.earning.bookingAmount || 0).toLocaleString()}</Typography>
-                    </Box>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" p={1.5} bgcolor={muiAlpha('#4CAF50', 0.08)} borderRadius={1.5}>
-                      <Typography variant="body2" color="text.secondary" fontWeight="600">Platform commission (pending receivable)</Typography>
-                      <Typography variant="body1" fontWeight="700" color="success.main">₹{Number(earningData.earning.platformCommission || 0).toLocaleString()}</Typography>
-                    </Box>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" p={1.5} bgcolor={muiAlpha('#FF9800', 0.08)} borderRadius={1.5}>
-                      <Typography variant="body2" color="text.secondary" fontWeight="600">Professional earnings</Typography>
-                      <Typography variant="body1" fontWeight="700">₹{Number(earningData.earning.professionalEarnings || 0).toLocaleString()}</Typography>
-                    </Box>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" p={1.5} borderRadius={1.5}>
-                      <Typography variant="body2" color="text.secondary" fontWeight="600">Customer payment</Typography>
-                      <Chip
-                        label={String(earningData.earning.paymentStatus || 'pending').replace('_', ' ')}
-                        size="small"
-                        color={earningData.earning.paymentStatus === 'verified' || earningData.earning.paymentStatus === 'customer_paid' ? 'success' : 'warning'}
-                        sx={{ textTransform: 'capitalize' }}
-                      />
-                    </Box>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" p={1.5} borderRadius={1.5}>
-                      <Typography variant="body2" color="text.secondary" fontWeight="600">Payout status</Typography>
-                      <Chip
-                        label={String(earningData.earning.payoutStatus || 'pending')}
-                        size="small"
-                        color={earningData.earning.payoutStatus === 'paid' ? 'success' : 'default'}
-                        sx={{ textTransform: 'capitalize' }}
-                      />
-                    </Box>
+                  <>
+                    <dl className="mt-5 divide-y divide-hairline">
+                      <div className="flex items-center justify-between gap-3 py-3 first:pt-0">
+                        <dt className="text-caption-md text-graphite">Booking amount</dt>
+                        <dd className="text-body-md font-semibold text-ink">
+                          ₹{Number(earningData.earning.bookingAmount || 0).toLocaleString()}
+                        </dd>
+                      </div>
+                      <div className="flex items-center justify-between gap-3 py-3">
+                        <dt className="text-caption-md text-graphite">Platform commission</dt>
+                        <dd className="text-body-md font-semibold text-storm-deep">
+                          ₹{Number(earningData.earning.platformCommission || 0).toLocaleString()}
+                        </dd>
+                      </div>
+                      <div className="flex items-center justify-between gap-3 py-3">
+                        <dt className="text-caption-md text-graphite">Professional earnings</dt>
+                        <dd className="text-body-md font-semibold text-ink">
+                          ₹{Number(earningData.earning.professionalEarnings || 0).toLocaleString()}
+                        </dd>
+                      </div>
+                      <div className="flex items-center justify-between gap-3 py-3">
+                        <dt className="text-caption-md text-graphite">Customer payment</dt>
+                        <dd>
+                          <Badge
+                            variant={paymentStatusBadgeVariant(earningData.earning.paymentStatus)}
+                            className="capitalize"
+                          >
+                            {formatPaymentLabel(earningData.earning.paymentStatus || 'pending')}
+                          </Badge>
+                        </dd>
+                      </div>
+                      <div className="flex items-center justify-between gap-3 py-3">
+                        <dt className="text-caption-md text-graphite">Payout status</dt>
+                        <dd>
+                          <Badge
+                            variant={
+                              earningData.earning.payoutStatus === 'paid' ? 'success' : 'secondary'
+                            }
+                            className="capitalize"
+                          >
+                            {formatPaymentLabel(earningData.earning.payoutStatus || 'pending')}
+                          </Badge>
+                        </dd>
+                      </div>
+                    </dl>
+
                     {earningData.earning.disputeOpen === true && (
-                      <Alert severity="warning" sx={{ mt: 1 }}>
+                      <p className="mt-4 rounded-md border border-bloom-coral/30 bg-bloom-rose px-3 py-2 text-body-md text-charcoal">
                         Dispute is open for this earning — professional payout pool should treat it as on hold until
                         cleared.
-                      </Alert>
+                      </p>
                     )}
-                    <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mt: 1 }}>
-                      {earningData.earning.paymentStatus !== 'verified' &&
-                        earningData.earning.paymentStatus !== 'customer_paid' && (
-                          <Button variant="outlined" size="small" onClick={() => void handleVerifyEarningPayment()}>
-                            Verify payment
-                          </Button>
-                        )}
-                    </Stack>
-                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+
+                    {earningData.earning.paymentStatus !== 'verified' &&
+                      earningData.earning.paymentStatus !== 'customer_paid' && (
+                        <ShadcnButton
+                          variant="outline"
+                          size="sm"
+                          className="mt-4"
+                          onClick={() => void handleVerifyEarningPayment()}
+                        >
+                          Verify payment
+                        </ShadcnButton>
+                      )}
+
+                    <p className="mt-4 text-caption-md text-graphite">
                       Disputes freeze payout eligibility until cleared (backend).
-                    </Typography>
-                    <TextField
-                      size="small"
-                      label="Dispute note (required to open)"
-                      value={disputeReason}
-                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDisputeReason(e.target.value)}
-                      fullWidth
-                      sx={{ mt: 1 }}
-                      disabled={disputeBusy}
-                      multiline
-                      minRows={2}
-                    />
-                    <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mt: 1 }}>
-                      <Button
-                        variant="contained"
-                        color="warning"
+                    </p>
+
+                    <div className="mt-4 space-y-3 border-t border-hairline pt-4">
+                      <TextField
                         size="small"
+                        label="Dispute note (required to open)"
+                        value={disputeReason}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDisputeReason(e.target.value)}
+                        fullWidth
                         disabled={disputeBusy}
-                        onClick={() => void handleEarningDispute(true)}
-                      >
-                        Open dispute
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        disabled={disputeBusy}
-                        onClick={() => void handleEarningDispute(false)}
-                      >
-                        Clear dispute
-                      </Button>
-                    </Stack>
+                        multiline
+                        minRows={2}
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        <ShadcnButton
+                          variant="default"
+                          size="sm"
+                          disabled={disputeBusy}
+                          onClick={() => void handleEarningDispute(true)}
+                        >
+                          Open dispute
+                        </ShadcnButton>
+                        <ShadcnButton
+                          variant="outline"
+                          size="sm"
+                          disabled={disputeBusy}
+                          onClick={() => void handleEarningDispute(false)}
+                        >
+                          Clear dispute
+                        </ShadcnButton>
+                      </div>
+                    </div>
+
                     {earningData.payout?.status === 'completed' && earningData.payout.completedAt && (
-                      <Alert severity="success" sx={{ mt: 1 }}>
-                        Professional received payment on {new Date(earningData.payout.completedAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}.
-                        {earningData.payout.payoutReference && ` Ref: ${earningData.payout.payoutReference}`}
-                      </Alert>
+                      <p className="mt-4 rounded-md border border-storm-deep/30 bg-storm-mist/30 px-3 py-2 text-body-md text-charcoal">
+                        Professional received payment on{' '}
+                        {new Date(earningData.payout.completedAt).toLocaleDateString(undefined, {
+                          dateStyle: 'medium',
+                        })}
+                        .{earningData.payout.payoutReference && ` Ref: ${earningData.payout.payoutReference}`}
+                      </p>
                     )}
-                  </Stack>
+                  </>
                 ) : (
-                  <Typography variant="body2" color="text.secondary">
-                    Earning record is created when the booking is marked completed. If you just completed this booking, refresh the page in a moment.
-                  </Typography>
+                  <p className="mt-4 text-body-md text-graphite">
+                    Earning record is created when the booking is marked completed. If you just completed this booking,
+                    refresh the page in a moment.
+                  </p>
                 )}
-              </CardContent>
-            </Card>
+              </ShCardContent>
+            </ShCard>
           )}
 
-          {/* Payment Review Section - Show when booking is completed and payment is received */}
+          {/* Professional: payment received summary */}
           {(() => {
-            const statusLower = booking.status?.toLowerCase() || ''
-            const isCompleted = statusLower === 'completed'
-            const paymentStatusLower = booking.paymentStatus?.toLowerCase() || ''
-            const isPaymentReceived = paymentStatusLower === 'paid' || 
-                                     paymentStatusLower === 'completed' ||
-                                     paymentStatusLower === 'success' ||
-                                     paymentStatusLower === 'received' ||
-                                     paymentStatusLower === 'customer_paid' ||
-                                     paymentStatusLower === 'verified'
-            
+            const isCompleted = (booking.status?.toLowerCase() || '') === 'completed'
+            const isPaymentReceived = paymentSettled(booking.paymentStatus)
+
             if (isCompleted && isPaymentReceived && isProfessional) {
+              const paymentDate = booking.completedDate
+                ? new Date(booking.completedDate).toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                : new Date().toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })
+
               return (
-                <Card sx={{ borderRadius: 3, bgcolor: 'success.50', border: '1px solid', borderColor: 'success.200' }}>
-                  <CardContent sx={{ p: 3 }}>
-                    <Box display="flex" alignItems="center" gap={1} mb={2}>
-                      <CheckCircle className="h-6 w-6 text-green-600" />
-                      <Typography variant="h6" fontWeight="600" color="success.dark">
-                        Payment Review
-                      </Typography>
-                    </Box>
-                    <Separator className="mb-2" />
-                    <Grid container spacing={3}>
-                      <Grid item xs={12} sm={6}>
-                        <Box>
-                          <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-                            Payment Status
-                          </Typography>
-                          <Chip
-                            label="Payment Received"
-                            color="success"
-                            icon={<CheckCircle />}
-                            sx={{ fontWeight: 600 }}
-                          />
-                        </Box>
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <Box>
-                          <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-                            Payment Method
-                          </Typography>
-                          <Typography variant="body1" fontWeight="500" sx={{ textTransform: 'capitalize', mt: 0.5 }}>
-                            {booking.paymentMethod || 'Cash'}
-                          </Typography>
-                        </Box>
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <Box>
-                          <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-                            Amount Received
-                          </Typography>
-                          <Typography variant="h6" fontWeight="700" color="success.main">
-                            ₹{booking.totalAmount}
-                          </Typography>
-                        </Box>
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <Box>
-                          <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-                            Payment Date
-                          </Typography>
-                          <Typography variant="body1" fontWeight="500" sx={{ mt: 0.5 }}>
-                            {booking.completedDate 
-                              ? new Date(booking.completedDate).toLocaleDateString('en-IN', {
-                                  day: 'numeric',
-                                  month: 'long',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })
-                              : new Date().toLocaleDateString('en-IN', {
-                                  day: 'numeric',
-                                  month: 'long',
-                                  year: 'numeric'
-                                })}
-                          </Typography>
-                        </Box>
-                      </Grid>
-                    </Grid>
-                  </CardContent>
-                </Card>
+                <ShCard className="border-storm-deep/30 bg-storm-mist/20">
+                  <ShCardContent className="p-6">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-storm-deep" aria-hidden />
+                      <h3 className="text-display-sm font-semibold text-ink">Payment review</h3>
+                    </div>
+                    <dl className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div>
+                        <dt className="text-caption-md text-graphite">Payment status</dt>
+                        <dd className="mt-1">
+                          <Badge variant="success">Payment received</Badge>
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-caption-md text-graphite">Payment method</dt>
+                        <dd className="mt-1 text-body-md font-medium capitalize text-ink">
+                          {booking.paymentMethod || 'Cash'}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-caption-md text-graphite">Amount received</dt>
+                        <dd className="mt-1 text-display-sm font-bold text-storm-deep">₹{booking.totalAmount}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-caption-md text-graphite">Payment date</dt>
+                        <dd className="mt-1 text-body-md font-medium text-ink">{paymentDate}</dd>
+                      </div>
+                    </dl>
+                  </ShCardContent>
+                </ShCard>
               )
             }
             return null
           })()}
-        </Grid>
-      </Grid>
+        </div>
+      </div>
 
       {/* Dialogs */}
       <AssignProfessionalDialog
@@ -3616,7 +2980,7 @@ export function BookingDetails() {
         >
           <DialogTitle>
             <Box display="flex" alignItems="center" gap={1}>
-              <Wallet className="h-5 w-5 text-green-600" />
+              <Wallet className="h-5 w-5 text-storm-deep" />
               <Typography variant="h6">Booking Completed!</Typography>
             </Box>
           </DialogTitle>
@@ -3704,7 +3068,7 @@ export function BookingDetails() {
         >
           <DialogTitle>
             <Box display="flex" alignItems="center" gap={1}>
-              <CreditCard className="h-5 w-5 text-green-600" />
+              <CreditCard className="h-5 w-5 text-storm-deep" />
               <Typography variant="h6">Mark Payment Received</Typography>
             </Box>
           </DialogTitle>
@@ -3798,6 +3162,7 @@ export function BookingDetails() {
         </Dialog>
       )}
 
-    </Box>
+      </div>
+    </div>
   )
 }

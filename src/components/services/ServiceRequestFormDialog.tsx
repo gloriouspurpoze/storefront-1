@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import { X, Plus, Pencil, IndianRupee } from 'lucide-react'
 import { ServiceRequest, CreateServiceRequest, UpdateServiceRequest } from '../../services/api/services.service'
 import { useAppPrompt } from '../providers/AppDialogsProvider'
@@ -477,7 +477,7 @@ export function ServiceRequestFormDialog({
                 ))}
               </div>
             ) : (
-              <p className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900 dark:border-blue-900 dark:bg-blue-950/40">
+              <p className="rounded-md border border-primary/20 bg-primary-soft px-3 py-2 text-sm text-primary dark:border-primary dark:bg-primary/40">
                 No images added. You can add image URLs to help providers understand the issue.
               </p>
             )}

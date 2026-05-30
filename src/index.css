@@ -1,54 +1,204 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* =============================================================================
+ * Global CSS — projection of DESIGN.md
+ * -----------------------------------------------------------------------------
+ * DO NOT introduce new colors, radii, spacing, or font sizes here.
+ * The single source of truth is /DESIGN.md (HP-design-analysis).
+ * If a token needs to change, update DESIGN.md first, then mirror it into:
+ *   1. this file (CSS custom properties)
+ *   2. tailwind.config.js (Tailwind theme.extend)
+ *
+ * Token map (DESIGN.md → CSS var):
+ *   colors.primary        #024ad8   → --color-primary
+ *   colors.primary-bright #296ef9   → --color-primary-bright
+ *   colors.primary-deep   #0e3191   → --color-primary-deep
+ *   colors.primary-soft   #c9e0fc   → --color-primary-soft
+ *   colors.ink            #1a1a1a   → --color-ink
+ *   colors.ink-deep       #000000   → --color-ink-deep
+ *   colors.ink-soft       #292929   → --color-ink-soft
+ *   colors.canvas         #ffffff   → --color-canvas
+ *   colors.cloud          #f7f7f7   → --color-cloud
+ *   colors.fog            #e8e8e8   → --color-fog
+ *   colors.steel          #c2c2c2   → --color-steel
+ *   colors.graphite       #636363   → --color-graphite
+ *   colors.charcoal       #3d3d3d   → --color-charcoal
+ *   colors.hairline       #e8e8e8   → --color-hairline
+ *   colors.bloom-coral    #ff5050   → --color-bloom-coral
+ *   colors.bloom-rose     #f9d4d2   → --color-bloom-rose
+ *   colors.bloom-deep     #b3262b   → --color-bloom-deep (error)
+ *   colors.bloom-wine     #5a1313   → --color-bloom-wine
+ *   colors.storm-mist     #8ebdce   → --color-storm-mist
+ *   colors.storm-sea      #7fadbe   → --color-storm-sea
+ *   colors.storm-deep     #356373   → --color-storm-deep
+ *
+ * Typography family per DESIGN.md "Note on Font Substitutes":
+ *   Primary: Forma DJR Micro (proprietary — Commercial Type / Mark Caneso)
+ *   Fallback: Inter @ 400/500/600/700 (loaded from Google Fonts below)
+ * =========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  /* Aligned with MUI theme (slate surfaces, blue primary) */
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
+    /* ---- DESIGN.md — colors (raw tokens) ---------------------------------- */
+    --color-primary: #024ad8;
+    --color-primary-bright: #296ef9;
+    --color-primary-deep: #0e3191;
+    --color-primary-soft: #c9e0fc;
+    --color-on-primary: #ffffff;
+
+    --color-ink: #1a1a1a;
+    --color-ink-deep: #000000;
+    --color-ink-soft: #292929;
+    --color-on-ink: #ffffff;
+
+    --color-canvas: #ffffff;
+    --color-paper: #ffffff;
+    --color-cloud: #f7f7f7;
+    --color-fog: #e8e8e8;
+    --color-steel: #c2c2c2;
+    --color-graphite: #636363;
+    --color-charcoal: #3d3d3d;
+
+    --color-hairline: #e8e8e8;
+    --color-hairline-strong: #c2c2c2;
+
+    --color-link: #024ad8;
+    --color-link-pressed: #0e3191;
+
+    --color-bloom-coral: #ff5050;
+    --color-bloom-rose: #f9d4d2;
+    --color-bloom-deep: #b3262b;
+    --color-bloom-wine: #5a1313;
+
+    --color-storm-mist: #8ebdce;
+    --color-storm-sea: #7fadbe;
+    --color-storm-deep: #356373;
+
+    --color-error: #b3262b;
+
+    /* ---- DESIGN.md — rounded --------------------------------------------- */
+    --radius-none: 0px;
+    --radius-xs: 2px;
+    --radius-sm: 3px;
+    --radius-md: 4px;
+    --radius-lg: 8px;
+    --radius-xl: 16px;
+    --radius-pill: 9999px;
+    --radius-full: 9999px;
+
+    /* ---- DESIGN.md — spacing --------------------------------------------- */
+    --space-xxs: 4px;
+    --space-xs: 8px;
+    --space-sm: 12px;
+    --space-md: 16px;
+    --space-lg: 20px;
+    --space-xl: 24px;
+    --space-xxl: 32px;
+    --space-section: 80px;
+
+    /* ---- DESIGN.md — elevation ------------------------------------------- */
+    /* Level 1 — Hairline: 1px solid var(--color-hairline) */
+    /* Level 2 — Soft Lift */
+    --shadow-soft-lift: 0 2px 8px rgba(26, 26, 26, 0.08);
+    /* Level 3 — Floating Modal */
+    --shadow-floating: 0 8px 24px rgba(26, 26, 26, 0.12);
+
+    /* ---- shadcn / Tailwind compatibility layer ---------------------------
+     * Bind shadcn's semantic CSS vars to DESIGN.md tokens (HSL form
+     * required by shadcn `hsl(var(--xxx))`). Numbers are precise HSL of
+     * the DESIGN.md hex above — do not edit independently of the raw
+     * --color-* tokens above.
+     * --------------------------------------------------------------------- */
+
+    /* canvas (#ffffff) */
+    --background: 0 0% 100%;
+    /* ink (#1a1a1a) */
+    --foreground: 0 0% 10%;
+
+    /* paper (#ffffff) */
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 0 0% 10%;
+
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 221 83% 53%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --popover-foreground: 0 0% 10%;
+
+    /* primary #024ad8 */
+    --primary: 220 98% 43%;
+    --primary-foreground: 0 0% 100%;
+
+    /* cloud (#f7f7f7) */
+    --secondary: 0 0% 97%;
+    --secondary-foreground: 0 0% 10%;
+
+    /* cloud (#f7f7f7) as muted surface; graphite (#636363) for muted text */
+    --muted: 0 0% 97%;
+    --muted-foreground: 0 0% 39%;
+
+    /* cloud (#f7f7f7) */
+    --accent: 0 0% 97%;
+    --accent-foreground: 0 0% 10%;
+
+    /* bloom-deep (#b3262b) */
+    --destructive: 358 65% 43%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* hairline (#e8e8e8) */
+    --border: 0 0% 91%;
+    --input: 0 0% 91%;
+    /* ring picks up primary so focus rings are HP Electric Blue */
+    --ring: 220 98% 43%;
+
+    /* shadcn radius cascade (md = radius - 2px, sm = radius - 4px).
+     * Set --radius to 8px (DESIGN.md rounded.lg) so:
+     *   rounded-lg  →  8px  (badges, cards, accordions)
+     *   rounded-md  →  6px  (close enough to DESIGN.md rounded.md 4px;
+     *                        use the .rounded-md utility from
+     *                        tailwind.config.js which forces exactly 4px)
+     *   rounded-sm  →  4px
+     */
     --radius: 0.5rem;
   }
 
+  /* Dark mode is NOT defined in DESIGN.md. The block below is an
+   * extension that inverts the canvas / ink relationship using
+   * DESIGN.md ink tokens so the existing dark-toggle keeps working
+   * without inventing new colors. */
   .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-    --card: 217 33% 17%;
-    --card-foreground: 210 40% 98%;
-    --popover: 217 33% 17%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 11%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    /* ink-deep (#000000) as canvas, on-ink (#ffffff) as text */
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+
+    /* ink-soft (#292929) as card surface */
+    --card: 0 0% 16%;
+    --card-foreground: 0 0% 100%;
+
+    --popover: 0 0% 16%;
+    --popover-foreground: 0 0% 100%;
+
+    /* primary-bright (#296ef9) — DESIGN.md: used inside dark slabs where
+     * the deeper blue would muddy. */
+    --primary: 220 95% 57%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 16%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 0 0% 16%;
+    --muted-foreground: 0 0% 76%; /* steel (#c2c2c2) for muted text on dark */
+
+    --accent: 0 0% 16%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 358 65% 43%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 16%;
+    --input: 0 0% 16%;
+    --ring: 220 95% 57%;
   }
 }
 
@@ -56,50 +206,79 @@
   * {
     @apply border-border;
   }
-  
-  body {
-    @apply bg-background text-foreground;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-      sans-serif;
+
+  html {
+    /* DESIGN.md typography baseline — Forma DJR Micro (proprietary);
+     * Inter is the documented open-source substitute. */
+    font-family: 'Forma DJR Micro', 'Inter', -apple-system, BlinkMacSystemFont,
+      'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
-  code {
-    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-      monospace;
+  body {
+    @apply bg-background text-foreground;
+    /* DESIGN.md body-md: 16px / 400 / 1.38 */
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.38;
+  }
+
+  /* DESIGN.md typography hierarchy — display sizes default to weight 500
+   * line-height 1.0 (per the "weight 500 for every display size" principle). */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: inherit;
+    font-weight: 500;
+    line-height: 1.0;
+    color: var(--color-ink);
+  }
+
+  code, kbd, pre, samp {
+    font-family: 'JetBrains Mono', 'Fira Code', source-code-pro, Menlo, Monaco,
+      Consolas, 'Courier New', monospace;
+  }
+
+  /* DESIGN.md link color: --color-link (#024ad8), pressed: --color-link-pressed */
+  a {
+    color: var(--color-link);
+  }
+  a:active {
+    color: var(--color-link-pressed);
   }
 }
 
-/* Custom scrollbar */
+/* -----------------------------------------------------------------------------
+ * Scrollbars — DESIGN.md surfaces (cloud track, steel thumb on light;
+ * ink-soft track, graphite thumb on dark). Width follows the "commercial
+ * clean" 6px rhythm.
+ * --------------------------------------------------------------------------- */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--color-cloud);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
+  background: var(--color-steel);
+  border-radius: var(--radius-sm);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background: var(--color-graphite);
 }
 
-/* Dark mode scrollbar */
 .dark ::-webkit-scrollbar-track {
-  background: #2a2a2a;
+  background: var(--color-ink-soft);
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: #555;
+  background: var(--color-graphite);
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #777;
+  background: var(--color-steel);
 }

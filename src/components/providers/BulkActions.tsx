@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import { X, UserCheck, Ban, Download, Trash2, Loader2, CheckCircle, MoreVertical } from 'lucide-react'
 import {
   Dialog,
@@ -115,19 +115,19 @@ export function BulkActions({ selectedIds, onSuccess, onClearSelection }: BulkAc
       case 'verify':
         return {
           title: 'Bulk Verify Providers',
-          icon: <UserCheck className="h-6 w-6 text-emerald-600" />,
+          icon: <UserCheck className="h-6 w-6 text-storm-deep" />,
           message: `Are you sure you want to verify ${selectedIds.length} provider(s)?`,
           confirmText: 'Verify Providers',
-          confirmClass: 'bg-emerald-600 hover:bg-emerald-600/90' as const,
+          confirmClass: 'bg-storm-deep hover:bg-storm-deep/90' as const,
           description: 'Verified providers will be able to accept bookings and appear in searches.',
         }
       case 'block':
         return {
           title: 'Bulk Block Providers',
-          icon: <Ban className="h-6 w-6 text-amber-600" />,
+          icon: <Ban className="h-6 w-6 text-bloom-coral" />,
           message: `Are you sure you want to block ${selectedIds.length} provider(s)?`,
           confirmText: 'Block Providers',
-          confirmClass: 'bg-amber-600 hover:bg-amber-600/90' as const,
+          confirmClass: 'bg-bloom-coral hover:bg-bloom-coral/90' as const,
           description: 'Blocked providers will not be able to receive new service requests.',
         }
       case 'delete':
@@ -173,15 +173,15 @@ export function BulkActions({ selectedIds, onSuccess, onClearSelection }: BulkAc
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="min-w-[220px]">
             <DropdownMenuItem onClick={() => handleAction('verify')}>
-              <UserCheck className="mr-2 h-4 w-4 text-emerald-600" />
+              <UserCheck className="mr-2 h-4 w-4 text-storm-deep" />
               Verify Selected
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleAction('block')}>
-              <Ban className="mr-2 h-4 w-4 text-amber-600" />
+              <Ban className="mr-2 h-4 w-4 text-bloom-coral" />
               Block Selected
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleAction('export')}>
-              <Download className="mr-2 h-4 w-4 text-sky-600" />
+              <Download className="mr-2 h-4 w-4 text-primary" />
               Export Selected
             </DropdownMenuItem>
             <DropdownMenuSeparator />

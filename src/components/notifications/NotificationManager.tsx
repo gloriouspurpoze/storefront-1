@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Notifications hub — industry layout:
  *   Inbox (default) → Compose → Templates → Settings
  */
@@ -238,7 +238,7 @@ export function NotificationManager({ activeTab: controlledTab, onTabChange }: N
       {/* KPI strip */}
       <div className="grid grid-cols-2 gap-3 border-b border-border bg-muted/20 px-4 py-4 sm:grid-cols-4 md:px-6">
         {[
-          { label: 'Unread', value: unreadCount, accent: unreadCount > 0 ? 'text-amber-600' : '' },
+          { label: 'Unread', value: unreadCount, accent: unreadCount > 0 ? 'text-bloom-coral' : '' },
           { label: 'Loaded', value: notifications.length, accent: '' },
           { label: 'Read', value: readCount, accent: '' },
           { label: 'Read rate', value: `${readRate}%`, accent: '' },
@@ -316,7 +316,7 @@ export function NotificationManager({ activeTab: controlledTab, onTabChange }: N
           <div className="grid gap-6 lg:grid-cols-5">
             <div className="space-y-4 lg:col-span-3">
               {sendForm.type === 'marketing' && (
-                <div className="flex gap-2 rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+                <div className="flex gap-2 rounded-md border border-bloom-coral/60 bg-bloom-rose px-3 py-2 text-sm text-bloom-coral dark:border-bloom-coral dark:bg-bloom-coral/40 dark:text-bloom-deep">
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                   <p>Marketing sends require user consent. Confirm compliance before broadcasting.</p>
                 </div>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Update Booking Status Modal
  * Modal component for admin to update booking status with notifications
  */
@@ -56,7 +56,7 @@ const statusConfig: Record<
     label: 'Pending',
     Icon: Calendar,
     description: 'Booking is waiting for provider assignment',
-    boxClass: 'border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/30',
+    boxClass: 'border-bloom-coral/40 bg-bloom-rose dark:border-bloom-coral/40 dark:bg-bloom-coral/30',
   },
   confirmed: {
     label: 'Confirmed',
@@ -68,13 +68,13 @@ const statusConfig: Record<
     label: 'In Progress',
     Icon: Play,
     description: 'Service is currently being performed',
-    boxClass: 'border-violet-200 bg-violet-50 dark:border-violet-900/40 dark:bg-violet-950/30',
+    boxClass: 'border-primary/20 bg-primary-soft dark:border-primary-deep/40 dark:bg-primary-deep/30',
   },
   completed: {
     label: 'Completed',
     Icon: CheckCircle,
     description: 'Service has been completed',
-    boxClass: 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-950/30',
+    boxClass: 'border-storm-mist/30 bg-storm-mist/30 dark:border-storm-deep/40 dark:bg-storm-deep/30',
   },
   cancelled: {
     label: 'Cancelled',

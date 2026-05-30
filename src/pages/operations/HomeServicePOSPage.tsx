@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   AlertTriangle,
@@ -1149,7 +1149,7 @@ export function HomeServicePOSPage() {
                   Coupon
                 </Label>
                 {couponStale ? (
-                  <div className="flex gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100">
+                  <div className="flex gap-2 rounded-md border border-bloom-coral/40 bg-bloom-coral/10 px-3 py-2 text-sm text-bloom-coral dark:text-bloom-deep">
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
                     <div className="min-w-0 flex-1 space-y-2">
                       <p>

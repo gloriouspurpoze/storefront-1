@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+﻿import React, { useEffect, useRef, useState } from 'react'
 import {
   DndContext,
   PointerSensor,
@@ -171,7 +171,7 @@ function SortableServiceRow({
                 {service.status}
               </Badge>
               {service.is_featured ? (
-                <Badge className="border-amber-200 bg-amber-50 text-[10px] text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
+                <Badge className="border-bloom-coral/40 bg-bloom-rose text-[10px] text-bloom-coral dark:border-bloom-coral dark:bg-bloom-coral dark:text-bloom-deep">
                   <Star className="mr-1 h-3 w-3" />
                   Featured
                 </Badge>
@@ -183,7 +183,7 @@ function SortableServiceRow({
           <div className="text-right">
             <p className="text-lg font-bold tabular-nums text-primary">{displayBasePrice(service.base_price)}</p>
             <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
-              <Star className="h-3.5 w-3.5 text-amber-500" />
+              <Star className="h-3.5 w-3.5 text-bloom-coral" />
               {service.average_rating ? Number(service.average_rating).toFixed(1) : '0.0'}
             </div>
           </div>
@@ -196,11 +196,11 @@ function SortableServiceRow({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
               <DropdownMenuItem onClick={() => onPreview(service)}>
-                <Eye className="mr-2 h-4 w-4 text-sky-600" />
+                <Eye className="mr-2 h-4 w-4 text-primary" />
                 View details
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onEdit(service)}>
-                <Pencil className="mr-2 h-4 w-4 text-amber-600" />
+                <Pencil className="mr-2 h-4 w-4 text-bloom-coral" />
                 Edit
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => void onDuplicate(service)}>
@@ -216,7 +216,7 @@ function SortableServiceRow({
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-600" />
+                    <CheckCircle2 className="mr-2 h-4 w-4 text-storm-deep" />
                     Activate
                   </>
                 )}
@@ -555,19 +555,19 @@ export function PlatformServicesCatalogView({
   return (
     <div className="space-y-4">
       {truncatedCatalog ? (
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-bloom-coral/40 bg-bloom-rose px-3 py-2 text-sm text-bloom-coral dark:border-bloom-coral dark:bg-bloom-coral/40 dark:text-bloom-deep">
           <span>
             Showing {servicesShown} of {totalCount} services (catalog loads up to {catalogPageLimit}).
           </span>
           <Button
             type="button"
             variant="link"
-            className="h-auto p-0 text-amber-900 underline dark:text-amber-50"
+            className="h-auto p-0 text-bloom-coral underline dark:text-bloom-deep"
             onClick={onOpenTableView}
           >
             Open table view
           </Button>
-          <span className="text-muted-foreground dark:text-amber-200/90">for full pagination.</span>
+          <span className="text-muted-foreground dark:text-bloom-deep/90">for full pagination.</span>
         </div>
       ) : null}
 

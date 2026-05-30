@@ -195,21 +195,21 @@ export function buildExportHtmlDocument(
   <meta name="description" content="${escapeHtml(meta)}"/>
   ${ld}
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; color: #1e293b; }
+    body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; color: #1a1a1a; }
     .hero img { width: 100%; border-radius: 8px; }
     h1 { font-size: 1.75rem; margin-bottom: 0.5rem; }
-    .meta { color: #64748b; font-size: 0.875rem; margin-bottom: 1.5rem; }
-    .blog-faq, .blog-lead-magnet { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0; }
+    .meta { color: #636363; font-size: 0.875rem; margin-bottom: 1.5rem; }
+    .blog-faq, .blog-lead-magnet { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #e8e8e8; }
     .blog-faq__accordion { display: flex; flex-direction: column; gap: 0.5rem; }
-    .blog-faq__item { border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; overflow: hidden; }
-    .blog-faq__item[open] { background: #fff; }
+    .blog-faq__item { border: 1px solid #e8e8e8; border-radius: 8px; background: #f7f7f7; overflow: hidden; }
+    .blog-faq__item[open] { background: #ffffff; }
     .blog-faq__question { cursor: pointer; font-weight: 600; padding: 0.75rem 1rem; list-style: none; }
     .blog-faq__question::-webkit-details-marker { display: none; }
     .blog-faq__question::marker { content: ''; }
-    .blog-faq__answer { padding: 0 1rem 1rem 1rem; color: #475569; font-size: 0.9375rem; line-height: 1.55; border-top: 1px solid #f1f5f9; }
+    .blog-faq__answer { padding: 0 1rem 1rem 1rem; color: #3d3d3d; font-size: 0.9375rem; line-height: 1.55; border-top: 1px solid #e8e8e8; }
     .blog-lead-form { display: grid; gap: 0.5rem; max-width: 24rem; margin-top: 1rem; }
-    .blog-lead-form input { padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 6px; }
-    .blog-lead-form button { margin-top: 0.5rem; padding: 0.5rem 1rem; background: #4f46e5; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+    .blog-lead-form input { padding: 0.5rem; border: 1px solid #c2c2c2; border-radius: 6px; }
+    .blog-lead-form button { margin-top: 0.5rem; padding: 0.5rem 1rem; background: #024ad8; color: #ffffff; border: none; border-radius: 6px; cursor: pointer; }
   </style>
 </head>
 <body>

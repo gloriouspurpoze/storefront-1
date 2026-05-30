@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react'
+﻿import React, { useState, useCallback, useEffect } from 'react'
 import {
   Plus,
   CloudUpload,
@@ -458,7 +458,7 @@ export function ServiceFormDialog({
                         className={cn(errors.name && 'border-destructive', 'pr-9')}
                       />
                       {formData.name ? (
-                        <CheckCircle className="absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-green-600" />
+                        <CheckCircle className="absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-storm-deep" />
                       ) : null}
                     </div>
                     {errors.name ? (
@@ -529,8 +529,8 @@ export function ServiceFormDialog({
               <CardContent className="space-y-3 p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-500/10">
-                      <Pencil className="h-6 w-6 text-blue-600" />
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                      <Pencil className="h-6 w-6 text-primary" />
                     </div>
                     <div>
                       <h3 className="font-semibold">Detailed Description *</h3>
@@ -570,8 +570,8 @@ export function ServiceFormDialog({
             <Card>
               <CardContent className="space-y-4 p-4">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-green-500/10">
-                    <IndianRupee className="h-6 w-6 text-green-600" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-storm-deep/10">
+                    <IndianRupee className="h-6 w-6 text-storm-deep" />
                   </div>
                   <div>
                     <h3 className="font-semibold">Pricing &amp; Duration</h3>
@@ -600,7 +600,7 @@ export function ServiceFormDialog({
                   <div className="space-y-1.5">
                     <Label htmlFor="sf-price">Base Price</Label>
                     <div className="relative">
-                      <IndianRupee className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-green-600" />
+                      <IndianRupee className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-storm-deep" />
                       <Input
                         id="sf-price"
                         type="number"
@@ -650,8 +650,8 @@ export function ServiceFormDialog({
               <CardContent className="space-y-4 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-amber-500/10">
-                      <ImageIcon className="h-6 w-6 text-amber-600" />
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-bloom-coral/10">
+                      <ImageIcon className="h-6 w-6 text-bloom-coral" />
                     </div>
                     <div>
                       <h3 className="font-semibold">Service Images</h3>
@@ -667,7 +667,7 @@ export function ServiceFormDialog({
                     {formData.images.map((image, index) => (
                       <div
                         key={index}
-                        className="relative overflow-hidden rounded-lg border-2 border-green-600/30"
+                        className="relative overflow-hidden rounded-lg border-2 border-storm-deep/30"
                       >
                         {index === 0 && (
                           <Badge className="absolute left-2 top-2 z-10">Primary</Badge>
@@ -729,7 +729,7 @@ export function ServiceFormDialog({
                   </div>
                 )}
                 {formData.images.length >= 4 && (
-                  <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-100">
+                  <div className="rounded-md border border-primary/20 bg-primary-soft px-3 py-2 text-sm text-primary dark:border-primary dark:bg-primary/40 dark:text-primary-deep">
                     Maximum of 4 images reached. Remove an image to upload a new one.
                   </div>
                 )}
@@ -743,8 +743,8 @@ export function ServiceFormDialog({
                     key: 'tools' as const,
                     title: 'Required Tools',
                     icon: Wrench,
-                    color: 'text-red-600',
-                    bg: 'bg-red-500/10',
+                    color: 'text-destructive',
+                    bg: 'bg-destructive/10',
                     items: formData.requirements.tools,
                     newVal: newTool,
                     setNew: setNewTool,
@@ -754,8 +754,8 @@ export function ServiceFormDialog({
                     key: 'skills',
                     title: 'Required Skills',
                     icon: GraduationCap,
-                    color: 'text-amber-600',
-                    bg: 'bg-amber-500/10',
+                    color: 'text-bloom-coral',
+                    bg: 'bg-bloom-coral/10',
                     items: formData.requirements.skills,
                     newVal: newSkill,
                     setNew: setNewSkill,
@@ -765,8 +765,8 @@ export function ServiceFormDialog({
                     key: 'licenses',
                     title: 'Required Licenses',
                     icon: BadgeCheck,
-                    color: 'text-green-600',
-                    bg: 'bg-green-500/10',
+                    color: 'text-storm-deep',
+                    bg: 'bg-storm-deep/10',
                     items: formData.requirements.licenses,
                     newVal: newLicense,
                     setNew: setNewLicense,
@@ -828,8 +828,8 @@ export function ServiceFormDialog({
               <CardContent className="space-y-4 p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-500/10">
-                      <Tag className="h-6 w-6 text-blue-600" />
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                      <Tag className="h-6 w-6 text-primary" />
                     </div>
                     <div>
                       <h3 className="font-semibold">Tags &amp; Keywords</h3>
@@ -877,8 +877,8 @@ export function ServiceFormDialog({
             <Card>
               <CardContent className="space-y-4 p-4">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-violet-500/10">
-                    <Settings className="h-6 w-6 text-violet-600" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-deep/10">
+                    <Settings className="h-6 w-6 text-primary-deep" />
                   </div>
                   <div>
                     <h3 className="font-semibold">Settings &amp; Visibility</h3>
@@ -917,11 +917,11 @@ export function ServiceFormDialog({
                   <div
                     className={cn(
                       'flex items-center justify-between rounded-lg border-2 p-3',
-                      formData.is_active ? 'border-green-600/40 bg-green-500/5' : 'border-border',
+                      formData.is_active ? 'border-storm-deep/40 bg-storm-deep/5' : 'border-border',
                     )}
                   >
                     <div className="flex items-center gap-2">
-                      <Eye className={cn('h-5 w-5', formData.is_active ? 'text-green-600' : 'text-muted-foreground')} />
+                      <Eye className={cn('h-5 w-5', formData.is_active ? 'text-storm-deep' : 'text-muted-foreground')} />
                       <div>
                         <p className="text-sm font-semibold">Active</p>
                         <p className="text-xs text-muted-foreground">Service is live</p>
@@ -935,11 +935,11 @@ export function ServiceFormDialog({
                   <div
                     className={cn(
                       'flex items-center justify-between rounded-lg border-2 p-3',
-                      formData.is_popular ? 'border-amber-600/40 bg-amber-500/5' : 'border-border',
+                      formData.is_popular ? 'border-bloom-coral/40 bg-bloom-coral/5' : 'border-border',
                     )}
                   >
                     <div className="flex items-center gap-2">
-                      <Star className={cn('h-5 w-5', formData.is_popular ? 'text-amber-600' : 'text-muted-foreground')} />
+                      <Star className={cn('h-5 w-5', formData.is_popular ? 'text-bloom-coral' : 'text-muted-foreground')} />
                       <div>
                         <p className="text-sm font-semibold">Popular</p>
                         <p className="text-xs text-muted-foreground">Mark as popular</p>
@@ -979,7 +979,7 @@ export function ServiceFormDialog({
             <span
               className={cn(
                 'h-2 w-2 rounded-full',
-                completionPercentage === 100 ? 'bg-green-500' : 'bg-amber-500',
+                completionPercentage === 100 ? 'bg-storm-deep' : 'bg-bloom-coral',
               )}
             />
             {completionPercentage === 100 ? 'Ready to submit' : `${completionPercentage}% complete`}

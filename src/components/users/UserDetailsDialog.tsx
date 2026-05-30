@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import {
   Mail,
   Phone,
@@ -82,7 +82,7 @@ export const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({ open, onCl
                 Inactive
               </Badge>
             ) : (
-              <Badge variant="outline" className="inline-flex items-center gap-1 border-green-600/50 text-green-700">
+              <Badge variant="outline" className="inline-flex items-center gap-1 border-storm-deep/50 text-storm-deep">
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 Active
               </Badge>
@@ -184,10 +184,10 @@ export const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({ open, onCl
               <div
                 className={cn(
                   'rounded-lg p-3 text-center',
-                  user.isVerified ? 'bg-green-500/10' : 'bg-amber-500/10',
+                  user.isVerified ? 'bg-storm-deep/10' : 'bg-bloom-coral/10',
                 )}
               >
-                <p className={cn('text-2xl font-bold', user.isVerified ? 'text-green-600' : 'text-amber-600')}>
+                <p className={cn('text-2xl font-bold', user.isVerified ? 'text-storm-deep' : 'text-bloom-coral')}>
                   {user.isVerified ? '✓' : '!'}
                 </p>
                 <p className="text-xs text-muted-foreground">Email {user.isVerified ? 'Verified' : 'Not Verified'}</p>
@@ -195,13 +195,13 @@ export const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({ open, onCl
               <div
                 className={cn(
                   'rounded-lg p-3 text-center',
-                  user.isActive !== false ? 'bg-green-500/10' : 'bg-destructive/10',
+                  user.isActive !== false ? 'bg-storm-deep/10' : 'bg-destructive/10',
                 )}
               >
                 <p
                   className={cn(
                     'text-2xl font-bold',
-                    user.isActive !== false ? 'text-green-600' : 'text-destructive',
+                    user.isActive !== false ? 'text-storm-deep' : 'text-destructive',
                   )}
                 >
                   {user.isActive !== false ? '✓' : '✗'}

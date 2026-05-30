@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Home,
@@ -43,16 +43,16 @@ interface CategoryStats {
 
 const statAccent = {
   primary: 'text-primary',
-  success: 'text-emerald-600 dark:text-emerald-400',
-  info: 'text-sky-600 dark:text-sky-400',
-  warning: 'text-amber-600 dark:text-amber-400',
+  success: 'text-storm-deep dark:text-storm-sea',
+  info: 'text-primary dark:text-primary',
+  warning: 'text-bloom-coral dark:text-bloom-coral',
 } as const
 
 const statIconBg = {
   primary: 'bg-primary/10 text-primary',
-  success: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-  info: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
-  warning: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  success: 'bg-storm-deep/10 text-storm-deep dark:text-storm-sea',
+  info: 'bg-primary/10 text-primary dark:text-primary',
+  warning: 'bg-bloom-coral/10 text-bloom-coral dark:text-bloom-coral',
 } as const
 
 export default function EnhancedCategoryManagement() {
@@ -291,7 +291,7 @@ export default function EnhancedCategoryManagement() {
             {deletingCategory && deletingCategory.childrenCount > 0 && (
               <div
                 role="status"
-                className="flex gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-amber-900 dark:text-amber-100"
+                className="flex gap-2 rounded-md border border-bloom-coral/40 bg-bloom-coral/10 px-3 py-2 text-bloom-coral dark:text-bloom-deep"
               >
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
                 <p>

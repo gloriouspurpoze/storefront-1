@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+﻿import React, { useEffect, useState } from 'react'
 import {
   TrendingUp,
   TrendingDown,
@@ -24,33 +24,36 @@ import { Card, CardContent } from '../../components/ui/card'
 import { Badge } from '../../components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar'
 import { cn } from '../../lib/utils'
+import { CHART_PALETTE, CHART_TOKENS } from '../../lib/chartPalette'
 
+// DESIGN.md tokens (no more hardcoded chart hexes)
 const chartColors = {
-  primary: '#2563eb',
-  secondary: '#8b5cf6',
-  success: '#10b981',
-  warning: '#f59e0b',
-  error: '#ef4444',
-  info: '#06b6d4',
-  divider: '#e5e7eb',
-  textSecondary: '#6b7280',
-  background: '#ffffff',
+  primary: CHART_TOKENS.primary,
+  secondary: CHART_PALETTE.primaryDeep,
+  success: CHART_TOKENS.success,
+  warning: CHART_TOKENS.warning,
+  error: CHART_TOKENS.destructive,
+  info: CHART_TOKENS.info,
+  divider: CHART_TOKENS.grid,
+  textSecondary: CHART_TOKENS.axis,
+  background: CHART_TOKENS.surface,
 }
 
+// DESIGN.md token map per booking status (matches StatusBadge mapping)
 function statusBadgeClass(status: string) {
   switch (status) {
     case 'completed':
     case 'delivered':
-      return 'border-emerald-600/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200'
+      return 'border-storm-deep/30 bg-storm-mist/30 text-storm-deep'
     case 'in_progress':
     case 'processing':
-      return 'border-amber-600/30 bg-amber-500/10 text-amber-900 dark:text-amber-200'
+      return 'border-bloom-coral/30 bg-bloom-rose text-bloom-deep'
     case 'pending':
-      return 'border-sky-600/30 bg-sky-500/10 text-sky-900 dark:text-sky-200'
+      return 'border-primary/30 bg-primary-soft text-primary-deep'
     case 'cancelled':
       return 'border-destructive/30 bg-destructive/10 text-destructive'
     default:
-      return 'border-border bg-muted text-foreground'
+      return 'border-hairline bg-cloud text-foreground'
   }
 }
 
@@ -181,10 +184,11 @@ export function Dashboard() {
       </div>
 
       <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {/* DESIGN.md primary family gradient (HP Electric Blue) */}
         <Card
-          className="relative overflow-hidden border-0 text-white"
+          className="relative overflow-hidden border-0 text-on-primary"
           style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: `linear-gradient(135deg, ${CHART_PALETTE.primary} 0%, ${CHART_PALETTE.primaryDeep} 100%)`,
           }}
         >
           <CardContent className="p-6">
@@ -207,9 +211,10 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
+        {/* DESIGN.md bloom family gradient */}
         <Card
-          className="relative overflow-hidden border-0 text-white"
-          style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}
+          className="relative overflow-hidden border-0 text-on-primary"
+          style={{ background: `linear-gradient(135deg, ${CHART_PALETTE.bloomCoral} 0%, ${CHART_PALETTE.bloomDeep} 100%)` }}
         >
           <CardContent className="p-6">
             <div className="mb-2 flex justify-between">
@@ -227,9 +232,10 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
+        {/* DESIGN.md primary-bright → primary */}
         <Card
-          className="relative overflow-hidden border-0 text-white"
-          style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }}
+          className="relative overflow-hidden border-0 text-on-primary"
+          style={{ background: `linear-gradient(135deg, ${CHART_PALETTE.primaryBright} 0%, ${CHART_PALETTE.primary} 100%)` }}
         >
           <CardContent className="p-6">
             <div className="mb-2 flex justify-between">
@@ -251,9 +257,10 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
+        {/* DESIGN.md storm family gradient */}
         <Card
-          className="relative overflow-hidden border-0 text-white"
-          style={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' }}
+          className="relative overflow-hidden border-0 text-on-primary"
+          style={{ background: `linear-gradient(135deg, ${CHART_PALETTE.stormSea} 0%, ${CHART_PALETTE.stormDeep} 100%)` }}
         >
           <CardContent className="p-6">
             <div className="mb-2 flex justify-between">
@@ -371,7 +378,7 @@ export function Dashboard() {
                         </div>
                         <div className="mt-1 flex justify-between text-xs text-muted-foreground">
                           <span>{category.count} services</span>
-                          <span className="font-medium text-emerald-600">+{category.growth.toFixed(1)}%</span>
+                          <span className="font-medium text-storm-deep">+{category.growth.toFixed(1)}%</span>
                         </div>
                       </div>
                     )
@@ -472,7 +479,7 @@ export function Dashboard() {
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-semibold">{provider.name}</p>
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Star className="h-3 w-3 text-amber-500" />
+                            <Star className="h-3 w-3 text-bloom-coral" />
                             <span className="font-medium">{provider.rating.toFixed(1)}</span>
                             <span>• {provider.jobs} jobs</span>
                           </div>

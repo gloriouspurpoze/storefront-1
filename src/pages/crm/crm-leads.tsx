@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Download, Eye, Pencil, Plus, Trash2 } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { CrmSubnav } from '../../components/crm/CrmSubnav'
@@ -712,7 +712,7 @@ export function CrmLeads() {
             'fixed bottom-4 left-1/2 z-[200] w-[min(100%,20rem)] -translate-x-1/2 rounded-md border px-4 py-2 text-sm shadow-md',
             snackbar.severity === 'error'
               ? 'border-destructive bg-destructive text-destructive-foreground'
-              : 'border-emerald-600 bg-emerald-600 text-white',
+              : 'border-storm-deep bg-storm-deep text-white',
           )}
         >
           {snackbar.message}

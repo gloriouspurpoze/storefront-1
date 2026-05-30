@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ============================================================================
  * PROFESSIONAL TABLE
  * ============================================================================
@@ -20,6 +20,7 @@ import {
 import { Professional } from '../../types/professional.types'
 import { professionalDisplayAccountStatus } from '../../lib/professionalAdmin'
 import { getProfessionalCategoryLabel } from '../../constants/professionalCategories'
+import { CHART_PALETTE } from '../../lib/chartPalette'
 import { useProfessionalPresence } from '../../state/professionalPresence'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
@@ -86,15 +87,16 @@ const expertiseBadgeVariant = (level: string): React.ComponentProps<typeof Badge
   }
 }
 
+// DESIGN.md tokens (chartPalette) — no raw hex.
 const getAvailabilityColor = (availability: string) => {
   switch (availability) {
     case 'available':
-      return '#16a34a'
+      return CHART_PALETTE.stormDeep
     case 'busy':
-      return '#ea580c'
+      return CHART_PALETTE.bloomCoral
     case 'offline':
     default:
-      return '#6b7280'
+      return CHART_PALETTE.graphite
   }
 }
 

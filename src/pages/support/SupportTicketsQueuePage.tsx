@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   AlertTriangle,
@@ -562,10 +562,10 @@ export default function SupportTicketsQueuePage() {
             })()}
 
             {detail.refundRequest ? (
-              <Card className="border-amber-500/40 bg-amber-500/5">
+              <Card className="border-bloom-coral/40 bg-bloom-coral/5">
                 <CardHeader className="py-3">
                   <CardTitle className="flex items-center gap-2 text-base">
-                    <Banknote className="h-4 w-4 text-amber-700 dark:text-amber-400" aria-hidden />
+                    <Banknote className="h-4 w-4 text-bloom-coral dark:text-bloom-coral" aria-hidden />
                     Refund request
                   </CardTitle>
                   <CardDescription>
@@ -825,7 +825,7 @@ export default function SupportTicketsQueuePage() {
       />
 
       {!canAgent ? (
-        <div className="flex gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100">
+        <div className="flex gap-2 rounded-lg border border-bloom-coral/40 bg-bloom-coral/10 px-3 py-2 text-sm text-bloom-coral dark:text-bloom-deep">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
           <span>
             Limited mode: you can browse tickets but not reply or change workflow without{' '}
@@ -847,7 +847,7 @@ export default function SupportTicketsQueuePage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Open</CardTitle>
-            <CircleDot className="h-4 w-4 text-blue-600" aria-hidden />
+            <CircleDot className="h-4 w-4 text-primary" aria-hidden />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{countByStatus(stats, 'open')}</div>
@@ -856,7 +856,7 @@ export default function SupportTicketsQueuePage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">In progress</CardTitle>
-            <Clock className="h-4 w-4 text-amber-600" aria-hidden />
+            <Clock className="h-4 w-4 text-bloom-coral" aria-hidden />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{countByStatus(stats, 'in_progress')}</div>
@@ -865,7 +865,7 @@ export default function SupportTicketsQueuePage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Resolved</CardTitle>
-            <Shield className="h-4 w-4 text-emerald-600" aria-hidden />
+            <Shield className="h-4 w-4 text-storm-deep" aria-hidden />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{countByStatus(stats, 'resolved')}</div>

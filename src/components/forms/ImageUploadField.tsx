@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+﻿import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import {
   CloudUpload,
@@ -63,11 +63,11 @@ const StatusIcon = ({ status }: { status?: ImageUploadFieldProps['status'] }) =>
   const cls = 'h-4 w-4 shrink-0'
   switch (status) {
     case 'success':
-      return <CheckCircle2 className={cn(cls, 'text-green-600')} aria-hidden />
+      return <CheckCircle2 className={cn(cls, 'text-storm-deep')} aria-hidden />
     case 'error':
       return <AlertCircle className={cn(cls, 'text-destructive')} aria-hidden />
     case 'warning':
-      return <AlertTriangle className={cn(cls, 'text-amber-600')} aria-hidden />
+      return <AlertTriangle className={cn(cls, 'text-bloom-coral')} aria-hidden />
     case 'info':
       return <Info className={cn(cls, 'text-muted-foreground')} aria-hidden />
     default:

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+﻿import React, { useMemo, useState } from 'react'
 import { Eye, Copy, Check } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
@@ -195,8 +195,8 @@ export function IndustryLandingEditorPreview({
                   Google-style snippet
                 </p>
                 <div className="rounded-lg border border-border/80 bg-background p-3 shadow-sm">
-                  <div className="text-base leading-snug text-[#1a0dab] dark:text-blue-400">{serp.titleShown}</div>
-                  <div className="mt-1 break-all text-xs leading-snug text-[#006621] dark:text-emerald-500/90">
+                  <div className="text-base leading-snug text-[#1a0dab] dark:text-primary">{serp.titleShown}</div>
+                  <div className="mt-1 break-all text-xs leading-snug text-[#006621] dark:text-storm-deep/90">
                     {serp.pageUrl}
                   </div>
                   <div className="mt-1.5 text-xs leading-relaxed text-[#4d5156] dark:text-muted-foreground">
@@ -235,8 +235,8 @@ export function IndustryLandingEditorPreview({
                     <dd
                       className={cn(
                         'mt-1 text-[11px]',
-                        robotsPreview.tone === 'ok' && 'text-emerald-700 dark:text-emerald-400',
-                        robotsPreview.tone === 'warn' && 'text-amber-700 dark:text-amber-400',
+                        robotsPreview.tone === 'ok' && 'text-storm-deep dark:text-storm-sea',
+                        robotsPreview.tone === 'warn' && 'text-bloom-coral dark:text-bloom-coral',
                         robotsPreview.tone === 'error' && 'text-destructive',
                       )}
                     >
@@ -342,13 +342,13 @@ export function IndustryLandingEditorPreview({
                 {jsonLdPreview.document['@graph'].length} node(s) in @graph
               </span>
             </div>
-            <pre className="max-h-[min(420px,45vh)] overflow-auto rounded-md border border-border/80 bg-zinc-950 p-3 text-[11px] leading-relaxed text-zinc-100 dark:bg-black/80">
+            <pre className="max-h-[min(420px,45vh)] overflow-auto rounded-md border border-border/80 bg-ink p-3 text-[11px] leading-relaxed text-fog dark:bg-black/80">
               {jsonLdString}
             </pre>
             {jsonLdPreview.jsonLdExtraParsed != null ? (
               <div className="space-y-1">
                 <p className="text-xs font-medium text-foreground">Extra JSON-LD field (parsed)</p>
-                <pre className="max-h-48 overflow-auto rounded-md border border-amber-200/60 bg-amber-50/40 p-2 text-[11px] text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-50">
+                <pre className="max-h-48 overflow-auto rounded-md border border-bloom-coral/60 bg-bloom-rose/40 p-2 text-[11px] text-bloom-coral dark:border-bloom-coral dark:bg-bloom-coral/30 dark:text-bloom-deep">
                   {JSON.stringify(jsonLdPreview.jsonLdExtraParsed, null, 2)}
                 </pre>
               </div>

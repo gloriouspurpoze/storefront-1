@@ -4,7 +4,8 @@
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
+    <!-- DESIGN.md: colors.primary (#024ad8) -->
+    <meta name="theme-color" content="#024ad8" />
     <meta name="description" content="Fixer Admin – Manage services, bookings, providers, and operations" />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <!--
@@ -12,6 +13,17 @@
       user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
     -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+
+    <!-- DESIGN.md typography: Forma DJR Micro is proprietary; Inter is the
+         documented open-source substitute. Preconnect + preload to avoid a
+         font-flash on first paint. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    />
     <!--
       Notice the use of %PUBLIC_URL% in the tags above.
       It will be replaced with the URL of the `public` folder during the build.
@@ -23,7 +35,7 @@
     -->
     <title>Fixer Admin</title>
   </head>
-  <body>
+  <body style="margin:0;background:#ffffff;color:#1a1a1a">
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
     <!--

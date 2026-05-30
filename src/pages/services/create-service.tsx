@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+﻿import React, { useState, useEffect, useMemo, useRef } from 'react'
 import {
   Loader2,
   ArrowLeft,
@@ -2977,7 +2977,7 @@ export function CreateService() {
                   formData.our_process.map((step, index) => (
                     <Card
                       key={index}
-                      className="relative overflow-visible border-2 border-primary/30 bg-gradient-to-br from-slate-50 to-slate-200 p-6 shadow-sm"
+                      className="relative overflow-visible border-2 border-primary/30 bg-gradient-to-br from-cloud to-fog p-6 shadow-sm"
                     >
                       <div className="absolute -top-4 left-5 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-lg font-bold text-primary-foreground shadow-md">
                         {step.step}
@@ -3096,7 +3096,7 @@ export function CreateService() {
             <div>
               <div className="mb-6">
                 <h2 className="mb-1 flex items-center gap-2 text-lg font-bold">
-                  <CircleCheck className="h-6 w-6 text-emerald-600" />
+                  <CircleCheck className="h-6 w-6 text-storm-deep" />
                   What&apos;s Included & Excluded
                 </h2>
                 <p className="text-sm text-muted-foreground">
@@ -3105,8 +3105,8 @@ export function CreateService() {
               </div>
 
               <div className="grid gap-6 md:grid-cols-2">
-                <Card className="flex h-full flex-col overflow-hidden border-2 border-emerald-500/40">
-                  <div className="flex items-center gap-2 bg-emerald-600 p-4 text-white">
+                <Card className="flex h-full flex-col overflow-hidden border-2 border-storm-deep/40">
+                  <div className="flex items-center gap-2 bg-storm-deep p-4 text-white">
                     <CircleCheck className="h-5 w-5" />
                     <span className="flex-1 text-lg font-bold">What&apos;s Included</span>
                     <Badge variant="secondary" className="bg-white/30 text-white hover:bg-white/40">
@@ -3120,9 +3120,9 @@ export function CreateService() {
                           {formData.whats_included.map((item, index) => (
                             <div
                               key={index}
-                              className="flex items-center gap-2 rounded-md bg-emerald-50 p-3 dark:bg-emerald-950/30"
+                              className="flex items-center gap-2 rounded-md bg-storm-mist/30 p-3 dark:bg-storm-deep/30"
                             >
-                              <CircleCheck className="h-4 w-4 shrink-0 text-emerald-600" />
+                              <CircleCheck className="h-4 w-4 shrink-0 text-storm-deep" />
                               <p className="flex-1 text-sm">{item}</p>
                               <Button
                                 variant="ghost"
@@ -3152,7 +3152,7 @@ export function CreateService() {
                         className="flex-1"
                       />
                       <Button
-                        className="bg-emerald-600 hover:bg-emerald-700"
+                        className="bg-storm-deep hover:bg-storm-deep"
                         onClick={addIncluded}
                         disabled={previewMode || !newIncluded.trim()}
                         size="icon"
@@ -3163,8 +3163,8 @@ export function CreateService() {
                   </CardContent>
                 </Card>
 
-                <Card className="flex h-full flex-col overflow-hidden border-2 border-red-500/40">
-                  <div className="flex items-center gap-2 bg-red-600 p-4 text-white">
+                <Card className="flex h-full flex-col overflow-hidden border-2 border-destructive/40">
+                  <div className="flex items-center gap-2 bg-destructive p-4 text-white">
                     <CircleX className="h-5 w-5" />
                     <span className="flex-1 text-lg font-bold">What&apos;s Excluded</span>
                     <Badge variant="secondary" className="bg-white/30 text-white hover:bg-white/40">
@@ -3178,9 +3178,9 @@ export function CreateService() {
                           {formData.whats_excluded.map((item, index) => (
                             <div
                               key={index}
-                              className="flex items-center gap-2 rounded-md bg-red-50 p-3 dark:bg-red-950/30"
+                              className="flex items-center gap-2 rounded-md bg-destructive/10 p-3 dark:bg-destructive/30"
                             >
-                              <CircleX className="h-4 w-4 shrink-0 text-red-600" />
+                              <CircleX className="h-4 w-4 shrink-0 text-destructive" />
                               <p className="flex-1 text-sm">{item}</p>
                               <Button
                                 variant="ghost"
@@ -3229,7 +3229,7 @@ export function CreateService() {
             <div>
               <div className="mb-6">
                 <h2 className="mb-1 flex items-center gap-2 text-lg font-bold">
-                  <Lightbulb className="h-6 w-6 text-amber-500" />
+                  <Lightbulb className="h-6 w-6 text-bloom-coral" />
                   Important Notes & Our Promises
                 </h2>
                 <p className="text-sm text-muted-foreground">
@@ -3238,8 +3238,8 @@ export function CreateService() {
               </div>
 
               <div className="grid gap-6 md:grid-cols-2">
-                <Card className="flex h-full flex-col overflow-hidden border-2 border-amber-500/40">
-                  <div className="flex items-center gap-2 bg-amber-500 p-4 text-white">
+                <Card className="flex h-full flex-col overflow-hidden border-2 border-bloom-coral/40">
+                  <div className="flex items-center gap-2 bg-bloom-coral p-4 text-white">
                     <Lightbulb className="h-5 w-5" />
                     <span className="flex-1 text-lg font-bold">Please Note</span>
                     <Badge variant="secondary" className="bg-white/30 text-white hover:bg-white/40">
@@ -3253,9 +3253,9 @@ export function CreateService() {
                           {formData.please_note.map((note, index) => (
                             <div
                               key={index}
-                              className="flex gap-2 rounded-md border-l-4 border-amber-500 bg-amber-50 p-3 dark:bg-amber-950/20"
+                              className="flex gap-2 rounded-md border-l-4 border-bloom-coral bg-bloom-rose p-3 dark:bg-bloom-coral/20"
                             >
-                              <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                              <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-bloom-coral" />
                               <p className="flex-1 text-sm leading-relaxed">{note}</p>
                               <Button
                                 variant="ghost"
@@ -3289,7 +3289,7 @@ export function CreateService() {
                         className="min-w-0 flex-1"
                       />
                       <Button
-                        className="min-w-14 bg-amber-500 hover:bg-amber-600"
+                        className="min-w-14 bg-bloom-coral hover:bg-bloom-coral"
                         onClick={addNote}
                         disabled={previewMode || !newNote.trim()}
                         size="icon"
@@ -3300,8 +3300,8 @@ export function CreateService() {
                   </CardContent>
                 </Card>
 
-                <Card className="flex h-full flex-col overflow-hidden border-2 border-sky-500/40">
-                  <div className="flex items-center gap-2 bg-sky-600 p-4 text-white">
+                <Card className="flex h-full flex-col overflow-hidden border-2 border-primary/40">
+                  <div className="flex items-center gap-2 bg-primary p-4 text-white">
                     <ShieldCheck className="h-5 w-5" />
                     <span className="flex-1 text-lg font-bold">Our Promises</span>
                     <Badge variant="secondary" className="bg-white/30 text-white hover:bg-white/40">
@@ -3315,9 +3315,9 @@ export function CreateService() {
                           {formData.our_promises.map((promise, index) => (
                             <div
                               key={index}
-                              className="flex gap-2 rounded-md border-l-4 border-sky-600 bg-sky-50 p-3 dark:bg-sky-950/20"
+                              className="flex gap-2 rounded-md border-l-4 border-primary bg-primary-soft p-3 dark:bg-primary/20"
                             >
-                              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
+                              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                               <p className="flex-1 text-sm font-medium leading-relaxed">{promise}</p>
                               <Button
                                 variant="ghost"
@@ -3349,7 +3349,7 @@ export function CreateService() {
                         className="min-w-0 flex-1"
                       />
                       <Button
-                        className="min-w-14 bg-sky-600 hover:bg-sky-700"
+                        className="min-w-14 bg-primary hover:bg-primary"
                         onClick={addPromise}
                         disabled={previewMode || !newPromise.trim()}
                         size="icon"
@@ -3587,13 +3587,13 @@ export function CreateService() {
               ) : (
                 <>
                   {/* Stats summary */}
-                  <Card className="bg-gradient-to-br from-amber-50 to-orange-50 p-5">
+                  <Card className="bg-gradient-to-br from-bloom-rose to-bloom-rose p-5">
                     <div className="flex flex-wrap items-center gap-6">
                       <div className="text-center">
-                        <p className="text-4xl font-bold text-amber-900">
+                        <p className="text-4xl font-bold text-bloom-coral">
                           {reviewStats.averageRating.toFixed(1)}
                         </p>
-                        <div className="my-1 flex justify-center text-amber-500">
+                        <div className="my-1 flex justify-center text-bloom-coral">
                           {[1, 2, 3, 4, 5].map((n) => (
                             <Star
                               key={n}
@@ -3617,9 +3617,9 @@ export function CreateService() {
                           return (
                             <div key={star} className="flex items-center gap-2 text-xs">
                               <span className="w-12 text-muted-foreground">{star} star</span>
-                              <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-amber-100">
+                              <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-bloom-rose">
                                 <div
-                                  className="h-full rounded-full bg-amber-500"
+                                  className="h-full rounded-full bg-bloom-coral"
                                   style={{ width: `${pct}%` }}
                                 />
                               </div>
@@ -3707,7 +3707,7 @@ export function CreateService() {
                               className={cn(
                                 'h-7 w-7',
                                 n <= reviewForm.rating
-                                  ? 'fill-amber-500 text-amber-500'
+                                  ? 'fill-bloom-coral text-bloom-coral'
                                   : 'text-muted-foreground/40',
                               )}
                             />
@@ -3816,7 +3816,7 @@ export function CreateService() {
                             key={review._id}
                             className={cn(
                               'p-4 transition-colors',
-                              review.isFeatured ? 'border-amber-300 bg-amber-50/40' : '',
+                              review.isFeatured ? 'border-bloom-coral bg-bloom-rose/40' : '',
                             )}
                           >
                             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -3847,7 +3847,7 @@ export function CreateService() {
                                       </Badge>
                                     )}
                                     {review.isFeatured && (
-                                      <Badge className="bg-amber-500 text-[10px] text-white hover:bg-amber-500">
+                                      <Badge className="bg-bloom-coral text-[10px] text-white hover:bg-bloom-coral">
                                         Featured
                                       </Badge>
                                     )}
@@ -3911,7 +3911,7 @@ export function CreateService() {
                               </div>
                             </div>
 
-                            <div className="mt-3 flex items-center gap-1 text-amber-500">
+                            <div className="mt-3 flex items-center gap-1 text-bloom-coral">
                               {[1, 2, 3, 4, 5].map((n) => (
                                 <Star
                                   key={n}
@@ -4042,7 +4042,7 @@ export function CreateService() {
                                 className={cn(
                                   'h-6 w-6',
                                   n <= editReviewForm.rating
-                                    ? 'fill-amber-500 text-amber-500'
+                                    ? 'fill-bloom-coral text-bloom-coral'
                                     : 'text-muted-foreground/40',
                                 )}
                               />

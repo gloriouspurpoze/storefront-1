@@ -1,4 +1,4 @@
-/**
+﻿/**
  * User/Customer List for Chat (Admin)
  * Allows admins to browse and start conversations with customers
  */
@@ -187,7 +187,7 @@ export const UserListForChat: React.FC<UserListForChatProps> = ({ onUserSelect, 
                       <span className="font-medium">
                         {user.firstName || ''} {user.lastName || ''}
                       </span>
-                      {user.isVerified && <CheckCircle className="h-4 w-4 text-emerald-600" aria-label="Verified" />}
+                      {user.isVerified && <CheckCircle className="h-4 w-4 text-storm-deep" aria-label="Verified" />}
                       <Badge variant="secondary" className="h-5 text-[0.7rem]">
                         Customer
                       </Badge>

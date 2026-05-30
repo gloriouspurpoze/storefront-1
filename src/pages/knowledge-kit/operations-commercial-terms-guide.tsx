@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, BadgePercent, ExternalLink } from 'lucide-react'
 import { PageHeader } from '../../components/common'
@@ -162,15 +162,15 @@ export function OperationsCommercialTermsGuide() {
         </CardContent>
       </Card>
 
-      <Card className="border-amber-200/80 bg-amber-50/50 dark:border-amber-900/50 dark:bg-amber-950/20">
+      <Card className="border-bloom-coral/80 bg-bloom-rose/50 dark:border-bloom-coral/50 dark:bg-bloom-coral/20">
         <CardHeader>
-          <CardTitle className="text-base text-amber-950 dark:text-amber-100">Saving terms (PATCH)</CardTitle>
+          <CardTitle className="text-base text-bloom-coral dark:text-bloom-deep">Saving terms (PATCH)</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm text-amber-950/90 dark:text-amber-50/90">
+        <CardContent className="space-y-2 text-sm text-bloom-coral/90 dark:text-bloom-deep/90">
           <p>
-            If you previously saw <code className="rounded bg-amber-100/80 px-1 dark:bg-amber-900/60">currency</code>{' '}
+            If you previously saw <code className="rounded bg-bloom-rose/80 px-1 dark:bg-bloom-coral/60">currency</code>{' '}
             conflict errors on save, that was a MongoDB upsert rule: the same field cannot appear in both{' '}
-            <code className="rounded bg-amber-100/80 px-1">$set</code> and <code className="rounded bg-amber-100/80 px-1">$setOnInsert</code>.
+            <code className="rounded bg-bloom-rose/80 px-1">$set</code> and <code className="rounded bg-bloom-rose/80 px-1">$setOnInsert</code>.
             The backend now merges defaults on insert only for keys you are not updating.
           </p>
         </CardContent>

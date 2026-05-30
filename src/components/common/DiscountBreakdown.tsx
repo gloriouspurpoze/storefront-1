@@ -54,9 +54,8 @@ export function DiscountBreakdown({
         {totalDiscount > 0 && (
           <>
             <Separator className="my-4" />
-            <p className="mb-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-              Discounts Applied
-            </p>
+            {/* DESIGN.md: storm-deep is the neutral positive/status accent */}
+            <p className="mb-2 text-sm font-semibold text-storm-deep">Discounts Applied</p>
 
             {offer && offer.amount > 0 && (
               <div className="mb-2 flex items-center justify-between text-sm">
@@ -67,24 +66,24 @@ export function DiscountBreakdown({
                     Auto-applied
                   </Badge>
                 </div>
-                <span className="shrink-0 font-semibold text-emerald-600">-{formatCurrency(offer.amount)}</span>
+                <span className="shrink-0 font-semibold text-storm-deep">-{formatCurrency(offer.amount)}</span>
               </div>
             )}
 
             {coupon && coupon.amount > 0 && (
               <div className="mb-2 flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
-                  <Gift className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
+                  <Gift className="h-4 w-4 shrink-0 text-storm-deep" aria-hidden />
                   <span>Coupon: {coupon.code}</span>
                 </div>
-                <span className="font-semibold text-emerald-600">-{formatCurrency(coupon.amount)}</span>
+                <span className="font-semibold text-storm-deep">-{formatCurrency(coupon.amount)}</span>
               </div>
             )}
 
             {referral && referral.amount > 0 && (
               <div className="mb-2 flex items-center justify-between text-sm">
                 <div className="flex min-w-0 items-center gap-2">
-                  <Users className="h-4 w-4 shrink-0 text-sky-600" aria-hidden />
+                  <Users className="h-4 w-4 shrink-0 text-primary" aria-hidden />
                   <span>Referral Bonus</span>
                   {referral.code && (
                     <Badge variant="outline" className="text-xs">
@@ -92,7 +91,7 @@ export function DiscountBreakdown({
                     </Badge>
                   )}
                 </div>
-                <span className="shrink-0 font-semibold text-emerald-600">
+                <span className="shrink-0 font-semibold text-storm-deep">
                   -{formatCurrency(referral.amount)}
                 </span>
               </div>
@@ -125,7 +124,8 @@ export function DiscountBreakdown({
 
         {totalSavings > 0 && (
           <div
-            className="mt-3 flex gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-950 dark:text-emerald-50"
+            // DESIGN.md: storm accent for neutral-positive callout (savings)
+            className="mt-3 flex gap-2 rounded-md border border-storm-deep/30 bg-storm-mist/20 p-3 text-sm text-storm-deep"
             role="status"
           >
             <PiggyBank className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />

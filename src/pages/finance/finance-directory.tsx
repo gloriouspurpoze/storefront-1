@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+﻿import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Pencil, Plus, Trash2, Upload, GitMerge } from 'lucide-react'
 import { parseCsvText } from '../../lib/csv'
 import { FinanceService } from '../../services/api/finance.service'
@@ -619,7 +619,7 @@ export function FinanceDirectoryPage() {
                   <p
                     className={
                       vendorToolsErr.startsWith('Inserted')
-                        ? 'text-sm text-emerald-800 dark:text-emerald-200'
+                        ? 'text-sm text-storm-deep dark:text-on-ink'
                         : 'text-sm text-destructive'
                     }
                   >
@@ -820,7 +820,7 @@ export function FinanceDirectoryPage() {
                   <p
                     className={
                       categoryToolsErr.startsWith('Inserted')
-                        ? 'text-sm text-emerald-800 dark:text-emerald-200'
+                        ? 'text-sm text-storm-deep dark:text-on-ink'
                         : 'text-sm text-destructive'
                     }
                   >

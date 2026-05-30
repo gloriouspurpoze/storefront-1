@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Admin command center for a single professional: overview, bookings, earnings estimate,
  * reviews, documents, service coverage, and moderation (suspend / block / reinstate).
  */
@@ -98,7 +98,7 @@ function HubAlert({
     variant === 'info'
       ? 'border-border bg-muted/50 text-foreground'
       : variant === 'warning'
-        ? 'border-amber-500/40 bg-amber-500/10 text-amber-950 dark:text-amber-50'
+        ? 'border-bloom-coral/40 bg-bloom-coral/10 text-bloom-coral dark:text-bloom-deep'
         : 'border-destructive/40 bg-destructive/10 text-destructive'
   return (
     <div
@@ -1378,7 +1378,7 @@ export function ProfessionalAdminHub() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="border-green-600 text-green-700 hover:bg-green-50 dark:hover:bg-green-950"
+                            className="border-storm-deep text-storm-deep hover:bg-storm-mist/30 dark:hover:bg-storm-deep"
                             disabled={docSavingKey !== null || Boolean(doc.isVerified)}
                             onClick={() => void handleSetKycVerified(index, true)}
                           >
@@ -1387,7 +1387,7 @@ export function ProfessionalAdminHub() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="border-amber-600 text-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950"
+                            className="border-bloom-coral text-bloom-coral hover:bg-bloom-rose dark:hover:bg-bloom-coral"
                             disabled={docSavingKey !== null || !doc.isVerified}
                             onClick={() => void handleSetKycVerified(index, false)}
                           >
@@ -1518,7 +1518,7 @@ export function ProfessionalAdminHub() {
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"
-                  className="border-amber-600 text-amber-800"
+                  className="border-bloom-coral text-bloom-coral"
                   onClick={() => setSuspendOpen(true)}
                   disabled={modBusy}
                 >
@@ -1528,7 +1528,7 @@ export function ProfessionalAdminHub() {
                   Block
                 </Button>
                 <Button
-                  className="bg-green-600 text-white hover:bg-green-700"
+                  className="bg-storm-deep text-white hover:bg-storm-deep"
                   onClick={() => setReinstateOpen(true)}
                   disabled={modBusy}
                 >
@@ -1576,7 +1576,7 @@ export function ProfessionalAdminHub() {
               Cancel
             </Button>
             <Button
-              className="bg-amber-600 text-white hover:bg-amber-700"
+              className="bg-bloom-coral text-white hover:bg-bloom-coral"
               onClick={() => void handleSuspendConfirm()}
               disabled={modBusy}
             >
@@ -1604,7 +1604,7 @@ export function ProfessionalAdminHub() {
               Cancel
             </Button>
             <Button
-              className="bg-green-600 text-white hover:bg-green-700"
+              className="bg-storm-deep text-white hover:bg-storm-deep"
               onClick={() => void performReinstate()}
               disabled={modBusy}
             >

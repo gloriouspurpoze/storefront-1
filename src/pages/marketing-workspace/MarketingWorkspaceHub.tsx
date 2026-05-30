@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+﻿import React, { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { formatDistanceToNow, parseISO } from 'date-fns'
 import {
@@ -37,11 +37,11 @@ import {
 
 const ACCENTS = [
   'border-l-primary bg-primary/[0.06]',
-  'border-l-violet-500 bg-violet-500/[0.06]',
-  'border-l-teal-600 bg-teal-600/[0.06]',
-  'border-l-amber-600 bg-amber-600/[0.06]',
-  'border-l-sky-600 bg-sky-600/[0.06]',
-  'border-l-rose-600 bg-rose-600/[0.06]',
+  'border-l-violet-500 bg-primary-deep/[0.06]',
+  'border-l-teal-600 bg-storm-deep/[0.06]',
+  'border-l-amber-600 bg-bloom-coral/[0.06]',
+  'border-l-sky-600 bg-primary/[0.06]',
+  'border-l-rose-600 bg-destructive/[0.06]',
 ]
 
 function countsToChartData(

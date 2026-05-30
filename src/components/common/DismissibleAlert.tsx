@@ -4,9 +4,13 @@ import { cn } from '../../lib/utils'
 
 type Variant = 'success' | 'error'
 
+/**
+ * DESIGN.md token map:
+ *   success → storm-mist surface + storm-deep ink + storm-deep border
+ *   error   → destructive surface + destructive ink
+ */
 const shell: Record<Variant, string> = {
-  success:
-    'border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200',
+  success: 'border-storm-deep/30 bg-storm-mist/30 text-storm-deep',
   error: 'border-destructive/40 bg-destructive/10 text-destructive',
 }
 
@@ -34,7 +38,7 @@ export function DismissibleAlert({
     <div
       role={role ?? (variant === 'error' ? 'alert' : 'status')}
       className={cn(
-        'mb-4 flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm',
+        'mb-md flex items-center justify-between gap-2 rounded-md border px-sm py-xs text-sm',
         shell[variant],
         className,
       )}

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ============================================================================
  * PROFESSIONAL EARNINGS & WALLET PAGE
  * ============================================================================
@@ -67,6 +67,7 @@ import {
   Pie,
   Cell,
 } from 'recharts'
+import { CHART_PALETTE, CHART_TOKENS } from '../../lib/chartPalette'
 import { apiClient } from '../../services/apiClient'
 import { useAppDispatch } from '../../store/hooks'
 import { addToast } from '../../store/slices/uiSlice'
@@ -122,7 +123,7 @@ function InfoAlert({ children, className }: { children: React.ReactNode; classNa
     <div
       role="status"
       className={cn(
-        'rounded-lg border border-blue-500/40 bg-blue-500/10 px-4 py-3 text-sm text-foreground',
+        'rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-sm text-foreground',
         className
       )}
     >
@@ -392,16 +393,16 @@ export function ProfessionalEarningsWallet() {
     })
 
     const colors: { [key: string]: string } = {
-      pending: '#f59e0b',
-      customer_paid: '#06b6d4',
-      verified: '#10b981',
-      settled_to_professional: '#6b7280',
+      pending: CHART_PALETTE.bloomCoral,
+      customer_paid: CHART_PALETTE.primaryBright,
+      verified: CHART_PALETTE.stormDeep,
+      settled_to_professional: CHART_PALETTE.graphite,
     }
 
     return Object.entries(statusCounts).map(([status, count]) => ({
       name: status.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
       value: count,
-      color: colors[status] || '#6b7280',
+      color: colors[status] || CHART_PALETTE.graphite,
     }))
   }
 
@@ -458,7 +459,7 @@ export function ProfessionalEarningsWallet() {
           <Card
             className="border-0 text-white shadow-md"
             style={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              background: `linear-gradient(135deg, ${CHART_PALETTE.primary} 0%, ${CHART_PALETTE.primaryDeep} 100%)`,
             }}
           >
             <CardContent className="pt-6">
@@ -476,7 +477,7 @@ export function ProfessionalEarningsWallet() {
           <Card
             className="border-0 text-white shadow-md"
             style={{
-              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+              background: `linear-gradient(135deg, ${CHART_PALETTE.bloomCoral} 0%, ${CHART_PALETTE.bloomDeep} 100%)`,
             }}
           >
             <CardContent className="pt-6">
@@ -494,7 +495,7 @@ export function ProfessionalEarningsWallet() {
           <Card
             className="border-0 text-white shadow-md"
             style={{
-              background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+              background: `linear-gradient(135deg, ${CHART_PALETTE.primaryBright} 0%, ${CHART_PALETTE.primary} 100%)`,
             }}
           >
             <CardContent className="pt-6">
@@ -512,7 +513,7 @@ export function ProfessionalEarningsWallet() {
           <Card
             className="border-0 text-white shadow-md"
             style={{
-              background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+              background: `linear-gradient(135deg, ${CHART_PALETTE.stormSea} 0%, ${CHART_PALETTE.stormDeep} 100%)`,
             }}
           >
             <CardContent className="pt-6">
@@ -528,14 +529,14 @@ export function ProfessionalEarningsWallet() {
       ) : (
         <div
           role="status"
-          className="mb-6 rounded-lg border border-blue-500/40 bg-blue-500/10 px-4 py-3 text-sm"
+          className="mb-6 rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-sm"
         >
           No earnings data available. Earnings will appear here once you complete bookings.
         </div>
       )}
 
       {summary && summary.availableForWithdrawal >= 500 && (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-green-500/40 bg-green-500/10 px-4 py-3 text-sm">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-storm-deep/40 bg-storm-deep/10 px-4 py-3 text-sm">
           <p>
             You have ₹{summary.availableForWithdrawal.toLocaleString()} available for withdrawal!
           </p>
@@ -567,14 +568,14 @@ export function ProfessionalEarningsWallet() {
                   <Line
                     type="monotone"
                     dataKey="earnings"
-                    stroke="#2563eb"
+                    stroke={CHART_TOKENS.primary}
                     strokeWidth={2}
                     name="Earnings"
                   />
                   <Line
                     type="monotone"
                     dataKey="bookings"
-                    stroke="#10b981"
+                    stroke={CHART_TOKENS.success}
                     strokeWidth={2}
                     name="Bookings"
                   />
@@ -599,7 +600,7 @@ export function ProfessionalEarningsWallet() {
                       ).toFixed(0)}%`
                     }
                     outerRadius={80}
-                    fill="#8884d8"
+                    fill={CHART_TOKENS.primary}
                     dataKey="value"
                   >
                     {generatePaymentStatusData(earnings).map((entry, index) => (
@@ -622,8 +623,8 @@ export function ProfessionalEarningsWallet() {
                   <YAxis />
                   <RechartsTooltip formatter={(value: any) => `₹${Number(value).toLocaleString()}`} />
                   <Legend />
-                  <Bar dataKey="earnings" fill="#2563eb" name="Earnings" />
-                  <Bar dataKey="bookings" fill="#10b981" name="Bookings" />
+                  <Bar dataKey="earnings" fill={CHART_TOKENS.primary} name="Earnings" />
+                  <Bar dataKey="bookings" fill={CHART_TOKENS.success} name="Bookings" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -634,7 +635,7 @@ export function ProfessionalEarningsWallet() {
       {summary && summary.availableForWithdrawal > 0 && summary.availableForWithdrawal < 500 && (
         <div
           role="status"
-          className="mb-6 rounded-lg border border-blue-500/40 bg-blue-500/10 px-4 py-3 text-sm"
+          className="mb-6 rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-sm"
         >
           You have ₹{summary.availableForWithdrawal.toLocaleString()} earnings. Minimum withdrawal
           amount is ₹500.
@@ -742,7 +743,7 @@ export function ProfessionalEarningsWallet() {
             ) : (
               <div
                 role="status"
-                className="mt-2 rounded-lg border border-blue-500/40 bg-blue-500/10 px-4 py-3 text-sm"
+                className="mt-2 rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-sm"
               >
                 {loading
                   ? 'Loading earnings...'
@@ -788,7 +789,7 @@ export function ProfessionalEarningsWallet() {
                       <TableCell className="text-right">
                         ₹{payout.tdsAmount.toLocaleString()}
                       </TableCell>
-                      <TableCell className="text-right font-semibold text-green-600">
+                      <TableCell className="text-right font-semibold text-storm-deep">
                         ₹{payout.netAmount.toLocaleString()}
                       </TableCell>
                       <TableCell className="uppercase">
@@ -807,7 +808,7 @@ export function ProfessionalEarningsWallet() {
             ) : (
               <div
                 role="status"
-                className="rounded-lg border border-blue-500/40 bg-blue-500/10 px-4 py-3 text-sm"
+                className="rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-sm"
               >
                 No payout requests yet
               </div>
@@ -824,7 +825,7 @@ export function ProfessionalEarningsWallet() {
           <div className="space-y-4 py-2">
             <div
               role="status"
-              className="rounded-lg border border-blue-500/40 bg-blue-500/10 px-4 py-3 text-sm"
+              className="rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-sm"
             >
               <p>
                 <strong>Available for withdrawal:</strong> ₹

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+﻿import React, { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Badge,
@@ -495,7 +495,7 @@ export function PlatformTenantsPage() {
                       </div>
                     ))}
                     {moduleAllowlist.length === 0 && (
-                      <p className="text-xs text-amber-700 dark:text-amber-400">
+                      <p className="text-xs text-bloom-coral dark:text-bloom-coral">
                         Allowlist is empty — tenant admins cannot call gated module APIs until you grant at least one key.
                       </p>
                     )}

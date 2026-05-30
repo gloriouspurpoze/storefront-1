@@ -1,4 +1,4 @@
-/**
+﻿/**
  * InvoicePreviewPanel — A4-style invoice preview used by the create flow and the
  * branding editor.
  *
@@ -97,12 +97,13 @@ export function InvoicePreviewPanel({
   const sgst = isInterState ? 0 : totalTax / 2
   const igst = isInterState ? totalTax : 0
 
-  const primaryRaw = branding?.primaryColor?.trim() || '#0F172A'
+  // DESIGN.md fallback (ink) when no tenant branding hex is configured.
+  const DEFAULT_BRAND_INK = '#1a1a1a'
+  const primaryRaw = branding?.primaryColor?.trim() || DEFAULT_BRAND_INK
   const accentRaw = branding?.accentColor?.trim() || primaryRaw
   const primaryIsHex = primaryRaw.startsWith('#')
   const accentIsHex = accentRaw.startsWith('#')
-  // Fallback to a tasteful slate when no branding hex is set.
-  const primary = primaryIsHex ? primaryRaw : '#0F172A'
+  const primary = primaryIsHex ? primaryRaw : DEFAULT_BRAND_INK
   const accent = accentIsHex ? accentRaw : primary
 
   const accentBand = hexAlpha(primary, 1)
@@ -125,7 +126,7 @@ export function InvoicePreviewPanel({
       {/* Paper card — fixed light surface so the preview reads like a printed invoice */}
       <div
         className={cn(
-          'relative overflow-hidden rounded-lg border border-slate-200 bg-white text-slate-900 shadow-md',
+          'relative overflow-hidden rounded-lg border border-fog bg-white text-ink shadow-md',
           mode === 'final' && 'shadow-lg',
         )}
       >
@@ -158,7 +159,7 @@ export function InvoicePreviewPanel({
                 >
                   {docTitle}
                 </h1>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-graphite">
                   {branding?.tagline ||
                     (mode === 'proforma' ? 'Preview — for review before issue' : 'Original for recipient')}
                 </p>
@@ -168,19 +169,19 @@ export function InvoicePreviewPanel({
             <div className="flex flex-col items-end gap-2">
               <Badge
                 variant="outline"
-                className="gap-1 border-slate-300 bg-white font-medium text-slate-700"
+                className="gap-1 border-steel bg-white font-medium text-charcoal"
               >
                 <BadgeCheck className="h-3.5 w-3.5" style={{ color: accent }} />
                 {documentTypeLabel}
               </Badge>
-              <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-right text-xs text-slate-600">
+              <div className="rounded-md border border-fog bg-cloud px-3 py-2 text-right text-xs text-graphite">
                 <p>
-                  <span className="font-semibold text-slate-700">Invoice #</span> assigned on issue
+                  <span className="font-semibold text-charcoal">Invoice #</span> assigned on issue
                 </p>
                 <p>
-                  <span className="font-semibold text-slate-700">Date</span> assigned on issue
+                  <span className="font-semibold text-charcoal">Date</span> assigned on issue
                 </p>
-                <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-slate-500">
+                <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-graphite">
                   <FileText className="h-3 w-3" />
                   PDF rendered by server (PDFService)
                 </p>
@@ -196,11 +197,11 @@ export function InvoicePreviewPanel({
             <span>
               <strong>Place of supply:</strong> {placeOfSupply || '—'}
             </span>
-            <span className="text-slate-400">·</span>
+            <span className="text-steel">·</span>
             <span>{taxStripText}</span>
             {companyStateLabel && (
               <>
-                <span className="text-slate-400">·</span>
+                <span className="text-steel">·</span>
                 <span>
                   <strong>Seller state:</strong> {companyStateLabel}
                 </span>
@@ -215,40 +216,40 @@ export function InvoicePreviewPanel({
               accent={accent}
               borderColor={softBorder}
             >
-              <p className="text-base font-semibold text-slate-900">{billingName || '—'}</p>
+              <p className="text-base font-semibold text-ink">{billingName || '—'}</p>
               {billingAddressLines.length > 0 && (
                 <div className="mt-1 space-y-0.5">
                   {billingAddressLines.map((l, i) => (
-                    <p key={i} className="flex items-start gap-1.5 text-sm text-slate-600">
-                      {i === 0 && <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />}
+                    <p key={i} className="flex items-start gap-1.5 text-sm text-graphite">
+                      {i === 0 && <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-steel" />}
                       <span className={i === 0 ? '' : 'ml-[18px]'}>{l}</span>
                     </p>
                   ))}
                 </div>
               )}
-              <p className="mt-1.5 flex items-center gap-1.5 text-sm text-slate-700">
-                <Phone className="h-3.5 w-3.5 text-slate-400" />
+              <p className="mt-1.5 flex items-center gap-1.5 text-sm text-charcoal">
+                <Phone className="h-3.5 w-3.5 text-steel" />
                 {billingPhone || '—'}
               </p>
               {billingEmail && (
-                <p className="flex items-center gap-1.5 text-sm text-slate-600">
-                  <Mail className="h-3.5 w-3.5 text-slate-400" />
+                <p className="flex items-center gap-1.5 text-sm text-graphite">
+                  <Mail className="h-3.5 w-3.5 text-steel" />
                   {billingEmail}
                 </p>
               )}
               {billingGstin && (
-                <p className="mt-2 text-sm text-slate-700">
-                  <span className="font-medium text-slate-500">GSTIN:</span>{' '}
+                <p className="mt-2 text-sm text-charcoal">
+                  <span className="font-medium text-graphite">GSTIN:</span>{' '}
                   <strong className="font-mono">{billingGstin}</strong>{' '}
                   {customerMode === 'platform' && (
-                    <span className="text-xs text-slate-500">(B2B / registered)</span>
+                    <span className="text-xs text-graphite">(B2B / registered)</span>
                   )}
                 </p>
               )}
               <div className="mt-2 flex flex-wrap gap-1">
                 <Badge
                   variant="outline"
-                  className="border-slate-300 bg-white text-[11px] text-slate-600"
+                  className="border-steel bg-white text-[11px] text-graphite"
                 >
                   {customerMode === 'offline' ? 'Walk-in / offline' : 'Platform customer'}
                 </Badge>
@@ -278,55 +279,55 @@ export function InvoicePreviewPanel({
                   </p>
                   {branding.companyLegalName &&
                     branding.companyLegalName !== branding.companyDisplayName && (
-                      <p className="mt-0.5 text-xs text-slate-500">{branding.companyLegalName}</p>
+                      <p className="mt-0.5 text-xs text-graphite">{branding.companyLegalName}</p>
                     )}
                   <div className="mt-1 space-y-0.5">
                     {(branding.supplierAddressLines.length > 0
                       ? branding.supplierAddressLines
                       : ['Add registered address in Invoice appearance']
                     ).map((l, i) => (
-                      <p key={i} className="text-sm text-slate-600">
+                      <p key={i} className="text-sm text-graphite">
                         {l}
                       </p>
                     ))}
                   </div>
                   {branding.supplierPhone && (
-                    <p className="mt-1.5 flex items-center gap-1.5 text-sm text-slate-700">
-                      <Phone className="h-3.5 w-3.5 text-slate-400" />
+                    <p className="mt-1.5 flex items-center gap-1.5 text-sm text-charcoal">
+                      <Phone className="h-3.5 w-3.5 text-steel" />
                       {branding.supplierPhone}
                     </p>
                   )}
                   {branding.supplierEmail && (
-                    <p className="flex items-center gap-1.5 text-sm text-slate-600">
-                      <Mail className="h-3.5 w-3.5 text-slate-400" />
+                    <p className="flex items-center gap-1.5 text-sm text-graphite">
+                      <Mail className="h-3.5 w-3.5 text-steel" />
                       {branding.supplierEmail}
                     </p>
                   )}
                   {branding.supplierWebsite && (
-                    <p className="text-sm text-slate-600">{branding.supplierWebsite}</p>
+                    <p className="text-sm text-graphite">{branding.supplierWebsite}</p>
                   )}
                   {branding.supplierGstin && (
-                    <p className="mt-2 text-sm text-slate-700">
-                      <span className="font-medium text-slate-500">GSTIN:</span>{' '}
+                    <p className="mt-2 text-sm text-charcoal">
+                      <span className="font-medium text-graphite">GSTIN:</span>{' '}
                       <strong className="font-mono">{branding.supplierGstin}</strong>
                     </p>
                   )}
                   {branding.supplierPan && (
-                    <p className="text-sm text-slate-600">
-                      <span className="font-medium text-slate-500">PAN:</span>{' '}
+                    <p className="text-sm text-graphite">
+                      <span className="font-medium text-graphite">PAN:</span>{' '}
                       <span className="font-mono">{branding.supplierPan}</span>
                     </p>
                   )}
                   {branding.bankDetails?.trim() && (
-                    <pre className="mt-2 whitespace-pre-wrap rounded-md border border-slate-200 bg-white p-2 font-sans text-xs text-slate-600">
+                    <pre className="mt-2 whitespace-pre-wrap rounded-md border border-fog bg-white p-2 font-sans text-xs text-graphite">
                       {branding.bankDetails.trim()}
                     </pre>
                   )}
                 </>
               ) : (
-                <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 p-3">
-                  <p className="text-xs text-slate-500">{companyHint}</p>
-                  <p className="mt-1 text-xs text-slate-500">
+                <div className="rounded-md border border-dashed border-steel bg-cloud p-3">
+                  <p className="text-xs text-graphite">{companyHint}</p>
+                  <p className="mt-1 text-xs text-graphite">
                     Customize logo &amp; colours in <strong>Invoices → Invoice appearance</strong>.
                   </p>
                 </div>
@@ -335,7 +336,7 @@ export function InvoicePreviewPanel({
           </section>
 
           {/* Line items */}
-          <section className="mt-6 overflow-hidden rounded-md border border-slate-200">
+          <section className="mt-6 overflow-hidden rounded-md border border-fog">
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr
@@ -363,7 +364,7 @@ export function InvoicePreviewPanel({
                   <tr>
                     <td
                       colSpan={isNonGstDoc ? 5 : 8}
-                      className="px-3 py-8 text-center text-sm text-slate-400"
+                      className="px-3 py-8 text-center text-sm text-steel"
                     >
                       No line items
                     </td>
@@ -371,38 +372,38 @@ export function InvoicePreviewPanel({
                 )}
                 {lineRows.map((r, i) => (
                   <tr key={i} className="align-top">
-                    <td className="px-3 py-2.5 text-slate-500">{i + 1}</td>
+                    <td className="px-3 py-2.5 text-graphite">{i + 1}</td>
                     <td className="px-3 py-2.5">
-                      <p className="font-medium text-slate-900">{r.description}</p>
+                      <p className="font-medium text-ink">{r.description}</p>
                       {r.lineKind && (
-                        <p className="mt-0.5 text-[11px] text-slate-500">
+                        <p className="mt-0.5 text-[11px] text-graphite">
                           {r.lineKind === 'product' ? 'Goods' : 'Service'}
                           {r.category ? ` · ${r.category}` : ''}
                         </p>
                       )}
                     </td>
                     {!isNonGstDoc && (
-                      <td className="px-3 py-2.5 text-right font-mono text-slate-700 tabular-nums">
+                      <td className="px-3 py-2.5 text-right font-mono text-charcoal tabular-nums">
                         {r.hsnSac}
                       </td>
                     )}
-                    <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">
+                    <td className="px-3 py-2.5 text-right tabular-nums text-charcoal">
                       {r.quantity}
                     </td>
-                    <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">
+                    <td className="px-3 py-2.5 text-right tabular-nums text-charcoal">
                       {ru(r.unitPrice)}
                     </td>
                     {!isNonGstDoc && (
-                      <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">
+                      <td className="px-3 py-2.5 text-right tabular-nums text-charcoal">
                         {ru(r.taxable)}
                       </td>
                     )}
                     {!isNonGstDoc && (
-                      <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">
+                      <td className="px-3 py-2.5 text-right tabular-nums text-charcoal">
                         {ru(r.taxAmount)}
                       </td>
                     )}
-                    <td className="px-3 py-2.5 text-right font-semibold tabular-nums text-slate-900">
+                    <td className="px-3 py-2.5 text-right font-semibold tabular-nums text-ink">
                       {ru(r.lineTotal)}
                     </td>
                   </tr>
@@ -415,23 +416,23 @@ export function InvoicePreviewPanel({
           <section className="mt-6 grid gap-6 md:grid-cols-5">
             <div className="space-y-4 md:col-span-3">
               {paymentMethod && (
-                <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                <div className="rounded-md border border-fog bg-cloud px-3 py-2 text-sm">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-graphite">
                     Payment
                   </p>
-                  <p className="mt-0.5 text-slate-800">{paymentMethod}</p>
+                  <p className="mt-0.5 text-ink-soft">{paymentMethod}</p>
                 </div>
               )}
               {notes && (
-                <div className="rounded-md border border-slate-200 px-3 py-2 text-sm">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                <div className="rounded-md border border-fog px-3 py-2 text-sm">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-graphite">
                     Notes / remarks
                   </p>
-                  <p className="mt-0.5 whitespace-pre-wrap text-slate-700">{notes}</p>
+                  <p className="mt-0.5 whitespace-pre-wrap text-charcoal">{notes}</p>
                 </div>
               )}
-              <div className="rounded-md border border-dashed border-slate-200 p-3 text-[11px] text-slate-500">
-                <p className="font-semibold text-slate-600">Terms</p>
+              <div className="rounded-md border border-dashed border-fog p-3 text-[11px] text-graphite">
+                <p className="font-semibold text-graphite">Terms</p>
                 <p>
                   This is a {mode === 'proforma' ? 'preview' : 'computer-generated invoice'}.
                   {isNonGstDoc
@@ -459,12 +460,12 @@ export function InvoicePreviewPanel({
                         muted
                       />
                       {!isInterState && totalTax > 0 && (
-                        <div className="pl-1 text-[11px] text-slate-500">
+                        <div className="pl-1 text-[11px] text-graphite">
                           CGST {ru(cgst)} · SGST {ru(sgst)}
                         </div>
                       )}
                       {isInterState && totalTax > 0 && (
-                        <div className="pl-1 text-[11px] text-slate-500">IGST {ru(igst)}</div>
+                        <div className="pl-1 text-[11px] text-graphite">IGST {ru(igst)}</div>
                       )}
                     </>
                   )}
@@ -482,14 +483,14 @@ export function InvoicePreviewPanel({
                   <span className="text-xl font-bold tabular-nums">₹{ru(grandTotal)}</span>
                 </div>
               </div>
-              <p className="mt-1 text-right text-[10px] text-slate-400">
+              <p className="mt-1 text-right text-[10px] text-steel">
                 All amounts in INR. Errors &amp; omissions excepted.
               </p>
             </div>
           </section>
 
           {/* Footer note */}
-          <footer className="mt-6 border-t border-slate-200 pt-4 text-center text-[11px] text-slate-500">
+          <footer className="mt-6 border-t border-fog pt-4 text-center text-[11px] text-graphite">
             {branding?.footerNote?.trim() ? (
               <p className="whitespace-pre-wrap">{branding.footerNote.trim()}</p>
             ) : (
@@ -533,11 +534,11 @@ function PartyCard({
     >
       <div className="mb-2 flex items-center gap-2">
         <span className="block h-1 w-6 rounded-full" style={{ backgroundColor: accent }} aria-hidden />
-        <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-graphite">
           {eyebrow}
         </p>
       </div>
-      <div className="text-slate-800">{children}</div>
+      <div className="text-ink-soft">{children}</div>
     </div>
   )
 }
@@ -553,10 +554,10 @@ function SummaryRow({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <dt className={cn('text-sm', muted ? 'text-slate-500' : 'font-medium text-slate-700')}>
+      <dt className={cn('text-sm', muted ? 'text-graphite' : 'font-medium text-charcoal')}>
         {label}
       </dt>
-      <dd className={cn('text-sm tabular-nums', muted ? 'text-slate-600' : 'font-semibold text-slate-900')}>
+      <dd className={cn('text-sm tabular-nums', muted ? 'text-graphite' : 'font-semibold text-ink')}>
         {value.startsWith('−') || value.startsWith('₹') ? value : `₹${value}`}
       </dd>
     </div>

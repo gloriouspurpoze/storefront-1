@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react'
+﻿import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { Building2, User } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Dialog, DialogContent } from '../../components/ui/dialog'
@@ -550,7 +550,7 @@ const ChatPage: React.FC = () => {
       {/* Connection Status */}
       {!isConnected && (
         <div
-          className="fixed bottom-4 right-4 z-[9999] max-w-sm rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 shadow-md dark:border-amber-800 dark:bg-amber-950/90 dark:text-amber-100"
+          className="fixed bottom-4 right-4 z-[9999] max-w-sm rounded-md border border-bloom-coral/40 bg-bloom-rose px-3 py-2 text-sm text-bloom-coral shadow-md dark:border-bloom-coral dark:bg-bloom-coral/90 dark:text-bloom-deep"
           role="status"
         >
           Connecting for live updates… You can still load threads and send messages via the API.

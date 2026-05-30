@@ -4,7 +4,6 @@ import { Provider } from 'react-redux'
 import { Loader2 } from 'lucide-react'
 import { ThemeProvider } from './contexts/theme-context'
 import { CommandPaletteProvider } from './contexts/command-palette-context'
-import { AppMuiThemeProvider } from './components/providers/AppMuiThemeProvider'
 import { CommandPalette } from './components/command-palette/CommandPalette'
 import { DataProvider } from './contexts/data-context'
 import { SidebarProvider } from './contexts/sidebar-context'
@@ -394,7 +393,6 @@ function App() {
       */}
       <LiveOpsAdminGate />
       <ThemeProvider>
-        <AppMuiThemeProvider>
         <AppDialogsProvider>
         <DataProvider>
           <Router>
@@ -1810,7 +1808,6 @@ function App() {
           </Router>
         </DataProvider>
         </AppDialogsProvider>
-        </AppMuiThemeProvider>
       </ThemeProvider>
     </Provider>
   )

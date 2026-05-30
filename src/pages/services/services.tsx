@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import {
   Button,
   Card,
@@ -52,15 +52,15 @@ interface ServiceStats {
 function statusBadgeClass(status: string) {
   switch (status) {
     case 'open':
-      return 'border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-100'
+      return 'border-primary/20 bg-primary-soft text-primary dark:border-primary dark:bg-primary/40 dark:text-primary-deep'
     case 'assigned':
-      return 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100'
+      return 'border-bloom-coral/40 bg-bloom-rose text-bloom-coral dark:border-bloom-coral dark:bg-bloom-coral/40 dark:text-bloom-deep'
     case 'in_progress':
-      return 'border-violet-200 bg-violet-50 text-violet-900 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-100'
+      return 'border-primary/20 bg-primary-soft text-primary-deep dark:border-primary-deep dark:bg-primary-deep/40 dark:text-primary-deep'
     case 'completed':
-      return 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-100'
+      return 'border-storm-mist/30 bg-storm-mist/30 text-storm-deep dark:border-storm-deep dark:bg-storm-deep/40 dark:text-on-ink'
     case 'cancelled':
-      return 'border-red-200 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950/40 dark:text-red-100'
+      return 'border-destructive/20 bg-destructive/10 text-destructive dark:border-destructive dark:bg-destructive/40 dark:text-destructive-foreground'
     default:
       return 'border-border bg-muted/50 text-foreground'
   }
@@ -69,11 +69,11 @@ function statusBadgeClass(status: string) {
 function urgencyBadgeClass(urgency: string) {
   switch (urgency) {
     case 'low':
-      return 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-100'
+      return 'border-storm-mist/30 bg-storm-mist/30 text-storm-deep dark:border-storm-deep dark:bg-storm-deep/40 dark:text-on-ink'
     case 'medium':
-      return 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100'
+      return 'border-bloom-coral/40 bg-bloom-rose text-bloom-coral dark:border-bloom-coral dark:bg-bloom-coral/40 dark:text-bloom-deep'
     case 'high':
-      return 'border-red-200 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950/40 dark:text-red-100'
+      return 'border-destructive/20 bg-destructive/10 text-destructive dark:border-destructive dark:bg-destructive/40 dark:text-destructive-foreground'
     default:
       return 'border-border bg-muted/50 text-foreground'
   }
@@ -301,11 +301,11 @@ export function Services() {
   const statCardClass = (tone: 'default' | 'sky' | 'amber' | 'violet' | 'emerald' | 'red') => {
     const map = {
       default: 'border-border bg-card',
-      sky: 'border-sky-200 bg-sky-500 text-white dark:border-sky-800 dark:bg-sky-700',
-      amber: 'border-amber-200 bg-amber-500 text-white dark:border-amber-800 dark:bg-amber-700',
-      violet: 'border-violet-200 bg-violet-500 text-white dark:border-violet-800 dark:bg-violet-700',
-      emerald: 'border-emerald-200 bg-emerald-500 text-white dark:border-emerald-800 dark:bg-emerald-700',
-      red: 'border-red-200 bg-red-500 text-white dark:border-red-800 dark:bg-red-700',
+      sky: 'border-primary/20 bg-primary text-white dark:border-primary dark:bg-primary',
+      amber: 'border-bloom-coral/40 bg-bloom-coral text-white dark:border-bloom-coral dark:bg-bloom-coral',
+      violet: 'border-primary/20 bg-primary-deep text-white dark:border-primary-deep dark:bg-primary-deep',
+      emerald: 'border-storm-mist/30 bg-storm-deep text-white dark:border-storm-deep dark:bg-storm-deep',
+      red: 'border-destructive/20 bg-destructive text-white dark:border-destructive dark:bg-destructive',
     }
     return cn('rounded-xl border shadow-sm', map[tone])
   }

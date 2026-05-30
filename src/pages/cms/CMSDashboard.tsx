@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+﻿import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Home,
@@ -62,11 +62,11 @@ interface HubSection {
 
 const ICON_ACCENTS = [
   'bg-primary/12 text-primary',
-  'bg-violet-500/12 text-violet-600 dark:text-violet-400',
-  'bg-teal-500/12 text-teal-600 dark:text-teal-400',
-  'bg-amber-500/12 text-amber-700 dark:text-amber-400',
-  'bg-sky-500/12 text-sky-600 dark:text-sky-400',
-  'bg-rose-500/12 text-rose-600 dark:text-rose-400',
+  'bg-primary-deep/12 text-primary-deep dark:text-primary-deep',
+  'bg-storm-deep/12 text-storm-deep dark:text-storm-sea',
+  'bg-bloom-coral/12 text-bloom-coral dark:text-bloom-coral',
+  'bg-primary/12 text-primary dark:text-primary',
+  'bg-destructive/12 text-destructive dark:text-bloom-coral',
 ]
 
 const HUB_SECTIONS: HubSection[] = [

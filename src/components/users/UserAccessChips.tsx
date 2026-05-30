@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { Badge } from '../ui/badge'
 import type { User } from '../../types'
 import type { Permission } from '../../types/rbac.types'
@@ -53,7 +53,7 @@ export function UserAccessChips({
           Role: {formatRoleLabel(effectiveRole)}
         </Badge>
         {mode === 'explicit' ? (
-          <Badge variant="outline" className="border-amber-600/50 text-xs text-amber-800 dark:text-amber-200">
+          <Badge variant="outline" className="border-bloom-coral/50 text-xs text-bloom-coral dark:text-bloom-deep">
             Auth: Explicit
           </Badge>
         ) : (
@@ -77,7 +77,7 @@ export function UserAccessChips({
         </div>
       )}
       {mode === 'explicit' && perms.length === 0 && (
-        <span className="text-[0.65rem] text-amber-700 dark:text-amber-300">No module grants</span>
+        <span className="text-[0.65rem] text-bloom-coral dark:text-bloom-coral">No module grants</span>
       )}
     </div>
   )

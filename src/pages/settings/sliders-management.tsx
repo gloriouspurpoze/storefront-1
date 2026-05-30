@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   Plus,
   MoreVertical,
@@ -664,7 +664,7 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
                     activeTab === index
                       ? 'border-primary bg-primary/10 text-primary'
                       : 'border-border bg-muted/30 text-muted-foreground hover:bg-muted',
-                    activeTab > index && 'border-emerald-500/50',
+                    activeTab > index && 'border-storm-deep/50',
                   )}
                 >
                   <span className="flex h-8 w-8 items-center justify-center">{tab.icon}</span>
@@ -903,7 +903,7 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
                         </h3>
                         <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
                           <div className="col-span-12">
-                            <div className="mb-6 rounded-lg border border-sky-500/30 bg-sky-500/10 p-4 text-sm">
+                            <div className="mb-6 rounded-lg border border-primary/30 bg-primary/10 p-4 text-sm">
                               <p>
                                 Add a button to drive user engagement. Both button text and URL are optional, but if you
                                 provide text, URL is required.
@@ -986,7 +986,7 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
                               className={cn(
                                 'rounded-lg border-2 p-4',
                                 formData.is_active
-                                  ? 'border-emerald-500/40 bg-emerald-500/10'
+                                  ? 'border-storm-deep/40 bg-storm-deep/10'
                                   : 'border-muted bg-muted/40',
                               )}
                             >
@@ -1200,40 +1200,40 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
               </div>
             </CardContent>
           </Card>
-          <Card className="rounded-lg border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5">
+          <Card className="rounded-lg border border-storm-deep/20 bg-gradient-to-br from-storm-deep/10 to-storm-deep/5">
             <CardContent className="pt-6">
               <div className="flex flex-row items-center gap-4">
-                <div className="rounded-lg bg-emerald-500/10 p-3 text-emerald-600">
+                <div className="rounded-lg bg-storm-deep/10 p-3 text-storm-deep">
                   <TrendingUpIcon className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-emerald-600">{stats.active_sliders}</p>
+                  <p className="text-2xl font-bold text-storm-deep">{stats.active_sliders}</p>
                   <p className="text-sm text-muted-foreground">Active</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="rounded-lg border border-amber-500/20 bg-gradient-to-br from-amber-500/10 to-amber-500/5">
+          <Card className="rounded-lg border border-bloom-coral/20 bg-gradient-to-br from-bloom-coral/10 to-bloom-coral/5">
             <CardContent className="pt-6">
               <div className="flex flex-row items-center gap-4">
-                <div className="rounded-lg bg-amber-500/10 p-3 text-amber-600">
+                <div className="rounded-lg bg-bloom-coral/10 p-3 text-bloom-coral">
                   <ScheduleIcon className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-amber-600">{stats.scheduled_sliders}</p>
+                  <p className="text-2xl font-bold text-bloom-coral">{stats.scheduled_sliders}</p>
                   <p className="text-sm text-muted-foreground">Scheduled</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="rounded-lg border border-sky-500/20 bg-gradient-to-br from-sky-500/10 to-sky-500/5">
+          <Card className="rounded-lg border border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5">
             <CardContent className="pt-6">
               <div className="flex flex-row items-center gap-4">
-                <div className="rounded-lg bg-sky-500/10 p-3 text-sky-600">
+                <div className="rounded-lg bg-primary/10 p-3 text-primary">
                   <PublicIcon className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-sky-600">{stats.inactive_sliders}</p>
+                  <p className="text-2xl font-bold text-primary">{stats.inactive_sliders}</p>
                   <p className="text-sm text-muted-foreground">Inactive</p>
                 </div>
               </div>
@@ -1447,7 +1447,7 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
                                 className={cn(
                                   'h-8 w-8',
                                   slider.is_active
-                                    ? 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20'
+                                    ? 'bg-storm-deep/10 text-storm-deep hover:bg-storm-deep/20'
                                     : 'bg-muted text-muted-foreground hover:bg-muted/80',
                                 )}
                                 onClick={() => handleToggleStatus(slider)}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+﻿import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -651,7 +651,7 @@ export default function HomepageManagement() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="bg-sky-500/10 text-sky-700 hover:bg-sky-500/20"
+                              className="bg-primary/10 text-primary hover:bg-primary/20"
                               onClick={() => setPreviewSection(section)}
                             >
                               <MonitorPlay className="h-4 w-4" />
@@ -680,7 +680,7 @@ export default function HomepageManagement() {
                               className={
                                 section.isActive
                                   ? 'bg-muted/80 hover:bg-muted'
-                                  : 'bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20'
+                                  : 'bg-storm-deep/10 text-storm-deep hover:bg-storm-deep/20'
                               }
                               onClick={() => toggleActive(section)}
                             >

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import { Copy } from 'lucide-react'
 import { Button } from '../ui/button'
 import {
@@ -35,7 +35,7 @@ export function HomepageBlockLibraryAccordion() {
           </div>
         </AccordionTrigger>
         <AccordionContent>
-          <div className="mb-3 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm dark:border-blue-900/50 dark:bg-blue-950/40">
+          <div className="mb-3 rounded-md border border-primary/20 bg-primary-soft p-3 text-sm dark:border-primary/50 dark:bg-primary/40">
             Use these schemas when syncing CMS with your storefront. Apply presets below as API payloads or seed
             scripts.
           </div>
@@ -50,7 +50,7 @@ export function HomepageBlockLibraryAccordion() {
               Copy full preset bundle (JSON)
             </Button>
             {copied === 'bundle' && (
-              <p className="text-xs font-medium text-green-600 dark:text-green-500">Copied preset bundle.</p>
+              <p className="text-xs font-medium text-storm-deep dark:text-storm-deep">Copied preset bundle.</p>
             )}
             {copied === 'error' && (
               <p className="text-xs font-medium text-destructive">Clipboard unavailable.</p>

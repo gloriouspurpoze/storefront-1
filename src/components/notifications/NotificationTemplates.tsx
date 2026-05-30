@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import {
   Plus,
   Pencil,
@@ -487,12 +487,12 @@ export function NotificationTemplates({ onSendFromTemplate }: NotificationTempla
               <p className="text-xs text-muted-foreground">
                 Placeholders are filled with sample values. Final rendering happens on the server when sending.
               </p>
-              <div className="rounded-lg border bg-zinc-900 p-4 text-zinc-100 shadow-md dark:bg-zinc-950">
-                <span className="mb-2 block text-xs text-zinc-500">Push / in-app</span>
+              <div className="rounded-lg border bg-ink p-4 text-fog shadow-md dark:bg-ink">
+                <span className="mb-2 block text-xs text-graphite">Push / in-app</span>
                 <p className="text-base font-bold leading-tight">
                   {applySamplePlaceholders(previewTemplate.titleTemplate)}
                 </p>
-                <p className="mt-2 whitespace-pre-wrap text-sm text-zinc-200">
+                <p className="mt-2 whitespace-pre-wrap text-sm text-fog">
                   {applySamplePlaceholders(previewTemplate.bodyTemplate)}
                 </p>
               </div>

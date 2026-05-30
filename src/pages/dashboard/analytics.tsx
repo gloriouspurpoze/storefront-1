@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+﻿import React, { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import {
   IndianRupee,
@@ -41,12 +41,14 @@ import {
   SelectValue,
 } from '../../components/ui/select'
 import { Badge } from '../../components/ui/badge'
+import { CHART_TOKENS, CHART_CATEGORICAL } from '../../lib/chartPalette'
 
-const CHART_COLORS = ['#2563eb', '#7c3aed', '#059669', '#dc2626', '#d97706', '#0891b2', '#4f46e5', '#b45309']
-const COL_PRIMARY = '#2563eb'
-const COL_SECONDARY = '#7c3aed'
-const COL_INFO = '#0ea5e9'
-const COL_SUCCESS = '#16a34a'
+// DESIGN.md tokens (no more hardcoded chart hexes)
+const CHART_COLORS = CHART_CATEGORICAL
+const COL_PRIMARY = CHART_TOKENS.primary
+const COL_SECONDARY = CHART_TOKENS.secondary
+const COL_INFO = CHART_TOKENS.info
+const COL_SUCCESS = CHART_TOKENS.success
 
 function getMonthsFromTimeRange(timeRange: string): number {
   switch (timeRange) {
@@ -287,7 +289,7 @@ export function Analytics() {
 
       {error && (
         <div
-          className="mb-4 rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-200"
+          className="mb-4 rounded-md border border-bloom-coral/50 bg-bloom-coral/10 px-3 py-2 text-sm text-bloom-coral dark:text-bloom-deep"
           role="alert"
         >
           <div className="flex items-center justify-between gap-2">
@@ -511,7 +513,7 @@ export function Analytics() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
         <Card>
           <CardContent className="p-6 text-center">
-            <Star className="mx-auto mb-2 h-10 w-10 text-amber-500" />
+            <Star className="mx-auto mb-2 h-10 w-10 text-bloom-coral" />
             <p className="mb-1 text-3xl font-bold">
               {dashboardServiceStats.length > 0
                 ? (
@@ -524,14 +526,14 @@ export function Analytics() {
         </Card>
         <Card>
           <CardContent className="p-6 text-center">
-            <CalendarClock className="mx-auto mb-2 h-10 w-10 text-sky-500" />
+            <CalendarClock className="mx-auto mb-2 h-10 w-10 text-primary" />
             <p className="mb-1 text-3xl font-bold">{overview?.totalServiceRequests ?? '—'}</p>
             <p className="text-sm text-muted-foreground">Service requests</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-6 text-center">
-            <ClipboardList className="mx-auto mb-2 h-10 w-10 text-emerald-500" />
+            <ClipboardList className="mx-auto mb-2 h-10 w-10 text-storm-deep" />
             <p className="mb-1 text-3xl font-bold">
               {bookingAnalytics?.completionRate != null
                 ? `${(bookingAnalytics.completionRate <= 1 ? bookingAnalytics.completionRate * 100 : bookingAnalytics.completionRate).toFixed(0)}%`

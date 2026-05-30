@@ -61,7 +61,7 @@ function applyHighlightsToTextNode(textNode: Text, regexes: RegExp[]): void {
     mark.setAttribute('class', MARK_CLASS)
     mark.setAttribute(
       'style',
-      'background-color:#fde68a;color:#422006;border-radius:3px;padding:0 3px;box-decoration-break:clone;-webkit-box-decoration-break:clone',
+      'background-color:#f9d4d2;color:#5a1313;border-radius:3px;padding:0 3px;box-decoration-break:clone;-webkit-box-decoration-break:clone',
     )
     mark.setAttribute('title', 'Repeated phrase flagged by originality scan (5-word window)')
     mark.appendChild(doc.createTextNode(bestMatch))

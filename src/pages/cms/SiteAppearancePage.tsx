@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+﻿import React, { useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import { Loader2, Palette } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
@@ -34,21 +34,21 @@ const THEME_PRESETS: { name: string; patch: Partial<PublicSiteThemeTokens> }[] =
   {
     name: 'Emerald marketplace',
     patch: {
-      primaryColor: '#047857',
-      accentColor: '#0f766e',
-      backgroundColor: '#f8fafc',
+      primaryColor: '#356373',
+      accentColor: '#356373',
+      backgroundColor: '#f7f7f7',
       surfaceColor: '#ffffff',
     },
   },
   {
     name: 'Bold contrast',
     patch: {
-      primaryColor: '#b45309',
-      accentColor: '#ea580c',
-      backgroundColor: '#0f172a',
-      surfaceColor: '#1e293b',
-      textColor: '#f8fafc',
-      mutedTextColor: '#94a3b8',
+      primaryColor: '#5a1313',
+      accentColor: '#ff5050',
+      backgroundColor: '#1a1a1a',
+      surfaceColor: '#292929',
+      textColor: '#f7f7f7',
+      mutedTextColor: '#c2c2c2',
     },
   },
 ]
@@ -130,7 +130,7 @@ export default function SiteAppearancePage() {
         <>
           <div
             role="status"
-            className="mb-6 rounded-md border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-100"
+            className="mb-6 rounded-md border border-primary/20 bg-primary-soft p-4 text-sm text-primary dark:border-primary dark:bg-primary/40 dark:text-primary-deep"
           >
             Backend endpoint <strong>/cms/public-site-theme</strong> is optional. Without it, tokens persist per tenant in
             this browser so teams can prototype; wire the same JSON to profixer.in or your SSR theme injector.
@@ -142,7 +142,7 @@ export default function SiteAppearancePage() {
                 'mb-4 rounded-md border p-3 text-sm',
                 saveHint.includes('failed')
                   ? 'border-destructive/50 bg-destructive/10 text-destructive'
-                  : 'border-green-200 bg-green-50 text-green-900 dark:border-green-900 dark:bg-green-950/40 dark:text-green-100',
+                  : 'border-storm-mist/30 bg-storm-mist/30 text-storm-deep dark:border-storm-deep dark:bg-storm-deep/40 dark:text-on-ink',
               )}
             >
               {saveHint}

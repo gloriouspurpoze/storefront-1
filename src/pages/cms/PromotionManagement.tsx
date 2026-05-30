@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import {
   Plus,
   Trash2,
@@ -292,7 +292,7 @@ export default function PromotionManagement() {
                   <div className="flex justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="mb-2 flex flex-wrap items-center gap-2">
-                        <Tag className="h-5 w-5 shrink-0 text-emerald-600" />
+                        <Tag className="h-5 w-5 shrink-0 text-storm-deep" />
                         <h3 className="truncate text-lg font-semibold">{promo.title}</h3>
                         <Badge variant={promo.isActive ? 'success' : 'secondary'} className="gap-1">
                           {promo.isActive && <CheckCircle2 className="h-3 w-3" />}
@@ -333,7 +333,7 @@ export default function PromotionManagement() {
                             onClick={() => copyCode(promo.code)}
                           >
                             {copiedCode === promo.code ? (
-                              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                              <CheckCircle2 className="h-4 w-4 text-storm-deep" />
                             ) : (
                               <Copy className="h-4 w-4" />
                             )}

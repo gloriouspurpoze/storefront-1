@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import {
   Edit,
   Trash2,
@@ -188,7 +188,7 @@ export function ProductTable({ products, onUpdate, onDelete, onAdd, onView, cate
               )}
               <p className="mb-1 text-sm text-muted-foreground">SKU: {product.sku}</p>
               <div className="mb-1 flex items-center gap-1 text-sm">
-                <span className="text-amber-500">★</span>
+                <span className="text-bloom-coral">★</span>
                 <span>{(product.rating || 0).toFixed(1)}</span>
                 <span className="text-muted-foreground">({product.review_count || 0})</span>
               </div>
@@ -271,7 +271,7 @@ export function ProductTable({ products, onUpdate, onDelete, onAdd, onView, cate
         <TableCell className="text-sm text-muted-foreground">{formatProductUpdated(product)}</TableCell>
         <TableCell>
           <div className="flex items-center gap-1 text-sm">
-            <span className="text-amber-500">★</span>
+            <span className="text-bloom-coral">★</span>
             {(product.rating || 0).toFixed(1)} ({product.review_count || 0})
           </div>
         </TableCell>

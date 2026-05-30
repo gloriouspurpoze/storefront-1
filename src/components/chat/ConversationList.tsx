@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { Search, Headphones, Calendar, User, Archive, Loader2 } from 'lucide-react'
 import { formatDistance } from 'date-fns'
 import { ChatConversation, ConversationType } from '../../services/api/chat.service'
@@ -102,9 +102,9 @@ const ConversationList: React.FC<ConversationListProps> = ({
       case 'urgent':
         return 'border-destructive/50 bg-destructive/10 text-destructive'
       case 'high':
-        return 'border-amber-500/50 bg-amber-500/10 text-amber-900 dark:text-amber-100'
+        return 'border-bloom-coral/50 bg-bloom-coral/10 text-bloom-coral dark:text-bloom-deep'
       case 'medium':
-        return 'border-sky-500/50 bg-sky-500/10 text-sky-900 dark:text-sky-100'
+        return 'border-primary/50 bg-primary/10 text-primary dark:text-primary-deep'
       case 'low':
         return 'border-border bg-muted text-foreground'
       default:

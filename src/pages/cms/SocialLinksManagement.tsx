@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import { Link2, Facebook, Twitter, Instagram, Linkedin, Youtube, Globe, Loader2 } from 'lucide-react'
 import { Card, CardContent } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
@@ -110,7 +110,7 @@ export default function SocialLinksManagement() {
         subtitle="Manage social and website links shown on your client site (footer, header, contact)"
       />
 
-      <div className="mb-6 rounded-md border border-sky-200 bg-sky-50/80 p-4 text-sm dark:border-sky-900 dark:bg-sky-950/40">
+      <div className="mb-6 rounded-md border border-primary/20 bg-primary-soft/80 p-4 text-sm dark:border-primary dark:bg-primary/40">
         <p>
           URLs saved here are stored in global settings as{' '}
           <code className="rounded bg-muted px-1">clientControls.socialLinks</code> and served publicly on the
@@ -165,7 +165,7 @@ export default function SocialLinksManagement() {
             'fixed bottom-4 right-4 z-50 max-w-md rounded-md border p-4 shadow-lg',
             snackbar.severity === 'error'
               ? 'border-destructive/50 bg-destructive/10'
-              : 'border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/40'
+              : 'border-storm-mist/30 bg-storm-mist/30 dark:border-storm-deep dark:bg-storm-deep/40'
           )}
         >
           <p className="text-sm">{snackbar.message}</p>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import {
   Plus,
   Pencil,
@@ -72,9 +72,9 @@ function bannerTypeClass(type: string): string {
   const colors: Record<string, string> = {
     hero: 'bg-primary/10 text-primary',
     popup: 'bg-destructive/10 text-destructive',
-    announcement: 'bg-amber-500/10 text-amber-700',
-    sidebar: 'bg-sky-500/10 text-sky-700',
-    inline: 'bg-emerald-500/10 text-emerald-700',
+    announcement: 'bg-bloom-coral/10 text-bloom-coral',
+    sidebar: 'bg-primary/10 text-primary',
+    inline: 'bg-storm-deep/10 text-storm-deep',
   }
   return colors[type] || 'bg-muted text-muted-foreground'
 }

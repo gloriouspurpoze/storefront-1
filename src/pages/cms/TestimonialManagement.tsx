@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import {
   Plus,
   Pencil,
@@ -75,9 +75,9 @@ function StarRatingDisplay({ value, className }: { value: number; className?: st
   return (
     <div className={cn('flex items-center gap-0.5', className)} role="img" aria-label={`${value} out of 5 stars`}>
       {Array.from({ length: full }).map((_, i) => (
-        <Star key={`f-${i}`} className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden />
+        <Star key={`f-${i}`} className="h-4 w-4 fill-bloom-coral text-bloom-coral" aria-hidden />
       ))}
-      {half && <StarHalf className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden />}
+      {half && <StarHalf className="h-4 w-4 fill-bloom-coral text-bloom-coral" aria-hidden />}
       {Array.from({ length: empty }).map((_, i) => (
         <Star key={`e-${i}`} className="h-4 w-4 text-muted-foreground/40" aria-hidden />
       ))}
@@ -105,7 +105,7 @@ function StarRatingInput({
           <Star
             className={cn(
               'h-7 w-7',
-              i <= value ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/35',
+              i <= value ? 'fill-bloom-coral text-bloom-coral' : 'text-muted-foreground/35',
             )}
           />
         </button>
@@ -405,7 +405,7 @@ export default function TestimonialManagement() {
                             size="icon"
                             className={cn(
                               'h-8 w-8',
-                              testimonial.isApproved ? 'bg-green-500/10 text-green-700 hover:bg-green-500/20' : 'bg-muted',
+                              testimonial.isApproved ? 'bg-storm-deep/10 text-storm-deep hover:bg-storm-deep/20' : 'bg-muted',
                             )}
                             onClick={() => handleToggleApproval(testimonial)}
                             aria-label={testimonial.isApproved ? 'Unapprove' : 'Approve'}

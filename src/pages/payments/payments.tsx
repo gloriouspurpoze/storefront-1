@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+﻿import React, { useState, useEffect, useCallback } from 'react'
 import {
   Search,
   MoreVertical,
@@ -203,11 +203,11 @@ export function Payments() {
     const s = String(status || '')
       .toLowerCase()
       .replace(/_/g, ' ')
-    if (s.includes('pending')) return 'bg-amber-500/15 text-amber-800 dark:text-amber-200 border-amber-500/30'
+    if (s.includes('pending')) return 'bg-bloom-coral/15 text-bloom-coral dark:text-bloom-deep border-bloom-coral/30'
     if (s === 'paid' || s === 'completed' || s.includes('success'))
-      return 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 border-emerald-500/30'
+      return 'bg-storm-deep/15 text-storm-deep dark:text-on-ink border-storm-deep/30'
     if (s.includes('fail') || s.includes('cancel')) return 'bg-destructive/15 text-destructive border-destructive/30'
-    if (s.includes('refund')) return 'bg-sky-500/15 text-sky-800 dark:text-sky-200 border-sky-500/30'
+    if (s.includes('refund')) return 'bg-primary/15 text-primary dark:text-primary-deep border-primary/30'
     return 'bg-muted text-muted-foreground border-border'
   }
 
@@ -838,7 +838,7 @@ export function Payments() {
                     <Separator className="my-2" />
                     <div className="flex justify-between">
                       <span className="font-medium">Net amount</span>
-                      <span className="font-bold text-emerald-600">{formatCurrency(netAmount, currency)}</span>
+                      <span className="font-bold text-storm-deep">{formatCurrency(netAmount, currency)}</span>
                     </div>
                   </div>
                 </div>

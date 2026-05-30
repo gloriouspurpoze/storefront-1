@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import {
   Button,
@@ -178,19 +178,19 @@ export default function InventoryManagement() {
     const s = stockStatus(p)
     if (s === 'out')
       return (
-        <Badge variant="outline" className="gap-1 border-red-200 bg-red-50 text-red-900 dark:border-red-900 dark:bg-red-950/40">
+        <Badge variant="outline" className="gap-1 border-destructive/20 bg-destructive/10 text-destructive dark:border-destructive dark:bg-destructive/40">
           <ShoppingCart className="h-3 w-3" />
           Out of stock
         </Badge>
       )
     if (s === 'low')
       return (
-        <Badge variant="outline" className="gap-1 border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40">
+        <Badge variant="outline" className="gap-1 border-bloom-coral/40 bg-bloom-rose text-bloom-coral dark:border-bloom-coral dark:bg-bloom-coral/40">
           <AlertTriangle className="h-3 w-3" />
           Low stock
         </Badge>
       )
-    return <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900">In stock</Badge>
+    return <Badge variant="outline" className="border-storm-mist/30 bg-storm-mist/30 text-storm-deep dark:border-storm-deep">In stock</Badge>
   }
 
   const rangeStart = total === 0 ? 0 : page * rowsPerPage + 1
@@ -198,9 +198,9 @@ export default function InventoryManagement() {
 
   const kpiCards = [
     { label: filter === 'all' ? 'SKUs (this page)' : 'SKUs (filtered)', value: kpis.skus, className: 'text-primary' },
-    { label: 'Units on hand', value: kpis.units.toLocaleString(), className: 'text-sky-600' },
-    { label: 'Low stock', value: kpis.low, className: 'text-amber-600' },
-    { label: 'Out of stock', value: kpis.out, className: 'text-red-600' },
+    { label: 'Units on hand', value: kpis.units.toLocaleString(), className: 'text-primary' },
+    { label: 'Low stock', value: kpis.low, className: 'text-bloom-coral' },
+    { label: 'Out of stock', value: kpis.out, className: 'text-destructive' },
   ]
 
   return (
@@ -220,13 +220,13 @@ export default function InventoryManagement() {
           }
         />
 
-        <div className="mt-4 mb-4 max-w-3xl rounded-lg border border-sky-200 bg-sky-50/80 px-3 py-2 text-sm text-sky-950 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
+        <div className="mt-4 mb-4 max-w-3xl rounded-lg border border-primary/20 bg-primary-soft/80 px-3 py-2 text-sm text-primary dark:border-primary dark:bg-primary/30 dark:text-primary-deep">
           <strong>How teams use this:</strong> filter by low or out-of-stock, adjust on-hand counts after receiving goods or cycle counts, and set
           reorder alerts via the low-stock threshold. Full merchandising (price, images) stays under <strong>Products</strong>.
         </div>
 
         {!canAdjust && (
-          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/30">
+          <div className="mb-4 rounded-lg border border-bloom-coral/40 bg-bloom-rose px-3 py-2 text-sm text-bloom-coral dark:border-bloom-coral dark:bg-bloom-coral/30">
             You have view-only access. Ask an admin for <strong>edit products</strong> or <strong>manage product inventory</strong> to change
             quantities.
           </div>
@@ -355,7 +355,7 @@ export default function InventoryManagement() {
           )}
 
           {filter !== 'all' && !loading && (
-            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/30">
+            <div className="mt-3 rounded-lg border border-bloom-coral/40 bg-bloom-rose px-3 py-2 text-sm text-bloom-coral dark:border-bloom-coral dark:bg-bloom-coral/30">
               Status filters apply to the <strong>current page</strong> of results. Increase &quot;rows per page&quot; or refine search to cover more
               SKUs.
             </div>

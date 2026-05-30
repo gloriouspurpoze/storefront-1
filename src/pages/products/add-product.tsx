@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+﻿import React, { useState, useRef, useEffect } from 'react'
 import {
   Loader2,
   ArrowLeft,
@@ -994,7 +994,7 @@ export function AddProduct() {
                     index === activeStep
                       ? 'border-primary bg-primary/10 text-primary'
                       : index < activeStep
-                        ? 'border-emerald-500/50 bg-emerald-500/5 text-emerald-900'
+                        ? 'border-storm-deep/50 bg-storm-deep/5 text-storm-deep'
                         : 'border-border bg-background hover:bg-muted',
                   )}
                 >
@@ -1623,7 +1623,7 @@ export function AddProduct() {
                         Review & Publish
                 </h2>
                 
-                      <div className="mb-6 rounded-lg border border-sky-500/30 bg-sky-500/10 p-4 text-sm">
+                      <div className="mb-6 rounded-lg border border-primary/30 bg-primary/10 p-4 text-sm">
                         Review all information before publishing your product. You can always edit these details later.
                       </div>
                       
@@ -1661,13 +1661,13 @@ export function AddProduct() {
                           <h3 className="mb-4 text-lg font-semibold">Status</h3>
                           <div className="rounded-md bg-muted/60 p-4">
                             <div className="mb-2 flex items-center gap-2">
-                              <CheckCircle2 className={cn('h-4 w-4', formData.isActive ? 'text-emerald-600' : 'text-destructive')} />
+                              <CheckCircle2 className={cn('h-4 w-4', formData.isActive ? 'text-storm-deep' : 'text-destructive')} />
                               <p className="text-sm">
                                 {formData.isActive ? 'Active' : 'Inactive'}
                               </p>
                             </div>
                             <div className="mb-2 flex items-center gap-2">
-                              <CheckCircle2 className={cn('h-4 w-4', formData.isFeatured ? 'text-amber-500' : 'text-muted-foreground')} />
+                              <CheckCircle2 className={cn('h-4 w-4', formData.isFeatured ? 'text-bloom-coral' : 'text-muted-foreground')} />
                               <p className="text-sm">
                                 {formData.isFeatured ? 'Featured' : 'Not Featured'}
                               </p>

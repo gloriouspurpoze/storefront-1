@@ -50,12 +50,13 @@ export class ErrorBoundary extends Component<Props, State> {
       if (this.props.fallback) return this.props.fallback
       return (
         <div
+          // DESIGN.md: cloud as alternating band surface; canvas in dark mode falls back to ink
           className={cn(
             'flex min-h-screen items-center justify-center',
-            'bg-zinc-50 p-3 dark:bg-zinc-950'
+            'bg-cloud p-3 dark:bg-ink-deep',
           )}
         >
-          <Card className="max-w-md text-center shadow-md">
+          <Card className="max-w-md text-center shadow-floating">
             <CardContent className="p-8">
               <h1 className="mb-2 text-xl font-semibold text-destructive">Something went wrong</h1>
               <p className="mb-6 text-sm text-muted-foreground">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react'
+﻿import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   Pencil,
   Eye,
@@ -273,7 +273,7 @@ export function CategoriesList() {
         </div>
       </div>
 
-      <div className="mb-4 rounded-md border border-sky-200 bg-sky-50/80 p-3 text-sm dark:border-sky-900 dark:bg-sky-950/40">
+      <div className="mb-4 rounded-md border border-primary/20 bg-primary-soft/80 p-3 text-sm dark:border-primary dark:bg-primary/40">
         {scope === 'products'
           ? 'You are editing the product catalog. Service-only categories are managed under Service categories.'
           : 'You are editing the service catalog. Product-only categories are managed under Product categories.'}
@@ -295,10 +295,10 @@ export function CategoriesList() {
           <CardContent>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-3xl font-bold text-emerald-600">{stats.active}</p>
+                <p className="text-3xl font-bold text-storm-deep">{stats.active}</p>
                 <p className="text-sm text-muted-foreground">Active</p>
               </div>
-              <TrendingUp className="h-10 w-10 text-emerald-600/30" />
+              <TrendingUp className="h-10 w-10 text-storm-deep/30" />
             </div>
           </CardContent>
         </Card>
@@ -306,10 +306,10 @@ export function CategoriesList() {
           <CardContent>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-3xl font-bold text-amber-600">{stats.inactive}</p>
+                <p className="text-3xl font-bold text-bloom-coral">{stats.inactive}</p>
                 <p className="text-sm text-muted-foreground">Inactive</p>
               </div>
-              <LayoutGrid className="h-10 w-10 text-amber-600/30" />
+              <LayoutGrid className="h-10 w-10 text-bloom-coral/30" />
             </div>
           </CardContent>
         </Card>

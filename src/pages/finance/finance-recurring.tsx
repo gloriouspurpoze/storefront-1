@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+﻿import React, { useCallback, useEffect, useState } from 'react'
 import { Plus, Play, Loader2, Pencil } from 'lucide-react'
 import { FinanceService } from '../../services/api/finance.service'
 import type { FinanceCashAccount, FinanceExpenseCategory, FinanceRecurringExpense, FinanceVendor } from '../../types/finance.types'
@@ -157,7 +157,7 @@ export function FinanceRecurringPage() {
   return (
     <div className="space-y-6">
       {due.length > 0 && (
-        <Card className="border-amber-500/40 bg-amber-500/5">
+        <Card className="border-bloom-coral/40 bg-bloom-coral/5">
           <CardHeader>
             <CardTitle className="text-lg">Due now</CardTitle>
             <CardDescription>Templates whose next run date is today or earlier — generate expenses manually.</CardDescription>

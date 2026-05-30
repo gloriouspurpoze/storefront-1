@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { CircleDollarSign, Loader2, Plus, Trash2, Wand2 } from 'lucide-react'
 import { Card, CardContent } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
@@ -208,9 +208,9 @@ export default function PricingCategoryMetaManagement() {
 
   const summaryWordBadgeClass =
     answerEngineWords >= 60 && answerEngineWords <= 110
-      ? 'bg-emerald-600 hover:bg-emerald-600'
+      ? 'bg-storm-deep hover:bg-storm-deep'
       : answerEngineWords > 0
-        ? 'bg-amber-500 hover:bg-amber-500'
+        ? 'bg-bloom-coral hover:bg-bloom-coral'
         : ''
 
   return (
@@ -274,7 +274,7 @@ export default function PricingCategoryMetaManagement() {
             </div>
           </div>
 
-          <div className="rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          <div className="rounded-md border border-bloom-coral/60 bg-bloom-rose px-3 py-2 text-xs text-bloom-coral">
             <strong>Editorial brief:</strong> follow{' '}
             <code className="font-mono">docs/seo/CMS_PROMPT_PRICING.md</code> on the consumer
             repo. The <em>answer-engine summary</em> is the single most important field —
@@ -351,7 +351,7 @@ export default function PricingCategoryMetaManagement() {
                     />
                     <p
                       className={`text-[11px] ${
-                        metaTitleChars > 60 ? 'text-amber-700' : 'text-muted-foreground'
+                        metaTitleChars > 60 ? 'text-bloom-coral' : 'text-muted-foreground'
                       }`}
                     >
                       {metaTitleChars} / 60 chars
@@ -371,8 +371,8 @@ export default function PricingCategoryMetaManagement() {
                     <p
                       className={`text-[11px] ${
                         metaDescriptionChars < 140 || metaDescriptionChars > 160
-                          ? 'text-amber-700'
-                          : 'text-emerald-700'
+                          ? 'text-bloom-coral'
+                          : 'text-storm-deep'
                       }`}
                     >
                       {metaDescriptionChars} / 160 chars
@@ -655,8 +655,8 @@ export default function PricingCategoryMetaManagement() {
                                 answerWords === 0
                                   ? 'text-muted-foreground'
                                   : answerOk
-                                    ? 'text-emerald-700'
-                                    : 'text-amber-700'
+                                    ? 'text-storm-deep'
+                                    : 'text-bloom-coral'
                               }`}
                             >
                               {answerWords} words · target 50–90
@@ -769,12 +769,12 @@ function NarrativeField({
     words === 0
       ? 'text-muted-foreground'
       : words >= min && words <= max
-        ? 'text-emerald-700'
-        : 'text-amber-700'
+        ? 'text-storm-deep'
+        : 'text-bloom-coral'
   return (
     <div
       className={`space-y-1.5 rounded-lg border p-3 ${
-        emphasize ? 'border-indigo-300 bg-indigo-50/40' : ''
+        emphasize ? 'border-primary bg-primary-soft/40' : ''
       }`}
     >
       <Label htmlFor={id} className="text-sm font-semibold">

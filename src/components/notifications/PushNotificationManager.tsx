@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+﻿import React, { useEffect, useState } from 'react'
 import { Bell, CheckCircle2 } from 'lucide-react'
 import { useNotifications } from '../../hooks/useNotifications'
 import { useAppDispatch } from '../../store/hooks'
@@ -20,11 +20,11 @@ function AlertBox({
 }) {
   const cls =
     variant === 'warning'
-      ? 'border-amber-500/40 bg-amber-500/10 text-amber-950 dark:text-amber-100'
+      ? 'border-bloom-coral/40 bg-bloom-coral/10 text-bloom-coral dark:text-bloom-deep'
       : variant === 'info'
         ? 'border-border bg-muted/50 text-foreground'
         : variant === 'success'
-          ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-950 dark:text-emerald-50'
+          ? 'border-storm-deep/40 bg-storm-deep/10 text-storm-deep dark:text-on-ink'
           : 'border-destructive/40 bg-destructive/10 text-destructive'
 
   return (
@@ -161,7 +161,7 @@ export function PushNotificationManager({
         <div className="flex items-center gap-2">
           <Bell className="h-6 w-6 text-primary" aria-hidden />
           <h3 className="text-lg font-semibold">Push Notifications</h3>
-          {isRegistered && <CheckCircle2 className="h-5 w-5 text-emerald-600" aria-hidden />}
+          {isRegistered && <CheckCircle2 className="h-5 w-5 text-storm-deep" aria-hidden />}
         </div>
 
         <p className="text-sm text-muted-foreground">

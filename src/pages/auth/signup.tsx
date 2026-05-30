@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import {
   Star,
@@ -103,7 +103,7 @@ export function Signup() {
   ]
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-[#667eea] to-[#764ba2] p-2 sm:p-4">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-[#024ad8] to-[#0e3191] p-2 sm:p-4">
       <div
         className="pointer-events-none absolute left-[10%] top-[10%] h-24 w-24 animate-[float_6s_ease-in-out_infinite] rounded-full bg-white/10"
         style={{ animation: 'float 6s ease-in-out infinite' }}

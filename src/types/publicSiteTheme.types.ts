@@ -1,4 +1,4 @@
-/** Design tokens for the **public** consumer site (profixer.in). Consumed by storefront when backend exposes them. */
+﻿/** Design tokens for the **public** consumer site (profixer.in). Consumed by storefront when backend exposes them. */
 
 export type SiteRadiusPreset = 'sm' | 'md' | 'lg'
 export type SiteSpacingDensity = 'compact' | 'comfortable' | 'spacious'
@@ -27,12 +27,12 @@ export interface PublicSiteThemeTokens {
 }
 
 export const DEFAULT_PUBLIC_SITE_THEME: PublicSiteThemeTokens = {
-  primaryColor: '#1976d2',
-  accentColor: '#00897b',
-  backgroundColor: '#fafafa',
+  primaryColor: '#0e3191',
+  accentColor: '#356373',
+  backgroundColor: '#f7f7f7',
   surfaceColor: '#ffffff',
   textColor: '#1a1a1a',
-  mutedTextColor: '#616161',
+  mutedTextColor: '#636363',
   fontHeading: '"DM Sans", system-ui, sans-serif',
   fontBody: '"Inter", system-ui, sans-serif',
   borderRadius: 'md',

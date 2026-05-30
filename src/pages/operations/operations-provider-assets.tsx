@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Boxes, Loader2, Pencil, Plus, Archive, CheckCircle2, XCircle } from 'lucide-react'
 import { ProviderAssetsService } from '../../services/api/provider-assets.service'
 import { ProfessionalsService } from '../../services/api/professionals.service'
@@ -524,7 +524,7 @@ export function OperationsProviderAssetsPage() {
                 </SelectContent>
               </Select>
               {professionalsLoadError ? (
-                <p className="max-w-[280px] text-xs text-amber-700 dark:text-amber-500">{professionalsLoadError}</p>
+                <p className="max-w-[280px] text-xs text-bloom-coral dark:text-bloom-coral">{professionalsLoadError}</p>
               ) : null}
             </div>
             <div className="space-y-1">
@@ -698,7 +698,7 @@ export function OperationsProviderAssetsPage() {
                 ) : null}
                 {professionalsLoadError ? (
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-xs text-amber-700 dark:text-amber-500">{professionalsLoadError}</p>
+                    <p className="text-xs text-bloom-coral dark:text-bloom-coral">{professionalsLoadError}</p>
                     <Button
                       type="button"
                       variant="link"

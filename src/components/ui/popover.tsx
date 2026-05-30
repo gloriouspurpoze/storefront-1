@@ -55,7 +55,11 @@ interface PopoverContentProps {
   align?: 'start' | 'center' | 'end';
 }
 
-export function PopoverContent({ children, className, side = 'bottom', align = 'center' }: PopoverContentProps) {
+// NOTE: `side` and `align` props are accepted but not yet honored by this
+// hand-rolled popover — kept in the type for API parity with Radix Popover.
+// If positioning logic is needed, switch to `@radix-ui/react-popover` (already
+// in deps) rather than extending this stub.
+export function PopoverContent({ children, className }: PopoverContentProps) {
   const context = useContext(PopoverContext);
   if (!context) {
     throw new Error('PopoverContent must be used within a Popover component');
@@ -85,9 +89,10 @@ export function PopoverContent({ children, className, side = 'bottom', align = '
   return (
     <div
       ref={contentRef}
+      // DESIGN.md: floating-modal elevation on canvas + hairline border
       className={cn(
-        'z-50 w-72 rounded-md border bg-popover p-4 text-popover-foreground shadow-md outline-none',
-        className
+        'z-50 w-72 rounded-lg border border-hairline bg-popover p-md text-popover-foreground shadow-floating outline-none',
+        className,
       )}
     >
       {children}

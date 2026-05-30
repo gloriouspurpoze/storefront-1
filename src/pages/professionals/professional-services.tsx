@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ============================================================================
  * PROFESSIONAL SERVICES MANAGEMENT PAGE
  * ============================================================================
@@ -348,7 +348,7 @@ export function ProfessionalServices() {
             {availableServices.length === 0 && (
               <div
                 role="status"
-                className="mt-2 rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-sm"
+                className="mt-2 rounded-lg border border-bloom-coral/50 bg-bloom-coral/10 px-4 py-3 text-sm"
               >
                 No services available. Please contact admin to add platform services.
               </div>
@@ -360,7 +360,7 @@ export function ProfessionalServices() {
               }).length === 0 && (
                 <div
                   role="status"
-                  className="mt-2 rounded-lg border border-blue-500/40 bg-blue-500/10 px-4 py-3 text-sm"
+                  className="mt-2 rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-sm"
                 >
                   All available services have been added
                 </div>

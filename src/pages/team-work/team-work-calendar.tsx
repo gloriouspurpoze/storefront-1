@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   addMonths,
@@ -320,9 +320,9 @@ export function TeamWorkCalendarPage() {
         'rounded-md border px-2 py-1.5 leading-snug',
         compact ? 'text-[10px]' : 'text-[11px]',
         ev.kind === 'due' && !isStartLine && 'border-primary/30 bg-primary/5',
-        isStartLine && 'border-emerald-600/30 bg-emerald-500/5',
-        ev.kind === 'ceremony' && 'border-amber-500/30 bg-amber-500/5',
-        ev.kind === 'google' && 'border-sky-500/30 bg-sky-500/5',
+        isStartLine && 'border-storm-deep/30 bg-storm-deep/5',
+        ev.kind === 'ceremony' && 'border-bloom-coral/30 bg-bloom-coral/5',
+        ev.kind === 'google' && 'border-primary/30 bg-primary/5',
       )}
     >
       <p className={cn('font-medium text-foreground', compact ? 'line-clamp-2' : 'line-clamp-3')}>{ev.title}</p>
@@ -350,7 +350,7 @@ export function TeamWorkCalendarPage() {
           href={ev.hangoutLink}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-0.5 inline-flex items-center gap-0.5 text-[10px] font-medium text-emerald-600 hover:underline"
+          className="mt-0.5 inline-flex items-center gap-0.5 text-[10px] font-medium text-storm-deep hover:underline"
         >
           Meet <ExternalLink className="h-2.5 w-2.5" />
         </a>

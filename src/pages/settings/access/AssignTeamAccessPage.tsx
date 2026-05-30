@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Loader2,
@@ -450,7 +450,7 @@ export function AssignTeamAccessPage() {
                 </div>
 
                 {!isDashboardAccessAccount(detailUser) ? (
-                  <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100">
+                  <p className="rounded-md border border-bloom-coral/40 bg-bloom-coral/10 px-3 py-2 text-sm text-bloom-coral dark:text-bloom-deep">
                     Scoped RBAC applies to admin / super-admin and flagged dashboard members only. Use the team
                     table to change account type if needed.
                   </p>

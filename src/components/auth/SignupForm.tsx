@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import {
   Eye,
   EyeOff,
@@ -107,9 +107,9 @@ export function SignupForm({ onSignup, isLoading = false, error }: SignupFormPro
 
   const strengthBarClass = (c: PasswordStrength['color']) => {
     if (c === 'error') return 'bg-destructive'
-    if (c === 'warning') return 'bg-amber-500'
-    if (c === 'info') return 'bg-sky-500'
-    return 'bg-emerald-500'
+    if (c === 'warning') return 'bg-bloom-coral'
+    if (c === 'info') return 'bg-primary'
+    return 'bg-storm-deep'
   }
 
   const validateForm = (): boolean => {
@@ -550,7 +550,7 @@ export function SignupForm({ onSignup, isLoading = false, error }: SignupFormPro
             <div className="mb-6 text-center sm:mb-8">
               <div
                 className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-lg sm:h-16 sm:w-16"
-                style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+                style={{ background: 'linear-gradient(135deg, #024ad8 0%, #0e3191 100%)' }}
               >
                 <Building2 className="h-6 w-6 text-white sm:h-8 sm:w-8" />
               </div>

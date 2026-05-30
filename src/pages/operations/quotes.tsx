@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Button,
   Card,
@@ -365,13 +365,13 @@ export function Quotes() {
   }) => {
     const bar =
       accent === 'warning'
-        ? 'bg-amber-500'
+        ? 'bg-bloom-coral'
         : accent === 'success'
-          ? 'bg-emerald-500'
+          ? 'bg-storm-deep'
           : accent === 'danger'
-            ? 'bg-red-500'
+            ? 'bg-destructive'
             : accent === 'info'
-              ? 'bg-sky-500'
+              ? 'bg-primary'
               : 'bg-primary'
     return (
       <Card className="overflow-hidden border-border/80 shadow-sm">
@@ -428,7 +428,7 @@ export function Quotes() {
               <FileText className="h-4 w-4" />
               All quotes
             </TabsTrigger>
-            <TabsTrigger value="review" className="gap-2 py-2.5 data-[state=active]:bg-amber-600 data-[state=active]:text-white">
+            <TabsTrigger value="review" className="gap-2 py-2.5 data-[state=active]:bg-bloom-coral data-[state=active]:text-white">
               <Gavel className="h-4 w-4" />
               Review queue
               {quoteStats.pendingReview > 0 ? (

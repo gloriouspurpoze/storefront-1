@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Plan Editor — create or edit a subscription plan with live preview.
  */
 
@@ -376,7 +376,7 @@ export function PlanEditor({ planId, onDone }: PlanEditorProps) {
                 />
                 <span>
                   <span className="flex items-center gap-1.5 text-sm font-medium">
-                    <Crown className="h-3.5 w-3.5 text-amber-500" /> Mark as “Most popular”
+                    <Crown className="h-3.5 w-3.5 text-bloom-coral" /> Mark as “Most popular”
                   </span>
                   <span className="text-xs text-muted-foreground">
                     Highlights this plan in upgrade screens. Only one popular plan per audience is
@@ -423,7 +423,7 @@ export function PlanEditor({ planId, onDone }: PlanEditorProps) {
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="h-7 w-7 text-rose-600"
+                        className="h-7 w-7 text-destructive"
                         onClick={() => removeFeature(idx)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -666,7 +666,7 @@ function PlanPreviewCard({ form }: { form: FormState }) {
           <div className="flex items-center gap-1.5">
             <h4 className="text-base font-semibold">{form.name || 'Untitled plan'}</h4>
             {form.isPopular && (
-              <Badge variant="outline" className="border-amber-500/45 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+              <Badge variant="outline" className="border-bloom-coral/45 bg-bloom-coral/10 text-bloom-coral dark:text-bloom-coral">
                 <Crown className="mr-1 h-3 w-3" /> Popular
               </Badge>
             )}

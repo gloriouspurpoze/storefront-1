@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Admin: platform revenue, commission, and professional payout operations.
  */
 
@@ -337,7 +337,7 @@ export function AdminEarningsOverview() {
     if (st !== 'requested' && st !== 'pending') return null
     if (!payout.firstApprovedBy) {
       return (
-        <Badge variant="outline" className="mt-1 max-w-full border-amber-500/50 bg-amber-500/10 text-amber-950 dark:text-amber-100">
+        <Badge variant="outline" className="mt-1 max-w-full border-bloom-coral/50 bg-bloom-coral/10 text-bloom-coral dark:text-bloom-deep">
           2 admins · ≥ ₹{PAYOUT_SECOND_APPROVAL_THRESHOLD_RUPEES.toLocaleString('en-IN')}
         </Badge>
       )
@@ -355,15 +355,15 @@ export function AdminEarningsOverview() {
   const statusBadge = (status: string) => {
     const s = (status || '').toLowerCase()
     const map: Record<string, { label: string; className: string }> = {
-      pending: { label: 'Pending review', className: 'border-orange-500/40 bg-orange-500/10 text-orange-900 dark:text-orange-200' },
-      requested: { label: 'Requested', className: 'border-sky-500/40 bg-sky-500/10 text-sky-900 dark:text-sky-200' },
-      approved: { label: 'Approved', className: 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200' },
-      processing: { label: 'Processing', className: 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200' },
-      completed: { label: 'Completed', className: 'border-green-500/40 bg-green-500/10 text-green-900 dark:text-green-200' },
-      paid: { label: 'Paid', className: 'border-green-500/40 bg-green-500/10 text-green-900 dark:text-green-200' },
-      failed: { label: 'Failed', className: 'border-red-500/40 bg-red-500/10 text-red-900 dark:text-red-200' },
+      pending: { label: 'Pending review', className: 'border-bloom-coral/40 bg-bloom-coral/10 text-bloom-coral dark:text-bloom-deep' },
+      requested: { label: 'Requested', className: 'border-primary/40 bg-primary/10 text-primary dark:text-primary-deep' },
+      approved: { label: 'Approved', className: 'border-bloom-coral/40 bg-bloom-coral/10 text-bloom-coral dark:text-bloom-deep' },
+      processing: { label: 'Processing', className: 'border-bloom-coral/40 bg-bloom-coral/10 text-bloom-coral dark:text-bloom-deep' },
+      completed: { label: 'Completed', className: 'border-storm-deep/40 bg-storm-deep/10 text-storm-deep dark:text-on-ink' },
+      paid: { label: 'Paid', className: 'border-storm-deep/40 bg-storm-deep/10 text-storm-deep dark:text-on-ink' },
+      failed: { label: 'Failed', className: 'border-destructive/40 bg-destructive/10 text-destructive dark:text-destructive-foreground' },
       cancelled: { label: 'Cancelled', className: 'border-border bg-muted text-muted-foreground' },
-      on_hold: { label: 'On hold', className: 'border-red-500/40 bg-red-500/10 text-red-900 dark:text-red-200' },
+      on_hold: { label: 'On hold', className: 'border-destructive/40 bg-destructive/10 text-destructive dark:text-destructive-foreground' },
     }
     const c = map[s] || { label: status || '—', className: 'border-border bg-muted' }
     return (
@@ -446,12 +446,12 @@ export function AdminEarningsOverview() {
 
         {loadError && (
           <div
-            className="relative mb-4 rounded-md border border-amber-300 bg-amber-50 p-4 pr-10 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
+            className="relative mb-4 rounded-md border border-bloom-coral bg-bloom-rose p-4 pr-10 text-sm text-bloom-coral dark:border-bloom-coral dark:bg-bloom-coral/40 dark:text-bloom-deep"
             role="alert"
           >
             <button
               type="button"
-              className="absolute right-2 top-2 rounded p-1 text-amber-800 hover:bg-amber-200/60 dark:text-amber-200"
+              className="absolute right-2 top-2 rounded p-1 text-bloom-coral hover:bg-bloom-rose/60 dark:text-bloom-deep"
               aria-label="Dismiss"
               onClick={() => setLoadError(null)}
             >
@@ -469,7 +469,7 @@ export function AdminEarningsOverview() {
           </div>
         ) : (
           <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Card className="overflow-hidden border-0 bg-gradient-to-br from-indigo-500 to-purple-700 text-white shadow-md">
+            <Card className="overflow-hidden border-0 bg-gradient-to-br from-primary to-primary-deep text-white shadow-md">
               <CardContent className="p-6">
                 <div className="mb-1 flex items-center gap-1">
                   <IndianRupee className="h-5 w-5 shrink-0" />
@@ -480,7 +480,7 @@ export function AdminEarningsOverview() {
               </CardContent>
             </Card>
 
-            <Card className="overflow-hidden border-0 bg-gradient-to-br from-fuchsia-500 to-rose-600 text-white shadow-md">
+            <Card className="overflow-hidden border-0 bg-gradient-to-br from-primary-deep to-destructive text-white shadow-md">
               <CardContent className="p-6">
                 <div className="mb-1 flex items-center gap-1">
                   <TrendingUp className="h-5 w-5 shrink-0" />
@@ -497,7 +497,7 @@ export function AdminEarningsOverview() {
               </CardContent>
             </Card>
 
-            <Card className="overflow-hidden border-0 bg-gradient-to-br from-sky-400 to-cyan-400 text-white shadow-md">
+            <Card className="overflow-hidden border-0 bg-gradient-to-br from-primary to-primary text-white shadow-md">
               <CardContent className="p-6">
                 <div className="mb-1 flex items-center gap-1">
                   <Hourglass className="h-5 w-5 shrink-0" />
@@ -508,7 +508,7 @@ export function AdminEarningsOverview() {
               </CardContent>
             </Card>
 
-            <Card className="overflow-hidden border-0 bg-gradient-to-br from-emerald-400 to-teal-400 text-white shadow-md">
+            <Card className="overflow-hidden border-0 bg-gradient-to-br from-storm-sea to-storm-sea text-white shadow-md">
               <CardContent className="p-6">
                 <div className="mb-1 flex items-center gap-1">
                   <CircleCheck className="h-5 w-5 shrink-0" />
@@ -531,7 +531,7 @@ export function AdminEarningsOverview() {
           <Card>
             <CardContent className="p-4">
               <p className="text-sm text-muted-foreground">Pending customer payments</p>
-              <p className="text-lg font-semibold text-orange-600 dark:text-orange-400">
+              <p className="text-lg font-semibold text-bloom-coral dark:text-bloom-coral">
                 ₹{Number(safeSummary.pendingPayments || 0).toLocaleString('en-IN')}
               </p>
             </CardContent>
@@ -539,7 +539,7 @@ export function AdminEarningsOverview() {
           <Card>
             <CardContent className="p-4">
               <p className="text-sm text-muted-foreground">Cash in hand (platform)</p>
-              <p className="text-lg font-semibold text-green-600 dark:text-green-400">
+              <p className="text-lg font-semibold text-storm-deep dark:text-storm-sea">
                 ₹{Number(safeSummary.cashInHand || 0).toLocaleString('en-IN')}
               </p>
             </CardContent>
@@ -573,7 +573,7 @@ export function AdminEarningsOverview() {
 
         {activeTabIdx === 0 && (
           <div
-            className="mb-4 rounded-md border border-sky-200 bg-sky-50 p-4 text-sm dark:border-sky-900 dark:bg-sky-950/40"
+            className="mb-4 rounded-md border border-primary/20 bg-primary-soft p-4 text-sm dark:border-primary dark:bg-primary/40"
             role="status"
           >
             Payout batches of <strong>₹{PAYOUT_SECOND_APPROVAL_THRESHOLD_RUPEES.toLocaleString('en-IN')}</strong> or more
@@ -633,7 +633,7 @@ export function AdminEarningsOverview() {
                             <TableCell className="text-right tabular-nums">
                               ₹{Number(payout.tdsAmount ?? 0).toLocaleString('en-IN')}
                             </TableCell>
-                            <TableCell className="text-right font-semibold text-green-600 tabular-nums dark:text-green-400">
+                            <TableCell className="text-right font-semibold text-storm-deep tabular-nums dark:text-storm-sea">
                               ₹{Number(payout.netAmount ?? 0).toLocaleString('en-IN')}
                             </TableCell>
                             <TableCell className="uppercase">
@@ -665,7 +665,7 @@ export function AdminEarningsOverview() {
                                 {activeTabIdx === 0 && canApprove(payout.status) && (
                                   <Button
                                     size="sm"
-                                    className="bg-green-600 hover:bg-green-700"
+                                    className="bg-storm-deep hover:bg-storm-deep"
                                     type="button"
                                     onClick={() => handleApprovePayout(payout._id)}
                                   >
@@ -739,7 +739,7 @@ export function AdminEarningsOverview() {
               </>
             ) : (
               <div
-                className="rounded-md border border-sky-200 bg-sky-50 p-4 text-sm dark:border-sky-900 dark:bg-sky-950/40"
+                className="rounded-md border border-primary/20 bg-primary-soft p-4 text-sm dark:border-primary dark:bg-primary/40"
                 role="status"
               >
                 No payouts in this queue. New professional requests usually appear as <strong>pending</strong> or{' '}

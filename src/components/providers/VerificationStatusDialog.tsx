@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import { CheckCircle, Clock, Ban, ShieldCheck, Loader2 } from 'lucide-react'
 import {
   Dialog,
@@ -136,8 +136,8 @@ export function VerificationStatusDialog({
             <Badge
               className={cn(
                 'mt-2 capitalize',
-                provider.verification_status === 'verified' && 'bg-emerald-600',
-                provider.verification_status === 'pending' && 'bg-amber-500',
+                provider.verification_status === 'verified' && 'bg-storm-deep',
+                provider.verification_status === 'pending' && 'bg-bloom-coral',
                 provider.verification_status === 'rejected' && 'bg-destructive',
               )}
             >
@@ -180,8 +180,8 @@ export function VerificationStatusDialog({
             <div
               className={cn(
                 'rounded-md border p-3 text-sm',
-                selectedStatus.tone === 'success' && 'border-emerald-500/40 bg-emerald-500/10',
-                selectedStatus.tone === 'warning' && 'border-amber-500/40 bg-amber-500/10',
+                selectedStatus.tone === 'success' && 'border-storm-deep/40 bg-storm-deep/10',
+                selectedStatus.tone === 'warning' && 'border-bloom-coral/40 bg-bloom-coral/10',
                 selectedStatus.tone === 'destructive' && 'border-destructive/40 bg-destructive/10',
               )}
             >

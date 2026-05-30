@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import {
   MoreVertical,
   Eye,
@@ -40,9 +40,9 @@ interface OrderTableProps {
 function getCustomerTypeClass(type: string) {
   switch (type) {
     case 'Pro Customer':
-      return 'text-emerald-600'
+      return 'text-storm-deep'
     case 'VIP Customer':
-      return 'text-amber-600'
+      return 'text-bloom-coral'
     default:
       return 'text-muted-foreground'
   }

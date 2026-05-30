@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import {
   Button,
   Card,
@@ -528,35 +528,35 @@ export default function Coupons() {
               </div>
             </CardContent>
           </Card>
-          <Card className="rounded-xl border-emerald-200 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5">
+          <Card className="rounded-xl border-storm-mist/30 bg-gradient-to-br from-storm-deep/10 to-storm-deep/5">
             <CardContent className="flex items-center gap-3 pt-6">
-              <div className="rounded-lg bg-emerald-500/15 p-3 text-emerald-600">
+              <div className="rounded-lg bg-storm-deep/15 p-3 text-storm-deep">
                 <TrendingUp className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-emerald-700">{coupons.filter((c) => c.is_active).length}</p>
+                <p className="text-2xl font-bold text-storm-deep">{coupons.filter((c) => c.is_active).length}</p>
                 <p className="text-sm text-muted-foreground">Active Coupons</p>
               </div>
             </CardContent>
           </Card>
-          <Card className="rounded-xl border-sky-200 bg-gradient-to-br from-sky-500/10 to-sky-500/5">
+          <Card className="rounded-xl border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5">
             <CardContent className="flex items-center gap-3 pt-6">
-              <div className="rounded-lg bg-sky-500/15 p-3 text-sky-600">
+              <div className="rounded-lg bg-primary/15 p-3 text-primary">
                 <Users className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-sky-700">{coupons.reduce((sum, c) => sum + c.usage_count, 0)}</p>
+                <p className="text-2xl font-bold text-primary">{coupons.reduce((sum, c) => sum + c.usage_count, 0)}</p>
                 <p className="text-sm text-muted-foreground">Total Usage</p>
               </div>
             </CardContent>
           </Card>
-          <Card className="rounded-xl border-amber-200 bg-gradient-to-br from-amber-500/10 to-amber-500/5">
+          <Card className="rounded-xl border-bloom-coral/40 bg-gradient-to-br from-bloom-coral/10 to-bloom-coral/5">
             <CardContent className="flex items-center gap-3 pt-6">
-              <div className="rounded-lg bg-amber-500/15 p-3 text-amber-600">
+              <div className="rounded-lg bg-bloom-coral/15 p-3 text-bloom-coral">
                 <Calendar className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-amber-800">{expiredCount}</p>
+                <p className="text-2xl font-bold text-bloom-coral">{expiredCount}</p>
                 <p className="text-sm text-muted-foreground">Expired</p>
               </div>
             </CardContent>
@@ -646,7 +646,7 @@ export default function Coupons() {
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => copyCode(coupon.code)}>
-                                    {copiedCode === coupon.code ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
+                                    {copiedCode === coupon.code ? <Check className="h-4 w-4 text-storm-deep" /> : <Copy className="h-4 w-4" />}
                                   </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>{copiedCode === coupon.code ? 'Copied!' : 'Copy code'}</TooltipContent>

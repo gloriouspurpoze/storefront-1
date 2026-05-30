@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+﻿import React, { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Palette, RotateCcw, Save } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
@@ -131,7 +131,7 @@ export function InvoiceBrandingPage() {
       />
 
       <div
-        className="mb-6 rounded-md border border-sky-200 bg-sky-50 p-4 text-sm text-sky-950 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-100"
+        className="mb-6 rounded-md border border-primary/20 bg-primary-soft p-4 text-sm text-primary dark:border-primary dark:bg-primary/40 dark:text-primary-deep"
         role="status"
       >
         Settings are stored in this browser (<strong>localStorage</strong>). For multi-admin teams, mirror the same values in

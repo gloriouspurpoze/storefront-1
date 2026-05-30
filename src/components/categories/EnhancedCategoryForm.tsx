@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import {
   FolderTree,
   Save,
@@ -85,7 +85,7 @@ function AlertBox({
       role="alert"
       className={cn(
         'rounded-md border px-4 py-3 text-sm',
-        variant === 'info' && 'border-blue-200 bg-blue-50 text-blue-900 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-100',
+        variant === 'info' && 'border-primary/20 bg-primary-soft text-primary dark:border-primary dark:bg-primary/40 dark:text-primary-deep',
         variant === 'error' && 'border-destructive/50 bg-destructive/10 text-destructive',
         className
       )}
@@ -214,7 +214,7 @@ export default function EnhancedCategoryForm({
     }
 
     if (formData.colorCode && !/^#[0-9A-Fa-f]{6}$/.test(formData.colorCode)) {
-      newErrors.colorCode = 'Color code must be a valid hex color (e.g., #FF5733)'
+      newErrors.colorCode = 'Color code must be a valid hex color (e.g., #024ad8)'
     }
 
     setErrors(newErrors)
@@ -543,11 +543,11 @@ export default function EnhancedCategoryForm({
                         id="color-code"
                         value={formData.colorCode}
                         onChange={(e) => handleInputChange('colorCode', e.target.value)}
-                        placeholder="#FF5733"
+                        placeholder="#024ad8"
                         className={cn(errors.colorCode && 'border-destructive')}
                       />
                       <p className="text-xs text-muted-foreground">
-                        {errors.colorCode || 'Hex color code (e.g., #FF5733)'}
+                        {errors.colorCode || 'Hex color code (e.g., #024ad8)'}
                       </p>
                     </div>
                     {formData.colorCode && /^#[0-9A-Fa-f]{6}$/.test(formData.colorCode) && (

@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { Flame, Heart, ShoppingCart, Star } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { SERVICE_CARD_IMAGE_SPEC } from '../../constants/serviceImageSpec'
@@ -100,7 +100,7 @@ export const MobileServiceCardPreview: React.FC<MobileServiceCardPreviewProps> =
         ) : null}
         {emergency ? (
           <span
-            className={`absolute left-2 rounded-full bg-amber-400 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-950 shadow-sm ${
+            className={`absolute left-2 rounded-full bg-bloom-coral px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-bloom-coral shadow-sm ${
               pct > 0 ? 'top-8' : 'top-2'
             }`}
           >
@@ -138,7 +138,7 @@ export const MobileServiceCardPreview: React.FC<MobileServiceCardPreviewProps> =
         </div>
 
         <p className="line-clamp-2 text-sm font-bold leading-tight text-[#00142F]">{name}</p>
-        <p className="line-clamp-1 text-[11px] text-[#4B5563]">{tagline}</p>
+        <p className="line-clamp-1 text-[11px] text-[#3D3D3D]">{tagline}</p>
 
         <div className="flex items-center justify-between gap-2 pt-0.5">
           <div className="flex min-w-0 flex-col gap-0.5">
@@ -152,7 +152,7 @@ export const MobileServiceCardPreview: React.FC<MobileServiceCardPreviewProps> =
               ) : null}
             </div>
             {showMrp && pct > 0 ? (
-              <span className="text-[10px] font-medium text-emerald-700">
+              <span className="text-[10px] font-medium text-storm-deep">
                 You save {formatPrice(Math.round(mrpNum - offerNum))}
               </span>
             ) : null}

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ============================================================================
  * PROFESSIONAL REVIEWS & RATINGS PAGE
  * ============================================================================
@@ -68,6 +68,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts'
+import { CHART_TOKENS, CHART_PALETTE } from '../../lib/chartPalette'
 
 interface Review {
   _id: string
@@ -117,7 +118,7 @@ function StarRating({
           <Star
             key={i}
             className={cn(
-              filled ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/40',
+              filled ? 'fill-bloom-coral text-bloom-coral' : 'text-muted-foreground/40',
               readOnly && 'pointer-events-none'
             )}
             size={iconSize}
@@ -231,7 +232,14 @@ export function ProfessionalReviews() {
       }))
     : []
 
-  const COLORS = ['#f59e0b', '#f97316', '#eab308', '#84cc16', '#22c55e']
+  // DESIGN.md tokens — 1-star→5-star: warm→positive
+  const COLORS = [
+    CHART_PALETTE.bloomDeep,
+    CHART_PALETTE.bloomCoral,
+    CHART_PALETTE.graphite,
+    CHART_PALETTE.stormSea,
+    CHART_PALETTE.stormDeep,
+  ]
 
   if (loading && reviews.length === 0) {
     return (
@@ -253,7 +261,7 @@ export function ProfessionalReviews() {
           <Card className="rounded-lg border shadow-sm">
             <CardContent className="pt-6">
               <div className="mb-1 flex items-center">
-                <Star className="mr-1 h-4 w-4 text-amber-500" />
+                <Star className="mr-1 h-4 w-4 text-bloom-coral" />
                 <span className="text-sm text-muted-foreground">Average Rating</span>
               </div>
               <p className="text-3xl font-bold">{stats.averageRating.toFixed(1)}</p>
@@ -275,7 +283,7 @@ export function ProfessionalReviews() {
           <Card className="rounded-lg border shadow-sm">
             <CardContent className="pt-6">
               <div className="mb-1 flex items-center">
-                <Smile className="mr-1 h-4 w-4 text-green-600" />
+                <Smile className="mr-1 h-4 w-4 text-storm-deep" />
                 <span className="text-sm text-muted-foreground">Positive (4–5★)</span>
               </div>
               <p className="text-3xl font-bold">
@@ -296,7 +304,7 @@ export function ProfessionalReviews() {
           <Card className="rounded-lg border shadow-sm">
             <CardContent className="pt-6">
               <div className="mb-1 flex items-center">
-                <TrendingUp className="mr-1 h-4 w-4 text-sky-600" />
+                <TrendingUp className="mr-1 h-4 w-4 text-primary" />
                 <span className="text-sm text-muted-foreground">Response Rate</span>
               </div>
               <p className="text-3xl font-bold">{reviews.filter((r) => r.response).length}</p>
@@ -331,7 +339,7 @@ export function ProfessionalReviews() {
                       ).toFixed(0)}%`
                     }
                     outerRadius={100}
-                    fill="#8884d8"
+                    fill={CHART_TOKENS.primary}
                     dataKey="value"
                   >
                     {ratingDistributionData.map((_, index) => (
@@ -353,7 +361,7 @@ export function ProfessionalReviews() {
                   <YAxis domain={[0, 5]} />
                   <RechartsTooltip />
                   <Legend />
-                  <Bar dataKey="averageRating" fill="#2563eb" name="Avg Rating" />
+                  <Bar dataKey="averageRating" fill={CHART_TOKENS.primary} name="Avg Rating" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -400,7 +408,7 @@ export function ProfessionalReviews() {
         {filteredReviews.length === 0 ? (
           <div
             role="status"
-            className="rounded-lg border border-blue-500/40 bg-blue-500/10 px-4 py-3 text-sm"
+            className="rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-sm"
           >
             No reviews found
           </div>

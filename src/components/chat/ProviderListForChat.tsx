@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Provider List for Chat (Admin)
  * Allows admins to browse and start conversations with service providers
  */
@@ -225,13 +225,13 @@ export const ProviderListForChat: React.FC<ProviderListForChatProps> = ({
                     <div className="flex items-center gap-1.5">
                       <span className="font-medium">{provider.businessName}</span>
                       {provider.verificationStatus === 'verified' && (
-                        <CheckCircle className="h-4 w-4 text-emerald-600" aria-label="Verified" />
+                        <CheckCircle className="h-4 w-4 text-storm-deep" aria-label="Verified" />
                       )}
                     </div>
                     <p className="mt-0.5 text-sm text-muted-foreground">{provider.email}</p>
                     {provider.rating != null && provider.rating > 0 && (
                       <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-                        <Star className="h-3.5 w-3.5 text-amber-500" />
+                        <Star className="h-3.5 w-3.5 text-bloom-coral" />
                         {provider.rating.toFixed(1)} ({provider.totalJobs || 0} jobs)
                       </p>
                     )}

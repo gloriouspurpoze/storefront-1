@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Catalog Analytics — admin page surfacing per-service / per-product
  * performance over an arbitrary period.
  *
@@ -130,8 +130,8 @@ const fmtN = (n: number) => Number(n || 0).toLocaleString('en-IN')
 /** Inline progress bar showing this row's share of the period total. */
 function SharePill({ value, total, tone = 'sky' }: { value: number; total: number; tone?: 'sky' | 'emerald' }) {
   const pct = total > 0 ? Math.min(100, Math.round((value / total) * 100)) : 0
-  const bar = tone === 'emerald' ? 'bg-emerald-500' : 'bg-sky-500'
-  const text = tone === 'emerald' ? 'text-emerald-700' : 'text-sky-700'
+  const bar = tone === 'emerald' ? 'bg-storm-deep' : 'bg-primary'
+  const text = tone === 'emerald' ? 'text-storm-deep' : 'text-primary'
   return (
     <div className="flex items-center gap-2">
       <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
@@ -427,10 +427,10 @@ export function CatalogAnalytics() {
                             variant={s.completionRate >= 70 ? 'default' : 'secondary'}
                             className={
                               s.completionRate >= 70
-                                ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100'
+                                ? 'bg-storm-mist/30 text-storm-deep hover:bg-storm-mist/30'
                                 : s.completionRate >= 30
-                                  ? 'bg-amber-100 text-amber-700 hover:bg-amber-100'
-                                  : 'bg-rose-100 text-rose-700 hover:bg-rose-100'
+                                  ? 'bg-bloom-rose text-bloom-coral hover:bg-bloom-rose'
+                                  : 'bg-destructive/10 text-destructive hover:bg-destructive/10'
                             }
                           >
                             {s.completionRate.toFixed(1)}%
@@ -448,7 +448,7 @@ export function CatalogAnalytics() {
                         <TableCell className="text-right">
                           {s.averageRating > 0 ? (
                             <span className="inline-flex items-center gap-0.5 text-sm">
-                              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                              <Star className="h-3.5 w-3.5 fill-bloom-coral text-bloom-coral" />
                               {s.averageRating.toFixed(1)}
                               <span className="ml-1 text-xs text-muted-foreground">
                                 ({fmtN(s.reviewCount)})
@@ -584,10 +584,10 @@ function KpiCard({
   tone: 'sky' | 'emerald' | 'violet' | 'amber'
 }) {
   const TONE: Record<string, string> = {
-    sky: 'from-sky-500 to-cyan-500',
-    emerald: 'from-emerald-500 to-teal-500',
-    violet: 'from-violet-500 to-purple-600',
-    amber: 'from-amber-500 to-orange-500',
+    sky: 'from-primary to-primary',
+    emerald: 'from-storm-deep to-storm-deep',
+    violet: 'from-primary-deep to-primary-deep',
+    amber: 'from-bloom-coral to-bloom-coral',
   }
   return (
     <Card className={`overflow-hidden rounded-xl border-0 bg-gradient-to-br text-white ${TONE[tone]}`}>

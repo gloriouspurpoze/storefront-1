@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import {
   MoreVertical,
   Eye,
@@ -258,13 +258,13 @@ export const UserTable: React.FC<UserTableProps> = ({
                       {user.userType}
                     </Badge>
                     {listVariant === 'directory' && user.registrationSource === 'google_oauth' && (
-                      <Badge variant="outline" className="border-sky-500/40 text-sky-700 dark:text-sky-300">
+                      <Badge variant="outline" className="border-primary/40 text-primary dark:text-primary">
                         Google
                       </Badge>
                     )}
                     <UserAccessChips user={user} maxPermissionChips={3} className="w-full" />
                     {user.isVerified && (
-                      <Badge variant="success" className="border border-green-600/30 bg-transparent">
+                      <Badge variant="success" className="border border-storm-deep/30 bg-transparent">
                         Verified
                       </Badge>
                     )}
@@ -375,7 +375,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                         {user.userType}
                       </Badge>
                       {listVariant === 'directory' && user.registrationSource === 'google_oauth' && (
-                        <Badge variant="outline" className="border-sky-500/40 text-sky-700 dark:text-sky-300">
+                        <Badge variant="outline" className="border-primary/40 text-primary dark:text-primary">
                           Google
                         </Badge>
                       )}

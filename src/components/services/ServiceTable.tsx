@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import {
   MoreVertical,
   Eye,
@@ -211,7 +211,7 @@ export const ServiceTable: React.FC<ServiceTableProps> = ({
                   </div>
                 </div>
                 <div className="mb-1 flex items-center gap-2 text-sm text-muted-foreground">
-                  <span className="text-amber-500">★</span>
+                  <span className="text-bloom-coral">★</span>
                   <span>
                     {service.rating.toFixed(1)} ({service.reviewCount})
                   </span>
@@ -293,7 +293,7 @@ export const ServiceTable: React.FC<ServiceTableProps> = ({
                 </TableCell>
                 <TableCell>
                   <div>
-                    <div className="mb-0.5 flex items-center gap-0.5 text-amber-500">
+                    <div className="mb-0.5 flex items-center gap-0.5 text-bloom-coral">
                       <span className="text-sm">★</span>
                       <span className="text-sm text-foreground">{service.rating.toFixed(1)}</span>
                     </div>

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+﻿import React, { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, ExternalLink, Loader2 } from 'lucide-react'
 import { BazaarGuidanceAccordion } from './BazaarGuidanceAccordion'
@@ -28,9 +28,9 @@ import { Textarea } from '../../components/ui/textarea'
 import { cn } from '../../lib/utils'
 
 function statusBadgeClass(status: string) {
-  if (status === 'published') return 'border-emerald-200 bg-emerald-500/10 text-emerald-800'
-  if (status === 'pending_review') return 'border-amber-200 bg-amber-500/10 text-amber-800'
-  if (status === 'rejected') return 'border-red-200 bg-red-500/10 text-red-800'
+  if (status === 'published') return 'border-storm-mist/30 bg-storm-deep/10 text-storm-deep'
+  if (status === 'pending_review') return 'border-bloom-coral/40 bg-bloom-coral/10 text-bloom-coral'
+  if (status === 'rejected') return 'border-destructive/20 bg-destructive/10 text-destructive'
   return 'border-border bg-muted/50'
 }
 
@@ -312,7 +312,7 @@ export default function BazaarListingReviewDetailPage() {
                   {moderationStatus === 'pending_review' ? (
                     <div className="flex flex-col gap-2 pt-2">
                       <Button
-                        className="bg-emerald-600 text-white hover:bg-emerald-600/90"
+                        className="bg-storm-deep text-white hover:bg-storm-deep/90"
                         onClick={() => {
                           setModerateAction('approve')
                           setModerateOpen(true)
@@ -412,7 +412,7 @@ export default function BazaarListingReviewDetailPage() {
             </Button>
             <Button
               variant={moderateAction === 'reject' ? 'destructive' : 'default'}
-              className={moderateAction === 'approve' ? 'bg-emerald-600 hover:bg-emerald-600/90' : undefined}
+              className={moderateAction === 'approve' ? 'bg-storm-deep hover:bg-storm-deep/90' : undefined}
               disabled={busy || !moderateAction}
               onClick={() => void onModerate()}
             >

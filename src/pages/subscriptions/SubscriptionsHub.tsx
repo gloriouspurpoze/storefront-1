@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Subscriptions Hub — admin overview, plan catalogue and subscriber lifecycle.
  *
  * Single page, three deep-linkable tabs:
@@ -124,8 +124,8 @@ const TAB_FOR_PATH: Record<string, HubTab> = {
 
 function planTypeBadge(type?: PlanType): string {
   return type === 'provider'
-    ? 'border-violet-500/40 bg-violet-500/10 text-violet-700 dark:text-violet-300'
-    : 'border-sky-500/40 bg-sky-500/10 text-sky-700 dark:text-sky-300'
+    ? 'border-primary-deep/40 bg-primary-deep/10 text-primary-deep dark:text-primary-deep'
+    : 'border-primary/40 bg-primary/10 text-primary dark:text-primary'
 }
 
 export function SubscriptionsHub() {
@@ -351,7 +351,7 @@ function OverviewTab({ onJumpToPlans }: { onJumpToPlans: () => void }) {
         <Card>
           <CardContent className="space-y-1.5 p-4">
             <div className="flex items-center gap-2 text-sm font-semibold">
-              <Crown className="h-4 w-4 text-amber-500" /> Past due
+              <Crown className="h-4 w-4 text-bloom-coral" /> Past due
             </div>
             <p className="text-2xl font-bold tabular-nums">{stats?.counts.pastDue ?? 0}</p>
             <p className="text-xs text-muted-foreground">
@@ -362,7 +362,7 @@ function OverviewTab({ onJumpToPlans }: { onJumpToPlans: () => void }) {
         <Card>
           <CardContent className="space-y-1.5 p-4">
             <div className="flex items-center gap-2 text-sm font-semibold">
-              <PauseCircle className="h-4 w-4 text-violet-500" /> Paused
+              <PauseCircle className="h-4 w-4 text-primary-deep" /> Paused
             </div>
             <p className="text-2xl font-bold tabular-nums">{stats?.counts.paused ?? 0}</p>
             <p className="text-xs text-muted-foreground">
@@ -373,7 +373,7 @@ function OverviewTab({ onJumpToPlans }: { onJumpToPlans: () => void }) {
         <Card>
           <CardContent className="space-y-1.5 p-4">
             <div className="flex items-center gap-2 text-sm font-semibold">
-              <Zap className="h-4 w-4 text-emerald-500" /> Trial pipeline
+              <Zap className="h-4 w-4 text-storm-deep" /> Trial pipeline
             </div>
             <p className="text-2xl font-bold tabular-nums">{stats?.counts.trial ?? 0}</p>
             <p className="text-xs text-muted-foreground">
@@ -558,7 +558,7 @@ function PlanCard({
             <div className="flex items-center gap-2">
               <h3 className="truncate text-base font-semibold">{plan.name}</h3>
               {plan.isPopular && (
-                <Badge variant="outline" className="border-amber-500/45 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                <Badge variant="outline" className="border-bloom-coral/45 bg-bloom-coral/10 text-bloom-coral dark:text-bloom-coral">
                   <Crown className="mr-1 h-3 w-3" /> Popular
                 </Badge>
               )}
@@ -592,7 +592,7 @@ function PlanCard({
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={onDelete} className="text-rose-600">
+              <DropdownMenuItem onClick={onDelete} className="text-destructive">
                 <Trash2 className="mr-2 h-4 w-4" /> Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -607,7 +607,7 @@ function PlanCard({
             {PLAN_STATUS_LABEL[plan.status]}
           </Badge>
           {plan.trialDays ? (
-            <Badge variant="outline" className="border-sky-500/40 bg-sky-500/10 text-sky-700 dark:text-sky-300 text-xs">
+            <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary dark:text-primary text-xs">
               {plan.trialDays}-day trial
             </Badge>
           ) : null}
@@ -897,7 +897,7 @@ function SubscribersTab() {
                             {SUBSCRIPTION_STATUS_LABEL[row.status]}
                           </Badge>
                           {row.cancelAtPeriodEnd && row.status !== 'cancelled' && (
-                            <div className="mt-1 text-[10px] uppercase tracking-wide text-amber-700 dark:text-amber-300">
+                            <div className="mt-1 text-[10px] uppercase tracking-wide text-bloom-coral dark:text-bloom-coral">
                               Ends at period
                             </div>
                           )}
@@ -959,7 +959,7 @@ function SubscribersTab() {
                                       setCancelReason('')
                                       setCancelOpen(row)
                                     }}
-                                    className="text-rose-600"
+                                    className="text-destructive"
                                   >
                                     <XCircle className="mr-2 h-4 w-4" /> Cancel subscription
                                   </DropdownMenuItem>

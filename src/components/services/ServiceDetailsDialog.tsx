@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import {
   Building2,
   MapPin,
@@ -94,7 +94,7 @@ export const ServiceDetailsDialog: React.FC<ServiceDetailsDialogProps> = ({
               )}
             </div>
             <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-              <Star className="h-4 w-4 text-amber-500" />
+              <Star className="h-4 w-4 text-bloom-coral" />
               {service.rating.toFixed(1)} ({service.totalReviews} reviews)
             </div>
           </div>

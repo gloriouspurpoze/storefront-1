@@ -90,7 +90,8 @@ export function CouponInput({
       <div>
         <Badge
           variant="default"
-          className="h-8 gap-1.5 border-emerald-600/30 bg-emerald-600/15 pl-2 pr-1 text-emerald-900 dark:text-emerald-100"
+          // DESIGN.md: storm tones for neutral-positive "applied" state
+          className="h-8 gap-1.5 border-storm-deep/30 bg-storm-mist/30 pl-2 pr-1 text-storm-deep"
         >
           <Check className="h-3.5 w-3.5" />
           Coupon Applied: {appliedCouponCode || code}
@@ -98,7 +99,7 @@ export function CouponInput({
             <button
               type="button"
               onClick={handleRemove}
-              className="ml-1 rounded p-0.5 hover:bg-emerald-900/10"
+              className="ml-1 rounded p-0.5 hover:bg-storm-deep/10"
               aria-label="Remove coupon"
             >
               <X className="h-3.5 w-3.5" />

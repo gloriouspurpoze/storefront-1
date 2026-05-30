@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import {
   Button,
   Card,
@@ -72,9 +72,9 @@ const TAB_ITEMS = [
 ] as const
 
 function statusBadgeClass(color: 'warning' | 'success' | 'error') {
-  if (color === 'warning') return 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100'
-  if (color === 'success') return 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-100'
-  return 'border-red-200 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950/40 dark:text-red-100'
+  if (color === 'warning') return 'border-bloom-coral/40 bg-bloom-rose text-bloom-coral dark:border-bloom-coral dark:bg-bloom-coral/40 dark:text-bloom-deep'
+  if (color === 'success') return 'border-storm-mist/30 bg-storm-mist/30 text-storm-deep dark:border-storm-deep dark:bg-storm-deep/40 dark:text-on-ink'
+  return 'border-destructive/20 bg-destructive/10 text-destructive dark:border-destructive dark:bg-destructive/40 dark:text-destructive-foreground'
 }
 
 export function EditProvider() {
@@ -704,7 +704,7 @@ export function EditProvider() {
 
               <div>
                 <p className="mb-2 text-sm font-semibold">Services Offered *</p>
-                <div className="mb-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-950 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
+                <div className="mb-3 rounded-lg border border-primary/20 bg-primary-soft px-3 py-2 text-sm text-primary dark:border-primary dark:bg-primary/30 dark:text-primary-deep">
                   Add all the services your business provides. Be specific to help customers find you easily.
                 </div>
                 <div className="mb-2 flex flex-col gap-2 sm:flex-row">
@@ -748,7 +748,7 @@ export function EditProvider() {
 
               <div>
                 <p className="mb-2 text-sm font-semibold">Service Areas *</p>
-                <div className="mb-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-950 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
+                <div className="mb-3 rounded-lg border border-primary/20 bg-primary-soft px-3 py-2 text-sm text-primary dark:border-primary dark:bg-primary/30 dark:text-primary-deep">
                   Specify the locations or neighborhoods where you provide services.
                 </div>
                 <div className="mb-2 flex flex-col gap-2 sm:flex-row">
@@ -926,12 +926,12 @@ export function EditProvider() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {formData.payment_methods.map((method, index) => (
-                    <Badge key={`${method}-${index}`} variant="outline" className="gap-1 border-emerald-200 bg-emerald-50 pr-1 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100">
+                    <Badge key={`${method}-${index}`} variant="outline" className="gap-1 border-storm-mist/30 bg-storm-mist/30 pr-1 text-storm-deep dark:border-storm-deep dark:bg-storm-deep/40 dark:text-on-ink">
                       {method}
                       {!previewMode && (
                         <button
                           type="button"
-                          className="rounded-sm p-0.5 hover:bg-emerald-100 dark:hover:bg-emerald-900/50"
+                          className="rounded-sm p-0.5 hover:bg-storm-mist/30 dark:hover:bg-storm-deep/50"
                           onClick={() => removePaymentMethod(method)}
                           aria-label={`Remove ${method}`}
                         >
@@ -1013,7 +1013,7 @@ export function EditProvider() {
                     ))}
                   </SelectContent>
                 </Select>
-                <div className="mt-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-950 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
+                <div className="mt-3 rounded-lg border border-primary/20 bg-primary-soft px-3 py-2 text-sm text-primary dark:border-primary dark:bg-primary/30 dark:text-primary-deep">
                   Current status: <strong className="capitalize">{formData.verification_status}</strong>
                 </div>
               </div>
@@ -1071,33 +1071,33 @@ export function EditProvider() {
                 </div>
               </div>
 
-              <Card className="rounded-xl border-emerald-200 bg-emerald-50/80 dark:border-emerald-900 dark:bg-emerald-950/30">
+              <Card className="rounded-xl border-storm-mist/30 bg-storm-mist/80 dark:border-storm-deep dark:bg-storm-deep/30">
                 <CardContent className="pt-6">
-                  <p className="mb-3 font-semibold text-emerald-900 dark:text-emerald-100">Profile Summary</p>
+                  <p className="mb-3 font-semibold text-storm-deep dark:text-on-ink">Profile Summary</p>
                   <ul className="space-y-3 text-sm">
                     <li className="flex gap-2">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-storm-deep" />
                       <div>
                         <p className="font-medium">{formData.business_name || 'Business name not set'}</p>
                         <p className="text-xs text-muted-foreground">Business Name</p>
                       </div>
                     </li>
                     <li className="flex gap-2">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-storm-deep" />
                       <div>
                         <p className="font-medium">{formData.services_offered.length} services</p>
                         <p className="text-xs text-muted-foreground">Services Offered</p>
                       </div>
                     </li>
                     <li className="flex gap-2">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-storm-deep" />
                       <div>
                         <p className="font-medium">{formData.service_areas.length} areas</p>
                         <p className="text-xs text-muted-foreground">Service Areas</p>
                       </div>
                     </li>
                     <li className="flex gap-2">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-storm-deep" />
                       <div>
                         <p className="font-medium">{completionPercentage}% complete</p>
                         <p className="text-xs text-muted-foreground">Profile Completion</p>

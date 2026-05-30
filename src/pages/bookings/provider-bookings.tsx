@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import {
   Search,
   Filter,
@@ -55,13 +55,13 @@ const tabs = [
 function statusBadgeClass(status: string) {
   switch (status) {
     case 'pending':
-      return 'bg-amber-500/15 text-amber-800 dark:text-amber-200'
+      return 'bg-bloom-coral/15 text-bloom-coral dark:text-bloom-deep'
     case 'accepted':
-      return 'bg-sky-500/15 text-sky-800 dark:text-sky-200'
+      return 'bg-primary/15 text-primary dark:text-primary-deep'
     case 'in_progress':
       return 'bg-primary/15 text-primary'
     case 'completed':
-      return 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-200'
+      return 'bg-storm-deep/15 text-storm-deep dark:text-on-ink'
     case 'cancelled':
       return 'bg-destructive/15 text-destructive'
     default:

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ============================================================================
  * PROFESSIONAL DASHBOARD
  * ============================================================================
@@ -22,22 +22,18 @@ import {
 import { useAppSelector } from '../../store/hooks'
 import { BookingsService } from '../../services/api/bookings.service'
 import { useNavigate, Link } from 'react-router-dom'
-import { Line } from 'react-chartjs-2'
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler,
-} from 'chart.js'
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+} from 'recharts'
 import { Badge, Button, Card, CardContent } from '../../components/ui'
 import { Avatar, AvatarFallback } from '../../components/ui/avatar'
-
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
+import { CHART_TOKENS } from '../../lib/chartPalette'
 
 interface Stats {
   totalBookings: number
@@ -180,38 +176,20 @@ export function ProfessionalDashboard() {
     }
   }
 
-  const earningsChartData = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov'],
-    datasets: [
-      {
-        label: 'Monthly Earnings (₹)',
-        data: [8000, 9500, 11000, 10500, 12000, 11500, 13000, 12500, 14000, 13500, 12500],
-        fill: true,
-        backgroundColor: 'rgba(37, 99, 235, 0.1)',
-        borderColor: 'rgba(37, 99, 235, 1)',
-        tension: 0.4,
-      },
-    ],
-  }
-
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: false,
-      },
-      tooltip: {
-        mode: 'index' as const,
-        intersect: false,
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-      },
-    },
-  }
+  // DESIGN.md tokens via chartPalette — never hardcode chart colors.
+  const earningsChartData = [
+    { month: 'Jan', earnings: 8000 },
+    { month: 'Feb', earnings: 9500 },
+    { month: 'Mar', earnings: 11000 },
+    { month: 'Apr', earnings: 10500 },
+    { month: 'May', earnings: 12000 },
+    { month: 'Jun', earnings: 11500 },
+    { month: 'Jul', earnings: 13000 },
+    { month: 'Aug', earnings: 12500 },
+    { month: 'Sep', earnings: 14000 },
+    { month: 'Oct', earnings: 13500 },
+    { month: 'Nov', earnings: 12500 },
+  ]
 
   if (loading) {
     return (
@@ -241,7 +219,7 @@ export function ProfessionalDashboard() {
               <div>
                 <p className="text-sm text-muted-foreground">Total Bookings</p>
                 <p className="text-3xl font-bold">{stats.totalBookings}</p>
-                <p className="text-xs text-green-600">+{stats.pendingBookings} pending</p>
+                <p className="text-xs text-storm-deep">+{stats.pendingBookings} pending</p>
               </div>
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
                 <ClipboardList className="h-7 w-7 text-primary" />
@@ -255,10 +233,10 @@ export function ProfessionalDashboard() {
               <div>
                 <p className="text-sm text-muted-foreground">Today's Jobs</p>
                 <p className="text-3xl font-bold">{stats.todaysBookings}</p>
-                <p className="text-xs text-sky-600">{stats.completedBookings} completed</p>
+                <p className="text-xs text-primary">{stats.completedBookings} completed</p>
               </div>
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-sky-500/10">
-                <Calendar className="h-7 w-7 text-sky-600" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+                <Calendar className="h-7 w-7 text-primary" />
               </div>
             </div>
           </CardContent>
@@ -269,10 +247,10 @@ export function ProfessionalDashboard() {
               <div>
                 <p className="text-sm text-muted-foreground">This Month</p>
                 <p className="text-3xl font-bold">₹{stats.thisMonthEarnings.toLocaleString()}</p>
-                <p className="text-xs text-green-600">₹{stats.totalEarnings.toLocaleString()} total</p>
+                <p className="text-xs text-storm-deep">₹{stats.totalEarnings.toLocaleString()} total</p>
               </div>
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-green-500/15">
-                <IndianRupee className="h-7 w-7 text-green-600" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-storm-deep/15">
+                <IndianRupee className="h-7 w-7 text-storm-deep" />
               </div>
             </div>
           </CardContent>
@@ -285,8 +263,8 @@ export function ProfessionalDashboard() {
                 <p className="text-3xl font-bold">{stats.averageRating}</p>
                 <p className="text-xs text-muted-foreground">{stats.totalReviews} reviews</p>
               </div>
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-500/15">
-                <Star className="h-7 w-7 text-amber-600" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-bloom-coral/15">
+                <Star className="h-7 w-7 text-bloom-coral" />
               </div>
             </div>
           </CardContent>
@@ -306,7 +284,7 @@ export function ProfessionalDashboard() {
             {todayBookings.length === 0 ? (
               <div
                 role="status"
-                className="rounded-lg border border-blue-500/30 bg-blue-500/5 px-4 py-3 text-sm"
+                className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm"
               >
                 No bookings scheduled for today
               </div>
@@ -339,7 +317,7 @@ export function ProfessionalDashboard() {
                         <p className="text-sm text-muted-foreground">
                           {booking.scheduledTime} · {booking.address.area}, {booking.address.city}
                         </p>
-                        <p className="text-sm font-semibold text-green-600">₹{booking.totalAmount}</p>
+                        <p className="text-sm font-semibold text-storm-deep">₹{booking.totalAmount}</p>
                       </div>
                       <div className="flex shrink-0 gap-1">
                         <Button
@@ -383,8 +361,8 @@ export function ProfessionalDashboard() {
             <h2 className="mb-4 text-lg font-semibold">Recent Activity</h2>
             <ul className="space-y-0 divide-y">
               <li className="flex gap-3 py-3 first:pt-0">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-500/15">
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-storm-deep/15">
+                  <CheckCircle2 className="h-5 w-5 text-storm-deep" />
                 </div>
                 <div>
                   <p className="text-sm font-medium">Booking Completed</p>
@@ -392,8 +370,8 @@ export function ProfessionalDashboard() {
                 </div>
               </li>
               <li className="flex gap-3 py-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-500/15">
-                  <CircleAlert className="h-5 w-5 text-amber-600" />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-bloom-coral/15">
+                  <CircleAlert className="h-5 w-5 text-bloom-coral" />
                 </div>
                 <div>
                   <p className="text-sm font-medium">New Booking Assigned</p>
@@ -401,8 +379,8 @@ export function ProfessionalDashboard() {
                 </div>
               </li>
               <li className="flex gap-3 py-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-500/15">
-                  <Star className="h-5 w-5 text-sky-600" />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15">
+                  <Star className="h-5 w-5 text-primary" />
                 </div>
                 <div>
                   <p className="text-sm font-medium">New Review</p>
@@ -422,7 +400,30 @@ export function ProfessionalDashboard() {
               </Button>
             </div>
             <div className="h-[300px]">
-              <Line data={earningsChartData} options={chartOptions} />
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={earningsChartData} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={CHART_TOKENS.grid} />
+                  <XAxis dataKey="month" stroke={CHART_TOKENS.axis} fontSize={12} />
+                  <YAxis stroke={CHART_TOKENS.axis} fontSize={12} />
+                  <RechartsTooltip
+                    formatter={(value: number) => [`₹${value.toLocaleString('en-IN')}`, 'Earnings']}
+                    contentStyle={{
+                      background: CHART_TOKENS.surface,
+                      border: `1px solid ${CHART_TOKENS.grid}`,
+                      borderRadius: 8,
+                      color: CHART_TOKENS.ink,
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="earnings"
+                    stroke={CHART_TOKENS.primary}
+                    fill={CHART_TOKENS.primary}
+                    fillOpacity={0.12}
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>

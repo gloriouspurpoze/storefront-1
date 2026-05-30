@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import { Pencil, Save, X, Camera, Loader2 } from 'lucide-react'
 import { Card, CardContent } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
@@ -173,7 +173,7 @@ export function ProviderProfile() {
 
       {success && (
         <div
-          className="mb-4 flex items-start justify-between gap-2 rounded-md border border-emerald-200 bg-emerald-50/80 p-3 text-sm text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100"
+          className="mb-4 flex items-start justify-between gap-2 rounded-md border border-storm-mist/30 bg-storm-mist/80 p-3 text-sm text-storm-deep dark:border-storm-deep dark:bg-storm-deep/40 dark:text-on-ink"
           role="status"
         >
           {success}
@@ -376,7 +376,7 @@ export function ProviderProfile() {
             </Card>
 
             {isEditing && (
-              <div className="rounded-md border border-sky-200 bg-sky-50/80 p-3 text-sm dark:border-sky-900 dark:bg-sky-950/40">
+              <div className="rounded-md border border-primary/20 bg-primary-soft/80 p-3 text-sm dark:border-primary dark:bg-primary/40">
                 Make sure all information is accurate. Changes will be reviewed by our team before being published.
               </div>
             )}

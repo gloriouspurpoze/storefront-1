@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+﻿import React, { useEffect, useRef } from 'react'
 import { Film, ImageIcon, Sparkles } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { normalizeSliderMediaType, type SliderPreviewSources } from '../../lib/sliderMedia'
@@ -171,7 +171,7 @@ function OverlayCopy({
       {buttonText ? (
         <span
           className={cn(
-            'inline-block rounded-lg bg-white font-semibold text-gray-900',
+            'inline-block rounded-lg bg-white font-semibold text-ink',
             nested ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm',
           )}
         >
@@ -197,8 +197,8 @@ function LottieFallback({ poster, lottieUrl }: { poster?: string; lottieUrl: str
     )
   }
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-violet-500/20 to-indigo-500/20 p-6 text-center">
-      <Sparkles className="h-10 w-10 text-violet-600" />
+    <div className="flex h-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-primary-deep/20 to-primary/20 p-6 text-center">
+      <Sparkles className="h-10 w-10 text-primary-deep" />
       <p className="text-sm font-medium">Lottie JSON attached</p>
       <p className="max-w-md truncate text-xs text-muted-foreground">{lottieUrl}</p>
     </div>

@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BoardsService, type ArchivedBoardSummary, type BoardSummary } from '../../services/api/boards.service'
 import {
@@ -240,7 +240,7 @@ export function BoardsHub() {
         </div>
 
         {archivedBoards.length > 0 ? (
-          <Card className="border-amber-500/30 bg-amber-500/5">
+          <Card className="border-bloom-coral/30 bg-bloom-coral/5">
             <CardHeader>
               <CardTitle className="text-base">Archived canvas boards</CardTitle>
             </CardHeader>

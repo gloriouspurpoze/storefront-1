@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import {
   Button,
   Dialog,
@@ -248,7 +248,7 @@ export function MenuItemForm({
               </div>
               {!canAddChild && formData.parentId && (
                 <div
-                  className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100"
+                  className="mt-2 rounded-md border border-bloom-coral/40 bg-bloom-rose px-3 py-2 text-sm text-bloom-coral dark:border-bloom-coral/50 dark:bg-bloom-coral/40 dark:text-bloom-deep"
                   role="status"
                 >
                   Maximum depth reached. Cannot add more nested items.
@@ -325,7 +325,7 @@ export function MenuItemForm({
           {formData.type === 'page' && (
             <div className="col-span-12">
               <div
-                className="mb-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm dark:border-blue-900/50 dark:bg-blue-950/40"
+                className="mb-3 rounded-md border border-primary/20 bg-primary-soft px-3 py-2 text-sm dark:border-primary/50 dark:bg-primary/40"
                 role="status"
               >
                 Page selection will be integrated with your pages API. For now, use custom link type.
@@ -347,7 +347,7 @@ export function MenuItemForm({
           {formData.type === 'category' && (
             <div className="col-span-12">
               <div
-                className="mb-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm dark:border-blue-900/50 dark:bg-blue-950/40"
+                className="mb-3 rounded-md border border-primary/20 bg-primary-soft px-3 py-2 text-sm dark:border-primary/50 dark:bg-primary/40"
                 role="status"
               >
                 Category selection will be integrated with your categories API. For now, use custom link type.
@@ -424,7 +424,7 @@ export function MenuItemForm({
           {formData.type === 'divider' && (
             <div className="col-span-12">
               <div
-                className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm dark:border-blue-900/50 dark:bg-blue-950/40"
+                className="rounded-md border border-primary/20 bg-primary-soft px-3 py-2 text-sm dark:border-primary/50 dark:bg-primary/40"
                 role="status"
               >
                 Divider items are visual separators and don&apos;t require a label or URL.

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Assign professional dialog — supports two industry-standard flows:
  *
  *   • Auto-assign (recommended): the engine ranks the fleet by a weighted
@@ -94,9 +94,9 @@ interface AssignProfessionalDialogProps {
 function availabilityClass(a?: string) {
   switch (a) {
     case 'available':
-      return 'border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200'
+      return 'border-storm-deep/40 bg-storm-deep/10 text-storm-deep dark:text-on-ink'
     case 'busy':
-      return 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200'
+      return 'border-bloom-coral/40 bg-bloom-coral/10 text-bloom-coral dark:text-bloom-deep'
     case 'offline':
       return 'border-destructive/40 bg-destructive/10 text-destructive'
     default:
@@ -107,11 +107,11 @@ function availabilityClass(a?: string) {
 function expertiseClass(e?: string) {
   switch (e) {
     case 'expert':
-      return 'border-red-500/40 bg-red-500/10 text-red-800 dark:text-red-200'
+      return 'border-destructive/40 bg-destructive/10 text-destructive dark:text-destructive-foreground'
     case 'intermediate':
-      return 'border-amber-500/40 bg-amber-500/10'
+      return 'border-bloom-coral/40 bg-bloom-coral/10'
     case 'beginner':
-      return 'border-sky-500/40 bg-sky-500/10'
+      return 'border-primary/40 bg-primary/10'
     default:
       return ''
   }
@@ -120,11 +120,11 @@ function expertiseClass(e?: string) {
 function bandClass(band: MatchResult['band']) {
   switch (band) {
     case 'excellent':
-      return 'border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200'
+      return 'border-storm-deep/40 bg-storm-deep/10 text-storm-deep dark:text-on-ink'
     case 'good':
-      return 'border-sky-500/40 bg-sky-500/10 text-sky-800 dark:text-sky-200'
+      return 'border-primary/40 bg-primary/10 text-primary dark:text-primary-deep'
     case 'fair':
-      return 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200'
+      return 'border-bloom-coral/40 bg-bloom-coral/10 text-bloom-coral dark:text-bloom-deep'
     default:
       return 'border-muted bg-muted/40 text-muted-foreground'
   }
@@ -191,7 +191,7 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
               {professional.firstName} {professional.lastName}
             </p>
             <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
+              <Star className="h-3.5 w-3.5 fill-bloom-coral text-bloom-coral" />
               {(professional.rating || 0).toFixed(1)} ({professional.totalReviews || 0})
             </div>
           </div>
@@ -249,7 +249,7 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
             {professional.expertiseLevel || 'unknown'}
           </Badge>
           {professional.isVerified ? (
-            <Badge variant="outline" className="gap-1 border-emerald-500/40 bg-emerald-500/10 text-xs text-emerald-800 dark:text-emerald-200">
+            <Badge variant="outline" className="gap-1 border-storm-deep/40 bg-storm-deep/10 text-xs text-storm-deep dark:text-on-ink">
               <ShieldCheck className="h-3 w-3" />
               Verified
             </Badge>
@@ -298,7 +298,7 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
         ) : null}
 
         {match.warnings.length > 0 ? (
-          <ul className="space-y-0.5 rounded border border-amber-500/30 bg-amber-500/5 p-2 text-[11px] text-amber-900 dark:text-amber-200">
+          <ul className="space-y-0.5 rounded border border-bloom-coral/30 bg-bloom-coral/5 p-2 text-[11px] text-bloom-coral dark:text-bloom-deep">
             {match.warnings.slice(0, 3).map((w) => (
               <li key={w}>• {w}</li>
             ))}
@@ -544,7 +544,7 @@ export function AssignProfessionalDialog({
         </DialogHeader>
 
           {success && (
-            <div className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-800 dark:text-emerald-200">
+            <div className="rounded-md border border-storm-deep/40 bg-storm-deep/10 px-3 py-2 text-sm text-storm-deep dark:text-on-ink">
               {success}
             </div>
           )}

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   FolderOpen,
   Image as ImageIcon,
@@ -629,7 +629,7 @@ export default function MediaLibrary() {
                       {file.type}
                     </Badge>
                     {google && (
-                      <Badge variant="outline" className="border-sky-500/40 text-[10px] text-sky-700 dark:text-sky-300">
+                      <Badge variant="outline" className="border-primary/40 text-[10px] text-primary dark:text-primary">
                         Google
                       </Badge>
                     )}
@@ -967,7 +967,7 @@ export default function MediaLibrary() {
                     {selectedFile.type}
                   </Badge>
                   {isGoogleWorkspaceUrl(selectedFile.url) && (
-                    <Badge variant="outline" className="border-sky-500/40 text-sky-700 dark:text-sky-300">
+                    <Badge variant="outline" className="border-primary/40 text-primary dark:text-primary">
                       Google Workspace
                     </Badge>
                   )}

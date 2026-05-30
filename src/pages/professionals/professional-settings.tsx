@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ============================================================================
  * PROFESSIONAL SETTINGS PAGE
  * ============================================================================
@@ -41,7 +41,7 @@ function InfoBanner({ children }: { children: React.ReactNode }) {
   return (
     <div
       role="status"
-      className="mb-4 rounded-lg border border-blue-500/40 bg-blue-500/10 px-4 py-3 text-sm text-foreground"
+      className="mb-4 rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-sm text-foreground"
     >
       {children}
     </div>

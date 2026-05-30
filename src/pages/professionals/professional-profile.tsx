@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ============================================================================
  * PROFESSIONAL PROFILE PAGE
  * ============================================================================
@@ -347,7 +347,7 @@ export function ProfessionalProfile() {
       {success && (
         <div
           role="status"
-          className="mb-6 flex items-start justify-between gap-2 rounded-lg border border-green-500/40 bg-green-500/10 px-4 py-3 text-sm"
+          className="mb-6 flex items-start justify-between gap-2 rounded-lg border border-storm-deep/40 bg-storm-deep/10 px-4 py-3 text-sm"
         >
           <span>{success}</span>
           <button type="button" className="shrink-0 underline" onClick={() => setSuccess(null)}>
@@ -404,7 +404,7 @@ export function ProfessionalProfile() {
                 <div>
                   <div className="mb-1 flex justify-between text-muted-foreground">
                     <span className="flex items-center gap-1">
-                      <Star className="h-3.5 w-3.5 text-amber-500" />
+                      <Star className="h-3.5 w-3.5 text-bloom-coral" />
                       Rating
                     </span>
                     <span className="font-semibold text-foreground">
@@ -412,10 +412,10 @@ export function ProfessionalProfile() {
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Star className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                    <Star className="h-3.5 w-3.5 shrink-0 text-bloom-coral" />
                     <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
                       <div
-                        className="h-full rounded-full bg-amber-500 transition-all"
+                        className="h-full rounded-full bg-bloom-coral transition-all"
                         style={{ width: `${(professional?.rating || 0) * 20}%` }}
                       />
                     </div>
@@ -892,7 +892,7 @@ export function ProfessionalProfile() {
       {isEditing && (
         <div
           role="status"
-          className="mt-6 rounded-lg border border-blue-500/40 bg-blue-500/10 px-4 py-3 text-sm"
+          className="mt-6 rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-sm"
         >
           Make sure all information is accurate. Changes will be reviewed by our team before being
           published.

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -167,7 +167,7 @@ export function FinanceOverviewPage() {
       )}
 
       {overview && overview.alerts.pendingApprovals > 0 && (
-        <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-100">
+        <div className="rounded-md border border-bloom-coral/40 bg-bloom-coral/10 px-3 py-2 text-sm text-bloom-coral dark:text-bloom-deep">
           {overview.alerts.pendingApprovals} expense
           {overview.alerts.pendingApprovals === 1 ? '' : 's'} awaiting approval — open Expenses to review.
         </div>
@@ -195,7 +195,7 @@ export function FinanceOverviewPage() {
       )}
 
       {overview && (overview.alerts.unreconciledDebitLines ?? 0) > 0 && (
-        <div className="rounded-md border border-sky-500/35 bg-sky-500/10 px-3 py-2 text-sm text-sky-950 dark:text-sky-100">
+        <div className="rounded-md border border-primary/35 bg-primary/10 px-3 py-2 text-sm text-primary dark:text-primary-deep">
           <span className="font-medium">Reconciliation: </span>
           {overview.alerts.unreconciledDebitLines} unmatched bank debits — open Reconciliation to match or create
           expenses.

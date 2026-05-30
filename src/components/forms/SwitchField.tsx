@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { Info, CheckCircle2, AlertCircle, AlertTriangle } from 'lucide-react'
 import { Label } from '../ui/label'
 import { Switch } from '../ui/switch'
@@ -23,11 +23,11 @@ const StatusIcon = ({ status }: { status?: SwitchFieldProps['status'] }) => {
   const cls = 'h-4 w-4 shrink-0'
   switch (status) {
     case 'success':
-      return <CheckCircle2 className={cn(cls, 'text-green-600')} aria-hidden />
+      return <CheckCircle2 className={cn(cls, 'text-storm-deep')} aria-hidden />
     case 'error':
       return <AlertCircle className={cn(cls, 'text-destructive')} aria-hidden />
     case 'warning':
-      return <AlertTriangle className={cn(cls, 'text-amber-600')} aria-hidden />
+      return <AlertTriangle className={cn(cls, 'text-bloom-coral')} aria-hidden />
     case 'info':
       return <Info className={cn(cls, 'text-muted-foreground')} aria-hidden />
     default:

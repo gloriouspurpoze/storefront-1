@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Provider Applications (Professional onboarding) list and detail.
  * Admin view for "Become a Provider" form submissions.
  */
@@ -77,10 +77,10 @@ function sourceLabel(source: string | undefined) {
 }
 
 const statusClass: Record<ProfessionalApplicationStatus, string> = {
-  new: 'border-blue-200 bg-blue-500/10 text-blue-800',
-  contacted: 'border-amber-200 bg-amber-500/10 text-amber-800',
-  approved: 'border-emerald-200 bg-emerald-500/10 text-emerald-800',
-  rejected: 'border-red-200 bg-red-500/10 text-red-800',
+  new: 'border-primary/20 bg-primary/10 text-primary',
+  contacted: 'border-bloom-coral/40 bg-bloom-coral/10 text-bloom-coral',
+  approved: 'border-storm-mist/30 bg-storm-deep/10 text-storm-deep',
+  rejected: 'border-destructive/20 bg-destructive/10 text-destructive',
   archived: 'border-border bg-muted text-muted-foreground',
 }
 

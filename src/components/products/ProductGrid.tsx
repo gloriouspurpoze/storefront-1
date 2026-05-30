@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, Button, HStack } from '../ui'
 import { Product } from '../../types'
@@ -63,7 +63,7 @@ export function ProductGrid({
                 )}
                 <span
                   className={`absolute top-2 right-2 text-xs px-2 py-0.5 rounded-full ${
-                    product.is_active ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                    product.is_active ? 'bg-storm-mist/30 text-storm-deep' : 'bg-bloom-rose text-bloom-coral'
                   }`}
                 >
                   {product.is_active ? 'Active' : 'Draft'}

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ============================================================================
  * CREATE PROFESSIONAL PAGE
  * ============================================================================
@@ -749,7 +749,7 @@ export function CreateProfessional() {
 
       <div
         role="status"
-        className="rounded-lg border border-blue-500/40 bg-blue-500/10 px-4 py-3 text-sm"
+        className="rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-sm"
       >
         <p className="font-medium">Login Credentials</p>
         <p className="mt-1">Email: {formData.email}</p>

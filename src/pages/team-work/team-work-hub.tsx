@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   Archive,
@@ -1137,7 +1137,7 @@ export function TeamWorkHub() {
                         <span className="font-mono text-xs text-muted-foreground">{p.key}</span>{' '}
                         <span className="ml-1">{p.name}</span>
                         {p.isArchived ? (
-                          <span className="ml-2 text-xs text-amber-700 dark:text-amber-500">(archived)</span>
+                          <span className="ml-2 text-xs text-bloom-coral dark:text-bloom-coral">(archived)</span>
                         ) : restricted ? (
                           <span className="ml-2 text-xs text-muted-foreground">(restricted)</span>
                         ) : (

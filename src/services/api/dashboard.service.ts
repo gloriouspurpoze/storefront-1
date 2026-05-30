@@ -1,4 +1,4 @@
-import { apiClient } from '../apiClient';
+﻿import { apiClient } from '../apiClient';
 import { api } from './base';
 import type { OrderStatsResponse } from './orders.service';
 
@@ -122,7 +122,7 @@ function normalizeAdminDashboardPayload(raw: any): AdminDashboardData {
       value: count,
       count,
       growth: 0,
-      color: ['#2563eb', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'][i % 5],
+      color: ['#024ad8', '#0e3191', '#356373', '#ff5050', '#b3262b'][i % 5],
     }))
   }
 

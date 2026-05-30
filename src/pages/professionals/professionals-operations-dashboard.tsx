@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Admin workforce view: workload, pipeline, completion times, and ratings across professionals.
  * Booking metrics are built from parallel samples (max 100 rows per status — API cap).
  */
@@ -47,7 +47,7 @@ function InfoAlert({ children }: { children: React.ReactNode }) {
   return (
     <div
       role="status"
-      className="mb-2 rounded-lg border border-blue-500/40 bg-blue-500/10 px-4 py-3 text-sm text-foreground"
+      className="mb-2 rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-sm text-foreground"
     >
       {children}
     </div>
@@ -64,7 +64,7 @@ function ErrorAlert({ children }: { children: React.ReactNode }) {
 
 function WarnAlert({ children }: { children: React.ReactNode }) {
   return (
-    <div role="status" className="mt-2 rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-sm">
+    <div role="status" className="mt-2 rounded-lg border border-bloom-coral/50 bg-bloom-coral/10 px-4 py-3 text-sm">
       {children}
     </div>
   )

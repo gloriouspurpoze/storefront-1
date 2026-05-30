@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import {
   Building2,
   MapPin,
@@ -93,7 +93,7 @@ export function ProviderDetailsDialog({ open, onClose, provider }: ProviderDetai
                 : 'Unknown'}
             </Badge>
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Star className="h-4 w-4 text-amber-500" />
+              <Star className="h-4 w-4 text-bloom-coral" />
               {rating.toFixed(1)} ({provider.total_reviews || 0} reviews)
             </div>
           </div>

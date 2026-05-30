@@ -11,7 +11,8 @@ export function LoadingProvider() {
 
   return (
     <div
-      className="fixed inset-0 z-[150] flex flex-col items-center justify-center gap-3 bg-black/50 text-white"
+      // DESIGN.md scrim: colors.ink @ 50% (matches Dialog/Sheet overlays)
+      className="fixed inset-0 z-[150] flex flex-col items-center justify-center gap-3 bg-ink/50 text-on-ink"
       role="alert"
       aria-busy
       aria-live="polite"

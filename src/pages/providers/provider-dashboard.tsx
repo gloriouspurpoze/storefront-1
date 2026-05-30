@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import {
   Button,
   Card,
@@ -40,11 +40,11 @@ import { cn } from '../../lib/utils'
 function StatusBadge({ status }: { status: string }) {
   const s = status?.toLowerCase() ?? ''
   const map: Record<string, { label: string; className: string; Icon: typeof Clock }> = {
-    pending: { label: status, className: 'border-amber-200 bg-amber-50 text-amber-800', Icon: Clock },
-    accepted: { label: status, className: 'border-sky-200 bg-sky-50 text-sky-800', Icon: ClipboardList },
-    'in-progress': { label: status, className: 'border-violet-200 bg-violet-50 text-violet-800', Icon: Wrench },
-    completed: { label: status, className: 'border-emerald-200 bg-emerald-50 text-emerald-800', Icon: CheckCircle2 },
-    cancelled: { label: status, className: 'border-red-200 bg-red-50 text-red-800', Icon: XCircle },
+    pending: { label: status, className: 'border-bloom-coral/40 bg-bloom-rose text-bloom-coral', Icon: Clock },
+    accepted: { label: status, className: 'border-primary/20 bg-primary-soft text-primary', Icon: ClipboardList },
+    'in-progress': { label: status, className: 'border-primary/20 bg-primary-soft text-primary-deep', Icon: Wrench },
+    completed: { label: status, className: 'border-storm-mist/30 bg-storm-mist/30 text-storm-deep', Icon: CheckCircle2 },
+    cancelled: { label: status, className: 'border-destructive/20 bg-destructive/10 text-destructive', Icon: XCircle },
   }
   const cfg = map[s] ?? {
     label: status,
@@ -162,7 +162,7 @@ export function ProviderDashboard() {
         <>
           {stats.pendingBookings > 0 && (
             <div
-              className="flex items-start gap-3 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-800 dark:bg-sky-950/50 dark:text-sky-100"
+              className="flex items-start gap-3 rounded-lg border border-primary/20 bg-primary-soft px-4 py-3 text-sm text-primary dark:border-primary dark:bg-primary/50 dark:text-primary-deep"
               role="status"
             >
               <Bell className="mt-0.5 h-5 w-5 shrink-0" />
@@ -191,7 +191,7 @@ export function ProviderDashboard() {
                 value: stats.completedBookings,
                 sub: '+8%',
                 icon: CheckCircle2,
-                iconBg: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
+                iconBg: 'bg-storm-deep/15 text-storm-deep dark:text-storm-sea',
                 chip: 'success' as const,
               },
               {
@@ -199,7 +199,7 @@ export function ProviderDashboard() {
                 value: `$${stats?.totalEarnings?.toLocaleString()}`,
                 sub: '+15%',
                 icon: IndianRupee,
-                iconBg: 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
+                iconBg: 'bg-bloom-coral/15 text-bloom-coral dark:text-bloom-coral',
                 chip: 'success' as const,
               },
               {
@@ -207,7 +207,7 @@ export function ProviderDashboard() {
                 value: stats.averageRating.toFixed(1),
                 sub: `${stats.totalReviews} reviews`,
                 icon: Star,
-                iconBg: 'bg-sky-500/15 text-sky-700 dark:text-sky-400',
+                iconBg: 'bg-primary/15 text-primary dark:text-primary',
                 chip: 'reviews' as const,
               },
             ].map((card) => (
@@ -224,7 +224,7 @@ export function ProviderDashboard() {
                         {card.sub}
                       </Badge>
                     ) : (
-                      <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
+                      <Badge variant="secondary" className="bg-storm-mist/30 text-storm-deep dark:bg-storm-deep/40 dark:text-on-ink">
                         {card.sub}
                       </Badge>
                     )}
@@ -360,7 +360,7 @@ export function ProviderDashboard() {
                       </div>
                       <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                         <div
-                          className="h-full rounded-full bg-emerald-500 transition-all"
+                          className="h-full rounded-full bg-storm-deep transition-all"
                           style={{ width: `${Math.min(100, completionPct)}%` }}
                         />
                       </div>
@@ -375,7 +375,7 @@ export function ProviderDashboard() {
                             className={cn(
                               'h-5 w-5',
                               index < Math.floor(stats.averageRating)
-                                ? 'fill-amber-400 text-amber-400'
+                                ? 'fill-bloom-coral text-bloom-coral'
                                 : 'text-muted-foreground/30'
                             )}
                           />

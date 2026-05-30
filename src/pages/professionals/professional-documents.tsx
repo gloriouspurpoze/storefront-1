@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ============================================================================
  * PROFESSIONAL DOCUMENTS & CERTIFICATIONS PAGE
  * ============================================================================
@@ -328,7 +328,7 @@ export function ProfessionalDocuments() {
         {certifications.some((c) => isExpiringSoon(c.expiryDate)) && (
           <div
             role="status"
-            className="mb-6 rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-sm"
+            className="mb-6 rounded-lg border border-bloom-coral/50 bg-bloom-coral/10 px-4 py-3 text-sm"
           >
             You have {certifications.filter((c) => isExpiringSoon(c.expiryDate)).length} certificate(s) expiring within
             30 days. Please renew them soon.

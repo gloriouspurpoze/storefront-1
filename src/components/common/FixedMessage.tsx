@@ -3,12 +3,18 @@ import { cn } from '../../lib/utils'
 
 type Variant = 'default' | 'success' | 'error' | 'warning'
 
+/**
+ * DESIGN.md token map:
+ *   default → hairline border + canvas surface
+ *   success → storm tones (DESIGN.md neutral positive accent)
+ *   error   → destructive/bloom-deep
+ *   warning → bloom-rose surface + bloom-deep ink + bloom-coral border
+ */
 const shell: Record<Variant, string> = {
-  default: 'border-border bg-card',
-  success: 'border-border bg-card text-foreground',
+  default: 'border-hairline bg-canvas text-ink',
+  success: 'border-storm-deep/30 bg-storm-mist/20 text-storm-deep',
   error: 'border-destructive/30 bg-destructive/10 text-destructive',
-  warning:
-    'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/90 dark:text-amber-100',
+  warning: 'border-bloom-coral/40 bg-bloom-rose text-bloom-deep',
 }
 
 export interface FixedMessageProps {
@@ -32,7 +38,7 @@ export function FixedMessage({
   return (
     <div
       className={cn(
-        'fixed bottom-4 right-4 z-50 rounded-md border px-3 py-2 text-sm shadow-md',
+        'fixed bottom-4 right-4 z-50 rounded-md border px-sm py-xs text-sm shadow-soft-lift',
         maxWidthClassName,
         shell[variant],
         className,

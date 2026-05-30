@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+﻿import React, { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Loader2, RefreshCw, AlertTriangle } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
@@ -103,9 +103,9 @@ export function OpsCommandCenterPage() {
       )}
 
       {flagged.length > 0 && (
-        <Card className="border-amber-500/40 bg-amber-500/5">
+        <Card className="border-bloom-coral/40 bg-bloom-coral/5">
           <CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-2">
-            <AlertTriangle className="h-5 w-5 text-amber-600" />
+            <AlertTriangle className="h-5 w-5 text-bloom-coral" />
             <div>
               <CardTitle className="text-base">Payment attention</CardTitle>
               <CardDescription>

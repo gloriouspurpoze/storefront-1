@@ -17,14 +17,15 @@ export function FixerLogoMark({ size = 44, className }: FixerLogoMarkProps) {
       height={size}
       className={cn('shrink-0 rounded-md', className)}
     >
+      {/* DESIGN.md: HP Electric Blue family — primary (#024ad8) to primary-bright (#296ef9) */}
       <defs>
         <linearGradient id="fixerLogoFill" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#3b82f6" />
-          <stop offset="100%" stopColor="#2563eb" />
+          <stop offset="0%" stopColor="#296ef9" />
+          <stop offset="100%" stopColor="#024ad8" />
         </linearGradient>
       </defs>
       <rect width="44" height="44" rx="10" fill="url(#fixerLogoFill)" />
-      <path fill="#fff" d="M14 12h14.5v3.25H17.75v4.1h9v3.25h-9V32H14V12z" />
+      <path fill="#ffffff" d="M14 12h14.5v3.25H17.75v4.1h9v3.25h-9V32H14V12z" />
     </svg>
   )
 }

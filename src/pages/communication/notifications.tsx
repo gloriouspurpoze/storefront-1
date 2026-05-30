@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+﻿import React, { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Bell, RefreshCw, Send, Wifi, WifiOff } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
@@ -51,7 +51,7 @@ export function Notifications() {
               variant="outline"
               className={cn(
                 'gap-1 font-normal',
-                apiStatus === 'online' && 'border-emerald-500/40 text-emerald-700 dark:text-emerald-400',
+                apiStatus === 'online' && 'border-storm-deep/40 text-storm-deep dark:text-storm-sea',
                 apiStatus === 'offline' && 'border-destructive/40 text-destructive',
               )}
             >

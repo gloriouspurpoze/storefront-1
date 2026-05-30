@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import {
   Loader2,
   Plus,
@@ -695,21 +695,21 @@ export default function Referrals() {
                   <p className="text-sm text-muted-foreground">Total referrals</p>
                 </CardContent>
               </Card>
-              <Card className="rounded-lg border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5">
+              <Card className="rounded-lg border border-storm-deep/20 bg-gradient-to-br from-storm-deep/10 to-storm-deep/5">
                 <CardContent className="pt-6">
-                  <p className="text-2xl font-bold text-emerald-600">{completedShown}</p>
+                  <p className="text-2xl font-bold text-storm-deep">{completedShown}</p>
                   <p className="text-sm text-muted-foreground">Completed</p>
                 </CardContent>
               </Card>
-              <Card className="rounded-lg border border-amber-500/20 bg-gradient-to-br from-amber-500/10 to-amber-500/5">
+              <Card className="rounded-lg border border-bloom-coral/20 bg-gradient-to-br from-bloom-coral/10 to-bloom-coral/5">
                 <CardContent className="pt-6">
-                  <p className="text-2xl font-bold text-amber-600">{pendingShown}</p>
+                  <p className="text-2xl font-bold text-bloom-coral">{pendingShown}</p>
                   <p className="text-sm text-muted-foreground">Pending</p>
                 </CardContent>
               </Card>
-              <Card className="rounded-lg border border-sky-500/20 bg-gradient-to-br from-sky-500/10 to-sky-500/5">
+              <Card className="rounded-lg border border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5">
                 <CardContent className="pt-6">
-                  <p className="text-2xl font-bold text-sky-600">{formatMoney(rewardsShown)}</p>
+                  <p className="text-2xl font-bold text-primary">{formatMoney(rewardsShown)}</p>
                   <p className="text-sm text-muted-foreground">Rewards (reported)</p>
                 </CardContent>
               </Card>

@@ -1,6 +1,12 @@
 # UI Components Library
 
-**Single source of truth for all UI components**
+**Single source of truth for all UI components.**
+
+> **Design tokens (color, type, radius, spacing, elevation) come from
+> [`/DESIGN.md`](../../../DESIGN.md).** Never hardcode a hex value or an
+> off-palette Tailwind color (`bg-blue-500`, `text-gray-600`, etc.) — use the
+> tokens projected into Tailwind in `tailwind.config.js` and the CSS variables
+> in `src/index.css`. Both files are mechanical mirrors of `DESIGN.md`.
 
 ## 📁 Structure
 
@@ -153,12 +159,17 @@ toast({
 
 ## 🎯 Design Principles
 
-1. **Single Import** - All components from `../components/ui`
-2. **Type Safe** - Full TypeScript support
-3. **Accessible** - ARIA attributes built-in
-4. **Consistent** - Unified design tokens
-5. **Flexible** - Customizable with Tailwind
-6. **Performant** - Optimized bundle size
+1. **Single Import** — All components from `../components/ui`
+2. **Type Safe** — Full TypeScript support
+3. **Accessible** — ARIA attributes built-in
+4. **DESIGN.md is the only source of design truth** — colors, radii, font sizes,
+   spacing, elevation. The Tailwind config and `src/index.css` are mechanical
+   mirrors; **never** introduce a new color/radius here without first updating
+   `/DESIGN.md` and re-syncing both files.
+5. **Flexible** — Customizable with Tailwind (semantic classes only:
+   `bg-primary`, `text-ink`, `bg-cloud`, `border-hairline`, `bg-bloom-coral`,
+   `text-storm-deep`, …).
+6. **Performant** — Optimized bundle size
 
 ## 📦 Technology Stack
 
@@ -198,10 +209,11 @@ import { Button } from '../components/ui'
 
 ## 📚 More Information
 
+- **Design tokens (source of truth):** [`/DESIGN.md`](../../../DESIGN.md)
 - Component source: `src/components/ui/`
 - Utility functions: `src/lib/utils.ts`
-- Tailwind config: `tailwind.config.js`
-- Theme tokens: Defined in `src/index.css`
+- Tailwind config (mirrors DESIGN.md): `tailwind.config.js`
+- CSS variables (mirrors DESIGN.md): `src/index.css`
 
 ---
 

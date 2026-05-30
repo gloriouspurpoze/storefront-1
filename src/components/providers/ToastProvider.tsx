@@ -24,13 +24,18 @@ function ToastRow({ toast }: { toast: ToastItem }) {
 
   return (
     <div
+      // DESIGN.md token map per severity:
+      //   success → storm-deep surface + on-ink
+      //   error   → destructive (bloom-deep) + destructive-foreground
+      //   warning → bloom-coral surface + on-primary
+      //   info    → canvas/paper + ink (uses shadcn semantic tokens)
       className={cn(
-        'relative flex min-w-0 max-w-sm items-start gap-2 rounded-md border p-3 pr-9 text-sm font-medium shadow-lg',
+        'relative flex min-w-0 max-w-sm items-start gap-2 rounded-md border p-3 pr-9 text-sm font-medium shadow-soft-lift',
         'animate-in slide-in-from-right-full',
-        toast.severity === 'success' && 'border-emerald-700/40 bg-emerald-600 text-white',
+        toast.severity === 'success' && 'border-storm-deep/40 bg-storm-deep text-on-ink',
         toast.severity === 'error' && 'border-destructive/30 bg-destructive text-destructive-foreground',
-        toast.severity === 'warning' && 'border-amber-600/50 bg-amber-400 text-amber-950',
-        toast.severity === 'info' && 'border-border bg-card text-foreground',
+        toast.severity === 'warning' && 'border-bloom-coral/50 bg-bloom-coral text-on-primary',
+        toast.severity === 'info' && 'border-hairline bg-card text-foreground',
       )}
     >
       <p className="min-w-0 flex-1 leading-snug">{toast.message}</p>

@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { Link } from 'react-router-dom'
 import { CheckCircle2, ChevronRight, Circle } from 'lucide-react'
 import { Button } from '../ui/button'
@@ -46,7 +46,7 @@ function SectionBlock({ section }: { section: CoverageSection }) {
         {section.items.map((item) => (
           <li key={item.id} className="flex items-start gap-2 text-[11px] leading-snug">
             {item.done ? (
-              <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden />
+              <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-storm-deep" aria-hidden />
             ) : (
               <Circle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/50" aria-hidden />
             )}

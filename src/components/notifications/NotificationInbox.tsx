@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Shared notification inbox — used on /notifications (primary tab) and in the header sheet.
  */
 
@@ -36,26 +36,26 @@ import { cn } from '../../lib/utils'
 
 const iconCellClass: Record<string, string> = {
   quote_received: 'bg-primary/15 text-primary',
-  quote_accepted: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
-  booking_confirmed: 'bg-sky-500/15 text-sky-700 dark:text-sky-400',
+  quote_accepted: 'bg-storm-deep/15 text-storm-deep dark:text-storm-sea',
+  booking_confirmed: 'bg-primary/15 text-primary dark:text-primary',
   booking_created: 'bg-primary/15 text-primary',
   booking_cancelled: 'bg-destructive/15 text-destructive',
-  booking_completed: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
-  booking_assigned: 'bg-sky-500/15 text-sky-700 dark:text-sky-400',
-  status_changed: 'bg-sky-500/15 text-sky-700 dark:text-sky-400',
+  booking_completed: 'bg-storm-deep/15 text-storm-deep dark:text-storm-sea',
+  booking_assigned: 'bg-primary/15 text-primary dark:text-primary',
+  status_changed: 'bg-primary/15 text-primary dark:text-primary',
   message_received: 'bg-primary/15 text-primary',
   order_placed: 'bg-primary/15 text-primary',
-  order_updated: 'bg-amber-500/15 text-amber-800 dark:text-amber-400',
-  payment_received: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
-  review_received: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
-  service_completed: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
-  review_requested: 'bg-amber-500/15 text-amber-800 dark:text-amber-400',
+  order_updated: 'bg-bloom-coral/15 text-bloom-coral dark:text-bloom-coral',
+  payment_received: 'bg-storm-deep/15 text-storm-deep dark:text-storm-sea',
+  review_received: 'bg-storm-deep/15 text-storm-deep dark:text-storm-sea',
+  service_completed: 'bg-storm-deep/15 text-storm-deep dark:text-storm-sea',
+  review_requested: 'bg-bloom-coral/15 text-bloom-coral dark:text-bloom-coral',
   system_alert: 'bg-destructive/15 text-destructive',
   system: 'bg-destructive/15 text-destructive',
-  general: 'bg-sky-500/15 text-sky-700 dark:text-sky-400',
+  general: 'bg-primary/15 text-primary dark:text-primary',
   marketing: 'bg-secondary text-secondary-foreground',
-  reminder: 'bg-sky-500/15 text-sky-700 dark:text-sky-400',
-  team_work_assigned: 'bg-violet-500/15 text-violet-700 dark:text-violet-400',
+  reminder: 'bg-primary/15 text-primary dark:text-primary',
+  team_work_assigned: 'bg-primary-deep/15 text-primary-deep dark:text-primary-deep',
 }
 
 function NotificationTypeIcon({ type }: { type: string }) {

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Admin view: last reported GPS + online/busy/offline for each professional (polling).
  */
 
@@ -185,7 +185,7 @@ export function ProfessionalsLiveLocations() {
                               <Badge variant={variant}>{r.availability}</Badge>
                               {r._isLive ? (
                                 <Radio
-                                  className="h-3 w-3 animate-pulse text-emerald-600"
+                                  className="h-3 w-3 animate-pulse text-storm-deep"
                                   aria-label="Live heartbeat received"
                                 />
                               ) : null}

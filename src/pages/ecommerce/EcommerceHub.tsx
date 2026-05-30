@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { Link } from 'react-router-dom'
 import {
   Warehouse,
@@ -128,7 +128,7 @@ export default function EcommerceHub() {
         icon={<ShoppingBag className="h-10 w-10 text-primary" aria-hidden />}
       />
 
-      <div className="mt-4 max-w-3xl rounded-md border border-sky-200 bg-sky-50/80 p-4 text-sm dark:border-sky-900 dark:bg-sky-950/40">
+      <div className="mt-4 max-w-3xl rounded-md border border-primary/20 bg-primary-soft/80 p-4 text-sm dark:border-primary dark:bg-primary/40">
         <p>
           <strong>Typical flow:</strong> set up categories → add products and inventory → merchandising (sliders, promos) → monitor orders
           and payments. Service bookings stay under <strong>Marketplace</strong> and <strong>Bookings</strong>.

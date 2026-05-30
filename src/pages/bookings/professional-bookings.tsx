@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ============================================================================
  * PROFESSIONAL BOOKINGS PAGE
  * ============================================================================
@@ -99,33 +99,33 @@ const STATUS_CARD: Record<
 > = {
   pending: {
     label: 'Pending',
-    topBar: 'from-amber-500 to-amber-600',
-    iconBox: 'bg-amber-500/15 text-amber-600',
-    chip: 'bg-amber-500/15 text-amber-800',
+    topBar: 'from-bloom-coral to-bloom-coral',
+    iconBox: 'bg-bloom-coral/15 text-bloom-coral',
+    chip: 'bg-bloom-coral/15 text-bloom-coral',
   },
   confirmed: {
     label: 'Confirmed',
-    topBar: 'from-sky-500 to-sky-600',
-    iconBox: 'bg-sky-500/15 text-sky-600',
-    chip: 'bg-sky-500/15 text-sky-800',
+    topBar: 'from-primary to-primary',
+    iconBox: 'bg-primary/15 text-primary',
+    chip: 'bg-primary/15 text-primary',
   },
   in_progress: {
     label: 'In Progress',
-    topBar: 'from-violet-500 to-violet-600',
-    iconBox: 'bg-violet-500/15 text-violet-600',
-    chip: 'bg-violet-500/15 text-violet-800',
+    topBar: 'from-primary-deep to-primary-deep',
+    iconBox: 'bg-primary-deep/15 text-primary-deep',
+    chip: 'bg-primary-deep/15 text-primary-deep',
   },
   completed: {
     label: 'Completed',
-    topBar: 'from-emerald-500 to-emerald-600',
-    iconBox: 'bg-emerald-500/15 text-emerald-600',
-    chip: 'bg-emerald-500/15 text-emerald-800',
+    topBar: 'from-storm-deep to-storm-deep',
+    iconBox: 'bg-storm-deep/15 text-storm-deep',
+    chip: 'bg-storm-deep/15 text-storm-deep',
   },
   cancelled: {
     label: 'Cancelled',
-    topBar: 'from-red-500 to-red-600',
-    iconBox: 'bg-red-500/15 text-red-600',
-    chip: 'bg-red-500/15 text-red-800',
+    topBar: 'from-destructive to-destructive',
+    iconBox: 'bg-destructive/15 text-destructive',
+    chip: 'bg-destructive/15 text-destructive',
   },
 }
 
@@ -516,16 +516,16 @@ export function ProfessionalBookings() {
                 </div>
               </div>
             </div>
-            <div className="shrink-0 rounded-xl border-2 border-emerald-500 bg-emerald-500/10 px-4 py-2 text-center">
+            <div className="shrink-0 rounded-xl border-2 border-storm-deep bg-storm-deep/10 px-4 py-2 text-center">
               <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Amount</p>
-              <p className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
+              <p className="text-2xl font-extrabold text-storm-deep dark:text-storm-sea">
                 ₹{booking.totalAmount}
               </p>
             </div>
           </div>
 
           <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="flex items-center gap-3 rounded-xl border border-sky-500/20 bg-sky-500/5 p-4 transition-transform hover:translate-x-1">
+            <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 transition-transform hover:translate-x-1">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <User className="h-5 w-5" />
               </div>
@@ -535,8 +535,8 @@ export function ProfessionalBookings() {
                 <p className="text-sm text-muted-foreground">{booking.customer.phone}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 transition-transform hover:translate-x-1">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500 text-white">
+            <div className="flex items-center gap-3 rounded-xl border border-bloom-coral/20 bg-bloom-coral/5 p-4 transition-transform hover:translate-x-1">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-bloom-coral text-white">
                 <Calendar className="h-5 w-5" />
               </div>
               <div>
@@ -550,7 +550,7 @@ export function ProfessionalBookings() {
             </div>
           </div>
 
-          <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+          <div className="mb-6 flex items-start gap-3 rounded-xl border border-destructive/20 bg-destructive/5 p-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-destructive text-destructive-foreground">
               <MapPin className="h-5 w-5" />
             </div>
@@ -570,31 +570,31 @@ export function ProfessionalBookings() {
           {showPaymentReceivedBlock && (
             <>
               <Separator className="mb-6" />
-              <Card className="border-2 border-emerald-500 bg-emerald-500/10 shadow-sm">
+              <Card className="border-2 border-storm-deep bg-storm-deep/10 shadow-sm">
                 <CardContent className="p-5">
                   <div className="mb-4 flex items-center gap-2">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500 text-white">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-storm-deep text-white">
                       <Receipt className="h-5 w-5" />
                     </div>
-                    <h4 className="text-lg font-bold text-emerald-800 dark:text-emerald-200">Payment received</h4>
+                    <h4 className="text-lg font-bold text-storm-deep dark:text-on-ink">Payment received</h4>
                   </div>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
-                    <div className="rounded-lg bg-emerald-500/10 p-3">
+                    <div className="rounded-lg bg-storm-deep/10 p-3">
                       <p className="text-[10px] font-semibold uppercase text-muted-foreground">Amount</p>
-                      <p className="text-lg font-extrabold text-emerald-600">₹{booking.totalAmount}</p>
+                      <p className="text-lg font-extrabold text-storm-deep">₹{booking.totalAmount}</p>
                     </div>
-                    <div className="rounded-lg bg-emerald-500/10 p-3">
+                    <div className="rounded-lg bg-storm-deep/10 p-3">
                       <p className="text-[10px] font-semibold uppercase text-muted-foreground">Method</p>
                       <p className="font-bold capitalize text-foreground">{booking.paymentMethod || 'Cash'}</p>
                     </div>
-                    <div className="rounded-lg bg-emerald-500/10 p-3">
+                    <div className="rounded-lg bg-storm-deep/10 p-3">
                       <p className="text-[10px] font-semibold uppercase text-muted-foreground">Status</p>
-                      <Badge className="mt-1 border-0 bg-emerald-500/20 font-semibold text-emerald-800">
+                      <Badge className="mt-1 border-0 bg-storm-deep/20 font-semibold text-storm-deep">
                         <CheckCircle className="mr-1 h-3.5 w-3.5" />
                         Received
                       </Badge>
                     </div>
-                    <div className="rounded-lg bg-emerald-500/10 p-3">
+                    <div className="rounded-lg bg-storm-deep/10 p-3">
                       <p className="text-[10px] font-semibold uppercase text-muted-foreground">Date</p>
                       <p className="font-bold text-foreground">
                         {booking.completedDate
@@ -630,7 +630,7 @@ export function ProfessionalBookings() {
             </Button>
             <Button
               type="button"
-              className="gap-1.5 bg-emerald-600 hover:bg-emerald-700"
+              className="gap-1.5 bg-storm-deep hover:bg-storm-deep"
               onClick={() => handleCallCustomer(booking.customer.phone)}
             >
               <Phone className="h-4 w-4" />
@@ -650,7 +650,7 @@ export function ProfessionalBookings() {
               <>
                 <Button
                   type="button"
-                  className="gap-1.5 bg-emerald-600 hover:bg-emerald-700"
+                  className="gap-1.5 bg-storm-deep hover:bg-storm-deep"
                   onClick={() => handleAction(booking, 'accept')}
                 >
                   <CheckCircle className="h-4 w-4" />
@@ -682,7 +682,7 @@ export function ProfessionalBookings() {
             {booking.status === 'in_progress' && (
               <Button
                 type="button"
-                className="gap-1.5 bg-emerald-600 hover:bg-emerald-700"
+                className="gap-1.5 bg-storm-deep hover:bg-storm-deep"
                 onClick={() => handleAction(booking, 'complete')}
               >
                 <CheckCircle className="h-4 w-4" />
@@ -735,7 +735,7 @@ export function ProfessionalBookings() {
               }
               if (isCompleted && (isPayAfterService || isCash) && isPaymentDone) {
                 return (
-                  <Badge className="h-9 gap-1 border-0 bg-emerald-500/20 px-3 text-emerald-800">
+                  <Badge className="h-9 gap-1 border-0 bg-storm-deep/20 px-3 text-storm-deep">
                     <CheckCircle className="h-3.5 w-3.5" />
                     Payment received
                   </Badge>
@@ -789,7 +789,7 @@ export function ProfessionalBookings() {
 
   return (
     <div className="min-h-screen bg-muted/30 p-4 md:p-6">
-      <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-800 p-6 shadow-lg md:p-8">
+      <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary-deep p-6 shadow-lg md:p-8">
         <div className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/10" />
         <div className="relative z-10">
           <h1 className="text-2xl font-extrabold tracking-tight text-white drop-shadow-sm md:text-3xl">My bookings</h1>
@@ -800,9 +800,9 @@ export function ProfessionalBookings() {
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {[
           { label: 'Total', value: stats.total, className: 'text-primary' },
-          { label: 'Pending', value: stats.pending, className: 'text-amber-600' },
-          { label: 'In progress', value: stats.inProgress, className: 'text-sky-600' },
-          { label: 'Completed', value: stats.completed, className: 'text-emerald-600' },
+          { label: 'Pending', value: stats.pending, className: 'text-bloom-coral' },
+          { label: 'In progress', value: stats.inProgress, className: 'text-primary' },
+          { label: 'Completed', value: stats.completed, className: 'text-storm-deep' },
         ].map((s) => (
           <Card
             key={s.label}
@@ -814,7 +814,7 @@ export function ProfessionalBookings() {
             </CardContent>
           </Card>
         ))}
-        <Card className="col-span-2 border-0 bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-md sm:col-span-1 lg:col-span-2">
+        <Card className="col-span-2 border-0 bg-gradient-to-br from-storm-deep to-storm-deep text-white shadow-md sm:col-span-1 lg:col-span-2">
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-extrabold">₹{stats.totalEarnings.toLocaleString()}</p>
             <p className="text-[10px] font-semibold uppercase tracking-wide text-white/90">Total earnings</p>
@@ -880,7 +880,7 @@ export function ProfessionalBookings() {
       ) : filteredBookings.length === 0 ? (
         <Card className="border-border/60 shadow-sm">
           <CardContent className="p-4">
-            <div className="rounded-md border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-sm text-sky-900 dark:text-sky-100">
+            <div className="rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-primary dark:text-primary-deep">
               No bookings found in this category
             </div>
           </CardContent>
@@ -972,7 +972,7 @@ export function ProfessionalBookings() {
               type="button"
               className={cn(
                 action === 'reject' && 'bg-destructive hover:bg-destructive/90',
-                action === 'complete' && 'bg-emerald-600 hover:bg-emerald-700',
+                action === 'complete' && 'bg-storm-deep hover:bg-storm-deep',
               )}
               onClick={() => void handleConfirmAction()}
             >
@@ -991,14 +991,14 @@ export function ProfessionalBookings() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <IndianRupee className="h-5 w-5 text-emerald-600" />
+              <IndianRupee className="h-5 w-5 text-storm-deep" />
               Mark payment received
             </DialogTitle>
           </DialogHeader>
           {selectedBookingForPayment && (
             <div className="space-y-4 text-sm">
               <div
-                className="rounded-md border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-sky-950 dark:text-sky-100"
+                className="rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-primary dark:text-primary-deep"
                 role="status"
               >
                 Confirm that you have received payment from the customer. This updates the payment status and
@@ -1042,7 +1042,7 @@ export function ProfessionalBookings() {
             </Button>
             <Button
               type="button"
-              className="bg-emerald-600 hover:bg-emerald-700"
+              className="bg-storm-deep hover:bg-storm-deep"
               disabled={paymentSubmitting || !selectedBookingForPayment}
               onClick={() => void handleMarkPaymentReceived()}
             >

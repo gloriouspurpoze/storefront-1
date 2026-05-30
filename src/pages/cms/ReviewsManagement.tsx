@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import { Loader2, RefreshCw, Star } from 'lucide-react'
 import { Card, CardContent } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
@@ -77,7 +77,7 @@ function customerEmailLine(c: BookingReview['customerId']): string | null {
 function StarRating({ value }: { value: number }) {
   const v = Math.max(0, Math.min(5, Math.round(value)))
   return (
-    <div className="inline-flex text-amber-500" role="img" aria-label={`${v} of 5 stars`}>
+    <div className="inline-flex text-bloom-coral" role="img" aria-label={`${v} of 5 stars`}>
       {Array.from({ length: 5 }, (_, i) => (
         <Star key={i} className={cn('h-3.5 w-3.5', i < v ? 'fill-current' : 'opacity-20')} />
       ))}

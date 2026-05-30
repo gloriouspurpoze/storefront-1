@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+﻿import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Loader2, FileStack, Mail, PenLine, ArrowRight } from 'lucide-react'
 import { CompanyDocumentsService } from '../../services/api/company-documents.service'
@@ -66,7 +66,7 @@ export function CompanyDocumentsOverviewPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold tabular-nums text-sky-700 dark:text-sky-400">
+                <p className="text-3xl font-bold tabular-nums text-primary dark:text-primary">
                   {summary?.envelopesOpen ?? 0}
                 </p>
                 <p className="text-xs text-muted-foreground">Draft, sent, or viewed — awaiting signature</p>
@@ -80,7 +80,7 @@ export function CompanyDocumentsOverviewPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold tabular-nums text-emerald-700 dark:text-emerald-400">
+                <p className="text-3xl font-bold tabular-nums text-storm-deep dark:text-storm-sea">
                   {summary?.envelopesSigned ?? 0}
                 </p>
                 <p className="text-xs text-muted-foreground">Recorded acknowledgements</p>

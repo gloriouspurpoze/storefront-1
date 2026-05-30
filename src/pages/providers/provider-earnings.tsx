@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import {
   Banknote,
   Calendar,
@@ -87,11 +87,11 @@ export function ProviderEarnings() {
   const statusBadgeClass = (status: string) => {
     switch (status) {
       case 'paid':
-        return 'border-emerald-600/30 bg-emerald-500/15 text-emerald-800 dark:text-emerald-300'
+        return 'border-storm-deep/30 bg-storm-deep/15 text-storm-deep dark:text-storm-sea'
       case 'processing':
-        return 'border-sky-600/30 bg-sky-500/15 text-sky-800 dark:text-sky-300'
+        return 'border-primary/30 bg-primary/15 text-primary dark:text-primary'
       case 'pending':
-        return 'border-amber-600/30 bg-amber-500/15 text-amber-900 dark:text-amber-200'
+        return 'border-bloom-coral/30 bg-bloom-coral/15 text-bloom-coral dark:text-bloom-deep'
       default:
         return ''
     }
@@ -186,7 +186,7 @@ export function ProviderEarnings() {
       ) : (
         <>
           <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card className="overflow-hidden border-0 bg-gradient-to-br from-indigo-500 to-purple-700 text-white shadow-md">
+            <Card className="overflow-hidden border-0 bg-gradient-to-br from-primary to-primary-deep text-white shadow-md">
               <CardContent className="pt-6">
                 <div className="mb-4 flex items-center justify-between">
                   <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-white/20">
@@ -202,8 +202,8 @@ export function ProviderEarnings() {
             <Card className="h-full rounded-lg shadow-sm">
               <CardContent className="pt-6">
                 <div className="mb-4 flex items-center justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-amber-500/15">
-                    <Clock className="h-6 w-6 text-amber-700 dark:text-amber-400" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-bloom-coral/15">
+                    <Clock className="h-6 w-6 text-bloom-coral dark:text-bloom-coral" />
                   </div>
                 </div>
                 <p className="mb-0.5 text-3xl font-bold">${earnings.pendingPayouts.toLocaleString()}</p>
@@ -215,8 +215,8 @@ export function ProviderEarnings() {
             <Card className="h-full rounded-lg shadow-sm">
               <CardContent className="pt-6">
                 <div className="mb-4 flex items-center justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-500/15">
-                    <CheckCircle2 className="h-6 w-6 text-emerald-700 dark:text-emerald-400" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-storm-deep/15">
+                    <CheckCircle2 className="h-6 w-6 text-storm-deep dark:text-storm-sea" />
                   </div>
                 </div>
                 <p className="mb-0.5 text-3xl font-bold">${earnings.completedPayouts.toLocaleString()}</p>
@@ -231,13 +231,13 @@ export function ProviderEarnings() {
                   <div
                     className={cn(
                       'flex h-12 w-12 items-center justify-center rounded-lg',
-                      isGrowthPositive ? 'bg-emerald-500/15' : 'bg-red-500/15',
+                      isGrowthPositive ? 'bg-storm-deep/15' : 'bg-destructive/15',
                     )}
                   >
                     {isGrowthPositive ? (
-                      <TrendingUp className="h-6 w-6 text-emerald-700 dark:text-emerald-400" />
+                      <TrendingUp className="h-6 w-6 text-storm-deep dark:text-storm-sea" />
                     ) : (
-                      <TrendingDown className="h-6 w-6 text-red-700 dark:text-red-400" />
+                      <TrendingDown className="h-6 w-6 text-destructive dark:text-bloom-coral" />
                     )}
                   </div>
                   <Badge variant={isGrowthPositive ? 'success' : 'destructive'} className="text-xs">
@@ -291,7 +291,7 @@ export function ProviderEarnings() {
                             -$
                             {String(t.platform_fee ?? transaction.platformFee ?? transaction.fee ?? 0)}
                           </TableCell>
-                          <TableCell className="font-semibold text-emerald-700 dark:text-emerald-400">
+                          <TableCell className="font-semibold text-storm-deep dark:text-storm-sea">
                             $
                             {String(
                               t.provider_amount ??
@@ -350,13 +350,13 @@ export function ProviderEarnings() {
                       <ProgressBar value={10} className="h-2" />
                     </div>
                     <Separator />
-                    <div className="rounded-lg bg-emerald-500/10 p-4 dark:bg-emerald-950/40">
-                      <p className="mb-1 text-sm text-emerald-900 dark:text-emerald-200">This Month&apos;s Progress</p>
-                      <p className="mb-2 text-2xl font-bold text-emerald-900 dark:text-emerald-100">
+                    <div className="rounded-lg bg-storm-deep/10 p-4 dark:bg-storm-deep/40">
+                      <p className="mb-1 text-sm text-storm-deep dark:text-on-ink">This Month&apos;s Progress</p>
+                      <p className="mb-2 text-2xl font-bold text-storm-deep dark:text-on-ink">
                         ${earnings.thisMonth.toLocaleString()}
                       </p>
-                      <ProgressBar value={75} className="h-2 bg-emerald-200/50 dark:bg-emerald-900/50" />
-                      <p className="mt-2 text-xs text-emerald-800 dark:text-emerald-300">75% of monthly goal ($4,500)</p>
+                      <ProgressBar value={75} className="h-2 bg-storm-mist/50 dark:bg-storm-deep/50" />
+                      <p className="mt-2 text-xs text-storm-deep dark:text-storm-sea">75% of monthly goal ($4,500)</p>
                     </div>
                   </div>
                 </CardContent>

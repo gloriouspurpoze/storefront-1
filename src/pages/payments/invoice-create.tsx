@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react'
+﻿import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -417,7 +417,7 @@ export function InvoiceCreate() {
 
   return (
     <form
-      className="min-h-screen bg-muted/30 pb-8 dark:bg-zinc-950"
+      className="min-h-screen bg-muted/30 pb-8 dark:bg-ink"
       onSubmit={(e) => {
         e.preventDefault()
         if (activeStep < 2) return
@@ -465,10 +465,10 @@ export function InvoiceCreate() {
         {activeStep === 0 && (
           <VStack className="gap-6">
             <div
-              className="flex gap-3 rounded-md border border-sky-200 bg-sky-50 p-4 text-sm dark:border-sky-900 dark:bg-sky-950/40"
+              className="flex gap-3 rounded-md border border-primary/20 bg-primary-soft p-4 text-sm dark:border-primary dark:bg-primary/40"
               role="status"
             >
-              <ClipboardList className="mt-0.5 h-5 w-5 shrink-0 text-sky-700 dark:text-sky-200" />
+              <ClipboardList className="mt-0.5 h-5 w-5 shrink-0 text-primary dark:text-primary-deep" />
               <p>
                 Walk-in: no User ID. Platform: link to Mongo <code className="rounded bg-white/60 px-1 dark:bg-black/30">User._id</code>.
                 Optional{' '}
@@ -597,7 +597,7 @@ export function InvoiceCreate() {
                       <p className="text-xs text-muted-foreground">For CRM and portal</p>
                     </div>
                   ) : (
-                    <div className="rounded-md border border-emerald-200 bg-emerald-50/80 p-3 text-sm md:col-span-2 dark:border-emerald-900 dark:bg-emerald-950/30">
+                    <div className="rounded-md border border-storm-mist/30 bg-storm-mist/80 p-3 text-sm md:col-span-2 dark:border-storm-deep dark:bg-storm-deep/30">
                       {OFFLINE_GUEST
                         ? 'Backend linkage will use the configured guest user id.'
                         : 'Backend may require REACT_APP_INVOICE_OFFLINE_GUEST_USER_ID in .env.'}
@@ -859,7 +859,7 @@ export function InvoiceCreate() {
                             </SelectContent>
                           </Select>
                           {gstRate !== DEFAULT_GST_RATE && (
-                            <p className="text-[11px] text-amber-700 dark:text-amber-300">
+                            <p className="text-[11px] text-bloom-coral dark:text-bloom-coral">
                               Backend default is {DEFAULT_GST_RATE}%. Confirm InvoiceService config
                               if you choose a different slab.
                             </p>
@@ -941,7 +941,7 @@ export function InvoiceCreate() {
         {activeStep === 2 && (
           <div>
             <div
-              className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm dark:border-emerald-900 dark:bg-emerald-950/30"
+              className="mb-4 rounded-md border border-storm-mist/30 bg-storm-mist/30 p-4 text-sm dark:border-storm-deep dark:bg-storm-deep/30"
               role="status"
             >
               Check customer name, state (place of supply), amounts, and payment mode. Issuing will call{' '}
@@ -954,7 +954,7 @@ export function InvoiceCreate() {
             </div>
             {type === 'provider_payout' && (
               <div
-                className="mb-4 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm dark:border-amber-800 dark:bg-amber-950/40"
+                className="mb-4 rounded-md border border-bloom-coral bg-bloom-rose p-4 text-sm dark:border-bloom-coral dark:bg-bloom-coral/40"
                 role="status"
               >
                 Vendor / payout: the grid below is a <strong>customer-style</strong> line preview only. The issued PDF uses the{' '}

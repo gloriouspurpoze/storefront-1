@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { BazaarGuidanceAccordion } from './BazaarGuidanceAccordion'
 import { PageHeader } from '../../components/common/PageHeader'
@@ -174,7 +174,7 @@ export default function BazaarModuleSettingsPage() {
                         checked={draft[key]}
                         onCheckedChange={(v) => setFlag(key, v)}
                         disabled={!canEdit || saving}
-                        className={cn(key === 'bypassPhotoModeration' && draft[key] && 'data-[state=checked]:bg-amber-600')}
+                        className={cn(key === 'bypassPhotoModeration' && draft[key] && 'data-[state=checked]:bg-bloom-coral')}
                       />
                     </div>
                   </div>

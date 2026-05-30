@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+﻿import React, { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Plus,
@@ -37,9 +37,9 @@ interface UserStats {
 const iconColor: Record<string, string> = {
   primary: 'text-primary',
   error: 'text-destructive',
-  info: 'text-sky-600',
-  success: 'text-emerald-600',
-  warning: 'text-amber-600',
+  info: 'text-primary',
+  success: 'text-storm-deep',
+  warning: 'text-bloom-coral',
 }
 
 type UsersPageMode = 'directory' | 'members'
@@ -537,7 +537,7 @@ function UsersPageContent({ mode }: { mode: UsersPageMode }) {
             className={cn(
               'flex items-start justify-between gap-2 text-sm',
               snackbar.severity === 'error' && 'text-destructive',
-              snackbar.severity === 'success' && 'text-emerald-700 dark:text-emerald-400',
+              snackbar.severity === 'success' && 'text-storm-deep dark:text-storm-sea',
               (snackbar.severity === 'info' || snackbar.severity === 'warning') && 'text-foreground'
             )}
           >

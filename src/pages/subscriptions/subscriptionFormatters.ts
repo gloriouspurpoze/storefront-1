@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Subscription module shared formatters / constants.
  */
 
@@ -63,30 +63,30 @@ export const SUBSCRIPTION_STATUS_LABEL: Record<SubscriptionStatus, string> = {
 export function subscriptionStatusBadgeClass(status: SubscriptionStatus): string {
   switch (status) {
     case 'active':
-      return 'border-emerald-500/45 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+      return 'border-storm-deep/45 bg-storm-deep/10 text-storm-deep dark:text-storm-sea'
     case 'trial':
-      return 'border-sky-500/45 bg-sky-500/10 text-sky-700 dark:text-sky-300'
+      return 'border-primary/45 bg-primary/10 text-primary dark:text-primary'
     case 'past_due':
-      return 'border-amber-500/45 bg-amber-500/10 text-amber-800 dark:text-amber-200'
+      return 'border-bloom-coral/45 bg-bloom-coral/10 text-bloom-coral dark:text-bloom-deep'
     case 'paused':
-      return 'border-violet-500/45 bg-violet-500/10 text-violet-700 dark:text-violet-300'
+      return 'border-primary-deep/45 bg-primary-deep/10 text-primary-deep dark:text-primary-deep'
     case 'cancelled':
-      return 'border-rose-500/45 bg-rose-500/10 text-rose-700 dark:text-rose-300'
+      return 'border-destructive/45 bg-destructive/10 text-destructive dark:text-bloom-coral'
     case 'expired':
     default:
-      return 'border-neutral-500/45 bg-neutral-500/10 text-neutral-700 dark:text-neutral-300'
+      return 'border-graphite/45 bg-graphite/10 text-charcoal dark:text-steel'
   }
 }
 
 export function planStatusBadgeClass(status: PlanStatus): string {
   switch (status) {
     case 'active':
-      return 'border-emerald-500/45 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+      return 'border-storm-deep/45 bg-storm-deep/10 text-storm-deep dark:text-storm-sea'
     case 'inactive':
-      return 'border-amber-500/45 bg-amber-500/10 text-amber-800 dark:text-amber-200'
+      return 'border-bloom-coral/45 bg-bloom-coral/10 text-bloom-coral dark:text-bloom-deep'
     case 'archived':
     default:
-      return 'border-neutral-500/45 bg-neutral-500/10 text-neutral-700 dark:text-neutral-300'
+      return 'border-graphite/45 bg-graphite/10 text-charcoal dark:text-steel'
   }
 }
 

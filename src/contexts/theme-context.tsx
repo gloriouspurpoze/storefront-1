@@ -61,23 +61,11 @@ export function useTheme() {
   return context
 }
 
-// Hook for getting theme-aware colors (Tailwind CSS variables)
-export function useThemeColors() {
-  const { isDarkMode } = useTheme()
-  
-  return {
-    primary: isDarkMode ? '#3b82f6' : '#2563eb',
-    secondary: isDarkMode ? '#8b5cf6' : '#7c3aed',
-    success: isDarkMode ? '#10b981' : '#059669',
-    error: isDarkMode ? '#ef4444' : '#dc2626',
-    warning: isDarkMode ? '#f59e0b' : '#d97706',
-    info: isDarkMode ? '#06b6d4' : '#0891b2',
-    background: isDarkMode ? '#0f172a' : '#f8fafc',
-    surface: isDarkMode ? '#1e293b' : '#ffffff',
-    text: isDarkMode ? '#f8fafc' : '#0f172a',
-    textSecondary: isDarkMode ? '#cbd5e1' : '#64748b',
-  }
-}
+// NOTE: `useThemeColors` was removed in the DESIGN.md cleanup pass.
+// DESIGN.md is the single source of truth for colors — consume them via:
+//   - Tailwind classes:  bg-primary, text-ink, bg-cloud, border-hairline, …
+//   - CSS variables:     var(--color-primary), var(--color-ink), …
+// If you need a theme-aware color in JS, read the CSS var off
+// `getComputedStyle(document.documentElement)` rather than hardcoding hex.
 
-// Export type for convenience
 export type { ThemeVariant }

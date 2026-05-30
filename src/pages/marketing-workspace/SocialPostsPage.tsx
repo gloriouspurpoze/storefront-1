@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+﻿import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CalendarClock, Pencil, Plus, Rocket, Share2, Trash2, Upload } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
@@ -635,7 +635,7 @@ export function SocialPostsPage() {
                   className={cn(
                     'text-xs tabular-nums',
                     capHealth === 'over' && 'font-medium text-destructive',
-                    capHealth === 'warn' && 'text-amber-600 dark:text-amber-500',
+                    capHealth === 'warn' && 'text-bloom-coral dark:text-bloom-coral',
                     capHealth === 'ok' && 'text-muted-foreground',
                   )}
                 >
