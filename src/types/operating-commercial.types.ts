@@ -22,6 +22,15 @@ export interface TenantCommercialTermsDto {
   marketingAllocationPercent?: number
   /** Flat visiting / inspection fee charged on every booking (industry standard line). */
   visitingFeeFixed?: number
+  /** Subtotal threshold (₹) above which the customer web app waives the visit / delivery fee. */
+  freeVisitThresholdRupees?: number
+  /**
+   * Master switch for the customer web app's "Online pay" (Razorpay) tile.
+   * `false` → checkout hides the pay-now option and forces pay-after-service.
+   */
+  onlinePaymentEnabled?: boolean
+  /** Short customer-facing reason rendered next to the disabled tile when applicable. */
+  onlinePaymentDisabledReason?: string
   internalNotes?: string
   updatedBy?: string
   createdAt?: string
