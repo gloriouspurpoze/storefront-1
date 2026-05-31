@@ -131,23 +131,44 @@ export class CategoriesService {
   }
 
   /**
-   * Get service categories only
+   * Get service categories only.
+   *
+   * NOTE: The backend retired the dedicated `/categories/services` and
+   * `/categories/products` endpoints — they now collide with `/categories/:id`
+   * and the idParam validator rejects "services" / "products" with
+   * `"ID must be a valid MongoDB ObjectId"`. We route through the merged-types
+   * helper which hits `/categories/all?category_type=service` (and `both`) and
+   * shape the result into the `{ success, data: CategoryWithStats[] }` envelope
+   * that older callers (e.g. SliderTargetingFields) already expect.
    */
   static async getServiceCategories() {
-    return api.get<CategoryWithStats[]>('/categories/services', {
-      loadingMessage: 'Loading service categories...',
-      showSuccessToast: false,
-    })
+    try {
+      const list = await this.getCategoriesForServiceUIs({ limit: 500, is_active: true })
+      return {
+        success: true,
+        data: list as unknown as CategoryWithStats[],
+      }
+    } catch {
+      return { success: false, data: [] as CategoryWithStats[] }
+    }
   }
 
   /**
-   * Get product categories only
+   * Get product categories only.
+   *
+   * See note on getServiceCategories — same migration applies for product
+   * (store) categories, using `category_type=product` + `both`.
    */
   static async getProductCategories() {
-    return api.get<CategoryWithStats[]>('/categories/products', {
-      loadingMessage: 'Loading product categories...',
-      showSuccessToast: false,
-    })
+    try {
+      const list = await this.getCategoriesForProductUIs({ limit: 500, is_active: true })
+      return {
+        success: true,
+        data: list as unknown as CategoryWithStats[],
+      }
+    } catch {
+      return { success: false, data: [] as CategoryWithStats[] }
+    }
   }
 
   /**

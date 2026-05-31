@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useRef } from 'react'
+﻿import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import {
   Loader2,
   ArrowLeft,
@@ -31,6 +31,9 @@ import {
   MessageCircle,
   Sparkles,
   Pencil,
+  ImageIcon,
+  AlertCircle,
+  RotateCcw,
 } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from '../../components/ui/button'
@@ -91,6 +94,7 @@ import {
   ImageUploadField,
   type ImageFile,
 } from '../../components/forms'
+import UploadService from '../../services/api/upload.service'
 import { MobileServiceCardPreview } from '../../components/services/MobileServiceCardPreview'
 import { ServiceImageGuidancePanel } from '../../components/services/ServiceImageGuidancePanel'
 import { SERVICE_CARD_IMAGE_SPEC } from '../../constants/serviceImageSpec'
@@ -301,6 +305,346 @@ function richTextHasPlainText(html: string): boolean {
   return stripped.length > 0
 }
 
+/**
+ * Single-image dropzone tailored for the package / variant row.
+ *
+ * Why not reuse the big `ImageUploadField`?
+ *   - That component is multi-image, alt-text, reorder, primary-flag etc.
+ *   - The package tile needs ONE square photo with two obvious actions:
+ *     upload a new file OR pick one from the existing Cloudinary library
+ *     (lets ops re-use the same hero across packages without re-uploading).
+ *   - 1:1 ratio matches the customer-facing "Choose a package" tile.
+ */
+function PackagePhotoSlot({
+  target,
+  url,
+  uploading,
+  error,
+  disabled,
+  onUpload,
+  onPickFromLibrary,
+  onClear,
+  cloudinaryFolder = 'homeservice',
+}: {
+  target: number | 'new'
+  url: string
+  uploading: boolean
+  error?: string
+  disabled?: boolean
+  onUpload: (file: File) => void
+  /** Called when the operator picks an existing asset from Cloudinary. */
+  onPickFromLibrary: (asset: { url: string; publicId?: string }) => void
+  onClear: () => void
+  /** Cloudinary folder to scope the picker against. */
+  cloudinaryFolder?: string
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const [dragOver, setDragOver] = useState(false)
+  const inputId = `pkg-img-${target}`
+
+  // Cloudinary library picker state — local to each slot so two open dialogs
+  // can't fight over the same fetch.
+  const [libraryOpen, setLibraryOpen] = useState(false)
+  const [libraryLoading, setLibraryLoading] = useState(false)
+  const [libraryError, setLibraryError] = useState<string | null>(null)
+  const [libraryItems, setLibraryItems] = useState<Array<{ url: string; publicId: string }>>([])
+  const [librarySearch, setLibrarySearch] = useState('')
+
+  const pickFile = () => inputRef.current?.click()
+
+  const handleFile = (file: File | undefined) => {
+    if (!file) return
+    onUpload(file)
+  }
+
+  const openLibrary = useCallback(async () => {
+    setLibraryOpen(true)
+    setLibraryError(null)
+    setLibraryLoading(true)
+    try {
+      // Search both the package-specific folder and the parent folder so older
+      // assets uploaded before this scope existed still show up.
+      const [scoped, parent] = await Promise.all([
+        UploadService.listImages(`${cloudinaryFolder}/service-packages`, 60).catch(() => []),
+        UploadService.listImages(cloudinaryFolder, 60).catch(() => []),
+      ])
+      const seen = new Set<string>()
+      const merged: Array<{ url: string; publicId: string }> = []
+      for (const item of [...scoped, ...parent]) {
+        const key = (item.publicId || item.url || '').trim()
+        if (!key || seen.has(key)) continue
+        seen.add(key)
+        merged.push({ url: item.url, publicId: item.publicId })
+      }
+      setLibraryItems(merged)
+    } catch (e: any) {
+      setLibraryError(e?.message || 'Failed to load images')
+      setLibraryItems([])
+    } finally {
+      setLibraryLoading(false)
+    }
+  }, [cloudinaryFolder])
+
+  const filteredLibrary = useMemo(() => {
+    const q = librarySearch.trim().toLowerCase()
+    if (!q) return libraryItems
+    return libraryItems.filter((item) =>
+      (item.publicId || item.url).toLowerCase().includes(q),
+    )
+  }, [libraryItems, librarySearch])
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={inputId} className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-muted-foreground">
+        <ImageIcon className="h-3 w-3" />
+        Package image<span className="text-destructive">*</span>
+      </Label>
+      <div
+        onDragEnter={(e) => {
+          if (disabled) return
+          e.preventDefault()
+          setDragOver(true)
+        }}
+        onDragOver={(e) => {
+          if (disabled) return
+          e.preventDefault()
+          setDragOver(true)
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault()
+          setDragOver(false)
+        }}
+        onDrop={(e) => {
+          if (disabled) return
+          e.preventDefault()
+          setDragOver(false)
+          const file = e.dataTransfer.files?.[0]
+          handleFile(file)
+        }}
+        className={cn(
+          'relative flex aspect-square w-full select-none items-center justify-center overflow-hidden rounded-xl border-2 border-dashed bg-muted/40 text-center transition',
+          dragOver && !url && 'border-primary/60 bg-primary/[0.06]',
+          error && !uploading && 'border-destructive/60 bg-destructive/[0.05]',
+          !url && !error && 'border-border hover:border-primary/40',
+          url && 'border-solid border-border bg-card',
+        )}
+      >
+        {url ? (
+          <>
+            <img src={url} alt="Package preview" className="h-full w-full object-cover" />
+            {!disabled ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-end gap-1.5 bg-gradient-to-t from-black/55 via-transparent to-transparent p-2 opacity-0 transition-opacity hover:opacity-100">
+                <div className="flex gap-1.5">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    className="h-7 px-2 text-[11px]"
+                    onClick={pickFile}
+                    disabled={uploading}
+                  >
+                    <RotateCcw className="mr-1 h-3 w-3" />
+                    Replace
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    className="h-7 px-2 text-[11px]"
+                    onClick={onClear}
+                    disabled={uploading}
+                  >
+                    <X className="mr-1 h-3 w-3" />
+                    Remove
+                  </Button>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-6 bg-background/95 px-2 text-[10px]"
+                  onClick={() => void openLibrary()}
+                  disabled={uploading}
+                >
+                  <ImageIcon className="mr-1 h-3 w-3" />
+                  Library
+                </Button>
+              </div>
+            ) : null}
+          </>
+        ) : uploading ? (
+          <div className="flex flex-col items-center gap-1.5 text-xs text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            Uploading…
+          </div>
+        ) : (
+          <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 px-3 text-xs font-medium text-muted-foreground">
+            <button
+              type="button"
+              onClick={pickFile}
+              disabled={disabled}
+              className="flex flex-col items-center gap-1 hover:text-foreground"
+            >
+              <Upload className="h-5 w-5" />
+              <span>Drop or click to upload</span>
+              <span className="text-[10px] font-normal">JPG / PNG / WebP · up to 5 MB</span>
+            </button>
+            <span className="text-[10px] font-normal text-muted-foreground">or</span>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-7 px-2 text-[11px]"
+              onClick={() => void openLibrary()}
+              disabled={disabled}
+            >
+              <ImageIcon className="mr-1 h-3 w-3" />
+              Pick from Cloudinary
+            </Button>
+          </div>
+        )}
+        <input
+          ref={inputRef}
+          id={inputId}
+          type="file"
+          accept="image/jpeg,image/jpg,image/png,image/webp"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            // Reset so picking the same file twice still triggers onChange.
+            e.target.value = ''
+            handleFile(file)
+          }}
+          disabled={disabled}
+        />
+        {uploading && url ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/70 text-xs text-muted-foreground">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Uploading…
+          </div>
+        ) : null}
+      </div>
+      {error ? (
+        <p className="flex items-start gap-1 text-[11px] text-destructive">
+          <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
+          <span>{error}</span>
+        </p>
+      ) : (
+        <p className="text-[10px] text-muted-foreground">
+          Square 1:1 ratio works best. Shown ~180×180 px on the storefront tile.
+        </p>
+      )}
+
+      <Dialog
+        open={libraryOpen}
+        onOpenChange={(open) => {
+          setLibraryOpen(open)
+          if (!open) {
+            setLibraryError(null)
+            setLibrarySearch('')
+          }
+        }}
+      >
+        <DialogContent className="flex max-h-[min(90vh,640px)] w-[calc(100vw-1.5rem)] max-w-2xl flex-col gap-0 overflow-hidden p-0 sm:w-full">
+          <DialogHeader className="shrink-0 space-y-1.5 border-b px-5 pb-3 pt-5 text-left">
+            <DialogTitle className="text-base">Pick a package image from Cloudinary</DialogTitle>
+            <p className="text-xs text-muted-foreground">
+              Showing assets from <span className="font-mono">{cloudinaryFolder}/service-packages</span>{' '}
+              and the parent <span className="font-mono">{cloudinaryFolder}</span> folder.
+            </p>
+          </DialogHeader>
+
+          <div className="shrink-0 border-b px-5 py-3">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={librarySearch}
+                onChange={(e) => setLibrarySearch(e.target.value)}
+                placeholder="Filter by name or public id…"
+                className="h-8 pl-8 text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto p-4">
+            {libraryLoading ? (
+              <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading images…
+              </div>
+            ) : libraryError ? (
+              <div className="flex flex-col items-center gap-2 py-12 text-center">
+                <AlertCircle className="h-6 w-6 text-destructive" />
+                <p className="text-sm text-destructive">{libraryError}</p>
+                <Button type="button" size="sm" variant="outline" onClick={() => void openLibrary()}>
+                  Try again
+                </Button>
+              </div>
+            ) : filteredLibrary.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-12 text-center text-sm text-muted-foreground">
+                <ImageIcon className="h-6 w-6" />
+                {librarySearch
+                  ? 'No images match that filter.'
+                  : 'No images uploaded to this folder yet. Upload one first to fill the library.'}
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5">
+                {filteredLibrary.map((item) => {
+                  const isCurrent = item.url === url
+                  return (
+                    <button
+                      key={item.publicId || item.url}
+                      type="button"
+                      onClick={() => {
+                        onPickFromLibrary({ url: item.url, publicId: item.publicId })
+                        setLibraryOpen(false)
+                      }}
+                      className={cn(
+                        'group relative aspect-square overflow-hidden rounded-lg border-2 bg-muted transition',
+                        isCurrent
+                          ? 'border-primary ring-2 ring-primary/30'
+                          : 'border-transparent hover:border-primary/60',
+                      )}
+                      title={item.publicId}
+                    >
+                      <img
+                        src={item.url}
+                        alt={item.publicId}
+                        className="h-full w-full object-cover transition-transform group-hover:scale-[1.04]"
+                        loading="lazy"
+                      />
+                      {isCurrent ? (
+                        <span className="absolute right-1 top-1 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary-foreground">
+                          Current
+                        </span>
+                      ) : null}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="shrink-0 border-t bg-muted/30 px-5 py-3">
+            <div className="flex w-full items-center justify-between text-xs text-muted-foreground">
+              <span>
+                {libraryLoading
+                  ? '—'
+                  : `${filteredLibrary.length} of ${libraryItems.length} image${
+                      libraryItems.length === 1 ? '' : 's'
+                    }`}
+              </span>
+              <Button type="button" size="sm" variant="ghost" onClick={() => setLibraryOpen(false)}>
+                Close
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
 export function CreateService() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>() // Get service ID from URL for edit mode
@@ -419,8 +763,14 @@ export function CreateService() {
     price: '',
     brand: '',
     warranty: '',
-    description: ''
+    description: '',
+    image: '',
+    imagePublicId: '',
   })
+  /** Per-row inline upload spinner — true while a Cloudinary upload is in flight. */
+  const [packageImageUploadIndex, setPackageImageUploadIndex] = useState<number | 'new' | null>(null)
+  /** Inline error message keyed by package index ('new' for the add-form). Cleared on next upload attempt. */
+  const [packageImageErrors, setPackageImageErrors] = useState<Record<string, string>>({})
   const [newAddon, setNewAddon] = useState({ name: '', price: '', description: '' })
   const [productToLink, setProductToLink] = useState('')
   const [serviceReviews, setServiceReviews] = useState<BookingReview[]>([])
@@ -559,19 +909,35 @@ export function CreateService() {
   }
 
   const addProduct = () => {
-    if (newProduct.name.trim()) {
-    setFormData(prev => ({
-      ...prev,
-        product_options: [...prev.product_options, { ...newProduct }]
-      }))
-      setNewProduct({
-        name: '',
-        price: '',
-        brand: '',
-        warranty: '',
-        description: ''
-      })
+    if (!newProduct.name.trim()) {
+      appToast('Package name is required', 'error')
+      return
     }
+    if (!newProduct.image.trim()) {
+      // Mirrors the main-service image rule — every customer-visible variant
+      // tile needs a thumbnail to render the "Choose a package" scroller.
+      appToast('Package image is required — upload before adding the package', 'error')
+      setPackageImageErrors((prev) => ({ ...prev, new: 'Image is required for every package.' }))
+      return
+    }
+    setFormData((prev) => ({
+      ...prev,
+      product_options: [...prev.product_options, { ...newProduct }],
+    }))
+    setNewProduct({
+      name: '',
+      price: '',
+      brand: '',
+      warranty: '',
+      description: '',
+      image: '',
+      imagePublicId: '',
+    })
+    setPackageImageErrors((prev) => {
+      const next = { ...prev }
+      delete next.new
+      return next
+    })
   }
 
   const removeProduct = (index: number) => {
@@ -588,6 +954,99 @@ export function CreateService() {
         i === index ? { ...p, [field]: value } : p,
       ),
     }))
+  }
+
+  /**
+   * Cloudinary upload for a single package thumbnail.
+   *
+   * `target = 'new'` writes into the "Add package" form (the unsaved row at the
+   * bottom of the section); a numeric `target` patches the existing
+   * `product_options[index]` row. Both paths surface inline progress + error
+   * feedback so the field never feels like a black box.
+   */
+  const uploadPackageImage = async (target: number | 'new', file: File) => {
+    const key = String(target)
+    setPackageImageErrors((prev) => {
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+    if (!file.type.startsWith('image/')) {
+      setPackageImageErrors((prev) => ({ ...prev, [key]: 'Only image files are allowed (JPG, PNG, WebP).' }))
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setPackageImageErrors((prev) => ({ ...prev, [key]: 'File must be 5 MB or smaller.' }))
+      return
+    }
+    try {
+      setPackageImageUploadIndex(target)
+      const res = await UploadService.uploadImage(file, 'homeservice/service-packages')
+      const url = res?.url
+      const publicId = res?.publicId
+      if (!url) throw new Error('Upload returned no URL')
+      if (target === 'new') {
+        setNewProduct((prev) => ({ ...prev, image: url, imagePublicId: publicId || '' }))
+      } else {
+        setFormData((prev) => ({
+          ...prev,
+          product_options: prev.product_options.map((p, i) =>
+            i === target ? { ...p, image: url, imagePublicId: publicId || '' } : p,
+          ),
+        }))
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Upload failed'
+      setPackageImageErrors((prev) => ({ ...prev, [key]: msg }))
+      appToast(msg, 'error')
+    } finally {
+      setPackageImageUploadIndex(null)
+    }
+  }
+
+  const clearPackageImage = (target: number | 'new') => {
+    if (target === 'new') {
+      setNewProduct((prev) => ({ ...prev, image: '', imagePublicId: '' }))
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        product_options: prev.product_options.map((p, i) =>
+          i === target ? { ...p, image: '', imagePublicId: '' } : p,
+        ),
+      }))
+    }
+    setPackageImageErrors((prev) => {
+      const next = { ...prev }
+      delete next[String(target)]
+      return next
+    })
+  }
+
+  /**
+   * Apply an existing Cloudinary asset to a package slot — no re-upload, just
+   * pointers. We still clear any stale error chip on the row.
+   */
+  const setPackageImageFromLibrary = (
+    target: number | 'new',
+    asset: { url: string; publicId?: string },
+  ) => {
+    const url = asset.url
+    const publicId = asset.publicId || ''
+    if (target === 'new') {
+      setNewProduct((prev) => ({ ...prev, image: url, imagePublicId: publicId }))
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        product_options: prev.product_options.map((p, i) =>
+          i === target ? { ...p, image: url, imagePublicId: publicId } : p,
+        ),
+      }))
+    }
+    setPackageImageErrors((prev) => {
+      const next = { ...prev }
+      delete next[String(target)]
+      return next
+    })
   }
 
   const addAddon = () => {
@@ -921,6 +1380,26 @@ export function CreateService() {
           setActiveTab(1)
           return
         }
+        // Every customer-visible package needs a thumbnail or the
+        // "Choose a package" scroller renders a stale placeholder. We
+        // enforce on Publish only — draft saves can still ship partial.
+        const packagesWithoutImage: Array<{ index: number; name: string }> = []
+        const nextErrors: Record<string, string> = {}
+        formData.product_options.forEach((pkg: any, idx: number) => {
+          if (!String(pkg?.image ?? '').trim()) {
+            packagesWithoutImage.push({ index: idx, name: String(pkg?.name ?? `Package ${idx + 1}`) })
+            nextErrors[String(idx)] = 'Image required'
+          }
+        })
+        if (packagesWithoutImage.length > 0) {
+          setPackageImageErrors(nextErrors)
+          appToast(
+            `Add an image for: ${packagesWithoutImage.map((p) => p.name).join(', ')}`,
+            'error',
+          )
+          setActiveTab(4)
+          return
+        }
       }
 
       // Get primary image or first image
@@ -1124,6 +1603,8 @@ export function CreateService() {
             brand: String(p.brand ?? ''),
             warranty: String(p.warranty ?? ''),
             description: String(p.description ?? ''),
+            image: String(p.image ?? ''),
+            imagePublicId: String(p.imagePublicId ?? ''),
           })),
           service_addons: (
             (service as any).serviceAddons ||
@@ -1766,7 +2247,17 @@ export function CreateService() {
               </TabsTrigger>
               <TabsTrigger value="4" className="gap-2 data-[state=active]:bg-muted sm:min-h-16">
                 <Layers className="h-4 w-4 shrink-0" />
-                Packages & Add-ons
+                <span className="flex items-center gap-1.5">
+                  Packages & Add-ons
+                  {/* Surface missing-image issues on the tab itself so users don't
+                      have to open the tab to discover the validation block. */}
+                  {formData.product_options.some((p: any) => !p?.image) ? (
+                    <span
+                      aria-label="One or more packages are missing images"
+                      className="inline-flex h-2 w-2 rounded-full bg-destructive"
+                    />
+                  ) : null}
+                </span>
               </TabsTrigger>
               <TabsTrigger value="5" className="gap-2 data-[state=active]:bg-muted sm:min-h-16">
                 <MapPin className="h-4 w-4 shrink-0" />
@@ -2482,142 +2973,238 @@ export function CreateService() {
           {activeTab === 4 && (
             <>
               <div>
-                <h2 className="mb-2 text-lg font-semibold">Choose a package</h2>
-                <p className="mb-6 text-sm text-muted-foreground">
-                  Shown on the customer site as &quot;Choose a package&quot; before add to cart.
-                </p>
+                <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold">Choose a package</h2>
+                    <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+                      Each package becomes a tile in the customer&apos;s &ldquo;Choose a package&rdquo; scroller
+                      (Urban Company / UC Procare pattern). Image is <span className="font-medium text-foreground">required</span> —
+                      it&apos;s the first thing customers see before reading the name or price.
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="self-start gap-1.5 border-amber-500/40 bg-amber-500/10 text-amber-700">
+                    <ImageIcon className="h-3 w-3" />
+                    Image is mandatory
+                  </Badge>
+                </div>
 
-                <div className="flex flex-col gap-6">
-                  {formData.product_options.map((product, index) => (
-                    <Card key={index} className="border p-4">
-                      <div className="mb-3 flex items-start justify-between">
-                        <p className="font-semibold">Package {index + 1}</p>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => removeProduct(index)}
-                          disabled={previewMode}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <div className="flex flex-col gap-4 md:flex-row">
-                        <div className="flex-1 space-y-2">
-                          <Label>Package name</Label>
-                          <Input
-                            value={product.name}
-                            onChange={(e) => updateProductOption(index, 'name', e.target.value)}
+                <div className="flex flex-col gap-4">
+                  {formData.product_options.map((product, index) => {
+                    const errKey = String(index)
+                    const imgError = packageImageErrors[errKey]
+                    const isUploading = packageImageUploadIndex === index
+                    const hasImage = Boolean(product.image)
+                    return (
+                      <Card
+                        key={index}
+                        className={cn(
+                          'border p-4 transition',
+                          imgError && 'border-destructive/50 bg-destructive/5',
+                        )}
+                      >
+                        <div className="mb-3 flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-primary/10 px-2 text-xs font-semibold text-primary">
+                              {index + 1}
+                            </span>
+                            <p className="font-semibold">{product.name || `Package ${index + 1}`}</p>
+                            {!hasImage ? (
+                              <Badge variant="outline" className="gap-1 border-destructive/40 bg-destructive/10 text-[10px] text-destructive">
+                                <AlertCircle className="h-3 w-3" />
+                                Missing image
+                              </Badge>
+                            ) : null}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => removeProduct(index)}
                             disabled={previewMode}
-                            className="w-full"
-                          />
+                            aria-label={`Remove package ${index + 1}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
-                        <div className="flex-1 space-y-2">
-                          <Label>Price (₹)</Label>
-                          <Input
-                            type="number"
-                            value={product.price}
-                            onChange={(e) => updateProductOption(index, 'price', e.target.value)}
-                            disabled={previewMode}
-                            className="w-full"
-                          />
-                        </div>
-                        <div className="flex-1 space-y-2">
-                          <Label>Brand</Label>
-                          <Input
-                            value={product.brand}
-                            onChange={(e) => updateProductOption(index, 'brand', e.target.value)}
-                            disabled={previewMode}
-                            className="w-full"
-                          />
-                        </div>
-                        <div className="flex-1 space-y-2">
-                          <Label>Warranty</Label>
-                          <Input
-                            value={product.warranty}
-                            onChange={(e) => updateProductOption(index, 'warranty', e.target.value)}
-                            disabled={previewMode}
-                            className="w-full"
-                          />
-                        </div>
-                      </div>
-                      <div className="mt-4 space-y-2">
-                        <Label>Description</Label>
-                        <Textarea
-                          value={product.description}
-                          onChange={(e) => updateProductOption(index, 'description', e.target.value)}
-                          disabled={previewMode}
-                          rows={2}
-                          className="w-full"
-                        />
-                      </div>
-                    </Card>
-                  ))}
 
-                  <Card className="border-2 border-dashed p-4">
-                    <p className="mb-4 text-sm font-semibold">Add package</p>
-                    <div className="mb-4 flex flex-col gap-4 md:flex-row">
-                      <div className="flex-1 space-y-2">
-                        <Label htmlFor="np-name">Product Name</Label>
-                        <Input
-                          id="np-name"
-                          value={newProduct.name}
-                          onChange={(e) => setNewProduct((prev) => ({ ...prev, name: e.target.value }))}
-                          disabled={previewMode}
-                          className="w-full"
-                        />
-                      </div>
-                      <div className="flex-1 space-y-2">
-                        <Label htmlFor="np-price">Price (₹)</Label>
-                        <Input
-                          id="np-price"
-                          type="number"
-                          value={newProduct.price}
-                          onChange={(e) => setNewProduct((prev) => ({ ...prev, price: e.target.value }))}
-                          disabled={previewMode}
-                          className="w-full"
-                        />
-                      </div>
-                      <div className="flex-1 space-y-2">
-                        <Label htmlFor="np-brand">Brand</Label>
-                        <Input
-                          id="np-brand"
-                          value={newProduct.brand}
-                          onChange={(e) => setNewProduct((prev) => ({ ...prev, brand: e.target.value }))}
-                          disabled={previewMode}
-                          className="w-full"
-                        />
-                      </div>
-                      <div className="flex-1 space-y-2">
-                        <Label htmlFor="np-warranty">Warranty</Label>
-                        <Input
-                          id="np-warranty"
-                          value={newProduct.warranty}
-                          onChange={(e) => setNewProduct((prev) => ({ ...prev, warranty: e.target.value }))}
-                          disabled={previewMode}
-                          className="w-full"
-                        />
-                      </div>
+                        <div className="grid gap-4 md:grid-cols-[180px_1fr]">
+                          {/* Image column — square thumbnail, matches the customer scroller's aspect ratio */}
+                          <PackagePhotoSlot
+                            target={index}
+                            url={product.image || ''}
+                            uploading={isUploading}
+                            error={imgError}
+                            disabled={previewMode}
+                            onUpload={(f) => void uploadPackageImage(index, f)}
+                            onPickFromLibrary={(asset) => setPackageImageFromLibrary(index, asset)}
+                            onClear={() => clearPackageImage(index)}
+                          />
+
+                          {/* Field column */}
+                          <div className="grid gap-3">
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <div className="space-y-1.5">
+                                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                                  Package name<span className="ml-1 text-destructive">*</span>
+                                </Label>
+                                <Input
+                                  value={product.name}
+                                  onChange={(e) => updateProductOption(index, 'name', e.target.value)}
+                                  disabled={previewMode}
+                                  placeholder="e.g. Deep clean — split AC"
+                                />
+                              </div>
+                              <div className="space-y-1.5">
+                                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                                  Price (₹)<span className="ml-1 text-destructive">*</span>
+                                </Label>
+                                <Input
+                                  type="number"
+                                  value={product.price}
+                                  onChange={(e) => updateProductOption(index, 'price', e.target.value)}
+                                  disabled={previewMode}
+                                  placeholder="899"
+                                />
+                              </div>
+                              <div className="space-y-1.5">
+                                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Brand</Label>
+                                <Input
+                                  value={product.brand}
+                                  onChange={(e) => updateProductOption(index, 'brand', e.target.value)}
+                                  disabled={previewMode}
+                                  placeholder="optional"
+                                />
+                              </div>
+                              <div className="space-y-1.5">
+                                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Warranty</Label>
+                                <Input
+                                  value={product.warranty}
+                                  onChange={(e) => updateProductOption(index, 'warranty', e.target.value)}
+                                  disabled={previewMode}
+                                  placeholder="e.g. 30-day service warranty"
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                                Description
+                              </Label>
+                              <Textarea
+                                value={product.description}
+                                onChange={(e) => updateProductOption(index, 'description', e.target.value)}
+                                disabled={previewMode}
+                                rows={2}
+                                placeholder="One-line value prop — “High-pressure jet spray, anti-bacterial wash, foam clean”"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    )
+                  })}
+
+                  {/* Add package — empty state-ish form */}
+                  <Card className="border-2 border-dashed border-primary/30 bg-primary/[0.03] p-4">
+                    <div className="mb-3 flex items-center gap-2">
+                      <Plus className="h-4 w-4 text-primary" />
+                      <p className="text-sm font-semibold text-foreground">Add a package</p>
+                      <span className="text-xs text-muted-foreground">
+                        — image, name and price are required
+                      </span>
                     </div>
-                    <div className="mb-4 space-y-2">
-                      <Label htmlFor="np-desc">Description</Label>
-                      <Textarea
-                        id="np-desc"
-                        value={newProduct.description}
-                        onChange={(e) => setNewProduct((prev) => ({ ...prev, description: e.target.value }))}
+                    <div className="grid gap-4 md:grid-cols-[180px_1fr]">
+                      <PackagePhotoSlot
+                        target="new"
+                        url={newProduct.image}
+                        uploading={packageImageUploadIndex === 'new'}
+                        error={packageImageErrors.new}
                         disabled={previewMode}
-                        rows={2}
-                        className="w-full"
+                        onUpload={(f) => void uploadPackageImage('new', f)}
+                        onPickFromLibrary={(asset) => setPackageImageFromLibrary('new', asset)}
+                        onClear={() => clearPackageImage('new')}
                       />
+                      <div className="grid gap-3">
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div className="space-y-1.5">
+                            <Label htmlFor="np-name" className="text-xs uppercase tracking-wide text-muted-foreground">
+                              Package name<span className="ml-1 text-destructive">*</span>
+                            </Label>
+                            <Input
+                              id="np-name"
+                              value={newProduct.name}
+                              onChange={(e) => setNewProduct((prev) => ({ ...prev, name: e.target.value }))}
+                              disabled={previewMode}
+                              placeholder="e.g. Standard service"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="np-price" className="text-xs uppercase tracking-wide text-muted-foreground">
+                              Price (₹)<span className="ml-1 text-destructive">*</span>
+                            </Label>
+                            <Input
+                              id="np-price"
+                              type="number"
+                              value={newProduct.price}
+                              onChange={(e) => setNewProduct((prev) => ({ ...prev, price: e.target.value }))}
+                              disabled={previewMode}
+                              placeholder="499"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="np-brand" className="text-xs uppercase tracking-wide text-muted-foreground">
+                              Brand
+                            </Label>
+                            <Input
+                              id="np-brand"
+                              value={newProduct.brand}
+                              onChange={(e) => setNewProduct((prev) => ({ ...prev, brand: e.target.value }))}
+                              disabled={previewMode}
+                              placeholder="optional"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="np-warranty" className="text-xs uppercase tracking-wide text-muted-foreground">
+                              Warranty
+                            </Label>
+                            <Input
+                              id="np-warranty"
+                              value={newProduct.warranty}
+                              onChange={(e) => setNewProduct((prev) => ({ ...prev, warranty: e.target.value }))}
+                              disabled={previewMode}
+                              placeholder="optional"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="np-desc" className="text-xs uppercase tracking-wide text-muted-foreground">
+                            Description
+                          </Label>
+                          <Textarea
+                            id="np-desc"
+                            value={newProduct.description}
+                            onChange={(e) => setNewProduct((prev) => ({ ...prev, description: e.target.value }))}
+                            disabled={previewMode}
+                            rows={2}
+                            placeholder="One-liner shown under the package title"
+                          />
+                        </div>
+                        <div>
+                          <Button
+                            variant="default"
+                            onClick={addProduct}
+                            disabled={previewMode || !newProduct.name.trim() || !newProduct.image.trim() || packageImageUploadIndex === 'new'}
+                            leftIcon={<Plus className="h-4 w-4" />}
+                          >
+                            Add package
+                          </Button>
+                          {!newProduct.image && newProduct.name ? (
+                            <p className="mt-1.5 text-[11px] text-muted-foreground">
+                              Upload a package image to enable &ldquo;Add package&rdquo;.
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
                     </div>
-                    <Button
-                      variant="outline"
-                      onClick={addProduct}
-                      disabled={previewMode || !newProduct.name.trim()}
-                      leftIcon={<Plus className="h-4 w-4" />}
-                    >
-                      Add package
-                    </Button>
                   </Card>
                 </div>
               </div>

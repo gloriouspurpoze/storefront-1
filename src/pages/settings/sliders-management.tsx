@@ -20,6 +20,7 @@ import {
   Eye as PreviewIcon,
   Save as SaveIcon,
   Loader2,
+  BookOpenCheck,
 } from 'lucide-react';
 import { PageHeader } from '../../components/common/PageHeader';
 import { appToast } from '../../lib/appToast';
@@ -77,6 +78,8 @@ import { FormField, type ImageFile } from '../../components/forms';
 import { useAppConfirm } from '../../components/providers/AppDialogsProvider';
 import { SliderMediaFormSection } from '../../components/sliders/SliderMediaFormSection';
 import { SliderResponsivePreview } from '../../components/sliders/SliderResponsivePreview';
+import { PlacementContextPreview } from '../../components/sliders/PlacementContextPreview';
+import { SliderKnowledgeKit } from '../../components/sliders/SliderKnowledgeKit';
 import {
   DEFAULT_SLIDER_PLAYBACK,
   normalizeSliderMediaType,
@@ -617,6 +620,14 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
       playback: formData.playback,
     });
 
+    /**
+     * Resolve a friendly name from the currently selected category id, so the
+     * placement-context preview can show "Bound to AC service" instead of an
+     * opaque ObjectId in the breadcrumb mock.
+     */
+    const selectedCategoryName =
+      categories.find((c) => c.id === formData.category_id)?.name || undefined;
+
     return (
       <TooltipProvider>
       <div className={cn(!embedded && 'p-4 sm:p-6 md:p-8')}>
@@ -625,6 +636,14 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
           subtitle={formMode === 'edit' ? 'Update slider details and settings' : 'Add a new banner/slider to your website'}
           action={
             <div className="flex flex-row gap-2">
+              <SliderKnowledgeKit
+                trigger={
+                  <Button variant="outline" className="rounded-lg gap-1.5">
+                    <BookOpenCheck className="h-4 w-4" />
+                    Knowledge kit
+                  </Button>
+                }
+              />
               {activeTab !== 1 && (
                 <Button
                   variant="outline"
@@ -760,7 +779,21 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
 
                           <div className="col-span-12 md:col-span-6">
                             <div className="space-y-2">
-                              <Label>Placement</Label>
+                              <div className="flex items-center justify-between gap-2">
+                                <Label>Placement</Label>
+                                <SliderKnowledgeKit
+                                  defaultSection="placements"
+                                  trigger={
+                                    <button
+                                      type="button"
+                                      className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                                    >
+                                      <BookOpenCheck className="h-3 w-3" />
+                                      Placement guide
+                                    </button>
+                                  }
+                                />
+                              </div>
                               <Select
                                 value={formData.placement}
                                 onValueChange={(v) => {
@@ -800,8 +833,24 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
                               </Select>
                               <p className="text-xs text-muted-foreground">
                                 Home, store, service category, product page, mobile app, etc.
+                                Need help choosing? Open the Placement guide above.
                               </p>
                             </div>
+                          </div>
+
+                          {/* Live placement preview that updates as the user types title / picks
+                             media / changes placement. Helps confirm targeting & framing
+                             before reaching the Preview tab. */}
+                          <div className="col-span-12">
+                            <PlacementContextPreview
+                              placement={formData.placement}
+                              sources={previewSources}
+                              title={formData.title}
+                              subtitle={formData.subtitle}
+                              buttonText={formData.button_text}
+                              categoryName={selectedCategoryName}
+                              productName={formData.product_name || undefined}
+                            />
                           </div>
 
                           <div className="col-span-12">
@@ -1073,11 +1122,36 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
 
                   {/* Tab 4: Preview */}
                   {activeTab === 4 && (
-                    <div>
-                        <h3 className="mb-6 flex items-center gap-2 text-xl font-bold text-primary">
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="mb-2 flex items-center gap-2 text-xl font-bold text-primary">
                           <PreviewIcon className="h-6 w-6" />
-                          Live Preview
+                          Placement preview
                         </h3>
+                        <p className="text-sm text-muted-foreground">
+                          See exactly where this slide will appear on the storefront / app and how
+                          surrounding content frames it. Switch viewport to compare desktop vs mobile.
+                        </p>
+                      </div>
+                      <PlacementContextPreview
+                        placement={formData.placement}
+                        sources={previewSources}
+                        title={formData.title}
+                        subtitle={formData.subtitle}
+                        buttonText={formData.button_text}
+                        categoryName={selectedCategoryName}
+                        productName={formData.product_name || undefined}
+                      />
+                      <Separator />
+                      <div>
+                        <h4 className="mb-2 flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                          <PreviewIcon className="h-4 w-4" />
+                          Responsive crop check
+                        </h4>
+                        <p className="mb-3 text-xs text-muted-foreground">
+                          Same media in an isolated frame — useful to spot edge cropping issues
+                          without the surrounding storefront chrome.
+                        </p>
                         <SliderResponsivePreview
                           sources={previewSources}
                           title={formData.title}
@@ -1085,11 +1159,13 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
                           buttonText={formData.button_text}
                         />
                       </div>
+                    </div>
                   )}
 
                   {/* Form Actions */}
                   <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
                     <Button
+                      type="button"
                       variant="outline"
                       className="order-2 w-full rounded-lg sm:order-1 sm:w-auto"
                       onClick={() => {
@@ -1103,6 +1179,7 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
                     <div className="order-1 flex w-full flex-col gap-2 sm:order-2 sm:w-auto sm:flex-row">
                       {activeTab > 0 && (
                         <Button
+                          type="button"
                           variant="outline"
                           className="rounded-lg"
                           onClick={() => setActiveTab(activeTab - 1)}
@@ -1113,6 +1190,7 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
                       )}
                       {activeTab < tabs.length - 1 ? (
                         <Button
+                          type="button"
                           variant="outline"
                           className="rounded-lg"
                           onClick={() => setActiveTab(activeTab + 1)}
@@ -1147,12 +1225,15 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
 
           {/* Side preview (Media tab has built-in preview) */}
           {showPreview && activeTab !== 1 && (
-            <div className="h-fit flex-1 lg:sticky lg:top-6">
-              <SliderResponsivePreview
+            <div className="flex h-fit flex-1 flex-col gap-4 lg:sticky lg:top-6">
+              <PlacementContextPreview
+                placement={formData.placement}
                 sources={previewSources}
                 title={formData.title}
                 subtitle={formData.subtitle}
                 buttonText={formData.button_text}
+                categoryName={selectedCategoryName}
+                productName={formData.product_name || undefined}
               />
             </div>
           )}
@@ -1179,6 +1260,14 @@ export default function SlidersManagement({ embedded = false }: SlidersManagemen
           />
         ) : (
           <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
+            <SliderKnowledgeKit
+              trigger={
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <BookOpenCheck className="h-4 w-4" />
+                  Knowledge kit
+                </Button>
+              }
+            />
             <Button onClick={handleCreate} size="sm">
               <Plus className="mr-2 h-4 w-4" />
               Add slider

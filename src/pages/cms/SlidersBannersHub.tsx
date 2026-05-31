@@ -5,6 +5,7 @@ import { PageHeader } from '../../components/common/PageHeader'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs'
 import SlidersManagement from '../settings/sliders-management'
 import BannerManagement from './BannerManagement'
+import { SliderKnowledgeKit } from '../../components/sliders/SliderKnowledgeKit'
 
 const HUB_TABS = ['sliders', 'banners'] as const
 type HubTab = (typeof HUB_TABS)[number]
@@ -47,6 +48,7 @@ export default function SlidersBannersHub() {
         title="Sliders & site banners"
         subtitle="Carousels with image, GIF, video, or Lottie slides (placement, schedules, playback) plus CMS banners for pop-ups and announcements."
         icon={<Images className="h-7 w-7" aria-hidden />}
+        action={<SliderKnowledgeKit />}
       />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as HubTab)} className="mt-4 w-full">

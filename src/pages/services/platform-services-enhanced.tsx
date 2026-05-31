@@ -528,38 +528,54 @@ function ServicePreviewDialog({
                 <p className="mb-2 text-sm font-semibold">Packages (product options)</p>
                 {service.product_options?.length ? (
                   <div className="space-y-3">
-                    {service.product_options.map((product: Record<string, unknown>, idx: number) => (
-                      <Card key={idx} className="border">
-                        <CardContent className="space-y-2 pt-4 text-sm">
-                          <div className="flex items-start justify-between gap-2">
-                            <span className="font-semibold">{String(product.name ?? '')}</span>
-                            {product.price != null && product.price !== '' && (
-                              <Badge className="shrink-0">{formatCurrency(Number(product.price))}</Badge>
-                            )}
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            {product.brand != null && String(product.brand).length > 0 && (
-                              <div>
-                                <p className="text-xs text-muted-foreground">Brand</p>
-                                <p>{String(product.brand)}</p>
+                    {service.product_options.map((product: Record<string, unknown>, idx: number) => {
+                      const imageUrl = typeof product.image === 'string' ? product.image : ''
+                      return (
+                        <Card key={idx} className="border">
+                          <CardContent className="pt-4 text-sm">
+                            <div className="flex items-start gap-3">
+                              {/* Mirror the customer "Choose a package" tile so missing images jump out. */}
+                              <Avatar className="h-16 w-16 shrink-0 rounded-lg">
+                                {imageUrl ? (
+                                  <AvatarImage src={imageUrl} alt="" className="object-cover" />
+                                ) : null}
+                                <AvatarFallback className="rounded-lg bg-muted text-[10px] font-medium text-destructive">
+                                  No image
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="min-w-0 flex-1 space-y-2">
+                                <div className="flex items-start justify-between gap-2">
+                                  <span className="truncate font-semibold">{String(product.name ?? '')}</span>
+                                  {product.price != null && product.price !== '' && (
+                                    <Badge className="shrink-0">{formatCurrency(Number(product.price))}</Badge>
+                                  )}
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  {product.brand != null && String(product.brand).length > 0 && (
+                                    <div>
+                                      <p className="text-xs text-muted-foreground">Brand</p>
+                                      <p>{String(product.brand)}</p>
+                                    </div>
+                                  )}
+                                  {product.warranty != null && String(product.warranty).length > 0 && (
+                                    <div>
+                                      <p className="text-xs text-muted-foreground">Warranty</p>
+                                      <p>{String(product.warranty)}</p>
+                                    </div>
+                                  )}
+                                </div>
+                                {product.description != null && String(product.description).length > 0 && (
+                                  <div>
+                                    <p className="text-xs text-muted-foreground">Description</p>
+                                    <p>{String(product.description)}</p>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                            {product.warranty != null && String(product.warranty).length > 0 && (
-                              <div>
-                                <p className="text-xs text-muted-foreground">Warranty</p>
-                                <p>{String(product.warranty)}</p>
-                              </div>
-                            )}
-                          </div>
-                          {product.description != null && String(product.description).length > 0 && (
-                            <div>
-                              <p className="text-xs text-muted-foreground">Description</p>
-                              <p>{String(product.description)}</p>
                             </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))}
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
                   </div>
                 ) : variants.length > 0 ? (
                   <p className="text-sm text-muted-foreground">
