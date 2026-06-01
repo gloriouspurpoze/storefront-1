@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useState } from 'react'
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Badge,
@@ -32,6 +32,16 @@ import {
   type PlatformTenantRow,
   type IsolationSummary,
 } from '../../services/api/platformTenants.service'
+import { DEFAULT_VERTICAL_KEY, normalizeVerticalKey, type VerticalKey } from '../../verticals/core/types'
+import { getVerticalPack, VERTICAL_PACK_OPTIONS } from '../../verticals/registry'
+import {
+  formatPlanPriceInr,
+  getBillingPlansForVertical,
+  getDefaultPlanKey,
+  getPlanForVertical,
+  getRecommendedPlan,
+  planLabelFor,
+} from '../../lib/verticalPlans'
 
 /** Must match fixer-backend `TENANT_FEATURE_KEYS` + `requireTenantFeature` usage. */
 const TENANT_MODULE_OPTIONS: { key: string; label: string }[] = [
@@ -41,7 +51,13 @@ const TENANT_MODULE_OPTIONS: { key: string; label: string }[] = [
   { key: 'marketing_workspace', label: 'Marketing workspace' },
   { key: 'team_work', label: 'Team work' },
   { key: 'bazaar', label: 'Bazaar (marketplace admin)' },
+  { key: 'ecommerce', label: 'E-commerce (products & orders)' },
 ]
+
+function verticalLabel(key: string | undefined): string {
+  const k = normalizeVerticalKey(key)
+  return VERTICAL_PACK_OPTIONS.find((o) => o.key === k)?.label ?? k
+}
 
 /** Normalize Mongo-style id from API (`_id` or `id`). */
 function tenantIdString(t: PlatformTenantRow | (Partial<PlatformTenantRow> & { id?: string })): string {
@@ -61,8 +77,23 @@ export function PlatformTenantsPage() {
   const [slug, setSlug] = useState('')
   const [ownerEmail, setOwnerEmail] = useState('')
   const [planKey, setPlanKey] = useState('')
+  const [verticalKey, setVerticalKey] = useState<VerticalKey>(DEFAULT_VERTICAL_KEY)
   const [openChecklistAfterCreate, setOpenChecklistAfterCreate] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [detailVerticalKey, setDetailVerticalKey] = useState<VerticalKey>(DEFAULT_VERTICAL_KEY)
+  const [detailPlanKey, setDetailPlanKey] = useState('')
+  const [savingVertical, setSavingVertical] = useState(false)
+  const [savingPlan, setSavingPlan] = useState(false)
+  const [applyingPlanModules, setApplyingPlanModules] = useState(false)
+
+  const createPlanOptions = useMemo(
+    () => getBillingPlansForVertical(verticalKey),
+    [verticalKey],
+  )
+
+  useEffect(() => {
+    setPlanKey(getDefaultPlanKey(verticalKey))
+  }, [verticalKey])
 
   const [detail, setDetail] = useState<PlatformTenantRow | null>(null)
   const [iso, setIso] = useState<IsolationSummary | null>(null)
@@ -100,7 +131,19 @@ export function PlatformTenantsPage() {
     (t: PlatformTenantRow) => {
       const id = tenantIdString(t)
       if (!id) return
-      dispatch(setTenant({ id, name: t.name, slug: t.slug }))
+      const vk = normalizeVerticalKey(t.verticalKey)
+      const fm = t.featureModules === undefined || t.featureModules === null ? null : [...t.featureModules]
+      dispatch(
+        setTenant({
+          id,
+          name: t.name,
+          slug: t.slug,
+          verticalKey: vk,
+          featureModules: fm,
+          planKey: t.planKey,
+          billingStatus: t.billingStatus,
+        }),
+      )
     },
     [dispatch],
   )
@@ -124,6 +167,8 @@ export function PlatformTenantsPage() {
     setIso(null)
     const fm = t.featureModules
     setModuleAllowlist(fm === undefined || fm === null ? null : [...fm])
+    setDetailVerticalKey(normalizeVerticalKey(t.verticalKey))
+    setDetailPlanKey(t.planKey?.trim() || getDefaultPlanKey(normalizeVerticalKey(t.verticalKey)))
     try {
       const [fullRes, isoRes, domRes] = await Promise.all([
         platformTenantsService.get(t._id),
@@ -178,11 +223,15 @@ export function PlatformTenantsPage() {
     }
     setSaving(true)
     try {
+      const vk = verticalKey
+      const pk = planKey.trim() || getDefaultPlanKey(vk)
+      const plan = getPlanForVertical(vk, pk) ?? getRecommendedPlan(vk)
       const res = await platformTenantsService.create({
         name: name.trim(),
         slug: slug.trim().toLowerCase(),
         ownerEmail: ownerEmail.trim() || undefined,
-        planKey: planKey.trim() || undefined,
+        planKey: pk,
+        verticalKey: vk,
       })
       const bundle = res.data as
         | { tenant?: PlatformTenantRow & { id?: string }; ownerAttached?: boolean; message?: string }
@@ -190,13 +239,33 @@ export function PlatformTenantsPage() {
       const created = bundle?.tenant
       const tid = created ? tenantIdString(created) : ''
       if (tid && created) {
-        dispatch(setTenant({ id: tid, name: created.name, slug: created.slug }))
+        dispatch(
+          setTenant({
+            id: tid,
+            name: created.name,
+            slug: created.slug,
+            verticalKey: normalizeVerticalKey(created.verticalKey ?? vk),
+            featureModules: created.featureModules ?? plan.includedModules,
+            planKey: created.planKey ?? pk,
+            billingStatus: created.billingStatus,
+          }),
+        )
+        try {
+          await platformTenantsService.update(tid, {
+            verticalKey: vk,
+            planKey: pk,
+            featureModules: created.featureModules ?? plan.includedModules,
+          })
+        } catch {
+          /* backend may not support verticalKey yet — sidebar still uses Redux */
+        }
       }
       setCreateOpen(false)
       setName('')
       setSlug('')
       setOwnerEmail('')
       setPlanKey('')
+      setVerticalKey(DEFAULT_VERTICAL_KEY)
       await load()
       if (tid && created) {
         toast({
@@ -273,6 +342,90 @@ export function PlatformTenantsPage() {
     }
   }
 
+  const saveVerticalKey = async () => {
+    if (!detail) return
+    setSavingVertical(true)
+    try {
+      await platformTenantsService.update(detail._id, { verticalKey: detailVerticalKey })
+      const fresh = await platformTenantsService.get(detail._id)
+      const row = fresh.data as PlatformTenantRow | undefined
+      if (row) {
+        setDetail(row)
+        setDetailVerticalKey(normalizeVerticalKey(row.verticalKey))
+        applyTenantContext(row)
+      }
+      toast({ title: 'Industry vertical updated' })
+      await load()
+    } catch (e) {
+      toast({
+        title: 'Update failed',
+        description: e instanceof Error ? e.message : 'Error',
+        variant: 'destructive',
+      })
+    } finally {
+      setSavingVertical(false)
+    }
+  }
+
+  const savePlanKey = async () => {
+    if (!detail) return
+    setSavingPlan(true)
+    try {
+      await platformTenantsService.update(detail._id, { planKey: detailPlanKey.trim() })
+      const fresh = await platformTenantsService.get(detail._id)
+      const row = fresh.data as PlatformTenantRow | undefined
+      if (row) {
+        setDetail(row)
+        setDetailPlanKey(row.planKey?.trim() || getDefaultPlanKey(detailVerticalKey))
+        applyTenantContext(row)
+      }
+      toast({ title: 'Plan updated' })
+      await load()
+    } catch (e) {
+      toast({
+        title: 'Plan update failed',
+        description: e instanceof Error ? e.message : 'Error',
+        variant: 'destructive',
+      })
+    } finally {
+      setSavingPlan(false)
+    }
+  }
+
+  const applyPlanModules = async () => {
+    if (!detail) return
+    const plan = getPlanForVertical(detailVerticalKey, detailPlanKey)
+    if (!plan) {
+      toast({ title: 'Unknown plan for this vertical', variant: 'destructive' })
+      return
+    }
+    setApplyingPlanModules(true)
+    try {
+      await platformTenantsService.update(detail._id, { featureModules: [...plan.includedModules] })
+      const fresh = await platformTenantsService.get(detail._id)
+      const row = fresh.data as PlatformTenantRow | undefined
+      if (row) {
+        setDetail(row)
+        const m = row.featureModules
+        setModuleAllowlist(m === undefined || m === null ? null : [...m])
+        applyTenantContext(row)
+      }
+      toast({
+        title: 'Modules aligned to plan',
+        description: `${plan.label}: ${plan.includedModules.join(', ')}`,
+      })
+      await load()
+    } catch (e) {
+      toast({
+        title: 'Could not apply plan modules',
+        description: e instanceof Error ? e.message : 'Error',
+        variant: 'destructive',
+      })
+    } finally {
+      setApplyingPlanModules(false)
+    }
+  }
+
   const removeDomain = async (domainId: string) => {
     if (!detail) return
     try {
@@ -342,8 +495,41 @@ export function PlatformTenantsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="pt-plan">Plan key (optional)</Label>
-                <Input id="pt-plan" value={planKey} onChange={(e) => setPlanKey(e.target.value)} placeholder="growth" />
+                <Label htmlFor="pt-plan">SaaS plan</Label>
+                <select
+                  id="pt-plan"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={planKey}
+                  onChange={(e) => setPlanKey(e.target.value)}
+                >
+                  {createPlanOptions.map((p) => (
+                    <option key={p.key} value={p.key}>
+                      {p.label}
+                      {p.recommended ? ' (recommended)' : ''}
+                      {formatPlanPriceInr(p) ? ` — ${formatPlanPriceInr(p)}/mo` : ''}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  {getPlanForVertical(verticalKey, planKey)?.description ??
+                    getRecommendedPlan(verticalKey).description}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="pt-vertical">Industry vertical</Label>
+                <select
+                  id="pt-vertical"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={verticalKey}
+                  onChange={(e) => setVerticalKey(normalizeVerticalKey(e.target.value))}
+                >
+                  {VERTICAL_PACK_OPTIONS.map((o) => (
+                    <option key={o.key} value={o.key}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground">{getVerticalPack(verticalKey).description}</p>
               </div>
               <div className="flex items-start gap-2 rounded-md border border-border/80 bg-muted/20 p-3">
                 <Checkbox
@@ -390,6 +576,8 @@ export function PlatformTenantsPage() {
                     <tr className="border-b text-left text-muted-foreground">
                       <th className="pb-2 pr-3">Name</th>
                       <th className="pb-2 pr-3">Slug</th>
+                      <th className="pb-2 pr-3">Vertical</th>
+                      <th className="pb-2 pr-3">Plan</th>
                       <th className="pb-2 pr-3">Status</th>
                       <th className="pb-2 pr-3">Billing</th>
                       <th className="pb-2">Actions</th>
@@ -400,6 +588,10 @@ export function PlatformTenantsPage() {
                       <tr key={t._id} className="border-b border-border/60">
                         <td className="py-2 pr-3 font-medium">{t.name}</td>
                         <td className="py-2 pr-3 font-mono text-xs">{t.slug}</td>
+                        <td className="py-2 pr-3 text-xs">{verticalLabel(t.verticalKey)}</td>
+                        <td className="py-2 pr-3 text-xs">
+                          {planLabelFor(normalizeVerticalKey(t.verticalKey), t.planKey)}
+                        </td>
                         <td className="py-2 pr-3">
                           {t.suspendedAt ? (
                             <Badge variant="destructive">Suspended</Badge>
@@ -450,6 +642,81 @@ export function PlatformTenantsPage() {
                 <ClipboardList className="mr-2 h-4 w-4" />
                 Platform checklist for this organization
               </Button>
+              <div className="rounded-md border border-border bg-muted/30 p-3 space-y-3 text-sm max-w-lg">
+                <p className="font-semibold text-xs">Industry vertical</p>
+                <p className="text-xs text-muted-foreground leading-snug">
+                  Controls which sidebar groups and workflows this organization sees. Changing vertical affects
+                  navigation only until domain entities are migrated.
+                </p>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={detailVerticalKey}
+                  onChange={(e) => setDetailVerticalKey(normalizeVerticalKey(e.target.value))}
+                >
+                  {VERTICAL_PACK_OPTIONS.map((o) => (
+                    <option key={o.key} value={o.key}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <Button type="button" size="sm" disabled={savingVertical} onClick={() => void saveVerticalKey()}>
+                  {savingVertical ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save vertical'}
+                </Button>
+              </div>
+              <div className="rounded-md border border-border bg-muted/30 p-3 space-y-3 text-sm max-w-lg">
+                <p className="font-semibold text-xs">SaaS plan &amp; billing</p>
+                <p className="text-xs text-muted-foreground leading-snug">
+                  Plans are defined per vertical. Assign a plan key for reporting; use{' '}
+                  <strong className="text-foreground">Apply plan modules</strong> to sync API entitlements with the
+                  plan manifest.
+                </p>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={detailPlanKey}
+                  onChange={(e) => setDetailPlanKey(e.target.value)}
+                >
+                  {getBillingPlansForVertical(detailVerticalKey).map((p) => (
+                    <option key={p.key} value={p.key}>
+                      {p.label}
+                      {formatPlanPriceInr(p) ? ` — ${formatPlanPriceInr(p)}/mo` : ''}
+                    </option>
+                  ))}
+                </select>
+                {getPlanForVertical(detailVerticalKey, detailPlanKey) && (
+                  <p className="text-xs text-muted-foreground">
+                    {getPlanForVertical(detailVerticalKey, detailPlanKey)?.description}
+                    {getPlanForVertical(detailVerticalKey, detailPlanKey)?.limits?.maxUsers != null && (
+                      <>
+                        {' '}
+                        · up to {getPlanForVertical(detailVerticalKey, detailPlanKey)?.limits?.maxUsers} users
+                      </>
+                    )}
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Billing: <span className="font-mono">{detail.billingStatus || 'none'}</span>
+                  {detail.stripeCustomerId ? (
+                    <>
+                      {' '}
+                      · Stripe customer <span className="font-mono">{detail.stripeCustomerId.slice(0, 12)}…</span>
+                    </>
+                  ) : null}
+                </p>
+                <HStack spacing={2}>
+                  <Button type="button" size="sm" disabled={savingPlan} onClick={() => void savePlanKey()}>
+                    {savingPlan ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save plan'}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    disabled={applyingPlanModules}
+                    onClick={() => void applyPlanModules()}
+                  >
+                    {applyingPlanModules ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Apply plan modules'}
+                  </Button>
+                </HStack>
+              </div>
               <div className="rounded-md border border-border bg-muted/30 p-3 space-y-3 text-sm">
                 <p className="font-semibold text-xs">API module access (tenant allowlist)</p>
                 <p className="text-xs text-muted-foreground leading-snug">

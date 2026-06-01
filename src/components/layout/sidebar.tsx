@@ -1,84 +1,20 @@
-import React, { useState, useMemo, useEffect } from 'react'
+﻿import React, { useState, useMemo, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard as DashboardIcon,
-  Package as PackageIcon,
-  Package2 as InventoryIcon,
   Wrench as WrenchIcon,
-  ClipboardList as FileTextIcon,
-  IdCard as AssignmentIndIcon,
   DollarSign as DollarSignIcon,
   Calendar as CalendarIcon,
-  Users as UsersIcon,
-  BarChart2 as BarChartIcon,
-  LineChart as AssessmentIcon,
-  Cloud as CloudIcon,
+  User as PersonIcon,
   MessageSquare as MessageIcon,
   MessageCircle as ChatIcon,
-  ShoppingCart as ShoppingCartIcon,
   Settings as SettingsIcon,
-  SlidersHorizontal as TuneIcon,
-  Home as HomeIcon,
   ChevronUp as ExpandLess,
   ChevronDown as ExpandMore,
-  Building2 as BusinessIcon,
   LifeBuoy as SupportIcon,
-  ShieldAlert as ShieldAlertIcon,
-  Shield as ShieldAccessIcon,
-  Bell as NotificationsIcon,
-  User as PersonIcon,
-  Tag as CategoryIcon,
-  Images as SlideshowIcon,
-  Tag as CouponIcon,
-  Share2 as ReferralIcon,
-  Globe as WebIcon,
   Star as StarIcon,
-  HelpCircle as HelpIcon,
-  Search as SearchIcon,
   FileText as DescriptionIcon,
-  BookOpen as ArticleIcon,
-  Image as MediaIcon,
-  Menu as MenusIcon,
-  Receipt as ReceiptIcon,
-  Palette as InvoiceBrandingIcon,
-  CreditCard as CreditCardIcon,
-  Landmark as AccountBalanceIcon,
-  TrendingUp as TrendingUpIcon,
-  Link2 as LinkIcon,
-  Megaphone as CampaignIcon,
-  MapPin as MapPinIcon,
-  Wallet as WalletIcon,
-  Store as StorefrontIcon,
-  ShoppingBag as ShoppingBagIcon,
-  ScanLine as PosTerminalIcon,
-  Briefcase as BusinessCenterIcon,
-  UserSearch as PersonSearchIcon,
-  Handshake as HandshakeIcon,
-  ListTodo as AssignmentIcon,
-  ListChecks as RateReviewIcon,
-  BadgeCheck as VerifiedUserIcon,
-  KanbanSquare as KanbanSquareIcon,
-  CalendarDays as TeamCalendarIcon,
-  LayoutGrid,
-  TicketPercent,
-  Newspaper,
-  Sparkles,
-  Layers,
-  Lightbulb as LightbulbIcon,
-  FlaskConical as LabIcon,
-  Target as TargetIcon,
-  Mail as MailTemplateIcon,
-  Palette as PaletteIcon,
-  Presentation as PresentationIcon,
   History as HistoryIcon,
-  Gauge as GaugeIcon,
-  ShieldCheck as AmcShieldIcon,
-  ListOrdered as RateCardsHubIcon,
-  FileSignature as CompanyDocumentsIcon,
-  CircleDollarSign as OperatingCommercialIcon,
-  Boxes as ProviderAssetsIcon,
-  Gavel as ProfessionalConductIcon,
-  Repeat as SubscriptionsIcon,
 } from 'lucide-react'
 import { useAppSelector, useAppDispatch } from '../../store/hooks'
 import { setChatUnreadMessages } from '../../store/slices/chatInboxSlice'
@@ -95,11 +31,13 @@ import {
   DRAWER_WIDTH_EXPANDED_PX,
 } from './layout-constants'
 import { readSidebarRecent, upsertSidebarRecent, type SidebarRecentEntry } from '../../lib/sidebarRecent'
+import { buildFilteredAdminNavigationGroups } from '../../lib/buildAdminSidebar'
+import { normalizeVerticalKey } from '../../verticals/core/types'
 
 const drawerWidth = DRAWER_WIDTH_EXPANDED_PX
 const collapsedDrawerWidth = DRAWER_WIDTH_COLLAPSED_PX
 
-/** Paths that are hub landing pages — avoid treating `/cms`, `/users`, etc. as prefixes of sibling routes. */
+/** Paths that are hub landing pages â€” avoid treating `/cms`, `/users`, etc. as prefixes of sibling routes. */
 const NAV_EXACT_ONLY_HREFS = new Set<string>([
   '/',
   '/cms',
@@ -224,508 +162,6 @@ const professionalNavigationGroups = [
   }
 ]
 
-/**
- * Admin navigation: sales → day-to-day ops → commerce → supply-side catalog → growth → people → platform.
- */
-const navigationGroups = [
-  {
-    title: 'Overview',
-    icon: DashboardIcon,
-    items: [
-      { name: 'Dashboard', href: '/', icon: DashboardIcon, permissions: ['view_dashboard'], badge: null },
-      { name: 'Analytics', href: '/analytics', icon: BarChartIcon, permissions: ['view_analytics'], badge: null },
-      {
-        name: 'Catalog performance',
-        href: '/analytics/catalog',
-        icon: BarChartIcon,
-        permissions: ['view_analytics'],
-        badge: null,
-      },
-      {
-        name: 'Growth funnels',
-        href: '/analytics/funnels',
-        icon: TargetIcon,
-        permissions: ['view_analytics'],
-        badge: null,
-      },
-    ]
-  },
-  {
-    title: 'CRM',
-    icon: BusinessCenterIcon,
-    items: [
-      { name: 'CRM overview', href: '/crm', icon: BusinessCenterIcon, permissions: ['view_crm'], badge: null },
-      { name: 'Leads', href: '/crm/leads', icon: PersonSearchIcon, permissions: ['view_crm'], badge: null },
-      { name: 'Contacts', href: '/crm/contacts', icon: UsersIcon, permissions: ['view_crm'], badge: null },
-      { name: 'B2B accounts', href: '/crm/companies', icon: BusinessIcon, permissions: ['view_crm'], badge: null },
-      { name: 'Deals', href: '/crm/deals', icon: HandshakeIcon, permissions: ['view_crm'], badge: null },
-      { name: 'Activities', href: '/crm/activities', icon: AssignmentIcon, permissions: ['view_crm'], badge: null },
-      { name: 'CRM settings', href: '/crm/settings', icon: TuneIcon, permissions: ['view_crm'], badge: null },
-    ]
-  },
-  {
-    title: 'Operations',
-    icon: CalendarIcon,
-    items: [
-      { name: 'Bookings', href: '/bookings', icon: CalendarIcon, permissions: ['view_bookings', 'manage_bookings'], badge: null },
-      {
-        name: 'AMC contracts',
-        href: '/amc/overview',
-        icon: AmcShieldIcon,
-        permissions: ['view_amc'],
-        badge: null,
-      },
-      {
-        name: 'Documents & signatures',
-        href: '/company-documents',
-        icon: CompanyDocumentsIcon,
-        permissions: ['view_company_documents'],
-        badge: null,
-      },
-      {
-        name: 'Rate cards',
-        href: '/rate-cards/overview',
-        icon: RateCardsHubIcon,
-        permissions: ['view_rate_cards'],
-        badge: null,
-      },
-      {
-        name: 'Fees & cities',
-        href: '/operations/commercial/terms',
-        icon: OperatingCommercialIcon,
-        permissions: ['view_operating_terms'],
-        badge: null,
-      },
-      {
-        name: 'Professional assets',
-        href: '/operations/provider-assets',
-        icon: ProviderAssetsIcon,
-        permissions: ['view_provider_assets'],
-        badge: null,
-      },
-      {
-        name: 'Conduct & incentives',
-        href: '/operations/professional-conduct',
-        icon: ProfessionalConductIcon,
-        permissions: ['view_professional_conduct'],
-        badge: null,
-      },
-      {
-        name: 'POS — Home services',
-        href: '/operations/pos',
-        icon: PosTerminalIcon,
-        permissions: ['create_bookings', 'manage_bookings'],
-        badge: null,
-      },
-      {
-        name: 'Industry operations',
-        href: '/operations',
-        icon: GaugeIcon,
-        permissions: ['view_dashboard'],
-        badge: null,
-      },
-      {
-        name: 'Dispute cases',
-        href: '/operations/dispute-cases',
-        icon: ShieldAlertIcon,
-        permissions: ['view_bookings', 'manage_bookings', 'edit_bookings'],
-        badge: null,
-      },
-      {
-        name: 'Boards',
-        href: '/boards',
-        icon: PresentationIcon,
-        permissions: ['view_boards'],
-        badge: null,
-      },
-      {
-        name: 'Team work',
-        href: '/team-work',
-        icon: KanbanSquareIcon,
-        permissions: ['view_team_tasks', 'manage_team_tasks'],
-        badge: null,
-      },
-      {
-        name: 'Team calendar',
-        href: '/team-work/calendar',
-        icon: TeamCalendarIcon,
-        permissions: ['view_team_tasks', 'manage_team_tasks'],
-        badge: null,
-      },
-      { name: 'Service requests', href: '/requests', icon: FileTextIcon, permissions: ['view_services', 'manage_services'], badge: null },
-      { name: 'Quotes', href: '/quotes', icon: DollarSignIcon, permissions: ['view_quotes'], badge: null },
-      {
-        name: 'Payments',
-        href: '/payments',
-        icon: CreditCardIcon,
-        permissions: ['view_payments', 'create_payments', 'refund_payments'],
-        badge: null,
-      },
-      {
-        name: 'Invoices',
-        href: '/invoices',
-        icon: ReceiptIcon,
-        permissions: ['view_payments', 'create_payments', 'refund_payments'],
-        badge: null,
-      },
-      {
-        name: 'Invoice appearance',
-        href: '/invoices/branding',
-        icon: InvoiceBrandingIcon,
-        permissions: ['view_payments', 'create_payments', 'refund_payments'],
-        badge: null,
-      },
-      {
-        name: 'Earnings & Payouts',
-        href: '/payouts',
-        icon: AccountBalanceIcon,
-        permissions: ['view_payments', 'create_payments', 'refund_payments'],
-        badge: null,
-      },
-      {
-        name: 'Finance',
-        href: '/finance/overview',
-        icon: TrendingUpIcon,
-        permissions: ['view_finance'],
-        badge: null,
-      },
-      {
-        name: 'Founder Finance',
-        href: '/finance/founder/dashboard',
-        icon: TrendingUpIcon,
-        permissions: ['view_finance'],
-        badge: null,
-      },
-      {
-        name: 'Subscriptions',
-        href: '/subscriptions',
-        icon: SubscriptionsIcon,
-        permissions: ['view_subscriptions'],
-        badge: null,
-      },
-      { name: 'Chat', href: '/chat', icon: ChatIcon, permissions: ['view_messages'], badge: null },
-    ]
-  },
-  {
-    title: 'Commerce',
-    icon: ShoppingBagIcon,
-    items: [
-      {
-        name: 'Store overview',
-        href: '/ecommerce',
-        icon: ShoppingBagIcon,
-        permissions: [
-          'view_products',
-          'create_products',
-          'view_categories',
-          'view_orders',
-          'manage_coupons',
-          'manage_system_settings',
-          'view_settings',
-        ],
-        badge: null,
-      },
-      { name: 'Products', href: '/products', icon: PackageIcon, permissions: ['view_products'], badge: null },
-      {
-        name: 'Inventory',
-        href: '/inventory',
-        icon: InventoryIcon,
-        permissions: ['view_products', 'edit_products', 'manage_product_inventory'],
-        badge: null,
-      },
-      { name: 'Orders', href: '/orders', icon: ShoppingCartIcon, permissions: ['view_orders'], badge: null },
-      {
-        name: 'Offers & listing chats',
-        href: '/bazaar',
-        icon: HandshakeIcon,
-        permissions: [
-          'view_products',
-          'create_products',
-          'view_categories',
-          'view_orders',
-          'manage_coupons',
-          'manage_system_settings',
-          'view_settings',
-        ],
-        badge: null,
-      },
-      {
-        name: 'Listing review',
-        href: '/bazaar/listing-review',
-        icon: RateReviewIcon,
-        permissions: [
-          'view_products',
-          'create_products',
-          'view_categories',
-          'view_orders',
-          'manage_coupons',
-          'manage_system_settings',
-          'view_settings',
-        ],
-        badge: null,
-      },
-      {
-        name: 'Module & AI settings',
-        href: '/bazaar/module-settings',
-        icon: Sparkles,
-        permissions: [
-          'view_products',
-          'create_products',
-          'view_categories',
-          'view_orders',
-          'manage_coupons',
-          'manage_system_settings',
-          'view_settings',
-        ],
-        badge: null,
-      },
-      {
-        name: 'Pro-Verify queue',
-        href: '/bazaar/pro-verify',
-        icon: VerifiedUserIcon,
-        permissions: [
-          'view_products',
-          'create_products',
-          'view_categories',
-          'view_orders',
-          'manage_coupons',
-          'manage_system_settings',
-          'view_settings',
-        ],
-        badge: null,
-      },
-    ]
-  },
-  {
-    title: 'Catalog & network',
-    icon: PackageIcon,
-    items: [
-      { name: 'Product categories', href: '/categories/products', icon: InventoryIcon, permissions: ['view_categories', 'manage_categories'], badge: null },
-      { name: 'Service categories', href: '/categories/services', icon: WrenchIcon, permissions: ['view_categories', 'manage_categories'], badge: null },
-      { name: 'Platform services', href: '/platform-services', icon: HomeIcon, permissions: ['view_services', 'manage_services'], badge: null },
-      {
-        name: 'Marketplace',
-        href: '/marketplace',
-        icon: StorefrontIcon,
-        permissions: [
-          'view_services',
-          'view_categories',
-          'view_bookings',
-          'view_providers',
-          'view_payments',
-          'manage_coupons',
-          'manage_system_settings',
-        ],
-        badge: null,
-      },
-      {
-        name: 'Professionals',
-        href: '/professionals',
-        icon: PersonIcon,
-        permissions: ['view_providers', 'edit_providers', 'approve_providers'],
-        badge: null,
-      },
-      {
-        name: 'Workforce dashboard',
-        href: '/professionals/operations',
-        icon: KanbanSquareIcon,
-        permissions: ['view_providers', 'edit_providers', 'approve_providers'],
-        badge: null,
-      },
-      {
-        name: 'Provider Applications',
-        href: '/provider-applications',
-        icon: AssignmentIndIcon,
-        permissions: ['view_providers', 'edit_providers', 'approve_providers'],
-        badge: null,
-      },
-    ]
-  },
-  {
-    title: 'Content & Marketing',
-    icon: WebIcon,
-    items: [
-      {
-        name: 'Site structure',
-        icon: LayoutGrid,
-        hasSubmenu: true,
-        permissions: ['view_cms', 'manage_cms'],
-        badge: null,
-        subItems: [
-          { name: 'CMS overview', href: '/cms', icon: WebIcon, permissions: ['view_cms'] },
-          { name: 'Homepage', href: '/cms/homepage', icon: HomeIcon, permissions: ['manage_cms'] },
-          { name: 'Site appearance', href: '/cms/site-appearance', icon: PaletteIcon, permissions: ['manage_cms'] },
-          { name: 'Pages', href: '/cms/pages', icon: DescriptionIcon, permissions: ['manage_cms'] },
-          { name: 'Menus', href: '/cms/menus', icon: MenusIcon, permissions: ['manage_cms'] },
-          { name: 'Media library', href: '/cms/media', icon: MediaIcon, permissions: ['manage_cms'] },
-        ],
-      },
-      {
-        name: 'Surfaces & promotions',
-        icon: Sparkles,
-        hasSubmenu: true,
-        permissions: ['view_cms', 'manage_cms', 'manage_marketing'],
-        badge: null,
-        subItems: [
-          { name: 'Sliders & banners', href: '/sliders', icon: SlideshowIcon, permissions: ['manage_cms'] },
-          // Unified discount-code module (was previously split between
-          // `/cms/promotions` and `/coupons`). `/cms/promotions` redirects here.
-          { name: 'Coupons & promo codes', href: '/coupons', icon: TicketPercent, permissions: ['manage_marketing'] },
-          { name: 'Service bundles', href: '/marketing/service-combos', icon: Layers, permissions: ['manage_marketing'] },
-          { name: 'Cart spend tiers', href: '/marketing/cart-tiers', icon: Sparkles, permissions: ['manage_marketing'] },
-          { name: 'Referrals', href: '/referrals', icon: ReferralIcon, permissions: ['manage_marketing'] },
-        ],
-      },
-      {
-        name: 'Editorial & social proof',
-        icon: Newspaper,
-        hasSubmenu: true,
-        permissions: ['view_cms', 'manage_cms'],
-        badge: null,
-        subItems: [
-          { name: 'Blog posts', href: '/cms/blogs', icon: ArticleIcon, permissions: ['manage_cms'] },
-          { name: 'Blog categories', href: '/cms/blog-categories', icon: CategoryIcon, permissions: ['manage_cms'] },
-          { name: 'Newsletter', href: '/cms/newsletter', icon: CampaignIcon, permissions: ['manage_cms'] },
-          {
-            name: 'Email templates',
-            href: '/cms/email-templates',
-            icon: MailTemplateIcon,
-            permissions: ['manage_system_settings'],
-          },
-          { name: 'Social links', href: '/cms/social-links', icon: LinkIcon, permissions: ['manage_cms'] },
-          { name: 'Testimonials', href: '/cms/testimonials', icon: StarIcon, permissions: ['manage_cms'] },
-          { name: 'Reviews', href: '/cms/reviews', icon: StarIcon, permissions: ['manage_cms'] },
-          { name: 'FAQs', href: '/cms/faqs', icon: HelpIcon, permissions: ['manage_cms'] },
-        ],
-      },
-      {
-        name: 'Catalog & SEO',
-        icon: Layers,
-        hasSubmenu: true,
-        permissions: ['manage_cms', 'manage_system_settings'],
-        badge: null,
-        subItems: [
-          {
-            name: 'Industry — Landing & SEO',
-            href: '/cms/category-marketing',
-            icon: CampaignIcon,
-            permissions: ['manage_system_settings'],
-          },
-          {
-            name: 'Industry — Service areas',
-            href: '/cms/category-marketing?tab=service-areas',
-            icon: MapPinIcon,
-            permissions: ['manage_system_settings'],
-          },
-          {
-            name: 'Industry — Rate card',
-            href: '/cms/category-marketing?tab=rate-card',
-            icon: ReceiptIcon,
-            permissions: ['manage_system_settings'],
-          },
-          {
-            name: 'Industry — Cross-linking',
-            href: '/cms/category-marketing?tab=cross-linking',
-            icon: LinkIcon,
-            permissions: ['manage_system_settings'],
-          },
-          { name: 'SEO management', href: '/cms/seo', icon: SearchIcon, permissions: ['manage_cms'] },
-        ],
-      },
-      {
-        name: 'Marketing workspace',
-        icon: CampaignIcon,
-        hasSubmenu: true,
-        permissions: ['manage_cms', 'manage_marketing'],
-        badge: null,
-        subItems: [
-          { name: 'Overview', href: '/marketing', icon: LayoutGrid, permissions: ['manage_coupons'] },
-          { name: 'Campaigns', href: '/marketing/campaigns', icon: TargetIcon, permissions: ['manage_coupons'] },
-          { name: 'Content calendar', href: '/marketing/calendar', icon: CalendarIcon, permissions: ['manage_coupons'] },
-          { name: 'Social posts', href: '/marketing/social', icon: ReferralIcon, permissions: ['manage_coupons'] },
-          { name: 'Planning & ideas', href: '/marketing/planning', icon: LightbulbIcon, permissions: ['manage_coupons'] },
-          { name: 'Tasks', href: '/marketing/tasks', icon: AssignmentIcon, permissions: ['manage_coupons'] },
-          { name: 'R&D & brainstorm', href: '/marketing/lab', icon: LabIcon, permissions: ['manage_coupons'] },
-        ],
-      },
-    ],
-  },
-  {
-    title: 'People & messaging',
-    icon: UsersIcon,
-    items: [
-      { name: 'Customers', href: '/users/customers', icon: UsersIcon, permissions: ['view_users', 'manage_users'], badge: null },
-      {
-        name: 'Team members',
-        href: '/users/members',
-        icon: VerifiedUserIcon,
-        permissions: ['view_users', 'manage_users'],
-        badge: null,
-      },
-      // { name: 'Messages', href: '/messages', icon: MessageIcon, permissions: ['view_messages'], badge: null },
-      { name: 'Notifications', href: '/notifications', icon: NotificationsIcon, permissions: ['view_notifications', 'manage_notifications'], badge: null },
-    ]
-  },
-  {
-    title: 'Knowledge kit',
-    icon: ArticleIcon,
-    items: [
-      {
-        name: 'Guides overview',
-        href: '/knowledge-kit',
-        icon: ArticleIcon,
-        permissions: ['view_dashboard'],
-        badge: null,
-      },
-    ],
-  },
-  {
-    title: 'System',
-    icon: SettingsIcon,
-    items: [
-      { name: 'Reports', href: '/reports', icon: AssessmentIcon, permissions: ['view_reports'], badge: null },
-      { name: 'System Status', href: '/system-status', icon: CloudIcon, permissions: ['view_system_status'], badge: null },
-      {
-        name: 'Refund requests',
-        href: '/support/refund-requests',
-        icon: WalletIcon,
-        permissions: ['refund_payments'],
-        badge: null,
-      },
-      {
-        name: 'Support tickets',
-        href: '/support/tickets',
-        icon: TicketPercent,
-        permissions: ['view_dashboard'],
-        badge: null,
-      },
-      { name: 'Settings', href: '/settings', icon: SettingsIcon, permissions: ['manage_settings'], badge: null },
-      {
-        name: 'Roles & access',
-        href: '/settings/access',
-        icon: ShieldAccessIcon,
-        permissions: ['view_settings', 'manage_system_settings', 'manage_user_roles'],
-        badge: null,
-      },
-      { name: 'Help & Support', href: '/support', icon: SupportIcon, permissions: ['view_dashboard'], badge: null },
-      {
-        name: 'SaaS platform',
-        href: '/settings/saas',
-        icon: BusinessIcon,
-        permissions: ['manage_settings'],
-        badge: null,
-      },
-      {
-        name: 'Organizations',
-        href: '/settings/tenants',
-        icon: BusinessIcon,
-        permissions: ['manage_system_settings'],
-        badge: null,
-      },
-    ]
-  }
-]
-
 interface SidebarItem {
   name: string
   href?: string
@@ -792,7 +228,7 @@ interface SidebarProps {
 }
 
 /**
- * Admin drawer visibility uses the same path→permission resolution as in-app navigation guards
+ * Admin drawer visibility uses the same pathâ†’permission resolution as in-app navigation guards
  * (`routePermissions` via {@link usePermissions}, including explicit scoped admins).
  */
 function filterAdminNavigationByRouteAccess(
@@ -827,6 +263,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const authState = useAppSelector((state) => state.auth)
   const chatUnread = useAppSelector((state) => state.chatInbox?.unreadMessages ?? 0)
   const user = authState?.user || null
+  const tenantVerticalKey = useAppSelector((s) => normalizeVerticalKey(s.tenant.verticalKey))
+  const tenantFeatureModules = useAppSelector((s) => s.tenant.featureModules)
   const { checkRouteAccess } = usePermissions()
   const [openSubmenus, setOpenSubmenus] = useState<{ [key: string]: boolean }>({})
   // Sidebar group collapse state. Default: every group is OPEN.
@@ -898,7 +336,13 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const isProfessional =
     user?.role?.name === 'professional' ||
     (user as any)?.userType === 'professional'
-  
+
+  const isPlatformOperator = useMemo(() => {
+    if (!user) return false
+    const hasOrg = Boolean(user.tenant?.id)
+    return (user.userType === 'super_admin' || user.userType === 'admin') && !hasOrg
+  }, [user])
+
   // Select appropriate navigation
   const activeNavigationGroups = useMemo((): SidebarGroup[] => {
     if (isProfessional) {
@@ -907,8 +351,20 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     if (isProvider) {
       return providerNavigationGroups as SidebarGroup[]
     }
-    return filterAdminNavigationByRouteAccess(navigationGroups, checkRouteAccess)
-  }, [isProvider, isProfessional, checkRouteAccess])
+    const built = buildFilteredAdminNavigationGroups({
+      verticalKey: tenantVerticalKey,
+      featureModules: tenantFeatureModules,
+      isPlatformOperator,
+    })
+    return filterAdminNavigationByRouteAccess(built, checkRouteAccess)
+  }, [
+    isProvider,
+    isProfessional,
+    checkRouteAccess,
+    tenantVerticalKey,
+    tenantFeatureModules,
+    isPlatformOperator,
+  ])
 
   const recentUserKey = user?.id ?? 'anon'
   const flatNav = useMemo(

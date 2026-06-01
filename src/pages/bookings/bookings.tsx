@@ -60,6 +60,8 @@ import { AssignProfessionalDialog } from '../../components/bookings/AssignProfes
 import { UpdateBookingStatusModal } from '../../components/bookings/UpdateBookingStatusModal'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAppConfirm } from '../../components/providers/AppDialogsProvider'
+import { useEngagementStatus } from '../../hooks/useEngagementStatus'
+import { toApiBookingStatus } from '../../lib/engagementStatusAliases'
 import {
   Tooltip,
   TooltipContent,
@@ -125,7 +127,7 @@ const statusConfig: Record<
   },
 }
 
-const statusTabs: Array<{ label: string; value: string }> = [
+const DEFAULT_STATUS_TABS: Array<{ label: string; value: string }> = [
   { label: 'All', value: 'all' },
   { label: 'Pending', value: 'pending' },
   { label: 'Confirmed', value: 'confirmed' },
@@ -135,8 +137,36 @@ const statusTabs: Array<{ label: string; value: string }> = [
   { label: 'Cancelled', value: 'cancelled' },
 ]
 
+/** API status filter values for verticals that still use the home-services bookings API. */
+const RESTAURANT_API_FILTER_STATUSES = [
+  'pending',
+  'accepted',
+  'in_progress',
+  'completed',
+  'cancelled',
+] as const
+
 export function Bookings() {
   const navigate = useNavigate()
+  const { verticalKey, labelFor, statuses } = useEngagementStatus()
+
+  const statusTabs = useMemo(() => {
+    const all: Array<{ label: string; value: string }> = [{ label: 'All', value: 'all' }]
+    if (verticalKey === 'restaurant') {
+      for (const key of RESTAURANT_API_FILTER_STATUSES) {
+        all.push({ label: labelFor(key), value: key })
+      }
+      return all
+    }
+    if (statuses.length) {
+      for (const s of statuses) {
+        all.push({ label: s.label, value: s.key })
+      }
+      return all
+    }
+    return DEFAULT_STATUS_TABS
+  }, [verticalKey, statuses, labelFor])
+
   const [searchParams] = useSearchParams()
   const professionalIdFromUrl = searchParams.get('professionalId') || undefined
   const confirm = useAppConfirm()
@@ -205,7 +235,7 @@ export function Bookings() {
       }
 
       if (selectedStatus !== 'all') {
-        query.status = selectedStatus
+        query.status = toApiBookingStatus(verticalKey, selectedStatus)
       }
       if (selectedSource !== 'all') {
         query.source = selectedSource
@@ -237,7 +267,7 @@ export function Bookings() {
 
   useEffect(() => {
     fetchBookings()
-  }, [page, pageSize, selectedStatus, selectedSource, professionalIdFromUrl])
+  }, [page, pageSize, selectedStatus, selectedSource, professionalIdFromUrl, verticalKey])
 
   useEffect(() => {
     const loadStats = async () => {
@@ -832,7 +862,7 @@ export function Bookings() {
                             style={{ backgroundColor: cfg.bg, color: cfg.color, borderColor: 'transparent' }}
                           >
                             <StatusIc className="h-3.5 w-3.5 shrink-0" style={{ color: cfg.color }} />
-                            {cfg.label}
+                            {labelFor(st)}
                           </div>
                         </TableCell>
                         <TableCell className="align-top">

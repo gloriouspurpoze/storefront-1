@@ -56,6 +56,7 @@ import {
   sumStatusesForGroup,
 } from '../../lib/professionalWorkPipeline'
 import { usePermissions } from '../../hooks/usePermissions'
+import { useEngagementStatus } from '../../hooks/useEngagementStatus'
 import {
   extractProfessionalFromGetResponse,
   normalizeProfessionalFromApi,
@@ -176,6 +177,7 @@ export function ProfessionalAdminHub() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { checkPermission } = usePermissions()
+  const { verticalKey } = useEngagementStatus()
   const canModerate = checkPermission('edit_providers')
   const canViewConduct = checkPermission('view_professional_conduct')
 
@@ -808,7 +810,7 @@ export function ProfessionalAdminHub() {
                       <span className="block text-xs text-muted-foreground">{group.shortLabel}</span>
                       <span className="text-xl font-semibold">{statusTotalsLoading ? '…' : count}</span>
                       <Badge variant={pipelineStageBadgeVariant(group.color)} className="mt-1">
-                        {bookingLifecycleLabel(group.drilldownStatus)}
+                        {bookingLifecycleLabel(group.drilldownStatus, verticalKey)}
                       </Badge>
                     </button>
                   </TooltipTrigger>
@@ -889,7 +891,7 @@ export function ProfessionalAdminHub() {
                         setBookingPage(1)
                       }}
                     >
-                      {bookingLifecycleLabel(st)}: {statusTotals[st] ?? 0}
+                      {bookingLifecycleLabel(st, verticalKey)}: {statusTotals[st] ?? 0}
                     </Badge>
                   ))}
                 </div>
@@ -1113,7 +1115,7 @@ export function ProfessionalAdminHub() {
                           </td>
                           <td className="align-top py-2 pr-4">
                             <Badge>{st}</Badge>
-                            <p className="mt-1 text-xs text-muted-foreground">{bookingLifecycleLabel(st)}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">{bookingLifecycleLabel(st, verticalKey)}</p>
                           </td>
                           <td className="align-top py-2 pr-4">
                             {pay ? (

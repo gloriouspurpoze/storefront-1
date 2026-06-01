@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react'
-import { Calendar, Play, CheckCircle, XCircle, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -25,63 +25,22 @@ import {
   SelectValue,
 } from '../ui/select'
 import { cn } from '../../lib/utils'
-
-type BookingStatus = 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled'
+import { useEngagementStatus } from '../../hooks/useEngagementStatus'
+import { toApiBookingStatus } from '../../lib/engagementStatusAliases'
 
 interface UpdateBookingStatusModalProps {
   open: boolean
   onClose: () => void
   bookingId: string
-  currentStatus: BookingStatus
+  currentStatus: string
   onUpdate: (
-    status: BookingStatus,
+    status: string,
     options: {
       notes?: string
       notifyCustomer: boolean
       notifyProvider: boolean
     },
   ) => Promise<void>
-}
-
-const statusConfig: Record<
-  BookingStatus,
-  {
-    label: string
-    Icon: typeof Calendar
-    description: string
-    boxClass: string
-  }
-> = {
-  pending: {
-    label: 'Pending',
-    Icon: Calendar,
-    description: 'Booking is waiting for provider assignment',
-    boxClass: 'border-bloom-coral/40 bg-bloom-rose dark:border-bloom-coral/40 dark:bg-bloom-coral/30',
-  },
-  confirmed: {
-    label: 'Confirmed',
-    Icon: CheckCircle,
-    description: 'Booking is confirmed and scheduled',
-    boxClass: 'border-primary/30 bg-primary/5',
-  },
-  in_progress: {
-    label: 'In Progress',
-    Icon: Play,
-    description: 'Service is currently being performed',
-    boxClass: 'border-primary/20 bg-primary-soft dark:border-primary-deep/40 dark:bg-primary-deep/30',
-  },
-  completed: {
-    label: 'Completed',
-    Icon: CheckCircle,
-    description: 'Service has been completed',
-    boxClass: 'border-storm-mist/30 bg-storm-mist/30 dark:border-storm-deep/40 dark:bg-storm-deep/30',
-  },
-  cancelled: {
-    label: 'Cancelled',
-    Icon: XCircle,
-    description: 'Booking has been cancelled',
-    boxClass: 'border-destructive/30 bg-destructive/5',
-  },
 }
 
 export function UpdateBookingStatusModal({
@@ -92,14 +51,14 @@ export function UpdateBookingStatusModal({
   onUpdate,
 }: UpdateBookingStatusModalProps) {
   void _bookingId
+  const { verticalKey, entityLabel, selectableStatuses, uiFor } = useEngagementStatus()
+
   const availableStatuses = React.useMemo(
-    () =>
-      (['pending', 'confirmed', 'in_progress', 'completed', 'cancelled'] as BookingStatus[]).filter(
-        (s) => s !== currentStatus,
-      ),
-    [currentStatus],
+    () => selectableStatuses(currentStatus),
+    [currentStatus, selectableStatuses],
   )
-  const [selectedStatus, setSelectedStatus] = useState<BookingStatus>(
+
+  const [selectedStatus, setSelectedStatus] = useState<string>(
     () => availableStatuses[0] ?? currentStatus,
   )
 
@@ -108,11 +67,15 @@ export function UpdateBookingStatusModal({
       setSelectedStatus(availableStatuses[0])
     }
   }, [open, currentStatus, availableStatuses])
+
   const [notes, setNotes] = useState('')
   const [notifyCustomer, setNotifyCustomer] = useState(true)
   const [notifyProvider, setNotifyProvider] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const currentUi = uiFor(currentStatus)
+  const selectedUi = selectedStatus ? uiFor(selectedStatus) : null
 
   const handleUpdate = async () => {
     if (selectedStatus === currentStatus) {
@@ -124,7 +87,7 @@ export function UpdateBookingStatusModal({
       setLoading(true)
       setError(null)
 
-      await onUpdate(selectedStatus, {
+      await onUpdate(toApiBookingStatus(verticalKey, selectedStatus), {
         notes: notes || undefined,
         notifyCustomer,
         notifyProvider,
@@ -156,8 +119,8 @@ export function UpdateBookingStatusModal({
     >
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Update Booking Status</DialogTitle>
-          <p className="text-sm text-muted-foreground">Change the status of this booking</p>
+          <DialogTitle>Update {entityLabel} status</DialogTitle>
+          <p className="text-sm text-muted-foreground">Change the status of this {entityLabel.toLowerCase()}</p>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
@@ -171,25 +134,22 @@ export function UpdateBookingStatusModal({
           )}
 
           <div>
-            <p className="mb-1.5 text-sm text-muted-foreground">Current Status</p>
+            <p className="mb-1.5 text-sm text-muted-foreground">Current status</p>
             <Badge variant="outline" className="gap-1">
-              {React.createElement(statusConfig[currentStatus].Icon, { className: 'h-3.5 w-3.5' })}
-              {statusConfig[currentStatus].label}
+              {React.createElement(currentUi.Icon, { className: 'h-3.5 w-3.5' })}
+              {currentUi.label}
             </Badge>
           </div>
 
           <div className="space-y-2">
-            <Label>New Status</Label>
-            <Select
-              value={selectedStatus}
-              onValueChange={(v) => setSelectedStatus(v as BookingStatus)}
-            >
+            <Label>New status</Label>
+            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {availableStatuses.map((status) => {
-                  const s = statusConfig[status]
+                  const s = uiFor(status)
                   return (
                     <SelectItem key={status} value={status}>
                       <span className="flex items-center gap-2">
@@ -203,16 +163,19 @@ export function UpdateBookingStatusModal({
             </Select>
           </div>
 
-          {selectedStatus && (
+          {selectedUi && (
             <div
-              className={cn('rounded-md border p-3 text-sm text-muted-foreground', statusConfig[selectedStatus].boxClass)}
+              className={cn(
+                'rounded-md border p-3 text-sm text-muted-foreground',
+                selectedUi.boxClass,
+              )}
             >
-              {statusConfig[selectedStatus].description}
+              {selectedUi.description}
             </div>
           )}
 
           <div>
-            <Label htmlFor="status-notes">Notes (Optional)</Label>
+            <Label htmlFor="status-notes">Notes (optional)</Label>
             <Textarea
               id="status-notes"
               className="mt-1.5"
@@ -224,7 +187,7 @@ export function UpdateBookingStatusModal({
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-medium">Notification Options</p>
+            <p className="mb-2 text-sm font-medium">Notification options</p>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Checkbox
@@ -260,7 +223,7 @@ export function UpdateBookingStatusModal({
             disabled={selectedStatus === currentStatus || loading}
           >
             {loading && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
-            {loading ? 'Updating...' : 'Update Status'}
+            {loading ? 'Updating...' : 'Update status'}
           </Button>
         </DialogFooter>
       </DialogContent>

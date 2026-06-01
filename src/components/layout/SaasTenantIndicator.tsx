@@ -2,6 +2,9 @@ import React from 'react'
 import { Building2 } from 'lucide-react'
 import { useAppSelector } from '../../store/hooks'
 import { SAAS_MODE } from '../../lib/saasEnv'
+import { useVerticalPack } from '../../hooks/useVerticalPack'
+import { planLabelFor } from '../../lib/verticalPlans'
+import { normalizeVerticalKey } from '../../verticals/core/types'
 import { Badge } from '../ui/badge'
 import { cn } from '../../lib/utils'
 
@@ -27,11 +30,14 @@ export function SaasTenantIndicator(props: {
   const { variant, sidebarOpen = true } = props
   const tenant = useAppSelector((s) => s.tenant)
   const { tenantId, name, slug } = tenant ?? {}
+  const { pack } = useVerticalPack()
+  const verticalKey = normalizeVerticalKey(tenant?.verticalKey)
+  const planLabel = tenant?.planKey ? planLabelFor(verticalKey, tenant.planKey) : null
 
   if (!SAAS_MODE) return null
 
   const { primary, hint } = formatTenantLabel(tenantId, name, slug)
-  const titleAttr = hint ? `Tenant id: ${hint}` : primary
+  const titleAttr = hint ? `Tenant id: ${hint} · ${pack.label}` : `${primary} · ${pack.label}`
 
   if (variant === 'header') {
     return (
@@ -61,6 +67,10 @@ export function SaasTenantIndicator(props: {
           </span>
           <span className="line-clamp-2 break-words text-sm font-semibold leading-tight">
             {primary}
+          </span>
+          <span className="mt-0.5 block text-[0.7rem] text-muted-foreground">
+            {pack.label}
+            {planLabel ? ` · ${planLabel}` : ''}
           </span>
           {hint && hint !== primary && (
             <span className="mt-0.5 block max-w-full truncate font-mono text-[0.7rem] text-muted-foreground">

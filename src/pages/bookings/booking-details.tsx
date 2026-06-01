@@ -77,6 +77,7 @@ import { resolveBookingIdLabel } from '../../lib/bookingDisplay'
 import { isLikelyImageUrl, parseBookingNotesContent } from '../../lib/parseBookingNotesContent'
 import { appToast } from '../../lib/appToast'
 import { cn } from '../../lib/utils'
+import { useEngagementStatus } from '../../hooks/useEngagementStatus'
 import { CHART_PALETTE } from '../../lib/chartPalette'
 
 /** rgba() from #RRGGBB + opacity (replaces legacy alpha helper) */
@@ -838,6 +839,7 @@ function AdminNotesRichBody({ text }: { text: string }) {
 export function BookingDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { labelFor } = useEngagementStatus()
   const dispatch = useAppDispatch()
   const authState = useAppSelector((state) => state.auth)
   const user = authState?.user ?? null
@@ -1524,7 +1526,7 @@ export function BookingDetails() {
             </div>
           </div>
           <Badge variant={badgeVariant} className="shrink-0 self-start">
-            {config.label}
+            {labelFor(booking.status)}
           </Badge>
         </div>
 

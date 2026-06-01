@@ -24,6 +24,13 @@ export interface TenantRef {
   id: string
   name?: string
   slug?: string
+  /** Industry pack key — defaults to `home_services` when omitted. */
+  verticalKey?: string
+  /** Org module allowlist; null/omit = full access. */
+  featureModules?: string[] | null
+  /** SaaS plan key (`Tenant.planKey`). */
+  planKey?: string
+  billingStatus?: string
 }
 
 // User types

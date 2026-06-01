@@ -4,6 +4,7 @@ import { NotificationsProvider } from '../../contexts/notifications-context'
 import { Sidebar } from './sidebar'
 import { Header } from './header'
 import { AppBreadcrumbs } from './AppBreadcrumbs'
+import { TenantPlanNudge } from '../billing/TenantPlanNudge'
 import { useSidebar } from '../../contexts/sidebar-context'
 import {
   APP_BAR_HEIGHT_PX,
@@ -41,6 +42,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         aria-label="Main"
       >
         <AppBreadcrumbs />
+        <TenantPlanNudge />
         {children}
       </main>
     </div>

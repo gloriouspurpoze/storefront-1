@@ -1,5 +1,6 @@
 import React, { lazy, Suspense } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { MARKETING_LANDING_SLUGS } from './verticals/registry'
 import { Provider } from 'react-redux'
 import { Loader2 } from 'lucide-react'
 import { ThemeProvider } from './contexts/theme-context'
@@ -25,6 +26,15 @@ const AcceptTeamInvite = lazy(() =>
   import('./pages/auth/accept-team-invite').then((m) => ({ default: m.AcceptTeamInvite })),
 )
 const Signup = lazy(() => import('./pages/auth/signup').then((m) => ({ default: m.Signup })))
+const VerticalLandingPage = lazy(() =>
+  import('./pages/marketing/VerticalLandingPage').then((m) => ({ default: m.VerticalLandingPage })),
+)
+const VerticalSignupWizard = lazy(() =>
+  import('./pages/signup/VerticalSignupWizard').then((m) => ({ default: m.VerticalSignupWizard })),
+)
+const BillingUpgradePage = lazy(() =>
+  import('./pages/settings/BillingUpgradePage').then((m) => ({ default: m.BillingUpgradePage })),
+)
 const Unauthorized = lazy(() => import('./pages/auth/unauthorized'))
 const NotFound = lazy(() => import('./pages/NotFound').then((m) => ({ default: m.NotFound })))
 
@@ -435,6 +445,15 @@ function App() {
               <Route path="/auth/accept-invite" element={<AcceptTeamInvite />} />
               <Route path="/boards/invites/:token" element={<AcceptBoardInvite />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/signup/:verticalKey" element={<VerticalSignupWizard />} />
+              <Route path="/landing/:slug" element={<VerticalLandingPage />} />
+              {MARKETING_LANDING_SLUGS.map((slug) => (
+                <Route
+                  key={slug}
+                  path={`/${slug}`}
+                  element={<Navigate to={`/landing/${slug}`} replace />}
+                />
+              ))}
               <Route path="/unauthorized" element={<Unauthorized />} />
               
               {/* Protected routes with RBAC */}
@@ -1506,6 +1525,14 @@ function App() {
                         element={
                           <RoleBasedRoute permissions={['manage_system_settings']}>
                             <PlatformTenantsPage />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/settings/billing"
+                        element={
+                          <RoleBasedRoute permissions={['view_settings']}>
+                            <BillingUpgradePage />
                           </RoleBasedRoute>
                         }
                       />

@@ -1,3 +1,6 @@
+import type { VerticalKey } from '../verticals/core/types'
+import { getEngagementStatusLabel } from './verticalEngagement'
+
 /**
  * Field-service style pipeline for admin professional hub:
  * groups raw booking statuses into operational stages ops teams expect.
@@ -83,7 +86,11 @@ export function sumStatusesForGroup(
   return statuses.reduce((acc, st) => acc + (Number(totals[st]) || 0), 0)
 }
 
-export function bookingLifecycleLabel(status: string): string {
+/** Human-readable status for tables and pipeline chips (vertical-aware when key provided). */
+export function bookingLifecycleLabel(status: string, verticalKey?: VerticalKey): string {
+  if (verticalKey) {
+    return getEngagementStatusLabel(verticalKey, status)
+  }
   const m: Record<string, string> = {
     pending: 'Awaiting confirmation',
     confirmed: 'Confirmed',

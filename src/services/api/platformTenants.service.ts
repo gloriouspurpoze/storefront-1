@@ -4,6 +4,8 @@ export interface PlatformTenantRow {
   _id: string
   name: string
   slug: string
+  /** Industry vertical pack (`home_services`, `restaurant`, …). */
+  verticalKey?: string
   isActive: boolean
   suspendedAt?: string
   suspensionReason?: string
@@ -45,7 +47,13 @@ export const platformTenantsService = {
     )
   },
 
-  create(body: { name: string; slug: string; planKey?: string; ownerEmail?: string }) {
+  create(body: {
+    name: string
+    slug: string
+    planKey?: string
+    ownerEmail?: string
+    verticalKey?: string
+  }) {
     return api.post<{ tenant: PlatformTenantRow; ownerAttached: boolean; message?: string }>(
       '/platform/tenants',
       body,
@@ -69,6 +77,7 @@ export const platformTenantsService = {
       samlMetadataUrl: string
       /** `null` clears allowlist (full access). */
       featureModules: string[] | null
+      verticalKey?: string
     }>,
   ) {
     return api.patch<{ tenant: PlatformTenantRow }>(`/platform/tenants/${id}`, body, {

@@ -1,10 +1,5 @@
 ﻿import React, { useEffect, useState } from 'react'
 import {
-  TrendingUp,
-  TrendingDown,
-  IndianRupee,
-  Wrench,
-  ShoppingCart,
   Star,
   ArrowRight,
   MoreVertical,
@@ -25,6 +20,9 @@ import { Badge } from '../../components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar'
 import { cn } from '../../lib/utils'
 import { CHART_PALETTE, CHART_TOKENS } from '../../lib/chartPalette'
+import { useVerticalDashboard } from '../../hooks/useVerticalDashboard'
+import { useEngagementStatus } from '../../hooks/useEngagementStatus'
+import { VerticalDashboardKpiRow } from '../../components/dashboard/VerticalDashboardKpiRow'
 
 // DESIGN.md tokens (no more hardcoded chart hexes)
 const chartColors = {
@@ -75,6 +73,8 @@ function StatusIcon({ status }: { status: string }) {
 
 export function Dashboard() {
   const navigate = useNavigate()
+  const { tagline, kpis, hasSection, pack } = useVerticalDashboard()
+  const { labelFor } = useEngagementStatus()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [dashboardData, setDashboardData] = useState<AdminDashboardData | null>(null)
@@ -168,8 +168,10 @@ export function Dashboard() {
     <div className="min-h-screen flex-1 bg-background p-4 sm:p-6 md:p-8">
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Welcome back, Admin!</h1>
-          <p className="text-muted-foreground">Here&apos;s what&apos;s happening with your business today</p>
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
+            Welcome back — {pack.label}
+          </h1>
+          <p className="text-muted-foreground">{tagline ?? "Here's what's happening with your business today"}</p>
         </div>
         <Button
           type="button"
@@ -183,108 +185,12 @@ export function Dashboard() {
         </Button>
       </div>
 
-      <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {/* DESIGN.md primary family gradient (HP Electric Blue) */}
-        <Card
-          className="relative overflow-hidden border-0 text-on-primary"
-          style={{
-            background: `linear-gradient(135deg, ${CHART_PALETTE.primary} 0%, ${CHART_PALETTE.primaryDeep} 100%)`,
-          }}
-        >
-          <CardContent className="p-6">
-            <div className="mb-2 flex justify-between">
-              <p className="text-sm opacity-90">Total Revenue</p>
-              <IndianRupee className="h-5 w-5 opacity-80" />
-            </div>
-            <p className="mb-1 text-3xl font-bold">{formatCurrency(safeStats.totalRevenue)}</p>
-            <div className="flex items-center gap-1 text-sm">
-              {safeStats.revenueGrowth >= 0 ? (
-                <TrendingUp className="h-4 w-4" />
-              ) : (
-                <TrendingDown className="h-4 w-4" />
-              )}
-              <span>
-                {safeStats.revenueGrowth >= 0 ? '+' : ''}
-                {safeStats.revenueGrowth.toFixed(1)}% from last month
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+      <VerticalDashboardKpiRow widgets={kpis} stats={safeStats} />
 
-        {/* DESIGN.md bloom family gradient */}
-        <Card
-          className="relative overflow-hidden border-0 text-on-primary"
-          style={{ background: `linear-gradient(135deg, ${CHART_PALETTE.bloomCoral} 0%, ${CHART_PALETTE.bloomDeep} 100%)` }}
-        >
-          <CardContent className="p-6">
-            <div className="mb-2 flex justify-between">
-              <p className="text-sm opacity-90">Total Orders</p>
-              <ShoppingCart className="h-5 w-5 opacity-80" />
-            </div>
-            <p className="mb-1 text-3xl font-bold">{safeStats.totalOrders}</p>
-            <div className="flex items-center gap-1 text-sm">
-              {safeStats.ordersGrowth >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-              <span>
-                {safeStats.ordersGrowth >= 0 ? '+' : ''}
-                {safeStats.ordersGrowth.toFixed(1)}% from last month
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* DESIGN.md primary-bright → primary */}
-        <Card
-          className="relative overflow-hidden border-0 text-on-primary"
-          style={{ background: `linear-gradient(135deg, ${CHART_PALETTE.primaryBright} 0%, ${CHART_PALETTE.primary} 100%)` }}
-        >
-          <CardContent className="p-6">
-            <div className="mb-2 flex justify-between">
-              <p className="text-sm opacity-90">Active Providers</p>
-              <Wrench className="h-5 w-5 opacity-80" />
-            </div>
-            <p className="mb-1 text-3xl font-bold">{safeStats.activeProviders}</p>
-            <div className="flex items-center gap-1 text-sm">
-              {safeStats.providersGrowth >= 0 ? (
-                <TrendingUp className="h-4 w-4" />
-              ) : (
-                <TrendingDown className="h-4 w-4" />
-              )}
-              <span>
-                {safeStats.providersGrowth >= 0 ? '+' : ''}
-                {safeStats.providersGrowth.toFixed(1)}% from last month
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* DESIGN.md storm family gradient */}
-        <Card
-          className="relative overflow-hidden border-0 text-on-primary"
-          style={{ background: `linear-gradient(135deg, ${CHART_PALETTE.stormSea} 0%, ${CHART_PALETTE.stormDeep} 100%)` }}
-        >
-          <CardContent className="p-6">
-            <div className="mb-2 flex justify-between">
-              <p className="text-sm opacity-90">Avg. Rating</p>
-              <Star className="h-5 w-5 opacity-80" />
-            </div>
-            <p className="mb-1 text-3xl font-bold">{safeStats.averageRating.toFixed(1)}</p>
-            <div className="flex items-center gap-1 text-sm">
-              {safeStats.ratingChange >= 0 ? (
-                <TrendingUp className="h-4 w-4" />
-              ) : (
-                <TrendingDown className="h-4 w-4" />
-              )}
-              <span>
-                {safeStats.ratingChange >= 0 ? '+' : ''}
-                {safeStats.ratingChange.toFixed(1)} from last month
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
+      {(hasSection('revenue_chart') || hasSection('category_performance')) && (
       <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-12">
-        <div className="lg:col-span-8">
+        {hasSection('revenue_chart') && (
+        <div className={cn(hasSection('category_performance') ? 'lg:col-span-8' : 'lg:col-span-12')}>
           <Card className="h-full">
             <CardContent className="p-6">
               <div className="mb-4 flex items-center justify-between">
@@ -346,8 +252,10 @@ export function Dashboard() {
             </CardContent>
           </Card>
         </div>
+        )}
 
-        <div className="lg:col-span-4">
+        {hasSection('category_performance') && (
+        <div className={cn(hasSection('revenue_chart') ? 'lg:col-span-4' : 'lg:col-span-12')}>
           <Card className="h-full">
             <CardContent className="p-6">
               <div className="mb-4">
@@ -390,10 +298,14 @@ export function Dashboard() {
             </CardContent>
           </Card>
         </div>
+        )}
       </div>
+      )}
 
+      {(hasSection('recent_orders') || hasSection('top_providers')) && (
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        <div className="lg:col-span-8">
+        {hasSection('recent_orders') && (
+        <div className={cn(hasSection('top_providers') ? 'lg:col-span-8' : 'lg:col-span-12')}>
           <Card>
             <CardContent className="p-6">
               <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -441,7 +353,7 @@ export function Dashboard() {
                             className={cn('inline-flex max-w-full items-center gap-1 capitalize', statusBadgeClass(order.status))}
                           >
                             <StatusIcon status={order.status} />
-                            {order.status}
+                            {labelFor(order.status)}
                           </Badge>
                         </div>
                       </button>
@@ -454,8 +366,10 @@ export function Dashboard() {
             </CardContent>
           </Card>
         </div>
+        )}
 
-        <div className="lg:col-span-4">
+        {hasSection('top_providers') && (
+        <div className={cn(hasSection('recent_orders') ? 'lg:col-span-4' : 'lg:col-span-12')}>
           <Card>
             <CardContent className="p-6">
               <div className="mb-4">
@@ -498,7 +412,9 @@ export function Dashboard() {
             </CardContent>
           </Card>
         </div>
+        )}
       </div>
+      )}
     </div>
   )
 }
