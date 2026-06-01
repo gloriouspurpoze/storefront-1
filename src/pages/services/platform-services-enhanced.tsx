@@ -129,11 +129,8 @@ function ServicePreviewDialog({
 
   if (!service) return null
 
-  const variants =
-    (Array.isArray(service.serviceVariants) && service.serviceVariants.length > 0
-      ? service.serviceVariants
-      : service.variants) ?? []
-  const addons = service.serviceAddons ?? []
+  const variants = Array.isArray(service.serviceVariants) ? service.serviceVariants : []
+  const addons = Array.isArray(service.serviceAddons) ? service.serviceAddons : []
   const linkedProducts = service.relatedProducts ?? []
   const mrp = Number(service.original_price ?? 0)
   const offer = Number(service.base_price ?? 0)

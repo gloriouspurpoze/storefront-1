@@ -122,7 +122,6 @@ export interface PlatformService {
     isPopular?: boolean
     isDefault?: boolean
   }>
-  variants?: PlatformService['serviceVariants']
 }
 
 export interface GetPlatformServicesParams {
