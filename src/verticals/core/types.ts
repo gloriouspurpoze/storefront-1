@@ -8,32 +8,43 @@ import type { ComplianceFieldDef } from './compliance'
 import type { IntegrationDef } from './integrations'
 import type { ReportDef } from './reports'
 
-/** Supported industry packs. Extend as new verticals ship. */
-export type VerticalKey =  | 'home_services'
+/**
+ * Supported industry packs.
+ *
+ * MUST stay in sync with backend `TENANT_VERTICAL_KEYS`
+ * (fixer-backend/src/core/tenant/verticalKeys.ts) — the backend rejects unknown
+ * keys on create/update, so adding a vertical here without a backend update will
+ * surface as 400 "Unknown verticalKey" errors at runtime.
+ */
+export type VerticalKey =
+  | 'home_services'
   | 'restaurant'
   | 'salon'
-  | 'clinic'
   | 'fitness'
-  | 'auto_repair'
-  | 'tutoring'
-  | 'custom'
+  | 'real_estate'
+  | 'b2b_services'
+  | 'retail'
+  | 'healthcare'
+  | 'education'
 
 export const DEFAULT_VERTICAL_KEY: VerticalKey = 'home_services'
+
+export const ALL_VERTICAL_KEYS: VerticalKey[] = [
+  'home_services',
+  'restaurant',
+  'salon',
+  'fitness',
+  'real_estate',
+  'b2b_services',
+  'retail',
+  'healthcare',
+  'education',
+]
 
 export function normalizeVerticalKey(raw: unknown): VerticalKey {
   if (typeof raw !== 'string' || !raw.trim()) return DEFAULT_VERTICAL_KEY
   const k = raw.trim() as VerticalKey
-  const known: VerticalKey[] = [
-    'home_services',
-    'restaurant',
-    'salon',
-    'clinic',
-    'fitness',
-    'auto_repair',
-    'tutoring',
-    'custom',
-  ]
-  return known.includes(k) ? k : DEFAULT_VERTICAL_KEY
+  return ALL_VERTICAL_KEYS.includes(k) ? k : DEFAULT_VERTICAL_KEY
 }
 
 /** Lucide icon name — resolved via `verticalIconRegistry`. */

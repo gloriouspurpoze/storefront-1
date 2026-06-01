@@ -2,13 +2,20 @@ import type { VerticalPlanDef } from '../verticals/core/billingPlans'
 import { homeServicesBillingPlans } from '../verticals/home_services/billingPlans'
 import { restaurantBillingPlans } from '../verticals/restaurant/billingPlans'
 import { salonBillingPlans } from '../verticals/salon/billingPlans'
+import { retailBillingPlans } from '../verticals/retail/billingPlans'
 import type { VerticalKey } from '../verticals/core/types'
 import { getVerticalPack } from '../verticals/registry'
 
+/**
+ * Per-vertical billing plan fallback when a pack does not declare its own
+ * `billingPlans`. Stub verticals reuse home-services pricing for now, except
+ * retail which has its own e-commerce-first plans (cms + ecommerce baked in).
+ */
 const FALLBACK_PLANS: Partial<Record<VerticalKey, VerticalPlanDef[]>> = {
   home_services: homeServicesBillingPlans,
   restaurant: restaurantBillingPlans,
   salon: salonBillingPlans,
+  retail: retailBillingPlans,
 }
 
 export function getBillingPlansForVertical(verticalKey: VerticalKey): VerticalPlanDef[] {

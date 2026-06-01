@@ -13,6 +13,12 @@ export interface PlatformTenantRow {
   billingStatus?: string
   stripeCustomerId?: string
   stripeSubscriptionId?: string
+  razorpayCustomerId?: string
+  razorpaySubscriptionId?: string
+  razorpayLastOrderId?: string
+  razorpayLastPaymentId?: string
+  /** ISO date — when the current Razorpay-paid plan period ends. */
+  razorpayCurrentPeriodEnd?: string
   planKey?: string
   /** Explicit allowlist for gated API modules; omit/null = full access. */
   featureModules?: string[]
@@ -118,6 +124,27 @@ export const platformTenantsService = {
       showLoading: true,
       showSuccessToast: true,
       successMessage: 'Domain removed',
+    })
+  },
+
+  /**
+   * Hard-delete a tenant and cascade-wipe every tenant-scoped collection
+   * (CRM, AMC, marketing, team work, finance, boards, domains, …).
+   * Users are detached (tenantId cleared), not deleted.
+   *
+   * Backend requires `confirmSlug` to match the tenant slug exactly — pass the
+   * value the operator typed into the confirm dialog, not the stored slug.
+   */
+  remove(id: string, confirmSlug: string) {
+    return api.delete<{
+      deletedCounts: Record<string, number>
+      detachedUsers: number
+      message?: string
+    }>(`/platform/tenants/${id}`, {
+      params: { confirmSlug },
+      showLoading: true,
+      showSuccessToast: true,
+      successMessage: 'Tenant deleted',
     })
   },
 }

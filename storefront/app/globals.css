@@ -1,0 +1,17 @@
+@import 'tailwindcss';
+
+/**
+ * Per-tenant brand colors are injected by `sites/[tenantId]/layout.tsx` as
+ * the CSS custom property `--site-brand`. Themes read this value via
+ * `style={{ backgroundColor: 'var(--site-brand)' }}`.
+ */
+:root {
+  --site-brand: #0f172a;
+}
+
+html, body {
+  background: #fff;
+  color: #0f172a;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, 'Helvetica Neue', Arial, sans-serif;
+}

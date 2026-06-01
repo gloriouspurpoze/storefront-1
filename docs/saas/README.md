@@ -84,6 +84,11 @@ Phase 1 is implemented in this repo:
 
 - [`07-human-test-plan.md`](./07-human-test-plan.md) — step-by-step manual test plan with role matrix, billing, plan-limits, marketing, and per-vertical scenarios.
 
+### Runbooks
+
+- [`08-onboard-three-tenants-runbook.md`](./08-onboard-three-tenants-runbook.md) — concrete super-admin runbook to onboard `profixer` (home services), `thebrownbutter` (restaurant), and `nozeperfume` (retail / e-commerce).
+- [`09-storefront-architecture.md`](./09-storefront-architecture.md) — multi-tenant storefront RFC (Next.js app, subdomain routing, Vercel domains, theme phases).
+
 ### Phase 6 (done — roadmap closure)
 
 | Area | Location |

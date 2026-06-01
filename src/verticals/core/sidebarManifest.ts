@@ -309,7 +309,7 @@ export const coreSidebarGroups: SidebarNavGroupDef[] = [
       { id: 'settings', name: 'Settings', href: '/settings', icon: 'Settings', permissions: ['manage_settings'], badge: null },
       { id: 'access', name: 'Roles & access', href: '/settings/access', icon: 'Shield', permissions: ['view_settings', 'manage_system_settings', 'manage_user_roles'], badge: null },
       { id: 'help', name: 'Help & Support', href: '/support', icon: 'LifeBuoy', permissions: ['view_dashboard'], badge: null },
-      { id: 'saas_platform', name: 'SaaS platform', href: '/settings/saas', icon: 'Building2', permissions: ['manage_settings'], platformOnly: true, badge: null },
+      { id: 'saas_platform', name: 'Launch readiness', href: '/settings/saas', icon: 'Rocket', permissions: ['manage_settings'], platformOnly: true, badge: null },
       { id: 'organizations', name: 'Organizations', href: '/settings/tenants', icon: 'Building2', permissions: ['manage_system_settings'], platformOnly: true, badge: null },
     ],
   },

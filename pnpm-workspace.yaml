@@ -1,0 +1,18 @@
+# pnpm workspace manifest for the Profixer monorepo.
+#
+# This file is *future-friendly*: the admin (CRA) still installs with `npm`
+# inside this same directory exactly like before. When you flip to pnpm at the
+# root (`corepack enable && pnpm install`), pnpm picks up both packages and
+# you get a single hoisted node_modules + turborepo task graph.
+#
+# Apps:
+#   - "."         the admin CRA app (fixer-admin) — root package.json
+#   - "storefront" the Next.js multi-tenant storefront
+#
+# Reserved for future:
+#   - "packages/*" shared libraries (themes, ui kit, api client) once we extract
+#     them. See docs/saas/09-storefront-architecture.md §2.1.
+packages:
+  - '.'
+  - 'storefront'
+  - 'packages/*'

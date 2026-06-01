@@ -7,11 +7,19 @@ import { getEngagementStatusLabel } from '../../lib/verticalEngagement'
 import { toApiBookingStatus } from '../../lib/engagementStatusAliases'
 
 describe('vertical packs', () => {
-  it('validates home_services, restaurant, salon, and stub packs', () => {
+  it('validates home_services, restaurant, salon, retail, and stub packs', () => {
     expect(() => validateVerticalPack(getVerticalPack('home_services'))).not.toThrow()
     expect(() => validateVerticalPack(getVerticalPack('restaurant'))).not.toThrow()
     expect(() => validateVerticalPack(getVerticalPack('salon'))).not.toThrow()
-    expect(() => validateVerticalPack(getVerticalPack('clinic'))).not.toThrow()
+    expect(() => validateVerticalPack(getVerticalPack('retail'))).not.toThrow()
+    expect(() => validateVerticalPack(getVerticalPack('healthcare'))).not.toThrow()
+    expect(() => validateVerticalPack(getVerticalPack('fitness'))).not.toThrow()
+  })
+
+  it('retail vertical ships e-commerce billing plans by default', () => {
+    const plans = getBillingPlansForVertical('retail')
+    expect(plans.some((p) => p.key === 'retail_starter')).toBe(true)
+    expect(plans[0].includedModules).toContain('ecommerce')
   })
 
   it('resolves marketing slugs to vertical keys', () => {

@@ -73,6 +73,7 @@ import {
   Boxes,
   Gavel,
   Repeat,
+  Rocket,
   Scissors,
 } from 'lucide-react'
 import type { VerticalIconName } from './types'
@@ -151,6 +152,7 @@ const REGISTRY: Record<string, LucideIcon> = {
   Boxes,
   Gavel,
   Repeat,
+  Rocket,
   Scissors,
 }
 

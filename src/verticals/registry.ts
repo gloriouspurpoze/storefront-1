@@ -3,18 +3,66 @@ import { DEFAULT_VERTICAL_KEY } from './core/types'
 import { homeServicesPack } from './home_services/sidebarManifest'
 import { restaurantPack } from './restaurant/sidebarManifest'
 import { salonPack } from './salon/sidebarManifest'
+import { retailBillingPlans } from './retail/billingPlans'
 import { buildGenericVerticalPack } from './stubs/genericVerticalPack'
 import { validateVerticalPack } from './validatePack'
 
+/**
+ * Pack registry — must list **every** key in `VerticalKey`.
+ *
+ * Three packs are fully productized (home_services, restaurant, salon) with
+ * dedicated sidebars and dashboards. The other six (fitness, real_estate,
+ * b2b_services, retail, healthcare, education) ship as **stub packs**: they
+ * reuse the home-services sidebar but the backend already accepts them, so
+ * super-admins can provision tenants for these industries today.
+ *
+ * The `retail` stub gets its own e-commerce-first billing plans because that's
+ * what differentiates retail tenants in the wild (storefront over services).
+ */
 const PACKS: Record<VerticalKey, VerticalPackDefinition> = {
   home_services: homeServicesPack,
   restaurant: restaurantPack,
   salon: salonPack,
-  clinic: buildGenericVerticalPack('clinic', 'Clinic', 'Healthcare appointments and patient operations.', 'for-clinics'),
-  fitness: buildGenericVerticalPack('fitness', 'Fitness', 'Gyms, classes, and member bookings.', 'for-fitness'),
-  auto_repair: buildGenericVerticalPack('auto_repair', 'Auto repair', 'Garage work orders and parts.', 'for-auto-repair'),
-  tutoring: buildGenericVerticalPack('tutoring', 'Tutoring', 'Classes, coaches, and enrollments.', 'for-tutoring'),
-  custom: buildGenericVerticalPack('custom', 'Custom', 'Configurable pack for bespoke deployments.', 'for-custom'),
+  fitness: buildGenericVerticalPack(
+    'fitness',
+    'Fitness & gyms',
+    'Studios, gyms, and classes — member bookings and passes.',
+    'for-fitness',
+  ),
+  real_estate: buildGenericVerticalPack(
+    'real_estate',
+    'Real estate',
+    'Property listings, viewings, and broker workflows.',
+    'for-real-estate',
+  ),
+  b2b_services: buildGenericVerticalPack(
+    'b2b_services',
+    'B2B services',
+    'Agencies and professional services with deal-led pipelines.',
+    'for-b2b-services',
+  ),
+  retail: {
+    ...buildGenericVerticalPack(
+      'retail',
+      'Retail / e-commerce',
+      'D2C brands and online stores — products, orders, storefront.',
+      'for-retail',
+    ),
+    billingPlans: retailBillingPlans,
+    defaultModules: ['cms', 'ecommerce'],
+  },
+  healthcare: buildGenericVerticalPack(
+    'healthcare',
+    'Healthcare',
+    'Clinics and practitioners — appointments and patient records.',
+    'for-healthcare',
+  ),
+  education: buildGenericVerticalPack(
+    'education',
+    'Education & tutoring',
+    'Schools, coaches, and enrollment-led businesses.',
+    'for-education',
+  ),
 }
 
 const validated = new Set<VerticalKey>()
@@ -32,28 +80,34 @@ export function getVerticalPack(key: VerticalKey | null | undefined): VerticalPa
   return pack
 }
 
+/**
+ * Industry options surfaced in pickers (Organizations → New tenant, signup).
+ * Order is deliberate: fully-featured packs first, stub packs last (still
+ * usable — backend accepts them — but operators see they're "early access").
+ */
 export const VERTICAL_PACK_OPTIONS: Array<
   Pick<VerticalPackDefinition, 'key' | 'label' | 'description' | 'marketingSlug'>
-> = [
-  {
-    key: homeServicesPack.key,
-    label: homeServicesPack.label,
-    description: homeServicesPack.description,
-    marketingSlug: homeServicesPack.marketingSlug,
-  },
-  {
-    key: restaurantPack.key,
-    label: restaurantPack.label,
-    description: restaurantPack.description,
-    marketingSlug: restaurantPack.marketingSlug,
-  },
-  {
-    key: salonPack.key,
-    label: salonPack.label,
-    description: salonPack.description,
-    marketingSlug: salonPack.marketingSlug,
-  },
-]
+> = (
+  [
+    homeServicesPack.key,
+    restaurantPack.key,
+    salonPack.key,
+    'retail',
+    'fitness',
+    'healthcare',
+    'education',
+    'real_estate',
+    'b2b_services',
+  ] satisfies VerticalKey[]
+).map((key) => {
+  const pack = PACKS[key]
+  return {
+    key: pack.key,
+    label: pack.label,
+    description: pack.description,
+    marketingSlug: pack.marketingSlug,
+  }
+})
 
 export function verticalKeyFromMarketingSlug(slug: string): VerticalKey | null {
   const hit = Object.values(PACKS).find((p) => p.marketingSlug === slug)
