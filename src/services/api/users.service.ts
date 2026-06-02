@@ -114,6 +114,11 @@ export const usersService = {
   async createUser(
     data: CreateUserRequest,
   ): Promise<{ user: User; inviteEmailSent?: boolean; serverMessage?: string }> {
+    const isAdmin = data.userType === 'admin'
+    const resolvedUsername =
+      data.username?.trim() ||
+      (isAdmin ? data.email?.trim().toLowerCase() : '')
+
     const body: Record<string, unknown> = {
       email: data.email,
       first_name: data.firstName,
@@ -121,6 +126,7 @@ export const usersService = {
       phone: data.phone,
       user_type: data.userType,
       profile_picture: data.profilePicture,
+      ...(isAdmin && resolvedUsername ? { username: resolvedUsername } : {}),
     }
     const skipPassword =
       data.userType === 'admin' && data.inviteTeamMember && !data.password?.trim()
@@ -131,7 +137,6 @@ export const usersService = {
       if (data.rbacRole) body.rbac_role = data.rbacRole
       if (data.rbacPermissionMode) body.rbac_permission_mode = data.rbacPermissionMode
       if (data.permissions !== undefined) body.permissions = data.permissions
-      if (data.username?.trim()) body.username = data.username.trim()
       if (data.inviteTeamMember) {
         body.invite_team_member = true
       }
