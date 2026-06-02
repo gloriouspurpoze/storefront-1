@@ -28,11 +28,21 @@ export const usePermissions = () => {
     return 'admin'
   }, [currentUser])
 
-  /** Legacy Staff/Manager entries used role_plus (union with role). Narrow chip lists were stored but still merged with the full role — treat non-empty chip lists as the sole allowlist. Empty list keeps union behavior. */
+  /**
+   * Safety net for accounts whose `rbacPermissionMode` is `role_plus` but who
+   * already have a non-empty `permissions` allowlist. Historically those chip
+   * lists were saved as a narrowing intent (e.g. Settings → Access → Assign
+   * access in `union` strategy) but the union semantics silently re-added the
+   * full role template on top, effectively making the chips a no-op. Treating
+   * those as explicit fixes the "I limited the admin and they still see
+   * everything" footgun for `admin`, `manager`, and `staff` route roles.
+   */
   const legacyRolePlusScoped =
     currentUser?.userType === 'admin' &&
     currentUser?.rbacPermissionMode === 'role_plus' &&
-    (currentUser?.rbacRole === 'staff' || currentUser?.rbacRole === 'manager') &&
+    (currentUser?.rbacRole === 'admin' ||
+      currentUser?.rbacRole === 'manager' ||
+      currentUser?.rbacRole === 'staff') &&
     (currentUser?.permissions?.length ?? 0) > 0
 
   const explicitOnly =

@@ -62,7 +62,9 @@ import {
   tenantModuleLabel,
 } from '../../lib/tenantFeatureModules'
 import { usersService } from '../../services/api/users.service'
-import type { UserRole } from '../../types/rbac.types'
+import type { Permission, UserRole } from '../../types/rbac.types'
+import { getRolePermissions } from '../../config/rbac.config'
+import { PermissionChipPicker } from '../../components/users/PermissionChipPicker'
 import { payTenantPlanWithRazorpay } from '../../lib/payTenantPlan'
 import { StorefrontDomainsPanel } from '../../components/storefront/StorefrontDomainsPanel'
 import { StorefrontPreviewPanel } from '../../components/storefront/StorefrontPreviewPanel'
@@ -178,7 +180,11 @@ export function PlatformTenantsPage() {
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteFirstName, setInviteFirstName] = useState('')
   const [inviteLastName, setInviteLastName] = useState('')
-  const [inviteRole, setInviteRole] = useState<UserRole>('admin')
+  const [inviteRole, setInviteRole] = useState<UserRole>('staff')
+  const [inviteCustomizeAccess, setInviteCustomizeAccess] = useState(false)
+  const [invitePermissions, setInvitePermissions] = useState<Set<Permission>>(
+    () => new Set(getRolePermissions('staff')),
+  )
   const [inviting, setInviting] = useState(false)
 
   const load = useCallback(async () => {
@@ -408,8 +414,14 @@ export function PlatformTenantsPage() {
     setInviteEmail('')
     setInviteFirstName('')
     setInviteLastName('')
-    setInviteRole('admin')
+    setInviteRole('staff')
+    setInviteCustomizeAccess(false)
+    setInvitePermissions(new Set(getRolePermissions('staff')))
     setInviteOpen(true)
+  }
+
+  const applyInviteRoleTemplate = (role: UserRole) => {
+    setInvitePermissions(new Set(getRolePermissions(role)))
   }
 
   /**
@@ -429,8 +441,26 @@ export function PlatformTenantsPage() {
       toast({ title: 'Email and first name are required', variant: 'destructive' })
       return
     }
+    if (inviteCustomizeAccess && invitePermissions.size === 0) {
+      toast({
+        title: 'Pick at least one permission',
+        description: 'Custom access needs at least one permission chip, or turn off customization.',
+        variant: 'destructive',
+      })
+      return
+    }
     setInviting(true)
     try {
+      const fullAdminNoCustomize = inviteRole === 'admin' && !inviteCustomizeAccess
+      const rbacScoping = fullAdminNoCustomize
+        ? {}
+        : {
+            rbacPermissionMode: 'explicit' as const,
+            permissions: inviteCustomizeAccess
+              ? Array.from(invitePermissions)
+              : getRolePermissions(inviteRole),
+          }
+
       const res = await usersService.createUser({
         email,
         firstName,
@@ -439,12 +469,8 @@ export function PlatformTenantsPage() {
         rbacRole: inviteRole,
         inviteTeamMember: true,
         tenantId: detail._id,
-        // Server's `/auth/register/admin` validator requires `username` (the login
-        // handle, separate from invite email). For this lightweight super-admin
-        // invite flow we don't ask for a handle — default to the lowercased work
-        // email, which the validator accepts as an email-form login id and which
-        // is guaranteed unique. Admin can rename later from the Users page.
         username: email,
+        ...rbacScoping,
       })
       toast({
         title: res.inviteEmailSent ? 'Invite sent' : 'User created',
@@ -1339,7 +1365,7 @@ export function PlatformTenantsPage() {
             if (!open && !inviting) setInviteOpen(false)
           }}
         >
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <UserPlus className="h-5 w-5 text-primary" />
@@ -1392,18 +1418,94 @@ export function PlatformTenantsPage() {
                   id="pt-invite-role"
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value as UserRole)}
+                  onChange={(e) => {
+                    const role = e.target.value as UserRole
+                    setInviteRole(role)
+                    if (!inviteCustomizeAccess) {
+                      applyInviteRoleTemplate(role)
+                    }
+                  }}
                   disabled={inviting}
                 >
-                  <option value="admin">Admin — full dashboard access</option>
+                  <option value="staff">Staff — view + day-to-day ops only (recommended)</option>
                   <option value="manager">Manager — most features, no destructive actions</option>
-                  <option value="staff">Staff — day-to-day operations only</option>
+                  <option value="admin">Admin — FULL dashboard access (every feature)</option>
                 </select>
                 <p className="text-xs text-muted-foreground leading-snug">
-                  You can fine-tune per-feature permissions later on the Users page once they accept the
-                  invite.
+                  {inviteRole === 'admin' ? (
+                    <span className="text-destructive">
+                      Admin grants every dashboard permission inside this org. Pick Manager or Staff to
+                      scope what they can do, then fine-tune chips later from{' '}
+                      <Link
+                        to="/settings/access/assign"
+                        className="font-medium underline-offset-4 hover:underline"
+                      >
+                        Settings → Access → Assign access
+                      </Link>
+                      .
+                    </span>
+                  ) : (
+                    <>
+                      Starts from the {inviteRole} template. Narrow further later on{' '}
+                      <Link
+                        to="/settings/access/assign"
+                        className="font-medium text-primary underline-offset-4 hover:underline"
+                      >
+                        Settings → Access → Assign access
+                      </Link>{' '}
+                      — the saved chip list will be the user&apos;s exact allowlist.
+                    </>
+                  )}
                 </p>
               </div>
+              <div className="flex items-start gap-3 rounded-md border border-border bg-muted/30 p-3">
+                <Checkbox
+                  id="pt-invite-customize"
+                  checked={inviteCustomizeAccess}
+                  onCheckedChange={(checked) => {
+                    const on = checked === true
+                    setInviteCustomizeAccess(on)
+                    if (on && invitePermissions.size === 0) {
+                      applyInviteRoleTemplate(inviteRole)
+                    }
+                    if (!on) {
+                      applyInviteRoleTemplate(inviteRole)
+                    }
+                  }}
+                  disabled={inviting}
+                />
+                <div className="space-y-1">
+                  <Label htmlFor="pt-invite-customize" className="cursor-pointer font-medium">
+                    Customize permissions now
+                  </Label>
+                  <p className="text-xs text-muted-foreground leading-snug">
+                    When checked, the chips below are saved as an explicit allowlist on the server
+                    (enforced on API + sidebar). Unchecked uses the {inviteRole} template — except
+                    Admin, which stays full access.
+                  </p>
+                </div>
+              </div>
+              {inviteCustomizeAccess || inviteRole !== 'admin' ? (
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Label>Permission allowlist</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={inviting}
+                      onClick={() => applyInviteRoleTemplate(inviteRole)}
+                    >
+                      Reset to {inviteRole} template
+                    </Button>
+                  </div>
+                  <PermissionChipPicker
+                    selected={invitePermissions}
+                    onChange={setInvitePermissions}
+                    disabled={inviting || (!inviteCustomizeAccess && inviteRole !== 'admin')}
+                  />
+                </div>
+              ) : null}
               <div className="rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
                 <p>
                   Counts against this org's plan{' '}
