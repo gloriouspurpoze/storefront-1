@@ -7,7 +7,9 @@ profixer-admin-frontend/
 ├── src/                 ← admin app (CRA, fixer-admin) — root package.json
 ├── storefront/          ← Next.js 15 multi-tenant storefront (Phase 0+)
 ├── docs/saas/           ← architecture docs
-├── packages/            ← reserved for shared libraries (themes, ui, api client)
+├── apps/
+│   └── admin-mobile/    ← Bare React Native CLI admin companion (docs/mobile)
+├── packages/            ← @profixer/types, rbac, constants, api-client (see packages/README.md)
 ├── pnpm-workspace.yaml  ← workspace manifest
 └── turbo.json           ← turborepo task graph
 ```
@@ -25,6 +27,13 @@ npm start                  # admin only
 cd storefront
 npm install
 npm run dev
+
+# Admin mobile (bare React Native CLI 0.76)
+# First time only — see apps/admin-mobile/README.md for native scaffold steps
+npm run mobile:install
+npm run mobile:start              # Metro
+npm run mobile:android            # build + run Android
+npm run mobile:ios                # build + run iOS
 ```
 
 Each app installs its own deps. **Existing developer flow is unchanged.**

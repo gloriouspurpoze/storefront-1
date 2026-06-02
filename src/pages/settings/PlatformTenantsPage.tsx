@@ -439,6 +439,12 @@ export function PlatformTenantsPage() {
         rbacRole: inviteRole,
         inviteTeamMember: true,
         tenantId: detail._id,
+        // Server's `/auth/register/admin` validator requires `username` (the login
+        // handle, separate from invite email). For this lightweight super-admin
+        // invite flow we don't ask for a handle — default to the lowercased work
+        // email, which the validator accepts as an email-form login id and which
+        // is guaranteed unique. Admin can rename later from the Users page.
+        username: email,
       })
       toast({
         title: res.inviteEmailSent ? 'Invite sent' : 'User created',
@@ -1340,8 +1346,9 @@ export function PlatformTenantsPage() {
                 Invite admin to {detail?.name ?? 'organization'}
               </DialogTitle>
               <DialogDescription>
-                They will receive an email with a temporary password and a link to set their own. After
-                they sign in, their JWT will scope them to this organization automatically.
+                They will receive an email with a temporary password and a link to set their own. They
+                sign in with this email as their username; after they sign in, their JWT will scope
+                them to this organization automatically.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-3">

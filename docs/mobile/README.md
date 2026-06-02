@@ -12,12 +12,13 @@ Planning documents for building a React Native companion app for the `fixer-admi
 
 - **Web app:** ~150+ routes, 346+ `.tsx` files, three personas (admin, provider, professional).
 - **Mobile strategy:** Focused companion app for ops-on-the-go — not a 1:1 port. ~15–20 MVP screens.
-- **Decision still open:** Expo (recommended) vs bare React Native CLI; single multi-persona app vs separate Admin / Provider / Professional apps.
+- **Decisions (implemented):** Bare React Native CLI 0.76 (no Expo); single app with role-based root navigator (admin / provider / professional); admin/ops MVP first; admin web stays at repo root (`./src`) per `MONOREPO.md`.
+- **Scaffold:** `apps/admin-mobile` + `@profixer/*` packages — see [`packages/README.md`](../../packages/README.md).
 
 ## Phase 0 questions to answer before coding
 
 1. Primary persona for v1: internal admin/ops, or provider/professional too?
-2. Expo + EAS, or bare React Native CLI?
+2. Expo + EAS, or bare React Native CLI? **→ Bare RN CLI 0.76**
 3. iOS + Android, or Android-first?
 4. One app with role-based UI, or separate apps per persona?
 5. Final MVP screen list (10–15 screens).

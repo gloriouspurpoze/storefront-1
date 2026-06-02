@@ -16,3 +16,4 @@ packages:
   - '.'
   - 'storefront'
   - 'packages/*'
+  - 'apps/*'

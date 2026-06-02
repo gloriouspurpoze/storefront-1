@@ -1,25 +1,37 @@
-# Shared packages (future monorepo)
+# Shared packages (`@profixer/*`)
 
-This folder is reserved for extracting vertical packs into a workspace package consumed by:
+Workspace libraries consumed by **fixer-admin** (web), **admin-mobile** (Expo), and eventually **storefront**.
 
-- `fixer-admin` (this repo)
-- `fixer-mobile` (React Native — not scaffolded yet)
+## Current packages
 
-## Planned layout
+| Package | Purpose | Status |
+|---------|---------|--------|
+| `@profixer/types` | RBAC + domain types (incremental) | **Phase 1** — `rbac.types` |
+| `@profixer/rbac` | `canAccessRoute`, role maps, `sanitizePermissions` | **Done** — web re-exports |
+| `@profixer/constants` | SaaS env (`REACT_APP_*` + `EXPO_PUBLIC_*`) | **Done** |
+| `@profixer/api-client` | Redux-free HTTP + domain services | **MVP** — auth, bookings, dashboard, chat, notifications, professionals, support, applications, disputes |
+| `@profixer/utils` | `mapBackendUserToAppUser`, `extractTenantFromAuthPayload` | **Done** |
 
-```text
-packages/
-  verticals/          # @profixer/verticals — types, registry, manifests
-  verticals-native/   # optional RN icon map + navigation adapters
+## Planned (docs/mobile/01)
+
+- `@profixer/validation` — shared Zod schemas
+- `@profixer/utils` — pure formatters
+- `@profixer/store-core` — shared auth/tenant slices (phase 2)
+
+## Vertical packs
+
+`src/verticals/` remains in the admin app until extracted to `@profixer/verticals` (see prior README note). Mobile does not depend on verticals yet.
+
+## Web consumption
+
+CRA resolves packages via **craco aliases** (`craco.config.js`). Root scripts use `craco start|build` (not bare `react-scripts`).
+
+## Mobile consumption
+
+`apps/admin-mobile` — Expo 52, React Navigation 7, `mobileNav.config.ts` aligned with `docs/mobile/03`.
+
+```bash
+cd apps/admin-mobile && cp .env.example .env
+pnpm install   # from repo root
+pnpm mobile    # or: pnpm --filter @profixer/admin-mobile start
 ```
-
-## Current state
-
-Vertical packs live in `src/verticals/` until the monorepo workspace is created. Mobile planning docs: [`docs/mobile/`](../docs/mobile/).
-
-## Migration checklist
-
-1. Move `src/verticals/` → `packages/verticals/src`
-2. Add `package.json` with `exports` for `./registry`, `./core/types`
-3. Point admin `tsconfig` paths `@verticals/*` at the package
-4. Add RN app that depends on `@profixer/verticals` for tab labels and engagement statuses

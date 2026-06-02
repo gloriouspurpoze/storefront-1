@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@profixer/constants": "file:packages/constants",
+    "@profixer/rbac": "file:packages/rbac",
+    "@profixer/types": "file:packages/types",
+    "@profixer/utils": "file:packages/utils",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -63,9 +67,14 @@
     "zod": "^4.1.12"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
+    "start": "craco start",
+    "build": "craco build",
+    "test": "craco test",
+    "mobile:install": "npm --prefix apps/admin-mobile install",
+    "mobile:start": "npm --prefix apps/admin-mobile run start",
+    "mobile:android": "npm --prefix apps/admin-mobile run android",
+    "mobile:ios": "npm --prefix apps/admin-mobile run ios",
+    "mobile:typecheck": "npm --prefix apps/admin-mobile run typecheck",
     "eject": "react-scripts eject",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",

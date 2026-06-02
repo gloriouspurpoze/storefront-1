@@ -1,0 +1,33 @@
+import { createApi } from '@reduxjs/toolkit/query/react'
+import { mobileBaseQuery } from '@/store/api/baseQuery'
+
+export const baseApi = createApi({
+  reducerPath: 'mobileApi',
+  baseQuery: mobileBaseQuery,
+  tagTypes: [
+    'Dashboard',
+    'Bookings',
+    'Booking',
+    'Notifications',
+    'Chat',
+    'Conversations',
+    'Messages',
+    'Professionals',
+    'LiveLocations',
+    'Tickets',
+    'Applications',
+    'Disputes',
+    'ProviderBookings',
+    'ProfessionalBookings',
+    'Analytics',
+    'Crm',
+    'Earnings',
+    'Invoices',
+    'Orders',
+    'Payments',
+    'Refunds',
+    'ServiceRequests',
+    'Users',
+  ],
+  endpoints: () => ({}),
+})

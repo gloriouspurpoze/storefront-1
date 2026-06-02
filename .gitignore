@@ -1,28 +1,102 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
-/node_modules
-/.pnp
+# ---- dependencies (all workspaces) ----
+node_modules/
+.pnp
 .pnp.js
 
-# testing
-/coverage
+# ---- testing ----
+coverage/
 
-# production
+# ---- builds ----
 /build
+/dist
+**/dist/
+storefront/.next/
+.next/
+.turbo/
+.cache/
 
-# misc
-.DS_Store
+# ---- env files (any workspace) ----
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+**/.env
+**/.env.local
+**/.env.development.local
+**/.env.test.local
+**/.env.production.local
 
+# ---- misc ----
+.DS_Store
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
 *storybook.log
 storybook-static
 .vercel
+.idea/
+.vscode/
+!.vscode/extensions.json
+
+# ---- React Native (apps/admin-mobile) ----
+# Metro / Watchman / Haste
+.metro-health-check*
+.metro-cache/
+
+# Android
+apps/admin-mobile/android/.gradle/
+apps/admin-mobile/android/build/
+apps/admin-mobile/android/app/build/
+apps/admin-mobile/android/captures/
+apps/admin-mobile/android/local.properties
+apps/admin-mobile/android/.idea/
+apps/admin-mobile/android/.cxx/
+apps/admin-mobile/android/app/.cxx/
+apps/admin-mobile/android/keystores/debug.keystore
+*.keystore
+!debug.keystore
+*.iml
+*.hprof
+
+# iOS / CocoaPods
+apps/admin-mobile/ios/Pods/
+apps/admin-mobile/ios/build/
+apps/admin-mobile/ios/.xcode.env.local
+apps/admin-mobile/ios/*.xcworkspace/xcuserdata/
+apps/admin-mobile/ios/*.xcodeproj/xcuserdata/
+apps/admin-mobile/ios/*.xcodeproj/project.xcworkspace/xcuserdata/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+*.xccheckout
+*.moved-aside
+DerivedData/
+*.hmap
+*.ipa
+
+# Bundles / generated assets
+apps/admin-mobile/android/app/src/main/assets/index.android.bundle
+apps/admin-mobile/android/app/src/main/assets/index.android.bundle.meta
+apps/admin-mobile/ios/main.jsbundle
+
+# CocoaPods bundler
+apps/admin-mobile/ios/.bundle/
+apps/admin-mobile/vendor/
+
+# Ruby
+**/.bundle/
+**/vendor/bundle/
+
+# ---- shared packages build outputs ----
+packages/*/dist/
+packages/*/.tsbuildinfo

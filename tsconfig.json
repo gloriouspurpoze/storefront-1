@@ -21,10 +21,20 @@
     "jsx": "react-jsx",
     "baseUrl": "src",
     "paths": {
-      "@/*": ["*"]
+      "@/*": ["*"],
+      "@profixer/types": ["../packages/types/src"],
+      "@profixer/types/*": ["../packages/types/src/*"],
+      "@profixer/rbac": ["../packages/rbac/src"],
+      "@profixer/constants": ["../packages/constants/src"],
+      "@profixer/utils": ["../packages/utils/src"],
+      "@profixer/api-client": ["../packages/api-client/src"]
     }
   },
   "include": [
-    "src"
+    "src",
+    "packages/types/src",
+    "packages/rbac/src",
+    "packages/constants/src",
+    "packages/utils/src"
   ]
 }
