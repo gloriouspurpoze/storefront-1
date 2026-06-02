@@ -17,6 +17,7 @@ export function BillingUpgradePage() {
 
   const success = params.get('success') === '1'
   const canceled = params.get('canceled') === '1'
+  const addonSku = params.get('addon')
 
   const startCheckout = async (planKey: string) => {
     setLoadingKey(planKey)
@@ -58,6 +59,12 @@ export function BillingUpgradePage() {
       {canceled && (
         <p className="mb-4 rounded-md border border-border px-3 py-2 text-sm text-muted-foreground">
           Checkout canceled.
+        </p>
+      )}
+      {addonSku && (
+        <p className="mb-4 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
+          Storefront add-on <strong>{addonSku}</strong> — complete payment, then your platform operator will
+          enable the widget. Or ask support to grant it on your trial.
         </p>
       )}
 

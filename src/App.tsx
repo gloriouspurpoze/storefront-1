@@ -313,6 +313,9 @@ const SaasPlatformPage = lazy(() =>
 const PlatformTenantsPage = lazy(() =>
   import('./pages/settings/PlatformTenantsPage').then((m) => ({ default: m.PlatformTenantsPage })),
 )
+const StorefrontSettingsPage = lazy(() =>
+  import('./pages/settings/StorefrontSettingsPage').then((m) => ({ default: m.StorefrontSettingsPage })),
+)
 const AccessLayout = lazy(() =>
   import('./pages/settings/access/AccessLayout').then((m) => ({ default: m.AccessLayout })),
 )
@@ -1533,6 +1536,14 @@ function App() {
                         element={
                           <RoleBasedRoute permissions={['view_settings']}>
                             <BillingUpgradePage />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/settings/storefront"
+                        element={
+                          <RoleBasedRoute permissions={['view_settings', 'manage_system_settings']}>
+                            <StorefrontSettingsPage />
                           </RoleBasedRoute>
                         }
                       />

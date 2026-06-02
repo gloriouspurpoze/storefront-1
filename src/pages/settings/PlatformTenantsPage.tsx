@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Badge,
@@ -66,6 +66,7 @@ import type { UserRole } from '../../types/rbac.types'
 import { payTenantPlanWithRazorpay } from '../../lib/payTenantPlan'
 import { StorefrontDomainsPanel } from '../../components/storefront/StorefrontDomainsPanel'
 import { StorefrontPreviewPanel } from '../../components/storefront/StorefrontPreviewPanel'
+import { StorefrontStudioPanel } from '../../components/storefront/StorefrontStudioPanel'
 import { resolveStorefrontUrl } from '../../lib/storefrontUrls'
 
 /** Compact module badges for the organizations table. */
@@ -1200,6 +1201,13 @@ export function PlatformTenantsPage() {
 
               {/* Super-admin preview: opens the live storefront in an iframe + new tab. */}
               <StorefrontPreviewPanel tenantId={detail._id} tenantSlug={detail.slug} />
+
+              {/* Storefront Studio — branding, SEO, feature flags (super-admin controls locks). */}
+              <StorefrontStudioPanel
+                tenantId={detail._id}
+                tenantSlug={detail.slug}
+                isSuperAdmin
+              />
 
               {/* Phase 4 — Storefront subdomain + custom domain wizard. Wraps
                   the Vercel Domains API on the backend; degrades to a manual

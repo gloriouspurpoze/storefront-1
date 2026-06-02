@@ -309,6 +309,7 @@ export const QUICK_NAV_ITEMS: QuickNavItem[] = [
   { label: 'Refund requests', path: '/support/refund-requests', group: 'System' },
   { label: 'System status', path: '/system-status', group: 'System' },
   { label: 'Settings', path: '/settings', group: 'System' },
+  { label: 'Storefront Studio', path: '/settings/storefront', group: 'System', keywords: 'website seo branding theme' },
   {
     label: 'Roles & access',
     path: '/settings/access',

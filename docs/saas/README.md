@@ -86,7 +86,7 @@ Phase 1 is implemented in this repo:
 
 ### Runbooks
 
-- [`08-onboard-three-tenants-runbook.md`](./08-onboard-three-tenants-runbook.md) — concrete super-admin runbook to onboard `profixer` (home services), `thebrownbutter` (restaurant), and `nozeperfume` (retail / e-commerce).
+- [`08-onboard-three-tenants-runbook.md`](./08-onboard-three-tenants-runbook.md) — concrete super-admin runbook to onboard `profixer` (home services), `thebrownbutter` (restaurant), and `nozeperfume` (retail / e-commerce). CLI bootstrap: `cd fixer-backend && ALLOW_DESTRUCTIVE=1 npm run onboard:reference-tenants`. Data isolation gate: `npm run audit:tenant-isolation:strict`.
 - [`09-storefront-architecture.md`](./09-storefront-architecture.md) — multi-tenant storefront RFC (Next.js app, subdomain routing, Vercel domains, theme phases).
 
 ### Phase 6 (done — roadmap closure)

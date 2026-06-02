@@ -200,14 +200,16 @@ When creating the org, you can fill **Owner email**. If that email **already exi
 | API | `X-Tenant-Id` sent on requests; backend enforces isolation |
 | Suspended org | Login blocked if you clicked **Suspend** on the row |
 
-### Your two orgs right now (`profixer`, `test1`)
+### Current orgs in Mongo (after isolation backfill)
 
-| Org | Next step for access |
-| --- | --- |
-| **profixer** (Home services · Scale) | Manage → **Invite admin…** → e.g. founder email |
-| **test1** (Restaurant · Starter) | Manage → **Invite admin…** → e.g. restaurant manager email |
+| Org | Role | Next step for access |
+| --- | --- | --- |
+| **profixer** | Production home-services tenant (legacy data lives here) | Manage → **Invite admin…** if no owner yet |
+| **test** | Empty sandbox — use for 2-tenant isolation smoke tests | Invite a test admin; create one booking and confirm profixer cannot see it |
+| **thebrownbutter** | Restaurant reference tenant | Create via UI or `npm run onboard:reference-tenants` in fixer-backend |
+| **nozeperfume** | Retail reference tenant | Same as above |
 
-After each invite, open **Manage** again and confirm **Isolation summary → Users: 1** (or more).
+After each invite, open **Manage** again and confirm **Isolation summary → Users: 1** (or more). Business rows (bookings, CRM, etc.) should be **0** on a brand-new org until that org creates data.
 
 ### Troubleshooting
 
@@ -333,16 +335,45 @@ Run this on each of the three tenants. Treat any miss as a launch blocker.
 
 1. **Table sanity** — Open Organizations. Each row should show:
    - Status: **Active** (not Suspended)
-   - Billing: `none` until Stripe webhook fires
+   - Billing: `none` until Razorpay charge (or Stripe webhook)
    - App modules: matches the table at the top of this doc
 2. **JWT isolation** — Open the Manage detail for one tenant and read **Isolation summary**:
    - Users ≥ 1 if you attached an owner; 0 otherwise.
-   - All other counts = 0 (no orphan data leaked from another tenant).
-3. **Owner login** — If you attached a user, ask them to **sign out and sign back in**. After login their JWT will carry `tenantId`. Confirm the header shows the tenant name and the sidebar omits any modules outside the allowlist.
-4. **API smoke test** — Hit a gated endpoint with the owner's token (e.g. `GET /api/crm/contacts`). Expect:
-   - 200 for tenants where `crm` is allowed.
-   - 403 `TENANT_FEATURE_DENIED` for tenants where `crm` is **not** allowed. (Noze Perfume has CRM on — pick `finance` to see denial: `GET /api/finance/overview` → 403.)
-5. **Launch readiness completion** — On `/settings/saas`, scope to each tenant and mark the six checklist items as you verify them. Progress saves per tenant id in browser localStorage.
+   - All other counts = **0** on a **new** org (no bookings/CRM/invoices from `profixer`).
+3. **Mongo tenant isolation audit** (backend repo):
+
+   ```bash
+   cd fixer-backend
+   npm run audit:tenant-isolation:strict
+   # Expect: ✓ Tenant isolation OK
+   ```
+
+   Every tenant-scoped collection should show **Open = 0** (no rows missing `tenantId`). Legacy profixer data was backfilled with `npm run backfill:tenant-id` (assigns unscoped rows to slug `profixer`).
+
+4. **Two-tenant API smoke test** (recommended before go-live):
+
+   | Step | Actor | Expected |
+   | --- | --- | --- |
+   | 1 | Log in as **thebrownbutter** admin (or `test`) | Bookings / invoices lists empty |
+   | 2 | Create one CRM contact or booking | Succeeds |
+   | 3 | Log in as **profixer** admin | That new row **not** visible |
+   | 4 | `mongosh`: `db.bookings.countDocuments({ tenantId: ObjectId("<brown-butter-id>") })` | `1` after step 2 |
+
+5. **Owner login** — If you attached a user, ask them to **sign out and sign back in**. After login their JWT will carry `tenantId`. Confirm the header shows the tenant name and the sidebar omits any modules outside the allowlist.
+6. **API module gate** — With the owner's token, `GET /api/crm/contacts` → 200 when `crm` is on the allowlist. `GET /api/finance/overview` → 403 `TENANT_FEATURE_DENIED` for `rest_starter` / `retail_growth` (no finance module).
+7. **Storefront** — Open **View site** on the row (or `{slug}.profixer.localhost:3001` in dev). Restaurant → menu/reserve; retail → products/checkout.
+8. **Launch readiness** — On `/settings/saas`, scope to each tenant and mark the six checklist items. Progress saves per tenant id in browser localStorage.
+
+### Bootstrap reference tenants (CLI)
+
+If `thebrownbutter` / `nozeperfume` are not in the table yet:
+
+```bash
+cd fixer-backend
+ALLOW_DESTRUCTIVE=1 npm run onboard:reference-tenants
+```
+
+This creates (or syncs) both orgs with the plan keys and `featureModules` from §2–§3. Then continue with **Invite admin** and the checks above.
 
 ---
 

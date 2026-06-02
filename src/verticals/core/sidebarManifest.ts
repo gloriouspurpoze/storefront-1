@@ -206,6 +206,7 @@ export const coreSidebarGroups: SidebarNavGroupDef[] = [
           { id: 'cms_overview', name: 'CMS overview', href: '/cms', icon: 'Globe', permissions: ['view_cms'], module: 'cms' },
           { id: 'cms_homepage', name: 'Homepage', href: '/cms/homepage', icon: 'Home', permissions: ['manage_cms'], module: 'cms' },
           { id: 'cms_site_appearance', name: 'Site appearance', href: '/cms/site-appearance', icon: 'Palette', permissions: ['manage_cms'], module: 'cms' },
+          { id: 'storefront_studio', name: 'Storefront Studio', href: '/settings/storefront', icon: 'Sparkles', permissions: ['manage_cms', 'view_settings'] },
           { id: 'cms_pages', name: 'Pages', href: '/cms/pages', icon: 'FileText', permissions: ['manage_cms'], module: 'cms' },
           { id: 'cms_menus', name: 'Menus', href: '/cms/menus', icon: 'Menu', permissions: ['manage_cms'], module: 'cms' },
           { id: 'cms_media', name: 'Media library', href: '/cms/media', icon: 'Image', permissions: ['manage_cms'], module: 'cms' },

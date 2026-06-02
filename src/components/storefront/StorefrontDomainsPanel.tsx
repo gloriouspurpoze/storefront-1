@@ -87,9 +87,14 @@ export function StorefrontDomainsPanel({ tenantId }: { tenantId: string }) {
         schedulePoll(next)
       } catch (e) {
         if (!cancelled) {
+          const err = e as { message?: string; status?: number }
+          const description =
+            err?.status === 404
+              ? 'Storefront Domains API not deployed yet. Restart the backend after pulling the latest changes.'
+              : err?.message || 'Unknown error'
           toast({
             title: 'Could not load domains',
-            description: e instanceof Error ? e.message : 'Error',
+            description,
             variant: 'destructive',
           })
         }

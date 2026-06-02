@@ -234,6 +234,84 @@ export async function createCheckoutOrder(input: {
   return json.data
 }
 
+// ——— Storefront Studio (per-tenant config: branding, SEO, flags) ———
+
+export interface StorefrontConfigSeoRobots {
+  indexable: boolean
+  followLinks: boolean
+  noArchive?: boolean
+  noSnippet?: boolean
+}
+
+export interface StorefrontSection {
+  id: string
+  type: string
+  enabled: boolean
+  order: number
+}
+
+export interface StorefrontContent {
+  heroHeadline?: string
+  heroSubcopy?: string
+  aboutTitle?: string
+  aboutBody?: string
+  faqItems?: Array<{ question: string; answer: string }>
+}
+
+export interface StorefrontConfig {
+  tenantId: string
+  themeKey?: string
+  sections?: StorefrontSection[]
+  content?: StorefrontContent
+  branding: {
+    siteName?: string
+    tagline?: string
+    logoUrl?: string
+    faviconUrl?: string
+    primaryColor?: string
+    secondaryColor?: string
+    accentColor?: string
+    fontHeading?: string
+    fontBody?: string
+    contactEmail?: string
+    contactPhone?: string
+    address?: string
+    socials?: Record<string, string>
+  }
+  seo: {
+    titleTemplate?: string
+    defaultTitle?: string
+    defaultDescription?: string
+    defaultKeywords?: string[]
+    ogImageUrl?: string
+    twitterHandle?: string
+    canonicalDomain?: string
+    robots?: StorefrontConfigSeoRobots
+    sitemapEnabled?: boolean
+    rssEnabled?: boolean
+    structuredData?: Record<string, boolean>
+    analytics?: {
+      googleAnalyticsId?: string
+      googleTagManagerId?: string
+      metaPixelId?: string
+      hotjarId?: string
+      clarityId?: string
+      googleSiteVerification?: string
+    }
+    pages?: Record<string, { title?: string; description?: string; ogImageUrl?: string; noindex?: boolean }>
+  }
+  featureFlags: Record<string, boolean | Record<string, boolean> | undefined>
+  featureAddons?: Record<string, { sku: string; purchased?: boolean }>
+  customCss?: string
+}
+
+export async function fetchStorefrontConfig(tenantId: string): Promise<StorefrontConfig | null> {
+  return getJson<StorefrontConfig>('/public/storefront/config', tenantId, {
+    revalidate: 60,
+    tags: [`tenant:${tenantId}`, `tenant:${tenantId}:config`],
+  })
+}
+
 export async function verifyCheckout(input: {
   tenantId: string
   razorpay_order_id: string
