@@ -32,5 +32,23 @@ export async function POST(req: NextRequest) {
   }
 
   for (const tag of tags) revalidateTag(tag)
-  return NextResponse.json({ success: true, data: { revalidated: tags } })
+
+  // Ping Google when config / catalog changes affect the sitemap.
+  const pingPromises: Array<Promise<unknown>> = []
+  const shouldPingGoogle = tags.some((t) =>
+    /:(services|menu|products|config|catalog)$/.test(t) || /^tenant:[a-f0-9]{24}$/.test(t),
+  )
+  if (shouldPingGoogle) {
+    const sitemapHosts = (process.env.STOREFRONT_PING_SITEMAP_HOSTS || '').split(',').map((s) => s.trim()).filter(Boolean)
+    for (const host of sitemapHosts) {
+      const url = `${host.replace(/\/+$/, '')}/sitemap.xml`
+      pingPromises.push(
+        fetch(`https://www.google.com/ping?sitemap=${encodeURIComponent(url)}`, { method: 'GET' }).catch(() => undefined),
+        fetch(`https://www.bing.com/ping?sitemap=${encodeURIComponent(url)}`, { method: 'GET' }).catch(() => undefined),
+      )
+    }
+  }
+
+  await Promise.allSettled(pingPromises)
+  return NextResponse.json({ success: true, data: { revalidated: tags, pinged: pingPromises.length / 2 } })
 }
