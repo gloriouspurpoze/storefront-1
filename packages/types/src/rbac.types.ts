@@ -72,6 +72,10 @@ export type Permission =
   | 'view_settings'
   | 'edit_settings'
   | 'manage_system_settings'
+
+  // CMS / storefront content permissions (sidebar "Content & Marketing", Storefront Studio)
+  | 'view_cms'
+  | 'manage_cms'
   
   // Report permissions
   | 'view_reports'

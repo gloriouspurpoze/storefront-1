@@ -200,6 +200,10 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       'view_settings',
       'edit_settings',
       'manage_system_settings',
+
+      // CMS / storefront content (role description: "full CMS and content management")
+      'view_cms',
+      'manage_cms',
       
       'view_reports',
       'export_reports',
@@ -353,6 +357,10 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       'view_referrals',
       'edit_referrals',
       'manage_referrals',
+
+      // CMS / storefront content (managers run the public storefront)
+      'view_cms',
+      'manage_cms',
 
       // Boards
       'view_boards',
@@ -672,6 +680,16 @@ export const routePermissions: RoutePermission[] = [
     requiredPermissions: ['view_settings', 'manage_system_settings', 'manage_user_roles'],
     requireAll: false,
     allowedRoles: ['super_admin', 'admin', 'manager', 'staff'],
+  },
+  {
+    // Tenant self-serve storefront customization. Gated on CMS/settings perms
+    // (not just system settings) so org admins + managers can run their own
+    // public site. Explicit rule prevents inheriting the generic `/settings`
+    // guard, which required `view_settings` and locked managers out.
+    path: '/settings/storefront',
+    requiredPermissions: ['manage_cms', 'view_settings', 'manage_system_settings'],
+    requireAll: false,
+    allowedRoles: ['super_admin', 'admin', 'manager'],
   },
   {
     path: '/settings',

@@ -1542,7 +1542,7 @@ function App() {
                       <Route
                         path="/settings/storefront"
                         element={
-                          <RoleBasedRoute permissions={['view_settings', 'manage_system_settings']}>
+                          <RoleBasedRoute permissions={['manage_cms', 'view_settings', 'manage_system_settings']}>
                             <StorefrontSettingsPage />
                           </RoleBasedRoute>
                         }
