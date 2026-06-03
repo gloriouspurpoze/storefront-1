@@ -22,18 +22,20 @@ the one-time setup.
 
 ---
 
-## 0. Decide the wildcard hostname
+## 0. Wildcard hostname (already decided)
 
-Pick a sub-domain of a domain you already control. Examples:
+We're using **`*.shop.profixer.in`** as the platform suffix:
 
-| You own | Use |
+| URL | Resolves to |
 |---|---|
-| `profixer.in` | `*.shop.profixer.in` |
-| `profixer.app` | `*.profixer.app` |
-| `acme.com` | `*.store.acme.com` |
+| `admin.profixer.in` | fixer-admin dashboard (existing project — untouched) |
+| `*.shop.profixer.in` | profixer-storefront (this project) |
+| `nozeperfume.shop.profixer.in` | wildcard match → tenant slug `nozeperfume` |
+| `acme.shop.profixer.in` | wildcard match → tenant slug `acme` |
 
-Tenants land at `<slug>.shop.profixer.in` automatically. Per-tenant custom
-domains (e.g. `nozeperfume.com`) get attached from the admin UI later.
+Per-tenant custom domains (e.g. `nozeperfume.com`) get attached from the
+admin UI later. `admin.profixer.in` and `*.shop.profixer.in` are completely
+separate DNS records, so the two Vercel projects never collide.
 
 ---
 
@@ -61,9 +63,9 @@ Project → Settings → Environment Variables — set these for **Production + 
 
 | Key | Value |
 |---|---|
-| `NEXT_PUBLIC_API_BASE_URL` | `https://api.<your-domain>/api` |
-| `NEXT_PUBLIC_STOREFRONT_HOST_SUFFIXES` | the wildcard suffix from step 0, e.g. `shop.profixer.in` |
-| `STOREFRONT_REVALIDATE_SECRET` | `openssl rand -hex 32` |
+| `NEXT_PUBLIC_API_BASE_URL` | `https://api.profixer.in/api` (whatever URL fixer-admin uses) |
+| `NEXT_PUBLIC_STOREFRONT_HOST_SUFFIXES` | `shop.profixer.in` |
+| `STOREFRONT_REVALIDATE_SECRET` | output of `openssl rand -hex 32` |
 
 Optional: `EDGE_CONFIG`, `UPSTASH_REDIS_REST_*`, `STOREFRONT_PING_SITEMAP_HOSTS`.
 
@@ -83,18 +85,29 @@ tenant slug yet. We fix that with DNS in the next step.
 
 ## 4. Wildcard DNS
 
-Vercel → `profixer-storefront` → Domains → **Add** → `*.shop.profixer.in`
-(use your actual suffix). Vercel will print a TXT challenge.
+In Vercel → `profixer-storefront` → **Settings** → **Domains** → **Add**
+→ type `*.shop.profixer.in`. Vercel will print a TXT challenge.
 
-At your DNS provider:
+At your DNS provider (wherever `profixer.in` lives — Cloudflare, Route53,
+GoDaddy, …):
 
-```
-CNAME   *.shop.profixer.in   →   cname.vercel-dns.com.
-TXT     _vercel.shop         →   "vc-domain-verify=…"   (value from Vercel)
-```
+| Type | Name / Host | Value | TTL |
+|---|---|---|---|
+| `CNAME` | `*.shop` | `cname.vercel-dns.com.` | Auto / 300 |
+| `TXT` | `_vercel.shop` | `vc-domain-verify=…` (value Vercel showed you) | Auto / 300 |
 
-Wait ~2 min, click **Refresh** on Vercel. The wildcard cert provisions
-automatically.
+> Different DNS UIs use different conventions for the "Name" field. Some want
+> the bare label (`*.shop`), others want the full FQDN (`*.shop.profixer.in`).
+> Both should produce the same record. **Do not touch the existing
+> `admin.profixer.in` record** — it's serving fixer-admin and lives at a
+> completely different DNS path.
+
+> If `profixer.in` is on **Cloudflare** with the orange proxy cloud enabled,
+> turn the proxy **OFF** (DNS-only / grey cloud) for both the CNAME and TXT
+> records. Cloudflare's proxy + Vercel's wildcard certs conflict.
+
+Wait 1–2 min for propagation, click **Refresh** on Vercel. The wildcard SSL
+cert provisions automatically once the TXT record verifies.
 
 ---
 
