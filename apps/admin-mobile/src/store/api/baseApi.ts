@@ -28,6 +28,10 @@ export const baseApi = createApi({
     'Refunds',
     'ServiceRequests',
     'Users',
+    'Categories',
+    'CatalogServices',
+    'Products',
+    'Vendors',
   ],
   endpoints: () => ({}),
 })

@@ -15,6 +15,7 @@ import { palette, radius, spacing } from '@/theme'
 
 const SCREEN_ICONS: Record<string, IconName> = {
   Settings: 'settings',
+  CatalogHub: 'tag',
   Analytics: 'trending-up',
   CrmHub: 'users',
   EarningsOverview: 'wallet',
@@ -43,6 +44,9 @@ export function MoreHubScreen() {
     switch (mobileScreen) {
       case 'Settings':
         stackNav.navigate('Settings')
+        break
+      case 'CatalogHub':
+        stackNav.navigate('CatalogHub')
         break
       case 'Analytics':
         tabNav.navigate('HomeTab', { screen: 'Analytics' } as never)

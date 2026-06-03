@@ -12,6 +12,7 @@ import '@/store/api/opsApi'
 import '@/store/api/phase2Api'
 import '@/store/api/financeApi'
 import '@/store/api/directoryApi'
+import '@/store/api/catalogAdminApi'
 
 const persistConfig = {
   key: 'profixer-admin-mobile',

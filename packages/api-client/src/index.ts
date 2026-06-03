@@ -12,12 +12,14 @@ export { createProfessionalApplicationsService } from './services/professionalAp
 export { createDisputeCasesService } from './services/disputeCases.service'
 export { createAnalyticsService } from './services/analytics.service'
 export { createCatalogService } from './services/catalog.service'
+export { createCategoriesService } from './services/categories.service'
 export { createCrmService } from './services/crm.service'
 export { createEarningsService } from './services/earnings.service'
 export { createInvoicesService } from './services/invoices.service'
 export { createOrdersService } from './services/orders.service'
 export { createPaymentsService } from './services/payments.service'
 export { createPosService } from './services/pos.service'
+export { createProductsService } from './services/products.service'
 export { createRefundsService } from './services/refunds.service'
 export { createServiceRequestsService } from './services/serviceRequests.service'
 export { createUsersService } from './services/users.service'
@@ -37,7 +39,36 @@ export type { ProfessionalApplication, ProfessionalApplicationStatus } from './s
 export type { DisputeCaseRow, DisputeCasesListResponse, DisputeCaseStatus } from './services/disputeCases.service'
 export type { SupportTicketRow, SupportTicketsListResponse, ListTicketsParams } from './services/support.service'
 export type { DashboardAnalytics } from './services/analytics.service'
-export type { CatalogService } from './services/catalog.service'
+export type {
+  CatalogService,
+  CreatePlatformServicePayload,
+  CreatedCatalogService,
+  ServiceType,
+  ServiceStatus,
+  ServiceListItem,
+  ServiceListResult,
+  ServiceListQuery,
+  ServiceDetail,
+  UpdatePlatformServicePayload,
+} from './services/catalog.service'
+export type {
+  AdminCategory,
+  CategoryType,
+  CreateCategoryPayload,
+  UpdateCategoryPayload,
+  ListCategoriesQuery,
+} from './services/categories.service'
+export type {
+  ProductVendor,
+  ProductImageEmbed,
+  CreateProductPayload,
+  CreatedProduct,
+  ProductListItem,
+  ProductListResult,
+  ProductListQuery,
+  ProductDetail,
+  UpdateProductPayload,
+} from './services/products.service'
 export type { CrmContact, CrmMetrics, CreateCrmContactPayload } from './services/crm.service'
 export type { AdminPayout, PlatformEarningsSummary } from './services/earnings.service'
 export type { AdminCreateBookingPayload } from './services/pos.service'

@@ -39,6 +39,13 @@ export type InboxStackParamList = {
 export type MoreStackParamList = {
   MoreHub: undefined
   Settings: undefined
+  CatalogHub: undefined
+  ServicesList: undefined
+  ProductsList: undefined
+  CategoriesList: undefined
+  CreateService: { id?: string } | undefined
+  CreateCategory: { id?: string } | undefined
+  CreateProduct: { id?: string } | undefined
   CrmHub: undefined
   CrmContactForm: undefined
   EarningsOverview: undefined

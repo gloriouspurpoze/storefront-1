@@ -1,4 +1,11 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
+import { CatalogHubScreen } from '@/features/catalog/screens/CatalogHubScreen'
+import { CategoriesListScreen } from '@/features/catalog/screens/CategoriesListScreen'
+import { CreateCategoryScreen } from '@/features/catalog/screens/CreateCategoryScreen'
+import { CreateProductScreen } from '@/features/catalog/screens/CreateProductScreen'
+import { CreateServiceScreen } from '@/features/catalog/screens/CreateServiceScreen'
+import { ProductsListScreen } from '@/features/catalog/screens/ProductsListScreen'
+import { ServicesListScreen } from '@/features/catalog/screens/ServicesListScreen'
 import { CrmContactFormScreen } from '@/features/crm/screens/CrmContactFormScreen'
 import { CrmHubScreen } from '@/features/crm/screens/CrmHubScreen'
 import { EarningsOverviewScreen } from '@/features/earnings/screens/EarningsOverviewScreen'
@@ -29,6 +36,13 @@ export function MoreStack() {
     >
       <Stack.Screen name="MoreHub" component={MoreHubScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
+      <Stack.Screen name="CatalogHub" component={CatalogHubScreen} options={{ title: 'Catalog' }} />
+      <Stack.Screen name="ServicesList" component={ServicesListScreen} options={{ title: 'Services' }} />
+      <Stack.Screen name="ProductsList" component={ProductsListScreen} options={{ title: 'Products' }} />
+      <Stack.Screen name="CategoriesList" component={CategoriesListScreen} options={{ title: 'Categories' }} />
+      <Stack.Screen name="CreateService" component={CreateServiceScreen} options={{ title: 'New service' }} />
+      <Stack.Screen name="CreateCategory" component={CreateCategoryScreen} options={{ title: 'New category' }} />
+      <Stack.Screen name="CreateProduct" component={CreateProductScreen} options={{ title: 'New product' }} />
       <Stack.Screen name="CrmHub" component={CrmHubScreen} options={{ title: 'CRM' }} />
       <Stack.Screen name="CrmContactForm" component={CrmContactFormScreen} options={{ title: 'New contact' }} />
       <Stack.Screen name="EarningsOverview" component={EarningsOverviewScreen} options={{ title: 'Earnings' }} />

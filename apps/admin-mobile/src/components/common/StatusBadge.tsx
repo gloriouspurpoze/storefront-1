@@ -33,6 +33,10 @@ const STATUS_TONE: Record<string, Tone> = {
   // payouts
   released: 'success',
   on_hold: 'warning',
+  // catalog service status
+  published: 'success',
+  draft: 'warning',
+  archived: 'neutral',
 }
 
 const TONE_STYLES: Record<Tone, { bg: string; fg: string }> = {

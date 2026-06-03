@@ -136,6 +136,15 @@ export const adminMobileNav: MobileNavItem[] = [
     mvp: true,
   },
   {
+    id: 'catalog',
+    label: 'Catalog',
+    webPath: '/platform-services',
+    mobileScreen: 'CatalogHub',
+    permissions: ['view_services'],
+    tier: 'drawer',
+    personas: ['admin'],
+  },
+  {
     id: 'analytics',
     label: 'Analytics',
     webPath: '/analytics',

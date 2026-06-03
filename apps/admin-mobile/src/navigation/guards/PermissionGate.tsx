@@ -1,16 +1,28 @@
 import type { ReactNode } from 'react'
+import type { Permission } from '@profixer/types'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Screen } from '@/components/layout/Screen'
 import { usePermissions } from '@/hooks/usePermissions'
 
 type Props = {
-  webPath: string
+  /** Gate by web route (mapped to permissions via the RBAC route table). */
+  webPath?: string
+  /** Gate by an explicit permission — pass when no clean route mapping exists. */
+  permission?: Permission
+  /** Gate by any of several permissions (OR). */
+  anyPermission?: Permission[]
   children: ReactNode
 }
 
-export function PermissionGate({ webPath, children }: Props) {
-  const { checkRouteAccess } = usePermissions()
-  if (!checkRouteAccess(webPath)) {
+export function PermissionGate({ webPath, permission, anyPermission, children }: Props) {
+  const { checkRouteAccess, checkPermission, checkAnyPermission } = usePermissions()
+
+  const allowed =
+    (permission ? checkPermission(permission) : true) &&
+    (anyPermission ? checkAnyPermission(anyPermission) : true) &&
+    (webPath ? checkRouteAccess(webPath) : true)
+
+  if (!allowed) {
     return (
       <Screen>
         <EmptyState

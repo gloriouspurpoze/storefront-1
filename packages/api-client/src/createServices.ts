@@ -3,6 +3,7 @@ import { createAnalyticsService } from './services/analytics.service'
 import { createAuthService } from './services/auth.service'
 import { createBookingsService } from './services/bookings.service'
 import { createCatalogService } from './services/catalog.service'
+import { createCategoriesService } from './services/categories.service'
 import { createChatService } from './services/chat.service'
 import { createCrmService } from './services/crm.service'
 import { createDashboardService } from './services/dashboard.service'
@@ -13,6 +14,7 @@ import { createNotificationsService } from './services/notifications.service'
 import { createOrdersService } from './services/orders.service'
 import { createPaymentsService } from './services/payments.service'
 import { createPosService } from './services/pos.service'
+import { createProductsService } from './services/products.service'
 import { createProfessionalApplicationsService } from './services/professionalApplications.service'
 import { createProfessionalsService } from './services/professionals.service'
 import { createRefundsService } from './services/refunds.service'
@@ -26,6 +28,7 @@ export function createServices(api: ApiClient) {
     analytics: createAnalyticsService(api),
     bookings: createBookingsService(api),
     catalog: createCatalogService(api),
+    categories: createCategoriesService(api),
     crm: createCrmService(api),
     dashboard: createDashboardService(api),
     earnings: createEarningsService(api),
@@ -35,6 +38,7 @@ export function createServices(api: ApiClient) {
     orders: createOrdersService(api),
     payments: createPaymentsService(api),
     pos: createPosService(api),
+    products: createProductsService(api),
     professionals: createProfessionalsService(api),
     refunds: createRefundsService(api),
     serviceRequests: createServiceRequestsService(api),
