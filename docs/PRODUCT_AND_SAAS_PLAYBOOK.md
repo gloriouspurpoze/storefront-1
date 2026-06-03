@@ -4,6 +4,8 @@
 **Scope:** React admin SPA in this repo + assumed backend API and consumer site **profixer.in** (see full playbook for caveats).  
 **Client onboarding (ops):** [`PARTNER_ONBOARDING_SOP.md`](PARTNER_ONBOARDING_SOP.md) — multi-tenant provisioning, DB/API posture, existing-website integration.
 
+**Vertical expansion (real estate & logistics):** [`verticals/README.md`](verticals/README.md) — strategy, specs, runbooks.
+
 ---
 
 ## Part A — Investor one-pager

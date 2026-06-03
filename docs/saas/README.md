@@ -13,6 +13,7 @@ Reference docs for evolving `fixer-admin` from a single-vertical (home services)
 - [`docs/TENANT_ONBOARDING_AND_RBAC_RUNBOOK.md`](../TENANT_ONBOARDING_AND_RBAC_RUNBOOK.md) — current tenant + RBAC runbook (pre-vertical-pack).
 - [`docs/PRODUCT_AND_SAAS_PLAYBOOK.md`](../PRODUCT_AND_SAAS_PLAYBOOK.md) — product narrative.
 - [`docs/mobile/`](../mobile/) — mobile companion app plan (consumes the same pack system).
+- **[`docs/verticals/`](../verticals/)** — **Real estate & logistics expansion** (CEO strategy, pack specs, onboarding runbook, engineering checklist).
 
 ## Implementation status (frontend)
 

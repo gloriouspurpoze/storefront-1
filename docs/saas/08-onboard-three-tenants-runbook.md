@@ -27,6 +27,8 @@
 > **Stub packs** reuse the home-services sidebar/dashboard for now but are valid tenants on the backend — you can onboard a customer today and the navigation will be refined later without re-creating the org. The `retail` pack additionally ships its own e-commerce-first billing plans.
 >
 > **If none of these fit**, choose the closest vertical and use **Manage → App modules** to restrict access to the modules the customer actually needs. The seven API modules (`cms`, `crm`, `finance`, `marketing_workspace`, `team_work`, `bazaar`, `ecommerce`) compose any business shape without forking a new pack.
+>
+> **Real estate & logistics design partners:** see **[`docs/verticals/`](../verticals/README.md)** for CEO strategy, pack specs, and dedicated onboarding runbook.
 
 ---
 

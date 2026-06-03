@@ -27,16 +27,24 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Checkbox,
 } from '../../components/ui'
-import { X, RefreshCw, Truck, CreditCard, Loader2 } from 'lucide-react'
+import { X, RefreshCw, Truck, CreditCard, Loader2, ExternalLink } from 'lucide-react'
 import {
   OrdersService,
   type Order,
   type OrderStatus,
+  type OrderCarrier,
   type PaymentStatus,
 } from '../../services/api/orders.service'
 import { formatCurrency, formatDate } from '../../lib/utils'
 import { appToast } from '../../lib/appToast'
+import { DeliveryStepper } from '../../components/orders/DeliveryStepper'
+import {
+  ORDER_CARRIER_OPTIONS,
+  carrierLabel,
+  resolveTrackingUrl,
+} from '../../lib/carrierTracking'
 
 const ORDER_FLOW: Record<OrderStatus, OrderStatus[]> = {
   pending: ['confirmed', 'cancelled'],
@@ -91,9 +99,13 @@ export function OrderDetailDrawer({ open, orderId, onClose, onUpdated, canEdit }
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(false)
   const [trackingDraft, setTrackingDraft] = useState('')
+  const [carrierDraft, setCarrierDraft] = useState<OrderCarrier | ''>('')
+  const [trackingUrlDraft, setTrackingUrlDraft] = useState('')
+  const [deliveryNotesDraft, setDeliveryNotesDraft] = useState('')
   const [nextStatus, setNextStatus] = useState<OrderStatus | ''>('')
   const [nextPayment, setNextPayment] = useState<PaymentStatus | ''>('')
   const [statusNote, setStatusNote] = useState('')
+  const [notifyCustomer, setNotifyCustomer] = useState(true)
   const [cancelOpen, setCancelOpen] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
   const [acting, setActing] = useState(false)
@@ -106,6 +118,9 @@ export function OrderDetailDrawer({ open, orderId, onClose, onUpdated, canEdit }
       if (res.success && res.data) {
         setOrder(res.data)
         setTrackingDraft(res.data.trackingNumber || '')
+        setCarrierDraft(res.data.carrier || '')
+        setTrackingUrlDraft(res.data.trackingUrl || '')
+        setDeliveryNotesDraft(res.data.deliveryNotes || '')
         setNextStatus('')
         setNextPayment('')
         setStatusNote('')
@@ -133,14 +148,21 @@ export function OrderDetailDrawer({ open, orderId, onClose, onUpdated, canEdit }
   const allowedStatuses = order ? ORDER_FLOW[order.status] : []
   const allowedPayments = order ? PAYMENT_FLOW[order.paymentStatus] : []
 
-  const saveTracking = async () => {
+  const saveDeliveryDetails = async () => {
     if (!order || !canEdit) return
     setActing(true)
     try {
-      const res = await OrdersService.updateOrder(order.id, { trackingNumber: trackingDraft.trim() || undefined })
+      const res = await OrdersService.updateOrder(order.id, {
+        trackingNumber: trackingDraft.trim() || undefined,
+        carrier: carrierDraft || undefined,
+        trackingUrl: trackingUrlDraft.trim() || undefined,
+        deliveryNotes: deliveryNotesDraft.trim() || undefined,
+      })
       if (res.success && res.data) {
         setOrder(res.data)
-        appToast('Tracking updated', 'success')
+        setCarrierDraft(res.data.carrier || '')
+        setTrackingUrlDraft(res.data.trackingUrl || '')
+        appToast('Delivery details saved', 'success')
         onUpdated()
       } else appToast('Update failed', 'error')
     } catch (e: unknown) {
@@ -150,13 +172,48 @@ export function OrderDetailDrawer({ open, orderId, onClose, onUpdated, canEdit }
     }
   }
 
+  const trackingLink =
+    order &&
+    resolveTrackingUrl({
+      carrier: carrierDraft || order.carrier,
+      trackingNumber: trackingDraft || order.trackingNumber,
+      trackingUrl: trackingUrlDraft || order.trackingUrl,
+    })
+
   const applyStatus = async () => {
     if (!order || !nextStatus || !canEdit) return
+
+    if (nextStatus === 'shipped') {
+      const hasTracking =
+        Boolean(trackingDraft.trim() || order.trackingNumber?.trim()) ||
+        Boolean(trackingUrlDraft.trim() || order.trackingUrl?.trim())
+      if (!hasTracking) {
+        appToast('Add a tracking number or URL before marking shipped', 'error')
+        return
+      }
+    }
+
     setActing(true)
     try {
+      if (
+        trackingDraft.trim() !== (order.trackingNumber || '') ||
+        carrierDraft !== (order.carrier || '') ||
+        trackingUrlDraft.trim() !== (order.trackingUrl || '') ||
+        deliveryNotesDraft.trim() !== (order.deliveryNotes || '')
+      ) {
+        const saveRes = await OrdersService.updateOrder(order.id, {
+          trackingNumber: trackingDraft.trim() || undefined,
+          carrier: carrierDraft || undefined,
+          trackingUrl: trackingUrlDraft.trim() || undefined,
+          deliveryNotes: deliveryNotesDraft.trim() || undefined,
+        })
+        if (saveRes.success && saveRes.data) setOrder(saveRes.data)
+      }
+
       const res = await OrdersService.updateOrderStatus(order.id, {
         status: nextStatus,
         notes: statusNote.trim() || undefined,
+        notifyCustomer,
       })
       if (res.success && res.data) {
         setOrder(res.data)
@@ -284,6 +341,11 @@ export function OrderDetailDrawer({ open, orderId, onClose, onUpdated, canEdit }
 
                 <Separator />
 
+                <div>
+                  <h4 className="mb-2 font-semibold">Delivery progress</h4>
+                  <DeliveryStepper status={order.status} />
+                </div>
+
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div>
                     <p className="text-xs text-muted-foreground">Items subtotal</p>
@@ -347,15 +409,31 @@ export function OrderDetailDrawer({ open, orderId, onClose, onUpdated, canEdit }
                   {addressBlock('Bill to', order.billingAddress || order.shippingAddress)}
                 </div>
 
-                <h4 className="font-semibold">Payment & logistics</h4>
+                <h4 className="font-semibold">Payment & delivery</h4>
                 <VStack spacing={2}>
                   <p className="flex items-center gap-2 text-sm">
                     <CreditCard className="h-4 w-4 shrink-0 text-muted-foreground" />
                     {order.paymentMethod || '—'} {order.paymentId ? `· ${order.paymentId}` : ''}
                   </p>
-                  <p className="flex items-center gap-2 text-sm">
+                  <p className="flex flex-wrap items-center gap-2 text-sm">
                     <Truck className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    Tracking: {order.trackingNumber || '—'}
+                    <span>
+                      {order.trackingNumber
+                        ? `${carrierLabel(order.carrier)} · ${order.trackingNumber}`
+                        : 'No tracking yet'}
+                    </span>
+                    {trackingLink && (
+                      <a
+                        href={trackingLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Open tracking
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    )}
                   </p>
                   {order.shippedAt && (
                     <p className="text-xs text-muted-foreground">Shipped {formatDate(order.shippedAt)}</p>
@@ -363,7 +441,29 @@ export function OrderDetailDrawer({ open, orderId, onClose, onUpdated, canEdit }
                   {order.deliveredAt && (
                     <p className="text-xs text-muted-foreground">Delivered {formatDate(order.deliveredAt)}</p>
                   )}
+                  {order.deliveryNotes && (
+                    <p className="text-xs text-muted-foreground">Ops: {order.deliveryNotes}</p>
+                  )}
                 </VStack>
+
+                {order.statusHistory && order.statusHistory.length > 0 && (
+                  <div>
+                    <h4 className="mb-2 font-semibold">Status history</h4>
+                    <ul className="space-y-2 border-l-2 border-border pl-3">
+                      {[...order.statusHistory]
+                        .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+                        .map((entry, idx) => (
+                          <li key={`${entry.at}-${idx}`} className="text-sm">
+                            <span className="font-medium capitalize">{entry.status}</span>
+                            <span className="text-muted-foreground"> · {formatDate(entry.at)}</span>
+                            {entry.note && (
+                              <p className="text-xs text-muted-foreground">{entry.note}</p>
+                            )}
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+                )}
 
                 {order.notes && (
                   <div>
@@ -378,18 +478,66 @@ export function OrderDetailDrawer({ open, orderId, onClose, onUpdated, canEdit }
                     <h4 className="font-semibold">Operations</h4>
 
                     <VStack spacing={4}>
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                        <div className="min-w-0 flex-1">
-                          <Label className="mb-1">Tracking number</Label>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div>
+                          <Label className="mb-1">Carrier</Label>
+                          <Select
+                            value={carrierDraft || undefined}
+                            onValueChange={(v) => setCarrierDraft(v as OrderCarrier)}
+                            disabled={order.status === 'cancelled' || order.status === 'refunded'}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select carrier…" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {ORDER_CARRIER_OPTIONS.map((c) => (
+                                <SelectItem key={c.value} value={c.value}>
+                                  {c.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="mb-1">Tracking number (AWB)</Label>
                           <Input
                             value={trackingDraft}
                             onChange={(e) => setTrackingDraft(e.target.value)}
                             disabled={order.status === 'cancelled' || order.status === 'refunded'}
+                            placeholder="e.g. 1234567890"
                           />
                         </div>
-                        <Button type="button" onClick={() => void saveTracking()} disabled={acting}>
-                          Save tracking
+                        <div className="sm:col-span-2">
+                          <Label className="mb-1">Tracking URL (optional)</Label>
+                          <Input
+                            value={trackingUrlDraft}
+                            onChange={(e) => setTrackingUrlDraft(e.target.value)}
+                            disabled={order.status === 'cancelled' || order.status === 'refunded'}
+                            placeholder="https://… or leave blank to auto-link from carrier"
+                          />
+                        </div>
+                        <div className="sm:col-span-2">
+                          <Label className="mb-1">Delivery notes (internal)</Label>
+                          <Input
+                            value={deliveryNotesDraft}
+                            onChange={(e) => setDeliveryNotesDraft(e.target.value)}
+                            disabled={order.status === 'cancelled' || order.status === 'refunded'}
+                            placeholder="Warehouse / dispatch notes"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button type="button" onClick={() => void saveDeliveryDetails()} disabled={acting}>
+                          Save delivery details
                         </Button>
+                        {trackingLink && (
+                          <Button type="button" variant="outline" asChild>
+                            <a href={trackingLink} target="_blank" rel="noopener noreferrer">
+                              Open tracking
+                              <ExternalLink className="ml-2 h-4 w-4" />
+                            </a>
+                          </Button>
+                        )}
                       </div>
 
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
@@ -425,6 +573,14 @@ export function OrderDetailDrawer({ open, orderId, onClose, onUpdated, canEdit }
                           Apply status
                         </Button>
                       </div>
+
+                      <label className="flex cursor-pointer items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={notifyCustomer}
+                          onCheckedChange={(v) => setNotifyCustomer(v === true)}
+                        />
+                        Notify customer by email (shipped / delivered)
+                      </label>
 
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
                         <div className="w-full sm:w-52">

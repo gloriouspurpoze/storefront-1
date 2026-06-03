@@ -83,14 +83,22 @@ export function CheckoutClient({ tenant }: { tenant: ThemeTenant }) {
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-8 text-center">
         <h2 className="text-xl font-semibold text-emerald-900">Thank you for your order</h2>
         <p className="mt-2 text-sm text-emerald-800">
-          Payment received. We will email you confirmation shortly.
+          Payment received. We will email you confirmation and tracking when your order ships.
         </p>
-        <Link
-          href="/products"
-          className="mt-6 inline-flex rounded-full bg-emerald-700 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-800"
-        >
-          Continue shopping
-        </Link>
+        <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+          <Link
+            href="/orders/track"
+            className="inline-flex rounded-full bg-emerald-700 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-800"
+          >
+            Track your order
+          </Link>
+          <Link
+            href="/products"
+            className="inline-flex rounded-full border border-emerald-700 px-6 py-2.5 text-sm font-medium text-emerald-900 hover:bg-emerald-100"
+          >
+            Continue shopping
+          </Link>
+        </div>
       </div>
     )
   }

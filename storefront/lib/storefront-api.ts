@@ -337,3 +337,42 @@ export async function verifyCheckout(input: {
   }
   return json.data
 }
+
+export interface PublicOrderTracking {
+  orderNumber: string
+  status: string
+  carrier?: string
+  carrierLabel?: string
+  trackingNumber?: string
+  trackingUrl?: string | null
+  shippedAt?: string
+  deliveredAt?: string
+  estimatedDeliveryAt?: string
+  createdAt?: string
+  statusHistory?: Array<{ status: string; at: string; note?: string }>
+}
+
+export async function fetchPublicOrderTracking(input: {
+  tenantId: string
+  orderNumber: string
+  email: string
+}): Promise<PublicOrderTracking | null> {
+  const params = new URLSearchParams({
+    orderNumber: input.orderNumber.trim(),
+    email: input.email.trim().toLowerCase(),
+  })
+  const res = await fetch(
+    apiUrl(`/public/storefront/orders/track?${params.toString()}`),
+    {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        'x-tenant-id': input.tenantId,
+      },
+      cache: 'no-store',
+    },
+  )
+  const json = (await res.json().catch(() => null)) as ApiEnvelope<PublicOrderTracking> | null
+  if (!res.ok || !json?.success || !json.data) return null
+  return json.data
+}

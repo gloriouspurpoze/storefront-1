@@ -21,6 +21,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Checkbox,
 } from '../../components/ui'
 import {
   Search,
@@ -31,7 +32,10 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
+  Copy,
+  Truck,
 } from 'lucide-react'
+import { carrierLabel, resolveTrackingUrl } from '../../lib/carrierTracking'
 import {
   OrdersService,
   type Order,
@@ -43,6 +47,7 @@ import {
 import { formatCurrency, formatDate, getInitials, cn } from '../../lib/utils'
 import { PageHeader } from '../../components/common/PageHeader'
 import { OrderDetailDrawer } from './OrderDetailDrawer'
+import { BulkShipDialog } from './BulkShipDialog'
 import { usePermissions } from '../../hooks/usePermissions'
 import { appToast } from '../../lib/appToast'
 
@@ -58,6 +63,12 @@ const STATUS_OPTIONS: Array<OrderStatus | 'all'> = [
 ]
 
 const PAYMENT_OPTIONS: Array<PaymentStatus | 'all'> = ['all', 'pending', 'paid', 'failed', 'refunded']
+
+type OrdersListView = 'all' | 'delivery_queue' | 'delivered_today'
+
+function todayIsoDate(): string {
+  return new Date().toISOString().slice(0, 10)
+}
 
 const fulfillmentBadgeVariant: Record<
   OrderStatus,
@@ -111,6 +122,7 @@ export function Orders() {
   const [rowsPerPage, setRowsPerPage] = useState(25)
   const [total, setTotal] = useState(0)
 
+  const [listView, setListView] = useState<OrdersListView>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [paymentFilter, setPaymentFilter] = useState<string>('all')
   const [startDate, setStartDate] = useState('')
@@ -120,6 +132,8 @@ export function Orders() {
 
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkOpen, setBulkOpen] = useState(false)
 
   useEffect(() => {
     const t = window.setTimeout(() => setDebouncedSearch(searchInput.trim()), 450)
@@ -149,11 +163,22 @@ export function Orders() {
         limit: rowsPerPage,
       }
 
-      if (statusFilter !== 'all') query.status = statusFilter as OrderStatus
+      if (listView === 'delivery_queue') {
+        query.fulfillmentQueue = true
+      } else if (listView === 'delivered_today') {
+        query.status = 'delivered'
+        const today = todayIsoDate()
+        query.startDate = today
+        query.endDate = today
+      } else if (statusFilter !== 'all') {
+        query.status = statusFilter as OrderStatus
+      }
       if (paymentFilter !== 'all') query.paymentStatus = paymentFilter as PaymentStatus
       if (debouncedSearch) query.search = debouncedSearch
-      if (startDate) query.startDate = startDate
-      if (endDate) query.endDate = endDate
+      if (listView !== 'delivered_today') {
+        if (startDate) query.startDate = startDate
+        if (endDate) query.endDate = endDate
+      }
 
       const response = await OrdersService.getOrders(query)
 
@@ -175,7 +200,7 @@ export function Orders() {
     } finally {
       setLoading(false)
     }
-  }, [page, rowsPerPage, statusFilter, paymentFilter, debouncedSearch, startDate, endDate])
+  }, [page, rowsPerPage, listView, statusFilter, paymentFilter, debouncedSearch, startDate, endDate])
 
   useEffect(() => {
     void fetchStats()
@@ -208,6 +233,8 @@ export function Orders() {
         'Email',
         'Fulfillment',
         'Payment',
+        'Carrier',
+        'Tracking',
         'Items',
         'Total (INR)',
       ],
@@ -218,6 +245,8 @@ export function Orders() {
         o.customer?.email || '',
         o.status,
         o.paymentStatus,
+        carrierLabel(o.carrier),
+        o.trackingNumber || '',
         String(o.items?.length ?? 0),
         String(o.totalAmount),
       ]),
@@ -227,6 +256,7 @@ export function Orders() {
   }
 
   const clearFilters = () => {
+    setListView('all')
     setStatusFilter('all')
     setPaymentFilter('all')
     setStartDate('')
@@ -235,14 +265,62 @@ export function Orders() {
     setPage(0)
   }
 
+  const applyListView = (view: OrdersListView) => {
+    setListView(view)
+    setPage(0)
+    if (view === 'all') {
+      setStatusFilter('all')
+      setStartDate('')
+      setEndDate('')
+    } else if (view === 'delivery_queue') {
+      setStatusFilter('all')
+      setStartDate('')
+      setEndDate('')
+    } else {
+      setStatusFilter('delivered')
+    }
+  }
+
+  const copyTracking = (e: React.MouseEvent, tracking: string) => {
+    e.stopPropagation()
+    void navigator.clipboard.writeText(tracking).then(() => {
+      appToast('Tracking copied', 'success')
+    })
+  }
+
   const byStatus = stats?.byStatus
   const totalPages = Math.max(1, Math.ceil(total / rowsPerPage) || 1)
+
+  const processingOnPage = orders.filter((o) => o.status === 'processing')
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAllProcessing = () => {
+    const ids = processingOnPage.map((o) => o.id)
+    if (ids.every((id) => selectedIds.has(id))) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        ids.forEach((id) => next.delete(id))
+        return next
+      })
+    } else {
+      setSelectedIds((prev) => new Set([...prev, ...ids]))
+    }
+  }
+
+  const selectedOrders = orders.filter((o) => selectedIds.has(o.id))
 
   return (
     <div className="min-w-0 flex-1">
       <PageHeader
         title="Orders"
-        subtitle="E‑commerce fulfillment queue — search customers, update shipment steps, and reconcile payments."
+        subtitle="E‑commerce fulfillment — delivery queue, carrier tracking, and payment reconciliation."
         action={
           <HStack spacing={2} className="flex-wrap">
             <Button type="button" variant="outline" onClick={handleRefresh} disabled={loading}>
@@ -253,6 +331,12 @@ export function Orders() {
               <Download className="mr-2 h-4 w-4" />
               Export CSV
             </Button>
+            {canEdit && selectedIds.size > 0 ? (
+              <Button type="button" onClick={() => setBulkOpen(true)}>
+                <Truck className="mr-2 h-4 w-4" />
+                Bulk ship ({selectedIds.size})
+              </Button>
+            ) : null}
           </HStack>
         }
       />
@@ -280,6 +364,26 @@ export function Orders() {
         ))}
       </div>
 
+      <div className="mb-4 flex flex-wrap gap-2">
+        {(
+          [
+            { id: 'all' as const, label: 'All orders' },
+            { id: 'delivery_queue' as const, label: 'Delivery queue' },
+            { id: 'delivered_today' as const, label: 'Delivered today' },
+          ] as const
+        ).map(({ id, label }) => (
+          <Button
+            key={id}
+            type="button"
+            size="sm"
+            variant={listView === id ? 'default' : 'outline'}
+            onClick={() => applyListView(id)}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+
       <Card className="mb-4">
         <CardContent className="pt-6">
           <div className="grid grid-cols-1 items-end gap-4 md:grid-cols-12">
@@ -303,9 +407,11 @@ export function Orders() {
               <Select
                 value={statusFilter}
                 onValueChange={(v) => {
+                  setListView('all')
                   setStatusFilter(v)
                   setPage(0)
                 }}
+                disabled={listView === 'delivery_queue' || listView === 'delivered_today'}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Status" />
@@ -385,26 +491,39 @@ export function Orders() {
           <Table>
             <TableHeader className="sticky top-0 z-10 bg-background">
               <TableRow>
+                {canEdit ? (
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={
+                        processingOnPage.length > 0 &&
+                        processingOnPage.every((o) => selectedIds.has(o.id))
+                      }
+                      onCheckedChange={() => toggleSelectAllProcessing()}
+                      aria-label="Select all processing on page"
+                    />
+                  </TableHead>
+                ) : null}
                 <TableHead>Order</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead className="text-right">Items</TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead>Payment</TableHead>
                 <TableHead>Fulfillment</TableHead>
+                <TableHead>Tracking</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading && (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-12 text-center">
+                  <TableCell colSpan={canEdit ? 9 : 8} className="py-12 text-center">
                     <Loader2 className="mx-auto h-7 w-7 animate-spin text-muted-foreground" />
                   </TableCell>
                 </TableRow>
               )}
               {!loading && orders.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-16 text-center">
+                  <TableCell colSpan={canEdit ? 9 : 8} className="py-16 text-center">
                     <ShoppingCart className="mx-auto mb-2 h-12 w-12 text-muted-foreground/40" />
                     <p className="text-muted-foreground">No orders match your filters.</p>
                   </TableCell>
@@ -417,6 +536,21 @@ export function Orders() {
                     className="cursor-pointer"
                     onClick={() => openDrawer(order.id)}
                   >
+                    {canEdit ? (
+                      <TableCell
+                        onClick={(e) => {
+                          e.stopPropagation()
+                        }}
+                      >
+                        {order.status === 'processing' ? (
+                          <Checkbox
+                            checked={selectedIds.has(order.id)}
+                            onCheckedChange={() => toggleSelect(order.id)}
+                            aria-label={`Select ${order.orderNumber}`}
+                          />
+                        ) : null}
+                      </TableCell>
+                    ) : null}
                     <TableCell>
                       <p className="text-sm font-semibold">{order.orderNumber}</p>
                       <p className="text-xs text-muted-foreground">{formatDate(order.createdAt)}</p>
@@ -465,6 +599,27 @@ export function Orders() {
                       >
                         {order.status}
                       </Badge>
+                    </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      {order.trackingNumber ? (
+                        <HStack spacing={1} className="items-center">
+                          <span className="max-w-[120px] truncate font-mono text-xs" title={order.trackingNumber}>
+                            {order.trackingNumber}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 shrink-0"
+                            aria-label="Copy tracking"
+                            onClick={(e) => copyTracking(e, order.trackingNumber!)}
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </Button>
+                        </HStack>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell
                       className="text-right"
@@ -548,6 +703,17 @@ export function Orders() {
           </div>
         </div>
       </Card>
+
+      <BulkShipDialog
+        open={bulkOpen}
+        orders={selectedOrders}
+        onClose={() => setBulkOpen(false)}
+        onDone={() => {
+          setSelectedIds(new Set())
+          void fetchOrders()
+          void fetchStats()
+        }}
+      />
 
       <OrderDetailDrawer
         open={drawerOpen}

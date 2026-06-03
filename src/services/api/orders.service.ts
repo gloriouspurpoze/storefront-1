@@ -24,16 +24,53 @@ export interface CreateOrderRequest {
   paymentMethod?: string
 }
 
+export type OrderCarrier =
+  | 'manual'
+  | 'delhivery'
+  | 'bluedart'
+  | 'dtdc'
+  | 'indiapost'
+  | 'shiprocket'
+  | 'other'
+
+export interface OrderStatusHistoryEntry {
+  status: OrderStatus
+  at: string
+  byUserId?: string
+  note?: string
+}
+
 export interface UpdateOrderRequest {
   status?: OrderStatus
   paymentStatus?: PaymentStatus
   trackingNumber?: string
+  carrier?: OrderCarrier
+  trackingUrl?: string
+  deliveryNotes?: string
   notes?: string
 }
 
 export interface UpdateOrderStatusRequest {
   status: OrderStatus
   notes?: string
+  notifyCustomer?: boolean
+}
+
+export interface BulkShipOrderItem {
+  orderId: string
+  trackingNumber?: string
+  carrier?: OrderCarrier
+  trackingUrl?: string
+}
+
+export interface BulkShipOrdersRequest {
+  items: BulkShipOrderItem[]
+  notifyCustomer?: boolean
+}
+
+export interface BulkShipOrdersResponse {
+  updated: string[]
+  failed: Array<{ orderId: string; reason: string }>
 }
 
 export interface OrdersQuery {
@@ -48,6 +85,8 @@ export interface OrdersQuery {
   search?: string
   startDate?: string
   endDate?: string
+  /** Orders awaiting ship or in transit (processing + shipped) */
+  fulfillmentQueue?: boolean
 }
 
 export interface OrderItemInput {
@@ -102,6 +141,10 @@ export interface Order {
   billingAddress?: Address
   notes?: string
   trackingNumber?: string
+  carrier?: OrderCarrier
+  trackingUrl?: string
+  deliveryNotes?: string
+  statusHistory?: OrderStatusHistoryEntry[]
   shippedAt?: string
   deliveredAt?: string
   estimatedDeliveryAt?: string
@@ -164,9 +207,12 @@ export class OrdersService {
     const params = new URLSearchParams()
     
     Object.entries(query).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        params.append(key, value.toString())
+      if (value === undefined || value === null) return
+      if (key === 'fulfillmentQueue') {
+        if (value === true) params.append('fulfillmentQueue', 'true')
+        return
       }
+      params.append(key, value.toString())
     })
 
     const endpoint = `/orders${params.toString() ? `?${params.toString()}` : ''}`
@@ -227,6 +273,14 @@ export class OrdersService {
       loadingMessage: 'Updating order status...',
       successMessage: 'Order status updated successfully!',
       errorMessage: 'Failed to update order status.',
+    })
+  }
+
+  static async bulkShipOrders(data: BulkShipOrdersRequest): Promise<ApiResponse<BulkShipOrdersResponse>> {
+    return api.post<BulkShipOrdersResponse>('/orders/bulk-ship', data, {
+      loadingMessage: 'Shipping orders…',
+      showSuccessToast: false,
+      showErrorToast: false,
     })
   }
 
