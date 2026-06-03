@@ -35,6 +35,9 @@ export function SiteHeader({ tenant }: { tenant: ThemeTenant }) {
           <Link className="hover:text-slate-950" href="/contact">
             Contact
           </Link>
+          <Link className="hover:text-slate-950" href="/orders/track">
+            Track order
+          </Link>
         </div>
 
         <Link
