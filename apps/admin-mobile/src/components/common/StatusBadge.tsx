@@ -47,16 +47,23 @@ const TONE_STYLES: Record<Tone, { bg: string; fg: string }> = {
   danger: { bg: palette.dangerSoft, fg: palette.danger },
 }
 
-type Props = { status: string; tone?: Tone }
+type Props = { status?: string | null; tone?: Tone }
+
+function normalizeStatus(raw: string | null | undefined): string {
+  if (raw == null || String(raw).trim() === '') return 'unknown'
+  return String(raw).trim()
+}
 
 export function StatusBadge({ status, tone }: Props) {
-  const key = status.toLowerCase().replace(/\s+/g, '_')
+  const normalized = normalizeStatus(status)
+  const key = normalized.toLowerCase().replace(/\s+/g, '_')
   const resolvedTone = tone ?? STATUS_TONE[key] ?? 'neutral'
   const { bg, fg } = TONE_STYLES[resolvedTone]
+  const label = normalized === 'unknown' ? 'Unknown' : normalized.replace(/_/g, ' ')
   return (
     <View style={[styles.badge, { backgroundColor: bg }]}>
       <Text variant="bodySmStrong" color={fg} style={styles.label}>
-        {status.replace(/_/g, ' ')}
+        {label}
       </Text>
     </View>
   )

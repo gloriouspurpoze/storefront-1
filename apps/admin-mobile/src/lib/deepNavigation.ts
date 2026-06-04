@@ -42,3 +42,13 @@ export function navigateToProfessionalDetail(professionalId: string) {
     },
   })
 }
+
+export function navigateToOrderDetail(orderId: string) {
+  go('Main', {
+    screen: 'MoreTab',
+    params: {
+      screen: 'OrderDetail',
+      params: { id: orderId },
+    },
+  })
+}

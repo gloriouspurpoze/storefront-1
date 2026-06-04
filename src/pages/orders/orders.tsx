@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   Button,
   Card,
@@ -134,6 +135,18 @@ export function Orders() {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkOpen, setBulkOpen] = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // Deep-link from admin alerts / notifications: /orders?id=<mongoId>
+  useEffect(() => {
+    const id = searchParams.get('id')?.trim()
+    if (!id) return
+    setSelectedOrderId(id)
+    setDrawerOpen(true)
+    const next = new URLSearchParams(searchParams)
+    next.delete('id')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
 
   useEffect(() => {
     const t = window.setTimeout(() => setDebouncedSearch(searchInput.trim()), 450)

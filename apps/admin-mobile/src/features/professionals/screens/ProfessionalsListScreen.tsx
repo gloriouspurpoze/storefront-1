@@ -1,5 +1,6 @@
+import { useCallback } from 'react'
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native'
-import { useNavigation } from '@react-navigation/native'
+import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { ListMeta } from '@/components/common/ListMeta'
 import { ListRow } from '@/components/common/ListRow'
@@ -14,11 +15,20 @@ export function ProfessionalsListScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<OpsStackParamList>>()
   const { data, isLoading, isError, refetch, isFetching } = useGetProfessionalsQuery({ limit: 30 })
 
+  // React Navigation keeps this screen mounted, so the RTK Query subscription stays
+  // alive and the cache never expires. Refetch on focus so newly-added professionals
+  // (e.g. created from the web admin) always show up instead of a stale list.
+  useFocusEffect(
+    useCallback(() => {
+      void refetch()
+    }, [refetch]),
+  )
+
   const list = data?.professionals ?? []
 
   return (
     <Screen surface="soft">
-      <ListMeta text={`${data?.pagination.total ?? list.length} total`} />
+      <ListMeta text={`${data?.pagination?.total ?? list.length} total`} />
       <QueryState
         isLoading={isLoading}
         isError={isError}
@@ -38,8 +48,10 @@ export function ProfessionalsListScreen() {
               subtitle={item.email}
               meta={item.phoneNumber}
               onPress={() =>
+                // Detail fetch hits `/professionals/:id` → backend `findById` (Mongo _id).
+                // Must NOT pass the human code `professionalId` (PRO-…) or it 404s.
                 navigation.navigate('ProfessionalDetail', {
-                  id: item.professionalId || item._id || item.id,
+                  id: item._id || item.id || item.professionalId,
                 })
               }
               right={<StatusBadge status={item.availability ?? 'offline'} />}

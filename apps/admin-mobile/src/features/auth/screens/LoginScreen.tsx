@@ -22,7 +22,7 @@ const isDev = typeof __DEV__ !== 'undefined' && __DEV__
 
 /** Matches fixer-backend seed / web admin super admin account. */
 const DEV_DEFAULTS = {
-  email: 'superadmin@fixer.com',
+  email: 'superadmin@profixer.in',
   password: 'SuperAdmin@123',
 }
 

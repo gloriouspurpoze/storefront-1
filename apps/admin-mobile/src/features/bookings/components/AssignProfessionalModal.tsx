@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Modal,
   Pressable,
@@ -32,8 +33,12 @@ export function AssignProfessionalModal({ visible, bookingId, onClose, onAssigne
       await assign({ bookingId, professionalId }).unwrap()
       onAssigned?.()
       onClose()
-    } catch {
-      /* surfaced by parent refetch */
+    } catch (e) {
+      const msg =
+        e && typeof e === 'object' && 'message' in e
+          ? String((e as { message: string }).message)
+          : 'Could not assign professional. Please try again.'
+      Alert.alert('Assignment failed', msg)
     }
   }
 
@@ -67,7 +72,9 @@ export function AssignProfessionalModal({ visible, bookingId, onClose, onAssigne
             keyExtractor={(p) => p._id || p.id}
             keyboardShouldPersistTaps="handled"
             renderItem={({ item }) => {
-              const id = item.professionalId || item._id || item.id
+              // Backend assign requires the Mongo _id (ObjectId.isValid + findById).
+              // The human code `professionalId` (PRO-…) fails validation — never use it here.
+              const id = item._id || item.id
               const name = `${item.firstName} ${item.lastName}`.trim()
               return (
                 <Pressable

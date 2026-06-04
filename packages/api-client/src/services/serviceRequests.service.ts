@@ -90,6 +90,15 @@ function normalizeList(raw: unknown): ServiceRequestsListResponse {
   return { serviceRequests: [], pagination: { page: 1, limit: 25, total: 0, totalPages: 0 } }
 }
 
+/** Backend wraps single records as `{ serviceRequest: {...} }`. Unwrap to the row. */
+function unwrapServiceRequest(raw: unknown): Record<string, unknown> {
+  const data = unwrapApiData<Record<string, unknown>>(raw)
+  if (data && typeof data === 'object' && 'serviceRequest' in data) {
+    return (data as { serviceRequest: Record<string, unknown> }).serviceRequest
+  }
+  return data
+}
+
 export function createServiceRequestsService(api: ApiClient) {
   return {
     async getServiceRequests(query: ServiceRequestsQuery = {}): Promise<ServiceRequestsListResponse> {
@@ -100,13 +109,11 @@ export function createServiceRequestsService(api: ApiClient) {
     },
     async getServiceRequest(id: string): Promise<ServiceRequestRow> {
       const res = await api.get<unknown>(`/service-requests/${id}`)
-      const data = unwrapApiData<Record<string, unknown>>(res.data ?? res)
-      return mapRequest(data)
+      return mapRequest(unwrapServiceRequest(res.data ?? res))
     },
     async updateServiceRequestStatus(id: string, status: string): Promise<ServiceRequestRow> {
       const res = await api.patch<unknown>(`/service-requests/${id}/status`, { status })
-      const data = unwrapApiData<Record<string, unknown>>(res.data ?? res)
-      return mapRequest(data)
+      return mapRequest(unwrapServiceRequest(res.data ?? res))
     },
   }
 }

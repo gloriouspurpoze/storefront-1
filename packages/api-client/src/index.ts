@@ -103,10 +103,13 @@ export type {
   OrdersQuery,
 } from './services/orders.service'
 export type {
+  CreateCustomerInput,
+  CreateCustomerResult,
   UsersListResponse,
   UsersQuery,
   UserStats,
 } from './services/users.service'
+export { generateCustomerPassword, normalizeCustomerPhone } from './services/users.service'
 export type {
   AuthService,
   LoginRequest,

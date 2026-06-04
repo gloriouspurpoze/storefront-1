@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { TooltipProvider } from '../ui/tooltip'
 import { NotificationsProvider } from '../../contexts/notifications-context'
+import { AdminNewActivityAlerts } from '../ops/AdminNewActivityAlerts'
 import { Sidebar } from './sidebar'
 import { Header } from './header'
 import { AppBreadcrumbs } from './AppBreadcrumbs'
@@ -28,6 +29,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   return (
     <TooltipProvider delayDuration={300}>
     <NotificationsProvider>
+    <AdminNewActivityAlerts />
     <div className="flex min-h-screen w-full">
       <Header onMenuClick={handleDrawerToggle} />
       <Sidebar open={mobileOpen} onClose={handleDrawerToggle} />

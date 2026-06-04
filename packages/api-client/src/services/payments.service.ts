@@ -64,6 +64,15 @@ function normalizeList(raw: unknown): PaymentsListResponse {
   return { payments: [], pagination: { page: 1, limit: 25, total: 0, totalPages: 0 } }
 }
 
+/** Backend wraps single records as `{ payment: {...} }`. Unwrap to the row. */
+function unwrapPayment(raw: unknown): PaymentRow {
+  const data = unwrapApiData<Record<string, unknown>>(raw)
+  if (data && typeof data === 'object' && 'payment' in data) {
+    return (data as { payment: PaymentRow }).payment
+  }
+  return data as PaymentRow
+}
+
 export function createPaymentsService(api: ApiClient) {
   return {
     async getPayments(query: PaymentsQuery = {}): Promise<PaymentsListResponse> {
@@ -81,15 +90,15 @@ export function createPaymentsService(api: ApiClient) {
     },
     async getPayment(id: string): Promise<PaymentRow> {
       const res = await api.get<unknown>(`/payments/${id}`)
-      return unwrapApiData<PaymentRow>(res.data ?? res)
+      return unwrapPayment(res.data ?? res)
     },
     async refundPayment(id: string, payload: { amount?: number; reason?: string }): Promise<PaymentRow> {
       const res = await api.post<unknown>(`/payments/${id}/refund`, payload)
-      return unwrapApiData<PaymentRow>(res.data ?? res)
+      return unwrapPayment(res.data ?? res)
     },
     async cancelPayment(id: string, reason?: string): Promise<PaymentRow> {
       const res = await api.post<unknown>(`/payments/${id}/cancel`, { reason })
-      return unwrapApiData<PaymentRow>(res.data ?? res)
+      return unwrapPayment(res.data ?? res)
     },
   }
 }

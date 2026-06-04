@@ -38,7 +38,14 @@ export const bookingsApi = baseApi.injectEndpoints({
       async queryFn(id) {
         try {
           const res = await services.bookings.getBooking(id)
-          return { data: res.data }
+          // Backend wraps single booking as `{ booking: {...} }` (matches web admin
+          // `response.data.booking || response.data`). Unwrap so detail fields render.
+          const payload = res.data as Booking | { booking: Booking }
+          const booking =
+            payload && typeof payload === 'object' && 'booking' in payload
+              ? (payload as { booking: Booking }).booking
+              : (payload as Booking)
+          return { data: booking }
         } catch (error) {
           return { error: error as never }
         }

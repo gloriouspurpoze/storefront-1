@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ProFixer for Restaurants — Menu, ordering, reservations & delivery in one console</title>
+  <meta name="description" content="ProFixer is the all-in-one restaurant operating system: QR digital menu, online ordering, table reservations, POS billing, kitchen display, delivery tracking and loyalty — one login, your brand." />
+  <meta name="theme-color" content="#c4522a" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="ProFixer for Restaurants — Run your restaurant from one console" />
+  <meta property="og:description" content="QR menu, online ordering, reservations, POS, kitchen display, delivery tracking and loyalty. Built for restaurants done juggling five apps and a notebook." />
+  <meta property="og:type" content="website" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- ============ NAV ============ -->
+  <header class="nav" id="nav">
+    <div class="container nav__inner">
+      <a href="#top" class="brand" aria-label="ProFixer home">
+        <span class="brand__mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="28" height="28"><path d="M4 24 L14 8 L18 8 L8 24 Z" fill="currentColor"/><path d="M16 24 L26 8 L30 8 L20 24 Z" fill="currentColor" opacity=".55"/></svg>
+        </span>
+        <span class="brand__name">ProFixer<span class="brand__sub">for Restaurants</span></span>
+      </a>
+
+      <nav class="nav__links" id="navLinks" aria-label="Primary">
+        <a href="#features">Features</a>
+        <a href="#menu">Digital menu</a>
+        <a href="#types">Restaurants</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+
+      <div class="nav__cta">
+        <a href="#" class="btn btn--ghost">Sign in</a>
+        <a href="#pricing" class="btn btn--primary">Start free</a>
+      </div>
+
+      <button class="nav__toggle" id="navToggle" aria-label="Open menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <main id="top">
+    <!-- ============ HERO ============ -->
+    <section class="hero">
+      <div class="container hero__inner">
+        <div class="hero__copy reveal">
+          <span class="eyebrow">The restaurant operating system</span>
+          <h1 class="hero__title">
+            Run your whole restaurant from <span class="grad">one console.</span>
+          </h1>
+          <p class="hero__sub">
+            QR digital menu, online ordering, table reservations, POS billing, a live kitchen
+            display and delivery tracking — unified and white‑labeled. Stop juggling Swiggy
+            tablets, a POS, a reservation book and three WhatsApp groups.
+          </p>
+
+          <form class="hero__form" id="leadForm" novalidate>
+            <input type="email" name="email" placeholder="you@yourrestaurant.com" aria-label="Work email" required />
+            <button type="submit" class="btn btn--primary btn--lg">Get a free demo</button>
+          </form>
+          <p class="hero__note" id="formNote">14‑day trial · No credit card · Menu set up for you</p>
+
+          <ul class="hero__proof">
+            <li><strong>0%</strong> commission on your orders</li>
+            <li><strong>1</strong> login for floor, kitchen &amp; owner</li>
+            <li><strong>100%</strong> your brand &amp; domain</li>
+          </ul>
+        </div>
+
+        <div class="hero__visual reveal">
+          <div class="dash">
+            <div class="dash__bar">
+              <span class="dot dot--r"></span><span class="dot dot--y"></span><span class="dot dot--g"></span>
+              <span class="dash__url">app.yourrestaurant.com</span>
+            </div>
+            <div class="dash__body">
+              <div class="kpi-row">
+                <div class="kpi"><span class="kpi__l">Covers today</span><span class="kpi__v">186</span><span class="kpi__up">▲ 12%</span></div>
+                <div class="kpi"><span class="kpi__l">Online orders</span><span class="kpi__v">94</span><span class="kpi__up">▲ 21%</span></div>
+                <div class="kpi"><span class="kpi__l">Avg ticket</span><span class="kpi__v">₹640</span><span class="kpi__up">▲ 8%</span></div>
+              </div>
+              <div class="chart" aria-hidden="true">
+                <span style="--h:38%"></span><span style="--h:55%"></span><span style="--h:42%"></span>
+                <span style="--h:68%"></span><span style="--h:80%"></span><span style="--h:62%"></span>
+                <span style="--h:90%"></span>
+              </div>
+              <div class="dash__rows">
+                <div class="drow"><span class="pill pill--green">Dine‑in</span><span>Table 7 · 4 covers</span><span class="muted">now</span></div>
+                <div class="drow"><span class="pill pill--blue">Takeaway</span><span>ORD‑4821 · ready</span><span class="muted">2m ago</span></div>
+                <div class="drow"><span class="pill pill--amber">Delivery</span><span>ORD‑4830 · out for delivery</span><span class="muted">9m ago</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="float float--1">🍽️ Table 12 reserved</div>
+          <div class="float float--2">🔔 New online order</div>
+        </div>
+      </div>
+
+      <div class="logos reveal">
+        <p class="logos__label">Trusted by every kind of kitchen</p>
+        <div class="logos__row">
+          <span>Fine dining</span><span>Cafés</span><span>QSR</span>
+          <span>Cloud kitchens</span><span>Bars &amp; pubs</span><span>Bakeries</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PROBLEM ============ -->
+    <section class="band band--soft">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow">The problem</span>
+          <h2>Your restaurant runs on five apps, a tablet pile and a notebook.</h2>
+        </div>
+        <div class="grid grid-3">
+          <div class="card reveal">
+            <div class="card__icon">📱</div>
+            <h3>Tablet chaos at the counter</h3>
+            <p>One screen for each delivery app, another for your POS, sticky notes for reservations. Orders get missed at the rush.</p>
+          </div>
+          <div class="card reveal">
+            <div class="card__icon">💸</div>
+            <h3>Commissions eat your margin</h3>
+            <p>Third‑party platforms take 20–30% on every order — and own your customer. You never get to bring them back.</p>
+          </div>
+          <div class="card reveal">
+            <div class="card__icon">🤷</div>
+            <h3>No real numbers</h3>
+            <p>What sold tonight? Which dish has the best margin? Who are your regulars? The data is scattered or simply gone.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FEATURES ============ -->
+    <section class="band" id="features">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow">One platform, the whole restaurant</span>
+          <h2>Front of house, kitchen and back office — finally one system.</h2>
+          <p class="section-sub">Every module shares the same menu, tables, customers and money, so service, kitchen and the owner are always looking at the same truth.</p>
+        </div>
+
+        <div class="grid grid-3 features">
+          <article class="feature reveal">
+            <div class="feature__ic">📲</div>
+            <h3>QR Digital Menu</h3>
+            <p>Guests scan, browse photos, customise and order from the table. Update prices &amp; specials in seconds.</p>
+          </article>
+          <article class="feature reveal">
+            <div class="feature__ic">🛵</div>
+            <h3>Online Ordering &amp; Delivery</h3>
+            <p>Your own commission‑free ordering site for pickup &amp; delivery, with live tracking for customers.</p>
+          </article>
+          <article class="feature reveal">
+            <div class="feature__ic">🍽️</div>
+            <h3>Table Reservations</h3>
+            <p>Take bookings online, manage the floor plan, waitlists and covers — no double‑seating.</p>
+          </article>
+          <article class="feature reveal">
+            <div class="feature__ic">🧾</div>
+            <h3>POS &amp; Billing</h3>
+            <p>Fast counter and table billing, splits, GST‑ready invoices, coupons and cash/UPI/card tenders.</p>
+          </article>
+          <article class="feature reveal">
+            <div class="feature__ic">👨‍🍳</div>
+            <h3>Kitchen Display (KDS)</h3>
+            <p>Tickets fire straight to the kitchen by station, with timers and bump — no more paper chits.</p>
+          </article>
+          <article class="feature reveal">
+            <div class="feature__ic">📦</div>
+            <h3>Inventory &amp; Recipes</h3>
+            <p>Track stock, recipe costing and wastage. Auto‑86 items that run out across every channel.</p>
+          </article>
+          <article class="feature reveal">
+            <div class="feature__ic">❤️</div>
+            <h3>CRM &amp; Loyalty</h3>
+            <p>Own your guests. Points, rewards, win‑back offers and birthday campaigns that bring regulars back.</p>
+          </article>
+          <article class="feature reveal">
+            <div class="feature__ic">👥</div>
+            <h3>Staff &amp; Roles (RBAC)</h3>
+            <p>Cashier, captain, kitchen, manager — granular permissions and shift‑level access control.</p>
+          </article>
+          <article class="feature reveal">
+            <div class="feature__ic">📊</div>
+            <h3>Analytics &amp; Reports</h3>
+            <p>Live sales, item performance, peak hours, channel mix and margins — for one outlet or many.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ DIGITAL MENU SHOWCASE ============ -->
+    <section class="band band--soft" id="menu">
+      <div class="container menu__inner">
+        <div class="menu__copy reveal">
+          <span class="eyebrow">Your menu, beautifully digital</span>
+          <h2>A QR menu that sells for you.</h2>
+          <p class="section-sub">Put a QR on every table. Guests browse mouth‑watering photos, customise add‑ons, and order &amp; pay without waving for a server. You change a price or 86 a dish — it’s live everywhere instantly.</p>
+          <ul class="ticklist">
+            <li>Photos, descriptions, tags (veg, spicy, bestseller, chef’s special)</li>
+            <li>Modifiers, combos and upsells that grow the average ticket</li>
+            <li>One menu syncs to dine‑in, takeaway, delivery &amp; print</li>
+            <li>Multi‑language &amp; allergen info, no reprints ever again</li>
+          </ul>
+          <a href="#pricing" class="btn btn--primary btn--lg">Build my menu free</a>
+        </div>
+
+        <div class="menu__visual reveal">
+          <div class="menu-mock">
+            <div class="menu-mock__head">
+              <div>
+                <span class="menu-mock__brand">Spice &amp; Co.</span>
+                <span class="menu-mock__tag">Table 7 · Dine‑in</span>
+              </div>
+              <span class="menu-mock__qr" aria-hidden="true">
+                <svg viewBox="0 0 40 40" width="36" height="36"><rect width="40" height="40" rx="6" fill="#fff"/><g fill="#1a1a1a"><rect x="6" y="6" width="10" height="10"/><rect x="24" y="6" width="10" height="10"/><rect x="6" y="24" width="10" height="10"/><rect x="9" y="9" width="4" height="4" fill="#fff"/><rect x="27" y="9" width="4" height="4" fill="#fff"/><rect x="9" y="27" width="4" height="4" fill="#fff"/><rect x="22" y="22" width="4" height="4"/><rect x="30" y="22" width="4" height="4"/><rect x="26" y="26" width="4" height="4"/><rect x="22" y="30" width="4" height="4"/><rect x="30" y="30" width="4" height="4"/></g></svg>
+              </span>
+            </div>
+            <div class="menu-mock__cat">Chef’s specials</div>
+            <div class="menu-item">
+              <div class="menu-item__info">
+                <span class="menu-item__name">Butter Chicken <em class="tag tag--hot">Bestseller</em></span>
+                <span class="menu-item__desc">Slow‑cooked, smoky tomato &amp; cream</span>
+              </div>
+              <span class="menu-item__price">₹420</span>
+            </div>
+            <div class="menu-item">
+              <div class="menu-item__info">
+                <span class="menu-item__name">Truffle Mushroom Risotto <em class="tag tag--veg">Veg</em></span>
+                <span class="menu-item__desc">Arborio, parmesan, black truffle</span>
+              </div>
+              <span class="menu-item__price">₹510</span>
+            </div>
+            <div class="menu-mock__cat">From the bar</div>
+            <div class="menu-item">
+              <div class="menu-item__info">
+                <span class="menu-item__name">Smoked Old Fashioned</span>
+                <span class="menu-item__desc">Bourbon, bitters, applewood smoke</span>
+              </div>
+              <span class="menu-item__price">₹550</span>
+            </div>
+            <button class="menu-mock__cart">View order · 3 items · ₹1,480</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ RESTAURANT TYPES ============ -->
+    <section class="band band--dark" id="types">
+      <div class="container">
+        <div class="section-head section-head--light reveal">
+          <span class="eyebrow eyebrow--light">Built for your kind of place</span>
+          <h2>One platform. Tuned to how <em>you</em> serve.</h2>
+          <p class="section-sub section-sub--light">Dine‑in, delivery‑only or a bit of both — the console reshapes around your service style, stations and KPIs.</p>
+        </div>
+        <div class="vert-grid">
+          <div class="vert reveal"><span>🥂</span><h4>Fine Dining</h4><p>Reservations, floor plan, captain orders, coursing.</p></div>
+          <div class="vert reveal"><span>☕</span><h4>Cafés &amp; Bakeries</h4><p>Counter POS, grab‑and‑go, loyalty stamps.</p></div>
+          <div class="vert reveal"><span>🍔</span><h4>QSR &amp; Fast Food</h4><p>Token queue, combos, lightning‑fast billing.</p></div>
+          <div class="vert reveal"><span>☁️</span><h4>Cloud Kitchens</h4><p>Multi‑brand, delivery‑first, channel manager.</p></div>
+          <div class="vert reveal"><span>🍺</span><h4>Bars &amp; Pubs</h4><p>Tabs, happy hours, age checks, bar tickets.</p></div>
+          <div class="vert reveal"><span>🍕</span><h4>Pizzerias</h4><p>Half‑and‑half, modifiers, delivery zones.</p></div>
+          <div class="vert reveal"><span>🚚</span><h4>Food Trucks</h4><p>Mobile POS, QR ordering, offline‑ready.</p></div>
+          <div class="vert reveal"><span>🎉</span><h4>Catering</h4><p>Quotes, event orders, advance &amp; deposits.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ HOW IT WORKS ============ -->
+    <section class="band" id="how">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow">Live in days, not months</span>
+          <h2>From sign‑up to first order in four steps.</h2>
+        </div>
+        <ol class="steps">
+          <li class="step reveal"><span class="step__n">1</span><h3>Upload your menu</h3><p>Send us your menu or PDF — we set up categories, items and photos for you.</p></li>
+          <li class="step reveal"><span class="step__n">2</span><h3>Set tables &amp; team</h3><p>Add your floor plan, print table QRs, and invite staff with the right roles.</p></li>
+          <li class="step reveal"><span class="step__n">3</span><h3>Connect your brand</h3><p>Map your domain, colors and logo. Your ordering site &amp; QR menu go live.</p></li>
+          <li class="step reveal"><span class="step__n">4</span><h3>Start serving</h3><p>Take dine‑in, takeaway &amp; delivery orders, fire to the kitchen, get paid, grow.</p></li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ============ TESTIMONIALS ============ -->
+    <section class="band band--soft">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow">Why restaurants switch</span>
+          <h2>It pays for itself in the first week of service.</h2>
+        </div>
+        <div class="grid grid-3">
+          <blockquote class="quote reveal">
+            <p>“We dropped two delivery tablets and our old POS. Orders, kitchen and billing are finally on one screen.”</p>
+            <footer><span class="avatar">RS</span><span><strong>Rohan S.</strong><br>Owner, Multi‑cuisine bistro</span></footer>
+          </blockquote>
+          <blockquote class="quote reveal">
+            <p>“The QR menu pushed our average ticket up — guests add desserts and drinks themselves. Zero commission too.”</p>
+            <footer><span class="avatar">PN</span><span><strong>Priya N.</strong><br>Founder, Café &amp; bakery</span></footer>
+          </blockquote>
+          <blockquote class="quote reveal">
+            <p>“Our cloud kitchen runs four brands from one dashboard. Onboarding took two days, menu and all.”</p>
+            <footer><span class="avatar">AK</span><span><strong>Arjun K.</strong><br>Ops Lead, Cloud kitchen</span></footer>
+          </blockquote>
+        </div>
+        <div class="stats reveal">
+          <div><strong data-count="22">0</strong><span>% higher average ticket</span></div>
+          <div><strong data-count="0">0</strong><span>% order commission</span></div>
+          <div><strong data-count="2">0</strong><span>day average onboarding</span></div>
+          <div><strong data-count="70">0</strong><span>% fewer “where’s my order?” calls</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PRICING ============ -->
+    <section class="band" id="pricing">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow">Simple, per‑outlet pricing</span>
+          <h2>Plans that grow with your restaurant.</h2>
+          <p class="section-sub">Every plan includes menu setup &amp; onboarding. No order commissions, ever. Annual billing saves ~2 months.</p>
+        </div>
+
+        <div class="toggle reveal">
+          <span class="toggle__opt is-active" data-bill="monthly">Monthly</span>
+          <button class="toggle__switch" id="billToggle" aria-label="Toggle annual billing"><span></span></button>
+          <span class="toggle__opt" data-bill="annual">Annual <em>−17%</em></span>
+        </div>
+
+        <div class="grid grid-3 plans">
+          <div class="plan reveal">
+            <h3>Starter</h3>
+            <p class="plan__for">Cafés &amp; single‑counter spots getting online.</p>
+            <div class="plan__price"><span class="cur">₹</span><span class="amt" data-m="1999" data-a="1659">1,999</span><span class="per">/mo</span></div>
+            <ul>
+              <li>QR digital menu</li>
+              <li>POS &amp; billing</li>
+              <li>Online ordering site</li>
+              <li>Basic reports</li>
+              <li>Up to 5 staff seats</li>
+            </ul>
+            <a href="#" class="btn btn--outline btn--block">Start free trial</a>
+          </div>
+
+          <div class="plan plan--featured reveal">
+            <span class="plan__badge">Most popular</span>
+            <h3>Pro</h3>
+            <p class="plan__for">Full‑service restaurants &amp; busy kitchens.</p>
+            <div class="plan__price"><span class="cur">₹</span><span class="amt" data-m="4999" data-a="4149">4,999</span><span class="per">/mo</span></div>
+            <ul>
+              <li>Everything in Starter</li>
+              <li>Reservations + floor plan</li>
+              <li>Kitchen Display (KDS)</li>
+              <li>CRM, loyalty &amp; campaigns</li>
+              <li>Up to 20 seats · RBAC</li>
+            </ul>
+            <a href="#" class="btn btn--primary btn--block">Start free trial</a>
+          </div>
+
+          <div class="plan reveal">
+            <h3>Multi‑outlet</h3>
+            <p class="plan__for">Chains &amp; cloud kitchens running many brands.</p>
+            <div class="plan__price"><span class="amt amt--text">Custom</span></div>
+            <ul>
+              <li>Everything in Pro</li>
+              <li>Unlimited outlets &amp; brands</li>
+              <li>Central menu &amp; inventory</li>
+              <li>Channel &amp; aggregator sync</li>
+              <li>Priority SLA &amp; success manager</li>
+            </ul>
+            <a href="#" class="btn btn--outline btn--block">Talk to sales</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section class="band band--soft" id="faq">
+      <div class="container container--narrow">
+        <div class="section-head reveal">
+          <span class="eyebrow">Questions, answered</span>
+          <h2>Frequently asked</h2>
+        </div>
+        <div class="faq" id="faqList">
+          <details class="faq__item reveal"><summary>Do you take commission on my orders?</summary><p>No. Your ordering site and QR menu are commission‑free — you keep 100% of every order and own the customer relationship. You only pay your monthly plan.</p></details>
+          <details class="faq__item reveal"><summary>Can I use my own brand and domain?</summary><p>Yes. Map your custom domain, set your colors and logo, and both the guest ordering site and the staff console run fully white‑labeled as your restaurant.</p></details>
+          <details class="faq__item reveal"><summary>Do you set up my menu for me?</summary><p>We do. Send your existing menu or a PDF and we’ll build categories, items, modifiers and prices for you during onboarding — usually live within a few days.</p></details>
+          <details class="faq__item reveal"><summary>Will it work for dine‑in, takeaway and delivery?</summary><p>All three. One menu powers QR table ordering, counter takeaway and your own delivery — with a live kitchen display tying it together.</p></details>
+          <details class="faq__item reveal"><summary>Can it run multiple outlets or cloud‑kitchen brands?</summary><p>Yes. The Multi‑outlet plan manages many locations and virtual brands from one dashboard, with central menu, inventory and reporting.</p></details>
+          <details class="faq__item reveal"><summary>Does it support GST billing and UPI/card payments?</summary><p>Absolutely. Generate GST‑ready invoices, split bills, and accept cash, UPI and cards with reconciliation built in.</p></details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CTA ============ -->
+    <section class="cta-band">
+      <div class="container cta-band__inner reveal">
+        <h2>Ready to run your restaurant like clockwork?</h2>
+        <p>Join restaurants that replaced their tablet pile and commissions with one clean console.</p>
+        <div class="cta-band__actions">
+          <a href="#pricing" class="btn btn--primary btn--lg">Start your free trial</a>
+          <a href="#" class="btn btn--ghost btn--lg">Book a live demo</a>
+        </div>
+        <p class="cta-band__note">No credit card · Menu setup included · Cancel anytime</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="footer__brand">
+        <a href="#top" class="brand brand--light">
+          <span class="brand__mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" width="24" height="24"><path d="M4 24 L14 8 L18 8 L8 24 Z" fill="currentColor"/><path d="M16 24 L26 8 L30 8 L20 24 Z" fill="currentColor" opacity=".55"/></svg>
+          </span>
+          <span class="brand__name">ProFixer</span>
+        </a>
+        <p>The operating system for modern restaurants.</p>
+      </div>
+      <div class="footer__cols">
+        <div><h5>Product</h5><a href="#features">Features</a><a href="#menu">Digital menu</a><a href="#pricing">Pricing</a><a href="#how">How it works</a></div>
+        <div><h5>Company</h5><a href="#">About</a><a href="#">Careers</a><a href="#">Contact</a><a href="#">Blog</a></div>
+        <div><h5>Legal</h5><a href="#">Privacy</a><a href="#">Terms</a><a href="#">DPA</a><a href="#">Security</a></div>
+      </div>
+    </div>
+    <div class="container footer__bottom">
+      <span>© <span id="year">2026</span> ProFixer. All rights reserved.</span>
+      <span>Made for restaurants, by operators.</span>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

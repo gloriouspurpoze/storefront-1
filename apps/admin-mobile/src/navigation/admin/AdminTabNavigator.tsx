@@ -3,6 +3,7 @@ import { Platform, StyleSheet } from 'react-native'
 import { Icon, type IconName } from '@/components/ui/Icon'
 import { Text } from '@/components/ui/Text'
 import { isAdminTabVisible } from '@/config/mobileNav.config'
+import { useAdminActivityAlerts } from '@/hooks/useAdminActivityAlerts'
 import { usePermissions } from '@/hooks/usePermissions'
 import { ChatStack } from '@/navigation/admin/ChatStack'
 import { HomeStack } from '@/navigation/admin/HomeStack'
@@ -36,6 +37,7 @@ function tabBarLabel(label: string) {
 
 export function AdminTabNavigator() {
   const { checkRouteAccess } = usePermissions()
+  useAdminActivityAlerts()
   const { data: chatUnread = 0 } = useGetChatUnreadCountQuery(undefined, { pollingInterval: 45_000 })
   const { data: inboxUnread = 0 } = useGetNotificationUnreadCountQuery(undefined, { pollingInterval: 60_000 })
 

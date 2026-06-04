@@ -59,13 +59,17 @@ if (typeof __DEV__ !== 'undefined' && __DEV__) {
   console.log(`[env] API_URL → ${apiUrl}`)
 }
 
+/** Same org default as web admin (`REACT_APP_DEFAULT_TENANT_ID` in root `.env`). */
+const defaultTenantId =
+  read('DEFAULT_TENANT_ID') || read('REACT_APP_DEFAULT_TENANT_ID') || ''
+
 export const AppConfig = {
   API_URL: apiUrl,
   ONESIGNAL_APP_ID: read('ONESIGNAL_APP_ID'),
   GOOGLE_MAPS_API_KEY: read('GOOGLE_MAPS_API_KEY'),
   SAAS_MODE: read('SAAS_MODE') === 'true',
   TENANT_HEADER: read('TENANT_HEADER', 'X-Tenant-Id'),
-  DEFAULT_TENANT_ID: read('DEFAULT_TENANT_ID'),
+  DEFAULT_TENANT_ID: defaultTenantId,
 } as const
 
 /** @deprecated kept for older imports — use `AppConfig` */

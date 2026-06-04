@@ -1,6 +1,7 @@
 import type {
   AdminCreateBookingPayload,
   CreateCrmContactPayload,
+  CreateCustomerInput,
   ServiceRequestsQuery,
 } from '@profixer/api-client'
 import { services } from '@/services/createMobileClient'
@@ -159,6 +160,20 @@ export const phase2Api = baseApi.injectEndpoints({
         }
       },
     }),
+    createCustomer: build.mutation<
+      Awaited<ReturnType<typeof services.users.createCustomer>>,
+      CreateCustomerInput
+    >({
+      async queryFn(input) {
+        try {
+          const data = await services.users.createCustomer(input)
+          return { data }
+        } catch (error) {
+          return { error: error as never }
+        }
+      },
+      invalidatesTags: [{ type: 'Users', id: 'LIST' }],
+    }),
     adminCreateBooking: build.mutation<
       Awaited<ReturnType<typeof services.pos.adminCreateBooking>>,
       AdminCreateBookingPayload
@@ -189,5 +204,6 @@ export const {
   useUpdateServiceRequestStatusMutation,
   useGetCatalogServicesQuery,
   useLazySearchCustomersQuery,
+  useCreateCustomerMutation,
   useAdminCreateBookingMutation,
 } = phase2Api

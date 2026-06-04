@@ -4,15 +4,20 @@ import type { User } from '../../types'
 import { extractTenantFromAuthPayload } from '../../lib/extractTenantFromAuth'
 import { mapBackendUserToAppUser } from '../../lib/mapBackendUser'
 
-/** Minimum client session length (persisted Redux `tokenExpiry`). Prefer matching backend access-token TTL to 24h. */
-const ACCESS_TOKEN_TTL_MS = 24 * 60 * 60 * 1000
+/**
+ * Minimum client session length (persisted Redux `tokenExpiry`). Matches the
+ * backend access-token TTL (`JWT_ACCESS_TOKEN_EXPIRATION = 30d`) so the admin
+ * stays logged in until they explicitly log out (or a real 401), and never gets
+ * dropped mid-shift — otherwise admins miss new bookings/orders.
+ */
+const ACCESS_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000
 
 /**
  * Resolves when the client treats the session as expired (`tokenExpiry`).
- * - If JWT `exp` is **shorter than 24h** from now, we still use **24h** so the admin UI does not drop the session early.
+ * - If JWT `exp` is **shorter than 30d** from now, we still use **30d** so the admin UI does not drop the session early.
  * - If JWT `exp` is **already past**, we keep that time (session is expired).
- * - If JWT `exp` is **longer** than 24h (e.g. long-lived token), we use JWT `exp`.
- * API requests still fail with 401 when the real JWT expires unless the backend also issues 24h access tokens.
+ * - If JWT `exp` is **longer** than 30d (e.g. long-lived token), we use JWT `exp`.
+ * API requests still fail with 401 when the real JWT expires unless the backend also issues 30d access tokens.
  */
 function resolveTokenExpiryMs(accessToken: string | null | undefined): number {
   const sessionEnd = Date.now() + ACCESS_TOKEN_TTL_MS

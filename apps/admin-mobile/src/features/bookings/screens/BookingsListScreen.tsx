@@ -2,14 +2,15 @@ import { useMemo, useState } from 'react'
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
-import { format } from 'date-fns'
 import { FilterChips } from '@/components/common/FilterChips'
 import { ListMeta } from '@/components/common/ListMeta'
 import { ListRow } from '@/components/common/ListRow'
 import { QueryState } from '@/components/common/QueryState'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { Screen } from '@/components/layout/Screen'
+import { useVerticalLabels } from '@/hooks/useVerticalLabels'
 import { bookingListQuery, type BookingListFilter } from '@/lib/bookingWorkflow'
+import { safeFormatFirst } from '@/lib/datetime'
 import { PermissionGate } from '@/navigation/guards/PermissionGate'
 import type { OpsStackParamList } from '@/navigation/types'
 import { useGetBookingsQuery } from '@/store/api/bookingsApi'
@@ -24,6 +25,7 @@ const FILTERS: { id: BookingListFilter; label: string }[] = [
 
 export function BookingsListScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<OpsStackParamList>>()
+  const labels = useVerticalLabels()
   const [filter, setFilter] = useState<BookingListFilter>('all')
 
   const query = useMemo(() => ({ limit: 40, page: 1, ...bookingListQuery(filter) }), [filter])
@@ -41,15 +43,19 @@ export function BookingsListScreen() {
           isError={isError}
           onRetry={refetch}
           isEmpty={!isLoading && bookings.length === 0}
-          emptyTitle={filter === 'all' ? 'No bookings yet' : `No ${filter.replace('_', ' ')} bookings`}
+          emptyTitle={
+            filter === 'all'
+              ? `No ${labels.engagementPlural.toLowerCase()} yet`
+              : `No ${filter.replace('_', ' ')} ${labels.engagementPlural.toLowerCase()}`
+          }
           emptyDescription={
             filter === 'all'
-              ? 'Create a job manually or wait for customer requests.'
+              ? 'Create one manually or wait for customer requests.'
               : 'Switch the filter or pull down to refresh.'
           }
           emptyIcon="briefcase"
           emptyAction={{
-            label: 'New booking',
+            label: `New ${labels.engagementSingular.toLowerCase()}`,
             iconLeft: 'plus',
             onPress: () => navigation.navigate('CreateBookingWizard'),
           }}
@@ -62,16 +68,13 @@ export function BookingsListScreen() {
               <RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor={palette.primary} />
             }
             renderItem={({ item }) => {
-              const title = item.serviceName || item.bookingNumber || `Booking ${item.id}`
+              const title =
+                item.serviceName || item.bookingNumber || `${labels.engagementSingular} ${item.id}`
               const customer =
                 item.customerName ||
                 [item.customer?.firstName, item.customer?.lastName].filter(Boolean).join(' ') ||
                 'Customer'
-              const date = item.scheduledDate
-                ? format(new Date(item.scheduledDate), 'dd MMM yyyy')
-                : item.createdAt
-                  ? format(new Date(item.createdAt), 'dd MMM yyyy')
-                  : ''
+              const date = safeFormatFirst([item.scheduledDate, item.createdAt], 'dd MMM yyyy', '')
               return (
                 <ListRow
                   title={title}

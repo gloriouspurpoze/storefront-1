@@ -3,7 +3,6 @@ import { Linking, ScrollView, StyleSheet, View } from 'react-native'
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native'
 import type { CompositeNavigationProp } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
-import { format } from 'date-fns'
 import { ActionSheetModal } from '@/components/common/ActionSheetModal'
 import { QueryState } from '@/components/common/QueryState'
 import { ScreenHeader } from '@/components/common/ScreenHeader'
@@ -13,7 +12,9 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Text } from '@/components/ui/Text'
 import { AssignProfessionalModal } from '@/features/bookings/components/AssignProfessionalModal'
+import { useVerticalLabels } from '@/hooks/useVerticalLabels'
 import { nextStatusActions } from '@/lib/bookingWorkflow'
+import { safeFormatFirst } from '@/lib/datetime'
 import { PermissionGate } from '@/navigation/guards/PermissionGate'
 import type { AdminTabParamList, OpsStackParamList } from '@/navigation/types'
 import {
@@ -33,6 +34,7 @@ export function BookingDetailScreen() {
     >
   >()
 
+  const labels = useVerticalLabels()
   const { data: booking, isLoading, isError, refetch } = useGetBookingQuery(route.params.id)
   const [updateStatus, { isLoading: updating }] = useUpdateBookingStatusMutation()
   const [cancelBooking, { isLoading: cancelling }] = useCancelBookingMutation()
@@ -75,7 +77,7 @@ export function BookingDetailScreen() {
           {booking ? (
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
               <ScreenHeader
-                title={booking.serviceName || booking.bookingNumber || 'Booking'}
+                title={booking.serviceName || booking.bookingNumber || labels.engagementSingular}
                 subtitle={booking.customerName || 'Customer'}
               />
               <StatusBadge status={booking.status} />
@@ -93,8 +95,8 @@ export function BookingDetailScreen() {
                   label="Scheduled"
                   value={
                     booking.scheduledDate
-                      ? format(new Date(booking.scheduledDate), 'PPP p')
-                      : format(new Date(booking.createdAt), 'PPP')
+                      ? safeFormatFirst([booking.scheduledDate], 'PPP p')
+                      : safeFormatFirst([booking.createdAt], 'PPP')
                   }
                 />
                 <DetailRow
