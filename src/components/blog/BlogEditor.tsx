@@ -1751,7 +1751,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             <div>
               <h1 className="text-2xl font-semibold tracking-tight">{postId ? 'Edit post' : 'New post'}</h1>
               <p className="text-sm text-graphite">
-                Editorial workspace for <strong className="font-medium text-ink-soft">my.profixer.in</strong> — live SEO score, technical metadata,
+                Editorial workspace for <strong className="font-medium text-ink-soft">https://www.profixer.in</strong> — live SEO score, technical metadata,
                 structured data preview, and checklist aligned with how modern content teams ship URLs, snippets, and rich results.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
@@ -2546,7 +2546,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             <section className="rounded-xl border border-storm-mist/80 bg-gradient-to-br from-storm-mist/50 to-white p-4 shadow-sm ring-1 ring-storm-mist/60">
               <h3 className="text-sm font-semibold text-storm-deep">Insert internal links</h3>
               <p className="mt-1 text-xs text-graphite">
-                Combined search via <code className="rounded bg-white px-1 font-mono text-[11px]">GET /api/cms/admin/blogs/link-suggestions</code>. Inserts at the caret using <span className="font-mono text-[11px]">/store/product/&lt;slug&gt;</span> (storefront PDP on my.profixer.in) and <span className="font-mono text-[11px]">/services/&lt;slug&gt;</span> for services. Legacy <span className="font-mono text-[11px]">/products/&lt;slug&gt;</span> URLs redirect to the store on the consumer app.
+                Combined search via <code className="rounded bg-white px-1 font-mono text-[11px]">GET /api/cms/admin/blogs/link-suggestions</code>. Inserts at the caret using <span className="font-mono text-[11px]">/store/product/&lt;slug&gt;</span> (storefront PDP on https://www.profixer.in) and <span className="font-mono text-[11px]">/services/&lt;slug&gt;</span> for services. Legacy <span className="font-mono text-[11px]">/products/&lt;slug&gt;</span> URLs redirect to the store on the consumer app.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <input
@@ -2886,7 +2886,7 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             <section className="rounded-xl border border-primary/90 bg-gradient-to-br from-white to-primary-soft/40 p-4 shadow-sm ring-1 ring-primary-soft/60">
               <h2 className="text-[11px] font-semibold uppercase tracking-wider text-primary/90">Technical SEO &amp; rich results</h2>
               <p className="mt-1 text-xs leading-relaxed text-graphite">
-                Growth on <strong className="text-ink-soft">my.profixer.in</strong> depends on consistent URLs, crawl directives, share cards, and valid structured data — not keyword density alone.
+                Growth on <strong className="text-ink-soft">https://www.profixer.in</strong> depends on consistent URLs, crawl directives, share cards, and valid structured data — not keyword density alone.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <span

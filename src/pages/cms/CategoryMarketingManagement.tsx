@@ -80,6 +80,7 @@ import { IndustryLandingEditorPreview } from '../../components/cms/IndustryLandi
 import { localitySlugFromCompositeKey } from '../../lib/categoryMarketingCoverageOverview'
 import { diffCategoryMarketingConfigs } from '../../lib/categoryMarketingConfigDiff'
 import { buildLocalitySeoAutofillPack } from '../../lib/categoryMarketingSeoAutofill'
+import { detectSeoTitleIssue } from '../../lib/seoTitleQuality'
 import {
   PRODUCTION_INDEXABLE_ROBOTS_META,
   resolveConsumerRobotsPreview,
@@ -387,6 +388,28 @@ export default function CategoryMarketingManagement() {
       })
     }
 
+    /*
+     * Structural guardrail (mirrors the live site's `isUsableCmsDocumentTitle`).
+     * Validates the title AS THE LIVE SITE WILL RENDER IT — after [City]/
+     * [Location]/[ServiceName] tokens resolve. Catches the production bug where
+     * "Electrician in [City]" on a non-locality key collapsed to "Electrician in"
+     * and shipped "…— Electrician in | ProFixer.in" to search results.
+     */
+    if (tLen > 0) {
+      const titleIssue = detectSeoTitleIssue(config.seoTitle, {
+        city: isLocalKey ? localityDisplayLabel : '',
+        location: isLocalKey ? localityDisplayLabel : '',
+        serviceName: industryLabel,
+      })
+      if (titleIssue) {
+        rows.push({
+          tone: 'warn',
+          title: 'SEO title structure',
+          detail: titleIssue.detail,
+        })
+      }
+    }
+
     if (mLen === 0) {
       rows.push({
         tone: 'warn',
@@ -541,7 +564,7 @@ export default function CategoryMarketingManagement() {
     const warnCount = rows.filter((r) => r.tone === 'warn').length
     const okCount = rows.filter((r) => r.tone === 'ok').length
     return { rows, warnCount, okCount }
-  }, [config, data, normalizedLocalitySlug, effectiveKey, publicSiteOrigin, selectedCategory])
+  }, [config, data, normalizedLocalitySlug, effectiveKey, publicSiteOrigin, selectedCategory, industryLabel, localityDisplayLabel])
 
   const localityVersusIndustryDiff = useMemo(() => {
     if (!normalizedLocalitySlug || loading) return null
