@@ -1,5 +1,5 @@
 ﻿import React, { useMemo, useState } from 'react'
-import { Eye, Copy, Check } from 'lucide-react'
+import { Eye, Copy, Check, Monitor, Smartphone } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { Button } from '../ui/button'
@@ -15,39 +15,11 @@ import {
   buildIndustryLandingPreviewJsonLd,
   resolveIndustryLandingPreviewUrl,
 } from '../../lib/buildIndustryLandingPreviewJsonLd'
-import { sanitizeCategoryMarketingRichHtml } from '../../lib/categoryMarketingRichHtml'
 import { resolveConsumerRobotsPreview } from '../../lib/consumerRobotsPreview'
+import { CmsConsumerVisualPreview, ConsumerPreviewRichHtml } from './CmsConsumerVisualPreview'
 
 function PreviewRichHtml({ html, className }: { html: string; className?: string }) {
-  const raw = html.trim()
-  if (!raw) return null
-  if (!raw.includes('<')) {
-    return (
-      <div className={cn('whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground', className)}>{raw}</div>
-    )
-  }
-  let safe = ''
-  try {
-    safe = sanitizeCategoryMarketingRichHtml(raw)
-  } catch {
-    return (
-      <p className={cn('text-xs text-muted-foreground', className)}>
-        Preview skipped (sanitize error). Raw length: {raw.length} chars.
-      </p>
-    )
-  }
-  if (!safe.trim()) return null
-  return (
-    <div
-      className={cn(
-        'prose prose-sm max-w-none dark:prose-invert [&_a]:text-primary [&_a]:underline',
-        'text-xs leading-relaxed text-muted-foreground',
-        className,
-      )}
-      // eslint-disable-next-line react/no-danger -- admin-only preview; HTML sanitized with DOMPurify
-      dangerouslySetInnerHTML={{ __html: safe }}
-    />
-  )
+  return <ConsumerPreviewRichHtml html={html} className={className} />
 }
 
 export interface IndustryLandingEditorPreviewProps {
@@ -118,6 +90,7 @@ export function IndustryLandingEditorPreview({
   const jsonLdString = useMemo(() => JSON.stringify(jsonLdPreview.document, null, 2), [jsonLdPreview.document])
 
   const [copied, setCopied] = useState(false)
+  const [visualViewport, setVisualViewport] = useState<'desktop' | 'mobile'>('desktop')
   const copyJson = () => {
     void navigator.clipboard.writeText(jsonLdString).then(() => {
       setCopied(true)
@@ -183,10 +156,44 @@ export function IndustryLandingEditorPreview({
             <TabsTrigger value="jsonld" className="text-xs sm:text-sm">
               JSON-LD (approx.)
             </TabsTrigger>
+            <TabsTrigger value="visual" className="text-xs sm:text-sm">
+              Visual page
+            </TabsTrigger>
             <TabsTrigger value="outline" className="text-xs sm:text-sm">
-              Page content outline
+              Content outline
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="visual" className="mt-0 space-y-3 outline-none">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs text-muted-foreground">
+                Approximate consumer layout — fonts and spacing may differ slightly on profixer.in.
+              </p>
+              <div className="flex gap-1 rounded-md border border-border/60 p-0.5">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={visualViewport === 'desktop' ? 'default' : 'ghost'}
+                  className="h-8 gap-1.5 px-2.5 text-xs"
+                  onClick={() => setVisualViewport('desktop')}
+                >
+                  <Monitor className="h-3.5 w-3.5" aria-hidden />
+                  Desktop
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={visualViewport === 'mobile' ? 'default' : 'ghost'}
+                  className="h-8 gap-1.5 px-2.5 text-xs"
+                  onClick={() => setVisualViewport('mobile')}
+                >
+                  <Smartphone className="h-3.5 w-3.5" aria-hidden />
+                  Mobile
+                </Button>
+              </div>
+            </div>
+            <CmsConsumerVisualPreview config={merged} viewport={visualViewport} />
+          </TabsContent>
 
           <TabsContent value="serp" className="mt-0 space-y-4 outline-none">
             <div className="grid gap-4 lg:grid-cols-2">

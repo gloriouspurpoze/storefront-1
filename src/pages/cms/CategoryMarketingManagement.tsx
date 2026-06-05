@@ -39,8 +39,8 @@ import { PageHeader } from '../../components/common/PageHeader'
 import { ConfirmDialog } from '../../components/common/ConfirmDialog'
 import ImageUploadField from '../../components/forms/ImageUploadField'
 import type { ImageFile } from '../../components/forms/ImageUploadField'
-import { RichTextField } from '../../components/forms/RichTextField'
-import { CATEGORY_MARKETING_RTE_FORMATS, CATEGORY_MARKETING_RTE_MODULES } from '../../lib/categoryMarketingRichHtml'
+import { CategoryMarketingRichTextField } from '../../components/cms/CategoryMarketingRichTextField'
+import { ConsumerPreviewRichHtml } from '../../components/cms/CmsConsumerVisualPreview'
 import { CMS_DEFAULT_FALLBACK_SLUG } from '../../constants/cmsCatalogCategories'
 import { useCmsCatalogCategories } from '../../hooks/useCmsCatalogCategories'
 import {
@@ -878,7 +878,8 @@ export default function CategoryMarketingManagement() {
                     Each row is a JSON <span className="font-mono text-[11px]">path</span>: values from the saved{' '}
                     <strong className="font-medium text-foreground">industry-wide</strong> key versus this{' '}
                     <strong className="font-medium text-foreground">locality</strong> record, including staged edits before Save.
-                    Snippets are truncated; rich-text fields are easier to review under each tab and in the Site outline preview.
+                    Snippets are truncated; use the <strong className="text-foreground">Live preview → Visual page</strong> tab for
+                    a consumer-style layout (desktop/mobile). Rich-text fields support inline images with required alt text.
                   </p>
                 </div>
                 {!localityVersusIndustryDiff.hasSavedIndustryKey ? (
@@ -1940,13 +1941,11 @@ export default function CategoryMarketingManagement() {
                       <Label htmlFor="cmm-f-35">Service area headline</Label>
                       <Input id="cmm-f-35" className="w-full" value={config.localSeo.serviceAreaHeadline} onChange={(e) => updateLocalSeo({ serviceAreaHeadline: e.target.value })} placeholder="Same-day AC repair across [Location] and surrounding suburbs" />
                     </div>
-                      <RichTextField
+                      <CategoryMarketingRichTextField
                         label="Service area narrative"
                         value={config.localSeo.serviceAreaNarrative}
                         onChange={(html) => updateLocalSeo({ serviceAreaNarrative: html })}
                         height={200}
-                        modules={CATEGORY_MARKETING_RTE_MODULES}
-                        formats={CATEGORY_MARKETING_RTE_FORMATS}
                         placeholder="Coverage, dispatch, and why you win locally — links and lists supported."
                         helperText="Used for local context and schema-adjacent copy; keep facts accurate."
                       />
@@ -2124,15 +2123,23 @@ export default function CategoryMarketingManagement() {
                       <Label htmlFor="cmm-f-48">Main heading (H1)</Label>
                       <Input id="cmm-f-48" className="w-full" value={config.mainHeading} onChange={(e) => updateConfig({ mainHeading: e.target.value })} placeholder="AC Repair & Service in [City] – Same-Day, Transparent Pricing" />
                     </div>
-                    <RichTextField
+                    <CategoryMarketingRichTextField
                       label="Intro (rich text)"
                       value={config.intro}
                       onChange={(html) => updateConfig({ intro: html })}
                       height={240}
-                      modules={CATEGORY_MARKETING_RTE_MODULES}
-                      formats={CATEGORY_MARKETING_RTE_FORMATS}
                       placeholder="Two short paragraphs: who you serve in this area and what happens after booking."
-                      helperText="Tip: keep the primary keyword in the first paragraph; use lists for skimmable trust points."
+                      helperText="Tip: keep the primary keyword in the first paragraph; use lists and images for skimmable trust points."
+                      preview={
+                        config.intro.trim() ? (
+                          <>
+                            {config.mainHeading.trim() ? (
+                              <h2 className="mb-2 text-lg font-bold text-foreground">{config.mainHeading}</h2>
+                            ) : null}
+                            <ConsumerPreviewRichHtml html={config.intro} />
+                          </>
+                        ) : undefined
+                      }
                     />
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
@@ -2238,7 +2245,7 @@ export default function CategoryMarketingManagement() {
                               updateConfig({ serviceCards: next })
                             }} />
                     </div>
-                          <RichTextField
+                          <CategoryMarketingRichTextField
                             label="Short description"
                             value={card.description}
                             onChange={(html) => {
@@ -2247,8 +2254,6 @@ export default function CategoryMarketingManagement() {
                               updateConfig({ serviceCards: next })
                             }}
                             height={150}
-                            modules={CATEGORY_MARKETING_RTE_MODULES}
-                            formats={CATEGORY_MARKETING_RTE_FORMATS}
                             placeholder="One or two lines with optional link to detail page."
                           />
                           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-2">
@@ -2348,13 +2353,11 @@ export default function CategoryMarketingManagement() {
                       <Label htmlFor="cmm-f-59">Title (H3)</Label>
                       <Input id="cmm-f-59" className="w-full" value={block.title} onChange={(e) => updateServiceType(typeIndex, 'title', e.target.value)} placeholder="Foam & power jet AC service" />
                     </div>
-                          <RichTextField
+                          <CategoryMarketingRichTextField
                             label="Description"
                             value={block.description}
                             onChange={(html) => updateServiceType(typeIndex, 'description', html)}
                             height={160}
-                            modules={CATEGORY_MARKETING_RTE_MODULES}
-                            formats={CATEGORY_MARKETING_RTE_FORMATS}
                           />
                           <div>
                             <p className="text-xs text-muted-foreground">
@@ -2409,7 +2412,7 @@ export default function CategoryMarketingManagement() {
                               updateConfig({ trustBenefits: next })
                             }} />
                     </div>
-                          <RichTextField
+                          <CategoryMarketingRichTextField
                             label="Supporting copy"
                             value={row.body}
                             onChange={(html) => {
@@ -2418,8 +2421,6 @@ export default function CategoryMarketingManagement() {
                               updateConfig({ trustBenefits: next })
                             }}
                             height={160}
-                            modules={CATEGORY_MARKETING_RTE_MODULES}
-                            formats={CATEGORY_MARKETING_RTE_FORMATS}
                           />
                         </div>
                         <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0 text-destructive hover:text-destructive" onClick={() =>
@@ -2487,13 +2488,11 @@ export default function CategoryMarketingManagement() {
                     <p className="text-sm text-muted-foreground">
                       Areas we serve
                     </p>
-                    <RichTextField
+                    <CategoryMarketingRichTextField
                       label="Optional intro copy"
                       value={config.areasCopy}
                       onChange={(html) => updateConfig({ areasCopy: html })}
                       height={150}
-                      modules={CATEGORY_MARKETING_RTE_MODULES}
-                      formats={CATEGORY_MARKETING_RTE_FORMATS}
                       helperText="Shown above the locality list; supports links and short lists."
                     />
                     <p className="text-xs text-muted-foreground">
@@ -2548,7 +2547,7 @@ export default function CategoryMarketingManagement() {
                               updateConfig({ bookingSteps: next })
                             }} />
                     </div>
-                          <RichTextField
+                          <CategoryMarketingRichTextField
                             label="Step description"
                             value={step.description}
                             onChange={(html) => {
@@ -2557,8 +2556,6 @@ export default function CategoryMarketingManagement() {
                               updateConfig({ bookingSteps: next })
                             }}
                             height={130}
-                            modules={CATEGORY_MARKETING_RTE_MODULES}
-                            formats={CATEGORY_MARKETING_RTE_FORMATS}
                           />
                         </div>
                         <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0 text-destructive hover:text-destructive" onClick={() =>
@@ -2720,6 +2717,43 @@ export default function CategoryMarketingManagement() {
             <TabsContent value="faqs" className="mt-2 px-0 outline-none">
               <div className="flex flex-col gap-4">
                 <Card>
+                  <CardHeader className="border-b border-border/60 bg-muted/20 pb-4">
+                    <CardTitle className="text-lg font-semibold tracking-tight">Locality aside card</CardTitle>
+                    <CardDescription>
+                      Sidebar beside FAQs on locality service pages — title, intro, breadcrumb eyebrow. Breadcrumb trail
+                      uses the Technical SEO → Breadcrumb trail when filled. Supports [City], [Location], [ServiceName].
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4 pt-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="cmm-aside-title">Aside title</Label>
+                      <Input
+                        id="cmm-aside-title"
+                        className="w-full"
+                        value={config.localityAsideTitle}
+                        onChange={(e) => updateConfig({ localityAsideTitle: e.target.value })}
+                        placeholder="Electrician in [Location] — leave empty to use Hero main heading"
+                      />
+                    </div>
+                    <CategoryMarketingRichTextField
+                      label="Aside intro (optional — overrides truncated page intro)"
+                      value={config.localityAsideIntro}
+                      onChange={(html) => updateConfig({ localityAsideIntro: html })}
+                      height={120}
+                    />
+                    <div className="space-y-2">
+                      <Label htmlFor="cmm-aside-bc-label">Breadcrumb eyebrow</Label>
+                      <Input
+                        id="cmm-aside-bc-label"
+                        className="w-full"
+                        value={config.localityAsideBreadcrumbLabel}
+                        onChange={(e) => updateConfig({ localityAsideBreadcrumbLabel: e.target.value })}
+                        placeholder="You are here"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
                   <CardContent>
                     <div className="flex flex-wrap items-center justify-between">
                       <p className="text-sm text-muted-foreground">
@@ -2764,7 +2798,7 @@ export default function CategoryMarketingManagement() {
                                 updateConfig({ faqs: next })
                               }} />
                     </div>
-                            <RichTextField
+                            <CategoryMarketingRichTextField
                               label="Answer (rich text — good for FAQPage links)"
                               value={faq.answer}
                               onChange={(html) => {
@@ -2773,8 +2807,6 @@ export default function CategoryMarketingManagement() {
                                 updateConfig({ faqs: next })
                               }}
                               height={200}
-                              modules={CATEGORY_MARKETING_RTE_MODULES}
-                              formats={CATEGORY_MARKETING_RTE_FORMATS}
                             />
                           </div>
                           </AccordionContent>
@@ -2887,13 +2919,11 @@ export default function CategoryMarketingManagement() {
                         <Label htmlFor="cmm-f-86">Article H2 (section under the catalogue)</Label>
                         <Input id="cmm-f-86" className="w-full" value={config.localityGuide.articleH2} onChange={(e) => updateLocalityGuide({ articleH2: e.target.value })} />
                       </div>
-                      <RichTextField
+                      <CategoryMarketingRichTextField
                         label="Summary lead (visible under H2)"
                         value={config.localityGuide.summaryLead}
                         onChange={(html) => updateLocalityGuide({ summaryLead: html })}
                         height={160}
-                        modules={CATEGORY_MARKETING_RTE_MODULES}
-                        formats={CATEGORY_MARKETING_RTE_FORMATS}
                         helperText="One tight value proposition; readers see this before they expand depth sections."
                       />
                       <div className="space-y-3">
@@ -2910,7 +2940,7 @@ export default function CategoryMarketingManagement() {
                           className="flex flex-col gap-2 rounded-lg border border-border/70 bg-muted/10 p-3 sm:flex-row sm:items-start"
                         >
                           <div className="min-w-0 flex-1">
-                            <RichTextField
+                            <CategoryMarketingRichTextField
                               label={`Lead paragraph ${i + 1}`}
                               value={para}
                               onChange={(html) => {
@@ -2921,8 +2951,6 @@ export default function CategoryMarketingManagement() {
                                 updateLocalityGuide({ leadParagraphs: base })
                               }}
                               height={180}
-                              modules={CATEGORY_MARKETING_RTE_MODULES}
-                              formats={CATEGORY_MARKETING_RTE_FORMATS}
                             />
                           </div>
                           <Button
@@ -2983,7 +3011,7 @@ export default function CategoryMarketingManagement() {
                     </div>
                               {(sec.paragraphs.length ? sec.paragraphs : ['']).map((p: string, pi: number) => (
                                 <div key={pi} className="rounded-md border border-border/50 bg-muted/10 p-2">
-                                  <RichTextField
+                                  <CategoryMarketingRichTextField
                                     label={`Section paragraph ${pi + 1}`}
                                     value={p}
                                     onChange={(html) => {
@@ -2994,8 +3022,6 @@ export default function CategoryMarketingManagement() {
                                       updateLocalityGuide({ sections: next })
                                     }}
                                     height={170}
-                                    modules={CATEGORY_MARKETING_RTE_MODULES}
-                                    formats={CATEGORY_MARKETING_RTE_FORMATS}
                                   />
                                 </div>
                               ))}
@@ -3121,13 +3147,11 @@ export default function CategoryMarketingManagement() {
                     <CardDescription>Final persuasive block before the footer; same rich formatting as the hero intro.</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <RichTextField
+                    <CategoryMarketingRichTextField
                       label="Closing paragraph(s)"
                       value={config.closingParagraph}
                       onChange={(html) => updateConfig({ closingParagraph: html })}
                       height={220}
-                      modules={CATEGORY_MARKETING_RTE_MODULES}
-                      formats={CATEGORY_MARKETING_RTE_FORMATS}
                     />
                   </CardContent>
                 </Card>
@@ -3142,15 +3166,13 @@ export default function CategoryMarketingManagement() {
                         updateConfig({ leadMagnet: { ...config.leadMagnet, headline: e.target.value } })
                       } />
                     </div>
-                    <RichTextField
+                    <CategoryMarketingRichTextField
                       label="Description"
                       value={config.leadMagnet.description}
                       onChange={(html) =>
                         updateConfig({ leadMagnet: { ...config.leadMagnet, description: html } })
                       }
                       height={140}
-                      modules={CATEGORY_MARKETING_RTE_MODULES}
-                      formats={CATEGORY_MARKETING_RTE_FORMATS}
                     />
                     <div className="space-y-2">
                       <Label htmlFor="cmm-f-96">CTA label</Label>

@@ -226,6 +226,11 @@ export interface CategoryMarketingConfig {
   areasList: string[]
   areasCta: string
   areasCopy: string
+  /** Locality aside card (FAQ column) — optional overrides; empty fields fall back to mainHeading / intro / code defaults. */
+  localityAsideTitle: string
+  localityAsideIntro: string
+  /** Eyebrow label above the locality aside breadcrumb (e.g. "You are here"). Empty → consumer fallback. */
+  localityAsideBreadcrumbLabel: string
 
   bookingSteps: BookingStepBlock[]
   contactPhone: string
@@ -411,6 +416,9 @@ export function emptyCategoryMarketingConfig(): CategoryMarketingConfig {
     areasList: [],
     areasCta: '',
     areasCopy: '',
+    localityAsideTitle: '',
+    localityAsideIntro: '',
+    localityAsideBreadcrumbLabel: '',
     bookingSteps: [],
     contactPhone: '',
     contactWhatsapp: '',
@@ -726,6 +734,11 @@ export function mergeCategoryConfig(
     areasList: asStringArray(p.areasList).length ? asStringArray(p.areasList) : e.areasList,
     areasCta: String(p.areasCta ?? e.areasCta),
     areasCopy: String(p.areasCopy ?? e.areasCopy),
+    localityAsideTitle: String(p.localityAsideTitle ?? e.localityAsideTitle),
+    localityAsideIntro: String(p.localityAsideIntro ?? e.localityAsideIntro),
+    localityAsideBreadcrumbLabel: String(
+      p.localityAsideBreadcrumbLabel ?? e.localityAsideBreadcrumbLabel,
+    ),
     bookingSteps: Array.isArray(p.bookingSteps)
       ? (p.bookingSteps as unknown[]).map(normalizeBookingStep)
       : e.bookingSteps,
@@ -921,6 +934,12 @@ export function mergePreferApiStatic(
     areasList,
     areasCta: pickStr(staticBase.areasCta, api.areasCta),
     areasCopy: pickStr(staticBase.areasCopy, api.areasCopy),
+    localityAsideTitle: pickStr(staticBase.localityAsideTitle, api.localityAsideTitle),
+    localityAsideIntro: pickStr(staticBase.localityAsideIntro, api.localityAsideIntro),
+    localityAsideBreadcrumbLabel: pickStr(
+      staticBase.localityAsideBreadcrumbLabel,
+      api.localityAsideBreadcrumbLabel,
+    ),
     bookingSteps,
     contactPhone: pickStr(staticBase.contactPhone, api.contactPhone),
     contactWhatsapp: pickStr(staticBase.contactWhatsapp, api.contactWhatsapp),

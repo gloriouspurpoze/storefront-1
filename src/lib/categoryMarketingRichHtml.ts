@@ -1,6 +1,6 @@
 import DOMPurify from 'dompurify'
 
-/** Quill modules for category marketing long-form fields (no images/video in stored HTML). */
+/** Quill modules for category marketing long-form fields (links + Cloudinary images with alt). */
 export const CATEGORY_MARKETING_RTE_MODULES = {
   toolbar: [
     [{ header: [1, 2, 3, false] }],
@@ -9,7 +9,7 @@ export const CATEGORY_MARKETING_RTE_MODULES = {
     [{ list: 'ordered' }, { list: 'bullet' }],
     [{ indent: '-1' }, { indent: '+1' }],
     [{ align: [] }],
-    ['link'],
+    ['link', 'image'],
     ['clean'],
   ],
   clipboard: { matchVisual: false },
@@ -28,6 +28,7 @@ export const CATEGORY_MARKETING_RTE_FORMATS: string[] = [
   'indent',
   'align',
   'link',
+  'image',
 ]
 
 export function sanitizeCategoryMarketingRichHtml(html: string): string {
@@ -56,7 +57,10 @@ export function sanitizeCategoryMarketingRichHtml(html: string): string {
       'h5',
       'h6',
       'blockquote',
+      'img',
+      'figure',
+      'figcaption',
     ],
-    ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
+    ALLOWED_ATTR: ['href', 'target', 'rel', 'class', 'src', 'alt', 'title', 'width', 'height', 'loading'],
   })
 }
