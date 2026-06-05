@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Save,
   Sparkles,
+  PlusCircle,
 } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent } from '../../components/ui/card'
@@ -37,6 +38,8 @@ import { CategoriesService } from '../../services/api/categories.service'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useAppDispatch } from '../../store/hooks'
 import { addToast } from '../../store/slices/uiSlice'
+import { usePermissions } from '../../hooks/usePermissions'
+import { VendorQuickCreateDialog, type VendorQuickCreateResult } from '../../components/products/VendorQuickCreateDialog'
 
 // Import common form components
 import {
@@ -391,6 +394,10 @@ export function AddProduct() {
   const isEditMode = location.pathname.includes('/edit/')
   const isViewMode = location.pathname.includes('/view/')
   const isCreateMode = !isEditMode && !isViewMode
+
+  const { checkPermission } = usePermissions()
+  const canManageVendors = checkPermission('manage_finance')
+  const [vendorDialogOpen, setVendorDialogOpen] = useState(false)
   
   const [formData, setFormData] = useState<ProductFormData>(initialFormData)
   const [errors, setErrors] = useState<any>({})
@@ -557,6 +564,17 @@ export function AddProduct() {
     } finally {
       setIsLoadingData(false)
     }
+  }
+
+  const handleVendorCreated = (vendor: VendorQuickCreateResult) => {
+    setVendors((prev) => {
+      const already = prev.some((v) => v.id === vendor.id)
+      return already ? prev : [...prev, vendor]
+    })
+    setFormData((prev) => ({ ...prev, vendorId: vendor.id }))
+    setErrors((prev: any) => ({ ...prev, vendorId: undefined }))
+    setVendorDialogOpen(false)
+    dispatch(addToast({ message: `Vendor "${vendor.name}" created and selected.`, severity: 'success', duration: 3000 }))
   }
 
   const steps = [
@@ -1121,23 +1139,47 @@ export function AddProduct() {
                           </div>
                         </div>
                         
-                        <SelectField
-                          label="Vendor"
-                          value={formData.vendorId}
-                          onChange={handleInputChange('vendorId')}
-                          options={vendors.map((v) => ({
-                            value: v.id,
-                            label: v.legal_name?.trim() ? `${v.name} (${v.legal_name})` : v.name,
-                          }))}
-                          error={errors.vendorId}
-                          helperText={
-                            vendors.length > 0
-                              ? 'Supplier from Finance → Directory (procurement / AP).'
-                              : 'No active vendors. Add vendors under Finance → Directory, then refresh.'
-                          }
-                          required
-                          disabled={vendors.length === 0 || isViewMode}
-                          placeholder="Select vendor"
+                        <div className="flex items-end gap-2">
+                          <div className="flex-1">
+                            <SelectField
+                              label="Vendor"
+                              value={formData.vendorId}
+                              onChange={handleInputChange('vendorId')}
+                              options={vendors.map((v) => ({
+                                value: v.id,
+                                label: v.legal_name?.trim() ? `${v.name} (${v.legal_name})` : v.name,
+                              }))}
+                              error={errors.vendorId}
+                              helperText={
+                                vendors.length > 0
+                                  ? 'Supplier from Finance → Directory (procurement / AP).'
+                                  : canManageVendors
+                                    ? 'No active vendors yet — click + New Vendor to add one.'
+                                    : 'No active vendors. Contact an admin to add vendors under Finance → Directory.'
+                              }
+                              required
+                              disabled={isViewMode}
+                              placeholder={vendors.length === 0 ? 'No vendors yet' : 'Select vendor'}
+                            />
+                          </div>
+                          {!isViewMode && canManageVendors && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="mb-[22px] shrink-0 gap-1.5 whitespace-nowrap"
+                              onClick={() => setVendorDialogOpen(true)}
+                            >
+                              <PlusCircle className="h-4 w-4" />
+                              New vendor
+                            </Button>
+                          )}
+                        </div>
+
+                        <VendorQuickCreateDialog
+                          open={vendorDialogOpen}
+                          onClose={() => setVendorDialogOpen(false)}
+                          onCreated={handleVendorCreated}
                         />
                       </div>
               </CardContent>
