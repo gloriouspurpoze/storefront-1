@@ -214,10 +214,22 @@ export interface CategoryMarketingConfig {
   image2?: string
 
   serviceCards: ServiceCardBlock[]
+  /** Eyebrow above the "Our Services" cards grid. Empty → consumer fallback ("Popular options"). */
+  serviceCardsEyebrow: string
+  /** Heading for the "Our Services" cards grid. Empty → consumer fallback ("Services you can book"). */
+  serviceCardsHeading: string
 
   serviceTypes: ServiceTypeBlock[]
+  /** Eyebrow above the service-types ("Service detail") section. Empty → consumer fallback. */
+  serviceTypesEyebrow: string
+  /** Heading for the service-types section. Empty → consumer fallback (avoids duplicating the page H1). */
+  serviceTypesHeading: string
 
   trustBenefits: TrustBenefitBlock[]
+  /** Eyebrow above the "Why homeowners book ProFixer" trust section. Empty → consumer fallback ("Why us"). */
+  trustBenefitsEyebrow: string
+  /** Heading for the trust section. Empty → consumer fallback ("Why {brand} for {category} in {locality}"). */
+  trustBenefitsHeading: string
   waysHeading: string
   waysBullets: string[]
 
@@ -226,6 +238,10 @@ export interface CategoryMarketingConfig {
   areasList: string[]
   areasCta: string
   areasCopy: string
+  /** Eyebrow above the "Areas we serve" section. Empty → consumer fallback ("Service area"). */
+  areasEyebrow: string
+  /** Heading for the "Areas we serve" section. Empty → consumer fallback ("Coverage in [Location]"). */
+  areasHeading: string
   /** Locality aside card (FAQ column) — optional overrides; empty fields fall back to mainHeading / intro / code defaults. */
   localityAsideTitle: string
   localityAsideIntro: string
@@ -412,14 +428,22 @@ export function emptyCategoryMarketingConfig(): CategoryMarketingConfig {
     introLeadMagnetLabel: '',
     introLeadMagnetUrl: '',
     serviceCards: [],
+    serviceCardsEyebrow: '',
+    serviceCardsHeading: '',
     serviceTypes: [],
+    serviceTypesEyebrow: '',
+    serviceTypesHeading: '',
     trustBenefits: [],
+    trustBenefitsEyebrow: '',
+    trustBenefitsHeading: '',
     waysHeading: '',
     waysBullets: [],
     experienceIncluded: [],
     areasList: [],
     areasCta: '',
     areasCopy: '',
+    areasEyebrow: '',
+    areasHeading: '',
     localityAsideTitle: '',
     localityAsideIntro: '',
     localityAsideBreadcrumbLabel: '',
@@ -726,12 +750,18 @@ export function mergeCategoryConfig(
     serviceCards: Array.isArray(p.serviceCards)
       ? (p.serviceCards as unknown[]).map(normalizeServiceCard)
       : e.serviceCards,
+    serviceCardsEyebrow: String(p.serviceCardsEyebrow ?? e.serviceCardsEyebrow),
+    serviceCardsHeading: String(p.serviceCardsHeading ?? e.serviceCardsHeading),
     serviceTypes: Array.isArray(p.serviceTypes)
       ? (p.serviceTypes as unknown[]).map(normalizeServiceType)
       : e.serviceTypes,
+    serviceTypesEyebrow: String(p.serviceTypesEyebrow ?? e.serviceTypesEyebrow),
+    serviceTypesHeading: String(p.serviceTypesHeading ?? e.serviceTypesHeading),
     trustBenefits: Array.isArray(p.trustBenefits)
       ? (p.trustBenefits as unknown[]).map(normalizeTrustBenefit)
       : e.trustBenefits,
+    trustBenefitsEyebrow: String(p.trustBenefitsEyebrow ?? e.trustBenefitsEyebrow),
+    trustBenefitsHeading: String(p.trustBenefitsHeading ?? e.trustBenefitsHeading),
     waysHeading: String(p.waysHeading ?? e.waysHeading),
     waysBullets: asStringArray(p.waysBullets).length ? asStringArray(p.waysBullets) : e.waysBullets,
     experienceIncluded: asStringArray(p.experienceIncluded).length
@@ -740,6 +770,8 @@ export function mergeCategoryConfig(
     areasList: asStringArray(p.areasList).length ? asStringArray(p.areasList) : e.areasList,
     areasCta: String(p.areasCta ?? e.areasCta),
     areasCopy: String(p.areasCopy ?? e.areasCopy),
+    areasEyebrow: String(p.areasEyebrow ?? e.areasEyebrow),
+    areasHeading: String(p.areasHeading ?? e.areasHeading),
     localityAsideTitle: String(p.localityAsideTitle ?? e.localityAsideTitle),
     localityAsideIntro: String(p.localityAsideIntro ?? e.localityAsideIntro),
     localityAsideBreadcrumbLabel: String(
@@ -935,14 +967,22 @@ export function mergePreferApiStatic(
     image1: api.image1?.trim() ? api.image1 : staticBase.image1,
     image2: api.image2?.trim() ? api.image2 : staticBase.image2,
     serviceCards,
+    serviceCardsEyebrow: pickStr(staticBase.serviceCardsEyebrow, api.serviceCardsEyebrow),
+    serviceCardsHeading: pickStr(staticBase.serviceCardsHeading, api.serviceCardsHeading),
     serviceTypes,
+    serviceTypesEyebrow: pickStr(staticBase.serviceTypesEyebrow, api.serviceTypesEyebrow),
+    serviceTypesHeading: pickStr(staticBase.serviceTypesHeading, api.serviceTypesHeading),
     trustBenefits,
+    trustBenefitsEyebrow: pickStr(staticBase.trustBenefitsEyebrow, api.trustBenefitsEyebrow),
+    trustBenefitsHeading: pickStr(staticBase.trustBenefitsHeading, api.trustBenefitsHeading),
     waysHeading: pickStr(staticBase.waysHeading, api.waysHeading),
     waysBullets,
     experienceIncluded,
     areasList,
     areasCta: pickStr(staticBase.areasCta, api.areasCta),
     areasCopy: pickStr(staticBase.areasCopy, api.areasCopy),
+    areasEyebrow: pickStr(staticBase.areasEyebrow, api.areasEyebrow),
+    areasHeading: pickStr(staticBase.areasHeading, api.areasHeading),
     localityAsideTitle: pickStr(staticBase.localityAsideTitle, api.localityAsideTitle),
     localityAsideIntro: pickStr(staticBase.localityAsideIntro, api.localityAsideIntro),
     localityAsideBreadcrumbLabel: pickStr(

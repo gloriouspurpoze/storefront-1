@@ -2230,6 +2230,30 @@ export default function CategoryMarketingManagement() {
                       Add card
                     </Button>
                   </div>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="cmm-f-svccards-eyebrow">Section eyebrow</Label>
+                      <Input
+                        id="cmm-f-svccards-eyebrow"
+                        className="w-full"
+                        placeholder="Popular options"
+                        value={config.serviceCardsEyebrow}
+                        onChange={(e) => updateConfig({ serviceCardsEyebrow: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">Small label above the heading. Defaults to “Popular options”.</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cmm-f-svccards-heading">Section heading (H2)</Label>
+                      <Input
+                        id="cmm-f-svccards-heading"
+                        className="w-full"
+                        placeholder="Services you can book"
+                        value={config.serviceCardsHeading}
+                        onChange={(e) => updateConfig({ serviceCardsHeading: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">Leave blank to use “Services you can book”.</p>
+                    </div>
+                  </div>
                   {config.serviceCards.map((card, i) => (
                     <Accordion key={i} type="single" collapsible defaultValue={`svc-card-${i}`} className="mb-2 rounded-md border">
                       <AccordionItem value={`svc-card-${i}`} className="border-0">
@@ -2336,6 +2360,32 @@ export default function CategoryMarketingManagement() {
                       Add block
                     </Button>
                   </div>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="cmm-f-svctypes-eyebrow">Section eyebrow</Label>
+                      <Input
+                        id="cmm-f-svctypes-eyebrow"
+                        className="w-full"
+                        placeholder="Service detail"
+                        value={config.serviceTypesEyebrow}
+                        onChange={(e) => updateConfig({ serviceTypesEyebrow: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">Small label above the heading. Defaults to “Service detail”.</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cmm-f-svctypes-heading">Section heading (H2)</Label>
+                      <Input
+                        id="cmm-f-svctypes-heading"
+                        className="w-full"
+                        placeholder="What we cover in [Location]"
+                        value={config.serviceTypesHeading}
+                        onChange={(e) => updateConfig({ serviceTypesHeading: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Leave blank to use “What we cover in [Location]”. Don’t repeat the page H1 (main heading).
+                      </p>
+                    </div>
+                  </div>
                   {config.serviceTypes.map((block, typeIndex) => (
                     <Accordion
                       key={typeIndex}
@@ -2416,6 +2466,30 @@ export default function CategoryMarketingManagement() {
                       >
                         Add benefit
                       </Button>
+                    </div>
+                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="cmm-f-trust-eyebrow">Section eyebrow</Label>
+                        <Input
+                          id="cmm-f-trust-eyebrow"
+                          className="w-full"
+                          placeholder="Why us"
+                          value={config.trustBenefitsEyebrow}
+                          onChange={(e) => updateConfig({ trustBenefitsEyebrow: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground">Small label above the heading. Defaults to “Why us”.</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="cmm-f-trust-heading">Section heading (H2)</Label>
+                        <Input
+                          id="cmm-f-trust-heading"
+                          className="w-full"
+                          placeholder="Why ProFixer for [ServiceName] in [Location]"
+                          value={config.trustBenefitsHeading}
+                          onChange={(e) => updateConfig({ trustBenefitsHeading: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground">Leave blank to auto-build “Why ProFixer for [ServiceName] in [Location]”.</p>
+                      </div>
                     </div>
                     {config.trustBenefits.map((row, i) => (
                       <div key={i} className="flex flex-row items-start gap-2">
@@ -2504,6 +2578,30 @@ export default function CategoryMarketingManagement() {
                     <p className="text-sm text-muted-foreground">
                       Areas we serve
                     </p>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="cmm-f-areas-eyebrow">Section eyebrow</Label>
+                        <Input
+                          id="cmm-f-areas-eyebrow"
+                          className="w-full"
+                          placeholder="Service area"
+                          value={config.areasEyebrow}
+                          onChange={(e) => updateConfig({ areasEyebrow: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground">Small label above the heading. Defaults to “Service area”.</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="cmm-f-areas-heading">Section heading (H2)</Label>
+                        <Input
+                          id="cmm-f-areas-heading"
+                          className="w-full"
+                          placeholder="Coverage in [Location]"
+                          value={config.areasHeading}
+                          onChange={(e) => updateConfig({ areasHeading: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground">Leave blank to use “Coverage in [Location]”.</p>
+                      </div>
+                    </div>
                     <CategoryMarketingRichTextField
                       label="Optional intro copy"
                       value={config.areasCopy}
@@ -2960,6 +3058,46 @@ export default function CategoryMarketingManagement() {
                       <div className="space-y-2">
                         <Label htmlFor="cmm-f-86">Article H2 (section under the catalogue)</Label>
                         <Input id="cmm-f-86" className="w-full" value={config.localityGuide.articleH2} onChange={(e) => updateLocalityGuide({ articleH2: e.target.value })} />
+                      </div>
+                      <div className="rounded-lg border border-border/70 bg-muted/10 p-4">
+                        <div className="flex items-center gap-1">
+                          <ImageIconLucide className="h-4 w-4 text-primary" />
+                          <p className="text-sm font-semibold">Guide images</p>
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Shown at the top of this locality guide. These are the same Image 1 / Image 2 as the
+                          industry hero block — editing here updates both.
+                        </p>
+                        <div className="mt-3 flex flex-col gap-4">
+                          <ImageUploadField
+                            label="Image 1 (Hero — top of guide)"
+                            value={
+                              config.image1
+                                ? [{ id: 'img1', url: config.image1, alt: 'Image 1', isPrimary: true, order: 0 }]
+                                : []
+                            }
+                            onChange={(images: ImageFile[]) => updateConfig({ image1: images[0]?.url })}
+                            maxFiles={1}
+                            maxSize={5}
+                            folder="homeservice"
+                            allowFromCloudinary
+                            helperText="Recommended 1200×630px / 16:10. Max 5MB."
+                          />
+                          <ImageUploadField
+                            label="Image 2 (Secondary — pairs beside Image 1)"
+                            value={
+                              config.image2
+                                ? [{ id: 'img2', url: config.image2, alt: 'Image 2', isPrimary: true, order: 0 }]
+                                : []
+                            }
+                            onChange={(images: ImageFile[]) => updateConfig({ image2: images[0]?.url })}
+                            maxFiles={1}
+                            maxSize={5}
+                            folder="homeservice"
+                            allowFromCloudinary
+                            helperText="Optional. Displays next to Image 1 as a two-up media row. Max 5MB."
+                          />
+                        </div>
                       </div>
                       <CategoryMarketingRichTextField
                         label="Summary lead (visible under H2)"
