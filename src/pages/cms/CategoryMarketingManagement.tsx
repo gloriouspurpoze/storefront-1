@@ -34,6 +34,7 @@ import {
   AccordionTrigger,
 } from '../../components/ui/accordion'
 import { cn } from '../../lib/utils'
+import { selectValueWhenListed } from '../../lib/selectValueGuard'
 import { CMSService } from '../../services/api'
 import { PageHeader } from '../../components/common/PageHeader'
 import { ConfirmDialog } from '../../components/common/ConfirmDialog'
@@ -177,6 +178,21 @@ export default function CategoryMarketingManagement() {
     if (sortedManagedLocalities.some((l) => l.slug === normalizedLocalitySlug)) return normalizedLocalitySlug
     return '__custom__'
   }, [normalizedLocalitySlug, sortedManagedLocalities, emptyCustomSlugMode])
+
+  const catalogSelectAllowed = useMemo(() => catalogOptions.map((o) => o.value), [catalogOptions])
+  const catalogSelectValue = useMemo(
+    () => selectValueWhenListed(selectedCategory, catalogSelectAllowed),
+    [selectedCategory, catalogSelectAllowed],
+  )
+
+  const localitySelectAllowed = useMemo(
+    () => ['__none__', '__custom__', ...sortedManagedLocalities.map((l) => l.slug)] as const,
+    [sortedManagedLocalities],
+  )
+  const safeLocalitySelectValue = useMemo(
+    () => selectValueWhenListed(localitySelectValue, localitySelectAllowed),
+    [localitySelectValue, localitySelectAllowed],
+  )
 
   const industryLabel = useMemo(
     () => catalogOptions.find((o) => o.value === selectedCategory)?.label ?? selectedCategory,
@@ -714,7 +730,7 @@ export default function CategoryMarketingManagement() {
                   Industry (catalog)
                 </Label>
                 <Select
-                  value={selectedCategory}
+                  value={catalogSelectValue}
                   onValueChange={(v) => {
                     setSelectedCategory(v)
                     setLocalitySlugForKey('')
@@ -740,7 +756,7 @@ export default function CategoryMarketingManagement() {
                 Location (service area)
               </Label>
               <Select
-                value={localitySelectValue}
+                value={safeLocalitySelectValue}
                 onValueChange={(v) => {
                   if (v === '__none__') {
                     setLocalitySlugForKey('')
@@ -2563,6 +2579,32 @@ export default function CategoryMarketingManagement() {
                           } ><Trash2 className="h-4 w-4" /></Button>
                       </div>
                     ))}
+                    <div className="flex flex-col gap-4 rounded-md border border-border/60 p-3">
+                      <ImageUploadField
+                        label="Booking steps image (shown beside the numbered steps)"
+                        value={
+                          config.bookingStepsImage
+                            ? [{ id: 'bookimg', url: config.bookingStepsImage, alt: config.bookingStepsImageAlt || 'How to book', isPrimary: true, order: 0 }]
+                            : []
+                        }
+                        onChange={(images: ImageFile[]) => updateConfig({ bookingStepsImage: images[0]?.url })}
+                        maxFiles={1}
+                        maxSize={5}
+                        folder="homeservice"
+                        allowFromCloudinary
+                        helperText="Optional. Replaces the text placeholder next to the booking steps. Recommended 4:3, max 5MB."
+                      />
+                      <div className="space-y-2">
+                        <Label htmlFor="cmm-f-booking-img-alt">Booking image alt text (SEO)</Label>
+                        <Input
+                          id="cmm-f-booking-img-alt"
+                          className="w-full"
+                          value={config.bookingStepsImageAlt ?? ''}
+                          onChange={(e) => updateConfig({ bookingStepsImageAlt: e.target.value })}
+                          placeholder="e.g. Booking an electrician in Mira Road on the ProFixer app"
+                        />
+                      </div>
+                    </div>
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-2">
                       <div className="space-y-2">
                       <Label htmlFor="cmm-f-73">Phone</Label>

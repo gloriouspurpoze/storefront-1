@@ -19,7 +19,6 @@
  */
 import { useCallback, useEffect, useRef } from 'react'
 import { useSelector } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
 import type { RootState } from '../../store'
 import { liveOpsAdminSocket } from '../../services/liveOpsAdminSocket'
 import { useNotifications } from '../../contexts/notifications-context'
@@ -91,7 +90,6 @@ function formatAmount(amount?: number | null): string {
 }
 
 export function AdminNewActivityAlerts(): null {
-  const navigate = useNavigate()
   const isAuthenticated = useSelector((s: RootState) => s.auth.isAuthenticated)
   const userType = useSelector((s: RootState) => s.auth.user?.userType as unknown)
   const rbacRole = useSelector((s: RootState) => s.auth.user?.rbacRole as unknown)
@@ -113,15 +111,16 @@ export function AdminNewActivityAlerts(): null {
   labelRef.current = engagementLabel
   const refreshRef = useRef(refreshNotifications)
   refreshRef.current = refreshNotifications
-  const navigateRef = useRef(navigate)
-  navigateRef.current = navigate
 
   const toastBooking = useCallback((message: string, bookingId: string) => {
+    const id = bookingId.trim()
     const view =
-      bookingId.trim().length > 0
+      id.length > 0
         ? {
             label: 'View',
-            onClick: () => navigateRef.current(`/bookings/${bookingId}`),
+            onClick: () => {
+              window.location.assign(`/bookings/${id}`)
+            },
           }
         : undefined
     appToast(message, 'info', 12_000, view)
@@ -130,11 +129,14 @@ export function AdminNewActivityAlerts(): null {
   }, [])
 
   const toastOrder = useCallback((message: string, orderId: string) => {
+    const id = orderId.trim()
     const view =
-      orderId.trim().length > 0
+      id.length > 0
         ? {
             label: 'View',
-            onClick: () => navigateRef.current(`/orders?id=${encodeURIComponent(orderId)}`),
+            onClick: () => {
+              window.location.assign(`/orders?id=${encodeURIComponent(id)}`)
+            },
           }
         : undefined
     appToast(message, 'info', 12_000, view)

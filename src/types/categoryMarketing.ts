@@ -233,6 +233,10 @@ export interface CategoryMarketingConfig {
   localityAsideBreadcrumbLabel: string
 
   bookingSteps: BookingStepBlock[]
+  /** Illustration shown beside the "How to book" numbered steps. Empty → text placeholder. */
+  bookingStepsImage?: string
+  /** Alt text for `bookingStepsImage` (SEO + a11y). */
+  bookingStepsImageAlt?: string
   contactPhone: string
   contactWhatsapp: string
 
@@ -420,6 +424,8 @@ export function emptyCategoryMarketingConfig(): CategoryMarketingConfig {
     localityAsideIntro: '',
     localityAsideBreadcrumbLabel: '',
     bookingSteps: [],
+    bookingStepsImage: undefined,
+    bookingStepsImageAlt: undefined,
     contactPhone: '',
     contactWhatsapp: '',
     spareParts: [],
@@ -742,6 +748,9 @@ export function mergeCategoryConfig(
     bookingSteps: Array.isArray(p.bookingSteps)
       ? (p.bookingSteps as unknown[]).map(normalizeBookingStep)
       : e.bookingSteps,
+    bookingStepsImage: p.bookingStepsImage != null ? String(p.bookingStepsImage) : e.bookingStepsImage,
+    bookingStepsImageAlt:
+      p.bookingStepsImageAlt != null ? String(p.bookingStepsImageAlt) : e.bookingStepsImageAlt,
     contactPhone: String(p.contactPhone ?? e.contactPhone),
     contactWhatsapp: String(p.contactWhatsapp ?? e.contactWhatsapp),
     spareParts: Array.isArray(p.spareParts)
@@ -941,6 +950,10 @@ export function mergePreferApiStatic(
       api.localityAsideBreadcrumbLabel,
     ),
     bookingSteps,
+    bookingStepsImage: api.bookingStepsImage?.trim() ? api.bookingStepsImage : staticBase.bookingStepsImage,
+    bookingStepsImageAlt: api.bookingStepsImageAlt?.trim()
+      ? api.bookingStepsImageAlt
+      : staticBase.bookingStepsImageAlt,
     contactPhone: pickStr(staticBase.contactPhone, api.contactPhone),
     contactWhatsapp: pickStr(staticBase.contactWhatsapp, api.contactWhatsapp),
     spareParts,

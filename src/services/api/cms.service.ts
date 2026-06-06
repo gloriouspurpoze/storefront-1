@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { TENANT_HEADER } from '../../lib/saasEnv';
 import type { CategoryMarketingConfig } from '../../types/categoryMarketing';
 import type { StoreCategoryPlpConfig } from '../../types/storeCategoryPlp';
 import type { PricingCategoryMetaConfig } from '../../types/pricingCategoryMeta';
@@ -39,11 +40,25 @@ const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
  */
 export class CMSService {
   private static getAuthHeaders() {
-    const token = localStorage.getItem('token');
+    // Lazy-read Redux so importing CMSService via the services/api barrel does not
+    // participate in a store ↔ authSlice ↔ api circular init at module load time.
+    let token: string | null = null
+    let tenantId: string | null = null
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { store } = require('../../store') as typeof import('../../store')
+      const state = store.getState()
+      token = state.auth?.token ?? null
+      tenantId = state.tenant?.tenantId ?? null
+    } catch {
+      /* store not ready yet */
+    }
+    if (!token) token = localStorage.getItem('token')
     return {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
+        ...(tenantId ? { [TENANT_HEADER]: tenantId } : {}),
       },
     };
   }

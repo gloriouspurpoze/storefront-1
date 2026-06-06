@@ -19,6 +19,7 @@ import { Link } from 'react-router-dom'
 import { CircleDollarSign, Megaphone } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { useCmsCatalogCategories } from '../../hooks/useCmsCatalogCategories'
+import { selectValueWhenListed } from '../../lib/selectValueGuard'
 import { IndustryServicePagesCatalogContext } from './IndustryServicePagesContext'
 import CategoryMarketingManagement from './CategoryMarketingManagement'
 import RateCardManagement from './RateCardManagement'
@@ -98,6 +99,12 @@ export default function IndustryServicePagesHub() {
     [effectiveCatalogKey, setCatalogKey],
   )
 
+  const catalogSelectAllowed = useMemo(() => catalogOptions.map((o) => o.value), [catalogOptions])
+  const catalogSelectValue = useMemo(
+    () => selectValueWhenListed(effectiveCatalogKey, catalogSelectAllowed),
+    [effectiveCatalogKey, catalogSelectAllowed],
+  )
+
   return (
     <IndustryServicePagesCatalogContext.Provider value={ctx}>
       <div className="p-4 sm:p-6 md:p-8">
@@ -120,7 +127,7 @@ export default function IndustryServicePagesHub() {
                     Catalog industry
                   </Label>
                   <Select
-                    value={effectiveCatalogKey}
+                    value={catalogSelectValue}
                     onValueChange={setCatalogKey}
                     disabled={catalogOptionsLoading || catalogOptions.length === 0}
                   >
@@ -135,10 +142,7 @@ export default function IndustryServicePagesHub() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Applies to every tab below. Changing it switches the key used for landing JSON, rate card rows, and
-                    cross-linking.
-                  </p>
+                 
                 </div>
               </div>
 

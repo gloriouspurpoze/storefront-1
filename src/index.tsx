@@ -13,17 +13,70 @@ import reportWebVitals from './reportWebVitals';
 function isBenignResizeObserverMessage(message: string): boolean {
   return /ResizeObserver loop/i.test(message);
 }
-function suppressResizeObserverError(event: Event) {
+
+// Benign cancellation: an AbortError is what fetch throws when a request's signal
+// is aborted (request timeouts, in-flight searches cancelled on unmount, and
+// socket.io's polling transport aborting on reconnect). Modern Chromium phrases
+// it "signal is aborted without reason". It's expected and already handled where
+// it matters — but when it surfaces as an *unhandled rejection* it trips CRA's
+// dev overlay repeatedly. Treat it as noise (never user-facing).
+function isBenignAbortError(value: unknown): boolean {
+  if (value instanceof DOMException && value.name === 'AbortError') return true;
+  if (value instanceof Error) {
+    return value.name === 'AbortError' || /signal is aborted|aborted without reason/i.test(value.message);
+  }
+  if (typeof value === 'string') {
+    return /signal is aborted|aborted without reason/i.test(value);
+  }
+  return false;
+}
+
+/** React 19 dev overlay noise when a render error was caught and recovered synchronously. */
+function isBenignReactConcurrentRecoveryMessage(message: string): boolean {
+  return /There was an error during concurrent rendering but React was able to recover/i.test(message);
+}
+
+function suppressBenignError(event: Event) {
   const e = event as ErrorEvent;
-  if (!isBenignResizeObserverMessage(String(e.message || ''))) return;
+  const msg = String(e.message || '');
+  if (
+    !isBenignResizeObserverMessage(msg) &&
+    !isBenignAbortError(e.error ?? msg) &&
+    !isBenignReactConcurrentRecoveryMessage(msg)
+  ) {
+    return;
+  }
   e.stopImmediatePropagation();
   e.preventDefault();
 }
-window.addEventListener('error', suppressResizeObserverError, true);
+window.addEventListener('error', suppressBenignError, true);
+
+// AbortErrors most often arrive as unhandled promise rejections. Catch them in
+// the capture phase and stop propagation so the overlay/global handlers ignore
+// them, while leaving all other rejections untouched.
+window.addEventListener(
+  'unhandledrejection',
+  (event: PromiseRejectionEvent) => {
+    const reason = event.reason;
+    const reasonMsg =
+      reason instanceof Error ? reason.message : typeof reason === 'string' ? reason : '';
+    if (isBenignAbortError(reason) || isBenignReactConcurrentRecoveryMessage(reasonMsg)) {
+      event.stopImmediatePropagation();
+      event.preventDefault();
+    }
+  },
+  true,
+);
 
 const prevOnError = window.onerror;
 window.onerror = (message, source, lineno, colno, error) => {
   if (typeof message === 'string' && isBenignResizeObserverMessage(message)) {
+    return true;
+  }
+  if (typeof message === 'string' && isBenignReactConcurrentRecoveryMessage(message)) {
+    return true;
+  }
+  if (isBenignAbortError(error ?? message)) {
     return true;
   }
   return prevOnError?.(message, source, lineno, colno, error) ?? false;
