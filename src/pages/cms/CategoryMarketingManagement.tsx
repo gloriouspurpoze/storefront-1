@@ -2182,7 +2182,7 @@ export default function CategoryMarketingManagement() {
                     </p>
                     <div className="flex flex-col gap-4">
                       <ImageUploadField
-                        label="Image 1 (Hero / main)"
+                        label="Image 1 (Hero — right of lead copy)"
                         value={
                           config.image1
                             ? [{ id: 'img1', url: config.image1, alt: 'Image 1', isPrimary: true, order: 0 }]
@@ -2193,10 +2193,10 @@ export default function CategoryMarketingManagement() {
                         maxSize={5}
                         folder="homeservice"
                         allowFromCloudinary
-                        helperText="Recommended: 1200×630px or similar. Max 5MB."
+                        helperText="Shown beside the hero lead copy (right column on desktop, below it on mobile). Recommended 1200×630px / 16:10. Max 5MB."
                       />
                       <ImageUploadField
-                        label="Image 2 (Secondary)"
+                        label="Image 2 (Secondary — stacks under hero)"
                         value={
                           config.image2
                             ? [{ id: 'img2', url: config.image2, alt: 'Image 2', isPrimary: true, order: 0 }]
@@ -2207,7 +2207,7 @@ export default function CategoryMarketingManagement() {
                         maxSize={5}
                         folder="homeservice"
                         allowFromCloudinary
-                        helperText="Secondary image. Max 5MB."
+                        helperText="Optional. Stacks beneath Image 1 in the hero's right column. Max 5MB."
                       />
                     </div>
                   </CardContent>

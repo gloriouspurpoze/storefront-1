@@ -85,18 +85,39 @@ export function CmsConsumerVisualPreview({
         {config.heroChip.trim() ? (
           <p className="mt-1 text-xs font-medium text-muted-foreground">{config.heroChip}</p>
         ) : null}
-        {config.intro.trim() ? (
-          <div className="mt-4">
-            <ConsumerPreviewRichHtml html={config.intro} />
+        {config.intro.trim() || config.image1?.trim() ? (
+          <div
+            className={cn(
+              'mt-4',
+              !isMobile && config.image1?.trim() && config.intro.trim()
+                ? 'grid grid-cols-2 items-center gap-4'
+                : '',
+            )}
+          >
+            {config.intro.trim() ? (
+              <div className="min-w-0">
+                <ConsumerPreviewRichHtml html={config.intro} />
+              </div>
+            ) : null}
+            {config.image1?.trim() ? (
+              <div className={cn('space-y-2', config.intro.trim() && isMobile ? 'mt-3' : '')}>
+                <img
+                  src={config.image1}
+                  alt={config.mainHeading.trim() || 'Hero image'}
+                  className="max-h-48 w-full rounded-lg object-cover"
+                  loading="lazy"
+                />
+                {config.image2?.trim() ? (
+                  <img
+                    src={config.image2}
+                    alt={config.mainHeading.trim() || 'Secondary image'}
+                    className="max-h-32 w-full rounded-lg object-cover"
+                    loading="lazy"
+                  />
+                ) : null}
+              </div>
+            ) : null}
           </div>
-        ) : null}
-        {config.image1?.trim() ? (
-          <img
-            src={config.image1}
-            alt={config.mainHeading.trim() || 'Hero image'}
-            className="mt-4 max-h-48 w-full rounded-lg object-cover"
-            loading="lazy"
-          />
         ) : null}
         {config.topicChips.filter((x) => x.trim()).length ? (
           <div className="mt-4 flex flex-wrap gap-1.5">
