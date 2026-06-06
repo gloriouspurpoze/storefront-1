@@ -258,6 +258,32 @@ const CAREERS_CONTENT = `
 <p>To apply, send your CV and a short cover letter to careers@fixer.com with the job title in the subject line. We review applications regularly and will get back to shortlisted candidates within two weeks.</p>
 `.trim();
 
+const WHY_CHOOSE_US_CONTENT = `
+<h2>Why Choose Us</h2>
+<p>We make home services predictable: verified professionals, transparent pricing, and support when you need it. Here is what sets us apart.</p>
+
+<h2>Verified Professionals</h2>
+<p>Every partner is vetted for skills and background. You can see ratings and job history before you book.</p>
+
+<h2>Transparent Pricing</h2>
+<p>Rate cards for common jobs and clear quotes for custom work—pay after service with no surprise charges.</p>
+
+<h2>Fast, Reliable Service</h2>
+<p>We prioritise urgent issues and offer same-day slots where possible, with human support on phone and chat.</p>
+
+<p><em>Note: on the live site, the page <strong>title</strong> and <strong>excerpt</strong> control the heading and intro; the styled feature cards are managed in code.</em></p>
+`.trim();
+
+const MENTIONS_CONTENT = `
+<h2>Press, Media & Partnerships</h2>
+<p>This page highlights public mentions, collaborations, and milestones as we grow. Update entries as you earn real coverage and keep dates accurate for trust.</p>
+
+<h2>Press &amp; Partnership Enquiries</h2>
+<p>For press, media, or partnership enquiries, contact us using the details on our Contact page.</p>
+
+<p><em>Note: on the live site, the page <strong>title</strong> and <strong>excerpt</strong> control the heading and intro; the mention cards are managed in code.</em></p>
+`.trim();
+
 const ACCESSIBILITY_CONTENT = `
 <h2>Accessibility Statement</h2>
 <p>Fixer is committed to ensuring our website is accessible to as many people as possible, including those with disabilities. We aim to conform to WCAG 2.1 Level AA where practicable.</p>
@@ -376,6 +402,24 @@ export const PAGE_TEMPLATES: Record<string, PageTemplate> = {
     seoTitle: 'Accessibility Statement',
     seoDescription: 'Our commitment to making our website accessible to everyone.',
     seoKeywords: 'accessibility, WCAG, inclusive',
+  },
+  'why-choose-us': {
+    title: 'Why Choose Us',
+    slug: 'why-choose-us',
+    excerpt: 'The reasons customers trust us: verified professionals, transparent pricing, and reliable service.',
+    content: WHY_CHOOSE_US_CONTENT,
+    seoTitle: 'Why Choose Us',
+    seoDescription: 'Verified professionals, transparent pricing, and reliable home services you can trust.',
+    seoKeywords: 'why choose us, verified professionals, transparent pricing, trusted home services',
+  },
+  'mentions': {
+    title: 'Press & Media Mentions',
+    slug: 'mentions',
+    excerpt: 'Our presence in the news, partnerships, and recognition.',
+    content: MENTIONS_CONTENT,
+    seoTitle: 'Press & Media Mentions',
+    seoDescription: 'News, partnerships, and recognition for our home services platform.',
+    seoKeywords: 'press, media, mentions, partnerships, news',
   },
 };
 
