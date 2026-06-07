@@ -256,6 +256,8 @@ export interface CategoryMarketingConfig {
   contactPhone: string
   contactWhatsapp: string
 
+  /** Heading for the pricing matrix section. Empty → consumer fallback ("{Category} charges — indicative rates in {Location}"). */
+  pricingHeading: string
   spareParts: SparePartRow[]
   pricingIncluded: string[]
   pricingExcluded: string[]
@@ -452,6 +454,7 @@ export function emptyCategoryMarketingConfig(): CategoryMarketingConfig {
     bookingStepsImageAlt: undefined,
     contactPhone: '',
     contactWhatsapp: '',
+    pricingHeading: '',
     spareParts: [],
     pricingIncluded: [],
     pricingExcluded: [],
@@ -785,6 +788,7 @@ export function mergeCategoryConfig(
       p.bookingStepsImageAlt != null ? String(p.bookingStepsImageAlt) : e.bookingStepsImageAlt,
     contactPhone: String(p.contactPhone ?? e.contactPhone),
     contactWhatsapp: String(p.contactWhatsapp ?? e.contactWhatsapp),
+    pricingHeading: String(p.pricingHeading ?? e.pricingHeading),
     spareParts: Array.isArray(p.spareParts)
       ? (p.spareParts as unknown[]).map(normalizeSparePart)
       : e.spareParts,
@@ -996,6 +1000,7 @@ export function mergePreferApiStatic(
       : staticBase.bookingStepsImageAlt,
     contactPhone: pickStr(staticBase.contactPhone, api.contactPhone),
     contactWhatsapp: pickStr(staticBase.contactWhatsapp, api.contactWhatsapp),
+    pricingHeading: pickStr(staticBase.pricingHeading, api.pricingHeading),
     spareParts,
     pricingIncluded,
     pricingExcluded,

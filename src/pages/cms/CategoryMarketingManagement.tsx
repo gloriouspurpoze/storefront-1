@@ -2730,6 +2730,24 @@ export default function CategoryMarketingManagement() {
                 </div>
                 <Card>
                   <CardContent>
+                    <div className="space-y-2">
+                      <Label htmlFor="cmm-f-pricing-heading">Pricing section heading (H2)</Label>
+                      <Input
+                        id="cmm-f-pricing-heading"
+                        className="w-full"
+                        placeholder="[ServiceName] charges — indicative rates in [Location]"
+                        value={config.pricingHeading}
+                        onChange={(e) => updateConfig({ pricingHeading: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Title above the rate table. Leave blank to auto-build “[ServiceName] charges — indicative rates in [Location]”.
+                        Supports [City], [Location], [ServiceName] tokens.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent>
                     <div className="flex flex-wrap items-center justify-between">
                       <p className="text-sm text-muted-foreground">
                         Spare parts (item + price range)
