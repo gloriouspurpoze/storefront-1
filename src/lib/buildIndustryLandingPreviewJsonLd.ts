@@ -30,6 +30,29 @@ function nonempty(s: string | undefined): boolean {
   return typeof s === 'string' && s.trim().length > 0
 }
 
+/**
+ * schema.org `LocalBusiness` subtypes the CMS `schemaPrimaryType` may select. When the service node
+ * is typed as one of these, Google grades it as a Local Business and expects NAP / image / priceRange
+ * — mirror the consumer enrichment so the preview matches the live `@graph`.
+ */
+const LOCAL_BUSINESS_SCHEMA_TYPES = new Set<string>([
+  'LocalBusiness',
+  'ProfessionalService',
+  'HomeAndConstructionBusiness',
+  'Electrician',
+  'GeneralContractor',
+  'HVACBusiness',
+  'HousePainter',
+  'Locksmith',
+  'MovingCompany',
+  'Plumber',
+  'RoofingContractor',
+])
+
+function isLocalBusinessSchemaType(type: string): boolean {
+  return LOCAL_BUSINESS_SCHEMA_TYPES.has(type)
+}
+
 export interface IndustryLandingJsonLdPreviewResult {
   /** Single JSON-LD document for display (not identical to consumer output). */
   document: { '@context': string; '@graph': unknown[] }
@@ -57,6 +80,12 @@ export function buildIndustryLandingPreviewJsonLd(
   const title = (cfg.technicalSeo.ogTitle.trim() || cfg.seoTitle.trim() || '—').trim()
   const desc = (cfg.technicalSeo.ogDescription.trim() || cfg.metaDescription.trim() || '').trim()
 
+  const speakableSelectorsForWebPage = cfg.technicalSeo.speakableSelectors
+    .map((s) => s.trim())
+    .filter(Boolean)
+  const emitSpeakable =
+    speakableSelectorsForWebPage.length > 0 && Boolean(cfg.technicalSeo.answerEngineSummary.trim())
+
   if (cfg.technicalSeo.enableWebPageSchema) {
     const wp: Record<string, unknown> = {
       '@type': 'WebPage',
@@ -70,6 +99,10 @@ export function buildIndustryLandingPreviewJsonLd(
     }
     const about = cfg.technicalSeo.knowsAbout.map((s) => s.trim()).filter(Boolean)
     if (about.length) wp.about = about
+    // `speakable` must live on the WebPage — never as a standalone graph node (Rich Results error).
+    if (emitSpeakable) {
+      wp.speakable = { '@type': 'SpeakableSpecification', cssSelector: speakableSelectorsForWebPage }
+    }
     graph.push(wp)
   } else {
     footnotes.push('WebPage node omitted — enable “Emit WebPage JSON-LD” under Technical SEO.')
@@ -84,6 +117,35 @@ export function buildIndustryLandingPreviewJsonLd(
       url: pageUrl,
     }
     if (desc) svc.description = desc
+
+    // When this node is typed as a LocalBusiness subtype (e.g. HomeAndConstructionBusiness), Google
+    // expects telephone / priceRange / address / image. Surface the admin Local SEO + contact values
+    // so editors see the same complete node the consumer emits (which falls back to registered-office
+    // NAP when these are blank).
+    if (isLocalBusinessSchemaType(primaryType)) {
+      if (nonempty(cfg.contactPhone)) svc.telephone = cfg.contactPhone.trim()
+      if (nonempty(cfg.localSeo.priceRange)) svc.priceRange = cfg.localSeo.priceRange.trim()
+      if (nonempty(cfg.localSeo.ogImageOverride)) svc.image = cfg.localSeo.ogImageOverride.trim()
+      const svcAddr: Record<string, unknown> = {}
+      if (nonempty(cfg.localSeo.streetAddress)) svcAddr.streetAddress = cfg.localSeo.streetAddress.trim()
+      if (nonempty(cfg.localSeo.addressLocality)) svcAddr.addressLocality = cfg.localSeo.addressLocality.trim()
+      if (nonempty(cfg.localSeo.addressRegion)) svcAddr.addressRegion = cfg.localSeo.addressRegion.trim()
+      if (nonempty(cfg.localSeo.postalCode)) svcAddr.postalCode = cfg.localSeo.postalCode.trim()
+      if (nonempty(cfg.localSeo.addressCountryCode)) svcAddr.addressCountry = cfg.localSeo.addressCountryCode.trim()
+      if (Object.keys(svcAddr).length) svc.address = { '@type': 'PostalAddress', ...svcAddr }
+      if (nonempty(cfg.localSeo.geoLatLng)) {
+        const parts = cfg.localSeo.geoLatLng.split(',').map((s) => s.trim())
+        const lat = Number(parts[0])
+        const lng = Number(parts[1])
+        if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+          svc.geo = { '@type': 'GeoCoordinates', latitude: lat, longitude: lng }
+        }
+      }
+      footnotes.push(
+        'Primary @type is a LocalBusiness subtype — consumer adds telephone/priceRange/address/image from these Local SEO fields, or the registered-office NAP when blank.',
+      )
+    }
+
     const rv = cfg.technicalSeo.aggregateRating.ratingValue.trim()
     const rc = cfg.technicalSeo.aggregateRating.reviewCount.trim()
     if (rv && rc) {
@@ -190,15 +252,19 @@ export function buildIndustryLandingPreviewJsonLd(
     }
   }
 
-  const selectors = cfg.technicalSeo.speakableSelectors.map((s) => s.trim()).filter(Boolean)
-  if (selectors.length) {
-    graph.push({
-      '@type': 'SpeakableSpecification',
-      '@id': `${pageUrl}#speakable`,
-      cssSelector: selectors,
-    })
-    if (cfg.technicalSeo.answerEngineSummary.trim()) {
-      footnotes.push('Speakable selectors are set — consumer may bind them to visible answer-engine copy.')
+  if (speakableSelectorsForWebPage.length) {
+    if (emitSpeakable) {
+      footnotes.push(
+        'Speakable is nested as the WebPage `speakable` property (not a standalone node) and binds to the answer-engine summary.',
+      )
+    } else if (!cfg.technicalSeo.enableWebPageSchema) {
+      footnotes.push(
+        'Speakable selectors are set but WebPage schema is off — speakable is dropped (it can only attach to a WebPage).',
+      )
+    } else {
+      footnotes.push(
+        'Speakable selectors are set but the answer-engine summary is empty — speakable is omitted until both are filled.',
+      )
     }
   }
 

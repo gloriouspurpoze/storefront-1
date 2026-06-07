@@ -117,6 +117,64 @@ function charCountColor(len: number, min: number, optimal: number, hard: number)
   return 'text-muted-foreground'
 }
 
+/**
+ * NAP field validators. Each returns `null` when valid (including empty, since blank falls back to
+ * the registered-office NAP in schema) or a short error string to show inline. Format-only checks —
+ * Google's Rich Results test remains the source of truth for the rendered JSON-LD.
+ */
+function napPhoneError(v: string): string | null {
+  const t = v.trim()
+  if (!t) return null
+  // Accept E.164 (+91…) or a 10-digit Indian mobile; tolerate spaces / hyphens between digits.
+  const digits = t.replace(/[\s-]/g, '')
+  if (!/^\+?[0-9]{8,15}$/.test(digits)) return 'Use digits only, e.g. +919812345678 or 9812345678.'
+  return null
+}
+
+function napPostalCodeError(v: string, countryCode: string): string | null {
+  const t = v.trim()
+  if (!t) return null
+  const cc = countryCode.trim().toUpperCase()
+  if (cc === '' || cc === 'IN') {
+    if (!/^[1-9][0-9]{5}$/.test(t)) return 'Indian PIN is 6 digits (no leading zero), e.g. 401107.'
+  }
+  return null
+}
+
+function napCountryCodeError(v: string): string | null {
+  const t = v.trim()
+  if (!t) return null
+  if (!/^[A-Z]{2}$/.test(t.toUpperCase())) return 'Use a 2-letter ISO country code, e.g. IN.'
+  return null
+}
+
+function napPriceRangeError(v: string): string | null {
+  const t = v.trim()
+  if (!t) return null
+  // Qualitative form: 1–4 currency symbols only, e.g. ₹ / ₹₹ / ₹₹₹.
+  if (/^[₹$€£]{1,4}$/.test(t)) return null
+  if (/\d/.test(t)) {
+    // "₹₹99" style — repeated symbol glued to a number is neither a clean band nor a range.
+    if (/[₹$€£]{2,}/.test(t)) return 'Use symbols only (₹₹) OR a numeric range (₹149 – ₹5000), not both.'
+    // A number with no range reads ambiguously; nudge toward a band.
+    if (!/[-–—+]|to/i.test(t)) return 'Give a range, e.g. ₹149 – ₹5000 (or just ₹ / ₹₹ / ₹₹₹).'
+  }
+  return null
+}
+
+function napGeoError(v: string): string | null {
+  const t = v.trim()
+  if (!t) return null
+  const parts = t.split(',').map((s) => s.trim())
+  if (parts.length !== 2) return 'Format is "lat,lng", e.g. 19.2856,72.8691.'
+  const lat = Number(parts[0])
+  const lng = Number(parts[1])
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return 'Latitude and longitude must be numbers.'
+  if (Math.abs(lat) > 90) return 'Latitude must be between -90 and 90.'
+  if (Math.abs(lng) > 180) return 'Longitude must be between -180 and 180.'
+  return null
+}
+
 export default function CategoryMarketingManagement() {
   const industryHub = useIndustryServicePagesCatalog()
   const { options: catalogOptions, loading: catalogOptionsLoading, defaultSlug } = useCmsCatalogCategories()
@@ -1719,7 +1777,7 @@ export default function CategoryMarketingManagement() {
                       <div className="space-y-2">
                       <Label htmlFor="cmm-f-24">Primary schema.org @type hint</Label>
                       <Input id="cmm-f-24" className="w-full" value={config.technicalSeo.schemaPrimaryType} onChange={(e) => updateTechnicalSeo({ schemaPrimaryType: e.target.value })} placeholder="ProfessionalService or HomeAndConstructionBusiness" />
-                      <p className="text-xs text-muted-foreground">Consumer maps this to Service / LocalBusiness typing, not a substitute for valid NAP.</p>
+                      <p className="text-xs text-muted-foreground">Consumer maps this to Service / LocalBusiness typing. Choosing a LocalBusiness type (e.g. HomeAndConstructionBusiness) auto-fills telephone, price range, address &amp; image from the Local SEO fields below (registered-office NAP when blank).</p>
                     </div>
                       <div className="flex items-start gap-3">
                         <Checkbox
@@ -1939,7 +1997,10 @@ export default function CategoryMarketingManagement() {
                     </div>
                       <div className="space-y-2">
                       <Label htmlFor="cmm-f-34">Price range hint</Label>
-                      <Input id="cmm-f-34" className="w-full" value={config.localSeo.priceRange} onChange={(e) => updateLocalSeo({ priceRange: e.target.value })} placeholder="e.g. ₹₹ or Inexpensive–Moderate" />
+                      <Input id="cmm-f-34" className="w-full" value={config.localSeo.priceRange} onChange={(e) => updateLocalSeo({ priceRange: e.target.value })} placeholder="₹149 – ₹5000 (or ₹ / ₹₹ / ₹₹₹)" aria-invalid={napPriceRangeError(config.localSeo.priceRange) ? true : undefined} />
+                      {napPriceRangeError(config.localSeo.priceRange) ? (
+                        <p className="text-xs text-destructive">{napPriceRangeError(config.localSeo.priceRange)}</p>
+                      ) : null}
                     </div>
                     </div>
                   </CardContent>
@@ -2048,6 +2109,15 @@ export default function CategoryMarketingManagement() {
                     </p>
                     <div className="flex flex-col gap-4">
                       <div className="space-y-2">
+                      <Label htmlFor="cmm-f-nap-phone">Business phone</Label>
+                      <Input id="cmm-f-nap-phone" className="w-full" value={config.contactPhone} onChange={(e) => updateConfig({ contactPhone: e.target.value })} placeholder="+919812345678" aria-invalid={napPhoneError(config.contactPhone) ? true : undefined} />
+                      {napPhoneError(config.contactPhone) ? (
+                        <p className="text-xs text-destructive">{napPhoneError(config.contactPhone)}</p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">The "P" in NAP — feeds LocalBusiness <code>telephone</code>. Same value as the Contact phone field. Blank uses the registered-office number.</p>
+                      )}
+                    </div>
+                      <div className="space-y-2">
                       <Label htmlFor="cmm-f-39">Street address</Label>
                       <Input id="cmm-f-39" className="w-full" value={config.localSeo.streetAddress} onChange={(e) => updateLocalSeo({ streetAddress: e.target.value })} />
                     </div>
@@ -2064,17 +2134,27 @@ export default function CategoryMarketingManagement() {
                       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-2">
                         <div className="space-y-2">
                       <Label htmlFor="cmm-f-42">Postal code</Label>
-                      <Input id="cmm-f-42" className="w-full" value={config.localSeo.postalCode} onChange={(e) => updateLocalSeo({ postalCode: e.target.value })} />
+                      <Input id="cmm-f-42" className="w-full" value={config.localSeo.postalCode} onChange={(e) => updateLocalSeo({ postalCode: e.target.value })} aria-invalid={napPostalCodeError(config.localSeo.postalCode, config.localSeo.addressCountryCode) ? true : undefined} />
+                      {napPostalCodeError(config.localSeo.postalCode, config.localSeo.addressCountryCode) ? (
+                        <p className="text-xs text-destructive">{napPostalCodeError(config.localSeo.postalCode, config.localSeo.addressCountryCode)}</p>
+                      ) : null}
                     </div>
                         <div className="space-y-2">
                       <Label htmlFor="cmm-f-43">Country code (ISO)</Label>
-                      <Input id="cmm-f-43" className="w-full" value={config.localSeo.addressCountryCode} onChange={(e) => updateLocalSeo({ addressCountryCode: e.target.value.toUpperCase() })} maxLength={2} placeholder="IN" />
+                      <Input id="cmm-f-43" className="w-full" value={config.localSeo.addressCountryCode} onChange={(e) => updateLocalSeo({ addressCountryCode: e.target.value.toUpperCase() })} maxLength={2} placeholder="IN" aria-invalid={napCountryCodeError(config.localSeo.addressCountryCode) ? true : undefined} />
+                      {napCountryCodeError(config.localSeo.addressCountryCode) ? (
+                        <p className="text-xs text-destructive">{napCountryCodeError(config.localSeo.addressCountryCode)}</p>
+                      ) : null}
                     </div>
                       </div>
                       <div className="space-y-2">
                       <Label htmlFor="cmm-f-44">Geo coordinates (optional)</Label>
-                      <Input id="cmm-f-44" className="w-full" value={config.localSeo.geoLatLng} onChange={(e) => updateLocalSeo({ geoLatLng: e.target.value })} placeholder="19.2856,72.8691" />
-                      <p className="text-xs text-muted-foreground">Latitude,longitude for JSON-LD geo — use the verified storefront or service center.</p>
+                      <Input id="cmm-f-44" className="w-full" value={config.localSeo.geoLatLng} onChange={(e) => updateLocalSeo({ geoLatLng: e.target.value })} placeholder="19.2856,72.8691" aria-invalid={napGeoError(config.localSeo.geoLatLng) ? true : undefined} />
+                      {napGeoError(config.localSeo.geoLatLng) ? (
+                        <p className="text-xs text-destructive">{napGeoError(config.localSeo.geoLatLng)}</p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Latitude,longitude for JSON-LD geo — use the verified storefront or service center.</p>
+                      )}
                     </div>
                       <div className="space-y-2">
                       <Label htmlFor="cmm-f-45">Google Business Profile URL</Label>
