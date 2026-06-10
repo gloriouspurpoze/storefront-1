@@ -22,23 +22,27 @@ type EntityKind =
   | 'guides'
   | 'providers'
   | 'locations'
+  | 'landing-pages'
 
 type EntityDraft = Record<string, unknown>
 
 const KIND_LABELS: Record<EntityKind, string> = {
   problems: 'Problems (/problems)',
-  'cost-guides': 'Cost guides (/cost)',
+  'cost-guides': 'Service charges (/charges)',
   guides: 'How-to guides (/guide)',
   providers: 'Providers (/provider)',
   locations: 'Areas (/areas)',
+  'landing-pages': 'Local pages (/…)',
 }
 
 const KIND_PUBLIC_PATH: Record<EntityKind, string> = {
   problems: '/problems',
-  'cost-guides': '/cost',
+  'cost-guides': '/charges',
   guides: '/guide',
   providers: '/provider',
   locations: '/areas',
+  // Flat top-level "money page" slug — no path prefix.
+  'landing-pages': '',
 }
 
 /** Public URL for a record key. */
@@ -94,6 +98,24 @@ function emptyDraft(kind: EntityKind, slug: string): EntityDraft {
       seo: { noindex: false },
     }
   }
+  if (kind === 'landing-pages') {
+    return {
+      slug,
+      title: '',
+      serviceSlug: 'ac-repair',
+      locationSlug: 'mira-road',
+      locationName: '',
+      quickAnswer: '',
+      keyTakeaways: [],
+      priceTable: [],
+      priceTableCaption: '',
+      sections: [],
+      faqs: [],
+      // Self-canonical by default → a real indexable money page. Point this at
+      // /services/{service}/{locality} instead if you see cannibalization.
+      seo: { noindex: false, canonicalPath: slug ? `/${slug}` : '' },
+    }
+  }
   return base
 }
 
@@ -109,6 +131,8 @@ async function fetchKindRecord(kind: EntityKind): Promise<Record<string, unknown
       return CMSService.getSeoProviders()
     case 'locations':
       return CMSService.getSeoLocations()
+    case 'landing-pages':
+      return CMSService.getSeoLandingPages()
   }
 }
 
@@ -124,6 +148,8 @@ async function saveKindRecord(kind: EntityKind, data: Record<string, unknown>) {
       return CMSService.updateSeoProviders(data)
     case 'locations':
       return CMSService.updateSeoLocations(data)
+    case 'landing-pages':
+      return CMSService.updateSeoLandingPages(data)
   }
 }
 
@@ -162,6 +188,11 @@ function effectiveBodyLength(draft: EntityDraft): number {
     if (s.type === 'how_to') len += (s.steps ?? []).reduce((n, st) => n + st.name.length + st.text.length, 0)
     if (s.type === 'causes') len += (s.causes ?? []).reduce((n, c) => n + c.cause.length + c.fix.length, 0)
     if (s.type === 'price_table') len += (s.rows ?? []).reduce((n, r) => n + r.item.length + (r.note?.length ?? 0), 0)
+    if (s.type === 'cards')
+      len += (s.cards ?? []).reduce(
+        (n, c) => n + c.title.length + (c.description?.length ?? 0) + (c.value?.length ?? 0),
+        0,
+      )
   }
   return len
 }
@@ -263,7 +294,7 @@ export default function SeoLandingPagesManagement() {
     <div className="p-4 sm:p-6 md:p-8">
       <PageHeader
         title="SEO landing pages"
-        subtitle="Programmatic pages: /cost, /problems, /guide, /provider & /areas — synced to the consumer site via static-content CMS blobs."
+        subtitle="Programmatic pages: /charges, /problems, /guide, /provider, /areas & flat local pages — synced to the consumer site via static-content CMS blobs."
         action={
           <Button onClick={handleSave} disabled={saving || !canMutate} className="rounded-md">
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
@@ -509,7 +540,17 @@ export default function SeoLandingPagesManagement() {
                                 onChange={(e) => patchDraft({ title: e.target.value })}
                               />
                             </div>
-                            {(k === 'problems' || k === 'cost-guides') && (
+                            {(k === 'problems' || k === 'cost-guides' || k === 'guides') && (
+                              <div className="space-y-2">
+                                <Label>Hero subtitle (optional, shown under H1)</Label>
+                                <Input
+                                  value={String(draft.subtitle ?? '')}
+                                  onChange={(e) => patchDraft({ subtitle: e.target.value })}
+                                  placeholder="Common Causes, DIY Fixes & Repair Cost Guide"
+                                />
+                              </div>
+                            )}
+                            {(k === 'problems' || k === 'cost-guides' || k === 'landing-pages') && (
                               <div className="space-y-2">
                                 <Label>Service slug</Label>
                                 <select
@@ -525,22 +566,56 @@ export default function SeoLandingPagesManagement() {
                                 </select>
                               </div>
                             )}
+                            {(k === 'problems' || k === 'cost-guides' || k === 'guides') && (
+                              <div className="space-y-2">
+                                <Label>Location slug (optional — hyperlocal booking &amp; nearby-area links)</Label>
+                                <Input
+                                  value={String(draft.locationSlug ?? '')}
+                                  onChange={(e) => patchDraft({ locationSlug: e.target.value })}
+                                  placeholder="mira-bhayandar"
+                                />
+                              </div>
+                            )}
                             {k === 'cost-guides' && (
                               <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                  <Label>Location slug (optional)</Label>
-                                  <Input
-                                    value={String(draft.locationSlug ?? '')}
-                                    onChange={(e) => patchDraft({ locationSlug: e.target.value })}
-                                    placeholder="mira-bhayandar"
-                                  />
-                                </div>
                                 <div className="space-y-2">
                                   <Label>Year</Label>
                                   <Input
                                     type="number"
                                     value={String(draft.year ?? new Date().getFullYear())}
                                     onChange={(e) => patchDraft({ year: Number(e.target.value) })}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                            {k === 'landing-pages' && (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                  <Label>Location slug (booking CTA → /services/{'{'}service{'}'}/{'{'}slug{'}'})</Label>
+                                  <Input
+                                    value={String(draft.locationSlug ?? '')}
+                                    onChange={(e) => patchDraft({ locationSlug: e.target.value })}
+                                    placeholder="bhayandar"
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label>Location display name</Label>
+                                  <Input
+                                    value={String(draft.locationName ?? '')}
+                                    onChange={(e) => patchDraft({ locationName: e.target.value })}
+                                    placeholder="Bhayandar West, Thane"
+                                  />
+                                </div>
+                                <div className="space-y-2 sm:col-span-2">
+                                  <Label>Canonical path (self-canonical, or point to /services/… to avoid cannibalization)</Label>
+                                  <Input
+                                    value={String((draft.seo as Record<string, unknown>)?.canonicalPath ?? '')}
+                                    onChange={(e) =>
+                                      patchDraft({
+                                        seo: { ...(draft.seo as object), canonicalPath: e.target.value },
+                                      })
+                                    }
+                                    placeholder={`/${selectedSlug}`}
                                   />
                                 </div>
                               </div>
@@ -586,7 +661,7 @@ export default function SeoLandingPagesManagement() {
                                 </p>
                               )}
                             </div>
-                            {k === 'cost-guides' && (
+                            {(k === 'cost-guides' || k === 'landing-pages') && (
                               <div className="space-y-2">
                                 <Label>Price table (JSON array)</Label>
                                 <Textarea
@@ -600,8 +675,16 @@ export default function SeoLandingPagesManagement() {
                                   }
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                  Example: {`[{"item":"AC service","priceFrom":499,"priceTo":899}]`}
+                                  Example: {`[{"item":"AC service","priceFrom":499,"priceTo":899,"note":"Labour"}]`}
                                 </p>
+                                {k === 'landing-pages' && (
+                                  <Input
+                                    className="mt-2"
+                                    value={String(draft.priceTableCaption ?? '')}
+                                    onChange={(e) => patchDraft({ priceTableCaption: e.target.value })}
+                                    placeholder="Price table caption (e.g. Indicative AC charges in Bhayandar West, 2026)"
+                                  />
+                                )}
                               </div>
                             )}
                           </>
@@ -615,6 +698,76 @@ export default function SeoLandingPagesManagement() {
                             value={JSON.stringify(draft.faqs ?? [], null, 2)}
                             onChange={(e) => patchDraft({ faqs: parseJsonField(e.target.value, []) })}
                           />
+                        </div>
+
+                        <div className="space-y-3 rounded-md border border-border p-3">
+                          <p className="text-sm font-semibold">SEO &amp; meta</p>
+                          <p className="text-xs text-muted-foreground">
+                            Overrides the auto-generated tags. Leave blank to use the smart defaults derived from the title &amp; quick answer.
+                          </p>
+                          <div className="space-y-2">
+                            <Label>SEO title (meta title)</Label>
+                            <Input
+                              value={String((draft.seo as Record<string, unknown>)?.title ?? '')}
+                              onChange={(e) =>
+                                patchDraft({ seo: { ...(draft.seo as object), title: e.target.value } })
+                              }
+                              placeholder="AC Repair Cost in Mira Bhayandar (2026) | ProFixer"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Aim for 50–60 characters. {String((draft.seo as Record<string, unknown>)?.title ?? '').length}/60
+                            </p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Meta description</Label>
+                            <Textarea
+                              rows={2}
+                              value={String((draft.seo as Record<string, unknown>)?.description ?? '')}
+                              onChange={(e) =>
+                                patchDraft({ seo: { ...(draft.seo as object), description: e.target.value } })
+                              }
+                              placeholder="Transparent AC repair charges in Mira Bhayandar with verified technicians, upfront pricing & same-day slots."
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Aim for 150–160 characters. {String((draft.seo as Record<string, unknown>)?.description ?? '').length}/160
+                            </p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Keywords (comma separated)</Label>
+                            <Input
+                              value={
+                                Array.isArray((draft.seo as Record<string, unknown>)?.keywords)
+                                  ? ((draft.seo as Record<string, unknown>).keywords as string[]).join(', ')
+                                  : ''
+                              }
+                              onChange={(e) =>
+                                patchDraft({
+                                  seo: {
+                                    ...(draft.seo as object),
+                                    keywords: e.target.value
+                                      .split(',')
+                                      .map((kw) => kw.trim())
+                                      .filter(Boolean),
+                                  },
+                                })
+                              }
+                              placeholder="ac repair cost mira bhayandar, ac service charges, ac gas refill price"
+                            />
+                          </div>
+                          {k !== 'landing-pages' && (
+                            <div className="space-y-2">
+                              <Label>Canonical path (self-canonical, or point to /services/… to avoid cannibalization)</Label>
+                              <Input
+                                value={String((draft.seo as Record<string, unknown>)?.canonicalPath ?? '')}
+                                onChange={(e) =>
+                                  patchDraft({
+                                    seo: { ...(draft.seo as object), canonicalPath: e.target.value },
+                                  })
+                                }
+                                placeholder={`/${k === 'problems' ? 'problems' : k === 'cost-guides' ? 'charges' : 'guide'}/${selectedSlug}`}
+                              />
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex items-center gap-3 rounded-md border p-3">

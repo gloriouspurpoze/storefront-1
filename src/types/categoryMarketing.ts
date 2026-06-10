@@ -279,6 +279,38 @@ export interface CategoryMarketingConfig {
 
   /** Canonical, social meta, robots, hreflang, schema toggles, and AI/entity signals. */
   technicalSeo: TechnicalSeoCmsFields
+
+  /** Optional overrides for programmatic `/near-me/{category}` and `/near-me/{category}/{locality}` pages. */
+  nearMeSeo: NearMeSeoCmsFields
+}
+
+export interface NearMeSeoCmsFields {
+  title: string
+  description: string
+  keywords: string[]
+}
+
+export const emptyNearMeSeo = (): NearMeSeoCmsFields => ({
+  title: '',
+  description: '',
+  keywords: [],
+})
+
+export function normalizeNearMeSeo(raw: unknown): NearMeSeoCmsFields {
+  const e = emptyNearMeSeo()
+  if (!raw || typeof raw !== 'object') return e
+  const o = raw as Record<string, unknown>
+  let keywords = e.keywords
+  if (Array.isArray(o.keywords)) {
+    keywords = (o.keywords as unknown[]).map((x) => String(x ?? '').trim()).filter(Boolean)
+  } else if (typeof o.keywords === 'string') {
+    keywords = o.keywords.split(',').map((s) => s.trim()).filter(Boolean)
+  }
+  return {
+    title: String(o.title ?? e.title),
+    description: String(o.description ?? e.description),
+    keywords,
+  }
 }
 
 export const emptyLeadMagnet = (): LeadMagnetBlock => ({
@@ -467,6 +499,7 @@ export function emptyCategoryMarketingConfig(): CategoryMarketingConfig {
     localityGuide: emptyLocalityGuide(),
     localSeo: emptyLocalSeo(),
     technicalSeo: emptyTechnicalSeo(),
+    nearMeSeo: emptyNearMeSeo(),
   }
 }
 
@@ -811,6 +844,7 @@ export function mergeCategoryConfig(
     localityGuide: normalizeLocalityGuide(p.localityGuide),
     localSeo: normalizeLocalSeo(p.localSeo),
     technicalSeo: normalizeTechnicalSeo(p.technicalSeo),
+    nearMeSeo: normalizeNearMeSeo(p.nearMeSeo),
   }
 }
 
@@ -953,6 +987,15 @@ export function mergePreferApiStatic(
     enableServiceOfferSchema: tsA.enableServiceOfferSchema || tsS.enableServiceOfferSchema,
   }
 
+  const nmS = staticBase.nearMeSeo ?? emptyNearMeSeo()
+  const nmA = api.nearMeSeo ?? emptyNearMeSeo()
+  const nearMeKeywords = pickArr(nmS.keywords, nmA.keywords, nonEmpty)
+  const nearMeSeo: NearMeSeoCmsFields = {
+    title: pickStr(nmS.title, nmA.title),
+    description: pickStr(nmS.description, nmA.description),
+    keywords: nearMeKeywords,
+  }
+
   return {
     seoTitle: pickStr(staticBase.seoTitle, api.seoTitle),
     metaDescription: pickStr(staticBase.metaDescription, api.metaDescription),
@@ -1013,6 +1056,7 @@ export function mergePreferApiStatic(
     localityGuide,
     localSeo,
     technicalSeo,
+    nearMeSeo,
   }
 }
 

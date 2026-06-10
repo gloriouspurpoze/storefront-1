@@ -179,8 +179,10 @@ export default function IndustryServicePagesHub() {
               </div>
 
               <p className="text-sm text-muted-foreground">
-                Service areas drive the locality picker on the Landing tab and the consumer URL allowlist. Rate card and
-                cross-linking use the same catalog industry key as landings.
+                Service areas drive the locality picker on the Landing tab, the consumer URL allowlist for{' '}
+                <code>/services/&#123;category&#125;/&#123;locality&#125;</code>, and auto-generated near-me pages at{' '}
+                <code>/near-me/&#123;category&#125;/&#123;locality&#125;</code> (no separate CMS entry — add or
+                deactivate areas here). Rate card and cross-linking use the same catalog industry key as landings.
               </p>
               <div className="flex flex-wrap gap-2 pt-1">
                 <Button type="button" variant="outline" size="sm" asChild>

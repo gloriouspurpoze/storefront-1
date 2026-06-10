@@ -1,6 +1,6 @@
 /**
  * Reorderable content blocks for programmatic SEO landing pages
- * (`/problems`, `/cost`, `/guide`). Mirrors the consumer-site
+ * (`/problems`, `/charges`, `/guide`). Mirrors the consumer-site
  * `ContentSection` model in `user-site-fixerwebapp`.
  */
 
@@ -12,6 +12,7 @@ export type ContentSectionType =
   | 'how_to'
   | 'causes'
   | 'callout'
+  | 'cards'
 
 export interface SectionFaq {
   question: string
@@ -37,6 +38,12 @@ export interface SectionCauseFix {
   fix: string
 }
 
+export interface SectionInfoCard {
+  title: string
+  description?: string
+  value?: string
+}
+
 export interface ContentSection {
   id: string
   type: ContentSectionType
@@ -49,6 +56,7 @@ export interface ContentSection {
   caption?: string
   steps?: SectionHowToStep[]
   causes?: SectionCauseFix[]
+  cards?: SectionInfoCard[]
 }
 
 export const SECTION_TYPE_META: Record<
@@ -62,6 +70,7 @@ export const SECTION_TYPE_META: Record<
   how_to: { label: 'How-to steps', description: 'Numbered step-by-step (HowTo schema)' },
   causes: { label: 'Causes & fixes', description: 'Two-column troubleshooting table' },
   callout: { label: 'Callout', description: 'Highlighted info / tip / warning box' },
+  cards: { label: 'Info cards', description: 'Grid cards for symptoms, cost factors, quick pricing' },
 }
 
 export function newSectionId(): string {
@@ -90,6 +99,8 @@ export function createSection(type: ContentSectionType): ContentSection {
       return { ...base, heading: 'Step-by-step', steps: [{ name: '', text: '' }] }
     case 'causes':
       return { ...base, heading: 'Common causes & fixes', causes: [{ cause: '', fix: '' }] }
+    case 'cards':
+      return { ...base, heading: 'Info cards', cards: [{ title: '', description: '' }] }
     default:
       return base
   }

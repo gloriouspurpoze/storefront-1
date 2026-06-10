@@ -756,7 +756,7 @@ export class CMSService {
   // ==================== PROGRAMMATIC SEO LANDING PAGES ====================
   /**
    * Schemaless static-content blobs for Template B/C pages on the user site:
-   *   /cost/[slug]  /problems/[slug]  /guide/[slug]  /provider/[slug]
+   *   /charges/[slug]  /problems/[slug]  /guide/[slug]  /provider/[slug]
    * Each record is keyed by slug → entity JSON (see user-site `seo/entities/types.ts`).
    */
 
@@ -839,6 +839,24 @@ export class CMSService {
   static async updateSeoLocations(data: Record<string, unknown>) {
     const response = await axios.put(
       `${API_BASE}/cms/admin/static-content/seo-locations`,
+      data,
+      this.getAuthHeaders(),
+    );
+    return response.data?.data ?? response.data;
+  }
+
+  /** Flat local "money page" landing entities → consumer `/{flat-slug}`. */
+  static async getSeoLandingPages(): Promise<Record<string, unknown>> {
+    const response = await axios.get(
+      `${API_BASE}/cms/admin/static-content/seo-landing-pages`,
+      this.getAuthHeaders(),
+    );
+    return response.data?.data ?? response.data ?? {};
+  }
+
+  static async updateSeoLandingPages(data: Record<string, unknown>) {
+    const response = await axios.put(
+      `${API_BASE}/cms/admin/static-content/seo-landing-pages`,
       data,
       this.getAuthHeaders(),
     );

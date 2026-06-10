@@ -57,6 +57,7 @@ import {
   type LocalityGuideCmsFields,
   type LocalityGuideSectionBlock,
   type LocalSeoCmsFields,
+  type NearMeSeoCmsFields,
   type RelatedLinkBlock,
   type TechnicalSeoCmsFields,
   type ServiceTypeBlock,
@@ -332,6 +333,7 @@ export default function CategoryMarketingManagement() {
           ? { ...base.localityGuide, ...updates.localityGuide }
           : base.localityGuide,
         localSeo: updates.localSeo ? { ...base.localSeo, ...updates.localSeo } : base.localSeo,
+        nearMeSeo: updates.nearMeSeo ? { ...base.nearMeSeo, ...updates.nearMeSeo } : base.nearMeSeo,
         technicalSeo: updates.technicalSeo
           ? {
               ...base.technicalSeo,
@@ -353,6 +355,10 @@ export default function CategoryMarketingManagement() {
 
   const updateLocalSeo = (updates: Partial<LocalSeoCmsFields>) => {
     updateConfig({ localSeo: { ...config.localSeo, ...updates } })
+  }
+
+  const updateNearMeSeo = (updates: Partial<NearMeSeoCmsFields>) => {
+    updateConfig({ nearMeSeo: { ...config.nearMeSeo, ...updates } })
   }
 
   const updateTechnicalSeo = (updates: Partial<TechnicalSeoCmsFields>) => {
@@ -1951,6 +1957,59 @@ export default function CategoryMarketingManagement() {
                       >
                         Add video URL
                       </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="overflow-hidden">
+                  <CardHeader className="border-b border-border/60 bg-muted/20 pb-4">
+                    <CardTitle className="text-lg font-semibold tracking-tight">
+                      Near-me pages (`/near-me/…`)
+                    </CardTitle>
+                    <CardDescription>
+                      Optional overrides for auto-generated near-me landing pages. Leave blank to use smart defaults
+                      from the catalog industry. For hyperlocal copy, save under a composite key (e.g.{' '}
+                      <code className="text-xs">ac-repair__mira-bhayandar</code>).
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4 pt-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="cmm-nearme-title">Near-me page title (H1 / meta title)</Label>
+                      <Input
+                        id="cmm-nearme-title"
+                        className="w-full"
+                        value={config.nearMeSeo.title}
+                        onChange={(e) => updateNearMeSeo({ title: e.target.value })}
+                        placeholder="AC service near me in Mira Bhayandar"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cmm-nearme-desc">Near-me meta description</Label>
+                      <Textarea
+                        id="cmm-nearme-desc"
+                        className="w-full"
+                        rows={2}
+                        value={config.nearMeSeo.description}
+                        onChange={(e) => updateNearMeSeo({ description: e.target.value })}
+                        placeholder="Book verified AC technicians near you in Mira Bhayandar with transparent pricing…"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cmm-nearme-kw">Near-me keywords (comma separated)</Label>
+                      <Input
+                        id="cmm-nearme-kw"
+                        className="w-full"
+                        value={config.nearMeSeo.keywords.join(', ')}
+                        onChange={(e) =>
+                          updateNearMeSeo({
+                            keywords: e.target.value
+                              .split(',')
+                              .map((s) => s.trim())
+                              .filter(Boolean),
+                          })
+                        }
+                        placeholder="ac service near me, ac repair near mira bhayandar"
+                      />
+                    </div>
                   </CardContent>
                 </Card>
               </div>

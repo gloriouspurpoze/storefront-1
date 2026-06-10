@@ -36,6 +36,7 @@ import {
   type SectionCauseFix,
   type SectionFaq,
   type SectionHowToStep,
+  type SectionInfoCard,
   type SectionPriceRow,
 } from '../../types/seoLandingSections'
 
@@ -229,6 +230,43 @@ function SectionBody({
                   value={step.text}
                   onChange={(e) => update({ text: e.target.value })}
                   placeholder="Step description"
+                  disabled={disabled}
+                />
+              </div>
+            )}
+          />
+        </div>
+      )
+
+    case 'cards':
+      return (
+        <div className="space-y-3">
+          {headingField}
+          <RepeatableList<SectionInfoCard>
+            items={section.cards ?? []}
+            onChange={(cards) => onChange({ cards })}
+            emptyItem={{ title: '', description: '' }}
+            addLabel="Add card"
+            disabled={disabled}
+            renderItem={(card, update) => (
+              <div className="space-y-2">
+                <Input
+                  value={card.title}
+                  onChange={(e) => update({ title: e.target.value })}
+                  placeholder="Card title (e.g. Dirty filter)"
+                  disabled={disabled}
+                />
+                <Input
+                  value={card.value ?? ''}
+                  onChange={(e) => update({ value: e.target.value })}
+                  placeholder="Value (optional, e.g. ₹499–₹899)"
+                  disabled={disabled}
+                />
+                <Textarea
+                  rows={2}
+                  value={card.description ?? ''}
+                  onChange={(e) => update({ description: e.target.value })}
+                  placeholder="Description (optional)"
                   disabled={disabled}
                 />
               </div>

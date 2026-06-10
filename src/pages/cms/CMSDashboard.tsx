@@ -230,7 +230,7 @@ const HUB_SECTIONS: HubSection[] = [
       },
       {
         title: 'SEO landing pages',
-        description: 'Programmatic /cost, /problems, /guide & /provider pages for AI search & Google.',
+        description: 'Programmatic /charges, /problems, /guide & /provider pages for AI search & Google.',
         to: '/cms/seo-landing-pages',
         icon: FileSearch,
       },
