@@ -7,6 +7,7 @@ import {
   CheckCircle,
   XCircle,
   Sparkles,
+  Building2,
   type LucideIcon,
 } from 'lucide-react'
 import { Card, CardContent } from '../../components/ui/card'
@@ -62,6 +63,10 @@ function UsersPageContent({ mode }: { mode: UsersPageMode }) {
   const selectedTenantId = useAppSelector((s) => s.tenant.tenantId)
   /** JWT org (tenant admins), else Redux org from Organizations / checklist context. */
   const tenantContextId = jwtTenantId || selectedTenantId || null
+  const tenantName = useAppSelector(
+    (s) => s.tenant.name ?? (s.auth.user as { tenant?: { name?: string } } | null)?.tenant?.name ?? null,
+  )
+  const tenantSlug = useAppSelector((s) => s.tenant.slug ?? null)
   const scope = mode === 'directory' ? 'directory' : 'members'
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
@@ -410,9 +415,17 @@ function UsersPageContent({ mode }: { mode: UsersPageMode }) {
     <div className="min-h-0 flex-1">
       <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="mb-1 text-2xl font-bold">
-            {mode === 'directory' ? 'Customers' : 'Team members'}
-          </h1>
+          <div className="mb-1 flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-bold">
+              {mode === 'directory' ? 'Customers' : 'Team members'}
+            </h1>
+            {mode === 'members' && tenantContextId && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                <Building2 className="h-3 w-3 shrink-0" />
+                {tenantName ?? tenantSlug ?? tenantContextId}
+              </span>
+            )}
+          </div>
           <p className="text-muted-foreground">
             {mode === 'directory' ? (
               <>

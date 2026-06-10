@@ -29,3 +29,28 @@ html, body {
 .theme-trade-pro main a[href='/services'] {
   font-weight: 600;
 }
+
+/* ─── Saffron & Salt theme ─────────────────────────────────────────────────── */
+.theme-saffron {
+  --site-brand: #C4633A;
+  --site-bg: #FAF8F3;
+  --site-ink: #1A1714;
+
+  /* Saffron design tokens */
+  --cream: #FAF8F3;
+  --cream-dark: #F0EDE4;
+  --ink: #1A1714;
+  --ink-soft: #4A4540;
+  --ink-muted: #8A847C;
+  --terracotta: #C4633A;
+  --terracotta-light: #F0DDD4;
+  --terracotta-dark: #9B4A27;
+  --sage: #6B7B5E;
+  --saf-border: rgba(26, 23, 20, 0.1);
+  --saf-border-strong: rgba(26, 23, 20, 0.2);
+  --saf-radius: 12px;
+  --saf-radius-sm: 6px;
+
+  background: var(--cream);
+  color: var(--ink);
+}

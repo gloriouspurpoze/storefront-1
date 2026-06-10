@@ -21,6 +21,7 @@ import { SiteFooter as RetailFooter } from '@/themes/retail/SiteFooter'
 import { Hero as RetailHero } from '@/themes/retail/Hero'
 import { ProductGrid } from '@/themes/retail/ProductGrid'
 import { toThemeTenant as toRetailTenant } from '@/themes/retail/types'
+import { SaffronLayout, SaffronMenuPage } from '@/themes/restaurant/saffron'
 
 function flagOn(cfg: StorefrontConfig | null, key: string): boolean {
   const flags = cfg?.featureFlags as Record<string, boolean | undefined> | undefined
@@ -120,6 +121,18 @@ export async function HomePageSections({
 
   if (vertical === 'restaurant') {
     const themeTenant = toRestTenant(tenant, tagline || 'Where the menu meets the moment.')
+
+    // ── Saffron theme: full inline order-online experience ─────────────────────
+    if (cfg?.themeKey === 'saffron') {
+      const menu = await fetchMenu(tenant.id)
+      return (
+        <SaffronLayout>
+          <SaffronMenuPage initialCategories={menu} tenant={themeTenant} config={cfg} />
+        </SaffronLayout>
+      )
+    }
+    // ──────────────────────────────────────────────────────────────────────────
+
     const menu = flagOn(cfg, 'showMenu') && sectionEnabled(cfg, 'menu') ? await fetchMenu(tenant.id) : []
     const preview = menu.slice(0, 2)
     const order = orderedTypes(cfg, ['hero', 'menu', 'reservations', 'about', 'faq'])

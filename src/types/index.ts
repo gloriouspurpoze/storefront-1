@@ -728,6 +728,8 @@ export interface CreateProductRequest {
   images?: ProductImageEmbedRequest[]
   specifications?: { [key: string]: any }
   is_active?: boolean
+  /** Defaults to 'published' in the service so products appear on storefront immediately. */
+  status?: 'draft' | 'published' | 'archived' | 'out_of_stock'
   is_featured?: boolean
   is_new?: boolean
   weight?: number
