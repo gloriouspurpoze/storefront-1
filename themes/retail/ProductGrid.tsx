@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import type { PublicProduct } from '@/lib/storefront-api'
-import { formatMoney } from './cart'
+import { formatMoney } from '@/lib/format'
 
 export function ProductGrid({ products }: { products: PublicProduct[] }) {
   if (!products.length) {

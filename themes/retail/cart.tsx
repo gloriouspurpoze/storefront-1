@@ -159,7 +159,4 @@ export function useCart(): CartContextValue {
   return ctx
 }
 
-export function formatMoney(amount: number, currency: string): string {
-  if (currency === 'INR') return `₹${amount.toLocaleString('en-IN')}`
-  return `${currency} ${amount}`
-}
+export { formatMoney } from '@/lib/format'
