@@ -372,6 +372,7 @@ const EmailTemplatesManagement = lazy(() => import('./pages/cms/EmailTemplatesMa
 const SocialLinksManagement = lazy(() => import('./pages/cms/SocialLinksManagement'))
 const IndustryServicePagesHub = lazy(() => import('./pages/cms/IndustryServicePagesHub'))
 const PricingCategoryMetaManagement = lazy(() => import('./pages/cms/PricingCategoryMetaManagement'))
+const SeoLandingPagesManagement = lazy(() => import('./pages/cms/SeoLandingPagesManagement'))
 
 const MarketingWorkspaceHub = lazy(() =>
   import('./pages/marketing-workspace/MarketingWorkspaceHub').then((m) => ({ default: m.MarketingWorkspaceHub })),
@@ -1796,6 +1797,14 @@ function App() {
                         element={
                           <RoleBasedRoute permissions={['manage_system_settings']}>
                             <PricingCategoryMetaManagement />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/cms/seo-landing-pages"
+                        element={
+                          <RoleBasedRoute permissions={['manage_system_settings']}>
+                            <SeoLandingPagesManagement />
                           </RoleBasedRoute>
                         }
                       />

@@ -753,6 +753,98 @@ export class CMSService {
     return response.data?.data ?? response.data;
   }
 
+  // ==================== PROGRAMMATIC SEO LANDING PAGES ====================
+  /**
+   * Schemaless static-content blobs for Template B/C pages on the user site:
+   *   /cost/[slug]  /problems/[slug]  /guide/[slug]  /provider/[slug]
+   * Each record is keyed by slug → entity JSON (see user-site `seo/entities/types.ts`).
+   */
+
+  static async getSeoProblems(): Promise<Record<string, unknown>> {
+    const response = await axios.get(
+      `${API_BASE}/cms/admin/static-content/seo-problems`,
+      this.getAuthHeaders(),
+    );
+    return response.data?.data ?? response.data ?? {};
+  }
+
+  static async updateSeoProblems(data: Record<string, unknown>) {
+    const response = await axios.put(
+      `${API_BASE}/cms/admin/static-content/seo-problems`,
+      data,
+      this.getAuthHeaders(),
+    );
+    return response.data?.data ?? response.data;
+  }
+
+  static async getSeoCostGuides(): Promise<Record<string, unknown>> {
+    const response = await axios.get(
+      `${API_BASE}/cms/admin/static-content/seo-cost-guides`,
+      this.getAuthHeaders(),
+    );
+    return response.data?.data ?? response.data ?? {};
+  }
+
+  static async updateSeoCostGuides(data: Record<string, unknown>) {
+    const response = await axios.put(
+      `${API_BASE}/cms/admin/static-content/seo-cost-guides`,
+      data,
+      this.getAuthHeaders(),
+    );
+    return response.data?.data ?? response.data;
+  }
+
+  static async getSeoGuides(): Promise<Record<string, unknown>> {
+    const response = await axios.get(
+      `${API_BASE}/cms/admin/static-content/seo-guides`,
+      this.getAuthHeaders(),
+    );
+    return response.data?.data ?? response.data ?? {};
+  }
+
+  static async updateSeoGuides(data: Record<string, unknown>) {
+    const response = await axios.put(
+      `${API_BASE}/cms/admin/static-content/seo-guides`,
+      data,
+      this.getAuthHeaders(),
+    );
+    return response.data?.data ?? response.data;
+  }
+
+  static async getSeoProviders(): Promise<Record<string, unknown>> {
+    const response = await axios.get(
+      `${API_BASE}/cms/admin/static-content/seo-providers`,
+      this.getAuthHeaders(),
+    );
+    return response.data?.data ?? response.data ?? {};
+  }
+
+  static async updateSeoProviders(data: Record<string, unknown>) {
+    const response = await axios.put(
+      `${API_BASE}/cms/admin/static-content/seo-providers`,
+      data,
+      this.getAuthHeaders(),
+    );
+    return response.data?.data ?? response.data;
+  }
+
+  static async getSeoLocations(): Promise<Record<string, unknown>> {
+    const response = await axios.get(
+      `${API_BASE}/cms/admin/static-content/seo-locations`,
+      this.getAuthHeaders(),
+    );
+    return response.data?.data ?? response.data ?? {};
+  }
+
+  static async updateSeoLocations(data: Record<string, unknown>) {
+    const response = await axios.put(
+      `${API_BASE}/cms/admin/static-content/seo-locations`,
+      data,
+      this.getAuthHeaders(),
+    );
+    return response.data?.data ?? response.data;
+  }
+
   // ==================== TRANSACTIONAL EMAIL TEMPLATES (HTML + preview) ====================
 
   static async listEmailTemplates(): Promise<

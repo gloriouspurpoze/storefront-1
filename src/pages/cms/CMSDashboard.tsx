@@ -22,6 +22,7 @@ import {
   Link2,
   Search,
   CircleDollarSign,
+  FileSearch,
   Tag,
   Newspaper,
   type LucideIcon,
@@ -226,6 +227,12 @@ const HUB_SECTIONS: HubSection[] = [
           'Answer-engine summaries, Mumbai context, 3-column rate rows & FAQs for /pricing pages.',
         to: '/cms/pricing-category-meta',
         icon: CircleDollarSign,
+      },
+      {
+        title: 'SEO landing pages',
+        description: 'Programmatic /cost, /problems, /guide & /provider pages for AI search & Google.',
+        to: '/cms/seo-landing-pages',
+        icon: FileSearch,
       },
       {
         title: 'Cross-linking',

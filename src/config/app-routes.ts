@@ -272,6 +272,12 @@ export const QUICK_NAV_ITEMS: QuickNavItem[] = [
     group: 'Content & marketing',
     keywords: 'pricing answer engine summary rate card comparison ai overview perplexity mumbai',
   },
+  {
+    label: 'SEO landing pages',
+    path: '/cms/seo-landing-pages',
+    group: 'Content & marketing',
+    keywords: 'cost problems guide provider programmatic seo landing template',
+  },
   { label: 'Media library', path: '/cms/media', group: 'Content & marketing' },
   { label: 'SEO management', path: '/cms/seo', group: 'Content & marketing' },
   { label: 'Marketing workspace', path: '/marketing', group: 'Content & marketing', keywords: 'calendar social planning' },
