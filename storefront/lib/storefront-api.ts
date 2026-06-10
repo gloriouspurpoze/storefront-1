@@ -306,10 +306,22 @@ export interface StorefrontConfig {
 }
 
 export async function fetchStorefrontConfig(tenantId: string): Promise<StorefrontConfig | null> {
-  return getJson<StorefrontConfig>('/public/storefront/config', tenantId, {
-    revalidate: 60,
-    tags: [`tenant:${tenantId}`, `tenant:${tenantId}:config`],
-  })
+  // Backend returns { tenant, config } since the config endpoint was enhanced to
+  // include tenant identity. Unwrap `config` and normalise required sub-objects so
+  // callers never have to guard against missing `branding` / `seo` objects.
+  const raw = await getJson<{ tenant: unknown; config: StorefrontConfig }>(
+    '/public/storefront/config',
+    tenantId,
+    { revalidate: 60, tags: [`tenant:${tenantId}`, `tenant:${tenantId}:config`] },
+  )
+  if (!raw) return null
+  const cfg = raw.config ?? (raw as unknown as StorefrontConfig)
+  return {
+    ...cfg,
+    branding: cfg.branding ?? {},
+    seo: cfg.seo ?? {},
+    featureFlags: cfg.featureFlags ?? {},
+  }
 }
 
 export async function verifyCheckout(input: {

@@ -98,6 +98,7 @@ export function buildProductCreateBody(data: ProductFormLike): CreateProductRequ
       return acc
     }, {} as Record<string, string>),
     is_active: data.isActive,
+    status: 'published' as const,
     is_featured: data.isFeatured,
     is_new: data.isNew === true ? true : undefined,
     weight: data.weight > 0 ? data.weight : undefined,
@@ -133,6 +134,7 @@ export function buildProductDraftBody(data: ProductFormLike): CreateProductReque
   return {
     ...base,
     is_active: false,
+    status: 'draft' as const,
     is_featured: false,
     is_new: undefined,
   }

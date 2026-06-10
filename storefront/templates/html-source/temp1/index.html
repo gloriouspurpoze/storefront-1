@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Saffron & Salt — Order Online</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --cream: #FAF8F3;
+    --cream-dark: #F0EDE4;
+    --ink: #1A1714;
+    --ink-soft: #4A4540;
+    --ink-muted: #8A847C;
+    --terracotta: #C4633A;
+    --terracotta-light: #F0DDD4;
+    --terracotta-dark: #9B4A27;
+    --sage: #6B7B5E;
+    --border: rgba(26,23,20,0.1);
+    --border-strong: rgba(26,23,20,0.2);
+    --radius: 12px;
+    --radius-sm: 6px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* ─── HEADER ─── */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--cream);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+  }
+
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: -0.3px;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .logo em { color: var(--terracotta); font-style: italic; }
+
+  .header-right { display: flex; align-items: center; gap: 1.5rem; }
+
+  .cart-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--ink);
+    color: var(--cream);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 100px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .cart-btn:hover { background: var(--terracotta); }
+
+  .cart-count {
+    background: var(--terracotta);
+    color: white;
+    border-radius: 50%;
+    width: 20px; height: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+  }
+  .cart-btn:hover .cart-count { background: var(--cream); color: var(--terracotta); }
+
+  .header-info {
+    font-size: 13px;
+    color: var(--ink-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dot-live { width: 7px; height: 7px; border-radius: 50%; background: #4CAF50; display: inline-block; }
+
+  /* ─── HERO BANNER ─── */
+  .hero {
+    background: var(--ink);
+    color: var(--cream);
+    padding: 3rem 2rem;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 2rem;
+  }
+
+  .hero-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(32px, 5vw, 52px);
+    font-weight: 400;
+    line-height: 1.1;
+    letter-spacing: -1px;
+  }
+  .hero-title em { color: var(--terracotta); font-style: italic; }
+
+  .hero-meta { margin-top: 1rem; display: flex; gap: 1.5rem; flex-wrap: wrap; }
+  .hero-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: rgba(250,248,243,0.65);
+  }
+  .hero-badge svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+  .hero-offers {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-end;
+  }
+
+  .offer-pill {
+    background: var(--terracotta);
+    color: white;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 100px;
+    white-space: nowrap;
+  }
+
+  /* ─── LAYOUT ─── */
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 0;
+    min-height: calc(100vh - 64px);
+  }
+
+  /* ─── MENU PANEL ─── */
+  .menu-panel {
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    max-height: calc(100vh - 64px);
+    position: sticky;
+    top: 64px;
+    padding-bottom: 4rem;
+  }
+
+  /* Category tabs */
+  .category-nav {
+    padding: 1.25rem 2rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    position: sticky;
+    top: 0;
+    background: var(--cream);
+    z-index: 10;
+  }
+  .category-nav::-webkit-scrollbar { display: none; }
+
+  .cat-tab {
+    padding: 7px 18px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid var(--border-strong);
+    background: transparent;
+    color: var(--ink-soft);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .cat-tab:hover { border-color: var(--ink); color: var(--ink); }
+  .cat-tab.active {
+    background: var(--ink);
+    color: var(--cream);
+    border-color: var(--ink);
+  }
+
+  /* Search */
+  .search-bar {
+    padding: 1rem 2rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .search-input {
+    width: 100%;
+    padding: 10px 14px 10px 40px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: white;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.2s;
+    position: relative;
+  }
+  .search-wrapper { position: relative; }
+  .search-icon {
+    position: absolute;
+    left: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--ink-muted);
+    pointer-events: none;
+  }
+  .search-input:focus { border-color: var(--terracotta); }
+
+  /* Section header */
+  .section-label {
+    padding: 1.5rem 2rem 0.75rem;
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Menu items grid */
+  .menu-grid {
+    padding: 0 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .menu-item {
+    display: grid;
+    grid-template-columns: 1fr 100px;
+    gap: 1rem;
+    padding: 1.25rem 0;
+    border-bottom: 1px solid var(--border);
+    align-items: start;
+    transition: background 0.15s;
+  }
+  .menu-item:last-child { border-bottom: none; }
+
+  .item-info {}
+  .item-badges { display: flex; gap: 6px; margin-bottom: 6px; }
+  .badge {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 3px;
+  }
+  .badge-veg { background: #E8F5E9; color: #2E7D32; }
+  .badge-spicy { background: #FFF3E0; color: #E65100; }
+  .badge-popular { background: var(--terracotta-light); color: var(--terracotta-dark); }
+  .badge-new { background: #EDE7F6; color: #4527A0; }
+
+  .item-name {
+    font-weight: 500;
+    font-size: 15px;
+    margin-bottom: 4px;
+    color: var(--ink);
+  }
+  .item-desc {
+    font-size: 13px;
+    color: var(--ink-muted);
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+  .item-price {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .item-img-wrap { position: relative; }
+  .item-img {
+    width: 100px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    background: var(--cream-dark);
+    display: block;
+  }
+  .img-placeholder {
+    width: 100px; height: 80px;
+    border-radius: var(--radius-sm);
+    background: var(--cream-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+  }
+
+  .add-btn {
+    position: absolute;
+    bottom: -10px; right: -10px;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: var(--cream);
+    border: 2px solid var(--cream);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, transform 0.1s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .add-btn:hover { background: var(--terracotta); transform: scale(1.1); }
+
+  /* Item quantity control */
+  .qty-ctrl {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    position: absolute;
+    bottom: -12px; right: -12px;
+    background: var(--ink);
+    border-radius: 100px;
+    padding: 2px;
+    border: 2px solid var(--cream);
+  }
+  .qty-btn {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--cream);
+    border: none;
+    font-size: 15px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .qty-btn:hover { background: rgba(255,255,255,0.15); }
+  .qty-num {
+    color: var(--cream);
+    font-size: 13px;
+    font-weight: 500;
+    min-width: 16px;
+    text-align: center;
+  }
+
+  /* ─── CART PANEL ─── */
+  .cart-panel {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 64px);
+    position: sticky;
+    top: 64px;
+  }
+
+  .cart-header {
+    padding: 1.5rem 1.5rem 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .cart-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 500;
+  }
+  .cart-subtitle { font-size: 12px; color: var(--ink-muted); margin-top: 2px; }
+
+  .cart-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 1.5rem;
+  }
+
+  /* Delivery toggle */
+  .delivery-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    background: var(--cream-dark);
+    border-radius: var(--radius-sm);
+    padding: 4px;
+    margin-bottom: 1.25rem;
+  }
+  .toggle-btn {
+    padding: 8px;
+    border-radius: 4px;
+    border: none;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    background: transparent;
+    color: var(--ink-muted);
+    transition: all 0.15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .toggle-btn.active {
+    background: white;
+    color: var(--ink);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+
+  /* Delivery address */
+  .address-box {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    margin-bottom: 1.25rem;
+  }
+  .address-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-muted);
+    margin-bottom: 8px;
+  }
+  .address-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .address-input {
+    flex: 1;
+    padding: 8px 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--ink);
+    outline: none;
+    background: var(--cream);
+    transition: border-color 0.15s;
+  }
+  .address-input:focus { border-color: var(--terracotta); background: white; }
+  .address-input::placeholder { color: var(--ink-muted); }
+
+  .time-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  .time-badge {
+    background: var(--cream-dark);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-weight: 500;
+    color: var(--ink);
+    font-size: 13px;
+  }
+
+  /* Cart items */
+  .cart-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--ink-muted);
+  }
+  .cart-empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .cart-empty p { font-size: 14px; }
+
+  .cart-items { display: flex; flex-direction: column; gap: 12px; }
+
+  .cart-item {
+    display: flex;
+    gap: 10px;
+    align-items: start;
+  }
+  .cart-item-thumb {
+    width: 44px; height: 44px;
+    border-radius: var(--radius-sm);
+    background: var(--cream-dark);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+  }
+  .cart-item-info { flex: 1; }
+  .cart-item-name { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+  .cart-item-ctrl {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ci-btn {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 1px solid var(--border-strong);
+    background: transparent;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink);
+    transition: all 0.15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .ci-btn:hover { background: var(--ink); color: var(--cream); border-color: var(--ink); }
+  .ci-qty { font-size: 13px; font-weight: 500; min-width: 16px; text-align: center; }
+  .cart-item-price { font-size: 14px; font-weight: 500; color: var(--ink); flex-shrink: 0; }
+
+  /* Instructions */
+  .instructions-box {
+    margin: 1rem 0;
+  }
+  .instr-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink-muted);
+    margin-bottom: 6px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .instructions-input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--cream);
+    resize: none;
+    outline: none;
+    transition: border-color 0.15s;
+    min-height: 60px;
+  }
+  .instructions-input:focus { border-color: var(--terracotta); background: white; }
+  .instructions-input::placeholder { color: var(--ink-muted); }
+
+  /* Cart footer */
+  .cart-footer {
+    border-top: 1px solid var(--border);
+    padding: 1.25rem 1.5rem;
+    background: var(--cream);
+  }
+
+  .promo-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 1rem;
+  }
+  .promo-input {
+    flex: 1;
+    padding: 8px 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--ink);
+    outline: none;
+    background: white;
+    transition: border-color 0.15s;
+  }
+  .promo-input:focus { border-color: var(--terracotta); }
+  .promo-input::placeholder { color: var(--ink-muted); }
+  .promo-apply {
+    padding: 8px 14px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 500;
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+  .promo-apply:hover { background: var(--ink); color: var(--cream); border-color: var(--ink); }
+
+  .bill-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 1rem;
+  }
+  .bill-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--ink-muted);
+  }
+  .bill-row.total {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    margin-top: 4px;
+  }
+  .bill-row.discount { color: var(--sage); }
+
+  .checkout-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--terracotta);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 15px;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .checkout-btn:hover { background: var(--terracotta-dark); }
+  .checkout-btn:active { transform: scale(0.99); }
+  .checkout-btn:disabled {
+    background: var(--cream-dark);
+    color: var(--ink-muted);
+    cursor: not-allowed;
+  }
+
+  /* Toast notification */
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--ink);
+    color: var(--cream);
+    padding: 12px 20px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    z-index: 1000;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: none;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* Success overlay */
+  .success-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26,23,20,0.6);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  .success-overlay.show { display: flex; }
+  .success-card {
+    background: var(--cream);
+    border-radius: 20px;
+    padding: 2.5rem;
+    text-align: center;
+    max-width: 340px;
+    width: 90%;
+    animation: pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes pop {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .success-icon { font-size: 52px; margin-bottom: 1rem; }
+  .success-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 24px;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+  .success-sub { font-size: 14px; color: var(--ink-muted); margin-bottom: 1.5rem; }
+  .success-close {
+    padding: 12px 28px;
+    background: var(--ink);
+    color: var(--cream);
+    border: none;
+    border-radius: 100px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: background 0.2s;
+  }
+  .success-close:hover { background: var(--terracotta); }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .cart-panel { display: none; }
+    .cart-btn { display: flex; }
+    .hero { grid-template-columns: 1fr; }
+    .hero-offers { align-items: flex-start; flex-direction: row; }
+    .menu-panel { max-height: none; position: static; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <a class="logo" href="#">Saffron <em>&</em> Salt</a>
+  <div class="header-right">
+    <div class="header-info">
+      <span class="dot-live"></span>
+      Open · Closes 11 PM
+    </div>
+    <button class="cart-btn" onclick="document.querySelector('.cart-panel').scrollIntoView({behavior:'smooth'})">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/>
+      </svg>
+      Your Cart
+      <span class="cart-count" id="headerCount">0</span>
+    </button>
+  </div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div>
+    <h1 class="hero-title">Fresh from our<br><em>kitchen to you</em></h1>
+    <div class="hero-meta">
+      <span class="hero-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        30–45 min delivery
+      </span>
+      <span class="hero-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        4.8 · 2,400+ orders
+      </span>
+      <span class="hero-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Andheri West, Mumbai
+      </span>
+    </div>
+  </div>
+  <div class="hero-offers">
+    <span class="offer-pill">🎉 50% off first order</span>
+    <span class="offer-pill">Free delivery over ₹499</span>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="layout">
+
+  <!-- MENU PANEL -->
+  <div class="menu-panel">
+    <!-- Category tabs -->
+    <div class="category-nav" id="catNav">
+      <button class="cat-tab active" data-cat="all">All</button>
+      <button class="cat-tab" data-cat="recommended">⭐ Recommended</button>
+      <button class="cat-tab" data-cat="starters">Starters</button>
+      <button class="cat-tab" data-cat="mains">Mains</button>
+      <button class="cat-tab" data-cat="breads">Breads</button>
+      <button class="cat-tab" data-cat="rice">Rice & Biryani</button>
+      <button class="cat-tab" data-cat="desserts">Desserts</button>
+      <button class="cat-tab" data-cat="drinks">Drinks</button>
+    </div>
+
+    <!-- Search -->
+    <div class="search-bar">
+      <div class="search-wrapper">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="text" class="search-input" placeholder="Search dishes..." id="searchInput" oninput="filterMenu()">
+      </div>
+    </div>
+
+    <!-- Menu sections rendered by JS -->
+    <div id="menuContent"></div>
+  </div>
+
+  <!-- CART PANEL -->
+  <div class="cart-panel">
+    <div class="cart-header">
+      <div>
+        <div class="cart-title">Your Order</div>
+        <div class="cart-subtitle" id="cartSubtitle">Nothing added yet</div>
+      </div>
+      <button onclick="clearCart()" style="background:none;border:none;font-size:12px;color:var(--ink-muted);cursor:pointer;font-family:'DM Sans',sans-serif;" id="clearBtn" hidden>Clear all</button>
+    </div>
+
+    <div class="cart-body">
+      <!-- Delivery/Pickup toggle -->
+      <div class="delivery-toggle">
+        <button class="toggle-btn active" id="deliveryBtn" onclick="setMode('delivery')">🛵 Delivery</button>
+        <button class="toggle-btn" id="pickupBtn" onclick="setMode('pickup')">🏃 Pickup</button>
+      </div>
+
+      <!-- Delivery address -->
+      <div class="address-box" id="addressBox">
+        <div class="address-label">Delivery address</div>
+        <div class="address-row">
+          <input type="text" class="address-input" placeholder="Flat / House no." id="addr1">
+          <input type="text" class="address-input" placeholder="Building" id="addr2">
+        </div>
+        <div class="address-row">
+          <input type="text" class="address-input" placeholder="Street / Area" id="addr3" style="flex:2">
+        </div>
+        <div class="address-row" style="margin-bottom:0">
+          <input type="text" class="address-input" placeholder="City" id="addr4" value="Mumbai">
+          <input type="text" class="address-input" placeholder="PIN" id="addr5" maxlength="6">
+        </div>
+        <div class="time-row" style="margin-top:10px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Est. delivery:
+          <span class="time-badge">35–45 min</span>
+        </div>
+      </div>
+
+      <!-- Cart items -->
+      <div id="cartItems">
+        <div class="cart-empty">
+          <div class="cart-empty-icon">🍽️</div>
+          <p>Your cart is empty.<br>Add items from the menu!</p>
+        </div>
+      </div>
+
+      <!-- Instructions -->
+      <div class="instructions-box" id="instrBox" style="display:none">
+        <div class="instr-label">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Cooking instructions (optional)
+        </div>
+        <textarea class="instructions-input" placeholder="e.g. Less spicy, no onions, extra sauce..."></textarea>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="cart-footer">
+      <div class="promo-row">
+        <input type="text" class="promo-input" placeholder="Promo code" id="promoInput">
+        <button class="promo-apply" onclick="applyPromo()">Apply</button>
+      </div>
+
+      <div class="bill-lines" id="billLines" style="display:none">
+        <div class="bill-row"><span>Item total</span><span id="billSubtotal">₹0</span></div>
+        <div class="bill-row"><span>Delivery fee</span><span id="billDelivery">₹40</span></div>
+        <div class="bill-row"><span>Taxes & charges</span><span id="billTax">₹0</span></div>
+        <div class="bill-row discount" id="discountRow" style="display:none"><span>Promo discount</span><span id="discountAmt">-₹0</span></div>
+        <div class="bill-row total"><span>Total</span><span id="billTotal">₹0</span></div>
+      </div>
+
+      <button class="checkout-btn" id="checkoutBtn" disabled onclick="placeOrder()">
+        Add items to checkout
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Success overlay -->
+<div class="success-overlay" id="successOverlay">
+  <div class="success-card">
+    <div class="success-icon">🎉</div>
+    <div class="success-title">Order Placed!</div>
+    <p class="success-sub">Your food is being prepared. Estimated delivery in <strong>35–45 min</strong>. You'll get updates on your phone.</p>
+    <button class="success-close" onclick="closeSuccess()">Back to Menu</button>
+  </div>
+</div>
+
+<script>
+const MENU = [
+  { id:1, cat:'starters', rec:true, name:'Tandoori Chicken', desc:'Half chicken marinated in spiced yogurt, cooked in clay oven till perfectly charred', price:320, emoji:'🍗', veg:false, spicy:true, popular:true },
+  { id:2, cat:'starters', rec:true, name:'Paneer Tikka', desc:'Cottage cheese cubes with bell peppers in tandoori masala, served with mint chutney', price:260, emoji:'🧀', veg:true, popular:true },
+  { id:3, cat:'starters', name:'Chicken Seekh Kebab', desc:'Minced chicken with herbs and spices, skewered and grilled on charcoal', price:290, emoji:'🥩', veg:false, spicy:true },
+  { id:4, cat:'starters', name:'Dahi Ke Sholey', desc:'Crispy pastry stuffed with spiced hung curd and fresh vegetables', price:220, emoji:'🫓', veg:true },
+  { id:5, cat:'mains', rec:true, name:'Butter Chicken', desc:'Slow cooked chicken in velvety tomato-cream sauce with aromatic spices', price:380, emoji:'🍛', veg:false, popular:true },
+  { id:6, cat:'mains', name:'Dal Makhani', desc:'Black lentils simmered overnight with butter and cream. A signature classic.', price:280, emoji:'🫕', veg:true, popular:true },
+  { id:7, cat:'mains', rec:true, name:'Palak Paneer', desc:'Paneer in velvety spinach gravy with garlic, ginger and whole spices', price:300, emoji:'🥗', veg:true },
+  { id:8, cat:'mains', name:'Lamb Rogan Josh', desc:'Tender lamb in aromatic Kashmiri red gravy, slow cooked with whole spices', price:420, emoji:'🍖', veg:false, spicy:true },
+  { id:9, cat:'mains', name:'Chicken Karahi', desc:'Rustic wok-tossed chicken with tomatoes, green chillies and fresh coriander', price:360, emoji:'🍲', veg:false, spicy:true },
+  { id:10, cat:'breads', name:'Butter Naan', desc:'Soft leavened bread from the tandoor, finished with butter and garlic', price:60, emoji:'🫓', veg:true },
+  { id:11, cat:'breads', name:'Garlic Kulcha', desc:'Stuffed flatbread with garlic and herbs, brushed with butter', price:80, emoji:'🫓', veg:true },
+  { id:12, cat:'breads', name:'Missi Roti', desc:'Whole wheat and gram flour bread with ajwain and fresh methi', price:65, emoji:'🫓', veg:true },
+  { id:13, cat:'rice', rec:true, name:'Chicken Dum Biryani', desc:'Fragrant basmati rice layered with spiced chicken, slow cooked in sealed pot', price:380, emoji:'🍚', veg:false, popular:true },
+  { id:14, cat:'rice', name:'Veg Biryani', desc:'Seasonal vegetables and aromatic rice with saffron and whole spices', price:300, emoji:'🌾', veg:true },
+  { id:15, cat:'rice', name:'Jeera Rice', desc:'Basmati rice tempered with cumin seeds and ghee', price:160, emoji:'🍚', veg:true },
+  { id:16, cat:'desserts', name:'Gulab Jamun', desc:'Melt-in-mouth milk-solid dumplings soaked in rose-cardamom syrup (3 pcs)', price:120, emoji:'🍮', veg:true },
+  { id:17, cat:'desserts', rec:true, name:'Kulfi Falooda', desc:'Pistachio-cardamom kulfi served over falooda noodles with rose syrup and basil seeds', price:150, emoji:'🍨', veg:true, new:true },
+  { id:18, cat:'desserts', name:'Shahi Tukda', desc:'Fried bread soaked in saffron milk, topped with reduced cream and nuts', price:140, emoji:'🍞', veg:true },
+  { id:19, cat:'drinks', name:'Mango Lassi', desc:'Thick blended yogurt with Alphonso mangoes and a hint of cardamom', price:110, emoji:'🥭', veg:true, popular:true },
+  { id:20, cat:'drinks', name:'Masala Chai', desc:'House spiced tea brewed with ginger, cardamom, cinnamon and fresh milk', price:70, emoji:'☕', veg:true },
+  { id:21, cat:'drinks', name:'Jal Jeera', desc:'Refreshing cumin-mint cooler with tamarind and black salt, served chilled', price:80, emoji:'🍋', veg:true },
+];
+
+let cart = {};
+let promoApplied = false;
+let deliveryMode = 'delivery';
+
+function setMode(mode) {
+  deliveryMode = mode;
+  document.getElementById('deliveryBtn').classList.toggle('active', mode==='delivery');
+  document.getElementById('pickupBtn').classList.toggle('active', mode==='pickup');
+  document.getElementById('addressBox').style.display = mode==='delivery' ? 'block' : 'none';
+  updateCart();
+}
+
+function getCategories() {
+  return [...new Set(MENU.map(i => i.cat))];
+}
+
+function renderMenu(items) {
+  const container = document.getElementById('menuContent');
+  const sections = {};
+  
+  items.forEach(item => {
+    const sec = item.cat;
+    if (!sections[sec]) sections[sec] = [];
+    sections[sec].push(item);
+  });
+
+  const catLabels = {starters:'Starters', mains:'Main Course', breads:'Breads', rice:'Rice & Biryani', desserts:'Desserts', drinks:'Drinks'};
+  
+  container.innerHTML = Object.entries(sections).map(([cat, items]) => `
+    <div class="menu-section" data-section="${cat}">
+      <div class="section-label">${catLabels[cat] || cat}</div>
+      <div class="menu-grid">
+        ${items.map(item => renderItem(item)).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderItem(item) {
+  const badges = [];
+  if (item.veg) badges.push('<span class="badge badge-veg">Veg</span>');
+  if (item.spicy) badges.push('<span class="badge badge-spicy">🌶 Spicy</span>');
+  if (item.popular) badges.push('<span class="badge badge-popular">Popular</span>');
+  if (item.new) badges.push('<span class="badge badge-new">New</span>');
+
+  const inCart = cart[item.id] || 0;
+
+  return `
+    <div class="menu-item" id="item-${item.id}">
+      <div class="item-info">
+        ${badges.length ? `<div class="item-badges">${badges.join('')}</div>` : ''}
+        <div class="item-name">${item.name}</div>
+        <div class="item-desc">${item.desc}</div>
+        <div class="item-price">₹${item.price}</div>
+      </div>
+      <div class="item-img-wrap">
+        <div class="img-placeholder">${item.emoji}</div>
+        ${inCart === 0
+          ? `<button class="add-btn" onclick="addToCart(${item.id})" title="Add to cart">+</button>`
+          : `<div class="qty-ctrl">
+              <button class="qty-btn" onclick="removeFromCart(${item.id})">−</button>
+              <span class="qty-num">${inCart}</span>
+              <button class="qty-btn" onclick="addToCart(${item.id})">+</button>
+            </div>`
+        }
+      </div>
+    </div>`;
+}
+
+function addToCart(id) {
+  cart[id] = (cart[id] || 0) + 1;
+  refresh();
+  const item = MENU.find(i => i.id === id);
+  showToast(`${item.emoji} ${item.name} added`);
+}
+
+function removeFromCart(id) {
+  if (cart[id] > 1) cart[id]--;
+  else delete cart[id];
+  refresh();
+}
+
+function clearCart() {
+  cart = {};
+  promoApplied = false;
+  document.getElementById('promoInput').value = '';
+  refresh();
+}
+
+function refresh() {
+  const currentCat = document.querySelector('.cat-tab.active')?.dataset.cat || 'all';
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const items = MENU.filter(i => {
+    const matchCat = currentCat === 'all' || (currentCat === 'recommended' ? i.rec : i.cat === currentCat);
+    const matchQ = !q || i.name.toLowerCase().includes(q) || i.desc.toLowerCase().includes(q);
+    return matchCat && matchQ;
+  });
+  renderMenu(items);
+  updateCart();
+  const total = Object.entries(cart).reduce((s, [id, qty]) => {
+    const item = MENU.find(i => i.id === parseInt(id));
+    return s + (item ? item.price * qty : 0);
+  }, 0);
+  document.getElementById('headerCount').textContent = Object.values(cart).reduce((s, v) => s + v, 0);
+}
+
+function updateCart() {
+  const entries = Object.entries(cart).filter(([_, qty]) => qty > 0);
+  const itemsDiv = document.getElementById('cartItems');
+  const instrBox = document.getElementById('instrBox');
+  const billLines = document.getElementById('billLines');
+  const checkoutBtn = document.getElementById('checkoutBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const sub = document.getElementById('cartSubtitle');
+
+  if (entries.length === 0) {
+    itemsDiv.innerHTML = `<div class="cart-empty"><div class="cart-empty-icon">🍽️</div><p>Your cart is empty.<br>Add items from the menu!</p></div>`;
+    billLines.style.display = 'none';
+    instrBox.style.display = 'none';
+    checkoutBtn.disabled = true;
+    checkoutBtn.textContent = 'Add items to checkout';
+    clearBtn.hidden = true;
+    sub.textContent = 'Nothing added yet';
+    return;
+  }
+
+  let subtotal = 0;
+  const cartHTML = entries.map(([id, qty]) => {
+    const item = MENU.find(i => i.id === parseInt(id));
+    if (!item) return '';
+    const lineTotal = item.price * qty;
+    subtotal += lineTotal;
+    return `
+      <div class="cart-item">
+        <div class="cart-item-thumb">${item.emoji}</div>
+        <div class="cart-item-info">
+          <div class="cart-item-name">${item.name}</div>
+          <div class="cart-item-ctrl">
+            <button class="ci-btn" onclick="removeFromCart(${item.id})">−</button>
+            <span class="ci-qty">${qty}</span>
+            <button class="ci-btn" onclick="addToCart(${item.id})">+</button>
+          </div>
+        </div>
+        <div class="cart-item-price">₹${lineTotal}</div>
+      </div>`;
+  }).join('');
+
+  itemsDiv.innerHTML = `<div class="cart-items">${cartHTML}</div>`;
+  instrBox.style.display = 'block';
+  clearBtn.hidden = false;
+
+  const delivery = deliveryMode === 'pickup' ? 0 : (subtotal >= 499 ? 0 : 40);
+  const tax = Math.round(subtotal * 0.05);
+  const discount = promoApplied ? Math.round(subtotal * 0.1) : 0;
+  const total = subtotal + delivery + tax - discount;
+  const itemCount = entries.reduce((s, [_, q]) => s + q, 0);
+
+  document.getElementById('billSubtotal').textContent = `₹${subtotal}`;
+  document.getElementById('billDelivery').textContent = delivery === 0 ? '🎉 Free' : `₹${delivery}`;
+  document.getElementById('billTax').textContent = `₹${tax}`;
+  document.getElementById('discountRow').style.display = promoApplied ? 'flex' : 'none';
+  document.getElementById('discountAmt').textContent = `-₹${discount}`;
+  document.getElementById('billTotal').textContent = `₹${total}`;
+  billLines.style.display = 'flex';
+
+  checkoutBtn.disabled = false;
+  checkoutBtn.innerHTML = `Place Order · ₹${total} <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`;
+  sub.textContent = `${itemCount} item${itemCount !== 1 ? 's' : ''} · ₹${subtotal}`;
+}
+
+function filterMenu() {
+  refresh();
+}
+
+function applyPromo() {
+  const val = document.getElementById('promoInput').value.trim().toUpperCase();
+  if (val === 'FIRST50' || val === 'SAVE10') {
+    promoApplied = true;
+    showToast('✅ Promo applied! 10% off');
+    updateCart();
+  } else if (val === '') {
+    showToast('Enter a promo code');
+  } else {
+    showToast('❌ Invalid promo code');
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function placeOrder() {
+  document.getElementById('successOverlay').classList.add('show');
+}
+
+function closeSuccess() {
+  document.getElementById('successOverlay').classList.remove('show');
+  clearCart();
+}
+
+// Category tab logic
+document.getElementById('catNav').addEventListener('click', e => {
+  const btn = e.target.closest('.cat-tab');
+  if (!btn) return;
+  document.querySelectorAll('.cat-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('searchInput').value = '';
+  refresh();
+});
+
+// Initial render
+refresh();
+</script>
+</body>
+</html>

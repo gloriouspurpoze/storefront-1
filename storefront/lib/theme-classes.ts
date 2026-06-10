@@ -9,6 +9,8 @@ export function themeRootClass(themeKey?: string): string {
       return 'theme-trade-pro'
     case 'luxury-retail':
       return 'theme-luxury-retail'
+    case 'saffron':
+      return 'theme-saffron'
     default:
       return 'theme-classic'
   }

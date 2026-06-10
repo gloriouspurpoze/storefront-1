@@ -93,11 +93,11 @@ export async function generateMetadata({ params }: RouteParams): Promise<Metadat
  */
 function brandStyle(tenant: ResolvedTenant, cfg: StorefrontConfig | null): React.CSSProperties {
   const brand =
-    cfg?.branding.primaryColor ||
+    cfg?.branding?.primaryColor ||
     (tenant.publicSiteTheme?.brandColor as string | undefined) ||
     '#0f172a'
-  const accent = cfg?.branding.accentColor || brand
-  const secondary = cfg?.branding.secondaryColor || brand
+  const accent = cfg?.branding?.accentColor || brand
+  const secondary = cfg?.branding?.secondaryColor || brand
   return {
     ['--site-brand' as never]: brand,
     ['--site-accent' as never]: accent,
@@ -108,14 +108,14 @@ function brandStyle(tenant: ResolvedTenant, cfg: StorefrontConfig | null): React
 /** Build JSON-LD blocks (Organization, LocalBusiness, etc.). */
 function structuredData(tenant: ResolvedTenant, cfg: StorefrontConfig | null): Array<Record<string, unknown>> {
   const blocks: Array<Record<string, unknown>> = []
-  const sd = cfg?.seo.structuredData ?? {}
-  const siteName = cfg?.branding.siteName || tenant.name
-  const description = cfg?.seo.defaultDescription || cfg?.branding.tagline || `Welcome to ${siteName}.`
-  const url = cfg?.seo.canonicalDomain
-  const logo = cfg?.branding.logoUrl
-  const phone = cfg?.branding.contactPhone
-  const address = cfg?.branding.address
-  const socials = Object.values(cfg?.branding.socials ?? {}).filter((s): s is string => Boolean(s))
+  const sd = cfg?.seo?.structuredData ?? {}
+  const siteName = cfg?.branding?.siteName || tenant.name
+  const description = cfg?.seo?.defaultDescription || cfg?.branding?.tagline || `Welcome to ${siteName}.`
+  const url = cfg?.seo?.canonicalDomain
+  const logo = cfg?.branding?.logoUrl
+  const phone = cfg?.branding?.contactPhone
+  const address = cfg?.branding?.address
+  const socials = Object.values(cfg?.branding?.socials ?? {}).filter((s): s is string => Boolean(s))
 
   if (sd.organization) {
     blocks.push({
@@ -155,7 +155,7 @@ export default async function TenantLayout({
   if (!tenant) notFound()
   const cfg = await fetchStorefrontConfig(tenant.id)
   const jsonLd = structuredData(tenant, cfg)
-  const analytics = cfg?.seo.analytics ?? {}
+  const analytics = cfg?.seo?.analytics ?? {}
   const themeClass = themeRootClass(cfg?.themeKey)
 
   return (
