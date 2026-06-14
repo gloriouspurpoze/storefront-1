@@ -1,0 +1,590 @@
+{
+  "electrician": {
+    "seoTitle": "Electrician Services | Verified, Inspection-First | Profixer",
+    "metaDescription": "Book verified electricians for MCB trips, DB faults, wiring, fans, lights & AC points. Inspection-first quotes, tidy work, digital invoices. Schedule online on Profixer.",
+    "urlSlugPattern": "/services/electrician",
+    "primaryKeyword": "electrician services",
+    "secondaryKeywords": [
+      "electrician near me",
+      "MCB repair",
+      "DB upgrade",
+      "home wiring",
+      "fan installation",
+      "switch and socket repair",
+      "AC point wiring",
+      "emergency electrician",
+      "earthing check"
+    ],
+    "heroTrustBadge": "Verified electricians · Inspection-first quotes",
+    "heroChip": "Same-day slots subject to availability",
+    "heroProofPoints": [
+      "Inspection-first pricing before parts",
+      "Neat routing & dust control",
+      "Digital invoice + workmanship warranty",
+      "Background-verified partners"
+    ],
+    "topicChips": [
+      "MCB tripping",
+      "Partial power loss",
+      "DB upgrade",
+      "Lights & fans",
+      "AC point",
+      "Earthing check"
+    ],
+    "mainHeading": "Electrician services",
+    "intro": "<p>From a tripping MCB to a planned distribution-board upgrade, Profixer routes background-verified electricians who inspect first, explain what is unsafe, then fix with clear scope. You get transparent spare billing and a digital invoice on every visit.</p>",
+    "introLeadMagnetLabel": "Download: home electrical safety checklist",
+    "introLeadMagnetUrl": "https://www.profixer.in/services/electrician",
+    "image1": "",
+    "image2": "",
+    "serviceCards": [
+      {
+        "title": "MCB tripping & DB fault",
+        "description": "<p>Tripping breaker, burning smell, or one room dead? We trace faults and replace failed accessories with load-safe sizing.</p>",
+        "price": "From ₹299 visit + parts",
+        "rating": "",
+        "duration": "60–120 mins",
+        "warranty": "Workmanship warranty as per policy",
+        "bookUrl": "https://www.profixer.in/book?service=electrician&type=mcb"
+      },
+      {
+        "title": "Lights, fans & fixtures",
+        "description": "<p>Installations and replacements with alignment, anchors, and safe terminations—ideal after interior upgrades.</p>",
+        "price": "From ₹199 per point (indicative)",
+        "rating": "",
+        "duration": "45–90 mins",
+        "warranty": "Workmanship warranty as per policy",
+        "bookUrl": "https://www.profixer.in/book?service=electrician&type=lights"
+      },
+      {
+        "title": "AC point & heavy load",
+        "description": "<p>16A line checks before new AC installs; we validate DB capacity and society norms before routing.</p>",
+        "price": "Quote after inspection",
+        "rating": "",
+        "duration": "90–180 mins",
+        "warranty": "Workmanship warranty as per policy",
+        "bookUrl": "https://www.profixer.in/book?service=electrician&type=ac-point"
+      }
+    ],
+    "serviceTypes": [
+      {
+        "title": "DB & MCB",
+        "description": "<p>Distribution boards age with humidity and load creep. We map circuits, label breakers, and recommend upgrades only when needed.</p>",
+        "bullets": [
+          "Trip trace & accessory replacement",
+          "Loose neutral / terminal heat checks",
+          "DB balancing for new AC",
+          "Documentation photos on request"
+        ]
+      },
+      {
+        "title": "Lighting & routing",
+        "description": "<p>False-ceiling LED profiles, dimmers, and gallery lighting—planned cuts and dust control where possible.</p>",
+        "bullets": [
+          "LED / profile installs",
+          "Smart switch compatibility checks",
+          "Chandelier support as per ceiling",
+          "Minimal rework policy"
+        ]
+      }
+    ],
+    "trustBenefits": [
+      {
+        "heading": "Verified & insured partners",
+        "body": "<p>Background-verified electricians; carry ID; follow society gate rules and quiet hours where applicable.</p>"
+      },
+      {
+        "heading": "Transparent estimates",
+        "body": "<p>Scope card before cutting chases; spares billed with MRP reference where available.</p>"
+      },
+      {
+        "heading": "Warranty you can use",
+        "body": "<p>Workmanship warranty as per policy; repeat visit for covered defects without runaround.</p>"
+      }
+    ],
+    "waysHeading": "How booking an electrician works",
+    "waysBullets": [
+      "Pick service & slot online",
+      "Partner arrives with standard tools & spares",
+      "Inspection + estimate before major work",
+      "Tidy closure + heat test on DB work",
+      "Digital invoice & warranty note"
+    ],
+    "experienceIncluded": [
+      "Site photos on request",
+      "Standard spares on vehicle",
+      "Cable dressing in visible areas",
+      "Society pass assistance guidance"
+    ],
+    "areasList": [
+      "Mira Bhayandar",
+      "Dahisar",
+      "Borivali",
+      "Kandivali"
+    ],
+    "areasCta": "Check slot availability in your area",
+    "areasCopy": "<p>We route technicians from hubs across the Mumbai Metropolitan Region to reduce dead time during peak traffic. ETAs update live after dispatch.</p>",
+    "bookingSteps": [
+      {
+        "stepNumber": "1",
+        "title": "Book online",
+        "description": "<p>Choose electrician, add address & photos of the DB if tripping.</p>"
+      },
+      {
+        "stepNumber": "2",
+        "title": "Confirmation",
+        "description": "<p>Slot + partner details; reschedule rules as per policy.</p>"
+      },
+      {
+        "stepNumber": "3",
+        "title": "Visit & diagnosis",
+        "description": "<p>Inspection-first; approval before material-heavy work.</p>"
+      },
+      {
+        "stepNumber": "4",
+        "title": "Pay & support",
+        "description": "<p>Digital invoice; warranty channel on app/WhatsApp.</p>"
+      }
+    ],
+    "contactPhone": "",
+    "contactWhatsapp": "",
+    "spareParts": [
+      {
+        "name": "Single-pole MCB (common brands)",
+        "priceRange": "₹180–₹450 + labour"
+      },
+      {
+        "name": "RCBO / RCCB (where applicable)",
+        "priceRange": "Quote after DB audit"
+      },
+      {
+        "name": "6–10 sq.mm copper wire (per metre)",
+        "priceRange": "MRP + labour"
+      }
+    ],
+    "pricingIncluded": [
+      "Standard multimeter checks",
+      "Basic terminal tightening in scope",
+      "Site cleanup for drill dust (minor)",
+      "Digital invoice"
+    ],
+    "pricingExcluded": [
+      "Civil chasing / putty (if outsourced)",
+      "OEM proprietary smart modules",
+      "Hidden slab conduit mega-rewires without approval",
+      "After-hours premium if applicable"
+    ],
+    "comparisonRows": [
+      {
+        "label": "Estimates",
+        "profixer": "Inspection-first scope card",
+        "others": "Often quote on phone without DB open"
+      },
+      {
+        "label": "Spares",
+        "profixer": "Itemised where possible",
+        "others": "Generic “package” unclear"
+      },
+      {
+        "label": "Warranty",
+        "profixer": "Policy-backed workmanship note",
+        "others": "Varies; ask every time"
+      },
+      {
+        "label": "Society rules",
+        "profixer": "Quiet hours & pass guidance",
+        "others": "Inconsistent communication"
+      }
+    ],
+    "faqs": [
+      {
+        "question": "Why does my MCB trip when the AC starts?",
+        "answer": "Often an underrated MCB, a loose terminal, or weak earthing. We measure load and terminations before suggesting a change."
+      },
+      {
+        "question": "Do you upgrade a full DB?",
+        "answer": "Yes, with a planned changeover window; price after audit."
+      },
+      {
+        "question": "How does pricing work?",
+        "answer": "Most visits start with an inspection or scope check, then a clear estimate before material-heavy work. You get a digital invoice; warranty follows the published policy."
+      },
+      {
+        "question": "What if the fault returns after a visit?",
+        "answer": "Covered defects per policy get a priority revisit with prior invoice reference."
+      }
+    ],
+    "relatedLinks": [
+      {
+        "label": "All services",
+        "url": "https://www.profixer.in/services"
+      },
+      {
+        "label": "Book online",
+        "url": "https://www.profixer.in/book"
+      },
+      {
+        "label": "Plumber services",
+        "url": "https://www.profixer.in/services/plumber"
+      }
+    ],
+    "closingParagraph": "<p>Whether it is a warm DB, a dead bedroom circuit, or a planned lighting upgrade, book an electrician who prioritises safety and tidy execution. If you are unsure, start with a DB health check before monsoon peak.</p>",
+    "leadMagnet": {
+      "headline": "Free PDF: apartment electrical safety (MMR edition)",
+      "description": "Room-by-room checks you can do tonight + when to call a pro.",
+      "ctaLabel": "Send me the PDF"
+    },
+    "jsonLdExtra": "Consumer should emit Service + FAQPage (+ BreadcrumbList) from CMS fields. Leave aggregateRating empty unless the same numbers are visible on this URL.",
+    "localityGuide": {
+      "enabled": false
+    },
+    "localSeo": {
+      "enableLocalBusinessSchema": false,
+      "localProfileName": "Profixer — Electricians",
+      "serviceAreaHeadline": "Areas we serve across [City]",
+      "serviceAreaPlaceNames": [
+        "Mira Bhayandar",
+        "Dahisar",
+        "Borivali",
+        "Kandivali",
+        "Mumbai"
+      ],
+      "localIntentKeywords": [
+        "electrician near me",
+        "emergency electrician",
+        "MCB repair",
+        "DB upgrade"
+      ],
+      "priceRange": "₹₹",
+      "addressRegion": "Maharashtra",
+      "addressCountryCode": "IN"
+    },
+    "technicalSeo": {
+      "canonicalUrl": "https://www.profixer.in/services/electrician",
+      "ogTitle": "Electrician Services | Profixer",
+      "ogType": "website",
+      "twitterCard": "summary_large_image",
+      "robotsMeta": "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
+      "knowsAbout": [
+        "Electrical wiring",
+        "Distribution board",
+        "Residual current device",
+        "Home electrical safety"
+      ],
+      "schemaPrimaryType": "HomeAndConstructionBusiness",
+      "enableBreadcrumbSchema": true,
+      "breadcrumbItems": [
+        {
+          "name": "Home",
+          "url": "https://www.profixer.in/"
+        },
+        {
+          "name": "Services",
+          "url": "https://www.profixer.in/services"
+        },
+        {
+          "name": "Electrician",
+          "url": "https://www.profixer.in/services/electrician"
+        }
+      ],
+      "answerEngineSummary": "Profixer electricians fix MCB trips, DB faults, wiring, and lighting installs with inspection-first pricing and policy-backed workmanship warranty.",
+      "aggregateRating": {
+        "ratingValue": "",
+        "reviewCount": ""
+      },
+      "enableWebPageSchema": true,
+      "enableServiceOfferSchema": true
+    }
+  },
+  "electrician__mira-bhayandar": {
+    "seoTitle": "Electrician in Mira Bhayandar | DB, Wiring & Safe Installs",
+    "metaDescription": "Book verified electricians in Mira Bhayandar (incl. Mira Road & Bhayandar East/West) for MCB trips, DB checks, lighting & AC points—clear estimates, tidy work. Book on Profixer.",
+    "urlSlugPattern": "/services/electrician/mira-bhayandar",
+    "primaryKeyword": "electrician in Mira Bhayandar",
+    "secondaryKeywords": [
+      "electrician Mira Road",
+      "electrician Bhayandar East",
+      "electrician Bhayandar West",
+      "MCB repair Mira Bhayandar",
+      "DB upgrade Bhayandar",
+      "fan installation Mira Road",
+      "AC point wiring Mira Bhayandar",
+      "emergency electrician Mira Bhayandar"
+    ],
+    "mainHeading": "Electrician services in Mira Bhayandar",
+    "heroChip": "Mira Road · Bhayandar East/West",
+    "intro": "<p>Homes across Mira Bhayandar—from older chawls near Bhayandar station to mid-rise wings on Mira Road—often run higher AC load on ageing DBs, so warm breakers and neutral issues show up fast. We inspect first, explain what is unsafe, then fix with clear scope and tidy routing.</p>",
+    "faqs": [
+      {
+        "question": "Do you cover both Mira Road and Bhayandar East/West?",
+        "answer": "Yes. Mira Road, Bhayandar East, Bhayandar West, Naya Nagar and Golden Nest are all served from the same Mira Bhayandar hub—book the same page for any of these areas."
+      },
+      {
+        "question": "Can you handle society quiet-hours and gate rules near Bhayandar?",
+        "answer": "Yes—many societies restrict drilling after 6 pm or on Sundays. We align slots, carry ID, and coordinate meter-room access with your secretary."
+      },
+      {
+        "question": "My MCB trips when the AC starts in my Mira Road flat—what is the cause?",
+        "answer": "Usually an underrated MCB, a loose terminal, or weak earthing under coastal humidity. We measure load and terminations before suggesting any change."
+      }
+    ],
+    "closingParagraph": "<p>Whether you are in a Mira Road tower or a Bhayandar chawl, book an electrician who prioritises safety paperwork and tidy execution. Start with a DB health check before monsoon peak.</p>",
+    "localityGuide": {
+      "enabled": true,
+      "expandDetailsByDefault": false,
+      "articleH2": "Local guide: hiring an electrician in Mira Bhayandar",
+      "leadParagraphs": [
+        "Mira Bhayandar mixes older chawls, mid-rise wings, and new towers across Mira Road and Bhayandar—each with different DB brands and load patterns. Coastal humidity can accelerate contact pitting in poorly torqued terminals.",
+        "This guide explains what we fix most often across the area, how we price, and how to prepare for a smooth visit."
+      ],
+      "sections": [
+        {
+          "h2": "Common faults near Bhayandar & Mira Road",
+          "paragraphs": [
+            "Partial power loss after monsoon dampness; kitchen hob trips when kettle and induction run together; geyser lines undersized for 3kW loads.",
+            "We start with DB mapping and thermal checks before suggesting rewires—so you only pay for necessary work."
+          ]
+        },
+        {
+          "h2": "High-rise society rules & quiet hours",
+          "paragraphs": [
+            "Many societies restrict drilling after 6 pm or on Sundays. We align slots and use dust mats in lift lobbies.",
+            "For meter-room access, we coordinate with your secretary and carry ID badges as per your policy."
+          ]
+        },
+        {
+          "h2": "When to upgrade vs repair",
+          "paragraphs": [
+            "If breakers are hot, neutrals are shared across rooms, or MCBs are obsolete, upgrade paths are explained with photos.",
+            "If the fault is local (one loose accessory), we repair same day when spares are available."
+          ]
+        }
+      ],
+      "summaryLead": "Book inspection-first electrical help across Mira Bhayandar with clear estimates and tidy execution.",
+      "takeaways": [
+        "DB heat is a warning—do not ignore it",
+        "Photo your DB label before booking",
+        "Keep your last invoice for warranty",
+        "Monsoon prep: check outdoor points"
+      ],
+      "jsonLdBrandServiceName": "Profixer Electrician — Mira Bhayandar",
+      "useFaqsForSchema": true,
+      "showInboundLinkStrip": true,
+      "showBookingCtaStrip": true
+    },
+    "localSeo": {
+      "enableLocalBusinessSchema": false,
+      "localProfileName": "Profixer — Electricians (Mira Bhayandar)",
+      "serviceAreaHeadline": "Areas we serve near [Location] & [City]",
+      "serviceAreaPlaceNames": [
+        "Mira Road",
+        "Bhayandar East",
+        "Bhayandar West",
+        "Naya Nagar",
+        "Golden Nest",
+        "Uttan Road (select pockets)"
+      ],
+      "serviceAreaNarrative": "We operate mobile electrician teams across Mira Bhayandar and adjoining Mira Road sectors, prioritising DB safety and lighting installs. Coverage follows traffic-aware routing; some Uttan/Gorai pockets may need extended ETA—confirm at booking.",
+      "localIntentKeywords": [
+        "electrician near me Mira Bhayandar",
+        "MCB repair Bhayandar East",
+        "DB upgrade Mira Road",
+        "fan installation Mira Bhayandar",
+        "emergency electrician Bhayandar"
+      ],
+      "openingHoursSummary": "Daily 8:00 am – 9:00 pm (last slot 8:00 pm); emergencies subject to partner availability",
+      "addressLocality": "Mira Bhayandar",
+      "addressRegion": "Maharashtra",
+      "postalCode": "",
+      "addressCountryCode": "IN",
+      "geoLatLng": "",
+      "priceRange": "₹₹"
+    },
+    "technicalSeo": {
+      "canonicalUrl": "https://www.profixer.in/services/electrician/mira-bhayandar",
+      "ogTitle": "Electrician in Mira Bhayandar | Profixer",
+      "ogImageAlt": "Electrician checking a distribution board in a Mira Bhayandar home",
+      "ogType": "website",
+      "twitterCard": "summary_large_image",
+      "robotsMeta": "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
+      "knowsAbout": [
+        "Electrical wiring",
+        "Distribution board",
+        "Residual current device",
+        "Mumbai Metropolitan Region home safety"
+      ],
+      "schemaPrimaryType": "HomeAndConstructionBusiness",
+      "enableBreadcrumbSchema": true,
+      "breadcrumbItems": [
+        {
+          "name": "Home",
+          "url": "https://www.profixer.in/"
+        },
+        {
+          "name": "Services",
+          "url": "https://www.profixer.in/services"
+        },
+        {
+          "name": "Electrician",
+          "url": "https://www.profixer.in/services/electrician"
+        },
+        {
+          "name": "Mira Bhayandar",
+          "url": "https://www.profixer.in/services/electrician/mira-bhayandar"
+        }
+      ],
+      "answerEngineSummary": "Profixer electricians in Mira Bhayandar (incl. Mira Road and Bhayandar East/West) fix MCB trips, DB faults, and lighting installs with inspection-first pricing and policy-backed workmanship warranty.",
+      "aggregateRating": {
+        "ratingValue": "",
+        "reviewCount": ""
+      },
+      "enableWebPageSchema": true,
+      "enableServiceOfferSchema": true
+    }
+  },
+  "electrician__dahisar": {
+    "seoTitle": "Electrician in Dahisar | MCB, DB & Lighting Repairs",
+    "metaDescription": "Book verified electricians in Dahisar (East & West) for MCB trips, DB upgrades, fans, lights & AC points—inspection-first quotes, tidy work, digital invoices. Book on Profixer.",
+    "urlSlugPattern": "/services/electrician/dahisar",
+    "primaryKeyword": "electrician in Dahisar",
+    "secondaryKeywords": [
+      "electrician Dahisar East",
+      "electrician Dahisar West",
+      "MCB repair Dahisar",
+      "DB upgrade Dahisar",
+      "fan installation Dahisar",
+      "AC point electrician Dahisar",
+      "emergency electrician Dahisar"
+    ],
+    "mainHeading": "Electrician services in Dahisar",
+    "heroChip": "Dahisar East & West",
+    "intro": "<p>Dahisar homes along SV Road and Link Road mix old stock with newer towers—so loose neutrals, monsoon leakage trips, and undersized geyser lines are common. We diagnose with DB mapping and thermal checks before suggesting any rewire, and keep visible cabling tidy.</p>",
+    "faqs": [
+      {
+        "question": "Do you cover both Dahisar East and Dahisar West?",
+        "answer": "Yes. Dahisar East, Dahisar West, Ashokvan, Rawalpada and Kandarpada are all served from the same Dahisar hub—book this page for any of these areas."
+      },
+      {
+        "question": "Why do my lights trip during the monsoon?",
+        "answer": "Leakage trips spike with damp—often a weak earth or moisture in outdoor points. We isolate circuit by circuit with an ELCB/RCCB check before advising a fix."
+      },
+      {
+        "question": "Can you align with society drilling and noise rules on Link Road?",
+        "answer": "Yes—we book daytime slots where societies restrict noise and carry dust mats for lift lobbies."
+      }
+    ],
+    "closingParagraph": "<p>From a warm DB in a Dahisar West tower to a tripping circuit in an Ashokvan flat, book an electrician who tests after fixes and explains the safe option first.</p>",
+    "localityGuide": {
+      "enabled": true,
+      "expandDetailsByDefault": false,
+      "articleH2": "Local guide: electricians in Dahisar for monsoon-ready homes",
+      "leadParagraphs": [
+        "Dahisar mixes old chawls, mid-rise wings, and newer towers along SV Road and Link Road—each with different load patterns and earthing quality. Monsoon humidity pushes leakage trips and outdoor-point faults.",
+        "This guide covers what we fix most, how we price, and how to prep your home for a tidy visit."
+      ],
+      "sections": [
+        {
+          "h2": "Monsoon leakage & earthing checks",
+          "paragraphs": [
+            "Leakage trips rise during rains—often a weak earth, damp outdoor points, or moisture in junction boxes.",
+            "We do stepwise isolation with an ELCB/RCCB check before suggesting any change."
+          ]
+        },
+        {
+          "h2": "High-rises vs older stock",
+          "paragraphs": [
+            "Towers often have labelled DBs and three-phase supply; older stock may have shared neutrals and obsolete MCBs.",
+            "We map circuits and label breakers so future visits are faster."
+          ]
+        },
+        {
+          "h2": "When to upgrade vs repair",
+          "paragraphs": [
+            "Hot breakers, shared neutrals, or obsolete MCBs point to an upgrade path, explained with photos.",
+            "A single loose accessory is a same-day repair when spares are available."
+          ]
+        }
+      ],
+      "summaryLead": "Book inspection-first electrical help across Dahisar with clear estimates and post-work testing.",
+      "takeaways": [
+        "Monsoon: check outdoor points & earthing",
+        "Photo your DB label before booking",
+        "Hot breaker = book a DB health check",
+        "Keep your last invoice for warranty"
+      ],
+      "jsonLdBrandServiceName": "Profixer Electrician — Dahisar",
+      "useFaqsForSchema": true,
+      "showInboundLinkStrip": true,
+      "showBookingCtaStrip": true
+    },
+    "localSeo": {
+      "enableLocalBusinessSchema": false,
+      "localProfileName": "Profixer — Electricians (Dahisar)",
+      "serviceAreaHeadline": "Areas we serve near [Location] & [City]",
+      "serviceAreaPlaceNames": [
+        "Dahisar East",
+        "Dahisar West",
+        "Ashokvan",
+        "Rawalpada",
+        "Kandarpada",
+        "Anand Nagar (Dahisar)"
+      ],
+      "serviceAreaNarrative": "We run mobile electrician teams across Dahisar East and West, with routing that avoids Link Road peaks where possible. Coverage extends toward Rawalpada and Ashokvan; confirm ETA for pockets near the national park edge during evening traffic.",
+      "localIntentKeywords": [
+        "electrician near me Dahisar",
+        "MCB repair Dahisar East",
+        "DB upgrade Dahisar West",
+        "fan installation Dahisar",
+        "emergency electrician Dahisar"
+      ],
+      "openingHoursSummary": "Daily 8:00 am – 9:00 pm (last slot 8:00 pm); emergencies subject to partner availability",
+      "addressLocality": "Dahisar",
+      "addressRegion": "Maharashtra",
+      "postalCode": "",
+      "addressCountryCode": "IN",
+      "geoLatLng": "",
+      "priceRange": "₹₹"
+    },
+    "technicalSeo": {
+      "canonicalUrl": "https://www.profixer.in/services/electrician/dahisar",
+      "ogTitle": "Electrician in Dahisar | Profixer",
+      "ogImageAlt": "Electrician checking a distribution board in a Dahisar apartment",
+      "ogType": "website",
+      "twitterCard": "summary_large_image",
+      "robotsMeta": "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
+      "knowsAbout": [
+        "Electrical wiring",
+        "Distribution board",
+        "Earthing",
+        "Mumbai monsoon home maintenance"
+      ],
+      "schemaPrimaryType": "HomeAndConstructionBusiness",
+      "enableBreadcrumbSchema": true,
+      "breadcrumbItems": [
+        {
+          "name": "Home",
+          "url": "https://www.profixer.in/"
+        },
+        {
+          "name": "Services",
+          "url": "https://www.profixer.in/services"
+        },
+        {
+          "name": "Electrician",
+          "url": "https://www.profixer.in/services/electrician"
+        },
+        {
+          "name": "Dahisar",
+          "url": "https://www.profixer.in/services/electrician/dahisar"
+        }
+      ],
+      "answerEngineSummary": "Profixer electricians in Dahisar (East & West) fix MCB trips, monsoon leakage, DB faults, and lighting installs with inspection-first quotes and policy-backed workmanship warranty.",
+      "aggregateRating": {
+        "ratingValue": "",
+        "reviewCount": ""
+      },
+      "enableWebPageSchema": true,
+      "enableServiceOfferSchema": true
+    }
+  }
+}

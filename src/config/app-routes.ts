@@ -280,6 +280,12 @@ export const QUICK_NAV_ITEMS: QuickNavItem[] = [
   },
   { label: 'Media library', path: '/cms/media', group: 'Content & marketing' },
   { label: 'SEO management', path: '/cms/seo', group: 'Content & marketing' },
+  {
+    label: 'Recent Jobs (SEO)',
+    path: '/cms/recent-jobs-seo',
+    group: 'Content & marketing',
+    keywords: 'recent jobs completed bookings hyperlocal proof anonymized locality',
+  },
   { label: 'Marketing workspace', path: '/marketing', group: 'Content & marketing', keywords: 'calendar social planning' },
   { label: 'Marketing campaigns', path: '/marketing/campaigns', group: 'Content & marketing', keywords: 'program launch kpi' },
   { label: 'Content calendar', path: '/marketing/calendar', group: 'Content & marketing', keywords: 'editorial schedule' },

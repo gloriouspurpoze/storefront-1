@@ -255,6 +255,7 @@ export const coreSidebarGroups: SidebarNavGroupDef[] = [
         badge: null,
         subItems: [
           { id: 'seo_management', name: 'SEO management', href: '/cms/seo', icon: 'Search', permissions: ['manage_cms'], module: 'cms' },
+          { id: 'seo_recent_jobs', name: 'Recent Jobs (SEO)', href: '/cms/recent-jobs-seo', icon: 'Briefcase', permissions: ['manage_system_settings'], module: 'cms' },
         ],
       },
       {

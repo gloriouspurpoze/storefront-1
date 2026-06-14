@@ -40,6 +40,14 @@ export { marketingWorkspaceApi } from './marketingWorkspace.api'
 export { platformTenantsService } from './platformTenants.service'
 export { BazaarMarketplaceService } from './bazaarMarketplace.service'
 export { SubscriptionsService } from './subscriptions.service'
+export { SeoService } from './seo.service'
+export type {
+  RecentJobRow,
+  RecentJobsMeta,
+  RecentJobsData,
+  ManualRecentJob,
+  ManualRecentJobsMap,
+} from './seo.service'
 export { ErrorHandler } from './error-handler'
 
 // Export types from base

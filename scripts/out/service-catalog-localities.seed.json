@@ -1,0 +1,69 @@
+[
+  {
+    "name": "Mira Bhayandar",
+    "slug": "mira-bhayandar",
+    "sortOrder": 10,
+    "isActive": true,
+    "parentCity": "Mumbai",
+    "neighborhoods": [
+      "Mira Road",
+      "Bhayandar East",
+      "Bhayandar West",
+      "Naya Nagar",
+      "Golden Nest",
+      "Uttan Road"
+    ],
+    "societies": [
+      "Golden Nest",
+      "Sheetal Nagar",
+      "Silver Park"
+    ],
+    "infrastructureFacts": [
+      "Coastal humidity accelerates terminal pitting in poorly torqued DBs.",
+      "Mix of older chawls near Bhayandar station and mid-rise towers on Mira Road."
+    ],
+    "isIndexable": true,
+    "qualitySignals": {
+      "providerAvailability": true,
+      "reviewCount": false,
+      "hasUniqueContent": true,
+      "faqCoverage": true,
+      "hasPricingInfo": true,
+      "searchDemand": true,
+      "contentQualityScore": 0.75
+    }
+  },
+  {
+    "name": "Dahisar",
+    "slug": "dahisar",
+    "sortOrder": 20,
+    "isActive": true,
+    "parentCity": "Mumbai",
+    "neighborhoods": [
+      "Dahisar East",
+      "Dahisar West",
+      "Ashokvan",
+      "Rawalpada",
+      "Kandarpada",
+      "Anand Nagar"
+    ],
+    "societies": [
+      "Ashokvan",
+      "Rushi Heights"
+    ],
+    "infrastructureFacts": [
+      "SV Road / Link Road corridor mixes old stock with newer towers.",
+      "Monsoon humidity drives leakage trips and outdoor-point faults."
+    ],
+    "isIndexable": true,
+    "qualitySignals": {
+      "providerAvailability": true,
+      "reviewCount": false,
+      "hasUniqueContent": true,
+      "faqCoverage": true,
+      "hasPricingInfo": true,
+      "searchDemand": true,
+      "contentQualityScore": 0.72
+    }
+  }
+]

@@ -373,6 +373,7 @@ const SocialLinksManagement = lazy(() => import('./pages/cms/SocialLinksManageme
 const IndustryServicePagesHub = lazy(() => import('./pages/cms/IndustryServicePagesHub'))
 const PricingCategoryMetaManagement = lazy(() => import('./pages/cms/PricingCategoryMetaManagement'))
 const SeoLandingPagesManagement = lazy(() => import('./pages/cms/SeoLandingPagesManagement'))
+const RecentJobsSeoPage = lazy(() => import('./pages/cms/RecentJobsSeoPage'))
 
 const MarketingWorkspaceHub = lazy(() =>
   import('./pages/marketing-workspace/MarketingWorkspaceHub').then((m) => ({ default: m.MarketingWorkspaceHub })),
@@ -1805,6 +1806,14 @@ function App() {
                         element={
                           <RoleBasedRoute permissions={['manage_system_settings']}>
                             <SeoLandingPagesManagement />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
+                        path="/cms/recent-jobs-seo"
+                        element={
+                          <RoleBasedRoute permissions={['manage_system_settings']}>
+                            <RecentJobsSeoPage />
                           </RoleBasedRoute>
                         }
                       />
