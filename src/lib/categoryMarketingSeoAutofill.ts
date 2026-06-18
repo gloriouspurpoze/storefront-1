@@ -9,6 +9,7 @@ import {
   buildServiceLocalityPublicPath,
   getPreferredServiceCategoryUrlSlug,
 } from './serviceCatalogUrlSlugs'
+import { buildDefaultNearMeSeoCopy } from './nearMeSeo'
 import {
   META_DESC_HARD_MAX_CHARS,
   META_DESC_MIN_CHARS,
@@ -309,6 +310,13 @@ export function buildLocalitySeoAutofillPack(input: CategoryMarketingSeoAutofill
     },
     jsonLdExtra:
       'Consumer should emit Service + FAQPage (+ BreadcrumbList) from CMS fields. Leave aggregateRating empty unless the same numbers are visible on this URL. Add LocalBusiness JSON-LD only when NAP is verified.',
+    nearMeSeo: buildDefaultNearMeSeoCopy({
+      industryLabel,
+      localityLabel,
+      localitySlug,
+      publicOrigin: origin,
+      storageSlug: industrySlug,
+    }),
     closingParagraph: `Ready for ${industryLabel.toLowerCase()} in ${localityLabel}? Pick a slot, add photos if it helps diagnosis, and we will match you with a Profixer partner in ${defaultMetroName}.`,
   }
 }

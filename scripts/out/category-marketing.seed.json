@@ -146,7 +146,7 @@
         "description": "<p>Digital invoice; warranty channel on app/WhatsApp.</p>"
       }
     ],
-    "contactPhone": "",
+    "contactPhone": "+919920025516",
     "contactWhatsapp": "",
     "spareParts": [
       {
@@ -239,7 +239,22 @@
       "enabled": false
     },
     "localSeo": {
-      "enableLocalBusinessSchema": false,
+      "streetAddress": "Gala no. 5, Ground Floor, Balkrishna Raut Nagar, Munshi Compound, Kashimira",
+      "addressLocality": "Mumbai",
+      "addressRegion": "Maharashtra",
+      "postalCode": "401107",
+      "addressCountryCode": "IN",
+      "geoLatLng": "19.2945,72.8541",
+      "googleBusinessProfileUrl": "https://maps.google.com/?q=Profixer+Mira+Road",
+      "sameAsUrls": [
+        "https://www.facebook.com/profixer",
+        "https://www.instagram.com/profixer",
+        "https://www.linkedin.com/company/profixer",
+        "https://www.youtube.com/@profixer"
+      ],
+      "enableLocalBusinessSchema": true,
+      "openingHoursSummary": "Daily 8:00 am – 9:00 pm (last slot 8:00 pm); emergencies subject to partner availability",
+      "priceRange": "₹₹",
       "localProfileName": "Profixer — Electricians",
       "serviceAreaHeadline": "Areas we serve across [City]",
       "serviceAreaPlaceNames": [
@@ -254,10 +269,19 @@
         "emergency electrician",
         "MCB repair",
         "DB upgrade"
+      ]
+    },
+    "nearMeSeo": {
+      "title": "Electrician near me",
+      "description": "Book verified electricians near you in Mumbai, Thane & Navi Mumbai. Same-day slots, transparent pricing, and digital invoices on Profixer.",
+      "keywords": [
+        "electrician near me",
+        "electrician near me Mumbai",
+        "near me electrician",
+        "emergency electrician near me"
       ],
-      "priceRange": "₹₹",
-      "addressRegion": "Maharashtra",
-      "addressCountryCode": "IN"
+      "canonicalPath": "/services/electrician",
+      "robotsMeta": "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
     },
     "technicalSeo": {
       "canonicalUrl": "https://www.profixer.in/services/electrician",
@@ -373,7 +397,22 @@
       "showBookingCtaStrip": true
     },
     "localSeo": {
-      "enableLocalBusinessSchema": false,
+      "streetAddress": "Gala no. 5, Ground Floor, Balkrishna Raut Nagar, Munshi Compound, Kashimira",
+      "addressLocality": "Mira Bhayandar",
+      "addressRegion": "Maharashtra",
+      "postalCode": "401107",
+      "addressCountryCode": "IN",
+      "geoLatLng": "19.2945,72.8541",
+      "googleBusinessProfileUrl": "https://maps.google.com/?q=Profixer+Mira+Road",
+      "sameAsUrls": [
+        "https://www.facebook.com/profixer",
+        "https://www.instagram.com/profixer",
+        "https://www.linkedin.com/company/profixer",
+        "https://www.youtube.com/@profixer"
+      ],
+      "enableLocalBusinessSchema": true,
+      "openingHoursSummary": "Daily 8:00 am – 9:00 pm (last slot 8:00 pm); emergencies subject to partner availability",
+      "priceRange": "₹₹",
       "localProfileName": "Profixer — Electricians (Mira Bhayandar)",
       "serviceAreaHeadline": "Areas we serve near [Location] & [City]",
       "serviceAreaPlaceNames": [
@@ -391,14 +430,20 @@
         "DB upgrade Mira Road",
         "fan installation Mira Bhayandar",
         "emergency electrician Bhayandar"
+      ]
+    },
+    "contactPhone": "+919920025516",
+    "nearMeSeo": {
+      "title": "Electrician near me in Mira Bhayandar",
+      "description": "Book verified electricians near you in Mira Bhayandar (Mira Road & Bhayandar East/West). Same-day slots, transparent pricing, and digital invoices on Profixer.",
+      "keywords": [
+        "electrician near me Mira Bhayandar",
+        "electrician near me Mira Road",
+        "electrician near me Bhayandar",
+        "near me electrician Mira Bhayandar"
       ],
-      "openingHoursSummary": "Daily 8:00 am – 9:00 pm (last slot 8:00 pm); emergencies subject to partner availability",
-      "addressLocality": "Mira Bhayandar",
-      "addressRegion": "Maharashtra",
-      "postalCode": "",
-      "addressCountryCode": "IN",
-      "geoLatLng": "",
-      "priceRange": "₹₹"
+      "canonicalPath": "/services/electrician/mira-bhayandar",
+      "robotsMeta": "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
     },
     "technicalSeo": {
       "canonicalUrl": "https://www.profixer.in/services/electrician/mira-bhayandar",
@@ -518,7 +563,22 @@
       "showBookingCtaStrip": true
     },
     "localSeo": {
-      "enableLocalBusinessSchema": false,
+      "streetAddress": "Gala no. 5, Ground Floor, Balkrishna Raut Nagar, Munshi Compound, Kashimira",
+      "addressLocality": "Dahisar",
+      "addressRegion": "Maharashtra",
+      "postalCode": "401107",
+      "addressCountryCode": "IN",
+      "geoLatLng": "19.2945,72.8541",
+      "googleBusinessProfileUrl": "https://maps.google.com/?q=Profixer+Mira+Road",
+      "sameAsUrls": [
+        "https://www.facebook.com/profixer",
+        "https://www.instagram.com/profixer",
+        "https://www.linkedin.com/company/profixer",
+        "https://www.youtube.com/@profixer"
+      ],
+      "enableLocalBusinessSchema": true,
+      "openingHoursSummary": "Daily 8:00 am – 9:00 pm (last slot 8:00 pm); emergencies subject to partner availability",
+      "priceRange": "₹₹",
       "localProfileName": "Profixer — Electricians (Dahisar)",
       "serviceAreaHeadline": "Areas we serve near [Location] & [City]",
       "serviceAreaPlaceNames": [
@@ -536,14 +596,20 @@
         "DB upgrade Dahisar West",
         "fan installation Dahisar",
         "emergency electrician Dahisar"
+      ]
+    },
+    "contactPhone": "+919920025516",
+    "nearMeSeo": {
+      "title": "Electrician near me in Dahisar",
+      "description": "Book verified electricians near you in Dahisar (East & West). Same-day slots, transparent pricing, and digital invoices on Profixer.",
+      "keywords": [
+        "electrician near me Dahisar",
+        "electrician near me Dahisar East",
+        "electrician near me Dahisar West",
+        "near me electrician Dahisar"
       ],
-      "openingHoursSummary": "Daily 8:00 am – 9:00 pm (last slot 8:00 pm); emergencies subject to partner availability",
-      "addressLocality": "Dahisar",
-      "addressRegion": "Maharashtra",
-      "postalCode": "",
-      "addressCountryCode": "IN",
-      "geoLatLng": "",
-      "priceRange": "₹₹"
+      "canonicalPath": "/services/electrician/dahisar",
+      "robotsMeta": "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
     },
     "technicalSeo": {
       "canonicalUrl": "https://www.profixer.in/services/electrician/dahisar",

@@ -288,12 +288,21 @@ export interface NearMeSeoCmsFields {
   title: string
   description: string
   keywords: string[]
+  /**
+   * Relative canonical for the near-me URL. Blank = self-canonical `/near-me/…`.
+   * Set `/services/{category}/{locality}` when consolidating signals on the richer service page.
+   */
+  canonicalPath: string
+  /** Robots meta override for near-me only — blank inherits consumer default. */
+  robotsMeta: string
 }
 
 export const emptyNearMeSeo = (): NearMeSeoCmsFields => ({
   title: '',
   description: '',
   keywords: [],
+  canonicalPath: '',
+  robotsMeta: '',
 })
 
 export function normalizeNearMeSeo(raw: unknown): NearMeSeoCmsFields {
@@ -310,6 +319,8 @@ export function normalizeNearMeSeo(raw: unknown): NearMeSeoCmsFields {
     title: String(o.title ?? e.title),
     description: String(o.description ?? e.description),
     keywords,
+    canonicalPath: String(o.canonicalPath ?? e.canonicalPath),
+    robotsMeta: String(o.robotsMeta ?? e.robotsMeta),
   }
 }
 
@@ -994,6 +1005,8 @@ export function mergePreferApiStatic(
     title: pickStr(nmS.title, nmA.title),
     description: pickStr(nmS.description, nmA.description),
     keywords: nearMeKeywords,
+    canonicalPath: pickStr(nmS.canonicalPath, nmA.canonicalPath),
+    robotsMeta: pickStr(nmS.robotsMeta, nmA.robotsMeta),
   }
 
   return {

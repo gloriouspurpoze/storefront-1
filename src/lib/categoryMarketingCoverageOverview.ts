@@ -143,6 +143,62 @@ export function buildCategoryMarketingCoverageSections(cfg: CategoryMarketingCon
       ],
     },
     {
+      id: 'nearMe',
+      title: 'Near-me pages',
+      description: 'Programmatic `/near-me/{category}/{locality}` SEO overrides.',
+      items: [
+        {
+          id: 'nearMeTitle',
+          label: 'Near-me title (or consumer default)',
+          done: nonempty(cfg.nearMeSeo?.title),
+        },
+        {
+          id: 'nearMeDescription',
+          label: 'Near-me meta description',
+          done: nonempty(cfg.nearMeSeo?.description),
+        },
+        {
+          id: 'nearMeKeywords',
+          label: 'Near-me keywords',
+          done: (cfg.nearMeSeo?.keywords?.some((k) => nonempty(k)) ?? false),
+        },
+      ],
+    },
+    {
+      id: 'nap',
+      title: 'NAP & citations',
+      description: 'Name, address, phone, GBP, and directory links for local SEO.',
+      items: [
+        { id: 'napPhone', label: 'Business phone', done: nonempty(cfg.contactPhone) },
+        {
+          id: 'napStreet',
+          label: 'Street address',
+          done: nonempty(cfg.localSeo?.streetAddress),
+        },
+        {
+          id: 'napLocality',
+          label: 'City / locality',
+          done: nonempty(cfg.localSeo?.addressLocality),
+        },
+        { id: 'napPostal', label: 'Postal code (PIN)', done: nonempty(cfg.localSeo?.postalCode) },
+        {
+          id: 'napGbp',
+          label: 'Google Business Profile URL',
+          done: nonempty(cfg.localSeo?.googleBusinessProfileUrl),
+        },
+        {
+          id: 'napSameAs',
+          label: 'Citation URLs (sameAs)',
+          done: (cfg.localSeo?.sameAsUrls?.some((u) => nonempty(u)) ?? false),
+        },
+        {
+          id: 'napSchema',
+          label: 'LocalBusiness schema enabled (when NAP verified)',
+          done: cfg.localSeo?.enableLocalBusinessSchema === true,
+        },
+      ],
+    },
+    {
       id: 'hyperlocal',
       title: 'Hyperlocal & technical SEO',
       description: 'Especially important when a location is selected.',

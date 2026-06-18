@@ -87,7 +87,9 @@
     "eject": "react-scripts eject",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "seed:blogs": "node scripts/seed-example-blogs.mjs"
+    "seed:blogs": "node scripts/seed-example-blogs.mjs",
+    "seed:mmr-electrician": "node scripts/seed-mmr-electrician.mjs",
+    "seed:mmr-electrician:commit": "node scripts/seed-mmr-electrician.mjs --commit"
   },
   "eslintConfig": {
     "extends": [

@@ -64,6 +64,49 @@ const link = (label, url) => ({ label, url })
 const BOOK = `${ORIGIN}/book?service=electrician`
 const CAT_URL = `${ORIGIN}/services/electrician`
 
+/** Registered-office NAP — must match CONTACT_INFO on the consumer site. */
+const REGISTERED_NAP = {
+  contactPhone: '+919920025516',
+  streetAddress:
+    'Gala no. 5, Ground Floor, Balkrishna Raut Nagar, Munshi Compound, Kashimira',
+  addressLocality: 'Mira Road (East)',
+  addressRegion: 'Maharashtra',
+  postalCode: '401107',
+  addressCountryCode: 'IN',
+  geoLatLng: '19.2945,72.8541',
+  googleBusinessProfileUrl: 'https://maps.google.com/?q=Profixer+Mira+Road',
+  sameAsUrls: [
+    'https://www.facebook.com/profixer',
+    'https://www.instagram.com/profixer',
+    'https://www.linkedin.com/company/profixer',
+    'https://www.youtube.com/@profixer',
+  ],
+}
+
+/** Industry-standard near-me overrides; canonical defaults to the richer /services/ URL. */
+function nearMeSeoPack({ title, description, keywords, servicesPath }) {
+  return {
+    title,
+    description,
+    keywords,
+    canonicalPath: servicesPath,
+    robotsMeta: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
+  }
+}
+
+function localSeoWithNap(overlay) {
+  const { contactPhone: _phone, ...napFields } = REGISTERED_NAP
+  return {
+    ...napFields,
+    enableLocalBusinessSchema: true,
+    openingHoursSummary: 'Daily 8:00 am – 9:00 pm (last slot 8:00 pm); emergencies subject to partner availability',
+    priceRange: '₹₹',
+    googleBusinessProfileUrl: overlay.googleBusinessProfileUrl || REGISTERED_NAP.googleBusinessProfileUrl,
+    sameAsUrls: REGISTERED_NAP.sameAsUrls,
+    ...overlay,
+  }
+}
+
 /* ───────────────────────────── 1) BASE: electrician ──────────────────────────── */
 
 const electricianBase = {
@@ -154,16 +197,21 @@ const electricianBase = {
   jsonLdExtra:
     'Consumer should emit Service + FAQPage (+ BreadcrumbList) from CMS fields. Leave aggregateRating empty unless the same numbers are visible on this URL.',
   localityGuide: { enabled: false },
-  localSeo: {
-    enableLocalBusinessSchema: false,
+  contactPhone: REGISTERED_NAP.contactPhone,
+  localSeo: localSeoWithNap({
     localProfileName: 'Profixer — Electricians',
     serviceAreaHeadline: 'Areas we serve across [City]',
     serviceAreaPlaceNames: ['Mira Bhayandar', 'Dahisar', 'Borivali', 'Kandivali', 'Mumbai'],
     localIntentKeywords: ['electrician near me', 'emergency electrician', 'MCB repair', 'DB upgrade'],
-    priceRange: '₹₹',
-    addressRegion: 'Maharashtra',
-    addressCountryCode: 'IN',
-  },
+    addressLocality: 'Mumbai',
+  }),
+  nearMeSeo: nearMeSeoPack({
+    title: 'Electrician near me',
+    description:
+      'Book verified electricians near you in Mumbai, Thane & Navi Mumbai. Same-day slots, transparent pricing, and digital invoices on Profixer.',
+    keywords: ['electrician near me', 'electrician near me Mumbai', 'near me electrician', 'emergency electrician near me'],
+    servicesPath: '/services/electrician',
+  }),
   technicalSeo: {
     canonicalUrl: `${CAT_URL}`,
     ogTitle: 'Electrician Services | Profixer',
@@ -231,8 +279,7 @@ const electricianMiraBhayandar = {
     showInboundLinkStrip: true,
     showBookingCtaStrip: true,
   },
-  localSeo: {
-    enableLocalBusinessSchema: false,
+  localSeo: localSeoWithNap({
     localProfileName: 'Profixer — Electricians (Mira Bhayandar)',
     serviceAreaHeadline: 'Areas we serve near [Location] & [City]',
     // Mira Road & Bhayandar folded in here as served areas — NOT separate URLs:
@@ -240,14 +287,21 @@ const electricianMiraBhayandar = {
     serviceAreaNarrative:
       'We operate mobile electrician teams across Mira Bhayandar and adjoining Mira Road sectors, prioritising DB safety and lighting installs. Coverage follows traffic-aware routing; some Uttan/Gorai pockets may need extended ETA—confirm at booking.',
     localIntentKeywords: ['electrician near me Mira Bhayandar', 'MCB repair Bhayandar East', 'DB upgrade Mira Road', 'fan installation Mira Bhayandar', 'emergency electrician Bhayandar'],
-    openingHoursSummary: 'Daily 8:00 am – 9:00 pm (last slot 8:00 pm); emergencies subject to partner availability',
     addressLocality: 'Mira Bhayandar',
-    addressRegion: 'Maharashtra',
-    postalCode: '',
-    addressCountryCode: 'IN',
-    geoLatLng: '',
-    priceRange: '₹₹',
-  },
+  }),
+  contactPhone: REGISTERED_NAP.contactPhone,
+  nearMeSeo: nearMeSeoPack({
+    title: 'Electrician near me in Mira Bhayandar',
+    description:
+      'Book verified electricians near you in Mira Bhayandar (Mira Road & Bhayandar East/West). Same-day slots, transparent pricing, and digital invoices on Profixer.',
+    keywords: [
+      'electrician near me Mira Bhayandar',
+      'electrician near me Mira Road',
+      'electrician near me Bhayandar',
+      'near me electrician Mira Bhayandar',
+    ],
+    servicesPath: '/services/electrician/mira-bhayandar',
+  }),
   technicalSeo: {
     canonicalUrl: MB_URL,
     ogTitle: 'Electrician in Mira Bhayandar | Profixer',
@@ -317,22 +371,28 @@ const electricianDahisar = {
     showInboundLinkStrip: true,
     showBookingCtaStrip: true,
   },
-  localSeo: {
-    enableLocalBusinessSchema: false,
+  localSeo: localSeoWithNap({
     localProfileName: 'Profixer — Electricians (Dahisar)',
     serviceAreaHeadline: 'Areas we serve near [Location] & [City]',
     serviceAreaPlaceNames: ['Dahisar East', 'Dahisar West', 'Ashokvan', 'Rawalpada', 'Kandarpada', 'Anand Nagar (Dahisar)'],
     serviceAreaNarrative:
       'We run mobile electrician teams across Dahisar East and West, with routing that avoids Link Road peaks where possible. Coverage extends toward Rawalpada and Ashokvan; confirm ETA for pockets near the national park edge during evening traffic.',
     localIntentKeywords: ['electrician near me Dahisar', 'MCB repair Dahisar East', 'DB upgrade Dahisar West', 'fan installation Dahisar', 'emergency electrician Dahisar'],
-    openingHoursSummary: 'Daily 8:00 am – 9:00 pm (last slot 8:00 pm); emergencies subject to partner availability',
     addressLocality: 'Dahisar',
-    addressRegion: 'Maharashtra',
-    postalCode: '',
-    addressCountryCode: 'IN',
-    geoLatLng: '',
-    priceRange: '₹₹',
-  },
+  }),
+  contactPhone: REGISTERED_NAP.contactPhone,
+  nearMeSeo: nearMeSeoPack({
+    title: 'Electrician near me in Dahisar',
+    description:
+      'Book verified electricians near you in Dahisar (East & West). Same-day slots, transparent pricing, and digital invoices on Profixer.',
+    keywords: [
+      'electrician near me Dahisar',
+      'electrician near me Dahisar East',
+      'electrician near me Dahisar West',
+      'near me electrician Dahisar',
+    ],
+    servicesPath: '/services/electrician/dahisar',
+  }),
   technicalSeo: {
     canonicalUrl: DH_URL,
     ogTitle: 'Electrician in Dahisar | Profixer',

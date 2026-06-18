@@ -94,6 +94,12 @@ import {
   buildServiceLocalityPublicPath,
   getPreferredServiceCategoryUrlSlug,
 } from '../../lib/serviceCatalogUrlSlugs'
+import {
+  assessNapCitationsReadiness,
+  assessNearMeSeoReadiness,
+  buildDefaultNearMeSeoCopy,
+  resolveNearMePreviewUrl,
+} from '../../lib/nearMeSeo'
 
 type TabKey =
   | 'metadata'
@@ -429,6 +435,31 @@ export default function CategoryMarketingManagement() {
     setSeoAutofillConfirmOpen(false)
   }
 
+  const applyNearMeDefaults = () => {
+    const defaults = buildDefaultNearMeSeoCopy({
+      industryLabel,
+      localityLabel: normalizedLocalitySlug ? localityDisplayLabel : undefined,
+      localitySlug: normalizedLocalitySlug || undefined,
+      publicOrigin: publicSiteOrigin,
+      storageSlug: selectedCategory,
+    })
+    updateNearMeSeo(defaults)
+    appToast('Near-me SEO defaults applied — review canonical strategy, then Save.', 'success')
+  }
+
+  const nearMePreviewUrl = useMemo(
+    () => resolveNearMePreviewUrl(selectedCategory, normalizedLocalitySlug, publicSiteOrigin),
+    [selectedCategory, normalizedLocalitySlug, publicSiteOrigin],
+  )
+
+  const servicesPreviewUrl = useMemo(() => {
+    const o = publicSiteOrigin.replace(/\/$/, '')
+    if (normalizedLocalitySlug) {
+      return `${o}${buildServiceLocalityPublicPath(selectedCategory, normalizedLocalitySlug)}`
+    }
+    return `${o}/services/${getPreferredServiceCategoryUrlSlug(selectedCategory)}`
+  }, [publicSiteOrigin, selectedCategory, normalizedLocalitySlug])
+
   const seoReadinessRows = useMemo(() => {
     type Tone = 'ok' | 'warn' | 'info'
     const rows: { tone: Tone; title: string; detail: string }[] = []
@@ -641,10 +672,23 @@ export default function CategoryMarketingManagement() {
       }
     }
 
+    for (const nm of assessNearMeSeoReadiness(config, {
+      industryLabel,
+      localityLabel: localityDisplayLabel,
+      nearMeUrl: nearMePreviewUrl,
+      servicesUrl: servicesPreviewUrl,
+    })) {
+      rows.push(nm)
+    }
+
+    for (const nap of assessNapCitationsReadiness(config)) {
+      rows.push(nap)
+    }
+
     const warnCount = rows.filter((r) => r.tone === 'warn').length
     const okCount = rows.filter((r) => r.tone === 'ok').length
     return { rows, warnCount, okCount }
-  }, [config, data, normalizedLocalitySlug, effectiveKey, publicSiteOrigin, selectedCategory, industryLabel, localityDisplayLabel])
+  }, [config, data, normalizedLocalitySlug, effectiveKey, publicSiteOrigin, selectedCategory, industryLabel, localityDisplayLabel, nearMePreviewUrl, servicesPreviewUrl])
 
   const localityVersusIndustryDiff = useMemo(() => {
     if (!normalizedLocalitySlug || loading) return null
@@ -1972,6 +2016,29 @@ export default function CategoryMarketingManagement() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4 pt-6">
+                    <div className="rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-sm">
+                      <p className="text-muted-foreground">
+                        Live URL:{' '}
+                        <a
+                          href={nearMePreviewUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-mono text-foreground underline-offset-2 hover:underline"
+                        >
+                          {nearMePreviewUrl.replace(publicSiteOrigin, '') || nearMePreviewUrl}
+                        </a>
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Pairs with service page{' '}
+                        <span className="font-mono">{servicesPreviewUrl.replace(publicSiteOrigin, '')}</span> — set
+                        canonical below if you want Google to consolidate on /services/ instead.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" size="sm" variant="outline" onClick={applyNearMeDefaults}>
+                        Apply near-me defaults
+                      </Button>
+                    </div>
                     <div className="space-y-2">
                       <Label htmlFor="cmm-nearme-title">Near-me page title (H1 / meta title)</Label>
                       <Input
@@ -2008,6 +2075,36 @@ export default function CategoryMarketingManagement() {
                           })
                         }
                         placeholder="ac service near me, ac repair near mira bhayandar"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cmm-nearme-canonical">Canonical path (near-me URL)</Label>
+                      <Input
+                        id="cmm-nearme-canonical"
+                        className="w-full font-mono text-sm"
+                        value={config.nearMeSeo.canonicalPath}
+                        onChange={(e) => updateNearMeSeo({ canonicalPath: e.target.value })}
+                        placeholder={nearMePreviewUrl.replace(publicSiteOrigin, '')}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Blank = self-canonical. To avoid cannibalization with the service page, set{' '}
+                        <code className="text-xs">
+                          {buildServiceLocalityPublicPath(
+                            selectedCategory,
+                            normalizedLocalitySlug || 'mira-bhayandar',
+                          )}
+                        </code>
+                        .
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cmm-nearme-robots">Robots override (near-me only)</Label>
+                      <Input
+                        id="cmm-nearme-robots"
+                        className="w-full font-mono text-sm"
+                        value={config.nearMeSeo.robotsMeta}
+                        onChange={(e) => updateNearMeSeo({ robotsMeta: e.target.value })}
+                        placeholder="index, follow"
                       />
                     </div>
                   </CardContent>

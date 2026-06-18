@@ -167,7 +167,7 @@ export function buildIndustryLandingPreviewJsonLd(
     if (nonempty(cfg.localSeo.addressLocality)) addr.addressLocality = cfg.localSeo.addressLocality.trim()
     if (nonempty(cfg.localSeo.addressRegion)) addr.addressRegion = cfg.localSeo.addressRegion.trim()
     if (nonempty(cfg.localSeo.postalCode)) addr.postalCode = cfg.localSeo.postalCode.trim()
-    if (nonempty(cfg.localSeo.addressCountryCode)) addr.addressCountryCode = cfg.localSeo.addressCountryCode.trim()
+    if (nonempty(cfg.localSeo.addressCountryCode)) addr.addressCountry = cfg.localSeo.addressCountryCode.trim()
 
     const lb: Record<string, unknown> = {
       '@type': 'LocalBusiness',
@@ -175,6 +175,7 @@ export function buildIndustryLandingPreviewJsonLd(
       name: cfg.localSeo.localProfileName.trim() || title,
       url: pageUrl,
     }
+    if (nonempty(cfg.contactPhone)) lb.telephone = cfg.contactPhone.trim()
     if (Object.keys(addr).length) lb.address = { '@type': 'PostalAddress', ...addr }
     if (nonempty(cfg.localSeo.openingHoursSummary)) {
       lb.description = `Hours (summary): ${cfg.localSeo.openingHoursSummary.trim()}`
@@ -185,6 +186,9 @@ export function buildIndustryLandingPreviewJsonLd(
       cfg.localSeo.googleBusinessProfileUrl.trim(),
     ].filter(Boolean)
     if (sameAs.length) lb.sameAs = sameAs
+    if (nonempty(cfg.localSeo.googleBusinessProfileUrl)) {
+      lb.hasMap = cfg.localSeo.googleBusinessProfileUrl.trim()
+    }
     const places = cfg.localSeo.serviceAreaPlaceNames.map((p) => p.trim()).filter(Boolean)
     if (places.length) {
       lb.areaServed = places.map((name) => ({ '@type': 'Place', name }))
