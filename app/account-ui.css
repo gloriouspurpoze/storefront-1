@@ -1,0 +1,11 @@
+/**
+ * Account UI utilities — imported from the root layout (static path) so
+ * Tailwind classes for /account and /orders/track work on client-side
+ * navigations. CSS imported under sites/[tenantId]/account/ does not
+ * reliably load when navigating from the storefront home page.
+ */
+@import 'tailwindcss/utilities' source(none);
+
+@source '../components/account/**/*.{js,ts,jsx,tsx}';
+@source '../components/account/themes/**/*.{js,ts,jsx,tsx}';
+@source '../themes/retail/TrackOrderClient.tsx';

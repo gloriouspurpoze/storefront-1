@@ -35,6 +35,7 @@ export async function middleware(req: NextRequest) {
 
   const host = (req.headers.get('host') ?? '').toLowerCase()
   const tenant = await resolveTenant(host)
+  console.log('tenant', tenant)
 
   if (!tenant) {
     const url = req.nextUrl.clone()

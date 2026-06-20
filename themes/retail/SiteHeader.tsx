@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { AccountNavLink } from '@/components/account/AccountNavLink'
 import type { ThemeTenant } from './types'
 import { useCart } from './cart'
 
@@ -38,6 +39,7 @@ export function SiteHeader({ tenant }: { tenant: ThemeTenant }) {
           <Link className="hover:text-slate-950" href="/orders/track">
             Track order
           </Link>
+          <AccountNavLink className="hover:text-slate-950" />
         </div>
 
         <Link

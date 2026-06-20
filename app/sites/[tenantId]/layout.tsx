@@ -7,6 +7,7 @@ import { resolveTenant } from '@/lib/tenant-resolver'
 import type { ResolvedTenant } from '@/lib/types'
 import { fetchStorefrontConfig, type StorefrontConfig } from '@/lib/storefront-api'
 import { themeRootClass } from '@/lib/theme-classes'
+import { AccountAuthProvider } from '@/components/account/AccountAuthProvider'
 
 interface RouteParams {
   params: Promise<{ tenantId: string }>
@@ -208,7 +209,7 @@ export default async function TenantLayout({
         />
       )}
       {cfg?.customCss && <style dangerouslySetInnerHTML={{ __html: cfg.customCss }} />}
-      {children}
+      <AccountAuthProvider>{children}</AccountAuthProvider>
     </div>
   )
 }

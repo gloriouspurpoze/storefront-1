@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=DM+Serif+Display:ital@0;1&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:#f0ede8;min-height:100vh;padding:1.5rem}
+
+.switcher{display:flex;gap:.5rem;margin-bottom:1.5rem;background:#e5e0d8;padding:.3rem;border-radius:10px;width:fit-content}
+.sw-btn{padding:.45rem 1.1rem;border-radius:7px;border:none;cursor:pointer;font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;background:transparent;color:#888;transition:all .2s}
+.sw-btn.active{background:#fff;color:#0a0a0a;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+
+.phone-wrap{display:flex;justify-content:center}
+.phone{width:360px;background:#fff;border-radius:36px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.15);min-height:640px}
+.phone-bar{height:12px;background:#f5f5f3;display:flex;align-items:center;justify-content:center}
+.phone-notch{width:80px;height:5px;background:#e0ddd8;border-radius:3px}
+
+/* TEMPLATE 1: MINIMAL */
+.t-minimal{display:none;flex-direction:column}
+.t-minimal.visible{display:flex}
+.min-header{padding:1.75rem 1.25rem 1rem;border-bottom:1px solid #f0ede8}
+.min-logo-row{display:flex;align-items:center;gap:.75rem;margin-bottom:.6rem}
+.min-logo{width:38px;height:38px;border-radius:10px;background:#e1f5ee;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.min-biz-name{font-size:16px;font-weight:500;color:#0a0a0a}
+.min-tagline{font-size:12px;color:#999;margin-top:.15rem}
+.min-meta{display:flex;gap:1rem;margin-top:.5rem}
+.min-meta-item{font-size:11px;color:#bbb;display:flex;align-items:center;gap:.3rem}
+.min-body{padding:1rem 1.25rem;flex:1}
+.min-cat-label{font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:#bbb;margin:1rem 0 .6rem;padding-bottom:.4rem;border-bottom:1px solid #f5f3f0}
+.min-cat-label:first-child{margin-top:0}
+.min-row{display:flex;justify-content:space-between;align-items:center;padding:.7rem 0;border-bottom:1px solid #faf9f7}
+.min-row:last-child{border-bottom:none}
+.min-item-left{flex:1}
+.min-item-name{font-size:14px;color:#1a1a1a;font-weight:400}
+.min-item-desc{font-size:12px;color:#bbb;margin-top:.15rem}
+.min-veg{display:inline-block;width:12px;height:12px;border:1.5px solid #1d9e75;border-radius:2px;margin-right:.3rem;vertical-align:middle;position:relative}
+.min-veg::after{content:'';width:6px;height:6px;background:#1d9e75;border-radius:50%;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
+.min-price{font-size:14px;font-weight:500;color:#0a0a0a;white-space:nowrap;margin-left:.75rem}
+.min-badge{font-size:10px;background:#fff8e1;color:#b8860b;padding:.1rem .4rem;border-radius:3px;margin-left:.4rem;font-weight:500}
+.min-unavail .min-item-name{color:#ccc;text-decoration:line-through}
+.min-unavail .min-price{color:#ccc}
+.min-footer{padding:1rem 1.25rem;border-top:1px solid #f0ede8}
+.min-wa-btn{width:100%;background:#25D366;color:#fff;border:none;padding:.7rem;border-radius:9px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:.5rem}
+.min-powered{text-align:center;font-size:10px;color:#ddd;margin-top:.6rem}
+
+/* TEMPLATE 2: CARDS */
+.t-cards{display:none;flex-direction:column}
+.t-cards.visible{display:flex}
+.cards-header{padding:1.5rem 1.25rem 1rem;background:#1a1a1a;color:#fff}
+.cards-logo-row{display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem}
+.cards-logo{width:40px;height:40px;border-radius:12px;background:#2d2d2d;display:flex;align-items:center;justify-content:center;font-size:20px}
+.cards-biz-name{font-family:'Fraunces',serif;font-size:17px;font-weight:300;color:#fff}
+.cards-tagline{font-size:11px;color:#666;margin-top:.1rem}
+.cards-cats{display:flex;gap:.5rem;overflow-x:auto;padding-bottom:.25rem;scrollbar-width:none;margin-top:.75rem}
+.cards-cats::-webkit-scrollbar{display:none}
+.cat-pill{padding:.35rem .9rem;border-radius:100px;font-size:12px;font-weight:400;white-space:nowrap;cursor:pointer;border:1px solid #333;color:#888;background:transparent;font-family:'DM Sans',sans-serif;transition:all .2s}
+.cat-pill.active{background:#fff;color:#0a0a0a;border-color:#fff}
+.cards-body{padding:1rem 1.25rem;flex:1;overflow-y:auto;background:#fafaf8}
+.cat-section{margin-bottom:1.25rem}
+.cat-title{font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:#bbb;margin-bottom:.6rem}
+.item-card{background:#fff;border-radius:12px;overflow:hidden;margin-bottom:.6rem;display:flex;border:1px solid #f0ede8}
+.item-card.unavail{opacity:.45}
+.item-img{width:72px;height:72px;background:#f5f3f0;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:26px}
+.item-info{padding:.6rem .8rem;flex:1;display:flex;flex-direction:column;justify-content:space-between}
+.item-info-top{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem}
+.item-card-name{font-size:13px;font-weight:500;color:#1a1a1a;line-height:1.3}
+.item-card-price{font-size:14px;font-weight:500;color:#0a0a0a;white-space:nowrap}
+.item-card-desc{font-size:11px;color:#bbb;margin-top:.2rem;line-height:1.4}
+.item-card-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:.4rem}
+.veg-dot{width:10px;height:10px;border:1.5px solid #1d9e75;border-radius:2px;display:inline-block;position:relative}
+.veg-dot::after{content:'';width:5px;height:5px;background:#1d9e75;border-radius:50%;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
+.add-btn{width:24px;height:24px;border-radius:6px;background:#1a1a1a;color:#fff;border:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;line-height:1}
+.sold-tag{font-size:10px;color:#e24b4a;font-weight:500}
+.cards-footer{padding:.75rem 1.25rem;border-top:1px solid #f0ede8;background:#fff}
+.cart-summary{display:flex;align-items:center;justify-content:space-between;background:#1a1a1a;padding:.75rem 1rem;border-radius:10px;cursor:pointer}
+.cart-left{display:flex;align-items:center;gap:.6rem}
+.cart-count{background:#25D366;color:#fff;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500}
+.cart-label{color:#fff;font-size:13px}
+.cart-label span{color:#999;font-size:11px;display:block}
+.cart-action{color:#fff;font-size:13px;font-weight:500}
+.cards-powered{text-align:center;font-size:10px;color:#ccc;margin-top:.5rem}
+</style>
+</head>
+<body>
+
+<div class="switcher">
+  <button class="sw-btn active" onclick="showTemplate('minimal')">Minimal</button>
+  <button class="sw-btn" onclick="showTemplate('cards')">Cards</button>
+</div>
+
+<div class="phone-wrap">
+<div class="phone">
+  <div class="phone-bar"><div class="phone-notch"></div></div>
+
+  <!-- TEMPLATE 1: MINIMAL -->
+  <div class="t-minimal visible" id="t-minimal">
+    <div class="min-header">
+      <div class="min-logo-row">
+        <div class="min-logo">🥗</div>
+        <div>
+          <div class="min-biz-name">Priya's Tiffin</div>
+          <div class="min-tagline">Home-cooked meals · Andheri West</div>
+        </div>
+      </div>
+      <div class="min-meta">
+        <span class="min-meta-item">📦 Min order ₹200</span>
+        <span class="min-meta-item">🕐 12pm – 3pm</span>
+        <span class="min-meta-item">✅ Open today</span>
+      </div>
+    </div>
+
+    <div class="min-body">
+      <div class="min-cat-label">Tiffin (lunch)</div>
+      <div class="min-row">
+        <div class="min-item-left">
+          <div class="min-item-name"><span class="min-veg"></span>Full Tiffin — Veg</div>
+          <div class="min-item-desc">Dal, sabzi, rice, 3 rotis, salad</div>
+        </div>
+        <div class="min-price">₹120</div>
+      </div>
+      <div class="min-row">
+        <div class="min-item-left">
+          <div class="min-item-name"><span class="min-veg"></span>Half Tiffin</div>
+          <div class="min-item-desc">Dal, sabzi, 2 rotis</div>
+        </div>
+        <div class="min-price">₹80</div>
+      </div>
+      <div class="min-row">
+        <div class="min-item-left">
+          <div class="min-item-name"><span class="min-veg"></span>Rice + Dal</div>
+          <div class="min-item-desc">Plain rice, tadka dal</div>
+        </div>
+        <div class="min-price">₹60</div>
+      </div>
+      <div class="min-row min-unavail">
+        <div class="min-item-left">
+          <div class="min-item-name"><span class="min-veg"></span>Paneer Special</div>
+          <div class="min-item-desc">Not available today</div>
+        </div>
+        <div class="min-price">₹150</div>
+      </div>
+
+      <div class="min-cat-label">Extras</div>
+      <div class="min-row">
+        <div class="min-item-left">
+          <div class="min-item-name"><span class="min-veg"></span>Extra Roti</div>
+        </div>
+        <div class="min-price">₹8</div>
+      </div>
+      <div class="min-row">
+        <div class="min-item-left">
+          <div class="min-item-name"><span class="min-veg"></span>Curd (100g)</div>
+        </div>
+        <div class="min-price">₹15</div>
+      </div>
+      <div class="min-row">
+        <div class="min-item-left">
+          <div class="min-item-name"><span class="min-veg"></span>Papad</div>
+        </div>
+        <div class="min-price">₹10 <span class="min-badge">Popular</span></div>
+      </div>
+    </div>
+
+    <div class="min-footer">
+      <button class="min-wa-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        Order via WhatsApp
+      </button>
+      <div class="min-powered">Powered by menufast</div>
+    </div>
+  </div>
+
+  <!-- TEMPLATE 2: CARDS -->
+  <div class="t-cards" id="t-cards">
+    <div class="cards-header">
+      <div class="cards-logo-row">
+        <div class="cards-logo">🍰</div>
+        <div>
+          <div class="cards-biz-name">Zainab's Bakes</div>
+          <div class="cards-tagline">Custom cakes & pastries · Bandra</div>
+        </div>
+      </div>
+      <div class="cards-cats">
+        <button class="cat-pill active">All</button>
+        <button class="cat-pill">Cakes</button>
+        <button class="cat-pill">Pastries</button>
+        <button class="cat-pill">Cookies</button>
+        <button class="cat-pill">Seasonal</button>
+      </div>
+    </div>
+
+    <div class="cards-body">
+      <div class="cat-section">
+        <div class="cat-title">Cakes</div>
+        <div class="item-card">
+          <div class="item-img">🎂</div>
+          <div class="item-info">
+            <div class="item-info-top">
+              <div class="item-card-name">Tres Leches (1 kg)</div>
+              <div class="item-card-price">₹850</div>
+            </div>
+            <div class="item-card-desc">Light sponge soaked in three milks, whipped cream</div>
+            <div class="item-card-bottom">
+              <span class="veg-dot"></span>
+              <button class="add-btn">+</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card">
+          <div class="item-img">🍫</div>
+          <div class="item-info">
+            <div class="item-info-top">
+              <div class="item-card-name">Belgian Chocolate Mud</div>
+              <div class="item-card-price">₹950</div>
+            </div>
+            <div class="item-card-desc">Dense, fudgy, ganache-frosted</div>
+            <div class="item-card-bottom">
+              <span class="veg-dot"></span>
+              <button class="add-btn">+</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card unavail">
+          <div class="item-img">🌲</div>
+          <div class="item-info">
+            <div class="item-info-top">
+              <div class="item-card-name">Dark Forest Cake</div>
+              <div class="item-card-price">₹900</div>
+            </div>
+            <div class="item-card-desc">Cherries, cream, dark chocolate layers</div>
+            <div class="item-card-bottom">
+              <span class="sold-tag">Sold out today</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cat-section">
+        <div class="cat-title">Pastries & Slices</div>
+        <div class="item-card">
+          <div class="item-img">🥐</div>
+          <div class="item-info">
+            <div class="item-info-top">
+              <div class="item-card-name">Biscoff Cheesecake</div>
+              <div class="item-card-price">₹180</div>
+            </div>
+            <div class="item-card-desc">Slice · Lotus Biscoff base</div>
+            <div class="item-card-bottom">
+              <span class="veg-dot"></span>
+              <button class="add-btn">+</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card">
+          <div class="item-img">🍮</div>
+          <div class="item-info">
+            <div class="item-info-top">
+              <div class="item-card-name">Crème Brûlée Tart</div>
+              <div class="item-card-price">₹160</div>
+            </div>
+            <div class="item-card-desc">Caramelised custard in buttery shell</div>
+            <div class="item-card-bottom">
+              <span class="veg-dot"></span>
+              <button class="add-btn">+</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cards-footer">
+      <div class="cart-summary">
+        <div class="cart-left">
+          <div class="cart-count">2</div>
+          <div class="cart-label">2 items · ₹1,030 <span>Tap to review & order</span></div>
+        </div>
+        <div class="cart-action">Order via WhatsApp →</div>
+      </div>
+      <div class="cards-powered">Powered by menufast</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+function showTemplate(t){
+  document.querySelectorAll('.sw-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('[class^="t-"],.t-minimal,.t-cards').forEach(el=>el.classList.remove('visible'));
+  event.target.classList.add('active');
+  document.getElementById('t-'+t).classList.add('visible');
+}
+</script>
+
+</body>
+</html>

@@ -11,6 +11,12 @@ export function themeRootClass(themeKey?: string): string {
       return 'theme-luxury-retail'
     case 'saffron':
       return 'theme-saffron'
+    case 'menufast-minimal':
+      return 'theme-menufast-minimal'
+    case 'menufast-cards':
+      return 'theme-menufast-cards'
+    case 'soft-studio':
+      return 'theme-soft-studio'
     default:
       return 'theme-classic'
   }

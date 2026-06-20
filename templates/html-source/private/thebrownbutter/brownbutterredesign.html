@@ -1,0 +1,1547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Brown Butter – Redesign</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=DM+Sans:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --sky: #7ec8e3;
+    --sky-dark: #5db5d3;
+    --sky-light: #e8f6fb;
+    --butter: #f5c842;
+    --butter-dark: #c9950a;
+    --butter-light: #fffbe6;
+    --cream: #fffdf5;
+    --navy: #1a2a3a;
+    --navy-mid: #2d4a62;
+    --muted: #8a9bb0;
+    --muted-light: #c5d2df;
+    --white: #ffffff;
+    --red: #ff6b6b;
+    --green: #22c55e;
+    --page-bg: #eef7fb;
+    --card-bg: #ffffff;
+    --border: #e0edf5;
+    --font-display: 'Nunito', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+    --r-sm: 12px;
+    --r-md: 16px;
+    --r-lg: 24px;
+    --r-xl: 32px;
+  }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--page-bg);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 0 0 80px;
+    background-image:
+      radial-gradient(ellipse 60% 40% at 20% 0%, rgba(126,200,227,0.22) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 30% at 85% 90%, rgba(245,200,66,0.15) 0%, transparent 55%);
+  }
+.store-header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.85);
+      -webkit-backdrop-filter: blur(16px);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(232, 238, 243, 0.7);
+      padding: 12px 20px;
+    }
+
+    .header-container {
+      max-width: 500px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand-block {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .header-logo-ring {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: conic-gradient(from 140deg, var(--sky), var(--butter), var(--sky-dark), var(--sky));
+      padding: 2px;
+      box-shadow: 0 4px 12px rgba(126, 200, 227, 0.3);
+    }
+
+    .header-logo-ring .img-placeholder {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .brand-meta h2 {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 900;
+      font-size: 15px;
+      color: var(--navy);
+      line-height: 1.1;
+    }
+
+    .brand-meta p {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+      .menu-toggle-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 1.5px solid var(--border);
+        background: var(--white);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s, transform 0.15s;
+        color: var(--navy);
+        font-size: 18px;
+        flex-shrink: 0;
+      }
+
+      .menu-toggle-btn:hover {
+        background: var(--sky-light);
+        border-color: var(--sky);
+        transform: translateY(-1px);
+      }
+
+    .action-profile-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--soft-blue);
+      border: 1.5px solid rgba(126, 200, 227, 0.3);
+      color: var(--sky-dark);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      font-size: 16px;
+    }
+
+    .action-profile-btn:hover {
+      background: var(--sky);
+      color: var(--white);
+      transform: translateY(-1px);
+    }
+
+  .store-wrap {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── STICKY TOP BAR ── */
+  .top-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(255,255,255,0.88);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+  }
+
+  .top-bar-logo {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--sky-light);
+    flex-shrink: 0;
+    background: var(--sky-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 13px;
+    color: var(--sky-dark);
+    overflow: hidden;
+  }
+
+  .top-bar-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .top-bar-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .top-bar-name {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 14px;
+    color: var(--navy);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .store-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11.5px;
+    color: var(--muted);
+    font-weight: 500;
+    margin-top: 1px;
+  }
+
+    /* OPERATIONAL TRANS-INFO COMPONENT */
+    .status-card {
+      background: var(--white);
+      border-radius: 20px;
+      padding: 14px 16px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 20px rgba(126, 200, 227, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1.5px solid #e8eef3;
+    }
+
+    .status-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      background: var(--green);
+      border-radius: 50%;
+      position: relative;
+    }
+
+    .status-indicator::after {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      border: 2px solid var(--green);
+      animation: pulseGlow 2s infinite;
+      opacity: 0.4;
+    }
+
+    @keyframes pulseGlow {
+      0% { transform: scale(1); opacity: 0.4; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+
+    .status-details p {
+      font-family: 'Nunito', sans-serif;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--navy);
+    }
+
+    .status-details span {
+      font-size: 11px;
+      color: var(--muted);
+      display: block;
+    }
+
+    .status-badge {
+      font-family: 'Nunito', sans-serif;
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--green);
+      background: var(--green-soft);
+      padding: 4px 10px;
+      border-radius: 12px;
+    }
+
+
+  /* .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    flex-shrink: 0;
+    box-shadow: 0 0 0 2px rgba(34,197,94,0.25);
+  }
+
+  .status-dot.closed {
+    background: var(--red);
+    box-shadow: 0 0 0 2px rgba(255,107,107,0.25);
+  } */
+
+  .top-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .menu-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 42, 58, 0.36);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease;
+    z-index: 1200;
+  }
+
+  .menu-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .menu-drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: min(90vw, 360px);
+    height: 100vh;
+    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,252,255,0.98));
+    box-shadow: 12px 0 36px rgba(26, 42, 58, 0.18);
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: 1201;
+    padding: 20px 18px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    overflow-y: auto;
+  }
+
+  .menu-overlay.open .menu-drawer {
+    transform: translateX(0);
+  }
+
+  .drawer-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .drawer-title {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--navy);
+    line-height: 1.1;
+  }
+
+  .drawer-close {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--white);
+    color: var(--navy);
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .drawer-subtitle {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--muted);
+  }
+
+  .drawer-links {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .drawer-link {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    background: var(--white);
+    border-radius: 20px;
+    padding: 16px 16px 14px;
+    text-align: left;
+    cursor: pointer;
+    transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+  }
+
+  .drawer-link:hover {
+    border-color: var(--sky);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(126, 200, 227, 0.12);
+  }
+
+  .drawer-link-title {
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 900;
+    color: var(--navy);
+    margin-bottom: 4px;
+  }
+
+  .drawer-link-copy {
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--muted);
+  }
+
+  .drawer-info {
+    background: var(--sky-light);
+    border: 1.5px solid rgba(126, 200, 227, 0.35);
+    border-radius: 20px;
+    padding: 16px;
+  }
+
+  .drawer-info h3 {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 900;
+    color: var(--navy);
+    margin-bottom: 8px;
+  }
+
+  .drawer-info p {
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--navy-mid);
+  }
+
+  .drawer-info p + p {
+    margin-top: 8px;
+  }
+
+  .ordering-hours-title {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 900;
+    color: var(--navy);
+    margin-bottom: 10px;
+  }
+
+  .ordering-hours-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(126, 200, 227, 0.2);
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--navy-mid);
+  }
+
+  .ordering-hours-row:last-child {
+    border-bottom: none;
+  }
+
+  .ordering-hours-row span:first-child {
+    font-weight: 700;
+    color: var(--navy);
+  }
+
+  .ordering-hours-row span:last-child {
+    text-align: right;
+  }
+
+  body.menu-open {
+    overflow: hidden;
+  }
+
+  .icon-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    color: var(--navy);
+    font-size: 18px;
+    text-decoration: none;
+  }
+
+  .icon-btn:hover { background: var(--sky-light); border-color: var(--sky); }
+
+  .profile-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--navy);
+    color: var(--white);
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 13px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .profile-btn:hover { background: var(--navy-mid); }
+
+  /* ── HERO SECTION ── */
+  .hero {
+    padding: 28px 16px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .hero-img-ring {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    padding: 3px;
+    background: conic-gradient(from 140deg, var(--sky), var(--butter), var(--sky-dark), var(--sky));
+    box-shadow: 0 8px 28px rgba(126,200,227,0.4);
+    margin-bottom: 16px;
+    animation: logoFloat 4.5s ease-in-out infinite;
+  }
+
+  .hero-img-ring img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 3px solid var(--white);
+    display: block;
+  }
+
+  @keyframes logoFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+
+  .hero-title {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 28px;
+    line-height: 1.1;
+    letter-spacing: -0.5px;
+    background: linear-gradient(120deg, var(--navy) 0%, var(--sky-dark) 70%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 6px;
+  }
+
+  .hero-sub {
+    font-size: 13.5px;
+    color: var(--muted);
+    margin-bottom: 18px;
+  }
+
+  .hero-sub strong { color: var(--sky-dark); font-weight: 700; }
+
+  /* ── STORE INFO STRIP ── */
+  .store-info-strip {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 24px;
+  }
+
+  .info-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--font-display);
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 12px;
+    color: var(--navy);
+  }
+
+  .info-pill .pill-icon { font-size: 14px; }
+  .info-pill.open-pill { border-color: rgba(34,197,94,0.4); background: rgba(34,197,94,0.06); color: #166534; }
+  .info-pill.open-pill .pill-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+
+  /* ── HERO BADGES ── */
+  .trust-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 8px;
+  }
+
+  .trust-badge {
+    font-family: var(--font-display);
+    font-size: 11.5px;
+    font-weight: 800;
+    color: var(--sky-dark);
+    background: var(--sky-light);
+    padding: 6px 12px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+
+  /* ── CATEGORY NAV TABS ── */
+  .cat-nav-wrap {
+    position: sticky;
+    top: 59px;
+    z-index: 90;
+    background: rgba(238,247,251,0.9);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 10px 16px;
+    margin-top: 16px;
+  }
+
+  .cat-nav {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 2px;
+  }
+
+  .cat-nav::-webkit-scrollbar { display: none; }
+
+  .cat-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 12.5px;
+    color: var(--muted);
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 7px 14px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    flex-shrink: 0;
+  }
+
+  .cat-tab:hover { border-color: var(--sky); color: var(--sky-dark); }
+
+  .cat-tab.active {
+    background: var(--navy);
+    border-color: var(--navy);
+    color: var(--white);
+  }
+
+  .cat-tab .tab-emoji { font-size: 13px; }
+
+  /* ── MENU CONTENT ── */
+  .menu-content {
+    padding: 16px 16px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  /* ── SECTION ── */
+  .menu-section-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 12px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--sky-dark);
+    margin-bottom: 14px;
+  }
+
+  .menu-section-label::after {
+    content: '';
+    flex: 1;
+    height: 1.5px;
+    background: linear-gradient(90deg, var(--sky-light) 0%, transparent 100%);
+    border-radius: 2px;
+  }
+
+  .menu-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* ── PRODUCT CARD ── */
+  .product-card {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .product-card:hover {
+    border-color: var(--sky);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(126,200,227,0.15);
+  }
+
+  .product-card.selected {
+    border-color: var(--sky);
+    box-shadow: 0 4px 16px rgba(126,200,227,0.2);
+  }
+
+  .card-img-wrap {
+    position: relative;
+    overflow: hidden;
+    height: 200px;
+  }
+
+  .card-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+    display: block;
+    transition: transform 0.4s ease;
+  }
+
+  .product-card:hover .card-img { transform: scale(1.04); }
+
+  /* Veg dot top-left */
+  .veg-dot {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    background: var(--white);
+    border: 2px solid var(--green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .veg-dot::after {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    display: block;
+  }
+
+  /* Check badge top-right */
+  .check-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--sky-dark);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 900;
+    opacity: 0;
+    transform: scale(0.4) rotate(-20deg);
+    transition: all 0.25s cubic-bezier(0.22,1,0.36,1);
+    pointer-events: none;
+  }
+
+  .product-card.selected .check-badge {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+
+  .card-body {
+    padding: 14px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+  }
+
+  .card-name {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 15px;
+    color: var(--navy);
+  }
+
+  .card-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+
+  .card-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: auto;
+  }
+
+  .card-price {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 18px;
+    color: var(--navy);
+  }
+
+  .add-btn {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 12.5px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 9px 20px;
+    border-radius: var(--r-sm);
+    background: var(--white);
+    color: var(--sky-dark);
+    border: 1.5px solid var(--sky);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, transform 0.1s;
+    min-width: 90px;
+  }
+
+  .add-btn:hover { background: var(--sky); color: var(--white); }
+  .add-btn:active { transform: scale(0.96); }
+
+  .qty-stepper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--sky-dark);
+    border-radius: var(--r-sm);
+    padding: 4px 5px;
+    min-width: 96px;
+    justify-content: space-between;
+  }
+
+  .qty-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 17px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    transition: background 0.15s;
+  }
+
+  .qty-btn:hover { background: rgba(255,255,255,0.35); }
+
+  .qty-num {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 15px;
+    color: white;
+    min-width: 20px;
+    text-align: center;
+  }
+
+  /* ── TIN CARD ── */
+  .tin-card {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .tin-card.selected {
+    border-color: var(--sky);
+    box-shadow: 0 4px 16px rgba(126,200,227,0.2);
+  }
+
+  .variant-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0 16px 16px;
+  }
+
+  .variant-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--cream);
+    border: 1.5px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 11px 14px;
+    gap: 10px;
+    transition: border-color 0.18s, background 0.18s;
+  }
+
+  .variant-item.active {
+    border-color: var(--sky);
+    background: var(--sky-light);
+  }
+
+  .variant-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+  }
+
+  .variant-size {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 12.5px;
+    color: var(--muted);
+    letter-spacing: 0.2px;
+  }
+
+  .variant-price {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 16px;
+    color: var(--navy);
+  }
+
+  .v-add-btn {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 8px 18px;
+    border-radius: var(--r-sm);
+    background: var(--white);
+    color: var(--sky-dark);
+    border: 1.5px solid var(--sky);
+    cursor: pointer;
+    white-space: nowrap;
+    min-width: 80px;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .v-add-btn:hover { background: var(--sky); color: var(--white); }
+
+  .v-qty-stepper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--sky-dark);
+    border-radius: var(--r-sm);
+    padding: 3px 5px;
+    min-width: 82px;
+    justify-content: space-between;
+  }
+
+  .v-qty-btn {
+    width: 26px;
+    height: 26px;
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: none;
+    border-radius: 7px;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+  }
+
+  .v-qty-num {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 14px;
+    color: white;
+    min-width: 18px;
+    text-align: center;
+  }
+
+  /* ── STORE FOOTER ── */
+  .store-footer {
+    margin: 8px 16px 0;
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 18px 20px;
+  }
+
+  .footer-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .footer-row:last-child { border-bottom: none; }
+
+  .footer-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--sky-light);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+
+  .footer-text { flex: 1; }
+  .footer-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .footer-value { font-size: 13.5px; font-weight: 600; color: var(--navy); margin-top: 1px; }
+
+  .footer-wa-btn {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 12px;
+    color: #166534;
+    background: rgba(34,197,94,0.1);
+    border: 1.5px solid rgba(34,197,94,0.3);
+    border-radius: 10px;
+    padding: 5px 12px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: background 0.15s;
+  }
+
+  .footer-wa-btn:hover { background: rgba(34,197,94,0.18); }
+
+  /* ── STICKY CART BAR ── */
+  .sticky-cart {
+    position: fixed;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%) translateY(110%);
+    z-index: 200;
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 20px 20px;
+    background: var(--navy);
+    color: var(--white);
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -6px 28px rgba(26,42,58,0.28);
+    cursor: pointer;
+    font-family: var(--font-display);
+    transition: transform 0.35s cubic-bezier(0.22,1,0.36,1);
+    border: none;
+  }
+
+  .sticky-cart.visible { transform: translateX(-50%) translateY(0); }
+
+  .cart-left { display: flex; align-items: center; gap: 10px; }
+  .cart-emoji { font-size: 20px; }
+  .cart-count {
+    background: var(--sky);
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 900;
+    padding: 3px 10px;
+    min-width: 26px;
+    text-align: center;
+  }
+  .cart-label { font-weight: 800; font-size: 14.5px; }
+  .cart-total { font-weight: 900; font-size: 16px; }
+  .cart-arrow { font-size: 18px; opacity: 0.8; }
+
+  /* ── INTERACTION DEMO STATE ── */
+  .hidden { display: none !important; }
+  .show-stepper .add-btn { display: none; }
+  .show-stepper .qty-stepper { display: flex; }
+  .qty-stepper { display: none; }
+  .v-show-stepper .v-add-btn { display: none; }
+  .v-show-stepper .v-qty-stepper { display: flex; }
+  .v-qty-stepper { display: none; }
+
+  /* ── SCROLLED HEADER SHADOW ── */
+  .top-bar.scrolled { box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+</style>
+</head>
+<body>
+<div class="store-wrap">
+
+  <div class="menu-overlay" id="menuOverlay" aria-hidden="true">
+    <aside class="menu-drawer" aria-label="Menu page">
+      <div class="drawer-head">
+        <div class="drawer-title">Menu</div>
+        <button class="drawer-close" type="button" aria-label="Close menu" onclick="closeMenu()">×</button>
+      </div>
+      <p class="drawer-subtitle">Quick store details and policies.</p>
+      <div class="drawer-links">
+        <button class="drawer-link" type="button" onclick="showDrawerSection('ordering-hours')">
+          <div class="drawer-link-title">Ordering hours</div>
+          <div class="drawer-link-copy">See when we accept orders and when delivery slots are available.</div>
+        </button>
+        <button class="drawer-link" type="button" onclick="showDrawerSection('shipping-policy')">
+          <div class="drawer-link-title">Shipping policy</div>
+          <div class="drawer-link-copy">Read the delivery zones, charges, and expected timelines.</div>
+        </button>
+      </div>
+      <div class="drawer-info" id="drawerInfo">
+        <div class="ordering-hours-title">Ordering hours</div>
+        <div class="ordering-hours-row"><span>Monday</span><span>CLOSED</span></div>
+        <div class="ordering-hours-row"><span>Tuesday</span><span>12:00 AM - 11:59 PM</span></div>
+        <div class="ordering-hours-row"><span>Wednesday</span><span>12:00 AM - 11:59 PM</span></div>
+        <div class="ordering-hours-row"><span>Thursday</span><span>12:00 AM - 11:59 PM</span></div>
+        <div class="ordering-hours-row"><span>Friday</span><span>12:00 AM - 11:59 PM</span></div>
+        <div class="ordering-hours-row"><span>Saturday</span><span>12:00 AM - 11:59 PM</span></div>
+        <div class="ordering-hours-row"><span>Sunday</span><span>12:00 AM - 11:59 PM</span></div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- STICKY TOP BAR -->
+  <header class="store-header" id="topBar">
+    <div class="header-container">
+      <button class="menu-toggle-btn" type="button" aria-label="Open menu" onclick="openMenu()">☰</button>
+      <a href="#" class="brand-block">
+        <!-- <div class="header-logo-ring">
+          <div class="img-placeholder">🍪</div>
+        </div> -->
+        <div class="brand-meta">
+          <!-- <h2>The Brown Butter</h2> -->
+          <h2>📍 Delivering Across Mumbai</h2>
+        </div>
+      </a>
+      <div class="header-actions">
+        <a href="#" class="action-profile-btn" title="Track Orders & Account">
+          👤
+        </a>
+      </div>
+    </div>
+  </header>
+
+      
+
+  <!-- HERO -->
+  <div class="hero">
+
+    <section class="status-card">
+      <div class="status-left">
+        <div class="status-indicator"></div>
+        <div class="status-details">
+          <p>Accepting Orders Fresh Daily</p>
+          <span>Delivery slots start at 11:00 AM IST</span>
+        </div>
+      </div>
+      <div class="status-badge">Open</div>
+    </section>
+
+    <div class="hero-img-ring">
+      <img src="https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=200&h=200&fit=crop&crop=center" alt="The Brown Butter logo" onerror="this.style.display='none'" />
+    </div>
+    <h1 class="hero-title">The Brown Butter</h1>
+    <p class="hero-sub">Fresh baked · <strong>Mira Road, Mumbai</strong></p>
+
+    <!-- <div class="store-info-strip">
+      <div class="info-pill open-pill">
+        <span class="pill-dot"></span>
+        Open now · 10 AM – 8 PM
+      </div>
+      <div class="info-pill">
+        <span class="pill-icon">📍</span>
+        Mira Road
+      </div>
+      <div class="info-pill">
+        <span class="pill-icon">🚚</span>
+        Mumbai-wide
+      </div>
+    </div> -->
+
+    <div class="trust-badges">
+      <span class="trust-badge">🧈 Small-batch</span>
+      <span class="trust-badge">⭐ Baked fresh daily</span>
+      <span class="trust-badge">🎁 Custom orders</span>
+    </div>
+  </div>
+
+  <!-- CATEGORY NAV -->
+  <div class="cat-nav-wrap">
+    <div class="cat-nav">
+      <button class="cat-tab active" onclick="filterCat(this,'all')"><span class="tab-emoji">🍪</span> All</button>
+      <button class="cat-tab" onclick="filterCat(this,'cookies')"><span class="tab-emoji">🍪</span> Cookies</button>
+      <button class="cat-tab" onclick="filterCat(this,'tins')"><span class="tab-emoji">🎁</span> Tin Boxes</button>
+      <button class="cat-tab" onclick="filterCat(this,'cakes')"><span class="tab-emoji">🎂</span> Cakes</button>
+      <button class="cat-tab" onclick="filterCat(this,'brownies')"><span class="tab-emoji">🍫</span> Brownies</button>
+    </div>
+  </div>
+
+  <!-- MENU CONTENT -->
+  <div class="menu-content">
+
+    <!-- COOKIES SECTION -->
+    <div class="menu-section" data-cat="cookies">
+      <div class="menu-section-label">🍪 Cookies</div>
+      <div class="menu-grid">
+
+        <!-- Product Card 1 -->
+        <div class="product-card" id="card-cc" onclick="toggleCard('card-cc')">
+          <div class="card-img-wrap">
+            <img class="card-img" src="https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=500&h=400&fit=crop&crop=top" alt="Classic Choco Chip Cookies" />
+            <div class="veg-dot"></div>
+            <div class="check-badge">✓</div>
+          </div>
+          <div class="card-body">
+            <div class="card-name">Classic Choco Chip</div>
+            <div class="card-desc">Buttery, golden-edged cookies loaded with dark chocolate chips. Crisp outside, chewy center.</div>
+            <div class="card-bottom">
+              <div class="card-price">₹320</div>
+              <div class="add-btn">+ Add</div>
+              <div class="qty-stepper">
+                <button class="qty-btn" onclick="event.stopPropagation();changeQty('card-cc',-1)">−</button>
+                <span class="qty-num" id="qty-cc">1</span>
+                <button class="qty-btn" onclick="event.stopPropagation();changeQty('card-cc',1)">+</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Product Card 2 -->
+        <div class="product-card" id="card-bb" onclick="toggleCard('card-bb')">
+          <div class="card-img-wrap">
+            <img class="card-img" src="https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=500&h=400&fit=crop&crop=top" alt="Brown Butter Cookies" />
+            <div class="veg-dot"></div>
+            <div class="check-badge">✓</div>
+          </div>
+          <div class="card-body">
+            <div class="card-name">Brown Butter Signature</div>
+            <div class="card-desc">Our hero cookie — nutty browned butter, sea salt flakes, and white chocolate chunks.</div>
+            <div class="card-bottom">
+              <div class="card-price">₹380</div>
+              <div class="add-btn">+ Add</div>
+              <div class="qty-stepper">
+                <button class="qty-btn" onclick="event.stopPropagation();changeQty('card-bb',-1)">−</button>
+                <span class="qty-num" id="qty-bb">1</span>
+                <button class="qty-btn" onclick="event.stopPropagation();changeQty('card-bb',1)">+</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TIN BOXES SECTION -->
+    <div class="menu-section" data-cat="tins">
+      <div class="menu-section-label">🎁 Tin Boxes</div>
+      <div class="menu-grid">
+
+        <!-- Tin Card with variants -->
+        <div class="tin-card" id="tin-assorted">
+          <div class="card-img-wrap">
+            <img class="card-img" src="https://images.unsplash.com/photo-1481391319762-47dff72954d9?w=500&h=300&fit=crop&crop=top" alt="Assorted Cookie Tin" />
+            <div class="check-badge">✓</div>
+          </div>
+          <div class="card-body" style="padding-bottom:12px">
+            <div class="card-name">Assorted Cookie Tin</div>
+            <div class="card-desc">A curated mix of our bestsellers in a beautiful keepsake tin. Perfect as a gift.</div>
+          </div>
+          <div class="variant-rows">
+            <div class="variant-item" id="var-12" onclick="toggleVariant('var-12')">
+              <div class="variant-left">
+                <span class="variant-size">12 Cookies</span>
+                <span class="variant-price">₹549</span>
+              </div>
+              <div class="variant-right">
+                <div class="v-add-btn">+ Add</div>
+                <div class="v-qty-stepper">
+                  <button class="v-qty-btn" onclick="event.stopPropagation();changeVarQty('var-12',-1)">−</button>
+                  <span class="v-qty-num" id="vqty-var-12">1</span>
+                  <button class="v-qty-btn" onclick="event.stopPropagation();changeVarQty('var-12',1)">+</button>
+                </div>
+              </div>
+            </div>
+            <div class="variant-item" id="var-24" onclick="toggleVariant('var-24')">
+              <div class="variant-left">
+                <span class="variant-size">24 Cookies</span>
+                <span class="variant-price">₹999</span>
+              </div>
+              <div class="variant-right">
+                <div class="v-add-btn">+ Add</div>
+                <div class="v-qty-stepper">
+                  <button class="v-qty-btn" onclick="event.stopPropagation();changeVarQty('var-24',-1)">−</button>
+                  <span class="v-qty-num" id="vqty-var-24">1</span>
+                  <button class="v-qty-btn" onclick="event.stopPropagation();changeVarQty('var-24',1)">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- BROWNIES SECTION -->
+    <div class="menu-section" data-cat="brownies">
+      <div class="menu-section-label">🍫 Brownies</div>
+      <div class="menu-grid">
+
+        <div class="product-card" id="card-br" onclick="toggleCard('card-br')">
+          <div class="card-img-wrap">
+            <img class="card-img" src="https://images.unsplash.com/photo-1606312619070-d48b4c652a52?w=500&h=400&fit=crop&crop=top" alt="Fudge Brownies" />
+            <div class="veg-dot"></div>
+            <div class="check-badge">✓</div>
+          </div>
+          <div class="card-body">
+            <div class="card-name">Fudge Brownies</div>
+            <div class="card-desc">Dense, rich, and deeply chocolatey. A box of 6 brownies, each individually wrapped.</div>
+            <div class="card-bottom">
+              <div class="card-price">₹450</div>
+              <div class="add-btn">+ Add</div>
+              <div class="qty-stepper">
+                <button class="qty-btn" onclick="event.stopPropagation();changeQty('card-br',-1)">−</button>
+                <span class="qty-num" id="qty-br">1</span>
+                <button class="qty-btn" onclick="event.stopPropagation();changeQty('card-br',1)">+</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- end menu-content -->
+
+  <!-- STORE FOOTER INFO -->
+  <div class="store-footer">
+    <div class="footer-row">
+      <div class="footer-icon">🕐</div>
+      <div class="footer-text">
+        <div class="footer-label">Store hours</div>
+        <div class="footer-value">Mon – Sat · 10:00 AM to 8:00 PM</div>
+      </div>
+    </div>
+    <div class="footer-row">
+      <div class="footer-icon">📍</div>
+      <div class="footer-text">
+        <div class="footer-label">Pickup location</div>
+        <div class="footer-value">Near Tanwar Hospital, Mira Road</div>
+      </div>
+    </div>
+    <div class="footer-row">
+      <div class="footer-icon">🚚</div>
+      <div class="footer-text">
+        <div class="footer-label">Delivery</div>
+        <div class="footer-value">Mira Road free · Mumbai ₹70 · Outside 2–7 days</div>
+      </div>
+    </div>
+    <div class="footer-row">
+      <div class="footer-icon">💬</div>
+      <div class="footer-text">
+        <div class="footer-label">Questions?</div>
+        <div class="footer-value">+91 99999 00000</div>
+      </div>
+      <a class="footer-wa-btn" href="#">WhatsApp</a>
+    </div>
+  </div>
+
+</div>
+
+<!-- STICKY CART BAR -->
+<button class="sticky-cart" id="cartBar">
+  <span class="cart-left">
+    <span class="cart-emoji">🛒</span>
+    <span class="cart-count" id="cartCount">0</span>
+    <span class="cart-label">View Cart</span>
+  </span>
+  <span class="cart-total" id="cartTotal">₹0</span>
+  <span class="cart-arrow">→</span>
+</button>
+
+<script>
+  const prices = {
+    'card-cc': 320,
+    'card-bb': 380,
+    'card-br': 450,
+    'var-12': 549,
+    'var-24': 999,
+  };
+  const qtys = {};
+  let totalItems = 0, totalPrice = 0;
+  const menuOverlay = document.getElementById('menuOverlay');
+  const drawerInfo = document.getElementById('drawerInfo');
+
+  const drawerSections = {
+    'ordering-hours': {
+      title: 'Ordering hours',
+      html: `
+        <div class="ordering-hours-title">Ordering hours</div>
+        <div class="ordering-hours-row"><span>Monday</span><span>CLOSED</span></div>
+        <div class="ordering-hours-row"><span>Tuesday</span><span>12:00 AM - 11:59 PM</span></div>
+        <div class="ordering-hours-row"><span>Wednesday</span><span>12:00 AM - 11:59 PM</span></div>
+        <div class="ordering-hours-row"><span>Thursday</span><span>12:00 AM - 11:59 PM</span></div>
+        <div class="ordering-hours-row"><span>Friday</span><span>12:00 AM - 11:59 PM</span></div>
+        <div class="ordering-hours-row"><span>Saturday</span><span>12:00 AM - 11:59 PM</span></div>
+        <div class="ordering-hours-row"><span>Sunday</span><span>12:00 AM - 11:59 PM</span></div>
+      `
+    },
+    'shipping-policy': {
+      title: 'Shipping policy',
+      html: `
+        <h3>Shipping policy</h3>
+        <p>We deliver across Mira Road and the wider Mumbai area.</p>
+        <p>Delivery charges depend on the zone: Mira Road is free, Mumbai delivery is ₹70, and outer-zone orders may take 2–7 days.</p>
+      `
+    }
+  };
+
+  function openMenu() {
+    menuOverlay.classList.add('open');
+    document.body.classList.add('menu-open');
+    menuOverlay.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeMenu() {
+    menuOverlay.classList.remove('open');
+    document.body.classList.remove('menu-open');
+    menuOverlay.setAttribute('aria-hidden', 'true');
+  }
+
+  function showDrawerSection(sectionKey) {
+    const section = drawerSections[sectionKey];
+    if (!section) return;
+    drawerInfo.innerHTML = section.html ?? `
+      <h3>${section.title}</h3>
+      ${(section.body ?? []).map(paragraph => `<p>${paragraph}</p>`).join('')}
+    `;
+  }
+
+  menuOverlay.addEventListener('click', (event) => {
+    if (event.target === menuOverlay) closeMenu();
+  });
+
+  window.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeMenu();
+  });
+
+  function updateCart() {
+    totalItems = 0; totalPrice = 0;
+    Object.entries(qtys).forEach(([k, q]) => {
+      if (q > 0) { totalItems += q; totalPrice += q * (prices[k] || 0); }
+    });
+    document.getElementById('cartCount').textContent = totalItems;
+    document.getElementById('cartTotal').textContent = '₹' + totalPrice.toLocaleString('en-IN');
+    document.getElementById('cartBar').classList.toggle('visible', totalItems > 0);
+  }
+
+  function toggleCard(id) {
+    const card = document.getElementById(id);
+    const key = id;
+    if (card.classList.contains('selected')) return;
+    card.classList.add('selected', 'show-stepper');
+    qtys[key] = 1;
+    document.getElementById('qty-' + id.replace('card-','')) && (document.getElementById('qty-' + id.replace('card-','')).textContent = '1');
+    updateCart();
+  }
+
+  function changeQty(id, delta) {
+    const suffix = id.replace('card-','');
+    const el = document.getElementById('qty-' + suffix);
+    const card = document.getElementById(id);
+    qtys[id] = Math.max(0, (qtys[id] || 1) + delta);
+    if (qtys[id] === 0) {
+      card.classList.remove('selected','show-stepper');
+      delete qtys[id];
+    } else {
+      el && (el.textContent = qtys[id]);
+    }
+    updateCart();
+  }
+
+  function toggleVariant(id) {
+    const el = document.getElementById(id);
+    const tinId = id.startsWith('var') ? 'tin-assorted' : '';
+    if (el.classList.contains('active')) return;
+    el.classList.add('active', 'v-show-stepper');
+    qtys[id] = 1;
+    document.getElementById('vqty-' + id) && (document.getElementById('vqty-' + id).textContent = '1');
+    if (tinId) document.getElementById(tinId)?.classList.add('selected');
+    updateCart();
+  }
+
+  function changeVarQty(id, delta) {
+    const el = document.getElementById(id);
+    const numEl = document.getElementById('vqty-' + id);
+    qtys[id] = Math.max(0, (qtys[id] || 1) + delta);
+    if (qtys[id] === 0) {
+      el.classList.remove('active','v-show-stepper');
+      delete qtys[id];
+      const anyActive = ['var-12','var-24'].some(v => qtys[v] > 0);
+      if (!anyActive) document.getElementById('tin-assorted')?.classList.remove('selected');
+    } else {
+      numEl && (numEl.textContent = qtys[id]);
+    }
+    updateCart();
+  }
+
+  function filterCat(btn, cat) {
+    document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.menu-section').forEach(sec => {
+      sec.style.display = (cat === 'all' || sec.dataset.cat === cat) ? '' : 'none';
+    });
+  }
+
+  window.addEventListener('scroll', () => {
+    document.getElementById('topBar').classList.toggle('scrolled', window.scrollY > 10);
+  });
+</script>
+</body>
+</html>

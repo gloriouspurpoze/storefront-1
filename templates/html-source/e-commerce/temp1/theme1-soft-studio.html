@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loopery — Handmade with Love</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ivory:    #F9F5F0;
+    --blush:    #EDD5C5;
+    --plum:     #3D2B3D;
+    --sage:     #8A9E8A;
+    --rose:     #C4786A;
+    --warm:     #F2EAE0;
+    --text:     #2A1F2A;
+    --muted:    #8C7E8C;
+    --r: 10px;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--ivory);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── NAV ── */
+  nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 48px;
+    background: var(--ivory);
+    position: sticky; top: 0; z-index: 100;
+    border-bottom: 1px solid rgba(61,43,61,.08);
+  }
+  .nav-logo {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.7rem; font-weight: 600; color: var(--plum);
+    letter-spacing: .5px;
+  }
+  .nav-links { display: flex; gap: 32px; list-style: none; }
+  .nav-links a {
+    font-size: .85rem; font-weight: 500; color: var(--muted);
+    text-decoration: none; letter-spacing: .5px; text-transform: uppercase;
+    transition: color .2s;
+  }
+  .nav-links a:hover { color: var(--plum); }
+  .nav-right { display: flex; gap: 18px; align-items: center; }
+  .cart-btn {
+    background: var(--plum); color: #fff;
+    border: none; border-radius: 50px; padding: 10px 22px;
+    font-family: 'DM Sans', sans-serif; font-size: .82rem; font-weight: 500;
+    cursor: pointer; display: flex; align-items: center; gap: 8px;
+    transition: background .2s, transform .15s;
+  }
+  .cart-btn:hover { background: var(--rose); transform: translateY(-1px); }
+  .cart-count {
+    background: var(--blush); color: var(--plum); border-radius: 50%;
+    width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;
+    font-size: .72rem; font-weight: 700;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    display: grid; grid-template-columns: 1fr 1fr;
+    min-height: 88vh; overflow: hidden;
+  }
+  .hero-text {
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 80px 64px;
+    background: var(--ivory);
+  }
+  .hero-eyebrow {
+    font-size: .75rem; font-weight: 500; letter-spacing: 2.5px;
+    text-transform: uppercase; color: var(--sage); margin-bottom: 20px;
+  }
+  .hero-h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(3rem, 5.5vw, 5.2rem);
+    font-weight: 300; line-height: 1.08;
+    color: var(--plum); margin-bottom: 28px;
+  }
+  .hero-h1 em { font-style: italic; font-weight: 300; }
+  .hero-sub {
+    font-size: 1rem; color: var(--muted); line-height: 1.7;
+    max-width: 380px; margin-bottom: 44px;
+  }
+  .hero-actions { display: flex; gap: 16px; align-items: center; }
+  .btn-primary {
+    background: var(--plum); color: #fff;
+    border: none; border-radius: 50px; padding: 14px 32px;
+    font-family: 'DM Sans', sans-serif; font-size: .9rem; font-weight: 500;
+    cursor: pointer; transition: background .2s, transform .15s;
+    text-decoration: none; display: inline-block;
+  }
+  .btn-primary:hover { background: var(--rose); transform: translateY(-2px); }
+  .btn-ghost {
+    background: transparent; color: var(--plum);
+    border: 1.5px solid var(--plum); border-radius: 50px; padding: 13px 30px;
+    font-family: 'DM Sans', sans-serif; font-size: .9rem; font-weight: 500;
+    cursor: pointer; transition: all .2s; text-decoration: none; display: inline-block;
+  }
+  .btn-ghost:hover { background: var(--plum); color: #fff; }
+
+  .hero-image {
+    background: var(--blush);
+    position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .hero-image-inner {
+    width: 100%; height: 100%;
+    background: linear-gradient(135deg, #EDD5C5 0%, #D9A896 40%, #C4786A 70%, #8A9E8A 100%);
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  /* Textural circles simulating yarn/fiber */
+  .yarn-blob {
+    position: absolute; border-radius: 50%;
+    opacity: .18;
+  }
+  .yarn-blob:nth-child(1) { width: 420px; height: 420px; background: var(--plum); top: -80px; right: -80px; }
+  .yarn-blob:nth-child(2) { width: 260px; height: 260px; background: var(--rose); bottom: 60px; left: 40px; }
+  .yarn-blob:nth-child(3) { width: 180px; height: 180px; background: var(--sage); top: 50%; left: 50%; transform: translate(-50%,-50%); opacity: .12; }
+  .hero-product-mockup {
+    position: relative; z-index: 2;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    padding: 48px;
+  }
+  .mock-card {
+    background: rgba(255,255,255,.55);
+    backdrop-filter: blur(8px);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 24px rgba(61,43,61,.1);
+  }
+  .mock-card:nth-child(2) { margin-top: 40px; }
+  .mock-card:nth-child(3) { margin-top: -40px; }
+  .mock-thumb {
+    width: 100%; aspect-ratio: 1;
+    border-radius: 10px; margin-bottom: 12px;
+    background: var(--blush);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.2rem;
+  }
+  .mock-name { font-size: .78rem; font-weight: 500; color: var(--plum); margin-bottom: 4px; }
+  .mock-price { font-size: .75rem; color: var(--rose); font-weight: 500; }
+
+  /* ── PRODUCTS ── */
+  section { padding: 80px 48px; }
+  .section-label {
+    font-size: .72rem; font-weight: 500; letter-spacing: 3px;
+    text-transform: uppercase; color: var(--sage); margin-bottom: 10px;
+  }
+  .section-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(2rem, 3.5vw, 3rem); font-weight: 300; color: var(--plum);
+    margin-bottom: 48px;
+  }
+  .products-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px;
+  }
+  .product-card {
+    background: #fff; border-radius: var(--r);
+    overflow: hidden; cursor: pointer;
+    transition: transform .25s, box-shadow .25s;
+    box-shadow: 0 2px 12px rgba(61,43,61,.06);
+    position: relative;
+  }
+  .product-card:hover { transform: translateY(-6px); box-shadow: 0 12px 36px rgba(61,43,61,.12); }
+  .product-thumb {
+    aspect-ratio: 1; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 4rem;
+    position: relative;
+  }
+  .product-thumb-1 { background: linear-gradient(135deg, #EDD5C5, #D9BBA8); }
+  .product-thumb-2 { background: linear-gradient(135deg, #D0E0D0, #B5C9B5); }
+  .product-thumb-3 { background: linear-gradient(135deg, #E8D5E8, #CDB5CD); }
+  .product-thumb-4 { background: linear-gradient(135deg, #F2E0D0, #E0C9B8); }
+  .product-tag {
+    position: absolute; top: 12px; left: 12px;
+    background: var(--plum); color: #fff;
+    font-size: .65rem; font-weight: 500; letter-spacing: .5px;
+    padding: 4px 10px; border-radius: 50px;
+  }
+  .product-info { padding: 18px; }
+  .product-name {
+    font-size: .92rem; font-weight: 500; color: var(--text);
+    margin-bottom: 4px;
+  }
+  .product-desc { font-size: .78rem; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
+  .product-footer { display: flex; align-items: center; justify-content: space-between; }
+  .product-price { font-family: 'Cormorant Garamond', serif; font-size: 1.2rem; font-weight: 600; color: var(--plum); }
+  .add-btn {
+    background: var(--blush); color: var(--plum);
+    border: none; border-radius: 50px; padding: 7px 16px;
+    font-size: .78rem; font-weight: 500; cursor: pointer;
+    transition: background .2s, color .2s;
+  }
+  .add-btn:hover { background: var(--plum); color: #fff; }
+
+  /* ── STRIP ── */
+  .strip {
+    background: var(--plum); padding: 28px 48px;
+    display: flex; align-items: center; justify-content: space-around;
+    flex-wrap: wrap; gap: 20px;
+  }
+  .strip-item { display: flex; align-items: center; gap: 12px; color: #fff; }
+  .strip-icon { font-size: 1.4rem; }
+  .strip-text { font-size: .82rem; opacity: .85; }
+
+  /* ── CART SIDEBAR ── */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(42,31,42,.4);
+    z-index: 200; opacity: 0; pointer-events: none;
+    transition: opacity .3s; backdrop-filter: blur(2px);
+  }
+  .overlay.open { opacity: 1; pointer-events: all; }
+  .cart-sidebar {
+    position: fixed; top: 0; right: -440px; width: 440px; height: 100vh;
+    background: var(--ivory); z-index: 201; overflow-y: auto;
+    transition: right .35s cubic-bezier(.4,0,.2,1);
+    display: flex; flex-direction: column;
+    box-shadow: -8px 0 40px rgba(42,31,42,.15);
+  }
+  .cart-sidebar.open { right: 0; }
+  .cart-header {
+    padding: 28px 32px; border-bottom: 1px solid rgba(61,43,61,.08);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .cart-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.6rem; font-weight: 400; color: var(--plum);
+  }
+  .close-btn {
+    background: none; border: none; font-size: 1.4rem; cursor: pointer;
+    color: var(--muted); transition: color .2s;
+  }
+  .close-btn:hover { color: var(--plum); }
+  .cart-items { flex: 1; padding: 24px 32px; overflow-y: auto; }
+  .cart-item {
+    display: flex; gap: 16px; align-items: flex-start;
+    padding: 18px 0; border-bottom: 1px solid rgba(61,43,61,.06);
+  }
+  .cart-item-thumb {
+    width: 72px; height: 72px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; flex-shrink: 0;
+  }
+  .cart-item-details { flex: 1; }
+  .cart-item-name { font-size: .88rem; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .cart-item-variant { font-size: .75rem; color: var(--muted); margin-bottom: 10px; }
+  .qty-control { display: flex; align-items: center; gap: 10px; }
+  .qty-btn {
+    width: 28px; height: 28px; border: 1.5px solid rgba(61,43,61,.2);
+    border-radius: 50%; background: none; cursor: pointer;
+    font-size: .9rem; color: var(--plum); display: flex;
+    align-items: center; justify-content: center;
+    transition: all .2s;
+  }
+  .qty-btn:hover { background: var(--plum); color: #fff; border-color: var(--plum); }
+  .qty-val { font-size: .88rem; font-weight: 500; min-width: 20px; text-align: center; }
+  .cart-item-price { font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; font-weight: 600; color: var(--plum); }
+  .remove-item { background: none; border: none; color: var(--muted); font-size: .75rem; cursor: pointer; margin-top: 4px; transition: color .2s; }
+  .remove-item:hover { color: var(--rose); }
+  .cart-empty {
+    text-align: center; padding: 60px 20px; color: var(--muted);
+  }
+  .cart-empty-icon { font-size: 3rem; margin-bottom: 16px; display: block; }
+  .cart-footer {
+    padding: 24px 32px; border-top: 1px solid rgba(61,43,61,.08);
+    background: var(--ivory);
+  }
+  .cart-summary { margin-bottom: 20px; }
+  .summary-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: .85rem; color: var(--muted); }
+  .summary-row.total { font-size: 1rem; font-weight: 500; color: var(--text); margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(61,43,61,.08); }
+  .checkout-btn {
+    width: 100%; background: var(--plum); color: #fff;
+    border: none; border-radius: 50px; padding: 16px;
+    font-family: 'DM Sans', sans-serif; font-size: .9rem; font-weight: 500;
+    cursor: pointer; transition: background .2s, transform .15s;
+    margin-bottom: 10px;
+  }
+  .checkout-btn:hover { background: var(--rose); transform: translateY(-1px); }
+  .continue-btn {
+    width: 100%; background: transparent; color: var(--muted);
+    border: none; padding: 10px;
+    font-family: 'DM Sans', sans-serif; font-size: .82rem; cursor: pointer;
+    transition: color .2s;
+  }
+  .continue-btn:hover { color: var(--plum); }
+
+  /* ── CHECKOUT MODAL ── */
+  .checkout-modal {
+    position: fixed; inset: 0; z-index: 300; display: none;
+    align-items: center; justify-content: center;
+    background: rgba(42,31,42,.5); backdrop-filter: blur(4px);
+  }
+  .checkout-modal.open { display: flex; }
+  .checkout-box {
+    background: var(--ivory); border-radius: 20px;
+    width: min(600px, 92vw); max-height: 90vh; overflow-y: auto;
+    padding: 44px 48px;
+    box-shadow: 0 20px 60px rgba(42,31,42,.2);
+  }
+  .checkout-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2rem; font-weight: 300; color: var(--plum); margin-bottom: 8px;
+  }
+  .checkout-subtitle { font-size: .82rem; color: var(--muted); margin-bottom: 36px; }
+  .form-section { margin-bottom: 28px; }
+  .form-section-title {
+    font-size: .72rem; font-weight: 500; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--sage); margin-bottom: 16px;
+  }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .form-row.full { grid-template-columns: 1fr; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group label { font-size: .78rem; font-weight: 500; color: var(--text); }
+  .form-group input, .form-group select {
+    border: 1.5px solid rgba(61,43,61,.15); border-radius: 10px;
+    padding: 12px 16px; font-family: 'DM Sans', sans-serif;
+    font-size: .88rem; color: var(--text); background: #fff;
+    outline: none; transition: border-color .2s;
+  }
+  .form-group input:focus, .form-group select:focus { border-color: var(--plum); }
+  .order-summary-box {
+    background: var(--warm); border-radius: 12px; padding: 20px;
+    margin-bottom: 24px;
+  }
+  .order-summary-title { font-size: .78rem; font-weight: 500; color: var(--plum); margin-bottom: 14px; text-transform: uppercase; letter-spacing: 1px; }
+  .order-line { display: flex; justify-content: space-between; font-size: .82rem; color: var(--muted); margin-bottom: 8px; }
+  .order-line.total { font-weight: 600; color: var(--text); font-size: .9rem; padding-top: 10px; border-top: 1px solid rgba(61,43,61,.1); margin-top: 4px; }
+  .place-order-btn {
+    width: 100%; background: var(--plum); color: #fff;
+    border: none; border-radius: 50px; padding: 17px;
+    font-family: 'DM Sans', sans-serif; font-size: .95rem; font-weight: 500;
+    cursor: pointer; transition: background .2s, transform .15s;
+    margin-bottom: 12px;
+  }
+  .place-order-btn:hover { background: var(--rose); transform: translateY(-2px); }
+  .back-to-cart { background: none; border: none; color: var(--muted); font-size: .82rem; cursor: pointer; transition: color .2s; }
+  .back-to-cart:hover { color: var(--plum); }
+
+  /* ── SUCCESS ── */
+  .success-screen {
+    display: none; text-align: center; padding: 40px 0;
+  }
+  .success-screen.show { display: block; }
+  .checkout-form.hide { display: none; }
+  .success-icon { font-size: 4rem; margin-bottom: 20px; display: block; }
+  .success-title { font-family: 'Cormorant Garamond', serif; font-size: 2rem; color: var(--plum); margin-bottom: 10px; }
+  .success-sub { color: var(--muted); font-size: .9rem; margin-bottom: 30px; }
+  .success-order { background: var(--warm); border-radius: 12px; padding: 18px 24px; margin-bottom: 28px; text-align: left; }
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--plum); color: rgba(255,255,255,.7);
+    padding: 60px 48px 32px;
+    display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px;
+  }
+  .footer-brand { color: #fff; }
+  .footer-logo { font-family: 'Cormorant Garamond', serif; font-size: 1.8rem; margin-bottom: 12px; }
+  .footer-tagline { font-size: .82rem; opacity: .7; line-height: 1.6; }
+  .footer-col-title { font-size: .72rem; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,.5); margin-bottom: 16px; }
+  .footer-links { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .footer-links a { color: rgba(255,255,255,.6); text-decoration: none; font-size: .82rem; transition: color .2s; }
+  .footer-links a:hover { color: #fff; }
+  .footer-bottom { background: var(--plum); border-top: 1px solid rgba(255,255,255,.1); padding: 20px 48px; text-align: center; font-size: .75rem; color: rgba(255,255,255,.4); }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--plum); color: #fff;
+    padding: 14px 28px; border-radius: 50px; font-size: .85rem; font-weight: 500;
+    z-index: 400; transition: transform .35s cubic-bezier(.4,0,.2,1);
+    pointer-events: none; white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Loopery</div>
+  <ul class="nav-links">
+    <li><a href="#">Shop</a></li>
+    <li><a href="#">Collections</a></li>
+    <li><a href="#">Custom Orders</a></li>
+    <li><a href="#">About</a></li>
+  </ul>
+  <div class="nav-right">
+    <button class="cart-btn" onclick="openCart()">
+      🛍 Cart <span class="cart-count" id="cartCount">0</span>
+    </button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-text">
+    <p class="hero-eyebrow">Handcrafted in small batches</p>
+    <h1 class="hero-h1">Every stitch<br>tells a <em>story</em></h1>
+    <p class="hero-sub">Slow-made crochet pieces for your home and wardrobe. Each item is crafted with intention, using ethically sourced natural fibers.</p>
+    <div class="hero-actions">
+      <a href="#" class="btn-primary">Shop Now</a>
+      <a href="#" class="btn-ghost">Custom Order</a>
+    </div>
+  </div>
+  <div class="hero-image">
+    <div class="hero-image-inner">
+      <div class="yarn-blob"></div>
+      <div class="yarn-blob"></div>
+      <div class="yarn-blob"></div>
+      <div class="hero-product-mockup">
+        <div class="mock-card">
+          <div class="mock-thumb">🧺</div>
+          <div class="mock-name">Market Bag</div>
+          <div class="mock-price">₹1,200</div>
+        </div>
+        <div class="mock-card">
+          <div class="mock-thumb">🌿</div>
+          <div class="mock-name">Plant Hanger</div>
+          <div class="mock-price">₹650</div>
+        </div>
+        <div class="mock-card">
+          <div class="mock-thumb">🧣</div>
+          <div class="mock-name">Winter Wrap</div>
+          <div class="mock-price">₹2,800</div>
+        </div>
+        <div class="mock-card">
+          <div class="mock-thumb">🏠</div>
+          <div class="mock-name">Cushion Cover</div>
+          <div class="mock-price">₹890</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STRIP -->
+<div class="strip">
+  <div class="strip-item"><span class="strip-icon">🌿</span><span class="strip-text">Natural & Organic Fibers</span></div>
+  <div class="strip-item"><span class="strip-icon">✂️</span><span class="strip-text">Handmade in Mumbai</span></div>
+  <div class="strip-item"><span class="strip-icon">📦</span><span class="strip-text">Free Shipping over ₹1,500</span></div>
+  <div class="strip-item"><span class="strip-icon">🎨</span><span class="strip-text">Custom Colour Orders</span></div>
+</div>
+
+<!-- PRODUCTS -->
+<section id="products">
+  <p class="section-label">New Arrivals</p>
+  <h2 class="section-title">Made for slow living</h2>
+  <div class="products-grid">
+    <div class="product-card">
+      <div class="product-thumb product-thumb-1">
+        <span class="product-tag">Bestseller</span>
+        🧺
+      </div>
+      <div class="product-info">
+        <div class="product-name">Cotton Market Bag</div>
+        <div class="product-desc">Open-weave tote in undyed organic cotton. Holds up to 5kg.</div>
+        <div class="product-footer">
+          <span class="product-price">₹1,200</span>
+          <button class="add-btn" onclick="addToCart('Cotton Market Bag', 1200, '🧺', 'product-thumb-1')">Add to cart</button>
+        </div>
+      </div>
+    </div>
+    <div class="product-card">
+      <div class="product-thumb product-thumb-2">
+        🌿
+      </div>
+      <div class="product-info">
+        <div class="product-name">Macramé Plant Hanger</div>
+        <div class="product-desc">Three-tier hanger in jute. Fits pots up to 18cm diameter.</div>
+        <div class="product-footer">
+          <span class="product-price">₹650</span>
+          <button class="add-btn" onclick="addToCart('Macramé Plant Hanger', 650, '🌿', 'product-thumb-2')">Add to cart</button>
+        </div>
+      </div>
+    </div>
+    <div class="product-card">
+      <div class="product-thumb product-thumb-3">
+        <span class="product-tag">New</span>
+        🧣
+      </div>
+      <div class="product-info">
+        <div class="product-name">Boho Wrap Scarf</div>
+        <div class="product-desc">Chunky knit in blush & oat tones. Pure merino wool blend.</div>
+        <div class="product-footer">
+          <span class="product-price">₹2,800</span>
+          <button class="add-btn" onclick="addToCart('Boho Wrap Scarf', 2800, '🧣', 'product-thumb-3')">Add to cart</button>
+        </div>
+      </div>
+    </div>
+    <div class="product-card">
+      <div class="product-thumb product-thumb-4">
+        🏠
+      </div>
+      <div class="product-info">
+        <div class="product-name">Cushion Cover Set</div>
+        <div class="product-desc">Set of 2 in dusty rose. 40×40cm. Removable inner case.</div>
+        <div class="product-footer">
+          <span class="product-price">₹890</span>
+          <button class="add-btn" onclick="addToCart('Cushion Cover Set', 890, '🏠', 'product-thumb-4')">Add to cart</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-brand">
+    <div class="footer-logo">Loopery</div>
+    <p class="footer-tagline">Handmade crochet & macramé pieces crafted slowly, with love, in Mumbai.</p>
+  </div>
+  <div>
+    <div class="footer-col-title">Shop</div>
+    <ul class="footer-links">
+      <li><a href="#">Bags & Totes</a></li>
+      <li><a href="#">Home Decor</a></li>
+      <li><a href="#">Scarves & Wraps</a></li>
+      <li><a href="#">Gift Sets</a></li>
+    </ul>
+  </div>
+  <div>
+    <div class="footer-col-title">Help</div>
+    <ul class="footer-links">
+      <li><a href="#">Shipping Policy</a></li>
+      <li><a href="#">Returns</a></li>
+      <li><a href="#">Care Guide</a></li>
+      <li><a href="#">Size Guide</a></li>
+    </ul>
+  </div>
+  <div>
+    <div class="footer-col-title">Connect</div>
+    <ul class="footer-links">
+      <li><a href="#">Instagram</a></li>
+      <li><a href="#">Pinterest</a></li>
+      <li><a href="#">WhatsApp</a></li>
+      <li><a href="#">contact@loopery.in</a></li>
+    </ul>
+  </div>
+</footer>
+<div class="footer-bottom">© 2025 Loopery. All rights reserved. Made with ♥ in Mumbai.</div>
+
+<!-- CART SIDEBAR -->
+<div class="overlay" id="overlay" onclick="closeCart()"></div>
+<div class="cart-sidebar" id="cartSidebar">
+  <div class="cart-header">
+    <span class="cart-title">Your Cart</span>
+    <button class="close-btn" onclick="closeCart()">✕</button>
+  </div>
+  <div class="cart-items" id="cartItems">
+    <div class="cart-empty" id="cartEmpty">
+      <span class="cart-empty-icon">🧺</span>
+      <div>Your cart is empty</div>
+      <div style="font-size:.78rem;margin-top:8px;color:var(--muted)">Add some lovely handmade pieces!</div>
+    </div>
+  </div>
+  <div class="cart-footer" id="cartFooter" style="display:none">
+    <div class="cart-summary">
+      <div class="summary-row"><span>Subtotal</span><span id="subtotal">₹0</span></div>
+      <div class="summary-row"><span>Shipping</span><span id="shipping">₹120</span></div>
+      <div class="summary-row total"><span>Total</span><span id="totalAmt">₹0</span></div>
+    </div>
+    <button class="checkout-btn" onclick="openCheckout()">Proceed to Checkout →</button>
+    <button class="continue-btn" onclick="closeCart()">Continue Shopping</button>
+  </div>
+</div>
+
+<!-- CHECKOUT MODAL -->
+<div class="checkout-modal" id="checkoutModal">
+  <div class="checkout-box">
+    <div class="checkout-form" id="checkoutForm">
+      <h2 class="checkout-title">Checkout</h2>
+      <p class="checkout-subtitle">Almost there! Fill in your details below.</p>
+
+      <div class="order-summary-box">
+        <div class="order-summary-title">Order Summary</div>
+        <div id="checkoutItems"></div>
+        <div class="order-line"><span>Shipping</span><span>₹120</span></div>
+        <div class="order-line total"><span>Total</span><span id="checkoutTotal">₹0</span></div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Contact</div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" placeholder="Meera Krishnamurthy" id="fullName">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" placeholder="meera@email.com" id="email">
+          </div>
+          <div class="form-group">
+            <label>Phone</label>
+            <input type="tel" placeholder="+91 98765 43210" id="phone">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Delivery Address</div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label>Address</label>
+            <input type="text" placeholder="Flat 4B, Sunflower Apartments, Bandra West" id="address">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>City</label>
+            <input type="text" placeholder="Mumbai" id="city">
+          </div>
+          <div class="form-group">
+            <label>PIN Code</label>
+            <input type="text" placeholder="400050" id="pin">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Payment</div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label>Card Number</label>
+            <input type="text" placeholder="4242 4242 4242 4242" id="card">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Expiry</label>
+            <input type="text" placeholder="MM / YY" id="expiry">
+          </div>
+          <div class="form-group">
+            <label>CVV</label>
+            <input type="text" placeholder="•••" id="cvv">
+          </div>
+        </div>
+      </div>
+
+      <button class="place-order-btn" onclick="placeOrder()">Place Order ✓</button>
+      <button class="back-to-cart" onclick="closeCheckout()">← Back to Cart</button>
+    </div>
+
+    <div class="success-screen" id="successScreen">
+      <span class="success-icon">🎉</span>
+      <h2 class="success-title">Order Placed!</h2>
+      <p class="success-sub">Thank you for your order. We'll start crafting it right away.</p>
+      <div class="success-order" id="successOrder"></div>
+      <button class="place-order-btn" onclick="closeAll()">Continue Shopping</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+let cart = [];
+
+function openCart() {
+  document.getElementById('cartSidebar').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function closeCart() {
+  document.getElementById('cartSidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+function openCheckout() {
+  closeCart();
+  renderCheckoutSummary();
+  document.getElementById('checkoutModal').classList.add('open');
+}
+function closeCheckout() {
+  document.getElementById('checkoutModal').classList.remove('open');
+  openCart();
+}
+function closeAll() {
+  document.getElementById('checkoutModal').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+function addToCart(name, price, emoji, thumbClass) {
+  const existing = cart.find(i => i.name === name);
+  if (existing) { existing.qty++; }
+  else { cart.push({ name, price, emoji, qty: 1 }); }
+  renderCart(); updateCount(); showToast(name + ' added to cart!');
+}
+
+function removeFromCart(name) {
+  cart = cart.filter(i => i.name !== name);
+  renderCart(); updateCount();
+}
+
+function changeQty(name, delta) {
+  const item = cart.find(i => i.name === name);
+  if (!item) return;
+  item.qty += delta;
+  if (item.qty <= 0) removeFromCart(name);
+  else { renderCart(); updateCount(); }
+}
+
+function getSubtotal() { return cart.reduce((s, i) => s + i.price * i.qty, 0); }
+
+function renderCart() {
+  const container = document.getElementById('cartItems');
+  const footer = document.getElementById('cartFooter');
+  const empty = document.getElementById('cartEmpty');
+  if (cart.length === 0) {
+    empty.style.display = 'block'; footer.style.display = 'none';
+    const existing = container.querySelectorAll('.cart-item');
+    existing.forEach(e => e.remove());
+    return;
+  }
+  empty.style.display = 'none'; footer.style.display = 'block';
+  const existing = container.querySelectorAll('.cart-item');
+  existing.forEach(e => e.remove());
+  cart.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'cart-item';
+    div.innerHTML = `
+      <div class="cart-item-thumb ${item.thumbClass}" style="background:var(--blush)">${item.emoji}</div>
+      <div class="cart-item-details">
+        <div class="cart-item-name">${item.name}</div>
+        <div class="cart-item-variant">Natural Cotton</div>
+        <div class="qty-control">
+          <button class="qty-btn" onclick="changeQty('${item.name}', -1)">−</button>
+          <span class="qty-val">${item.qty}</span>
+          <button class="qty-btn" onclick="changeQty('${item.name}', 1)">+</button>
+        </div>
+        <button class="remove-item" onclick="removeFromCart('${item.name}')">Remove</button>
+      </div>
+      <div class="cart-item-price">₹${(item.price * item.qty).toLocaleString('en-IN')}</div>`;
+    container.insertBefore(div, document.getElementById('cartEmpty'));
+  });
+  const sub = getSubtotal();
+  const ship = sub >= 1500 ? 0 : 120;
+  document.getElementById('subtotal').textContent = '₹' + sub.toLocaleString('en-IN');
+  document.getElementById('shipping').textContent = ship === 0 ? 'Free' : '₹' + ship;
+  document.getElementById('totalAmt').textContent = '₹' + (sub + ship).toLocaleString('en-IN');
+}
+
+function renderCheckoutSummary() {
+  const sub = getSubtotal(); const ship = sub >= 1500 ? 0 : 120;
+  const el = document.getElementById('checkoutItems');
+  el.innerHTML = cart.map(i => `<div class="order-line"><span>${i.name} ×${i.qty}</span><span>₹${(i.price*i.qty).toLocaleString('en-IN')}</span></div>`).join('');
+  document.getElementById('checkoutTotal').textContent = '₹' + (sub + ship).toLocaleString('en-IN');
+}
+
+function updateCount() {
+  document.getElementById('cartCount').textContent = cart.reduce((s, i) => s + i.qty, 0);
+}
+
+function placeOrder() {
+  const name = document.getElementById('fullName').value.trim();
+  if (!name) { showToast('Please fill in your details'); return; }
+  const sub = getSubtotal(); const ship = sub >= 1500 ? 0 : 120;
+  document.getElementById('successOrder').innerHTML = `
+    <div style="font-size:.78rem;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">Order Details</div>
+    ${cart.map(i => `<div style="display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:6px"><span>${i.name} ×${i.qty}</span><span style="color:var(--plum);font-weight:500">₹${(i.price*i.qty).toLocaleString('en-IN')}</span></div>`).join('')}
+    <div style="display:flex;justify-content:space-between;font-size:.9rem;font-weight:600;padding-top:10px;border-top:1px solid rgba(61,43,61,.1);margin-top:8px"><span>Total Paid</span><span style="color:var(--rose)">₹${(sub+ship).toLocaleString('en-IN')}</span></div>
+    <div style="margin-top:12px;font-size:.78rem;color:var(--muted)">A confirmation will be sent to your email. Estimated delivery: 5–7 days.</div>`;
+  document.getElementById('checkoutForm').classList.add('hide');
+  document.getElementById('successScreen').classList.add('show');
+  cart = []; renderCart(); updateCount();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2600);
+}
+</script>
+</body>
+</html>

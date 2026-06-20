@@ -1,4 +1,7 @@
+'use client'
+
 import Link from 'next/link'
+import { AccountNavLink } from '@/components/account/AccountNavLink'
 import type { ThemeTenant } from '../types'
 
 interface SaffronHeaderProps {
@@ -83,6 +86,10 @@ export function SaffronHeader({
           />
           {isOpen ? 'Open · Closes 11 PM' : 'Closed'}
         </div>
+
+        <AccountNavLink
+          className="text-[13px] text-[var(--ink-muted,#8A847C)] hover:text-[var(--ink,#1A1714)]"
+        />
 
         <button
           onClick={onCartClick}

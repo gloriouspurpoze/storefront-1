@@ -1,4 +1,5 @@
 import type { ResolvedTenant, VerticalKey } from '../../lib/types'
+import Link from 'next/link'
 
 const TAGLINE: Record<VerticalKey, string> = {
   home_services: 'Trusted local pros, on demand.',
@@ -66,6 +67,21 @@ export function ComingSoon({ tenant }: { tenant: ResolvedTenant }) {
             <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-white" />
           </span>
           We are putting the finishing touches on our site.
+        </div>
+
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm font-medium">
+          <Link
+            href="/account/login"
+            className="rounded-full bg-white/15 px-5 py-2.5 ring-1 ring-white/30 transition hover:bg-white/25"
+          >
+            Sign in
+          </Link>
+          <Link
+            href="/account/login?signup=1"
+            className="rounded-full bg-white px-5 py-2.5 text-slate-900 transition hover:bg-white/90"
+          >
+            Sign up
+          </Link>
         </div>
 
         <footer className="mt-24 text-xs text-white/60">
