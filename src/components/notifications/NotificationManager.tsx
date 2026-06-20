@@ -101,6 +101,7 @@ export function NotificationManager({ activeTab: controlledTab, onTabChange }: N
     emailNotifications: true,
     smsNotifications: false,
     orderNotifications: true,
+    newOrderEmailNotifications: true,
     userNotifications: true,
     systemNotifications: true,
     marketingNotifications: false,
@@ -113,6 +114,7 @@ export function NotificationManager({ activeTab: controlledTab, onTabChange }: N
         emailNotifications: preferences.emailNotifications,
         smsNotifications: preferences.smsNotifications,
         orderNotifications: preferences.orderNotifications,
+        newOrderEmailNotifications: preferences.newOrderEmailNotifications,
         userNotifications: preferences.userNotifications,
         systemNotifications: preferences.systemNotifications,
         marketingNotifications: preferences.marketingNotifications,
@@ -544,7 +546,8 @@ export function NotificationManager({ activeTab: controlledTab, onTabChange }: N
                 <div className="space-y-3">
                   {(
                     [
-                      ['orderNotifications', 'Orders & bookings'],
+                      ['orderNotifications', 'Orders & bookings (in-app & push)'],
+                      ['newOrderEmailNotifications', 'New order emails'],
                       ['userNotifications', 'Account & messages'],
                       ['systemNotifications', 'System & security'],
                       ['marketingNotifications', 'Marketing (opt-in)'],

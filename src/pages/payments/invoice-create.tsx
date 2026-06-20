@@ -100,6 +100,14 @@ const PDF_TEMPLATES_VENDOR: { value: InvoicePdfTemplateId; label: string; hint: 
   },
 ]
 
+const INVOICE_STATUS_CHOICES: { value: ManualInvoicePayload['status']; label: string; hint: string }[] = [
+  { value: 'paid', label: 'Paid', hint: 'Payment received — PDF shows PAID.' },
+  { value: 'issued', label: 'Issued (unpaid)', hint: 'Outstanding — PDF shows ISSUED.' },
+  { value: 'draft', label: 'Draft', hint: 'Not finalized — PDF shows DRAFT.' },
+  { value: 'cancelled', label: 'Cancelled', hint: 'Voided invoice.' },
+  { value: 'refunded', label: 'Refunded', hint: 'Payment reversed.' },
+]
+
 const INVOICE_TYPES: { value: ManualInvoicePayload['type']; label: string; hint: string }[] = [
   {
     value: 'service',
@@ -168,6 +176,7 @@ export function InvoiceCreate() {
   const [orderId, setOrderId] = useState('')
   const [customerReference, setCustomerReference] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<BackendPaymentMethod>('cash')
+  const [invoiceStatus, setInvoiceStatus] = useState<NonNullable<ManualInvoicePayload['status']>>('paid')
   const [notes, setNotes] = useState('')
   const [discount, setDiscount] = useState('0')
   const [items, setItems] = useState<ManualInvoiceLineItem[]>([emptyItem('service')])
@@ -355,6 +364,7 @@ export function InvoiceCreate() {
       discount: discountN,
       notes: notes.trim() || undefined,
       paymentMethod: paymentMethod || undefined,
+      status: invoiceStatus,
     }
 
     if (customerMode === 'platform') {
@@ -870,6 +880,30 @@ export function InvoiceCreate() {
                   )}
 
                   <div className="space-y-2">
+                    <Label htmlFor="invoice-status">Payment status (PDF)</Label>
+                    <Select
+                      value={invoiceStatus}
+                      onValueChange={(v) =>
+                        setInvoiceStatus(v as NonNullable<ManualInvoicePayload['status']>)
+                      }
+                    >
+                      <SelectTrigger id="invoice-status">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {INVOICE_STATUS_CHOICES.map((c) => (
+                          <SelectItem key={c.value} value={c.value!}>
+                            {c.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      {INVOICE_STATUS_CHOICES.find((c) => c.value === invoiceStatus)?.hint}
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
                     <Label htmlFor="pay-method">Payment method</Label>
                     <Select
                       value={paymentMethod}
@@ -983,6 +1017,7 @@ export function InvoiceCreate() {
               isInterState={isInterState}
               placeOfSupply={billingTo.state}
               paymentMethod={paymentMethodLabel(paymentMethod)}
+              invoiceStatus={invoiceStatus}
               notes={notes}
               companyStateLabel={COMPANY_STATE}
             />

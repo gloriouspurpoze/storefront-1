@@ -38,6 +38,12 @@ import {
   type PaymentStatus,
 } from '../../services/api/orders.service'
 import { formatCurrency, formatDate } from '../../lib/utils'
+import {
+  formatDeliveryDateTime,
+  getOrderDeliveryWhen,
+  hasCustomerDeliveryDetails,
+  parseDeliveryNotes,
+} from '../../lib/deliveryNotes'
 import { appToast } from '../../lib/appToast'
 import { DeliveryStepper } from '../../components/orders/DeliveryStepper'
 import {
@@ -331,11 +337,12 @@ export function OrderDetailDrawer({ open, orderId, onClose, onUpdated, canEdit }
                     <p className="text-xs text-muted-foreground">Placed / updated</p>
                     <p className="text-sm">{formatDate(order.createdAt)}</p>
                     <p className="text-sm text-muted-foreground">Updated {formatDate(order.updatedAt)}</p>
-                    {order.estimatedDeliveryAt && (
-                      <p className="text-sm text-muted-foreground">
-                        Est. delivery {formatDate(order.estimatedDeliveryAt)}
-                      </p>
-                    )}
+                    {(() => {
+                      const deliveryWhen = getOrderDeliveryWhen(order)
+                      return deliveryWhen ? (
+                        <p className="text-sm font-medium text-foreground">Delivery {deliveryWhen}</p>
+                      ) : null
+                    })()}
                   </div>
                 </div>
 
@@ -409,6 +416,40 @@ export function OrderDetailDrawer({ open, orderId, onClose, onUpdated, canEdit }
                   {addressBlock('Bill to', order.billingAddress || order.shippingAddress)}
                 </div>
 
+                {(() => {
+                  const parsed = parseDeliveryNotes(order.notes)
+                  if (!hasCustomerDeliveryDetails(parsed)) return null
+                  const deliveryWhen =
+                    formatDeliveryDateTime(parsed?.deliveryDate, parsed?.deliveryTime) ||
+                    parsed?.preferredDate ||
+                    getOrderDeliveryWhen(order)
+                  return (
+                    <div className="rounded-md border border-border bg-muted/30 p-4">
+                      <h4 className="mb-3 font-semibold">Customer delivery details</h4>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        {parsed?.deliveryMethod ? (
+                          <div>
+                            <p className="text-xs font-semibold text-muted-foreground">Delivery method</p>
+                            <p className="text-sm">{parsed.deliveryMethod}</p>
+                          </div>
+                        ) : null}
+                        {deliveryWhen ? (
+                          <div>
+                            <p className="text-xs font-semibold text-muted-foreground">Delivery date & time</p>
+                            <p className="text-sm font-medium">{deliveryWhen}</p>
+                          </div>
+                        ) : null}
+                        {parsed?.deliveryAddress ? (
+                          <div className={deliveryWhen ? 'sm:col-span-2' : undefined}>
+                            <p className="text-xs font-semibold text-muted-foreground">Delivery address</p>
+                            <p className="text-sm">{parsed.deliveryAddress}</p>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  )
+                })()}
+
                 <h4 className="font-semibold">Payment & delivery</h4>
                 <VStack spacing={2}>
                   <p className="flex items-center gap-2 text-sm">
@@ -465,12 +506,17 @@ export function OrderDetailDrawer({ open, orderId, onClose, onUpdated, canEdit }
                   </div>
                 )}
 
-                {order.notes && (
-                  <div>
-                    <h4 className="mb-1 font-semibold">Notes</h4>
-                    <p className="whitespace-pre-wrap text-sm">{order.notes}</p>
-                  </div>
-                )}
+                {(() => {
+                  const parsed = parseDeliveryNotes(order.notes)
+                  const noteText = parsed?.additionalNotes ?? (parsed ? undefined : order.notes)
+                  if (!noteText?.trim()) return null
+                  return (
+                    <div>
+                      <h4 className="mb-1 font-semibold">Customer notes</h4>
+                      <p className="whitespace-pre-wrap text-sm">{noteText}</p>
+                    </div>
+                  )
+                })()}
 
                 {canEdit && (
                   <>

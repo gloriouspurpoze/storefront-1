@@ -1,7 +1,13 @@
+'use client'
+
 import Link from 'next/link'
+import { AccountNavLink } from '@/components/account/AccountNavLink'
 import type { ThemeTenant } from './types'
+import { useCart } from './cart'
 
 export function SiteHeader({ tenant }: { tenant: ThemeTenant }) {
+  const { itemCount } = useCart()
+
   return (
     <header className="sticky top-0 z-40 border-b border-amber-100/80 bg-white/95 backdrop-blur">
       <nav className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
@@ -30,14 +36,20 @@ export function SiteHeader({ tenant }: { tenant: ThemeTenant }) {
           <Link className="hover:text-stone-950" href="/contact">
             Contact
           </Link>
+          <AccountNavLink className="hover:text-stone-950" />
         </div>
 
         <Link
-          href="/reserve"
-          className="inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:opacity-90"
+          href="/checkout"
+          className="relative inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:opacity-90"
           style={{ backgroundColor: 'var(--site-brand)' }}
         >
-          Reserve a table
+          Cart
+          {itemCount > 0 ? (
+            <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-600 px-1 text-[10px] font-bold text-white">
+              {itemCount > 99 ? '99+' : itemCount}
+            </span>
+          ) : null}
         </Link>
       </nav>
     </header>

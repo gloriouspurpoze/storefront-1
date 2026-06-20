@@ -2,10 +2,18 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import type { PublicMenuCategory, PublicMenuItem, StorefrontConfig } from '@/lib/storefront-api'
+import { isMenuItemInStock } from '@/lib/storefront-api'
 import type { ThemeTenant } from '../types'
 import { SaffronHeader } from './SaffronHeader'
 import { SaffronHero } from './SaffronHero'
 import { SaffronFooter } from './SaffronFooter'
+import { MenuOrderCheckoutBlock } from '../MenuOrderCheckoutBlock'
+import { DeliveryDetailsSection } from '@/components/DeliveryDetailsSection'
+import {
+  formatDeliveryNotes,
+  showPreferredDateOfDelivery,
+  type DeliveryDetailsValue,
+} from '@/lib/templateSettings'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -53,6 +61,7 @@ function MenuItemCard({
 }) {
   const currency = item.currency ?? 'INR'
   const badges = item.dietary ?? []
+  const inStock = isMenuItemInStock(item)
 
   return (
     <div
@@ -96,9 +105,29 @@ function MenuItemCard({
             fontSize: '15px',
             marginBottom: '4px',
             color: 'var(--ink, #1A1714)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            flexWrap: 'wrap',
           }}
         >
           {item.name}
+          {!inStock && (
+            <span
+              style={{
+                fontSize: '10px',
+                fontWeight: 600,
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+                padding: '2px 7px',
+                borderRadius: '3px',
+                background: '#FEF3C7',
+                color: '#92400E',
+              }}
+            >
+              Out of stock
+            </span>
+          )}
         </div>
         {item.description && (
           <div
@@ -149,7 +178,7 @@ function MenuItemCard({
           </div>
         )}
 
-        {qty === 0 ? (
+        {!inStock ? null : qty === 0 ? (
           <button
             onClick={onAdd}
             title="Add to cart"
@@ -259,6 +288,9 @@ interface CartContentProps {
   promoCode: string
   promoApplied: boolean
   instructions: string
+  showPreferredDate: boolean
+  deliveryDetails: DeliveryDetailsValue
+  onDeliveryDetailsChange: (val: DeliveryDetailsValue) => void
   onAdd: (item: PublicMenuItem) => void
   onRemove: (itemId: string) => void
   onClear: () => void
@@ -266,7 +298,8 @@ interface CartContentProps {
   onApplyPromo: () => void
   onDeliveryModeChange: (mode: DeliveryMode) => void
   onInstructionsChange: (val: string) => void
-  onCheckout: () => void
+  tenant: ThemeTenant
+  onOrderSuccess: (orderNumber: string) => void
 }
 
 function CartContent({
@@ -280,6 +313,9 @@ function CartContent({
   promoCode,
   promoApplied,
   instructions,
+  showPreferredDate,
+  deliveryDetails,
+  onDeliveryDetailsChange,
   onAdd,
   onRemove,
   onClear,
@@ -287,7 +323,8 @@ function CartContent({
   onApplyPromo,
   onDeliveryModeChange,
   onInstructionsChange,
-  onCheckout,
+  tenant,
+  onOrderSuccess,
 }: CartContentProps) {
   const isEmpty = cartEntries.length === 0
   const itemCount = cartEntries.reduce((s, e) => s + e.quantity, 0)
@@ -391,78 +428,15 @@ function CartContent({
           ))}
         </div>
 
-        {/* Address box (delivery only) */}
-        {deliveryMode === 'delivery' && (
-          <div
-            style={{
-              background: 'white',
-              border: '1px solid var(--saf-border, rgba(26,23,20,0.1))',
-              borderRadius: 'var(--saf-radius, 12px)',
-              padding: '1rem',
-              marginBottom: '1.25rem',
-            }}
-          >
-            <div
-              style={{
-                fontSize: '11px',
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-                color: 'var(--ink-muted, #8A847C)',
-                marginBottom: '8px',
-              }}
-            >
-              Delivery address
-            </div>
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-              <input type="text" placeholder="Flat / House no." style={{ ...inputStyle, flex: 1 }} />
-              <input type="text" placeholder="Building" style={{ ...inputStyle, flex: 1 }} />
-            </div>
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '0' }}>
-              <input type="text" placeholder="City" style={{ ...inputStyle, flex: 1 }} />
-              <input
-                type="text"
-                placeholder="PIN"
-                maxLength={6}
-                style={{ ...inputStyle, flex: '0 0 80px' }}
-              />
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '13px',
-                color: 'var(--ink-soft, #4A4540)',
-                marginTop: '10px',
-              }}
-            >
-              <svg
-                width="13"
-                height="13"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                aria-hidden
-              >
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
-              </svg>
-              Est. delivery:
-              <span
-                style={{
-                  background: 'var(--cream-dark, #F0EDE4)',
-                  padding: '4px 10px',
-                  borderRadius: '4px',
-                  fontWeight: 500,
-                  color: 'var(--ink, #1A1714)',
-                }}
-              >
-                35–45 min
-              </span>
-            </div>
-          </div>
+        {/* Delivery details */}
+        {(deliveryMode === 'delivery' || showPreferredDate) && (
+          <DeliveryDetailsSection
+            showPreferredDate={showPreferredDate}
+            showAddressFields={deliveryMode === 'delivery'}
+            value={deliveryDetails}
+            onChange={onDeliveryDetailsChange}
+            variant="card"
+          />
         )}
 
         {/* Empty state */}
@@ -708,48 +682,19 @@ function CartContent({
           </div>
         )}
 
-        {/* Checkout button */}
-        <button
-          onClick={isEmpty ? undefined : onCheckout}
-          disabled={isEmpty}
-          style={{
-            width: '100%',
-            padding: '14px',
-            background: isEmpty ? 'var(--cream-dark, #F0EDE4)' : 'var(--terracotta, #C4633A)',
-            color: isEmpty ? 'var(--ink-muted, #8A847C)' : 'white',
-            border: 'none',
-            borderRadius: 'var(--saf-radius, 12px)',
-            fontSize: '15px',
-            fontWeight: 500,
-            fontFamily: 'inherit',
-            cursor: isEmpty ? 'not-allowed' : 'pointer',
-            transition: 'background 0.2s, transform 0.1s',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-          }}
-        >
-          {isEmpty ? (
-            'Add items to checkout'
-          ) : (
-            <>
-              Place Order · {formatPrice(total, currency)}
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                aria-hidden
-              >
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
-            </>
-          )}
-        </button>
+        {/* Checkout */}
+        {!isEmpty && (
+          <MenuOrderCheckoutBlock
+            tenant={tenant}
+            lines={cartEntries.map((e) => ({ productId: e.item.id, quantity: e.quantity }))}
+            notes={formatDeliveryNotes(deliveryDetails, instructions.trim() || undefined)}
+            showPreferredDate={false}
+            showDeliveryDetails={false}
+            onClear={onClear}
+            onSuccess={onOrderSuccess}
+            primaryLabel={`Pay & place order · ${formatPrice(total, currency)}`}
+          />
+        )}
       </div>
     </>
   )
@@ -799,7 +744,11 @@ export function SaffronMenuPage({
   const [mobileCartOpen, setMobileCartOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [orderPlaced, setOrderPlaced] = useState(false)
+  const [placedOrderNumber, setPlacedOrderNumber] = useState('')
   const [instructions, setInstructions] = useState('')
+  const [deliveryDetails, setDeliveryDetails] = useState<DeliveryDetailsValue>({})
+
+  const showPreferredDate = showPreferredDateOfDelivery(config, config?.themeKey ?? 'saffron')
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -817,6 +766,7 @@ export function SaffronMenuPage({
 
   const addToCart = useCallback(
     (item: PublicMenuItem) => {
+      if (!isMenuItemInStock(item)) return
       setCart((prev) => ({ ...prev, [item.id]: (prev[item.id] ?? 0) + 1 }))
       showToast(`${item.name} added to cart`)
     },
@@ -920,6 +870,9 @@ export function SaffronMenuPage({
     promoCode,
     promoApplied,
     instructions,
+    showPreferredDate,
+    deliveryDetails,
+    onDeliveryDetailsChange: setDeliveryDetails,
     onAdd: addToCart,
     onRemove: removeFromCart,
     onClear: clearCart,
@@ -927,7 +880,12 @@ export function SaffronMenuPage({
     onApplyPromo: applyPromo,
     onDeliveryModeChange: setDeliveryMode,
     onInstructionsChange: setInstructions,
-    onCheckout: () => setOrderPlaced(true),
+    tenant,
+    onOrderSuccess: (orderNumber) => {
+      setPlacedOrderNumber(orderNumber)
+      setOrderPlaced(true)
+      clearCart()
+    },
   }
 
   const offers =
@@ -1367,8 +1325,9 @@ export function SaffronMenuPage({
                 marginBottom: '1.5rem',
               }}
             >
-              Your food is being prepared. Estimated delivery in{' '}
-              <strong>35–45 min</strong>. You&apos;ll get updates on your phone.
+              {placedOrderNumber
+                ? `Order ${placedOrderNumber} is confirmed. We emailed your receipt.`
+                : 'Your order is confirmed. We emailed your receipt.'}
             </p>
             <button
               onClick={() => {

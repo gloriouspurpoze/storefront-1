@@ -9,6 +9,10 @@ type OneSignalSdk = {
   login: (externalId: string) => Promise<void>
   logout?: () => Promise<void>
   User?: { addTags?: (tags: Record<string, string>) => Promise<void> }
+  Notifications?: {
+    permission?: boolean
+    requestPermission?: () => Promise<void>
+  }
 }
 
 declare global {
@@ -69,10 +73,27 @@ export function OneSignalWeb(): null {
       try {
         if (isAuthenticated && user?.id) {
           await OneSignal.login(String(user.id))
+          const tenantId =
+            typeof user.tenant?.id === 'string' && user.tenant.id.trim()
+              ? user.tenant.id.trim()
+              : undefined
           await OneSignal.User?.addTags?.({
             surface: 'admin',
             app: 'profixer-admin',
+            ...(tenantId ? { tenantId } : {}),
           })
+
+          // Tenant admins: prompt once per browser for web push so new-order alerts work.
+          if (tenantId && OneSignal.Notifications?.requestPermission) {
+            const key = `profixer_admin_push_prompted_${tenantId}`
+            const alreadyPrompted = sessionStorage.getItem(key) === '1'
+            const granted =
+              typeof Notification !== 'undefined' && Notification.permission === 'granted'
+            if (!alreadyPrompted && !granted) {
+              sessionStorage.setItem(key, '1')
+              await OneSignal.Notifications.requestPermission()
+            }
+          }
         } else {
           await OneSignal.logout?.()
         }
@@ -80,7 +101,7 @@ export function OneSignalWeb(): null {
         console.warn('[OneSignal] admin identity', e)
       }
     })
-  }, [isAuthenticated, user?.id])
+  }, [isAuthenticated, user?.id, user?.tenant?.id])
 
   return null
 }

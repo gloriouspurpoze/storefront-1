@@ -6,6 +6,8 @@ import {
   createCheckoutOrder,
   verifyCheckout,
 } from '@/lib/storefront-api'
+import { DeliveryDetailsSection } from '@/components/DeliveryDetailsSection'
+import { formatDeliveryNotes, type DeliveryDetailsValue } from '@/lib/templateSettings'
 import { openRazorpayCheckout } from '@/lib/razorpayCheckout'
 import { formatMoney, useCart } from './cart'
 import type { ThemeTenant } from './types'
@@ -16,9 +18,16 @@ type Status =
   | { kind: 'success' }
   | { kind: 'error'; message: string }
 
-export function CheckoutClient({ tenant }: { tenant: ThemeTenant }) {
+export function CheckoutClient({
+  tenant,
+  showPreferredDate = false,
+}: {
+  tenant: ThemeTenant
+  showPreferredDate?: boolean
+}) {
   const { lines, subtotal, setQuantity, removeLine, clear, itemCount } = useCart()
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
+  const [deliveryDetails, setDeliveryDetails] = useState<DeliveryDetailsValue>({})
 
   const onPay = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -45,6 +54,7 @@ export function CheckoutClient({ tenant }: { tenant: ThemeTenant }) {
         items: lines.map((l) => ({ productId: l.productId, quantity: l.quantity })),
         customerEmail: email,
         customerName: name,
+        notes: formatDeliveryNotes(deliveryDetails),
       })
 
       const payment = await openRazorpayCheckout({
@@ -172,6 +182,12 @@ export function CheckoutClient({ tenant }: { tenant: ThemeTenant }) {
         <p className="text-lg font-semibold text-slate-900">
           Total {formatMoney(subtotal, currency)}
         </p>
+        <DeliveryDetailsSection
+          showPreferredDate={showPreferredDate}
+          value={deliveryDetails}
+          onChange={setDeliveryDetails}
+          variant="plain"
+        />
         <label className="block text-sm">
           <span className="font-medium text-slate-700">Full name</span>
           <input

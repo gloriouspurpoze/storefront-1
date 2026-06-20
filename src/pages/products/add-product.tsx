@@ -198,7 +198,7 @@ function getAddProductStepErrors(
       if (!data.shortDescription.trim()) e.shortDescription = 'Short description is required'
       if (isRichTextEmpty(data.description)) e.description = 'Product description is required'
       if (!String(data.categoryId ?? '').trim()) e.categoryId = 'Category is required'
-      if (!String(data.vendorId ?? '').trim()) e.vendorId = 'Vendor is required'
+      // if (!String(data.vendorId ?? '').trim()) e.vendorId = 'Vendor is required'
       {
         const derived = slugify(data.name)
         const s = data.slug.trim()
@@ -1157,7 +1157,6 @@ export function AddProduct() {
                                     ? 'No active vendors yet — click + New Vendor to add one.'
                                     : 'No active vendors. Contact an admin to add vendors under Finance → Directory.'
                               }
-                              required
                               disabled={isViewMode}
                               placeholder={vendors.length === 0 ? 'No vendors yet' : 'Select vendor'}
                             />

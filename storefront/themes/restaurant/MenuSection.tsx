@@ -1,9 +1,6 @@
 import type { PublicMenuCategory } from '@/lib/storefront-api'
-
-function formatPrice(amount: number, currency: string): string {
-  if (currency === 'INR') return `₹${amount.toLocaleString('en-IN')}`
-  return `${currency} ${amount}`
-}
+import { isMenuItemInStock } from '@/lib/storefront-api'
+import { MenuAddToCartButton } from './MenuAddToCartButton'
 
 export function MenuSection({
   categories,
@@ -32,6 +29,11 @@ export function MenuSection({
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="font-medium text-stone-900">{item.name}</h3>
+                    {!isMenuItemInStock(item) ? (
+                      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
+                        Out of stock
+                      </span>
+                    ) : null}
                     {item.dietary?.map((d) => (
                       <span
                         key={d}
@@ -45,9 +47,7 @@ export function MenuSection({
                     <p className="mt-1 text-sm text-stone-500">{item.description}</p>
                   ) : null}
                 </div>
-                <p className="shrink-0 text-sm font-semibold text-stone-800">
-                  {formatPrice(item.price, item.currency)}
-                </p>
+                <MenuAddToCartButton item={item} />
               </li>
             ))}
           </ul>

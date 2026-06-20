@@ -16,6 +16,7 @@ import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Badge } from '../ui/badge'
 import { Checkbox } from '../ui/checkbox'
+import { Switch } from '../ui/switch'
 import { Card, CardContent } from '../ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import {
@@ -45,6 +46,7 @@ import { Pagination } from '../common/Pagination'
 interface ProductTableProps {
   products: Product[]
   onUpdate: (product: Product) => void
+  onToggleActive?: (product: Product, nextActive: boolean) => void | Promise<void>
   onDelete: (productId: number | string) => void
   onAdd: () => void
   onView: (product: Product) => void
@@ -57,7 +59,7 @@ function stockVariant(q: number): React.ComponentProps<typeof Badge>['variant'] 
   return 'destructive'
 }
 
-export function ProductTable({ products, onUpdate, onDelete, onAdd, onView, categories }: ProductTableProps) {
+export function ProductTable({ products, onUpdate, onToggleActive, onDelete, onAdd, onView, categories }: ProductTableProps) {
   const navigate = useNavigate()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
@@ -67,8 +69,24 @@ export function ProductTable({ products, onUpdate, onDelete, onAdd, onView, cate
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [selectedProducts, setSelectedProducts] = useState<(number | string)[]>([])
   const [toast, setToast] = useState<{ open: boolean; message: string }>({ open: false, message: '' })
+  const [togglingIds, setTogglingIds] = useState<(number | string)[]>([])
 
   const isMobile = useMediaQuery('(max-width: 639px)')
+
+  const isProductActive = (product: Product) => product.is_active !== false
+
+  const handleActiveToggle = async (product: Product, nextActive: boolean) => {
+    if (!onToggleActive) {
+      onUpdate({ ...product, is_active: nextActive })
+      return
+    }
+    setTogglingIds((prev) => [...prev, product.id])
+    try {
+      await onToggleActive(product, nextActive)
+    } finally {
+      setTogglingIds((prev) => prev.filter((id) => id !== product.id))
+    }
+  }
 
   const formatProductUpdated = (product: Product) => {
     const raw = product.updated_at || product.updatedAt
@@ -198,6 +216,17 @@ export function ProductTable({ products, onUpdate, onDelete, onAdd, onView, cate
                 <Badge variant={product.is_featured || product.isFeatured ? 'default' : 'secondary'}>
                   {product.is_featured || product.isFeatured ? 'Featured' : 'Regular'}
                 </Badge>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={isProductActive(product)}
+                    disabled={togglingIds.includes(product.id)}
+                    onCheckedChange={(checked) => void handleActiveToggle(product, checked)}
+                    aria-label={`Toggle ${product.name} availability`}
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    {isProductActive(product) ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
               </div>
               <div className="flex items-center justify-between">
                 <div>
@@ -285,13 +314,19 @@ export function ProductTable({ products, onUpdate, onDelete, onAdd, onView, cate
           <Badge variant={stockVariant(stock)}>{stock}</Badge>
         </TableCell>
         <TableCell>
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge variant={product.is_featured || product.isFeatured ? 'default' : 'secondary'}>
               {product.is_featured || product.isFeatured ? 'Featured' : 'Regular'}
             </Badge>
-            <Badge variant={product.is_active !== false ? 'success' : 'secondary'}>
-              {product.is_active !== undefined ? (product.is_active ? 'Active' : 'Inactive') : 'Active'}
-            </Badge>
+            <Switch
+              checked={isProductActive(product)}
+              disabled={togglingIds.includes(product.id)}
+              onCheckedChange={(checked) => void handleActiveToggle(product, checked)}
+              aria-label={`Set ${product.name} ${isProductActive(product) ? 'inactive' : 'active'}`}
+            />
+            <span className="text-xs text-muted-foreground">
+              {isProductActive(product) ? 'Active' : 'Inactive'}
+            </span>
           </div>
         </TableCell>
         <TableCell>
@@ -393,7 +428,7 @@ export function ProductTable({ products, onUpdate, onDelete, onAdd, onView, cate
                 <TableHead>Rating</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Stock</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Availability</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>

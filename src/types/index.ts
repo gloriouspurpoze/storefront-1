@@ -48,7 +48,7 @@ export interface User {
   /** Set when account was created via admin invite (dashboard staff). */
   isDashboardMember?: boolean
   /** First sign-up channel (Google OAuth customers vs email vs admin invite). */
-  registrationSource?: 'email' | 'google_oauth' | 'admin_invite'
+  registrationSource?: 'email' | 'google_oauth' | 'admin_invite' | 'storefront_checkout'
   /** Dashboard RBAC role when `userType` is admin (or super_admin). */
   rbacRole?: UserRole
   /** When `explicit`, only `permissions` are used for access checks. */
@@ -62,6 +62,21 @@ export interface User {
   updatedAt?: string
   /** Present when API returns org/tenant context for SaaS admins. */
   tenant?: TenantRef
+}
+
+/** Per-user notification channel/category preferences (`/notifications/preferences`). */
+export interface NotificationPreferences {
+  userId: string
+  pushNotifications: boolean
+  emailNotifications: boolean
+  smsNotifications: boolean
+  /** In-app bell + push for orders/bookings */
+  orderNotifications: boolean
+  /** Email when a new order is placed (tenant admins) */
+  newOrderEmailNotifications: boolean
+  userNotifications: boolean
+  systemNotifications: boolean
+  marketingNotifications: boolean
 }
 
 // Service Provider types

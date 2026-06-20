@@ -223,6 +223,39 @@ export class CategoriesService {
   }
 
   /**
+   * Suggested product categories for the tenant's industry vertical.
+   */
+  static async getProductCategorySuggestions() {
+    return api.get<{
+      verticalKey: string
+      suggestions: Array<{
+        name: string
+        description?: string
+        type: 'product' | 'service' | 'both'
+        sortOrder: number
+      }>
+    }>('/categories/suggestions/products', {
+      loadingMessage: 'Loading suggestions...',
+      showSuccessToast: false,
+    })
+  }
+
+  /**
+   * Idempotently add all suggested product categories for the current tenant.
+   */
+  static async seedSuggestedProductCategories() {
+    return api.post<{ created: number; skipped: number }>(
+      '/categories/suggestions/products/seed',
+      {},
+      {
+        loadingMessage: 'Adding suggested categories...',
+        showSuccessToast: false,
+        errorMessage: 'Failed to add suggested categories.',
+      },
+    )
+  }
+
+  /**
    * Create new category
    */
   static async createCategory(category: CreateCategoryRequest) {

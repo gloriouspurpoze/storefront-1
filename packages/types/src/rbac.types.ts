@@ -76,6 +76,16 @@ export type Permission =
   // CMS / storefront content permissions (sidebar "Content & Marketing", Storefront Studio)
   | 'view_cms'
   | 'manage_cms'
+
+  // Storefront Studio — granular (manage_cms / view_cms still grant full or read access)
+  | 'view_storefront'
+  | 'edit_storefront_branding'
+  | 'edit_storefront_theme'
+  | 'edit_storefront_sections'
+  | 'edit_storefront_seo'
+  | 'edit_storefront_content'
+  | 'manage_storefront_domains'
+  | 'manage_storefront_addons'
   
   // Report permissions
   | 'view_reports'

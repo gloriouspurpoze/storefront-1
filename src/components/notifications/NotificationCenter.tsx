@@ -117,7 +117,8 @@ export function NotificationCenter({ open, onClose }: NotificationCenterProps) {
               <p className="text-sm font-medium text-muted-foreground">Categories</p>
               {(
                 [
-                  ['pref-order', 'orderNotifications', 'Orders & bookings'],
+                  ['pref-order', 'orderNotifications', 'Orders & bookings (in-app & push)'],
+                  ['pref-order-email', 'newOrderEmailNotifications', 'New order emails'],
                   ['pref-user', 'userNotifications', 'Account & messages'],
                   ['pref-sys', 'systemNotifications', 'System & security'],
                   ['pref-mkt', 'marketingNotifications', 'Marketing (opt-in)'],

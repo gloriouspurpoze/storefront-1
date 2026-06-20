@@ -27,12 +27,16 @@ import {
   Cloud,
   Loader2,
   KeyRound,
+  Layers,
+  Building2,
+  Store,
 } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { PushNotificationManager } from '../../components/notifications/PushNotificationManager'
 import { SocialPublishSettingsForm } from '../../components/marketing-workspace/SocialPublishSettingsForm'
 import { Badge } from '../../components/ui/badge'
-import { settingsService, type Settings } from '../../services/api/settings.service'
+import { settingsService, type Settings as AppSettings } from '../../services/api/settings.service'
+import { notificationsService } from '../../services/api/notifications.service'
 import { Link } from 'react-router-dom'
 import { usePermissions } from '../../hooks/usePermissions'
 
@@ -72,8 +76,10 @@ export function Settings() {
     'manage_system_settings',
     'manage_user_roles',
   ])
+  const canManagePlatform = checkAnyPermission(['manage_system_settings'])
+  const [newOrderEmailNotifications, setNewOrderEmailNotifications] = useState(true)
   
-  const [settings, setSettings] = useState<Settings>({
+  const [settings, setSettings] = useState<AppSettings>({
     general: {
       businessName: 'Fixer Admin',
       businessEmail: 'admin@profixer.in',
@@ -137,6 +143,12 @@ export function Settings() {
         setFetchDetail(response?.error || response?.message || 'API returned no data')
         console.warn('Settings API returned no data, using defaults')
       }
+      try {
+        const prefs = await notificationsService.getPreferences()
+        setNewOrderEmailNotifications(prefs.newOrderEmailNotifications)
+      } catch {
+        /* notification prefs optional on load */
+      }
     } catch (error) {
       setApiSynced(false)
       setLastFetchedAt(new Date())
@@ -165,6 +177,19 @@ export function Settings() {
       }
       if (res.data) {
         setSettings(res.data)
+      }
+      try {
+        await notificationsService.updatePreferences({ newOrderEmailNotifications })
+      } catch (prefErr) {
+        toast({
+          title: 'Partial save',
+          description:
+            prefErr instanceof Error
+              ? `Settings saved but order email preference failed: ${prefErr.message}`
+              : 'Settings saved but order email preference could not be updated',
+          variant: 'destructive',
+        })
+        return
       }
       setApiSynced(true)
       setLastFetchedAt(new Date())
@@ -261,6 +286,41 @@ export function Settings() {
             <CardContent>
               <Button variant="secondary" size="sm" asChild>
                 <Link to="/settings/access">Open access explorer</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {canManagePlatform ? (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Building2 className="h-5 w-5 text-primary" aria-hidden />
+                Platform & storefront
+              </CardTitle>
+              <CardDescription>
+                Super-admin tools for tenant onboarding, custom exclusive storefront templates, and org-wide
+                storefront defaults.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+              <Button variant="secondary" size="sm" asChild>
+                <Link to="/settings/tenants">
+                  <Building2 className="mr-2 h-4 w-4" aria-hidden />
+                  Organizations
+                </Link>
+              </Button>
+              <Button variant="secondary" size="sm" asChild>
+                <Link to="/settings/private-templates">
+                  <Layers className="mr-2 h-4 w-4" aria-hidden />
+                  Private templates
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/settings/storefront">
+                  <Store className="mr-2 h-4 w-4" aria-hidden />
+                  Storefront studio
+                </Link>
               </Button>
             </CardContent>
           </Card>
@@ -422,7 +482,7 @@ export function Settings() {
                     { key: 'emailNotifications', label: 'Email Notifications', description: 'Receive notifications via email' },
                     { key: 'pushNotifications', label: 'Push Notifications', description: 'Receive push notifications in browser' },
                     { key: 'smsNotifications', label: 'SMS Notifications', description: 'Receive notifications via SMS' },
-                    { key: 'orderNotifications', label: 'Order Notifications', description: 'Get notified about new orders' },
+                    { key: 'orderNotifications', label: 'Order Notifications', description: 'In-app and push alerts for new orders' },
                     { key: 'userNotifications', label: 'User Notifications', description: 'Get notified about user activities' },
                     { key: 'systemNotifications', label: 'System Notifications', description: 'Get notified about system updates' },
                   ].map((item) => (
@@ -442,6 +502,18 @@ export function Settings() {
                       />
                     </div>
                   ))}
+                  <div className="flex items-center justify-between w-full p-4 border rounded-lg border-primary/30 bg-primary/5">
+                    <div>
+                      <p className="font-medium">New order email alerts</p>
+                      <p className="text-sm text-muted-foreground">
+                        Receive an email when a customer places a new order on your store
+                      </p>
+                    </div>
+                    <Switch
+                      checked={newOrderEmailNotifications}
+                      onCheckedChange={setNewOrderEmailNotifications}
+                    />
+                  </div>
                 </VStack>
               </div>
 

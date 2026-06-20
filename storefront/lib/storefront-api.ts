@@ -135,6 +135,11 @@ export interface PublicMenuItem {
   currency: string
   imageUrl?: string
   dietary?: string[]
+  inStock?: boolean
+}
+
+export function isMenuItemInStock(item: Pick<PublicMenuItem, 'inStock'>): boolean {
+  return item.inStock !== false
 }
 
 export interface PublicMenuCategory {
@@ -165,6 +170,10 @@ export interface PublicProduct {
   currency: string
   imageUrl?: string
   inStock: boolean
+  /** Assigned admin category — drives Brown Butter section grouping. */
+  categorySlug?: string
+  categoryName?: string
+  categorySortOrder?: number
 }
 
 export async function fetchProducts(tenantId: string, limit = 24): Promise<PublicProduct[]> {
@@ -206,13 +215,16 @@ export interface CheckoutOrderResult {
 export interface CheckoutVerifyResult {
   verified: true
   contactId: string
+  orderNumber?: string
+  orderId?: string
 }
 
 export async function createCheckoutOrder(input: {
   tenantId: string
   items: Array<{ productId: string; quantity: number }>
-  customerEmail?: string
+  customerEmail: string
   customerName?: string
+  notes?: string
 }): Promise<CheckoutOrderResult> {
   const res = await fetch(apiUrl('/public/storefront/checkout/create-order'), {
     method: 'POST',
@@ -225,6 +237,7 @@ export async function createCheckoutOrder(input: {
       items: input.items,
       customerEmail: input.customerEmail,
       customerName: input.customerName,
+      notes: input.notes,
     }),
   })
   const json = (await res.json().catch(() => null)) as ApiEnvelope<CheckoutOrderResult> | null
@@ -258,11 +271,18 @@ export interface StorefrontContent {
   faqItems?: Array<{ question: string; answer: string }>
 }
 
+export interface StorefrontTemplateCheckoutSettings {
+  showPreferredDateOfDelivery?: boolean
+}
+
+export type StorefrontTemplateSettings = Record<string, StorefrontTemplateCheckoutSettings>
+
 export interface StorefrontConfig {
   tenantId: string
   themeKey?: string
   sections?: StorefrontSection[]
   content?: StorefrontContent
+  templateSettings?: StorefrontTemplateSettings
   branding: {
     siteName?: string
     tagline?: string
@@ -362,6 +382,92 @@ export interface PublicOrderTracking {
   estimatedDeliveryAt?: string
   createdAt?: string
   statusHistory?: Array<{ status: string; at: string; note?: string }>
+}
+
+// ——— Customer account (authenticated) ———
+
+export interface CustomerOrderSummary {
+  id: string
+  orderNumber: string
+  status: string
+  paymentStatus: string
+  totalAmount: number
+  itemCount: number
+  items: Array<{ name: string; quantity: number; price: number; total: number }>
+  trackingNumber?: string
+  carrier?: string
+  trackingUrl?: string | null
+  shippedAt?: string
+  deliveredAt?: string
+  createdAt?: string
+}
+
+export interface CustomerProfile {
+  id: string
+  firstName: string
+  lastName?: string
+  email: string
+  phone?: string
+  profilePicture?: string
+  userType: string
+}
+
+export async function fetchCustomerOrders(input: {
+  tenantId: string
+  accessToken: string
+  page?: number
+  limit?: number
+}): Promise<{ orders: CustomerOrderSummary[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
+  const params = new URLSearchParams()
+  if (input.page) params.set('page', String(input.page))
+  if (input.limit) params.set('limit', String(input.limit))
+  const qs = params.toString()
+
+  const res = await fetch(
+    apiUrl(`/public/storefront/customers/orders${qs ? `?${qs}` : ''}`),
+    {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${input.accessToken}`,
+        'x-tenant-id': input.tenantId,
+      },
+      cache: 'no-store',
+    },
+  )
+  const json = (await res.json().catch(() => null)) as {
+    success?: boolean
+    message?: string
+    data?: {
+      orders: CustomerOrderSummary[]
+      pagination: { page: number; limit: number; total: number; totalPages: number }
+    }
+  } | null
+  if (!res.ok || !json?.success || !json.data) {
+    throw new Error(json?.message || `Failed to load orders (${res.status})`)
+  }
+  return json.data
+}
+
+export async function fetchCustomerProfile(input: {
+  tenantId: string
+  accessToken: string
+}): Promise<CustomerProfile | null> {
+  const res = await fetch(apiUrl('/public/storefront/customers/me'), {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${input.accessToken}`,
+      'x-tenant-id': input.tenantId,
+    },
+    cache: 'no-store',
+  })
+  const json = (await res.json().catch(() => null)) as {
+    success?: boolean
+    data?: CustomerProfile
+  } | null
+  if (!res.ok || !json?.success || !json.data) return null
+  return json.data
 }
 
 export async function fetchPublicOrderTracking(input: {

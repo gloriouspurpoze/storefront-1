@@ -15,13 +15,16 @@ import { SiteFooter as RestFooter } from '@/themes/restaurant/SiteFooter'
 import { Hero as RestHero } from '@/themes/restaurant/Hero'
 import { MenuSection } from '@/themes/restaurant/MenuSection'
 import { toThemeTenant as toRestTenant } from '@/themes/restaurant/types'
-import { RetailShell } from '@/themes/retail/RetailShell'
+import { isRestaurantLayoutTheme, RestaurantLayoutPage } from '@/themes/restaurant/restaurantLayoutRouter'
+import { RestaurantShell } from '@/themes/restaurant/RestaurantShell'
 import { SiteHeader as RetailHeader } from '@/themes/retail/SiteHeader'
 import { SiteFooter as RetailFooter } from '@/themes/retail/SiteFooter'
 import { Hero as RetailHero } from '@/themes/retail/Hero'
 import { ProductGrid } from '@/themes/retail/ProductGrid'
 import { toThemeTenant as toRetailTenant } from '@/themes/retail/types'
-import { SaffronLayout, SaffronMenuPage } from '@/themes/restaurant/saffron'
+import { RetailShell } from '@/themes/retail/RetailShell'
+import { isRetailLayoutTheme, RetailLayoutPage } from '@/themes/retail/retailLayoutRouter'
+import { isHomeServicesLayoutTheme, HomeServicesLayoutPage } from '@/themes/home-services/homeServicesLayoutRouter'
 
 function flagOn(cfg: StorefrontConfig | null, key: string): boolean {
   const flags = cfg?.featureFlags as Record<string, boolean | undefined> | undefined
@@ -86,6 +89,13 @@ export async function HomePageSections({
       tenant,
       cfg?.content?.heroHeadline || tagline || 'Trusted local pros, on demand.',
     )
+
+    if (isHomeServicesLayoutTheme(cfg?.themeKey)) {
+      return (
+        <HomeServicesLayoutPage themeKey={cfg?.themeKey} tenant={themeTenant} config={cfg} />
+      )
+    }
+
     const services = flagOn(cfg, 'showServices') && sectionEnabled(cfg, 'services')
       ? await fetchServices(tenant.id, 6)
       : []
@@ -122,13 +132,22 @@ export async function HomePageSections({
   if (vertical === 'restaurant') {
     const themeTenant = toRestTenant(tenant, tagline || 'Where the menu meets the moment.')
 
-    // ── Saffron theme: full inline order-online experience ─────────────────────
-    if (cfg?.themeKey === 'saffron') {
-      const menu = await fetchMenu(tenant.id)
+    // ── Full layout templates (saffron, menufast-minimal, menufast-cards) ───
+    if (isRestaurantLayoutTheme(cfg?.themeKey)) {
+      const [menu, products] = await Promise.all([
+        fetchMenu(tenant.id),
+        flagOn(cfg, 'showProducts') && sectionEnabled(cfg, 'products')
+          ? fetchProducts(tenant.id, 80)
+          : Promise.resolve([]),
+      ])
       return (
-        <SaffronLayout>
-          <SaffronMenuPage initialCategories={menu} tenant={themeTenant} config={cfg} />
-        </SaffronLayout>
+        <RestaurantLayoutPage
+          themeKey={cfg?.themeKey}
+          menu={menu}
+          products={products}
+          tenant={themeTenant}
+          config={cfg}
+        />
       )
     }
     // ──────────────────────────────────────────────────────────────────────────
@@ -138,7 +157,7 @@ export async function HomePageSections({
     const order = orderedTypes(cfg, ['hero', 'menu', 'reservations', 'about', 'faq'])
 
     return (
-      <>
+      <RestaurantShell tenantId={tenant.id}>
         <RestHeader tenant={themeTenant} />
         <main>
           {order.map((t) => {
@@ -180,12 +199,28 @@ export async function HomePageSections({
           })}
         </main>
         <RestFooter tenant={themeTenant} />
-      </>
+      </RestaurantShell>
     )
   }
 
   if (vertical === 'retail') {
     const themeTenant = toRetailTenant(tenant, tagline || 'Curated, online, and on the way.')
+
+    if (isRetailLayoutTheme(cfg?.themeKey)) {
+      const products =
+        flagOn(cfg, 'showProducts') && sectionEnabled(cfg, 'products')
+          ? await fetchProducts(tenant.id, 24)
+          : []
+      return (
+        <RetailLayoutPage
+          themeKey={cfg?.themeKey}
+          products={products}
+          tenant={themeTenant}
+          config={cfg}
+        />
+      )
+    }
+
     const products =
       flagOn(cfg, 'showProducts') && sectionEnabled(cfg, 'products')
         ? await fetchProducts(tenant.id, 6)

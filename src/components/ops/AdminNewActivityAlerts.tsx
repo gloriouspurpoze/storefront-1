@@ -69,6 +69,7 @@ interface BookingAlertPayload {
   customerName?: string | null
   totalAmount?: number | null
   relatedId?: string
+  tenantId?: string | null
   /** Industry-aware copy from backend (preferred when present). */
   title?: string
   message?: string
@@ -80,6 +81,7 @@ interface OrderAlertPayload {
   customerName?: string | null
   totalAmount?: number | null
   relatedId?: string
+  tenantId?: string | null
   title?: string
   message?: string
 }
@@ -93,10 +95,13 @@ export function AdminNewActivityAlerts(): null {
   const isAuthenticated = useSelector((s: RootState) => s.auth.isAuthenticated)
   const userType = useSelector((s: RootState) => s.auth.user?.userType as unknown)
   const rbacRole = useSelector((s: RootState) => s.auth.user?.rbacRole as unknown)
+  const userTenantId = useSelector((s: RootState) => s.auth.user?.tenant?.id ?? null)
   const { pack } = useVerticalPack()
   const { notifications, refreshNotifications } = useNotifications()
 
   const admin = isAuthenticated && isAdminLike(userType, rbacRole)
+  /** Platform operators (no org on JWT) may see every tenant's alerts. */
+  const isPlatformOperator = admin && !userTenantId
 
   // Industry-aware singular noun: "Booking" / "Reservation" / "Appointment"…
   const engagementLabel = pack.engagementTypes?.[0]?.label || 'Booking'
@@ -111,6 +116,19 @@ export function AdminNewActivityAlerts(): null {
   labelRef.current = engagementLabel
   const refreshRef = useRef(refreshNotifications)
   refreshRef.current = refreshNotifications
+  const userTenantRef = useRef(userTenantId)
+  userTenantRef.current = userTenantId
+  const platformOpRef = useRef(isPlatformOperator)
+  platformOpRef.current = isPlatformOperator
+
+  const eventMatchesTenant = useCallback((eventTenantId?: string | null): boolean => {
+    if (platformOpRef.current) return true
+    const mine = userTenantRef.current?.trim()
+    if (!mine) return false
+    const theirs = typeof eventTenantId === 'string' ? eventTenantId.trim() : ''
+    if (!theirs) return true
+    return theirs === mine
+  }, [])
 
   const toastBooking = useCallback((message: string, bookingId: string) => {
     const id = bookingId.trim()
@@ -147,6 +165,7 @@ export function AdminNewActivityAlerts(): null {
   const onBooking = useCallback(
     (raw: unknown) => {
       const p = (raw ?? {}) as BookingAlertPayload
+      if (!eventMatchesTenant(p.tenantId)) return
       const id = String(p.bookingId ?? p.relatedId ?? '')
       const key = `booking:${id || Math.random()}`
       if (toastedRef.current.has(key)) return
@@ -156,12 +175,13 @@ export function AdminNewActivityAlerts(): null {
       const fallback = `New ${labelRef.current.toLowerCase()}${svc}${who}${formatAmount(p.totalAmount)}`
       toastBooking(p.message?.trim() || fallback, id)
     },
-    [toastBooking],
+    [eventMatchesTenant, toastBooking],
   )
 
   const onOrder = useCallback(
     (raw: unknown) => {
       const p = (raw ?? {}) as OrderAlertPayload
+      if (!eventMatchesTenant(p.tenantId)) return
       const id = String(p.orderId ?? p.relatedId ?? '')
       const key = `order:${id || Math.random()}`
       if (toastedRef.current.has(key)) return
@@ -171,7 +191,7 @@ export function AdminNewActivityAlerts(): null {
       const fallback = `New order ${ref}${who}${formatAmount(p.totalAmount)}`
       toastOrder(p.message?.trim() || fallback, id)
     },
-    [toastOrder],
+    [eventMatchesTenant, toastOrder],
   )
 
   // Realtime socket subscription (admin only). The socket itself is connected by

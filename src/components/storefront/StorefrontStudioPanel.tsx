@@ -24,13 +24,18 @@ import {
   type StorefrontConfigFeatureFlags,
   type StorefrontConfigPatch,
 } from '../../services/api/storefrontStudio.service'
+import { StorefrontOrderingHoursEditor } from './studio/StorefrontOrderingHoursEditor'
+import { StorefrontOrderingAvailabilityEditor } from './studio/StorefrontOrderingAvailabilityEditor'
+import { StorefrontShippingPolicyEditor } from './studio/StorefrontShippingPolicyEditor'
 import { StorefrontSectionEditor } from './studio/StorefrontSectionEditor'
 import { StorefrontSeoPagesEditor } from './studio/StorefrontSeoPagesEditor'
 import { StorefrontThemeMarketplace } from './studio/StorefrontThemeMarketplace'
 import { StorefrontAddonsSection } from './studio/StorefrontAddonsSection'
 import { StorefrontAiCopySection } from './studio/StorefrontAiCopySection'
+import { StorefrontEmailSettings } from './StorefrontEmailSettings'
 import { ImageUrlField } from './studio/ImageUrlField'
 import { isLocalAdminHost, platformStorefrontDevUrl, platformStorefrontProdUrl } from '../../lib/storefrontUrls'
+import { usePermissions } from '../../hooks/usePermissions'
 
 const FLAGS: Array<{ key: keyof StorefrontConfigFeatureFlags; label: string; upsell?: boolean }> = [
   { key: 'showHero', label: 'Hero' },
@@ -60,6 +65,37 @@ export function StorefrontStudioPanel({
   tenantSlug: string
   isSuperAdmin: boolean
 }) {
+  const { checkPermission, checkAnyPermission } = usePermissions()
+  const canEditBranding = checkPermission('edit_storefront_branding')
+  const canEditTheme = checkPermission('edit_storefront_theme')
+  const canEditSections = checkPermission('edit_storefront_sections')
+  const canEditSeo = checkPermission('edit_storefront_seo')
+  const canEditContent = checkPermission('edit_storefront_content')
+  const canManageAddons = checkPermission('manage_storefront_addons')
+  const canSave = checkAnyPermission([
+    'edit_storefront_branding',
+    'edit_storefront_theme',
+    'edit_storefront_sections',
+    'edit_storefront_seo',
+    'edit_storefront_content',
+    'manage_storefront_addons',
+    'manage_cms',
+    'edit_settings',
+  ])
+  const defaultTab = canEditBranding
+    ? 'branding'
+    : canEditSeo
+      ? 'seo'
+      : canEditSections
+        ? 'sections'
+        : canEditTheme
+          ? 'themes'
+          : canEditContent
+            ? 'copy'
+            : canManageAddons
+              ? 'addons'
+              : 'branding'
+
   const [cfg, setCfg] = useState<StorefrontConfig | null>(null)
   const [catalog, setCatalog] = useState<{
     themes: import('../../services/api/storefrontStudio.service').StorefrontThemeCatalogItem[]
@@ -119,6 +155,10 @@ export function StorefrontStudioPanel({
         themeKey: cfg.themeKey,
         sections: cfg.sections,
         content: cfg.content,
+        templateSettings: cfg.templateSettings,
+        orderingHours: cfg.orderingHours,
+        orderingAvailability: cfg.orderingAvailability,
+        shippingPolicy: cfg.shippingPolicy,
         customCss: cfg.customCss,
         customHeadScripts: cfg.customHeadScripts,
         customBodyScripts: cfg.customBodyScripts,
@@ -191,10 +231,12 @@ export function StorefrontStudioPanel({
                 </a>
               </Button>
             )}
-            <Button type="button" size="sm" onClick={() => save()} disabled={saving}>
-              {saving ? <Loader2 className="mr-2 h-3 w-3 animate-spin" /> : null}
-              Save
-            </Button>
+            {canSave && (
+              <Button type="button" size="sm" onClick={() => save()} disabled={saving}>
+                {saving ? <Loader2 className="mr-2 h-3 w-3 animate-spin" /> : null}
+                Save
+              </Button>
+            )}
           </HStack>
         </HStack>
         <p className="text-xs text-muted-foreground">
@@ -203,17 +245,33 @@ export function StorefrontStudioPanel({
         </p>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="branding">
+        {!canSave ? (
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <p>You have read-only access to Storefront Studio. Use Preview to open the live site.</p>
+            <p>
+              Theme: <span className="font-medium text-foreground">{cfg.themeKey ?? 'default'}</span>
+              {' · '}
+              Site: <span className="font-medium text-foreground">{cfg.branding?.siteName ?? '—'}</span>
+            </p>
+          </div>
+        ) : (
+        <Tabs defaultValue={defaultTab}>
           <TabsList className="mb-4 flex flex-wrap h-auto gap-1">
-            <TabsTrigger value="branding">Branding</TabsTrigger>
-            <TabsTrigger value="seo">SEO</TabsTrigger>
-            <TabsTrigger value="pages">Per-page SEO</TabsTrigger>
-            <TabsTrigger value="sections">Sections</TabsTrigger>
-            <TabsTrigger value="themes">Themes</TabsTrigger>
-            <TabsTrigger value="copy">AI copy</TabsTrigger>
-            <TabsTrigger value="addons">Add-ons</TabsTrigger>
+            {canEditBranding && <TabsTrigger value="email">Email</TabsTrigger>}
+            {canEditBranding && <TabsTrigger value="branding">Branding</TabsTrigger>}
+            {canEditBranding && <TabsTrigger value="availability">Availability</TabsTrigger>}
+            {canEditSeo && <TabsTrigger value="seo">SEO</TabsTrigger>}
+            {canEditSeo && <TabsTrigger value="pages">Per-page SEO</TabsTrigger>}
+            {canEditSections && <TabsTrigger value="sections">Sections</TabsTrigger>}
+            {canEditTheme && <TabsTrigger value="themes">Themes</TabsTrigger>}
+            {canEditContent && <TabsTrigger value="copy">AI copy</TabsTrigger>}
+            {canManageAddons && <TabsTrigger value="addons">Add-ons</TabsTrigger>}
             {isSuperAdmin && <TabsTrigger value="flags">Flags</TabsTrigger>}
           </TabsList>
+
+          <TabsContent value="email">
+            <StorefrontEmailSettings />
+          </TabsContent>
 
           <TabsContent value="branding" className="space-y-3">
             <div className="grid gap-3 sm:grid-cols-2">
@@ -252,6 +310,21 @@ export function StorefrontStudioPanel({
                 hint="32×32 or 64×64, transparent PNG / SVG."
               />
             </div>
+          </TabsContent>
+
+          <TabsContent value="availability" className="space-y-3">
+            <StorefrontOrderingHoursEditor
+              value={cfg.orderingHours}
+              onChange={(orderingHours) => setCfg({ ...cfg, orderingHours })}
+            />
+            <StorefrontOrderingAvailabilityEditor
+              value={cfg.orderingAvailability}
+              onChange={(orderingAvailability) => setCfg({ ...cfg, orderingAvailability })}
+            />
+            <StorefrontShippingPolicyEditor
+              value={cfg.shippingPolicy}
+              onChange={(shippingPolicy) => setCfg({ ...cfg, shippingPolicy })}
+            />
           </TabsContent>
 
           <TabsContent value="seo" className="space-y-3">
@@ -361,9 +434,21 @@ export function StorefrontStudioPanel({
                 themes={themes}
                 selectedKey={cfg.themeKey ?? 'classic'}
                 isSuperAdmin={isSuperAdmin}
+                templateSettings={cfg.templateSettings ?? {}}
                 onSelect={(themeKey) => {
                   setCfg({ ...cfg, themeKey })
                   void save({ themeKey })
+                }}
+                onTemplateSettingChange={(themeKey, patch) => {
+                  const next = {
+                    ...(cfg.templateSettings ?? {}),
+                    [themeKey]: {
+                      ...(cfg.templateSettings?.[themeKey] ?? {}),
+                      ...patch,
+                    },
+                  }
+                  setCfg({ ...cfg, templateSettings: next })
+                  void save({ templateSettings: next })
                 }}
               />
             ) : (
@@ -450,6 +535,7 @@ export function StorefrontStudioPanel({
             </TabsContent>
           )}
         </Tabs>
+        )}
       </CardContent>
     </Card>
   )

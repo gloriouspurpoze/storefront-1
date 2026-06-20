@@ -73,6 +73,38 @@ export function Products() {
     }
   }
 
+  const handleToggleActive = async (product: Product, nextActive: boolean) => {
+    try {
+      const response = await ProductsService.updateProduct(
+        product.id.toString(),
+        { is_active: nextActive },
+        { showSuccessToast: false },
+      )
+
+      if (response.success) {
+        setProducts((prev) =>
+          prev.map((p) => (p.id === product.id ? { ...p, is_active: nextActive } : p)),
+        )
+        dispatch(
+          addToast({
+            message: `Product ${nextActive ? 'activated' : 'deactivated'} successfully.`,
+            severity: 'success',
+            duration: 3000,
+          }),
+        )
+      }
+    } catch (error) {
+      console.error('Error toggling product availability:', error)
+      dispatch(
+        addToast({
+          message: 'Failed to update product availability.',
+          severity: 'error',
+          duration: 4000,
+        }),
+      )
+    }
+  }
+
   const handleUpdateProduct = async (updatedProduct: Product) => {
     try {
       const response = await ProductsService.updateProduct(updatedProduct.id.toString(), {
@@ -247,6 +279,7 @@ export function Products() {
               <ProductTable
                 products={products}
                 onUpdate={handleUpdateProduct}
+                onToggleActive={handleToggleActive}
                 onDelete={handleDeleteProduct}
                 onAdd={handleAddProduct}
                 onView={handleViewProduct}

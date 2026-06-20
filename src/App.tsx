@@ -313,6 +313,11 @@ const SaasPlatformPage = lazy(() =>
 const PlatformTenantsPage = lazy(() =>
   import('./pages/settings/PlatformTenantsPage').then((m) => ({ default: m.PlatformTenantsPage })),
 )
+const PrivateStorefrontTemplatesPage = lazy(() =>
+  import('./pages/settings/PrivateStorefrontTemplatesPage').then((m) => ({
+    default: m.PrivateStorefrontTemplatesPage,
+  })),
+)
 const StorefrontSettingsPage = lazy(() =>
   import('./pages/settings/StorefrontSettingsPage').then((m) => ({ default: m.StorefrontSettingsPage })),
 )
@@ -1534,6 +1539,14 @@ function App() {
                         }
                       />
                       <Route
+                        path="/settings/private-templates"
+                        element={
+                          <RoleBasedRoute permissions={['manage_system_settings']}>
+                            <PrivateStorefrontTemplatesPage />
+                          </RoleBasedRoute>
+                        }
+                      />
+                      <Route
                         path="/settings/billing"
                         element={
                           <RoleBasedRoute permissions={['view_settings']}>
@@ -1544,7 +1557,7 @@ function App() {
                       <Route
                         path="/settings/storefront"
                         element={
-                          <RoleBasedRoute permissions={['manage_cms', 'view_settings', 'manage_system_settings']}>
+                          <RoleBasedRoute permissions={['view_storefront', 'view_cms', 'manage_cms', 'view_settings', 'manage_system_settings']}>
                             <StorefrontSettingsPage />
                           </RoleBasedRoute>
                         }

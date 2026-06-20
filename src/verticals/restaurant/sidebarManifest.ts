@@ -45,6 +45,15 @@ export const restaurantSidebarGroups: SidebarNavGroupDef[] = [
     order: 50,
     items: [
       {
+        id: 'menu_categories',
+        name: 'Menu categories',
+        href: '/categories/products',
+        icon: 'FolderTree',
+        permissions: ['view_categories', 'create_categories'],
+        module: 'ecommerce',
+        badge: null,
+      },
+      {
         id: 'menu_items',
         name: 'Menu items',
         href: '/products',

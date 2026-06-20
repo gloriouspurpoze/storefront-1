@@ -15,6 +15,7 @@ function categoryFor(p: Permission): string {
   if (p.includes('booking')) return 'Bookings'
   if (p.includes('quote')) return 'Quotes'
   if (p.includes('categor')) return 'Categories'
+  if (p.includes('cms') || p.includes('storefront')) return 'Storefront & CMS'
   if (p.includes('setting') || p.includes('system_settings')) return 'Settings'
   if (p.includes('report')) return 'Reports'
   if (p.includes('payment') || p.includes('refund')) return 'Payments'

@@ -33,6 +33,8 @@ export interface ManualInvoiceLineItem {
   lineKind?: ManualInvoiceLineKind
 }
 
+export type ManualInvoiceStatus = 'draft' | 'issued' | 'paid' | 'cancelled' | 'refunded'
+
 export interface ManualInvoicePayload {
   type: 'service' | 'product' | 'subscription' | 'provider_payout'
   /**
@@ -61,6 +63,8 @@ export interface ManualInvoicePayload {
   discount?: number
   creditsUsed?: number
   paymentMethod?: string
+  /** Shown on PDF as Payment Status */
+  status?: ManualInvoiceStatus
   orderId?: string
   bookingId?: string
   notes?: string
@@ -172,6 +176,7 @@ function toGenerateInvoiceBody(p: ManualInvoicePayload): object {
     billingTo: p.billingTo,
     items,
     paymentMethod: normalizePaymentMethodForBackend(p.paymentMethod),
+    ...(p.status ? { status: p.status } : {}),
     ...(p.pdfTemplate ? { pdfTemplate: p.pdfTemplate } : {}),
     ...(p.customerId ? { customerId: p.customerId } : {}),
     ...(p.discount != null && p.discount > 0 ? { discount: p.discount } : {}),

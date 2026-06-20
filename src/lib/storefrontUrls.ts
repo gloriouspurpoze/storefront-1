@@ -9,9 +9,13 @@ export function isLocalAdminHost(): boolean {
   return /^(localhost|127\.0\.0\.1|.*\.localhost)$/.test(window.location.hostname)
 }
 
+/** Local storefront host suffix — lvh.me resolves to 127.0.0.1 and works with Google OAuth. */
+const DEV_STOREFRONT_HOST_SUFFIX = 'lvh.me'
+const DEV_STOREFRONT_PORT = 3001
+
 export function platformStorefrontDevUrl(slug: string): string {
   const s = slug.trim().toLowerCase()
-  return `http://${s}.profixer.localhost:3001`
+  return `http://${s}.${DEV_STOREFRONT_HOST_SUFFIX}:${DEV_STOREFRONT_PORT}`
 }
 
 export function platformStorefrontProdUrl(slug: string): string {

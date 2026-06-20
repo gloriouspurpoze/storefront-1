@@ -1,4 +1,8 @@
 import type { RolePermissions, UserRole, Permission, RoutePermission } from '../../types/src/rbac.types'
+import {
+  expandStorefrontRequirement,
+  storefrontPermissionSatisfied,
+} from './storefrontPermissionAliases'
 
 // Define permissions for each role
 export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
@@ -136,6 +140,18 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       'view_subscriptions',
       'manage_subscriptions',
 
+      // CMS / storefront
+      'view_cms',
+      'manage_cms',
+      'view_storefront',
+      'edit_storefront_branding',
+      'edit_storefront_theme',
+      'edit_storefront_sections',
+      'edit_storefront_seo',
+      'edit_storefront_content',
+      'manage_storefront_domains',
+      'manage_storefront_addons',
+
       // Boards (collaborative canvas)
       'view_boards',
       'manage_boards',
@@ -204,6 +220,14 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       // CMS / storefront content (role description: "full CMS and content management")
       'view_cms',
       'manage_cms',
+      'view_storefront',
+      'edit_storefront_branding',
+      'edit_storefront_theme',
+      'edit_storefront_sections',
+      'edit_storefront_seo',
+      'edit_storefront_content',
+      'manage_storefront_domains',
+      'manage_storefront_addons',
       
       'view_reports',
       'export_reports',
@@ -361,6 +385,14 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       // CMS / storefront content (managers run the public storefront)
       'view_cms',
       'manage_cms',
+      'view_storefront',
+      'edit_storefront_branding',
+      'edit_storefront_theme',
+      'edit_storefront_sections',
+      'edit_storefront_seo',
+      'edit_storefront_content',
+      'manage_storefront_domains',
+      'manage_storefront_addons',
 
       // Boards
       'view_boards',
@@ -427,6 +459,10 @@ export const rolePermissionsMap: Record<UserRole, RolePermissions> = {
       'edit_coupons',
       'view_referrals',
       'edit_referrals',
+
+      // Storefront (view-only for staff)
+      'view_cms',
+      'view_storefront',
 
       // Boards
       'view_boards',
@@ -687,9 +723,15 @@ export const routePermissions: RoutePermission[] = [
     // public site. Explicit rule prevents inheriting the generic `/settings`
     // guard, which required `view_settings` and locked managers out.
     path: '/settings/storefront',
-    requiredPermissions: ['manage_cms', 'view_settings', 'manage_system_settings'],
+    requiredPermissions: [
+      'view_storefront',
+      'manage_cms',
+      'view_cms',
+      'view_settings',
+      'manage_system_settings',
+    ],
     requireAll: false,
-    allowedRoles: ['super_admin', 'admin', 'manager'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff'],
   },
   {
     path: '/settings',
@@ -1069,16 +1111,14 @@ export const hasPermission = (
     return true
   }
 
-  if (opts?.explicitOnly) {
-    return customPermissions?.includes(permission) ?? false
-  }
+  const held = opts?.explicitOnly
+    ? (customPermissions ?? [])
+    : Array.from(new Set([...getRolePermissions(userRole), ...(customPermissions ?? [])]))
 
-  if (customPermissions?.includes(permission)) {
-    return true
-  }
-
-  const rolePerms = getRolePermissions(userRole)
-  return rolePerms.includes(permission)
+  const requiredKeys = expandStorefrontRequirement(permission)
+  return requiredKeys.some((req) =>
+    held.some((h) => h === req || storefrontPermissionSatisfied(h, req)),
+  )
 }
 
 export const hasAnyPermission = (

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   Plus,
   ArrowLeft,
@@ -6,6 +6,7 @@ import {
   FolderTree,
   Save,
   Loader2,
+  Sparkles,
 } from 'lucide-react'
 import { CategoriesService } from '../../services/api/categories.service'
 import { ImageUploadField, type ImageFile } from '../../components/forms'
@@ -28,6 +29,14 @@ import {
   SelectValue,
   Separator,
 } from '../../components/ui'
+import { useVerticalPack } from '../../hooks/useVerticalPack'
+
+interface CategorySuggestion {
+  name: string
+  description?: string
+  type: 'product' | 'service' | 'both'
+  sortOrder: number
+}
 
 interface CategoryFormData {
   name: string
@@ -75,6 +84,7 @@ export function CreateCategory() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const location = useLocation()
+  const { pack } = useVerticalPack()
   const { scope: pathScope, id } = useParams<{ scope?: string; id: string }>()
 
   const listScope = pathScope === 'products' || pathScope === 'services' ? pathScope : null
@@ -84,6 +94,9 @@ export function CreateCategory() {
 
   const [loading, setLoading] = useState(false)
   const [loadingData, setLoadingData] = useState(false)
+  const [suggestions, setSuggestions] = useState<CategorySuggestion[]>([])
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
+  const [seedingSuggestions, setSeedingSuggestions] = useState(false)
   const [formData, setFormData] = useState<CategoryFormData>({
     name: '',
     description: '',
@@ -112,6 +125,65 @@ export function CreateCategory() {
       return { ...prev, categoryType: next }
     })
   }, [listScope])
+
+  useEffect(() => {
+    if (!isCreateMode || listScope !== 'products') return
+    let cancelled = false
+    void (async () => {
+      try {
+        setLoadingSuggestions(true)
+        const res = await CategoriesService.getProductCategorySuggestions()
+        if (!cancelled && res.success && res.data?.suggestions) {
+          setSuggestions(res.data.suggestions)
+        }
+      } catch {
+        if (!cancelled) setSuggestions([])
+      } finally {
+        if (!cancelled) setLoadingSuggestions(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [isCreateMode, listScope])
+
+  const applySuggestion = (suggestion: CategorySuggestion) => {
+    setFormData((prev) => ({
+      ...prev,
+      name: suggestion.name,
+      description: suggestion.description || '',
+      categoryType: 'product',
+      sortOrder: suggestion.sortOrder,
+    }))
+  }
+
+  const handleSeedAllSuggestions = async () => {
+    try {
+      setSeedingSuggestions(true)
+      const response = await CategoriesService.seedSuggestedProductCategories()
+      if (response.success) {
+        dispatch(
+          addToast({
+            message: response.message || 'Suggested categories added.',
+            severity: 'success',
+            duration: 5000,
+          }),
+        )
+        navigate(backPath)
+      }
+    } catch (error) {
+      console.error('Error seeding suggestions:', error)
+      dispatch(
+        addToast({
+          message: 'Failed to add suggested categories.',
+          severity: 'error',
+          duration: 4000,
+        }),
+      )
+    } finally {
+      setSeedingSuggestions(false)
+    }
+  }
 
   const fetchCategoryData = useCallback(async (categoryId: string) => {
     if (!categoryId?.trim()) return
@@ -293,9 +365,59 @@ export function CreateCategory() {
                     className="rounded-md border border-primary/20 bg-primary-soft px-4 py-3 text-sm text-primary dark:border-primary dark:bg-primary/40 dark:text-primary-deep"
                   >
                     {listScope === 'products'
-                      ? 'You are on the product categories flow. “Both” is available if a category should also be used for services.'
+                      ? 'Product categories belong to your organization only. Use suggestions below or create your own.'
                       : 'You are on the service categories flow. “Both” is available if a category should also be used in the product store.'}
                   </div>
+                )}
+
+                {listScope === 'products' && isCreateMode && (
+                  <section className="rounded-lg border border-dashed border-primary/30 bg-muted/20 p-4">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <h2 className="flex items-center gap-2 text-base font-semibold text-primary">
+                          <Sparkles className="h-4 w-4" aria-hidden />
+                          Suggested for {pack.label}
+                        </h2>
+                        <p className="text-sm text-muted-foreground">
+                          Pick a starter category or add the full set for your industry.
+                        </p>
+                      </div>
+                      {suggestions.length > 0 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => void handleSeedAllSuggestions()}
+                          disabled={seedingSuggestions}
+                          loading={seedingSuggestions}
+                        >
+                          Add all suggestions
+                        </Button>
+                      )}
+                    </div>
+                    {loadingSuggestions ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading suggestions…
+                      </div>
+                    ) : suggestions.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No suggestions available for this vertical.</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {suggestions.map((suggestion) => (
+                          <Button
+                            key={suggestion.name}
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => applySuggestion(suggestion)}
+                          >
+                            {suggestion.name}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+                  </section>
                 )}
 
                 <section>

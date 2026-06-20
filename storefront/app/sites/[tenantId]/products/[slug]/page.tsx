@@ -5,7 +5,7 @@ import { RetailShell } from '@/themes/retail/RetailShell'
 import { SiteHeader } from '@/themes/retail/SiteHeader'
 import { SiteFooter } from '@/themes/retail/SiteFooter'
 import { AddToCartButton } from '@/themes/retail/AddToCartButton'
-import { formatMoney } from '@/themes/retail/cart'
+import { formatMoney } from '@/lib/format'
 import { toThemeTenant } from '@/themes/retail/types'
 import { fetchProductBySlug } from '@/lib/storefront-api'
 

@@ -85,8 +85,10 @@ export interface OrdersQuery {
   search?: string
   startDate?: string
   endDate?: string
-  /** Orders awaiting ship or in transit (processing + shipped) */
+  /** Orders awaiting fulfillment (pending through shipped) */
   fulfillmentQueue?: boolean
+  /** Delivered today — filters by `deliveredAt` on the server */
+  deliveredToday?: boolean
 }
 
 export interface OrderItemInput {
@@ -208,8 +210,8 @@ export class OrdersService {
     
     Object.entries(query).forEach(([key, value]) => {
       if (value === undefined || value === null) return
-      if (key === 'fulfillmentQueue') {
-        if (value === true) params.append('fulfillmentQueue', 'true')
+      if (key === 'fulfillmentQueue' || key === 'deliveredToday') {
+        if (value === true) params.append(key, 'true')
         return
       }
       params.append(key, value.toString())

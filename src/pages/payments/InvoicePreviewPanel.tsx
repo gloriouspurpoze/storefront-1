@@ -50,6 +50,8 @@ export type InvoicePreviewPanelProps = {
   isInterState: boolean
   placeOfSupply: string
   paymentMethod?: string
+  /** draft | issued | paid — shown on PDF preview */
+  invoiceStatus?: string
   notes?: string
   companyStateLabel: string
   companyHint?: string
@@ -84,6 +86,7 @@ export function InvoicePreviewPanel({
   isInterState,
   placeOfSupply,
   paymentMethod,
+  invoiceStatus,
   notes,
   companyStateLabel,
   companyHint = 'Legal name, full address & company GSTIN appear on the official PDF (server / company settings).',
@@ -415,12 +418,19 @@ export function InvoicePreviewPanel({
           {/* Totals + Notes */}
           <section className="mt-6 grid gap-6 md:grid-cols-5">
             <div className="space-y-4 md:col-span-3">
-              {paymentMethod && (
+              {(paymentMethod || invoiceStatus) && (
                 <div className="rounded-md border border-fog bg-cloud px-3 py-2 text-sm">
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-graphite">
                     Payment
                   </p>
-                  <p className="mt-0.5 text-ink-soft">{paymentMethod}</p>
+                  {paymentMethod && (
+                    <p className="mt-0.5 text-ink-soft">Method: {paymentMethod}</p>
+                  )}
+                  {invoiceStatus && (
+                    <p className="mt-0.5 text-ink-soft">
+                      Status: {invoiceStatus.replace(/_/g, ' ').toUpperCase()}
+                    </p>
+                  )}
                 </div>
               )}
               {notes && (

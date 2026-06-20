@@ -60,6 +60,52 @@ export interface StorefrontContent {
   faqItems?: Array<{ question: string; answer: string }>
 }
 
+export interface StorefrontTemplateCheckoutSettings {
+  showPreferredDateOfDelivery?: boolean
+  showPreferredTimeOfDelivery?: boolean
+}
+
+export interface StorefrontEmailConfig {
+  emailProvider?: string
+  transport?: string
+  fromEmail?: string
+  emailDisplayName?: string
+  isEmailVerified?: boolean
+  isPremiumEligible?: boolean
+}
+
+export type StorefrontTemplateSettings = Record<string, StorefrontTemplateCheckoutSettings>
+
+export interface DayOrderingHours {
+  closed: boolean
+  openTime?: string
+  closeTime?: string
+}
+
+export type OrderingHoursConfig = Record<
+  'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday',
+  DayOrderingHours
+>
+
+export interface OrderingAvailabilityConfig {
+  earliestDate?: string
+  latestDate?: string
+  slotsNote?: string
+}
+
+export interface ShippingPolicyZone {
+  label: string
+  details: string
+  fee?: string
+}
+
+export interface ShippingPolicyConfig {
+  summary?: string
+  body?: string
+  processingNote?: string
+  zones?: ShippingPolicyZone[]
+}
+
 export interface StorefrontConfigFeatureFlags {
   showHero?: boolean
   showProducts?: boolean
@@ -92,6 +138,11 @@ export interface StorefrontThemeCatalogItem {
   verticals: string[]
   tier: 'free' | 'pro'
   priceInr?: number
+  kind?: 'layout' | 'style'
+  htmlSource?: string
+  /** Tenant-exclusive template — not visible to other orgs. */
+  isPrivate?: boolean
+  privateTemplateId?: string
 }
 
 export interface StorefrontAddonCatalogItem {
@@ -118,6 +169,10 @@ export interface StorefrontConfig {
   themeKey?: string
   sections?: StorefrontSection[]
   content?: StorefrontContent
+  templateSettings?: StorefrontTemplateSettings
+  orderingHours?: Partial<OrderingHoursConfig>
+  orderingAvailability?: OrderingAvailabilityConfig
+  shippingPolicy?: ShippingPolicyConfig
   featureAddons?: Record<string, { sku: string; purchased?: boolean; purchasedAt?: string }>
   customCss?: string
   customHeadScripts?: string
@@ -147,6 +202,10 @@ export type StorefrontConfigPatch = Partial<
     | 'themeKey'
     | 'sections'
     | 'content'
+    | 'templateSettings'
+    | 'orderingHours'
+    | 'orderingAvailability'
+    | 'shippingPolicy'
     | 'customCss'
     | 'customHeadScripts'
     | 'customBodyScripts'
@@ -216,6 +275,33 @@ export const storefrontStudioService = {
       '/storefront-studio/generate-copy',
       body,
       { showLoading: true, showSuccessToast: true, successMessage: 'AI copy applied' },
+    )
+  },
+
+  getEmailConfig() {
+    return api.get<StorefrontEmailConfig>('/storefront-studio/email-config', {
+      showLoading: false,
+      showErrorToast: false,
+      showSuccessToast: false,
+    })
+  },
+
+  patchEmailConfig(body: {
+    fromEmail?: string
+    emailDisplayName?: string
+  }) {
+    return api.patch<StorefrontEmailConfig>('/storefront-studio/email-config', body, {
+      showLoading: true,
+      showSuccessToast: true,
+      successMessage: 'Email settings saved',
+    })
+  },
+
+  verifyEmailDomain() {
+    return api.post<{ domain: string; verified: boolean; status: string }>(
+      '/storefront-studio/email-config/verify-domain',
+      {},
+      { showLoading: true, showSuccessToast: true, successMessage: 'Domain check complete' },
     )
   },
 }

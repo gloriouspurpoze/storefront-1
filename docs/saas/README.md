@@ -11,6 +11,7 @@ Reference docs for evolving `fixer-admin` from a single-vertical (home services)
 ## Related docs
 
 - [`docs/TENANT_ONBOARDING_AND_RBAC_RUNBOOK.md`](../TENANT_ONBOARDING_AND_RBAC_RUNBOOK.md) — current tenant + RBAC runbook (pre-vertical-pack).
+- [`12-tenant-permissions-reference.md`](./12-tenant-permissions-reference.md) — complete permission catalog for super admins (modules, RBAC, storefront granular keys).
 - [`docs/PRODUCT_AND_SAAS_PLAYBOOK.md`](../PRODUCT_AND_SAAS_PLAYBOOK.md) — product narrative.
 - [`docs/mobile/`](../mobile/) — mobile companion app plan (consumes the same pack system).
 - **[`docs/verticals/`](../verticals/)** — **Real estate & logistics expansion** (CEO strategy, pack specs, onboarding runbook, engineering checklist).

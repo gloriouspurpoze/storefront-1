@@ -7,6 +7,7 @@ import {
   LayoutGrid,
   TrendingUp,
   ArrowLeftRight,
+  Sparkles,
 } from 'lucide-react'
 import { useNavigate, useParams, Navigate } from 'react-router-dom'
 import { Card, CardContent } from '../../components/ui/card'
@@ -20,6 +21,7 @@ import { StandardTable, type StandardTableColumn } from '../../components/common
 import { useAppConfirm } from '../../components/providers/AppDialogsProvider'
 import type { Category } from '../../types'
 import { cn } from '../../lib/utils'
+import { useVerticalPack } from '../../hooks/useVerticalPack'
 
 const SCOPES = new Set(['products', 'services'])
 
@@ -47,10 +49,12 @@ export function CategoriesList() {
 
   const dispatch = useAppDispatch()
   const confirm = useAppConfirm()
+  const { pack } = useVerticalPack()
 
   const [allRows, setAllRows] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [seedingSuggestions, setSeedingSuggestions] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
@@ -103,6 +107,41 @@ export function CategoriesList() {
     }).length
     return { total: filtered.length, active, inactive: filtered.length - active }
   }, [filtered])
+
+  const handleSeedSuggestions = async () => {
+    const ok = await confirm({
+      title: 'Add suggested categories?',
+      message: `This adds industry-default product categories for ${pack.label}. Existing categories are kept.`,
+      confirmLabel: 'Add suggestions',
+    })
+    if (!ok) return
+
+    try {
+      setSeedingSuggestions(true)
+      const response = await CategoriesService.seedSuggestedProductCategories()
+      if (response.success) {
+        dispatch(
+          addToast({
+            message: response.message || 'Suggested categories added.',
+            severity: 'success',
+            duration: 5000,
+          }),
+        )
+        await loadAll()
+      }
+    } catch (err) {
+      console.error('Error seeding category suggestions:', err)
+      dispatch(
+        addToast({
+          message: 'Failed to add suggested categories.',
+          severity: 'error',
+          duration: 4000,
+        }),
+      )
+    } finally {
+      setSeedingSuggestions(false)
+    }
+  }
 
   const getCategoryId = (category: Category): string => {
     return category.id || (category as any)._id || ''
@@ -246,7 +285,7 @@ export function CategoriesList() {
   const title = scope === 'products' ? 'Product categories' : 'Service categories'
   const subtitle =
     scope === 'products'
-      ? 'For E‑commerce, inventory, and product assignment. “Both” also appears in service flows.'
+      ? 'Tenant-specific categories for your catalog, menu, and inventory. Service-only categories stay under Service categories.'
       : 'For platform and marketplace services and bookings. “Both” also appears in the product catalog.'
   const otherPath = scope === 'products' ? '/categories/services' : '/categories/products'
   const otherLabel = scope === 'products' ? 'Open service categories' : 'Open product categories'
@@ -266,6 +305,17 @@ export function CategoriesList() {
           <Button variant="outline" onClick={() => navigate(otherPath)}>
             {otherLabel}
           </Button>
+          {scope === 'products' && (
+            <Button
+              variant="outline"
+              onClick={() => void handleSeedSuggestions()}
+              disabled={seedingSuggestions}
+              loading={seedingSuggestions}
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              Add {pack.label} suggestions
+            </Button>
+          )}
           <Button onClick={() => navigate(`/categories/${scope}/create`)}>
             <Plus className="mr-2 h-4 w-4" />
             {scope === 'products' ? 'Add product category' : 'Add service category'}
@@ -275,7 +325,7 @@ export function CategoriesList() {
 
       <div className="mb-4 rounded-md border border-primary/20 bg-primary-soft/80 p-3 text-sm dark:border-primary dark:bg-primary/40">
         {scope === 'products'
-          ? 'You are editing the product catalog. Service-only categories are managed under Service categories.'
+          ? 'Product categories are scoped to your organization. Use suggestions to bootstrap a menu or catalog for your industry.'
           : 'You are editing the service catalog. Product-only categories are managed under Product categories.'}
       </div>
 

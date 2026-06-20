@@ -16,6 +16,7 @@ import { Button } from '../../../components/ui/button'
 import { Input } from '../../../components/ui/input'
 import { Label } from '../../../components/ui/label'
 import { Badge } from '../../../components/ui/badge'
+import { Switch } from '../../../components/ui/switch'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card'
 import { Separator } from '../../../components/ui/separator'
 import {
@@ -28,6 +29,7 @@ import {
 import { ConfirmDialog } from '../../../components/common/ConfirmDialog'
 import { PermissionChipPicker } from '../../../components/users/PermissionChipPicker'
 import { usersService } from '../../../services/api/users.service'
+import { notificationsService } from '../../../services/api/notifications.service'
 import type { UpdateUserRequest } from '../../../services/api/users.service'
 import type { User } from '../../../types'
 import type { Permission, UserRole } from '../../../types/rbac.types'
@@ -111,6 +113,9 @@ export function AssignTeamAccessPage() {
   const [saving, setSaving] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [memberNewOrderEmail, setMemberNewOrderEmail] = useState<boolean | null>(null)
+  const [memberNotifLoading, setMemberNotifLoading] = useState(false)
+  const [savingMemberNotif, setSavingMemberNotif] = useState(false)
 
   useEffect(() => {
     const t = window.setTimeout(() => setDebouncedSearch(searchInput.trim()), 320)
@@ -164,6 +169,19 @@ export function AssignTeamAccessPage() {
         if (cancelled) return
         setDetailUser(u)
         applyUserToForm(u)
+        if (canEditRbac && isDashboardAccessAccount(u)) {
+          setMemberNotifLoading(true)
+          try {
+            const prefs = await notificationsService.getPreferencesForUser(u.id)
+            setMemberNewOrderEmail(prefs.newOrderEmailNotifications)
+          } catch {
+            setMemberNewOrderEmail(true)
+          } finally {
+            if (!cancelled) setMemberNotifLoading(false)
+          }
+        } else {
+          setMemberNewOrderEmail(null)
+        }
       } catch (e) {
         if (!cancelled) {
           toast({
@@ -180,7 +198,29 @@ export function AssignTeamAccessPage() {
     return () => {
       cancelled = true
     }
-  }, [selectedId, applyUserToForm, toast])
+  }, [selectedId, applyUserToForm, toast, canEditRbac])
+
+  const handleSaveMemberOrderEmailPref = async () => {
+    if (!detailUser || !canEditRbac || memberNewOrderEmail === null) return
+    setSavingMemberNotif(true)
+    try {
+      await notificationsService.updatePreferencesForUser(detailUser.id, {
+        newOrderEmailNotifications: memberNewOrderEmail,
+      })
+      toast({
+        title: 'Notification preference saved',
+        description: `${detailUser.email} — new order emails ${memberNewOrderEmail ? 'enabled' : 'disabled'}`,
+      })
+    } catch (e) {
+      toast({
+        variant: 'destructive',
+        title: 'Could not save notification preference',
+        description: e instanceof Error ? e.message : 'Request failed',
+      })
+    } finally {
+      setSavingMemberNotif(false)
+    }
+  }
 
   const dirty = useMemo(() => {
     if (!detailUser) return false
@@ -255,6 +295,19 @@ export function AssignTeamAccessPage() {
       const u = await usersService.getUserById(selectedId)
       setDetailUser(u)
       applyUserToForm(u)
+      if (canEditRbac && isDashboardAccessAccount(u)) {
+        setMemberNotifLoading(true)
+        try {
+          const prefs = await notificationsService.getPreferencesForUser(u.id)
+          setMemberNewOrderEmail(prefs.newOrderEmailNotifications)
+        } catch {
+          setMemberNewOrderEmail(true)
+        } finally {
+          setMemberNotifLoading(false)
+        }
+      } else {
+        setMemberNewOrderEmail(null)
+      }
       toast({ title: 'Reloaded', description: u.email })
     } catch (e) {
       toast({
@@ -554,6 +607,51 @@ export function AssignTeamAccessPage() {
                         Discard edits
                       </Button>
                     </div>
+
+                    <Separator />
+
+                    {canEditRbac ? (
+                      <div className="space-y-3 rounded-lg border bg-muted/20 p-4">
+                        <div>
+                          <p className="font-medium">New order email alerts</p>
+                          <p className="text-sm text-muted-foreground">
+                            Tenant owners and managers with edit_users can control whether this
+                            team member receives email when a new order is placed.
+                          </p>
+                        </div>
+                        {memberNotifLoading ? (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                            Loading notification settings…
+                          </div>
+                        ) : memberNewOrderEmail !== null ? (
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <Label htmlFor="member-new-order-email" className="font-normal">
+                              Receive email for new orders
+                            </Label>
+                            <Switch
+                              id="member-new-order-email"
+                              checked={memberNewOrderEmail}
+                              onCheckedChange={setMemberNewOrderEmail}
+                            />
+                          </div>
+                        ) : null}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={memberNotifLoading || savingMemberNotif || memberNewOrderEmail === null}
+                          onClick={() => void handleSaveMemberOrderEmailPref()}
+                        >
+                          {savingMemberNotif ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                          ) : (
+                            <Save className="mr-2 h-4 w-4" aria-hidden />
+                          )}
+                          Save email preference
+                        </Button>
+                      </div>
+                    ) : null}
 
                     <Separator />
 

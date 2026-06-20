@@ -80,6 +80,8 @@ export interface OrdersQuery {
   search?: string
   startDate?: string
   endDate?: string
+  fulfillmentQueue?: boolean
+  deliveredToday?: boolean
 }
 
 export interface OrdersListResponse {

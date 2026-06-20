@@ -336,6 +336,7 @@ export const QUICK_NAV_ITEMS: QuickNavItem[] = [
   },
   { label: 'SaaS platform', path: '/settings/saas', group: 'System', keywords: 'tenant billing checklist multi' },
   { label: 'Organizations', path: '/settings/tenants', group: 'System', keywords: 'tenants onboard saas clients' },
+  { label: 'Private templates', path: '/settings/private-templates', group: 'System', keywords: 'custom storefront theme tenant exclusive' },
   { label: 'Help & support', path: '/support', group: 'System' },
 
   { label: 'Provider dashboard', path: '/provider/dashboard', group: 'Provider' },

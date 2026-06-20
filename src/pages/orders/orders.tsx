@@ -46,6 +46,7 @@ import {
   type OrdersQuery,
 } from '../../services/api/orders.service'
 import { formatCurrency, formatDate, getInitials, cn } from '../../lib/utils'
+import { getOrderDeliveryWhen } from '../../lib/deliveryNotes'
 import { PageHeader } from '../../components/common/PageHeader'
 import { OrderDetailDrawer } from './OrderDetailDrawer'
 import { BulkShipDialog } from './BulkShipDialog'
@@ -66,10 +67,6 @@ const STATUS_OPTIONS: Array<OrderStatus | 'all'> = [
 const PAYMENT_OPTIONS: Array<PaymentStatus | 'all'> = ['all', 'pending', 'paid', 'failed', 'refunded']
 
 type OrdersListView = 'all' | 'delivery_queue' | 'delivered_today'
-
-function todayIsoDate(): string {
-  return new Date().toISOString().slice(0, 10)
-}
 
 const fulfillmentBadgeVariant: Record<
   OrderStatus,
@@ -179,16 +176,13 @@ export function Orders() {
       if (listView === 'delivery_queue') {
         query.fulfillmentQueue = true
       } else if (listView === 'delivered_today') {
-        query.status = 'delivered'
-        const today = todayIsoDate()
-        query.startDate = today
-        query.endDate = today
+        query.deliveredToday = true
       } else if (statusFilter !== 'all') {
         query.status = statusFilter as OrderStatus
       }
       if (paymentFilter !== 'all') query.paymentStatus = paymentFilter as PaymentStatus
       if (debouncedSearch) query.search = debouncedSearch
-      if (listView !== 'delivered_today') {
+      if (listView === 'all') {
         if (startDate) query.startDate = startDate
         if (endDate) query.endDate = endDate
       }
@@ -245,6 +239,7 @@ export function Orders() {
         'Customer',
         'Email',
         'Fulfillment',
+        'Delivery time',
         'Payment',
         'Carrier',
         'Tracking',
@@ -257,6 +252,7 @@ export function Orders() {
         o.customer ? `${o.customer.firstName} ${o.customer.lastName}`.trim() : o.userId,
         o.customer?.email || '',
         o.status,
+        getOrderDeliveryWhen(o) || '',
         o.paymentStatus,
         carrierLabel(o.carrier),
         o.trackingNumber || '',
@@ -289,8 +285,10 @@ export function Orders() {
       setStatusFilter('all')
       setStartDate('')
       setEndDate('')
-    } else {
+    } else if (view === 'delivered_today') {
       setStatusFilter('delivered')
+      setStartDate('')
+      setEndDate('')
     }
   }
 
@@ -464,7 +462,9 @@ export function Orders() {
               <Input
                 type="date"
                 value={startDate}
+                disabled={listView !== 'all'}
                 onChange={(e) => {
+                  setListView('all')
                   setStartDate(e.target.value)
                   setPage(0)
                 }}
@@ -475,7 +475,9 @@ export function Orders() {
               <Input
                 type="date"
                 value={endDate}
+                disabled={listView !== 'all'}
                 onChange={(e) => {
+                  setListView('all')
                   setEndDate(e.target.value)
                   setPage(0)
                 }}
@@ -522,6 +524,7 @@ export function Orders() {
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead>Payment</TableHead>
                 <TableHead>Fulfillment</TableHead>
+                <TableHead>Delivery time</TableHead>
                 <TableHead>Tracking</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -529,21 +532,23 @@ export function Orders() {
             <TableBody>
               {loading && (
                 <TableRow>
-                  <TableCell colSpan={canEdit ? 9 : 8} className="py-12 text-center">
+                  <TableCell colSpan={canEdit ? 10 : 9} className="py-12 text-center">
                     <Loader2 className="mx-auto h-7 w-7 animate-spin text-muted-foreground" />
                   </TableCell>
                 </TableRow>
               )}
               {!loading && orders.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={canEdit ? 9 : 8} className="py-16 text-center">
+                  <TableCell colSpan={canEdit ? 10 : 9} className="py-16 text-center">
                     <ShoppingCart className="mx-auto mb-2 h-12 w-12 text-muted-foreground/40" />
                     <p className="text-muted-foreground">No orders match your filters.</p>
                   </TableCell>
                 </TableRow>
               )}
               {!loading &&
-                orders.map((order) => (
+                orders.map((order) => {
+                  const deliveryWhen = getOrderDeliveryWhen(order)
+                  return (
                   <TableRow
                     key={order.id}
                     className="cursor-pointer"
@@ -613,6 +618,13 @@ export function Orders() {
                         {order.status}
                       </Badge>
                     </TableCell>
+                    <TableCell>
+                      {deliveryWhen ? (
+                        <p className="max-w-[160px] text-xs leading-snug text-foreground">{deliveryWhen}</p>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       {order.trackingNumber ? (
                         <HStack spacing={1} className="items-center">
@@ -658,7 +670,8 @@ export function Orders() {
                       </TooltipProvider>
                     </TableCell>
                   </TableRow>
-                ))}
+                  )
+                })}
             </TableBody>
           </Table>
         </div>

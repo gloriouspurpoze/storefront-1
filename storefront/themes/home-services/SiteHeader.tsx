@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { AccountNavLink } from '@/components/account/AccountNavLink'
 import type { ThemeTenant } from './types'
 
 export function SiteHeader({ tenant }: { tenant: ThemeTenant }) {
@@ -34,6 +35,7 @@ export function SiteHeader({ tenant }: { tenant: ThemeTenant }) {
           <Link className="hover:text-slate-950" href="/contact">
             Contact
           </Link>
+          <AccountNavLink className="hover:text-slate-950" />
         </div>
 
         <Link

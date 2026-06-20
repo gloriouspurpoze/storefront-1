@@ -60,6 +60,15 @@ export const salonSidebarGroups: SidebarNavGroupDef[] = [
         badge: null,
       },
       {
+        id: 'retail_categories',
+        name: 'Product categories',
+        href: '/categories/products',
+        icon: 'FolderTree',
+        permissions: ['view_categories', 'create_categories'],
+        module: 'ecommerce',
+        badge: null,
+      },
+      {
         id: 'retail',
         name: 'Retail products',
         href: '/products',

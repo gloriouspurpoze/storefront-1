@@ -39,6 +39,7 @@ export interface NotificationPreferences {
   emailNotifications: boolean
   smsNotifications: boolean
   orderNotifications: boolean
+  newOrderEmailNotifications: boolean
   userNotifications: boolean
   systemNotifications: boolean
   marketingNotifications: boolean
@@ -69,6 +70,7 @@ export interface UpdatePreferencesRequest {
   emailNotifications?: boolean
   smsNotifications?: boolean
   orderNotifications?: boolean
+  newOrderEmailNotifications?: boolean
   userNotifications?: boolean
   systemNotifications?: boolean
   marketingNotifications?: boolean
@@ -220,6 +222,7 @@ class NotificationsService {
         emailNotifications: Boolean(j.emailNotifications),
         smsNotifications: Boolean(j.smsNotifications),
         orderNotifications: Boolean(j.orderNotifications),
+        newOrderEmailNotifications: j.newOrderEmailNotifications !== false,
         userNotifications: Boolean(j.userNotifications),
         systemNotifications: Boolean(j.systemNotifications),
         marketingNotifications: Boolean(j.marketingNotifications),
@@ -231,6 +234,7 @@ class NotificationsService {
         emailNotifications: true,
         smsNotifications: false,
         orderNotifications: true,
+        newOrderEmailNotifications: true,
         userNotifications: true,
         systemNotifications: true,
         marketingNotifications: false,
@@ -240,6 +244,33 @@ class NotificationsService {
 
   async updatePreferences(preferences: UpdatePreferencesRequest): Promise<void> {
     await authFetch('/notifications/preferences', {
+      method: 'PUT',
+      body: JSON.stringify(preferences),
+    })
+  }
+
+  async getPreferencesForUser(userId: string): Promise<NotificationPreferences> {
+    const j = await authFetch<NotificationPreferences>('/notifications/preferences/' + encodeURIComponent(userId), {
+      method: 'GET',
+    })
+    return {
+      userId: String(j.userId || userId),
+      pushNotifications: Boolean(j.pushNotifications),
+      emailNotifications: Boolean(j.emailNotifications),
+      smsNotifications: Boolean(j.smsNotifications),
+      orderNotifications: Boolean(j.orderNotifications),
+      newOrderEmailNotifications: j.newOrderEmailNotifications !== false,
+      userNotifications: Boolean(j.userNotifications),
+      systemNotifications: Boolean(j.systemNotifications),
+      marketingNotifications: Boolean(j.marketingNotifications),
+    }
+  }
+
+  async updatePreferencesForUser(
+    userId: string,
+    preferences: UpdatePreferencesRequest,
+  ): Promise<void> {
+    await authFetch('/notifications/preferences/' + encodeURIComponent(userId), {
       method: 'PUT',
       body: JSON.stringify(preferences),
     })

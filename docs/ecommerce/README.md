@@ -11,6 +11,7 @@ Specs for **Store / Orders / Products** inside fixer-admin (module: `ecommerce`)
 | Doc | Description |
 |-----|-------------|
 | **[`01-delivery-tracking-spec.md`](./01-delivery-tracking-spec.md)** | Full feature spec: what exists, v1 scope, data model, UI, phases, acceptance criteria |
+| **[`02-storefront-transactional-email.md`](./02-storefront-transactional-email.md)** | Branded order confirmation + status emails (SMTP + React Email, two-tier sending) |
 
 ---
 
