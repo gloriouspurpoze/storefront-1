@@ -387,7 +387,7 @@ export function AssignProfessionalDialog({
     try {
       const response = await ProfessionalsService.getProfessionals({
         page: 1,
-        limit: 100,
+        limit: 500,
       })
       const list = response.data.professionals || []
       setProfessionals(list.map((p) => normalizeProfessionalFromApi(p)))
@@ -469,10 +469,7 @@ export function AssignProfessionalDialog({
   const resolveProfessionalId = (professional: Professional) =>
     professional._id || professional.id || professional.professionalId
 
-  const resolveProfessionalId = (professional: Professional) =>
-    professional._id || professional.id || professional.professionalId
-
-  const handleAssign = async (professional: Professional) => {
+  const handleAssign = async (professional: Professional, mode: 'auto' | 'manual' = 'manual') => {
     const professionalId = resolveProfessionalId(professional)
     if (!professionalId) {
       setError('Professional record is missing an ID. Refresh and try again.')
@@ -542,9 +539,6 @@ export function AssignProfessionalDialog({
               Assign professional to booking
             </DialogTitle>
             <p className="text-sm text-muted-foreground">
-            Manual admin assignment — any professional can be assigned regardless of skills, city, verification, or availability.
-          </p>
-          <p className="text-sm text-muted-foreground">
             Manual admin assignment — any professional can be assigned regardless of skills, city, verification, or availability.
           </p>
         </DialogHeader>
@@ -747,119 +741,23 @@ export function AssignProfessionalDialog({
                 </div>
               )}
 
-        {!loading && filteredProfessionals.length > 0 && (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredProfessionals.map((professional) => {
-              const professionalId = resolveProfessionalId(professional)
-              const schedLines = scheduleSummaryLines(professional).slice(0, 3)
-              const dayHint = scheduledDateIso
-                ? bookingScheduledDayHint(scheduledDateIso, professional)
-                : 'unknown'
-              return (
-              <Card key={professionalId || `${professional.email}-${professional.firstName}`} className="flex flex-col">
-                <CardContent className="flex-1 space-y-2 pt-4">
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-14 w-14">
-                      {professional.profileImage ? (
-                        <AvatarImage src={professional.profileImage} alt="" />
-                      ) : null}
-                      <AvatarFallback>
-                        {professional.firstName[0]}
-                        {professional.lastName[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold leading-tight">
-                        {professional.firstName} {professional.lastName}
-                      </p>
-                      <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-                        <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
-                        {(professional.rating || 0).toFixed(1)} ({professional.totalReviews || 0})
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {professional.categories?.slice(0, 2).map((cat) => (
-                      <Badge key={cat} variant="secondary" className="text-xs">
-                        {cat}
-                      </Badge>
-                    ))}
-                    {(professional.categories?.length || 0) > 2 && (
-                      <Badge variant="outline" className="text-xs">
-                        +{professional.categories!.length - 2}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    <Badge variant="outline" className={cn('text-xs capitalize', availabilityClass(professional.availability))}>
-                      {professional.availability || 'unknown'}
-                    </Badge>
-                    <Badge variant="outline" className={cn('text-xs capitalize', expertiseClass(professional.expertiseLevel))}>
-                      {professional.expertiseLevel || 'unknown'}
-                    </Badge>
-                    {!professional.isVerified && (
-                      <Badge variant="outline" className="text-xs">
-                        Unverified
-                      </Badge>
-                    )}
-                    {professional.isActive === false && (
-                      <Badge variant="destructive" className="text-xs">
-                        Inactive
-                      </Badge>
-                    )}
-                  </div>
-                  {professional.address && (
-                    <p className="flex items-start gap-1 text-xs text-muted-foreground">
-                      <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                      {professional.address.area}, {professional.address.city}
-                    </p>
-                  )}
-                  {schedLines.length > 0 ? (
-                    <div className="space-y-0.5 border-t border-border/60 pt-2">
-                      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                        Calendar (from app)
-                      </p>
-                      {schedLines.map((line) => (
-                        <p key={line} className="text-xs text-muted-foreground">
-                          {line}
-                        </p>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground italic">
-                      No weekly calendar on file — check profile defaults or ask the pro to save availability in the app.
-                    </p>
-                  )}
-                  {scheduledDateIso && dayHint === 'open' ? (
-                    <Badge variant="outline" className="border-emerald-500/50 bg-emerald-500/10 text-emerald-900 dark:text-emerald-100">
-                      Scheduled day: open on their calendar
-                    </Badge>
-                  ) : null}
-                  {scheduledDateIso && dayHint === 'closed' ? (
-                    <Badge variant="destructive" className="text-xs font-normal">
-                      Scheduled day: off on their weekly calendar
-                    </Badge>
-                  ) : null}
-                  <p className="text-xs text-muted-foreground">
-                    {professional.experience} years experience • {professional.completedJobs || 0} jobs
-                  </p>
-                </CardContent>
-                <CardFooter className="pt-0">
-                  <Button
-                    type="button"
-                    className="w-full gap-1"
-                    onClick={() => void handleAssign(professional)}
-                    disabled={assigning || !professionalId || professional.isActive === false}
-                  >
-                    {assigning ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-                    Assign
-                  </Button>
-                </CardFooter>
-              </Card>
-              )
-            })}
-          </div>
-        )}
+              {!loading && filteredManual.length > 0 && (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {filteredManual.map((m) => (
+                    <CandidateCard
+                      key={m.professional._id}
+                      match={m}
+                      scheduledDateIso={scheduledDateIso}
+                      assigning={assigning}
+                      isAutoPick={m.professional._id === autoPick?.professional._id}
+                      allowIneligibleAssign
+                      onAssign={(professional) => void handleAssign(professional, 'manual')}
+                    />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose} disabled={assigning}>
