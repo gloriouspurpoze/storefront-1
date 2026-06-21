@@ -413,6 +413,21 @@ export function buildSeoLandingQualityReport(
           tab: 'content',
         }),
       )
+    } else if (kind === 'problems' || kind === 'guides') {
+      items.push(
+        item({
+          id: 'prices',
+          group: 'Content',
+          label: 'Price guide',
+          ok: prices >= 3,
+          detail:
+            prices >= 3
+              ? `${prices} charge rows`
+              : `${prices}/3+ — import from platform catalog in Content tab`,
+          priority: 'recommended',
+          tab: 'content',
+        }),
+      )
     }
 
     items.push(

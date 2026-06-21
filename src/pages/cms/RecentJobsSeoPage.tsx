@@ -28,14 +28,16 @@ import {
   type ManualRecentJobsMap,
   platformServicesService,
 } from '../../services/api'
+import { CategoriesService } from '../../services/api/categories.service'
+import type { Category } from '../../types'
 import { useCmsCatalogCategories } from '../../hooks/useCmsCatalogCategories'
 import { useServiceCatalogLocalities } from '../../hooks/useServiceCatalogLocalities'
 import { SeoCuratedSingleSelect } from '../../components/cms/SeoCuratedPickers'
 import {
   buildSeoCategoryPickerOptions,
+  buildPlatformCategoryFetchKeys,
   isValidSeoCategorySlug,
   normalizeSeoCategorySlug,
-  resolvePlatformCategoryApiSlug,
 } from '../../lib/seoLandingCatalogSlugs'
 import {
   Briefcase,
@@ -189,6 +191,8 @@ export default function RecentJobsSeoPage() {
   const [draftIsNew, setDraftIsNew] = useState(false)
   const [serviceNameOptions, setServiceNameOptions] = useState<{ value: string; label: string }[]>([])
   const [servicesLoading, setServicesLoading] = useState(false)
+  const [servicesLoadNote, setServicesLoadNote] = useState<string | null>(null)
+  const [categoryRecords, setCategoryRecords] = useState<Category[]>([])
 
   const sortedLocalities = useMemo(
     () =>
@@ -249,31 +253,55 @@ export default function RecentJobsSeoPage() {
   }, [load])
 
   useEffect(() => {
+    let cancelled = false
+    CategoriesService.getCategoriesForServiceUIs({ page: 1, limit: 500, is_active: true })
+      .then((list) => {
+        if (!cancelled) setCategoryRecords(Array.isArray(list) ? list : [])
+      })
+      .catch(() => {
+        if (!cancelled) setCategoryRecords([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
     if (!dialogOpen || !draft?.service?.trim()) {
       setServiceNameOptions([])
+      setServicesLoadNote(null)
       return
     }
     let cancelled = false
-    const category = resolvePlatformCategoryApiSlug(draft.service, catalogOptions)
+    const keys = buildPlatformCategoryFetchKeys(draft.service, catalogOptions, categoryRecords)
     setServicesLoading(true)
+    setServicesLoadNote(null)
     platformServicesService
-      .getServicesByCategory(category)
+      .listServicesForCategoryKeys(keys)
       .then((services) => {
         if (cancelled) return
         const seen = new Set<string>()
         const opts: { value: string; label: string }[] = []
         for (const s of services) {
           if (s.is_active === false) continue
-          const name = s.name.trim()
+          const name = String(s.name ?? '').trim()
           if (!name || seen.has(name)) continue
           seen.add(name)
           opts.push({ value: name, label: name })
         }
         opts.sort((a, b) => a.label.localeCompare(b.label))
         setServiceNameOptions(opts)
+        if (opts.length === 0) {
+          setServicesLoadNote(
+            `No bookable platform services found for this category (tried ${keys.slice(0, 3).join(', ')}). Add services under Platform Services, or type the service name manually below.`,
+          )
+        }
       })
       .catch(() => {
-        if (!cancelled) setServiceNameOptions([])
+        if (!cancelled) {
+          setServiceNameOptions([])
+          setServicesLoadNote('Could not load platform services — check API connection or type the service name manually.')
+        }
       })
       .finally(() => {
         if (!cancelled) setServicesLoading(false)
@@ -281,7 +309,7 @@ export default function RecentJobsSeoPage() {
     return () => {
       cancelled = true
     }
-  }, [dialogOpen, draft?.service, catalogOptions])
+  }, [dialogOpen, draft?.service, catalogOptions, categoryRecords])
 
   const localityEntries = useMemo(
     () => (data ? Object.entries(data.jobs).sort((a, b) => b[1].length - a[1].length) : []),
@@ -326,6 +354,14 @@ export default function RecentJobsSeoPage() {
       return
     }
     const normalizedService = normalizeSeoCategorySlug(service)
+    if (!draft.serviceName.trim()) {
+      toast({
+        title: 'Service name required',
+        description: 'Pick a platform service or enter the service name manually.',
+        variant: 'destructive',
+      })
+      return
+    }
     if (serviceNameOptions.length > 0 && !serviceNameOptions.some((o) => o.value === draft.serviceName.trim())) {
       toast({
         title: 'Invalid service name',
@@ -602,6 +638,20 @@ export default function RecentJobsSeoPage() {
                 placeholder={draft.service ? 'Pick service' : 'Select category first'}
                 invalidHint="Pick a service from the platform catalog."
               />
+              {servicesLoadNote && !servicesLoading ? (
+                <p className="text-xs text-amber-600 dark:text-amber-400 -mt-2">{servicesLoadNote}</p>
+              ) : null}
+              {serviceNameOptions.length === 0 && draft.service && !servicesLoading ? (
+                <div className="space-y-1.5">
+                  <Label htmlFor="f-service-manual">Service name (manual)</Label>
+                  <Input
+                    id="f-service-manual"
+                    value={draft.serviceName}
+                    onChange={(e) => patchDraft({ serviceName: e.target.value })}
+                    placeholder="e.g. AC gas refill"
+                  />
+                </div>
+              ) : null}
               {areaOptionsForDraft.length > 0 ? (
                 <SeoCuratedSingleSelect
                   label="Area / society *"

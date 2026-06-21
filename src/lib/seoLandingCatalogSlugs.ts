@@ -3,10 +3,53 @@
  * Aligns with `serviceCatalogUrlSlugs.ts` / fixer-client path rules.
  */
 import type { CmsCatalogCategoryOption } from '../constants/cmsCatalogCategories'
+import { platformServicesService } from '../services/api/platformServices.service'
 import {
   getPreferredServiceCategoryUrlSlug,
   getTreeSlugFromCatalogStorageSlug,
 } from './serviceCatalogUrlSlugs'
+
+import type { SeoLandingEntityKind } from './seoLandingPageKinds'
+
+export function seoLandingKindHasCategoryFilter(kind: SeoLandingEntityKind): boolean {
+  return kind !== 'locations'
+}
+
+/** Normalized industry category slugs assigned to a page (serviceSlug or servicesOffered). */
+export function getSeoPageCategorySlugs(
+  kind: SeoLandingEntityKind,
+  draft: Record<string, unknown>,
+): string[] {
+  if (kind === 'locations') return []
+  if (kind === 'providers') {
+    const offered = Array.isArray(draft.servicesOffered) ? draft.servicesOffered.map(String) : []
+    const seen = new Set<string>()
+    const out: string[] = []
+    for (const s of offered) {
+      const n = normalizeSeoCategorySlug(s.trim())
+      if (!n || seen.has(n)) continue
+      seen.add(n)
+      out.push(n)
+    }
+    return out
+  }
+  const slug = String(draft.serviceSlug ?? draft.service ?? '').trim()
+  return slug ? [normalizeSeoCategorySlug(slug)] : []
+}
+
+export function seoPageMatchesCategoryFilter(
+  kind: SeoLandingEntityKind,
+  draft: Record<string, unknown>,
+  filterCategory: string,
+): boolean {
+  const filter = filterCategory.trim()
+  if (!filter) return true
+  if (filter === '__uncategorized__') {
+    return getSeoPageCategorySlugs(kind, draft).length === 0
+  }
+  const filterNorm = normalizeSeoCategorySlug(filter)
+  return getSeoPageCategorySlugs(kind, draft).some((c) => c === filterNorm)
+}
 
 export function seoCategorySlugAliases(storageSlug: string): string[] {
   const raw = storageSlug.trim().toLowerCase()
@@ -99,4 +142,49 @@ export function resolvePlatformCategoryApiSlug(
     }
   }
   return getTreeSlugFromCatalogStorageSlug(raw)
+}
+
+/** Load bookable platform services for an SEO category slug (id + slug fallbacks). */
+export async function fetchPlatformServicesForSeoCategory(
+  slug: string,
+  catalogOptions: CmsCatalogCategoryOption[],
+  categoryRecords?: { id?: string; slug?: string }[],
+) {
+  const keys = buildPlatformCategoryFetchKeys(slug, catalogOptions, categoryRecords)
+  return platformServicesService.listServicesForCategoryKeys(keys)
+}
+
+/** Keys to try when loading platform services (id, storage slug, SEO slug, tree slug). */
+export function buildPlatformCategoryFetchKeys(
+  slug: string,
+  catalogOptions: CmsCatalogCategoryOption[],
+  categoryRecords?: { id?: string; slug?: string }[],
+): string[] {
+  const raw = slug.trim().toLowerCase()
+  if (!raw) return []
+  const preferred = normalizeSeoCategorySlug(raw)
+  const storage = resolvePlatformCategoryApiSlug(raw, catalogOptions)
+  const tree = getTreeSlugFromCatalogStorageSlug(raw)
+  const keys = new Set<string>()
+
+  for (const rec of categoryRecords ?? []) {
+    const id = String(rec.id ?? '').trim()
+    const recSlug = String(rec.slug ?? '').trim().toLowerCase()
+    const recPreferred = recSlug ? normalizeSeoCategorySlug(recSlug) : ''
+    const matches =
+      recSlug === raw ||
+      recSlug === storage ||
+      recPreferred === preferred ||
+      recSlug === preferred ||
+      recSlug === tree
+    if (matches) {
+      if (id) keys.add(id)
+      if (recSlug) keys.add(recSlug)
+    }
+  }
+
+  for (const k of [storage, preferred, raw, tree, raw.replace(/_/g, '-')]) {
+    if (k) keys.add(k)
+  }
+  return [...keys]
 }

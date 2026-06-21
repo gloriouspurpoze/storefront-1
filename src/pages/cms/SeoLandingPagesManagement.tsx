@@ -25,6 +25,7 @@ import {
 } from '../../components/ui/select'
 import { PageHeader } from '../../components/common/PageHeader'
 import { CMSService } from '../../services/api'
+import { CategoriesService } from '../../services/api/categories.service'
 import { useCmsCatalogCategories } from '../../hooks/useCmsCatalogCategories'
 import { useServiceCatalogLocalities } from '../../hooks/useServiceCatalogLocalities'
 import { usePermissions } from '../../hooks/usePermissions'
@@ -38,6 +39,7 @@ import { SeoCompactRichTextField } from '../../components/cms/SeoCompactRichText
 import { SeoLandingKeyTakeawaysEditor } from '../../components/cms/SeoLandingKeyTakeawaysEditor'
 import { SeoCuratedMultiSelect, SeoCuratedSingleSelect } from '../../components/cms/SeoCuratedPickers'
 import { SeoLandingPageHealthPanel } from '../../components/cms/SeoLandingPageHealthPanel'
+import { SeoPlatformCatalogPriceImportBar } from '../../components/cms/SeoPlatformCatalogPriceImportBar'
 import { SeoLandingSerpPreview } from '../../components/cms/SeoLandingSerpPreview'
 import {
   buildCanonicalPresets,
@@ -74,10 +76,22 @@ import {
 } from '../../lib/seoLandingSuggestLinks'
 import {
   buildSeoCategoryPickerOptions,
+  fetchPlatformServicesForSeoCategory,
   filterKnownSeoCategorySlugs,
+  getSeoPageCategorySlugs,
   isValidSeoCategorySlug,
   normalizeSeoCategorySlug,
+  seoLandingKindHasCategoryFilter,
+  seoPageMatchesCategoryFilter,
 } from '../../lib/seoLandingCatalogSlugs'
+import {
+  buildPriceTableFromPlatformServices,
+  buildPriceTablePatch,
+  mergePriceTableWithCatalog,
+  readPriceTableRows,
+  suggestPriceTableCaption,
+  usesTopLevelPriceTable,
+} from '../../lib/platformServicesPriceGuide'
 import {
   buildSeoLandingQualityReport,
   effectiveSeoLandingMetaDescription,
@@ -92,6 +106,7 @@ import {
 } from '../../lib/seoLandingContentLengthRules'
 import { SeoContentLengthHint } from '../../components/cms/SeoContentLengthHint'
 import type { ContentSection } from '../../types/seoLandingSections'
+import type { Category } from '../../types'
 
 type EntityDraft = Record<string, unknown>
 type EditorTab = 'setup' | 'content' | 'links' | 'seo'
@@ -175,7 +190,7 @@ function emptyDraft(kind: SeoLandingEntityKind, slug: string): EntityDraft {
     relatedLinks: [],
     seo: { noindex: false },
   }
-  if (kind === 'problems' || kind === 'cost-guides') {
+  if (kind === 'problems' || kind === 'cost-guides' || kind === 'guides' || kind === 'landing-pages') {
     base.serviceSlug = 'ac-repair'
   }
   if (kind === 'cost-guides') {
@@ -314,18 +329,81 @@ export default function SeoLandingPagesManagement() {
   const [saving, setSaving] = useState(false)
   const [newSlug, setNewSlug] = useState('')
   const [pageSearch, setPageSearch] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('')
+  const [categoryRecords, setCategoryRecords] = useState<Category[]>([])
+  const [priceGuideImporting, setPriceGuideImporting] = useState(false)
 
   const meta = kindMeta(kind)
   const slugs = useMemo(() => Object.keys(records).sort(), [records])
+
+  const catalogLabelMap = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const o of catalogOptions) {
+      map[o.value] = o.label
+      const preferred = normalizeSeoCategorySlug(o.value)
+      if (!map[preferred]) map[preferred] = o.label
+    }
+    return map
+  }, [catalogOptions])
+
+  const catalogCuratedOptions = useMemo(
+    () => buildSeoCategoryPickerOptions(catalogOptions),
+    [catalogOptions],
+  )
+
+  const sidebarCategoryFilterOptions = useMemo(() => {
+    const counts = new Map<string, number>()
+    let uncategorized = 0
+    for (const s of slugs) {
+      const cats = getSeoPageCategorySlugs(kind, records[s] ?? {})
+      if (cats.length === 0) {
+        uncategorized++
+      } else {
+        const seen = new Set<string>()
+        for (const c of cats) {
+          if (seen.has(c)) continue
+          seen.add(c)
+          counts.set(c, (counts.get(c) ?? 0) + 1)
+        }
+      }
+    }
+    const opts: { value: string; label: string; hint?: string }[] = []
+    for (const o of catalogCuratedOptions) {
+      const n = counts.get(o.value)
+      if (n && n > 0) {
+        opts.push({ value: o.value, label: o.label, hint: `${n}` })
+      }
+    }
+    for (const [c, n] of counts) {
+      if (!opts.some((o) => o.value === c)) {
+        opts.push({ value: c, label: catalogLabelMap[c] ?? c, hint: `${n}` })
+      }
+    }
+    opts.sort((a, b) => a.label.localeCompare(b.label))
+    if (uncategorized > 0) {
+      opts.push({ value: '__uncategorized__', label: 'Uncategorized', hint: `${uncategorized}` })
+    }
+    return opts
+  }, [slugs, records, kind, catalogCuratedOptions, catalogLabelMap])
+
   const filteredSlugs = useMemo(() => {
     const q = pageSearch.trim().toLowerCase()
-    if (!q) return slugs
     return slugs.filter((s) => {
-      const d = records[s]
-      const title = pageListTitle(kind, d ?? {}).toLowerCase()
-      return s.includes(q) || title.includes(q)
+      const d = records[s] ?? {}
+      if (categoryFilter && !seoPageMatchesCategoryFilter(kind, d, categoryFilter)) {
+        return false
+      }
+      if (!q) return true
+      const title = pageListTitle(kind, d).toLowerCase()
+      const catLabels = getSeoPageCategorySlugs(kind, d)
+        .map((c) => (catalogLabelMap[c] ?? c).toLowerCase())
+        .join(' ')
+      const serviceSlug = String(d.serviceSlug ?? d.service ?? '').toLowerCase()
+      return s.includes(q) || title.includes(q) || catLabels.includes(q) || serviceSlug.includes(q)
     })
-  }, [slugs, pageSearch, records, kind])
+  }, [slugs, pageSearch, categoryFilter, records, kind, catalogLabelMap])
+
+  const listFilterActive = Boolean(pageSearch.trim() || categoryFilter)
 
   const draft: EntityDraft = useMemo(
     () => (selectedSlug ? records[selectedSlug] ?? emptyDraft(kind, selectedSlug) : emptyDraft(kind, '')),
@@ -411,6 +489,25 @@ export default function SeoLandingPagesManagement() {
   useEffect(() => {
     load()
   }, [load])
+
+  useEffect(() => {
+    setCategoryFilter('')
+    setPageSearch('')
+  }, [kind])
+
+  useEffect(() => {
+    let cancelled = false
+    CategoriesService.getCategoriesForServiceUIs({ page: 1, limit: 500, is_active: true })
+      .then((list) => {
+        if (!cancelled) setCategoryRecords(Array.isArray(list) ? list : [])
+      })
+      .catch(() => {
+        if (!cancelled) setCategoryRecords([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const patchDraft = (patch: Partial<EntityDraft>) => {
     if (!selectedSlug) return
@@ -536,19 +633,67 @@ export default function SeoLandingPagesManagement() {
     })
   }
 
-  const catalogLabelMap = useMemo(() => {
-    const map: Record<string, string> = {}
-    for (const o of catalogOptions) {
-      map[o.value] = o.label
-      const preferred = normalizeSeoCategorySlug(o.value)
-      if (!map[preferred]) map[preferred] = o.label
-    }
-    return map
-  }, [catalogOptions])
-  const catalogCuratedOptions = useMemo(
-    () => buildSeoCategoryPickerOptions(catalogOptions),
-    [catalogOptions],
+  const importPriceGuideFromCatalog = useCallback(
+    async (mode: 'replace' | 'merge') => {
+      const slug = String(draft.serviceSlug ?? '').trim()
+      if (!slug) {
+        appToast('Pick a service category in Setup first', 'error')
+        return
+      }
+      const existing = readPriceTableRows(draft, kind)
+      if (mode === 'replace' && existing.length > 0) {
+        const ok = window.confirm(
+          `Replace ${existing.length} charge row(s) with industry catalog prices from Platform Services?`,
+        )
+        if (!ok) return
+      }
+      setPriceGuideImporting(true)
+      try {
+        const services = await fetchPlatformServicesForSeoCategory(slug, catalogOptions, categoryRecords)
+        const catalogRows = buildPriceTableFromPlatformServices(services)
+        if (catalogRows.length === 0) {
+          appToast('No priced platform services found for this category', 'error')
+          return
+        }
+        const rows = mode === 'merge' ? mergePriceTableWithCatalog(existing, catalogRows) : catalogRows
+        const categoryLabel = catalogLabelMap[normalizeSeoCategorySlug(slug)] ?? slug
+        const patch: Partial<EntityDraft> = buildPriceTablePatch(kind, draft, rows)
+        if (kind === 'landing-pages' && !String(draft.priceTableCaption ?? '').trim()) {
+          patch.priceTableCaption = suggestPriceTableCaption({
+            categoryLabel,
+            locationName: localityName || undefined,
+            year: Number(draft.year) || new Date().getFullYear(),
+            kind,
+          })
+        }
+        patchDraft(patch)
+        const added = mode === 'merge' ? Math.max(0, rows.length - existing.length) : catalogRows.length
+        appToast(
+          mode === 'merge'
+            ? added > 0
+              ? `Added ${added} charge row(s) from platform catalog`
+              : 'All catalog services are already in the charge table'
+            : `Loaded ${catalogRows.length} charge row(s) from platform catalog`,
+          'success',
+        )
+      } catch (e: unknown) {
+        appToast(e instanceof Error ? e.message : 'Failed to load platform services', 'error')
+      } finally {
+        setPriceGuideImporting(false)
+      }
+    },
+    [
+      draft,
+      kind,
+      catalogOptions,
+      categoryRecords,
+      catalogLabelMap,
+      localityName,
+    ],
   )
+
+  const priceTableRows = useMemo(() => readPriceTableRows(draft, kind), [draft, kind])
+
   const localityCuratedOptions = useMemo(
     () => sortedLocalities.map((l) => ({ value: l.slug, label: l.name, hint: l.slug })),
     [sortedLocalities],
@@ -1097,32 +1242,50 @@ export default function SeoLandingPagesManagement() {
         </SectionCard>
       )}
 
-      {(kind === 'cost-guides' || kind === 'landing-pages') && (
+      {(kind === 'problems' || kind === 'cost-guides' || kind === 'guides' || kind === 'landing-pages') && (
         <SectionCard
-          title={kind === 'cost-guides' ? 'Charge table' : 'Price table'}
+          title={
+            kind === 'cost-guides' ? 'Charge table' : kind === 'landing-pages' ? 'Price table' : 'Price guide'
+          }
           description={
             kind === 'cost-guides'
               ? 'Primary pricing block for /charges pages — this is what visitors see as the main price list.'
-              : 'Optional top-level prices for flat local money pages. Use this OR a “Price table” block inside Page sections — not both.'
+              : kind === 'landing-pages'
+                ? 'Optional top-level prices for flat local money pages. Use this OR a “Price table” block inside Page sections — not both.'
+                : kind === 'problems'
+                  ? 'Typical repair charges for this category. Saved as a Price table block in Page sections on the live site.'
+                  : 'Industry service charges for this guide. Saved as a Price table block in Page sections on the live site.'
           }
         >
-          {sectionsHaveInlinePriceTable ? (
+          {usesTopLevelPriceTable(kind) && sectionsHaveInlinePriceTable ? (
             <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-foreground">
               You already added a <strong>Price table</strong> block under Page sections. The live site will show
               that inline table and <strong>ignore</strong> this standalone list — clear one or the other to avoid
               confusion.
             </div>
           ) : null}
+          <SeoPlatformCatalogPriceImportBar
+            serviceSlug={serviceSlug}
+            categoryLabelMap={catalogLabelMap}
+            canMutate={canMutate}
+            loading={priceGuideImporting}
+            onImport={(mode) => void importPriceGuideFromCatalog(mode)}
+          />
           <SeoLandingPriceTableEditor
-            rows={draft.priceTable}
+            rows={priceTableRows}
             caption={kind === 'landing-pages' ? String(draft.priceTableCaption ?? '') : undefined}
-            onChange={(rows) => patchDraft({ priceTable: rows })}
+            onChange={(rows) => patchDraft(buildPriceTablePatch(kind, draft, rows))}
             onCaptionChange={kind === 'landing-pages' ? (caption) => patchDraft({ priceTableCaption: caption }) : undefined}
             disabled={!canMutate}
           />
           {kind === 'cost-guides' ? (
             <FieldHint>
               Year in Setup tab is appended to the caption on-site (e.g. “AC charges (2026)”).
+            </FieldHint>
+          ) : kind === 'problems' || kind === 'guides' ? (
+            <FieldHint>
+              Rows sync to the <strong>Price table</strong> section below — add one manually under Page sections if
+              you prefer a custom heading order.
             </FieldHint>
           ) : null}
         </SectionCard>
@@ -1216,7 +1379,8 @@ export default function SeoLandingPagesManagement() {
             </p>
           </div>
           <Badge variant={slugs.length > 0 ? 'success' : 'secondary'}>
-            {slugs.length} page{slugs.length === 1 ? '' : 's'}
+            {listFilterActive ? `${filteredSlugs.length} of ${slugs.length}` : slugs.length} page
+            {(listFilterActive ? filteredSlugs.length : slugs.length) === 1 ? '' : 's'}
           </Badge>
         </CardContent>
       </Card>
@@ -1237,12 +1401,48 @@ export default function SeoLandingPagesManagement() {
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search slug or title…"
+                  placeholder="Search slug, title or category…"
                   value={pageSearch}
                   onChange={(e) => setPageSearch(e.target.value)}
                   className="pl-8 text-sm"
                 />
               </div>
+              {seoLandingKindHasCategoryFilter(kind) && sidebarCategoryFilterOptions.length > 0 ? (
+                <Select
+                  value={categoryFilter || '__all__'}
+                  onValueChange={(v) => setCategoryFilter(v === '__all__' ? '' : v)}
+                  disabled={catalogOptionsLoading}
+                >
+                  <SelectTrigger className="text-sm">
+                    <SelectValue placeholder="Filter by service category…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">All service categories</SelectItem>
+                    {sidebarCategoryFilterOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        <span>{opt.label}</span>
+                        <span className="ml-2 font-mono text-xs text-muted-foreground">({opt.hint})</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : null}
+              {listFilterActive ? (
+                <p className="text-xs text-muted-foreground">
+                  Showing {filteredSlugs.length} of {slugs.length} pages
+                  {categoryFilter ? (
+                    <>
+                      {' '}
+                      in{' '}
+                      <strong className="text-foreground">
+                        {categoryFilter === '__uncategorized__'
+                          ? 'Uncategorized'
+                          : catalogLabelMap[normalizeSeoCategorySlug(categoryFilter)] ?? categoryFilter}
+                      </strong>
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
               <ul className="max-h-[min(420px,50vh)] space-y-1 overflow-y-auto">
                 {filteredSlugs.length === 0 ? (
                   <li className="rounded-md px-2 py-6 text-center text-sm text-muted-foreground">
@@ -1254,6 +1454,10 @@ export default function SeoLandingPagesManagement() {
                     const title = pageListTitle(kind, row ?? {})
                     const active = selectedSlug === s
                     const status = quickSeoLandingPageStatus(kind, row ?? {})
+                    const pageCategories = getSeoPageCategorySlugs(kind, row ?? {})
+                    const categoryLine = pageCategories
+                      .map((c) => catalogLabelMap[c] ?? c)
+                      .join(' · ')
                     const statusDot =
                       status === 'success'
                         ? 'bg-emerald-500'
@@ -1289,6 +1493,11 @@ export default function SeoLandingPagesManagement() {
                               ) : (
                                 <p className="text-xs italic text-muted-foreground">No title yet</p>
                               )}
+                              {categoryLine ? (
+                                <p className="truncate text-[11px] text-primary/80">{categoryLine}</p>
+                              ) : seoLandingKindHasCategoryFilter(kind) ? (
+                                <p className="text-[11px] italic text-muted-foreground/70">No category</p>
+                              ) : null}
                             </div>
                           </div>
                         </button>
