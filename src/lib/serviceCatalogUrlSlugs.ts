@@ -1,6 +1,7 @@
 /**
  * Must stay aligned with fixer-client `src/shared/lib/paths.ts` URL slug rules.
- * CMS storage keys (e.g. `electric`) may differ from public paths (`/services/electrician/...`).
+ * CMS storage keys (e.g. `electric`, `appliance`) may differ from public paths
+ * (`/services/electrician/...`, `/services/appliance-repair/...`).
  */
 
 const URL_SLUG_TO_TREE_SLUG: Record<string, string> = {
@@ -9,18 +10,26 @@ const URL_SLUG_TO_TREE_SLUG: Record<string, string> = {
   plumbing: 'plumber',
   plumber: 'plumber',
   'ac-services': 'ac',
+  'ac-service': 'ac',
   'ac-repair': 'ac',
   ac: 'ac',
+  appliance: 'appliance',
+  'appliance-repair': 'appliance',
 }
 
 const TREE_SLUG_TO_URL_SLUG: Record<string, string> = {
   electrician: 'electrician',
   plumber: 'plumber',
   ac: 'ac-repair',
+  appliance: 'appliance-repair',
+}
+
+function normalizeSlugKey(slug: string): string {
+  return slug.trim().toLowerCase().replace(/_/g, '-')
 }
 
 export function getTreeSlugFromCatalogStorageSlug(slug: string): string {
-  const key = slug.trim().toLowerCase()
+  const key = normalizeSlugKey(slug)
   return URL_SLUG_TO_TREE_SLUG[key] ?? key
 }
 

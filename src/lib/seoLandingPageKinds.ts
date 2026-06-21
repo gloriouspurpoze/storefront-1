@@ -249,11 +249,11 @@ export function publishGatesForDraft(
       detail: name ? 'Set' : 'Add provider name',
     })
   } else {
-    const qa = String(draft.quickAnswer ?? '').trim().length
+    const qa = stripHtml(String(draft.quickAnswer ?? '')).length
     gates.push({
       label: 'Quick answer',
       ok: qa >= 40,
-      detail: qa >= 40 ? `${qa} chars` : `${qa}/40 chars (draft stays noindex until filled)`,
+      detail: qa >= 40 ? `${qa} chars (plain text)` : `${qa}/40 chars (draft stays noindex until filled)`,
     })
   }
 

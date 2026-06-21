@@ -79,6 +79,8 @@ import { useIndustryServicePagesCatalog } from './IndustryServicePagesContext'
 import { useServiceCatalogLocalities } from '../../hooks/useServiceCatalogLocalities'
 import { IndustryLandingWorkspaceOverview } from '../../components/cms/IndustryLandingWorkspaceOverview'
 import { IndustryLandingEditorPreview } from '../../components/cms/IndustryLandingEditorPreview'
+import { CategoryMarketingPageHealthPanel } from '../../components/cms/CategoryMarketingPageHealthPanel'
+import { SeoContentLengthHint } from '../../components/cms/SeoContentLengthHint'
 import { localitySlugFromCompositeKey } from '../../lib/categoryMarketingCoverageOverview'
 import { diffCategoryMarketingConfigs } from '../../lib/categoryMarketingConfigDiff'
 import { buildLocalitySeoAutofillPack } from '../../lib/categoryMarketingSeoAutofill'
@@ -100,6 +102,13 @@ import {
   buildDefaultNearMeSeoCopy,
   resolveNearMePreviewUrl,
 } from '../../lib/nearMeSeo'
+import {
+  analyzeCategoryMarketingLengthWarnings,
+  buildCategoryMarketingQualityReport,
+  CATEGORY_MARKETING_LENGTH,
+  lengthWarningsNeedAttention,
+} from '../../lib/categoryMarketingContentQuality'
+import { evaluateLength } from '../../lib/seoLandingContentLengthRules'
 
 type TabKey =
   | 'metadata'
@@ -325,6 +334,33 @@ export default function CategoryMarketingManagement() {
 
   /** Always merged so API/import quirks never leave `.map`/`.filter` targets undefined at runtime. */
   const config = useMemo(() => mergeCategoryConfig(data[effectiveKey] ?? {}), [data, effectiveKey])
+
+  const qualityCtx = useMemo(
+    () => ({
+      isLocalKey: Boolean(normalizedLocalitySlug),
+      industryLabel,
+      localityDisplayLabel,
+      effectiveKey,
+    }),
+    [normalizedLocalitySlug, industryLabel, localityDisplayLabel, effectiveKey],
+  )
+
+  const qualityReport = useMemo(
+    () => buildCategoryMarketingQualityReport(config, qualityCtx),
+    [config, qualityCtx],
+  )
+  const lengthWarnings = useMemo(
+    () => analyzeCategoryMarketingLengthWarnings(config, qualityCtx),
+    [config, qualityCtx],
+  )
+  const lengthIssueCount = lengthWarningsNeedAttention(lengthWarnings).length
+
+  const tabNeedsAttention = useCallback(
+    (t: TabKey) =>
+      qualityReport.items.some((i) => i.tab === t && !i.ok && i.priority === 'required') ||
+      lengthWarnings.some((w) => w.tab === t && w.severity !== 'ok'),
+    [qualityReport.items, lengthWarnings],
+  )
 
   const updateConfig = (updates: Partial<CategoryMarketingConfig>) => {
     setData((prev) => {
@@ -1283,46 +1319,56 @@ export default function CategoryMarketingManagement() {
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
-          <p className="text-xs font-semibold text-muted-foreground">
-            2 · Page content — tabs apply to <span className="font-mono text-foreground">{effectiveKey}</span>
-          </p>
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_minmax(260px,300px)]">
+          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs font-semibold text-muted-foreground">
+              2 · Page content — tabs apply to <span className="font-mono text-foreground">{effectiveKey}</span>
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              <Badge variant={qualityReport.statusVariant}>{qualityReport.statusLabel}</Badge>
+              <Badge variant="outline">{qualityReport.score}% health</Badge>
+              {lengthIssueCount > 0 ? (
+                <Badge variant="warning">
+                  {lengthIssueCount} length issue{lengthIssueCount === 1 ? '' : 's'}
+                </Badge>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="xl:hidden">
+            <CategoryMarketingPageHealthPanel
+              report={qualityReport}
+              lengthWarnings={lengthWarnings}
+              onNavigateTab={setTab}
+            />
+          </div>
+
           <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="w-full">
             <div className="overflow-x-auto rounded-lg border border-border/80 bg-muted/25 shadow-sm">
               <TabsList className="mb-0 inline-flex h-auto min-h-9 w-max min-w-full justify-start gap-0.5 rounded-none border-0 bg-transparent p-1.5">
-                <TabsTrigger value="metadata" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
-                  Metadata &amp; SEO
-                </TabsTrigger>
-                <TabsTrigger value="localSeo" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
-                  Local SEO
-                </TabsTrigger>
-                <TabsTrigger value="hero" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
-                  Hero &amp; intro
-                </TabsTrigger>
-                <TabsTrigger value="cards" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
-                  Service cards
-                </TabsTrigger>
-                <TabsTrigger value="detailed" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
-                  Detailed options
-                </TabsTrigger>
-                <TabsTrigger value="trust" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
-                  Trust
-                </TabsTrigger>
-                <TabsTrigger value="areas" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
-                  Areas &amp; booking
-                </TabsTrigger>
-                <TabsTrigger value="pricing" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
-                  Pricing
-                </TabsTrigger>
-                <TabsTrigger value="faqs" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
-                  FAQs &amp; links
-                </TabsTrigger>
-                <TabsTrigger value="localityGuide" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
-                  Locality guide
-                </TabsTrigger>
-                <TabsTrigger value="closing" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
-                  Closing
-                </TabsTrigger>
+                {(
+                  [
+                    ['metadata', 'Metadata & SEO'],
+                    ['localSeo', 'Local SEO'],
+                    ['hero', 'Hero & intro'],
+                    ['cards', 'Service cards'],
+                    ['detailed', 'Detailed options'],
+                    ['trust', 'Trust'],
+                    ['areas', 'Areas & booking'],
+                    ['pricing', 'Pricing'],
+                    ['faqs', 'FAQs & links'],
+                    ['localityGuide', 'Locality guide'],
+                    ['closing', 'Closing'],
+                  ] as const
+                ).map(([value, label]) => (
+                  <TabsTrigger key={value} value={value} className="relative shrink-0 gap-1.5 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
+                    {label}
+                    {tabNeedsAttention(value) ? (
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-label="Items need attention" />
+                    ) : null}
+                  </TabsTrigger>
+                ))}
               </TabsList>
             </div>
 
@@ -1420,6 +1466,15 @@ export default function CategoryMarketingManagement() {
                         {config.seoTitle.length} characters — target {SEO_TITLE_MIN_CHARS}–{SEO_TITLE_OPTIMAL_MAX_CHARS}{' '}
                         (hard max ~{SEO_TITLE_HARD_MAX_CHARS})
                       </p>
+                      <SeoContentLengthHint
+                        warning={evaluateLength(
+                          'cm-seo-title-inline',
+                          'SEO title',
+                          config.seoTitle,
+                          CATEGORY_MARKETING_LENGTH.metaTitle,
+                        )}
+                        compact
+                      />
                       <div className="space-y-2">
                       <Label htmlFor="cmm-f-4">Meta description</Label>
                       <Textarea id="cmm-f-4" className="w-full" rows={3} value={config.metaDescription} onChange={(e) => updateConfig({ metaDescription: e.target.value })} maxLength={META_DESC_HARD_MAX_CHARS + 20} />
@@ -1438,6 +1493,15 @@ export default function CategoryMarketingManagement() {
                         {config.metaDescription.length} characters — target {META_DESC_MIN_CHARS}–
                         {META_DESC_OPTIMAL_MAX_CHARS} (hard max {META_DESC_HARD_MAX_CHARS})
                       </p>
+                      <SeoContentLengthHint
+                        warning={evaluateLength(
+                          'cm-meta-desc-inline',
+                          'Meta description',
+                          config.metaDescription,
+                          CATEGORY_MARKETING_LENGTH.metaDescription,
+                        )}
+                        compact
+                      />
                       <div className="space-y-2">
                       <Label htmlFor="cmm-f-5">URL slug pattern</Label>
                       <Input
@@ -1872,6 +1936,15 @@ export default function CategoryMarketingManagement() {
                       <Label htmlFor="cmm-f-25">Answer-engine summary</Label>
                       <Textarea id="cmm-f-25" className="w-full" rows={3} value={config.technicalSeo.answerEngineSummary} onChange={(e) => updateTechnicalSeo({ answerEngineSummary: e.target.value })} placeholder="2–4 factual sentences: who you serve, what’s included, pricing stance, same-day policy." />
                       <p className="text-xs text-muted-foreground">Use for a visible “In brief” block and/or speakable text — avoid keyword stuffing.</p>
+                      <SeoContentLengthHint
+                        warning={evaluateLength(
+                          'cm-answer-inline',
+                          'Answer-engine summary',
+                          config.technicalSeo.answerEngineSummary,
+                          CATEGORY_MARKETING_LENGTH.answerSummary,
+                        )}
+                        compact
+                      />
                     </div>
                       <div className="space-y-2">
                       <Label htmlFor="cmm-f-26">Content modified date (ISO)</Label>
@@ -2374,6 +2447,10 @@ export default function CategoryMarketingManagement() {
                     <div className="space-y-2">
                       <Label htmlFor="cmm-f-48">Main heading (H1)</Label>
                       <Input id="cmm-f-48" className="w-full" value={config.mainHeading} onChange={(e) => updateConfig({ mainHeading: e.target.value })} placeholder="AC Repair & Service in [City] – Same-Day, Transparent Pricing" />
+                      <SeoContentLengthHint
+                        warning={evaluateLength('cm-h1-inline', 'Page H1', config.mainHeading, CATEGORY_MARKETING_LENGTH.pageH1)}
+                        compact
+                      />
                     </div>
                     <CategoryMarketingRichTextField
                       label="Intro (rich text)"
@@ -2392,6 +2469,9 @@ export default function CategoryMarketingManagement() {
                           </>
                         ) : undefined
                       }
+                    />
+                    <SeoContentLengthHint
+                      warning={evaluateLength('cm-intro-inline', 'Hero intro', config.intro, CATEGORY_MARKETING_LENGTH.intro)}
                     />
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
@@ -3641,6 +3721,14 @@ export default function CategoryMarketingManagement() {
           >
             Save all
           </Button>
+          </div>
+
+          <CategoryMarketingPageHealthPanel
+            report={qualityReport}
+            lengthWarnings={lengthWarnings}
+            onNavigateTab={setTab}
+            className="hidden xl:block xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto"
+          />
         </div>
       )}
 

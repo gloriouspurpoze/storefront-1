@@ -39,6 +39,13 @@ import {
   type SectionInfoCard,
   type SectionPriceRow,
 } from '../../types/seoLandingSections'
+import {
+  SEO_LANDING_LENGTH_RULES,
+  analyzeContentSectionWarnings,
+  evaluateLength,
+  stripHtmlPlain,
+} from '../../lib/seoLandingContentLengthRules'
+import { SeoContentLengthBadge, SeoContentLengthHint, SeoContentLengthHintList } from './SeoContentLengthHint'
 
 const SELECT_CLASS =
   'flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring'
@@ -49,13 +56,24 @@ function linesToArray(text: string): string[] {
 
 function SectionBody({
   section,
+  sectionIndex,
   onChange,
   disabled,
 }: {
   section: ContentSection
+  sectionIndex: number
   onChange: (patch: Partial<ContentSection>) => void
   disabled?: boolean
 }) {
+  const headingWarning = section.heading?.trim()
+    ? evaluateLength(
+        `heading-${section.id}`,
+        'Heading',
+        section.heading,
+        SEO_LANDING_LENGTH_RULES.sectionHeading,
+      )
+    : null
+
   const headingField = (
     <div className="space-y-1.5">
       <Label className="text-xs">Heading (optional)</Label>
@@ -65,11 +83,18 @@ function SectionBody({
         placeholder="Section heading"
         disabled={disabled}
       />
+      <SeoContentLengthHint warning={headingWarning} compact />
     </div>
   )
 
   switch (section.type) {
-    case 'rich_text':
+    case 'rich_text': {
+      const bodyWarning = evaluateLength(
+        `body-${section.id}`,
+        'Rich text body',
+        section.html ?? '',
+        SEO_LANDING_LENGTH_RULES.richTextSection,
+      )
       return (
         <div className="space-y-3">
           {headingField}
@@ -81,10 +106,18 @@ function SectionBody({
             height={220}
             placeholder="Write the section content…"
           />
+          <SeoContentLengthHint warning={bodyWarning} />
         </div>
       )
+    }
 
-    case 'callout':
+    case 'callout': {
+      const calloutWarning = evaluateLength(
+        `callout-${section.id}`,
+        'Callout text',
+        section.html ?? '',
+        SEO_LANDING_LENGTH_RULES.callout,
+      )
       return (
         <div className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -110,10 +143,19 @@ function SectionBody({
             disabled={disabled}
             height={140}
           />
+          <SeoContentLengthHint warning={calloutWarning} />
         </div>
       )
+    }
 
-    case 'key_takeaways':
+    case 'key_takeaways': {
+      const items = (section.items ?? []).map((i) => stripHtmlPlain(i)).filter(Boolean)
+      const countWarning = evaluateLength(
+        `takeaways-count-${section.id}`,
+        'Takeaway count',
+        items.length,
+        SEO_LANDING_LENGTH_RULES.takeawayCount,
+      )
       return (
         <div className="space-y-3">
           {headingField}
@@ -126,9 +168,11 @@ function SectionBody({
               placeholder={'First takeaway\nSecond takeaway'}
               disabled={disabled}
             />
+            <SeoContentLengthHint warning={countWarning} compact />
           </div>
         </div>
       )
+    }
 
     case 'faqs':
       return (
@@ -140,13 +184,22 @@ function SectionBody({
             emptyItem={{ question: '', answer: '' }}
             addLabel="Add FAQ"
             disabled={disabled}
-            renderItem={(item, update) => (
+            renderItem={(item, update, itemIndex) => (
               <div className="space-y-2">
                 <Input
                   value={item.question}
                   onChange={(e) => update({ question: e.target.value })}
                   placeholder="Question"
                   disabled={disabled}
+                />
+                <SeoContentLengthHint
+                  warning={evaluateLength(
+                    `faq-q-${section.id}-${itemIndex}`,
+                    'Question',
+                    item.question,
+                    SEO_LANDING_LENGTH_RULES.faqQuestion,
+                  )}
+                  compact
                 />
                 <Textarea
                   rows={3}
@@ -155,13 +208,29 @@ function SectionBody({
                   placeholder="Answer (HTML allowed)"
                   disabled={disabled}
                 />
+                <SeoContentLengthHint
+                  warning={evaluateLength(
+                    `faq-a-${section.id}-${itemIndex}`,
+                    'Answer',
+                    item.answer,
+                    SEO_LANDING_LENGTH_RULES.faqAnswer,
+                  )}
+                  compact
+                />
               </div>
             )}
           />
         </div>
       )
 
-    case 'price_table':
+    case 'price_table': {
+      const rowCount = (section.rows ?? []).filter((r) => r.item.trim()).length
+      const countWarning = evaluateLength(
+        `price-count-${section.id}`,
+        'Price rows',
+        rowCount,
+        SEO_LANDING_LENGTH_RULES.priceTableRows,
+      )
       return (
         <div className="space-y-3">
           {headingField}
@@ -204,26 +273,45 @@ function SectionBody({
               </div>
             )}
           />
+          <SeoContentLengthHint warning={countWarning} />
         </div>
       )
+    }
 
-    case 'how_to':
+    case 'how_to': {
+      const stepCount = (section.steps ?? []).filter((s) => s.name.trim() || s.text.trim()).length
+      const countWarning = evaluateLength(
+        `steps-count-${section.id}`,
+        'Step count',
+        stepCount,
+        SEO_LANDING_LENGTH_RULES.howToStepCount,
+      )
       return (
         <div className="space-y-3">
           {headingField}
+          <SeoContentLengthHint warning={countWarning} compact />
           <RepeatableList<SectionHowToStep>
             items={section.steps ?? []}
             onChange={(steps) => onChange({ steps })}
             emptyItem={{ name: '', text: '' }}
             addLabel="Add step"
             disabled={disabled}
-            renderItem={(step, update) => (
+            renderItem={(step, update, itemIndex) => (
               <div className="space-y-2">
                 <Input
                   value={step.name}
                   onChange={(e) => update({ name: e.target.value })}
                   placeholder="Step title"
                   disabled={disabled}
+                />
+                <SeoContentLengthHint
+                  warning={evaluateLength(
+                    `step-name-${section.id}-${itemIndex}`,
+                    'Step title',
+                    step.name,
+                    SEO_LANDING_LENGTH_RULES.howToStepName,
+                  )}
+                  compact
                 />
                 <Textarea
                   rows={2}
@@ -232,11 +320,21 @@ function SectionBody({
                   placeholder="Step description"
                   disabled={disabled}
                 />
+                <SeoContentLengthHint
+                  warning={evaluateLength(
+                    `step-text-${section.id}-${itemIndex}`,
+                    'Step body',
+                    step.text,
+                    SEO_LANDING_LENGTH_RULES.howToStepText,
+                  )}
+                  compact
+                />
               </div>
             )}
           />
         </div>
       )
+    }
 
     case 'cards':
       return (
@@ -248,13 +346,22 @@ function SectionBody({
             emptyItem={{ title: '', description: '' }}
             addLabel="Add card"
             disabled={disabled}
-            renderItem={(card, update) => (
+            renderItem={(card, update, itemIndex) => (
               <div className="space-y-2">
                 <Input
                   value={card.title}
                   onChange={(e) => update({ title: e.target.value })}
                   placeholder="Card title (e.g. Dirty filter)"
                   disabled={disabled}
+                />
+                <SeoContentLengthHint
+                  warning={evaluateLength(
+                    `card-title-${section.id}-${itemIndex}`,
+                    'Card title',
+                    card.title,
+                    SEO_LANDING_LENGTH_RULES.cardTitle,
+                  )}
+                  compact
                 />
                 <Input
                   value={card.value ?? ''}
@@ -269,41 +376,83 @@ function SectionBody({
                   placeholder="Description (optional)"
                   disabled={disabled}
                 />
+                {card.description ? (
+                  <SeoContentLengthHint
+                    warning={evaluateLength(
+                      `card-desc-${section.id}-${itemIndex}`,
+                      'Card description',
+                      card.description,
+                      SEO_LANDING_LENGTH_RULES.cardDescription,
+                    )}
+                    compact
+                  />
+                ) : null}
               </div>
             )}
           />
         </div>
       )
 
-    case 'causes':
+    case 'causes': {
+      const rowCount = (section.causes ?? []).filter((r) => r.cause.trim() || r.fix.trim()).length
+      const countWarning = evaluateLength(
+        `causes-count-${section.id}`,
+        'Cause rows',
+        rowCount,
+        SEO_LANDING_LENGTH_RULES.causesRowCount,
+      )
       return (
         <div className="space-y-3">
           {headingField}
+          <SeoContentLengthHint warning={countWarning} compact />
           <RepeatableList<SectionCauseFix>
             items={section.causes ?? []}
             onChange={(causes) => onChange({ causes })}
             emptyItem={{ cause: '', fix: '' }}
             addLabel="Add cause"
             disabled={disabled}
-            renderItem={(row, update) => (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <Input
-                  value={row.cause}
-                  onChange={(e) => update({ cause: e.target.value })}
-                  placeholder="Cause"
-                  disabled={disabled}
-                />
-                <Input
-                  value={row.fix}
-                  onChange={(e) => update({ fix: e.target.value })}
-                  placeholder="Fix"
-                  disabled={disabled}
-                />
+            renderItem={(row, update, itemIndex) => (
+              <div className="space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Input
+                    value={row.cause}
+                    onChange={(e) => update({ cause: e.target.value })}
+                    placeholder="Cause"
+                    disabled={disabled}
+                  />
+                  <Input
+                    value={row.fix}
+                    onChange={(e) => update({ fix: e.target.value })}
+                    placeholder="Fix"
+                    disabled={disabled}
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <SeoContentLengthHint
+                    warning={evaluateLength(
+                      `cause-${section.id}-${itemIndex}`,
+                      'Cause',
+                      row.cause,
+                      SEO_LANDING_LENGTH_RULES.causeFixField,
+                    )}
+                    compact
+                  />
+                  <SeoContentLengthHint
+                    warning={evaluateLength(
+                      `fix-${section.id}-${itemIndex}`,
+                      'Fix',
+                      row.fix,
+                      SEO_LANDING_LENGTH_RULES.causeFixField,
+                    )}
+                    compact
+                  />
+                </div>
               </div>
             )}
           />
         </div>
       )
+    }
 
     default:
       return null
@@ -323,7 +472,7 @@ function RepeatableList<T>({
   onChange: (next: T[]) => void
   emptyItem: T
   addLabel: string
-  renderItem: (item: T, update: (patch: Partial<T>) => void) => React.ReactNode
+  renderItem: (item: T, update: (patch: Partial<T>) => void, index: number) => React.ReactNode
   disabled?: boolean
 }) {
   return (
@@ -335,7 +484,7 @@ function RepeatableList<T>({
               const next = items.slice()
               next[index] = { ...item, ...patch }
               onChange(next)
-            })}
+            }, index)}
           </div>
           <Button
             type="button"
@@ -392,6 +541,7 @@ function SortableSectionCard({
     opacity: isDragging ? 0.6 : 1,
   }
   const meta = SECTION_TYPE_META[section.type]
+  const sectionWarnings = analyzeContentSectionWarnings(section, index)
 
   return (
     <Card ref={setNodeRef} style={style} className="rounded-md">
@@ -422,6 +572,7 @@ function SortableSectionCard({
             {section.heading?.trim() ? (
               <span className="truncate text-xs text-muted-foreground">— {section.heading}</span>
             ) : null}
+            <SeoContentLengthBadge warnings={sectionWarnings} />
           </button>
           <span className="hidden text-xs text-muted-foreground sm:inline">
             {index + 1}/{total}
@@ -440,8 +591,9 @@ function SortableSectionCard({
         </div>
 
         {!collapsed ? (
-          <div className="mt-3 border-t pt-3">
-            <SectionBody section={section} onChange={onChange} disabled={disabled} />
+          <div className="mt-3 border-t pt-3 space-y-3">
+            <SectionBody section={section} sectionIndex={index} onChange={onChange} disabled={disabled} />
+            <SeoContentLengthHintList warnings={sectionWarnings} issuesOnly />
           </div>
         ) : null}
       </CardContent>

@@ -26,7 +26,17 @@ import {
   SeoService,
   type RecentJobsData,
   type ManualRecentJobsMap,
+  platformServicesService,
 } from '../../services/api'
+import { useCmsCatalogCategories } from '../../hooks/useCmsCatalogCategories'
+import { useServiceCatalogLocalities } from '../../hooks/useServiceCatalogLocalities'
+import { SeoCuratedSingleSelect } from '../../components/cms/SeoCuratedPickers'
+import {
+  buildSeoCategoryPickerOptions,
+  isValidSeoCategorySlug,
+  normalizeSeoCategorySlug,
+  resolvePlatformCategoryApiSlug,
+} from '../../lib/seoLandingCatalogSlugs'
 import {
   Briefcase,
   Loader2,
@@ -163,6 +173,8 @@ function StatCard({ label, value }: { label: string; value: React.ReactNode }) {
 
 export default function RecentJobsSeoPage() {
   const { toast } = useToast()
+  const { options: catalogOptions, loading: catalogLoading } = useCmsCatalogCategories()
+  const { rows: managedLocalities, loading: localitiesLoading } = useServiceCatalogLocalities()
   const [data, setData] = useState<RecentJobsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -175,6 +187,40 @@ export default function RecentJobsSeoPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [draft, setDraft] = useState<EditorRow | null>(null)
   const [draftIsNew, setDraftIsNew] = useState(false)
+  const [serviceNameOptions, setServiceNameOptions] = useState<{ value: string; label: string }[]>([])
+  const [servicesLoading, setServicesLoading] = useState(false)
+
+  const sortedLocalities = useMemo(
+    () =>
+      [...managedLocalities]
+        .filter((l) => l.isActive !== false)
+        .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)),
+    [managedLocalities],
+  )
+
+  const localityCuratedOptions = useMemo(
+    () => sortedLocalities.map((l) => ({ value: l.slug, label: l.name, hint: l.slug })),
+    [sortedLocalities],
+  )
+
+  const categoryCuratedOptions = useMemo(
+    () => buildSeoCategoryPickerOptions(catalogOptions),
+    [catalogOptions],
+  )
+
+  const validLocalitySlugs = useMemo(() => new Set(sortedLocalities.map((l) => l.slug)), [sortedLocalities])
+
+  const areaOptionsForDraft = useMemo(() => {
+    if (!draft?.locality) return []
+    const slug = draft.locality.trim().toLowerCase()
+    const loc = sortedLocalities.find((l) => l.slug === slug)
+    if (!loc) return []
+    const names = [...(loc.neighborhoods ?? []), ...(loc.societies ?? [])]
+    return [...new Set(names.map((n) => n.trim()).filter(Boolean))].map((name) => ({
+      value: name,
+      label: name,
+    }))
+  }, [draft?.locality, sortedLocalities])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -202,17 +248,45 @@ export default function RecentJobsSeoPage() {
     void load()
   }, [load])
 
+  useEffect(() => {
+    if (!dialogOpen || !draft?.service?.trim()) {
+      setServiceNameOptions([])
+      return
+    }
+    let cancelled = false
+    const category = resolvePlatformCategoryApiSlug(draft.service, catalogOptions)
+    setServicesLoading(true)
+    platformServicesService
+      .getServicesByCategory(category)
+      .then((services) => {
+        if (cancelled) return
+        const seen = new Set<string>()
+        const opts: { value: string; label: string }[] = []
+        for (const s of services) {
+          if (s.is_active === false) continue
+          const name = s.name.trim()
+          if (!name || seen.has(name)) continue
+          seen.add(name)
+          opts.push({ value: name, label: name })
+        }
+        opts.sort((a, b) => a.label.localeCompare(b.label))
+        setServiceNameOptions(opts)
+      })
+      .catch(() => {
+        if (!cancelled) setServiceNameOptions([])
+      })
+      .finally(() => {
+        if (!cancelled) setServicesLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [dialogOpen, draft?.service, catalogOptions])
+
   const localityEntries = useMemo(
     () => (data ? Object.entries(data.jobs).sort((a, b) => b[1].length - a[1].length) : []),
     [data],
   )
-
-  const knownLocalities = useMemo(() => {
-    const set = new Set<string>()
-    if (data) Object.keys(data.jobs).forEach((s) => set.add(s))
-    rows.forEach((r) => r.locality && set.add(r.locality.trim().toLowerCase()))
-    return Array.from(set).sort()
-  }, [data, rows])
 
   const dirty = useMemo(() => JSON.stringify(rowsToMap(rows)) !== savedRowsKey, [rows, savedRowsKey])
 
@@ -233,9 +307,53 @@ export default function RecentJobsSeoPage() {
 
   const commitDraft = () => {
     if (!draft) return
+    const locality = draft.locality.trim().toLowerCase()
+    const service = draft.service.trim().toLowerCase()
+    if (!validLocalitySlugs.has(locality)) {
+      toast({
+        title: 'Invalid locality',
+        description: 'Pick a service area from the catalog dropdown.',
+        variant: 'destructive',
+      })
+      return
+    }
+    if (!isValidSeoCategorySlug(service, catalogOptions)) {
+      toast({
+        title: 'Invalid category',
+        description: 'Pick a service category from the catalog dropdown.',
+        variant: 'destructive',
+      })
+      return
+    }
+    const normalizedService = normalizeSeoCategorySlug(service)
+    if (serviceNameOptions.length > 0 && !serviceNameOptions.some((o) => o.value === draft.serviceName.trim())) {
+      toast({
+        title: 'Invalid service name',
+        description: 'Pick a bookable service from the platform catalog for this category.',
+        variant: 'destructive',
+      })
+      return
+    }
+    if (areaOptionsForDraft.length > 0 && !areaOptionsForDraft.some((o) => o.value === draft.area.trim())) {
+      toast({
+        title: 'Invalid area',
+        description: 'Pick a neighborhood or society from the locality catalog.',
+        variant: 'destructive',
+      })
+      return
+    }
+    if (areaOptionsForDraft.length === 0 && !draft.area.trim()) {
+      toast({
+        title: 'No areas configured',
+        description: 'Add neighborhoods or societies for this locality in Service areas CMS, or enter an area manually.',
+        variant: 'destructive',
+      })
+      return
+    }
+    const rowToSave = { ...draft, service: normalizedService }
     setRows((prev) => {
       const exists = prev.some((r) => r.id === draft.id)
-      return exists ? prev.map((r) => (r.id === draft.id ? draft : r)) : [...prev, draft]
+      return exists ? prev.map((r) => (r.id === draft.id ? rowToSave : r)) : [...prev, rowToSave]
     })
     setDialogOpen(false)
     setDraft(null)
@@ -447,43 +565,70 @@ export default function RecentJobsSeoPage() {
 
           {draft && (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="f-locality">Locality slug *</Label>
-                <Input
-                  id="f-locality"
-                  list="known-localities"
-                  value={draft.locality}
-                  placeholder="mira-bhayandar"
-                  onChange={(e) => patchDraft({ locality: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="f-service">Category slug *</Label>
-                <Input
-                  id="f-service"
-                  value={draft.service}
-                  placeholder="electrician"
-                  onChange={(e) => patchDraft({ service: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="f-serviceName">Service name *</Label>
-                <Input
-                  id="f-serviceName"
-                  value={draft.serviceName}
-                  placeholder="MCB Replacement"
-                  onChange={(e) => patchDraft({ serviceName: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="f-area">Area / society *</Label>
-                <Input
-                  id="f-area"
+              <SeoCuratedSingleSelect
+                label="Locality *"
+                description="Service areas catalog slug — matches /areas/{slug} pages."
+                value={draft.locality.trim().toLowerCase()}
+                onChange={(v) => patchDraft({ locality: v, area: '' })}
+                options={localityCuratedOptions}
+                loading={localitiesLoading}
+                disabled={localitiesLoading}
+                placeholder="Pick locality"
+                invalidHint="Unknown locality — choose from Service areas."
+              />
+              <SeoCuratedSingleSelect
+                label="Category *"
+                description="Root service category from Categories admin."
+                value={draft.service ? normalizeSeoCategorySlug(draft.service.trim()) : ''}
+                onChange={(v) => patchDraft({ service: v, serviceName: '' })}
+                options={categoryCuratedOptions}
+                loading={catalogLoading}
+                disabled={catalogLoading}
+                placeholder="Pick category"
+                invalidHint="Unknown category — choose from the service catalog."
+              />
+              <SeoCuratedSingleSelect
+                label="Service name *"
+                description={
+                  draft.service
+                    ? 'Bookable platform service for the selected category.'
+                    : 'Select a category first.'
+                }
+                value={draft.serviceName}
+                onChange={(v) => patchDraft({ serviceName: v })}
+                options={serviceNameOptions}
+                loading={servicesLoading}
+                disabled={!draft.service || servicesLoading}
+                placeholder={draft.service ? 'Pick service' : 'Select category first'}
+                invalidHint="Pick a service from the platform catalog."
+              />
+              {areaOptionsForDraft.length > 0 ? (
+                <SeoCuratedSingleSelect
+                  label="Area / society *"
+                  description="Neighborhoods and societies configured for this locality."
                   value={draft.area}
-                  placeholder="JP North"
-                  onChange={(e) => patchDraft({ area: e.target.value })}
+                  onChange={(v) => patchDraft({ area: v })}
+                  options={areaOptionsForDraft}
+                  disabled={!draft.locality}
+                  placeholder="Pick area"
+                  invalidHint="Pick from neighborhoods/societies in Service areas CMS."
                 />
-              </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <Label htmlFor="f-area">Area / society *</Label>
+                  <Input
+                    id="f-area"
+                    value={draft.area}
+                    placeholder="Configure neighborhoods in Service areas CMS"
+                    disabled={!draft.locality}
+                    onChange={(e) => patchDraft({ area: e.target.value })}
+                  />
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    No neighborhoods/societies for this locality yet — add them under CMS → Service areas, or
+                    type a sub-area label manually.
+                  </p>
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label htmlFor="f-date">Completed date *</Label>
                 <Input
@@ -537,12 +682,6 @@ export default function RecentJobsSeoPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <datalist id="known-localities">
-        {knownLocalities.map((s) => (
-          <option key={s} value={s} />
-        ))}
-      </datalist>
 
       {/* ---- Live merged preview ---- */}
       <h2 className="mb-3 text-lg font-semibold text-foreground">Live preview (auto + curated)</h2>
