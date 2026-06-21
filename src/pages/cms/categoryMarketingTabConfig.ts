@@ -1,0 +1,12 @@
+export type TabKey =
+  | 'metadata'
+  | 'localSeo'
+  | 'hero'
+  | 'cards'
+  | 'detailed'
+  | 'trust'
+  | 'areas'
+  | 'pricing'
+  | 'faqs'
+  | 'localityGuide'
+  | 'closing'

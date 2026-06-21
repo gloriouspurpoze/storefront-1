@@ -110,7 +110,7 @@ export default function IndustryServicePagesHub() {
       <div className="p-4 sm:p-6 md:p-8">
         <PageHeader
           title="Industry service pages"
-          subtitle="Same catalog industry everywhere: Landing = Industry × Location × page content (saved per key). Service areas = which URLs exist. Rate card & cross-linking use the same industry key. Public SEO JSON is consumed on https://www.profixer.in (see Metadata & SEO tab for technical fields)."
+          subtitle="One catalog key for landing copy, service areas, rate card, and cross-linking."
           icon={<Megaphone className="h-7 w-7" aria-hidden />}
         />
 
@@ -178,11 +178,8 @@ export default function IndustryServicePagesHub() {
                 </div>
               </div>
 
-              <p className="text-sm text-muted-foreground">
-                Service areas drive the locality picker on the Landing tab, the consumer URL allowlist for{' '}
-                <code>/services/&#123;category&#125;/&#123;locality&#125;</code>, and auto-generated near-me pages at{' '}
-                <code>/near-me/&#123;category&#125;/&#123;locality&#125;</code> (no separate CMS entry — add or
-                deactivate areas here). Rate card and cross-linking use the same catalog industry key as landings.
+              <p className="text-xs text-muted-foreground">
+                Service areas control which locality URLs exist. Near-me pages auto-generate from the same catalog key.
               </p>
               <div className="flex flex-wrap gap-2 pt-1">
                 <Button type="button" variant="outline" size="sm" asChild>
