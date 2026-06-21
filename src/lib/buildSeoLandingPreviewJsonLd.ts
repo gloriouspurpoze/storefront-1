@@ -106,7 +106,7 @@ export function buildSeoLandingSchemaPreview(
   catalogLabelMap: Record<string, string> = {},
 ): SeoLandingSchemaPreview {
   const normalizedSlug = slug.trim()
-  const path = publicUrlForKind(kind, normalizedSlug)
+  const path = publicUrlForKind(kind, normalizedSlug, draft)
   const pageUrl = `${ORIGIN}${path}`
   const title = stripHtml(draft.title ?? draft.name ?? normalizedSlug)
   const description =
@@ -228,6 +228,44 @@ export function buildSeoLandingSchemaPreview(
           id: `${pageUrl}#faq`,
           ready: false,
           note: 'Add FAQ pairs — omitted on live site when empty',
+        })
+      }
+      break
+    case 'emergency':
+      push('Article', `${pageUrl}#article`, {
+        headline: title,
+        description,
+        mainEntityOfPage: { '@type': 'WebPage', '@id': pageUrl },
+        inLanguage: 'en-IN',
+      }, Boolean(title && description))
+      push(
+        'Service',
+        `${pageUrl}#service`,
+        {
+          name: svcName || `Emergency ${serviceLabel(draft, catalogLabelMap)} in ${loc}`,
+          description,
+          serviceType: serviceLabel(draft, catalogLabelMap),
+          areaServed: { '@type': 'Place', name: loc },
+          provider: { '@id': `${ORIGIN}#organization` },
+        },
+        Boolean(serviceSlug && draft.locationSlug),
+        !draft.locationSlug ? 'Set service area in Setup' : undefined,
+      )
+      push('LocalBusiness', `${pageUrl}#localbusiness`, { name: 'ProFixer', areaServed: loc }, true)
+      if (faqReady) {
+        push('FAQPage', `${pageUrl}#faq`, {
+          mainEntity: faqItems.map((f) => ({
+            '@type': 'Question',
+            name: f.question,
+            acceptedAnswer: { '@type': 'Answer', text: f.answer },
+          })),
+        })
+      } else {
+        nodes.push({
+          type: 'FAQPage',
+          id: `${pageUrl}#faq`,
+          ready: false,
+          note: 'Add emergency FAQs — response time, surcharge, what counts as urgent',
         })
       }
       break
@@ -357,6 +395,8 @@ export const SCHEMA_INDUSTRY_NOTES: Record<SeoLandingEntityKind, string> = {
     'Price-intent: Service with OfferCatalog from charge table + Article + LocalBusiness + optional FAQ.',
   guides:
     'Informational: HowTo when steps exist; Service/LocalBusiness when category is set — funnels to booking.',
+  emergency:
+    'Urgent-intent: WebPage + Service (emergency {category} in {area}) + LocalBusiness + FAQ. Separate CMS content from problem pages.',
   providers: 'E-E-A-T: Person + FAQ. Keep bio factual.',
   locations: 'Local hub: LocalBusiness for the area + FAQ. Link to /services/ and neighbour areas.',
   'landing-pages':

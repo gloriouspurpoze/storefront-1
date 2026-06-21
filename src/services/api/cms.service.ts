@@ -863,6 +863,24 @@ export class CMSService {
     return response.data?.data ?? response.data;
   }
 
+  /** CMS emergency landing pages → `/emergency/{category}/{area}`. */
+  static async getSeoEmergency(): Promise<Record<string, unknown>> {
+    const response = await axios.get(
+      `${API_BASE}/cms/admin/static-content/seo-emergency`,
+      this.getAuthHeaders(),
+    );
+    return response.data?.data ?? response.data ?? {};
+  }
+
+  static async updateSeoEmergency(data: Record<string, unknown>) {
+    const response = await axios.put(
+      `${API_BASE}/cms/admin/static-content/seo-emergency`,
+      data,
+      this.getAuthHeaders(),
+    );
+    return response.data?.data ?? response.data;
+  }
+
   // ==================== TRANSACTIONAL EMAIL TEMPLATES (HTML + preview) ====================
 
   static async listEmailTemplates(): Promise<

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   ExternalLink,
   FileSearch,
@@ -54,13 +55,12 @@ import {
 } from '../../lib/buildSeoLandingPreviewJsonLd'
 import { isValidSeoLandingSlug, normalizeSeoLandingSlug } from '../../lib/seoLandingSlug'
 import {
-  buildNearMeLocalityPublicPath,
-  buildNearMeCategoryPublicPath,
-} from '../../lib/nearMeSeo'
-import {
-  buildServiceLocalityPublicPath,
-  getPreferredServiceCategoryUrlSlug,
-} from '../../lib/serviceCatalogUrlSlugs'
+  buildEmergencyCompositeSlug,
+  isValidEmergencyCompositeSlug,
+  parseEmergencyCompositeSlug,
+  publicEmergencyUrl,
+} from '../../lib/emergencyLandingSlugs'
+import { resolveSeoLandingFunnelUrls, resolveSeoLandingRoutingSlugs } from '../../lib/seoLandingRouting'
 import {
   kindMeta,
   pageListTitle,
@@ -132,14 +132,42 @@ function prepareRecordsForSave(
 ): { ok: true; payload: Record<string, EntityDraft> } | { ok: false; message: string } {
   const payload: Record<string, EntityDraft> = {}
   for (const [key, row] of Object.entries(records)) {
-    const desired = normalizeSeoLandingSlug(String(row.slug ?? key))
-    if (!isValidSeoLandingSlug(desired)) {
-      return { ok: false, message: `Invalid URL slug “${desired || key}” — use lowercase letters, numbers, and hyphens.` }
+    let desired: string
+    const entity: EntityDraft = { ...row }
+
+    if (kind === 'emergency') {
+      const svcRaw = String(entity.serviceSlug ?? entity.service ?? '').trim()
+      const loc = String(entity.locationSlug ?? entity.localitySlug ?? '').trim().toLowerCase()
+      if (!svcRaw) {
+        return { ok: false, message: `Emergency page “${key}” needs a service category.` }
+      }
+      if (!loc || !validLocalities.has(loc)) {
+        return { ok: false, message: `Emergency page “${key}” needs a valid service area.` }
+      }
+      if (!isValidSeoCategorySlug(svcRaw, catalogOptions)) {
+        return {
+          ok: false,
+          message: `Invalid service category “${svcRaw}” on emergency page “${key}”.`,
+        }
+      }
+      entity.serviceSlug = normalizeSeoCategorySlug(svcRaw)
+      entity.locationSlug = loc
+      desired = buildEmergencyCompositeSlug(entity.serviceSlug as string, loc)
+      if (!isValidEmergencyCompositeSlug(desired)) {
+        return { ok: false, message: `Invalid emergency page key “${desired}”.` }
+      }
+      entity.slug = desired
+    } else {
+      desired = normalizeSeoLandingSlug(String(row.slug ?? key))
+      if (!isValidSeoLandingSlug(desired)) {
+        return { ok: false, message: `Invalid URL slug “${desired || key}” — use lowercase letters, numbers, and hyphens.` }
+      }
+      entity.slug = desired
     }
+
     if (payload[desired]) {
       return { ok: false, message: `Duplicate slug “${desired}” — each page needs a unique URL.` }
     }
-    const entity: EntityDraft = { ...row, slug: desired }
 
     if (entity.serviceSlug && !isValidSeoCategorySlug(String(entity.serviceSlug), catalogOptions)) {
       return {
@@ -199,8 +227,45 @@ function emptyDraft(kind: SeoLandingEntityKind, slug: string): EntityDraft {
     relatedLinks: [],
     seo: { noindex: false },
   }
-  if (kind === 'problems' || kind === 'cost-guides' || kind === 'guides' || kind === 'landing-pages') {
+  if (kind === 'problems' || kind === 'cost-guides' || kind === 'guides' || kind === 'landing-pages' || kind === 'emergency') {
     base.serviceSlug = 'ac-repair'
+  }
+  if (kind === 'emergency') {
+    return {
+      slug: '',
+      title: '',
+      subtitle: '',
+      serviceSlug: 'appliance-repair',
+      locationSlug: 'mira-bhayandar',
+      locationName: '',
+      quickAnswer: '',
+      keyTakeaways: [
+        'Same-day emergency slots when available across Mumbai',
+        'Verified technicians — urgency surcharge quoted upfront',
+        'Book online or call for the fastest confirmation',
+      ],
+      body: '',
+      sections: [],
+      faqs: [
+        {
+          question: 'How fast is emergency response?',
+          answer:
+            'ProFixer offers the earliest available slot for urgent home service. Peak demand may affect same-hour arrival — book online or call for the fastest confirmation.',
+        },
+        {
+          question: 'Is emergency service more expensive?',
+          answer:
+            'Pricing follows the transparent rate card where possible. Any urgency surcharge is quoted before work begins — no hidden after-hours fees added on site.',
+        },
+        {
+          question: 'What counts as an emergency?',
+          answer:
+            'Active leaks, no power, no cooling in peak heat, or safety risks (sparks, burning smell) are typical emergencies. For life-threatening situations, call emergency services first.',
+        },
+      ],
+      relatedLinks: [],
+      seo: { noindex: false },
+    }
   }
   if (kind === 'cost-guides') {
     base.year = new Date().getFullYear()
@@ -266,6 +331,8 @@ async function fetchKindRecord(kind: SeoLandingEntityKind): Promise<Record<strin
       return CMSService.getSeoCostGuides()
     case 'guides':
       return CMSService.getSeoGuides()
+    case 'emergency':
+      return CMSService.getSeoEmergency()
     case 'providers':
       return CMSService.getSeoProviders()
     case 'locations':
@@ -283,6 +350,8 @@ async function saveKindRecord(kind: SeoLandingEntityKind, data: Record<string, u
       return CMSService.updateSeoCostGuides(data)
     case 'guides':
       return CMSService.updateSeoGuides(data)
+    case 'emergency':
+      return CMSService.updateSeoEmergency(data)
     case 'providers':
       return CMSService.updateSeoProviders(data)
     case 'locations':
@@ -343,6 +412,7 @@ function SectionCard({
 }
 
 export default function SeoLandingPagesManagement() {
+  const [searchParams] = useSearchParams()
   const { checkPermission } = usePermissions()
   const canMutate = checkPermission('manage_system_settings')
   const { options: catalogOptions, loading: catalogOptionsLoading } = useCmsCatalogCategories()
@@ -356,13 +426,19 @@ export default function SeoLandingPagesManagement() {
     [managedLocalities],
   )
 
-  const [kind, setKind] = useState<SeoLandingEntityKind>('problems')
+  const [kind, setKind] = useState<SeoLandingEntityKind>(() => {
+    const q = searchParams.get('kind')
+    if (q && SEO_LANDING_KINDS.some((k) => k.id === q)) return q as SeoLandingEntityKind
+    return 'problems'
+  })
   const [editorTab, setEditorTab] = useState<EditorTab>('setup')
   const [records, setRecords] = useState<Record<string, EntityDraft>>({})
   const [selectedSlug, setSelectedSlug] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [newSlug, setNewSlug] = useState('')
+  const [newEmergencyCategory, setNewEmergencyCategory] = useState('appliance-repair')
+  const [newEmergencyArea, setNewEmergencyArea] = useState('')
   const [pageSearch, setPageSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [categoryRecords, setCategoryRecords] = useState<Category[]>([])
@@ -435,7 +511,7 @@ export default function SeoLandingPagesManagement() {
     const description = effectiveSeoLandingMetaDescription(kind, draft, catalogLabelMap)
     const canonical = String((draft.seo as Record<string, unknown> | undefined)?.canonicalPath ?? '').trim()
     const origin = 'https://www.profixer.in'
-    const path = publicUrlForKind(kind, slug)
+    const path = publicUrlForKind(kind, slug, draft)
     const url = canonical
       ? canonical.startsWith('http')
         ? canonical
@@ -484,7 +560,12 @@ export default function SeoLandingPagesManagement() {
       setRecords(map)
       setAllKindIndex((prev) => ({ ...prev, [kind]: map }))
       const first = Object.keys(map).sort()[0] ?? ''
-      setSelectedSlug((prev) => (prev && map[prev] ? prev : first))
+      const pageParam = searchParams.get('page')?.trim().toLowerCase()
+      setSelectedSlug((prev) => {
+        if (pageParam && map[pageParam]) return pageParam
+        if (prev && map[prev]) return prev
+        return first
+      })
       setEditorTab('setup')
     } catch (e: unknown) {
       console.error(e)
@@ -494,7 +575,7 @@ export default function SeoLandingPagesManagement() {
     } finally {
       setLoading(false)
     }
-  }, [kind])
+  }, [kind, searchParams])
 
   const refreshCategoryIndex = useCallback(async () => {
     try {
@@ -557,7 +638,13 @@ export default function SeoLandingPagesManagement() {
       return
     }
     const oldKey = selectedSlug
-    const newKey = oldKey ? normalizeSeoLandingSlug(String(records[oldKey]?.slug ?? oldKey)) : ''
+    const row = oldKey ? records[oldKey] : undefined
+    let newKey = oldKey ?? ''
+    if (row && kind === 'emergency') {
+      newKey = buildEmergencyCompositeSlug(String(row.serviceSlug ?? ''), String(row.locationSlug ?? ''))
+    } else if (row) {
+      newKey = normalizeSeoLandingSlug(String(row.slug ?? oldKey))
+    }
 
     let autoNoindexCount = 0
     const payload: Record<string, EntityDraft> = {}
@@ -608,6 +695,43 @@ export default function SeoLandingPagesManagement() {
   }
 
   const addSlug = () => {
+    if (kind === 'emergency') {
+      const svc = normalizeSeoCategorySlug(newEmergencyCategory.trim())
+      const loc = newEmergencyArea.trim().toLowerCase()
+      if (!svc) {
+        appToast('Pick a service category', 'error')
+        return
+      }
+      if (!loc || !validLocalitySlugs.has(loc)) {
+        appToast('Pick a valid service area', 'error')
+        return
+      }
+      const slug = buildEmergencyCompositeSlug(svc, loc)
+      if (records[slug]) {
+        appToast('Emergency page already exists for this category + area', 'error')
+        return
+      }
+      const hit = sortedLocalities.find((l) => l.slug === loc)
+      const catLabel = catalogLabelMap[svc] ?? svc.replace(/-/g, ' ')
+      const locLabel = hit?.name ?? loc
+      setRecords((prev) => ({
+        ...prev,
+        [slug]: {
+          ...emptyDraft(kind, slug),
+          slug,
+          serviceSlug: svc,
+          locationSlug: loc,
+          locationName: locLabel,
+          title: `Emergency ${catLabel} in ${locLabel}`,
+          subtitle: `Urgent ${catLabel.toLowerCase()} near you in ${locLabel} — same-day slots when available.`,
+        },
+      }))
+      setSelectedSlug(slug)
+      setNewEmergencyArea('')
+      setEditorTab('setup')
+      return
+    }
+
     const slug = normalizeSeoLandingSlug(newSlug)
     if (!slug) return
     if (!isValidSeoLandingSlug(slug)) {
@@ -653,10 +777,13 @@ export default function SeoLandingPagesManagement() {
     setSelectedSlug(Object.keys(next).sort()[0] ?? '')
   }
 
-  const serviceSlug = String(draft.serviceSlug ?? '')
-  const locationSlug = String(draft.locationSlug ?? '').trim().toLowerCase()
-  const draftSlug = normalizeSeoLandingSlug(String(draft.slug ?? selectedSlug))
-  const slugPendingRename = Boolean(selectedSlug && draftSlug && draftSlug !== selectedSlug)
+  const { serviceSlug, locationSlug } = resolveSeoLandingRoutingSlugs(draft)
+  const draftSlug =
+    kind === 'emergency'
+      ? String(draft.slug ?? selectedSlug).trim().toLowerCase()
+      : normalizeSeoLandingSlug(String(draft.slug ?? selectedSlug))
+  const slugPendingRename =
+    kind !== 'emergency' && Boolean(selectedSlug && draftSlug && draftSlug !== selectedSlug)
   const schemaPreview = useMemo(
     () =>
       selectedSlug
@@ -664,33 +791,42 @@ export default function SeoLandingPagesManagement() {
         : null,
     [kind, selectedSlug, draftSlug, draft, catalogLabelMap],
   )
-  const preferredCategory = serviceSlug ? getPreferredServiceCategoryUrlSlug(serviceSlug) : ''
+  const funnelUrls = useMemo(() => resolveSeoLandingFunnelUrls(draft), [draft])
+  const derivedServiceUrl = funnelUrls.booking
+  const derivedNearMeUrl = funnelUrls.nearMe
+  const derivedEmergencyUrl = funnelUrls.emergency
+  const emergencyIsPrimaryCategory = funnelUrls.emergencyIsPrimaryCategory
   const localityName =
     String(draft.locationName ?? '').trim() ||
     sortedLocalities.find((l) => l.slug === locationSlug)?.name ||
     ''
 
-  const derivedServiceUrl =
-    serviceSlug && locationSlug
-      ? buildServiceLocalityPublicPath(serviceSlug, locationSlug)
-      : serviceSlug
-        ? `/services/${preferredCategory}`
-        : ''
-  const derivedNearMeUrl =
-    serviceSlug && locationSlug
-      ? buildNearMeLocalityPublicPath(serviceSlug, locationSlug)
-      : serviceSlug
-        ? buildNearMeCategoryPublicPath(serviceSlug)
-        : ''
-
   const patchLocationSlug = (slug: string) => {
     const normalized = slug.trim().toLowerCase()
     const hit = sortedLocalities.find((l) => l.slug === normalized)
     if (!hit) return
-    patchDraft({
+    const patch: Partial<EntityDraft> = {
       locationSlug: normalized,
       locationName: hit.name,
-    })
+    }
+    if (kind === 'emergency') {
+      const svc = String(draft.serviceSlug ?? '').trim()
+      if (svc) {
+        patch.slug = buildEmergencyCompositeSlug(svc, normalized)
+      }
+    }
+    patchDraft(patch)
+  }
+
+  const patchServiceCategory = (value: string) => {
+    const patch: Partial<EntityDraft> = { serviceSlug: value }
+    if (kind === 'emergency') {
+      const loc = String(draft.locationSlug ?? '').trim().toLowerCase()
+      if (loc) {
+        patch.slug = buildEmergencyCompositeSlug(value, loc)
+      }
+    }
+    patchDraft(patch)
   }
 
   const importPriceGuideFromCatalog = useCallback(
@@ -793,22 +929,31 @@ export default function SeoLandingPagesManagement() {
     })
   }
 
-  const publicUrl = draftSlug || selectedSlug ? publicUrlForKind(kind, draftSlug || selectedSlug) : ''
+  const publicUrl =
+    kind === 'emergency' && serviceSlug && locationSlug
+      ? publicEmergencyUrl(serviceSlug, locationSlug)
+      : draftSlug || selectedSlug
+        ? publicUrlForKind(kind, draftSlug || selectedSlug, draft)
+        : ''
   const listTitle = pageListTitle(kind, draft)
 
   const showCategoryLocation =
-    kind === 'problems' || kind === 'cost-guides' || kind === 'guides' || kind === 'landing-pages'
+    kind === 'problems' ||
+    kind === 'cost-guides' ||
+    kind === 'guides' ||
+    kind === 'landing-pages' ||
+    kind === 'emergency'
 
   const categoryLocationBlock = showCategoryLocation ? (
     <SectionCard
       title="Local SEO — category & area"
-      description="Required for Service + LocalBusiness schema, local meta titles, and booking/near-me internal links."
+      description="Required for Service + LocalBusiness schema, local meta titles, and booking / near-me / emergency internal links."
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <SeoCuratedSingleSelect
           label="Service category"
           value={serviceSlug ? normalizeSeoCategorySlug(serviceSlug) : ''}
-          onChange={(v) => patchDraft({ serviceSlug: v })}
+          onChange={patchServiceCategory}
           options={catalogCuratedOptions}
           loading={catalogOptionsLoading}
           placeholder="Pick category"
@@ -828,7 +973,7 @@ export default function SeoLandingPagesManagement() {
           invalidHint="Unknown area slug — choose from Service areas catalog."
         />
       </div>
-      {(derivedServiceUrl || derivedNearMeUrl) && (
+      {(derivedServiceUrl || derivedNearMeUrl || serviceSlug) && (
         <div className="rounded-md border border-border/60 bg-background px-3 py-2 text-xs space-y-1">
           <p>
             <span className="text-muted-foreground">Booking →</span>{' '}
@@ -837,6 +982,16 @@ export default function SeoLandingPagesManagement() {
           <p>
             <span className="text-muted-foreground">Near-me →</span>{' '}
             <code className="text-foreground">{derivedNearMeUrl || '—'}</code>
+          </p>
+          <p>
+            <span className="text-muted-foreground">Emergency →</span>{' '}
+            {derivedEmergencyUrl ? (
+              <code className="text-foreground">{derivedEmergencyUrl}</code>
+            ) : serviceSlug ? (
+              <span className="text-amber-600">Pick service area above</span>
+            ) : (
+              <span className="text-muted-foreground">—</span>
+            )}
           </p>
           {localityName ? (
             <p>
@@ -855,8 +1010,11 @@ export default function SeoLandingPagesManagement() {
         draft={draft}
         slug={draftSlug || selectedSlug}
         catalogLabelMap={catalogLabelMap}
+        catalogOptions={catalogOptions}
         derivedServiceUrl={derivedServiceUrl}
         derivedNearMeUrl={derivedNearMeUrl}
+        derivedEmergencyUrl={derivedEmergencyUrl}
+        emergencyIsPrimaryCategory={emergencyIsPrimaryCategory}
         canMutate={canMutate}
         onPublish={() => void handlePublishToGoogle()}
         onSetNoindex={(value) => patchDraft({ seo: { ...(draft.seo as object), noindex: value } })}
@@ -1079,7 +1237,27 @@ export default function SeoLandingPagesManagement() {
     </>
   )
 
-  const renderUrlSlugCard = () => (
+  const renderUrlSlugCard = () =>
+    kind === 'emergency' ? (
+      <SectionCard
+        title="Public emergency URL"
+        description="Derived from category + area — not a free-form slug."
+      >
+        <div className="space-y-2 text-xs">
+          <p>
+            <span className="text-muted-foreground">CMS key →</span>{' '}
+            <code className="text-foreground">{draftSlug || selectedSlug || '—'}</code>
+          </p>
+          <p>
+            <span className="text-muted-foreground">Live path →</span>{' '}
+            <code className="text-foreground">{publicUrl || '—'}</code>
+          </p>
+          <FieldHint>
+            Change category or area in Local SEO below, then Save to update the record key.
+          </FieldHint>
+        </div>
+      </SectionCard>
+    ) : (
     <SectionCard
       title="Public URL slug"
       description={`Record key in CMS JSON → ${meta.pathPrefix || 'top-level'}/{slug}`}
@@ -1108,7 +1286,7 @@ export default function SeoLandingPagesManagement() {
         ) : null}
       </div>
     </SectionCard>
-  )
+    )
 
   const renderSetupTab = () => {
     if (kind === 'locations') {
@@ -1266,7 +1444,7 @@ export default function SeoLandingPagesManagement() {
               compact
             />
           </div>
-          {(kind === 'problems' || kind === 'cost-guides' || kind === 'guides') && (
+          {(kind === 'problems' || kind === 'cost-guides' || kind === 'guides' || kind === 'emergency') && (
             <div className="space-y-2">
               <Label>Subtitle (under H1)</Label>
               <Input
@@ -1373,7 +1551,7 @@ export default function SeoLandingPagesManagement() {
         </SectionCard>
       )}
 
-      {(kind === 'problems' || kind === 'cost-guides' || kind === 'guides' || kind === 'landing-pages') && (
+      {(kind === 'problems' || kind === 'cost-guides' || kind === 'guides' || kind === 'landing-pages' || kind === 'emergency') && (
         <SectionCard
           title={
             kind === 'cost-guides' ? 'Charge table' : kind === 'landing-pages' ? 'Price table' : 'Price guide'
@@ -1716,6 +1894,46 @@ export default function SeoLandingPagesManagement() {
                         ))}
                     </SelectContent>
                   </Select>
+                ) : kind === 'emergency' ? (
+                  <>
+                    <Select
+                      value={newEmergencyCategory || undefined}
+                      onValueChange={setNewEmergencyCategory}
+                      disabled={!canMutate}
+                    >
+                      <SelectTrigger className="flex-1 text-sm">
+                        <SelectValue placeholder="Category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {catalogCuratedOptions.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={newEmergencyArea || undefined}
+                      onValueChange={setNewEmergencyArea}
+                      disabled={localitiesLoading || !canMutate}
+                    >
+                      <SelectTrigger className="flex-1 text-sm">
+                        <SelectValue placeholder="Area" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {localityCuratedOptions
+                          .filter((o) => {
+                            const slug = buildEmergencyCompositeSlug(newEmergencyCategory, o.value)
+                            return !records[slug]
+                          })
+                          .map((o) => (
+                            <SelectItem key={o.value} value={o.value}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </>
                 ) : (
                   <Input
                     placeholder="new-page-slug"

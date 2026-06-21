@@ -95,6 +95,8 @@ function kindToConsumerEntity(kind: SeoLandingEntityKind): string {
       return 'cost'
     case 'guides':
       return 'guide'
+    case 'emergency':
+      return 'emergency'
     case 'providers':
       return 'provider'
     case 'locations':
@@ -137,6 +139,23 @@ export function validateSeoLandingForConsumer(
       }
       if (!String(draft.serviceSlug ?? '').trim()) {
         errors.push('Service category required for local Service schema')
+      }
+      break
+    case 'emergency':
+      if (stripHtml(String(draft.quickAnswer ?? '')).length < 40) {
+        errors.push('Quick answer too short (min 40 chars plain text)')
+      }
+      if (takeawayCount(draft) < 1) {
+        errors.push('Missing key takeaways (recommended for emergency pages)')
+      }
+      if (wordCount < SEO_LANDING_MIN_WORDS) {
+        errors.push(`Body under ${SEO_LANDING_MIN_WORDS} words (${wordCount} now)`)
+      }
+      if (!String(draft.serviceSlug ?? draft.service ?? '').trim()) {
+        errors.push('Service category required')
+      }
+      if (!String(draft.locationSlug ?? draft.localitySlug ?? '').trim()) {
+        errors.push('Service area required — emergency URLs use /emergency/{category}/{area}')
       }
       break
     case 'cost':

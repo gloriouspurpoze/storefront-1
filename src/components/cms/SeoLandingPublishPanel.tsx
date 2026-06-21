@@ -1,8 +1,14 @@
 import React from 'react'
-import { CheckCircle2, Globe, MapPin, AlertTriangle, XCircle, ExternalLink } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { CheckCircle2, Globe, MapPin, AlertTriangle, XCircle, ExternalLink, Siren, Navigation } from 'lucide-react'
 import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
 import { cn } from '../../lib/utils'
+import {
+  resolveSeoLandingFunnelUrls,
+  resolveSeoLandingRoutingSlugs,
+} from '../../lib/seoLandingRouting'
+import { buildEmergencyCompositeSlug } from '../../lib/emergencyLandingSlugs'
 import type { SeoLandingEntityKind } from '../../lib/seoLandingPageKinds'
 import { publicUrlForKind } from '../../lib/seoLandingPageKinds'
 import {
@@ -14,6 +20,7 @@ import {
   effectiveSeoLandingMetaTitle,
   resolveSeoLandingLocationLabel,
 } from '../../lib/seoLandingEffectiveMeta'
+import { buildCategoryMarketingNearMeEditUrl } from '../../lib/nearMeSeo'
 
 const ORIGIN = 'https://www.profixer.in'
 
@@ -22,8 +29,11 @@ type Props = {
   draft: Record<string, unknown>
   slug: string
   catalogLabelMap: Record<string, string>
+  catalogOptions?: readonly { value: string; label?: string }[]
   derivedServiceUrl?: string
   derivedNearMeUrl?: string
+  derivedEmergencyUrl?: string
+  emergencyIsPrimaryCategory?: boolean
   canMutate: boolean
   onPublish: () => void
   onSetNoindex: (value: boolean) => void
@@ -52,16 +62,24 @@ export function SeoLandingPublishPanel({
   draft,
   slug,
   catalogLabelMap,
-  derivedServiceUrl,
-  derivedNearMeUrl,
+  catalogOptions = [],
+  derivedServiceUrl: derivedServiceUrlProp,
+  derivedNearMeUrl: derivedNearMeUrlProp,
+  derivedEmergencyUrl: derivedEmergencyUrlProp,
+  emergencyIsPrimaryCategory: emergencyIsPrimaryCategoryProp,
   canMutate,
   onPublish,
   onSetNoindex,
 }: Props) {
   const validation = validateSeoLandingForConsumer(kind, draft)
-  const livePath = slug ? publicUrlForKind(kind, slug) : ''
+  const funnel = resolveSeoLandingFunnelUrls(draft)
+  const { serviceSlug } = resolveSeoLandingRoutingSlugs(draft)
+  const derivedServiceUrl = derivedServiceUrlProp ?? funnel.booking
+  const derivedNearMeUrl = derivedNearMeUrlProp ?? funnel.nearMe
+  const derivedEmergencyUrl = derivedEmergencyUrlProp ?? funnel.emergency
+  const emergencyIsPrimaryCategory = emergencyIsPrimaryCategoryProp ?? funnel.emergencyIsPrimaryCategory
+  const livePath = slug ? publicUrlForKind(kind, slug, draft) : ''
   const liveUrl = livePath ? `${ORIGIN}${livePath}` : ''
-  const serviceSlug = String(draft.serviceSlug ?? '').trim()
   const categoryLabel = serviceSlug
     ? catalogLabelMap[serviceSlug] ?? serviceSlug.replace(/-/g, ' ')
     : ''
@@ -76,7 +94,18 @@ export function SeoLandingPublishPanel({
     kind === 'problems' ||
     kind === 'cost-guides' ||
     kind === 'guides' ||
-    kind === 'landing-pages'
+    kind === 'landing-pages' ||
+    kind === 'emergency'
+
+  const emergencyCmsKey =
+    funnel.serviceSlug && funnel.locationSlug
+      ? buildEmergencyCompositeSlug(funnel.serviceSlug, funnel.locationSlug)
+      : ''
+
+  const nearMeEditUrl =
+    serviceSlug && derivedNearMeUrl
+      ? buildCategoryMarketingNearMeEditUrl(serviceSlug, funnel.locationSlug, catalogOptions)
+      : ''
 
   return (
     <div className="space-y-4 rounded-xl border border-primary/20 bg-gradient-to-b from-primary/5 to-transparent p-4">
@@ -183,10 +212,71 @@ export function SeoLandingPublishPanel({
                 </dd>
               </div>
             ) : null}
+            <div className="sm:col-span-2">
+              <dt className="text-muted-foreground">Emergency funnel</dt>
+              <dd>
+                {derivedEmergencyUrl ? (
+                  <>
+                    <code className="text-foreground">{derivedEmergencyUrl}</code>
+                    {!emergencyIsPrimaryCategory ? (
+                      <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                        Dynamic emergency page — sitemap pre-builds AC, electrician, and plumber only. Link still
+                        appears in related links on the live site.
+                      </span>
+                    ) : null}
+                  </>
+                ) : serviceSlug ? (
+                  <span className="text-amber-600">
+                    Pick a service area in Setup — emergency links need category + area (e.g.{' '}
+                    <code className="text-foreground">/emergency/{funnel.preferredCategory || '…'}/mira-bhayandar</code>
+                    )
+                  </span>
+                ) : (
+                  <span className="text-amber-600">Set service category in Setup first</span>
+                )}
+              </dd>
+            </div>
           </dl>
+          {derivedNearMeUrl && nearMeEditUrl ? (
+            <div className="mt-3 rounded-md border border-primary/20 bg-primary/5 px-3 py-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-medium text-foreground">
+                  <Navigation className="mr-1 inline h-3.5 w-3.5 text-primary" aria-hidden />
+                  Near-me page content (Category Marketing)
+                </p>
+                <Link to={nearMeEditUrl} className="text-xs font-medium text-primary hover:underline">
+                  Edit near-me content →
+                </Link>
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Intro, takeaways, and FAQs for <code>{derivedNearMeUrl}</code> live under Industry service pages →
+                Near-me block{funnel.locationSlug ? ` (locality: ${funnel.locationSlug})` : ''}.
+              </p>
+            </div>
+          ) : null}
+          {kind !== 'emergency' && derivedEmergencyUrl && emergencyCmsKey ? (
+            <div className="mt-3 rounded-md border border-red-500/20 bg-red-500/5 px-3 py-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-medium text-foreground">
+                  <Siren className="mr-1 inline h-3.5 w-3.5 text-red-600" aria-hidden />
+                  Emergency landing page (separate content)
+                </p>
+                <Link
+                  to={`/cms/seo-landing-pages?kind=emergency&page=${encodeURIComponent(emergencyCmsKey)}`}
+                  className="text-xs font-medium text-primary hover:underline"
+                >
+                  Edit emergency page →
+                </Link>
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Urgent-intent copy lives on <code>{derivedEmergencyUrl}</code> — not on this problem/charges page.
+              </p>
+            </div>
+          ) : null}
           <p className="mt-2 text-[11px] text-muted-foreground leading-relaxed">
             Google uses category + area for Service / LocalBusiness JSON-LD. Pick a specific area when targeting
-            &ldquo;near me&rdquo; queries — otherwise Mumbai defaults in schema.
+            &ldquo;near me&rdquo; queries — otherwise Mumbai defaults in schema. Emergency URLs surface in the
+            &ldquo;Emergency service&rdquo; related-links block when category and area are set.
           </p>
         </div>
       ) : null}

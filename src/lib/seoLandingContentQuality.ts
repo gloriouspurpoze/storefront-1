@@ -270,7 +270,7 @@ export function buildSeoLandingQualityReport(
       }),
     )
 
-    if (kind === 'problems' || kind === 'cost-guides' || kind === 'guides' || kind === 'landing-pages') {
+    if (kind === 'problems' || kind === 'cost-guides' || kind === 'guides' || kind === 'landing-pages' || kind === 'emergency') {
       const serviceSlug = String(draft.serviceSlug ?? '').trim()
       items.push(
         item({
@@ -285,7 +285,7 @@ export function buildSeoLandingQualityReport(
       )
     }
 
-    if (kind === 'landing-pages') {
+    if (kind === 'landing-pages' || kind === 'emergency') {
       const loc = String(draft.locationSlug ?? '').trim()
       items.push(
         item({
@@ -293,7 +293,7 @@ export function buildSeoLandingQualityReport(
           group: 'Setup',
           label: 'Service area',
           ok: loc.length > 0,
-          detail: loc || 'Required for local money pages',
+          detail: loc || (kind === 'emergency' ? 'Required for /emergency/{category}/{area}' : 'Required for local money pages'),
           priority: 'required',
           tab: 'setup',
         }),

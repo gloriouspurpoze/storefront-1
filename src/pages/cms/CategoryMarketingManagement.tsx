@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useMemo, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   Loader2,
   Trash2,
@@ -219,6 +219,7 @@ export default function CategoryMarketingManagement() {
   const [tab, setTab] = useState<TabKey>('metadata')
   const [localityDiffExpanded, setLocalityDiffExpanded] = useState(false)
   const [seoAutofillConfirmOpen, setSeoAutofillConfirmOpen] = useState(false)
+  const [searchParams] = useSearchParams()
 
   const normalizedLocalitySlug = useMemo(
     () =>
@@ -311,6 +312,22 @@ export default function CategoryMarketingManagement() {
   useEffect(() => {
     fetchData()
   }, [])
+
+  useEffect(() => {
+    const loc = searchParams.get('locality')?.trim()
+    if (loc) {
+      setLocalitySlugForKey(loc)
+      setEmptyCustomSlugMode(false)
+    }
+    if (searchParams.get('section') === 'near-me') {
+      setTab('metadata')
+      const timer = window.setTimeout(() => {
+        document.getElementById('near-me-seo-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, loading ? 600 : 200)
+      return () => window.clearTimeout(timer)
+    }
+    return undefined
+  }, [searchParams, loading])
 
   const fetchData = async () => {
     try {
@@ -2077,7 +2094,7 @@ export default function CategoryMarketingManagement() {
                   </CardContent>
                 </Card>
 
-                <Card className="overflow-hidden">
+                <Card id="near-me-seo-section" className="overflow-hidden scroll-mt-24">
                   <CardHeader className="border-b border-border/60 bg-muted/20 pb-4">
                     <CardTitle className="text-lg font-semibold tracking-tight">
                       Near-me pages (`/near-me/…`)
@@ -2085,7 +2102,8 @@ export default function CategoryMarketingManagement() {
                     <CardDescription>
                       Optional overrides for auto-generated near-me landing pages. Leave blank to use smart defaults
                       from the catalog industry. For hyperlocal copy, save under a composite key (e.g.{' '}
-                      <code className="text-xs">ac-repair__mira-bhayandar</code>).
+                      <code className="text-xs">ac-repair__mira-bhayandar</code>). Body content (intro, takeaways,
+                      FAQs) renders on the live near-me URL when filled.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4 pt-6">
@@ -2179,6 +2197,137 @@ export default function CategoryMarketingManagement() {
                         onChange={(e) => updateNearMeSeo({ robotsMeta: e.target.value })}
                         placeholder="index, follow"
                       />
+                    </div>
+                    <CategoryMarketingRichTextField
+                      label="Near-me intro (body HTML — renders below hero on live page)"
+                      value={config.nearMeSeo.introHtml}
+                      onChange={(html) => updateNearMeSeo({ introHtml: html })}
+                      height={180}
+                    />
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <Label>Key takeaways (near-me page)</Label>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          leftIcon={<Plus className="h-4 w-4" />}
+                          onClick={() =>
+                            updateNearMeSeo({
+                              keyTakeaways: [...config.nearMeSeo.keyTakeaways, ''],
+                            })
+                          }
+                        >
+                          Add takeaway
+                        </Button>
+                      </div>
+                      {(config.nearMeSeo.keyTakeaways.length ? config.nearMeSeo.keyTakeaways : ['']).map(
+                        (point, i) => (
+                          <div key={i} className="flex flex-row items-center gap-2">
+                            <Input
+                              className="w-full h-9 text-sm"
+                              value={point}
+                              onChange={(e) => {
+                                const base = config.nearMeSeo.keyTakeaways.length
+                                  ? [...config.nearMeSeo.keyTakeaways]
+                                  : ['']
+                                const next = [...base]
+                                next[i] = e.target.value
+                                updateNearMeSeo({ keyTakeaways: next })
+                              }}
+                              placeholder="Same-day booking when slots allow"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-9 w-9 shrink-0 text-destructive hover:text-destructive"
+                              onClick={() =>
+                                updateNearMeSeo({
+                                  keyTakeaways: config.nearMeSeo.keyTakeaways.filter((_, j) => j !== i),
+                                })
+                              }
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ),
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <Label>Near-me FAQs (FAQPage JSON-LD when both Q+A filled)</Label>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          leftIcon={<Plus className="h-4 w-4" />}
+                          onClick={() =>
+                            updateNearMeSeo({ faqs: [...config.nearMeSeo.faqs, emptyFaq()] })
+                          }
+                        >
+                          Add FAQ
+                        </Button>
+                      </div>
+                      {config.nearMeSeo.faqs.map((faq, i) => (
+                        <Accordion
+                          key={i}
+                          type="single"
+                          collapsible
+                          defaultValue={`nearme-faq-${i}`}
+                          className="rounded-md border"
+                        >
+                          <AccordionItem value={`nearme-faq-${i}`} className="border-0">
+                            <div className="flex items-stretch gap-1 border-b px-2">
+                              <AccordionTrigger className="flex-1 py-3 text-left text-sm font-medium hover:no-underline">
+                                {faq.question || `Near-me FAQ ${i + 1}`}
+                              </AccordionTrigger>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9 shrink-0 text-destructive hover:text-destructive"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  updateNearMeSeo({
+                                    faqs: config.nearMeSeo.faqs.filter((_, j) => j !== i),
+                                  })
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <AccordionContent className="px-2 pb-4 pt-2">
+                              <div className="flex flex-col gap-4">
+                                <div className="space-y-2">
+                                  <Label htmlFor={`cmm-nearme-faq-q-${i}`}>Question</Label>
+                                  <Input
+                                    id={`cmm-nearme-faq-q-${i}`}
+                                    className="w-full"
+                                    value={faq.question}
+                                    onChange={(e) => {
+                                      const next = [...config.nearMeSeo.faqs]
+                                      next[i] = { ...next[i], question: e.target.value }
+                                      updateNearMeSeo({ faqs: next })
+                                    }}
+                                  />
+                                </div>
+                                <CategoryMarketingRichTextField
+                                  label="Answer"
+                                  value={faq.answer}
+                                  onChange={(html) => {
+                                    const next = [...config.nearMeSeo.faqs]
+                                    next[i] = { ...next[i], answer: html }
+                                    updateNearMeSeo({ faqs: next })
+                                  }}
+                                  height={160}
+                                />
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        </Accordion>
+                      ))}
                     </div>
                   </CardContent>
                 </Card>

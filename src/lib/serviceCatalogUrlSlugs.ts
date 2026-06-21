@@ -49,3 +49,17 @@ export function buildServiceLocalityPublicPath(storageSlug: string, localitySlug
   const loc = localitySlug.trim().toLowerCase().replace(/^\/+|\/+$/g, '')
   return `/services/${preferred}/${loc}`
 }
+
+/** Pre-generated in consumer sitemap (`buildEmergencySitemapEntries`). */
+export const EMERGENCY_PROGRAMMATIC_CATEGORIES = ['ac-repair', 'electrician', 'plumber'] as const
+
+export function buildEmergencyLocalityPublicPath(storageSlug: string, localitySlug: string): string {
+  const preferred = getPreferredServiceCategoryUrlSlug(storageSlug)
+  const loc = localitySlug.trim().toLowerCase().replace(/^\/+|\/+$/g, '')
+  return `/emergency/${preferred}/${loc}`
+}
+
+export function isPrimaryEmergencyCategory(storageSlug: string): boolean {
+  const preferred = getPreferredServiceCategoryUrlSlug(storageSlug)
+  return (EMERGENCY_PROGRAMMATIC_CATEGORIES as readonly string[]).includes(preferred)
+}

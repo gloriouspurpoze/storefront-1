@@ -295,6 +295,12 @@ export interface NearMeSeoCmsFields {
   canonicalPath: string
   /** Robots meta override for near-me only — blank inherits consumer default. */
   robotsMeta: string
+  /** Rich intro below hero — booking context, area trust, same-day slots. */
+  introHtml: string
+  /** Bulleted trust / benefit lines shown under intro. */
+  keyTakeaways: string[]
+  /** On-page FAQs (consumer emits FAQ schema when pairs are complete). */
+  faqs: FaqBlock[]
 }
 
 export const emptyNearMeSeo = (): NearMeSeoCmsFields => ({
@@ -303,6 +309,9 @@ export const emptyNearMeSeo = (): NearMeSeoCmsFields => ({
   keywords: [],
   canonicalPath: '',
   robotsMeta: '',
+  introHtml: '',
+  keyTakeaways: [],
+  faqs: [],
 })
 
 export function normalizeNearMeSeo(raw: unknown): NearMeSeoCmsFields {
@@ -315,12 +324,23 @@ export function normalizeNearMeSeo(raw: unknown): NearMeSeoCmsFields {
   } else if (typeof o.keywords === 'string') {
     keywords = o.keywords.split(',').map((s) => s.trim()).filter(Boolean)
   }
+  let keyTakeaways = e.keyTakeaways
+  if (Array.isArray(o.keyTakeaways)) {
+    keyTakeaways = (o.keyTakeaways as unknown[]).map((x) => String(x ?? '').trim()).filter(Boolean)
+  }
+  let faqs = e.faqs
+  if (Array.isArray(o.faqs)) {
+    faqs = (o.faqs as unknown[]).map(normalizeFaq)
+  }
   return {
     title: String(o.title ?? e.title),
     description: String(o.description ?? e.description),
     keywords,
     canonicalPath: String(o.canonicalPath ?? e.canonicalPath),
     robotsMeta: String(o.robotsMeta ?? e.robotsMeta),
+    introHtml: String(o.introHtml ?? o.intro ?? e.introHtml),
+    keyTakeaways,
+    faqs,
   }
 }
 
@@ -1001,12 +1021,17 @@ export function mergePreferApiStatic(
   const nmS = staticBase.nearMeSeo ?? emptyNearMeSeo()
   const nmA = api.nearMeSeo ?? emptyNearMeSeo()
   const nearMeKeywords = pickArr(nmS.keywords, nmA.keywords, nonEmpty)
+  const nearMeTakeaways = pickArr(nmS.keyTakeaways, nmA.keyTakeaways, nonEmpty)
+  const nearMeFaqs = pickArr(nmS.faqs, nmA.faqs, (f) => nonEmpty(f.question))
   const nearMeSeo: NearMeSeoCmsFields = {
     title: pickStr(nmS.title, nmA.title),
     description: pickStr(nmS.description, nmA.description),
     keywords: nearMeKeywords,
     canonicalPath: pickStr(nmS.canonicalPath, nmA.canonicalPath),
     robotsMeta: pickStr(nmS.robotsMeta, nmA.robotsMeta),
+    introHtml: pickStr(nmS.introHtml, nmA.introHtml),
+    keyTakeaways: nearMeTakeaways,
+    faqs: nearMeFaqs,
   }
 
   return {
