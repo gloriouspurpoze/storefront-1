@@ -79,6 +79,7 @@ import {
   sanitizeBlogBodyHtml,
 } from './blog-body-html'
 import { registerQuillTableFormats } from './register-quill-table'
+import { createInsertTableHandler } from '../../lib/quillTableSupport'
 
 registerQuillTableFormats()
 
@@ -693,19 +694,9 @@ export function BlogEditor({ postId = null, onCancel, onSaved }: BlogEditorProps
             quillEditorRef.current = this.quill
             setImportHtmlOpen(true)
           },
-          insertTable: function (this: { quill: Quill }) {
-            quillEditorRef.current = this.quill
-            const mod = this.quill.getModule('table') as { insertTable?: (rows: number, cols: number) => void }
-            if (!mod?.insertTable) {
-              toast({
-                title: 'Table tool unavailable',
-                description: 'Refresh the page and try again.',
-                variant: 'destructive',
-              })
-              return
-            }
-            mod.insertTable(3, 3)
-          },
+          insertTable: createInsertTableHandler({
+            onError: (message) => toast({ title: 'Table tool unavailable', description: message, variant: 'destructive' }),
+          }),
           image: function (this: { quill: Quill }) {
             quillEditorRef.current = this.quill
             const sel = this.quill.getSelection(true)

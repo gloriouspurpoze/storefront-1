@@ -26,7 +26,7 @@ export function SeoPlatformCatalogPriceImportBar({
     )
   }
 
-  const label = catalogLabelMap[normalizeSeoCategorySlug(serviceSlug)] ?? serviceSlug
+  const label = categoryLabelMap[normalizeSeoCategorySlug(serviceSlug)] ?? serviceSlug
 
   return (
     <div className="mb-4 flex flex-wrap items-center gap-2 rounded-md border border-border/60 bg-muted/30 px-3 py-2">

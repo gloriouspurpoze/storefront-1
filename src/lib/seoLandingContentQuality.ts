@@ -5,6 +5,11 @@ import {
   SEO_TITLE_OPTIMAL_MAX_CHARS,
 } from '../components/blog/blog-seo-guidelines'
 import {
+  effectiveSeoLandingMetaDescription,
+  effectiveSeoLandingMetaTitle,
+  stripHtmlForMeta,
+} from './seoLandingEffectiveMeta'
+import {
   estimateSeoLandingWordCount,
   SEO_LANDING_MIN_INTERNAL_LINKS,
   SEO_LANDING_MIN_WORDS,
@@ -37,7 +42,7 @@ export type SeoLandingQualityReport = {
   wordCount: number
 }
 
-const stripHtml = (s?: string) => (s ?? '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+const stripHtml = stripHtmlForMeta
 
 function seoObj(draft: Record<string, unknown>): Record<string, unknown> {
   const seo = draft.seo
@@ -138,43 +143,18 @@ function hasCausesContent(draft: Record<string, unknown>): boolean {
   })
 }
 
-export function effectiveSeoLandingMetaTitle(
-  kind: SeoLandingEntityKind,
-  draft: Record<string, unknown>,
-): { value: string; source: 'seo' | 'page' | 'name' | 'empty' } {
-  const custom = String(seoObj(draft).title ?? '').trim()
-  if (custom) return { value: custom, source: 'seo' }
-  if (kind === 'providers') {
-    const name = String(draft.name ?? '').trim()
-    return name ? { value: `${name} | ProFixer`, source: 'name' } : { value: '', source: 'empty' }
-  }
-  const title = String(draft.title ?? '').trim()
-  return title ? { value: `${title} | ProFixer`, source: 'page' } : { value: '', source: 'empty' }
-}
-
-export function effectiveSeoLandingMetaDescription(
-  kind: SeoLandingEntityKind,
-  draft: Record<string, unknown>,
-): { value: string; source: 'seo' | 'quickAnswer' | 'bio' | 'empty' } {
-  const custom = String(seoObj(draft).description ?? '').trim()
-  if (custom) return { value: custom, source: 'seo' }
-  if (kind === 'providers') {
-    const bio = stripHtml(String(draft.bio ?? ''))
-    return bio ? { value: bio, source: 'bio' } : { value: '', source: 'empty' }
-  }
-  const qa = stripHtml(String(draft.quickAnswer ?? ''))
-  return qa ? { value: qa, source: 'quickAnswer' } : { value: '', source: 'empty' }
-}
-
 function item(
   partial: Omit<SeoLandingQualityItem, 'ok'> & { ok: boolean },
 ): SeoLandingQualityItem {
   return partial
 }
 
+export { effectiveSeoLandingMetaDescription, effectiveSeoLandingMetaTitle } from './seoLandingEffectiveMeta'
+
 export function buildSeoLandingQualityReport(
   kind: SeoLandingEntityKind,
   draft: Record<string, unknown>,
+  catalogLabelMap: Record<string, string> = {},
 ): SeoLandingQualityReport {
   const items: SeoLandingQualityItem[] = []
   const slug = String(draft.slug ?? '').trim()
@@ -184,8 +164,8 @@ export function buildSeoLandingQualityReport(
   const takeaways = takeawayCount(draft)
   const sections = sectionCount(draft)
   const prices = priceRowCount(draft)
-  const metaTitle = effectiveSeoLandingMetaTitle(kind, draft)
-  const metaDesc = effectiveSeoLandingMetaDescription(kind, draft)
+  const metaTitle = effectiveSeoLandingMetaTitle(kind, draft, catalogLabelMap)
+  const metaDesc = effectiveSeoLandingMetaDescription(kind, draft, catalogLabelMap)
   const titleLen = metaTitle.value.length
   const descLen = metaDesc.value.length
   const noindex = Boolean(seoObj(draft).noindex)

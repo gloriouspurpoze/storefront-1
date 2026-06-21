@@ -94,10 +94,14 @@ import {
 } from '../../lib/platformServicesPriceGuide'
 import {
   buildSeoLandingQualityReport,
-  effectiveSeoLandingMetaDescription,
-  effectiveSeoLandingMetaTitle,
   quickSeoLandingPageStatus,
 } from '../../lib/seoLandingContentQuality'
+import {
+  effectiveSeoLandingMetaDescription,
+  effectiveSeoLandingMetaTitle,
+  suggestSeoLandingMetaDescription,
+  suggestSeoLandingMetaTitle,
+} from '../../lib/seoLandingEffectiveMeta'
 import {
   SEO_LANDING_LENGTH_RULES,
   analyzeSeoLandingLengthWarnings,
@@ -411,14 +415,20 @@ export default function SeoLandingPagesManagement() {
   )
 
   const wordCount = useMemo(() => estimateSeoLandingWordCount(kind, draft), [kind, draft])
-  const qualityReport = useMemo(() => buildSeoLandingQualityReport(kind, draft), [kind, draft])
-  const lengthWarnings = useMemo(() => analyzeSeoLandingLengthWarnings(kind, draft), [kind, draft])
+  const qualityReport = useMemo(
+    () => buildSeoLandingQualityReport(kind, draft, catalogLabelMap),
+    [kind, draft, catalogLabelMap],
+  )
+  const lengthWarnings = useMemo(
+    () => analyzeSeoLandingLengthWarnings(kind, draft, catalogLabelMap),
+    [kind, draft, catalogLabelMap],
+  )
   const lengthIssueCount = lengthWarningsNeedAttention(lengthWarnings).length
   const readyToIndex = qualityReport.statusLabel === 'Publish ready'
   const metaPreview = useMemo(() => {
     const slug = normalizeSeoLandingSlug(String(draft.slug ?? selectedSlug))
-    const title = effectiveSeoLandingMetaTitle(kind, draft)
-    const description = effectiveSeoLandingMetaDescription(kind, draft)
+    const title = effectiveSeoLandingMetaTitle(kind, draft, catalogLabelMap)
+    const description = effectiveSeoLandingMetaDescription(kind, draft, catalogLabelMap)
     const canonical = String((draft.seo as Record<string, unknown> | undefined)?.canonicalPath ?? '').trim()
     const origin = 'https://www.profixer.in'
     const path = publicUrlForKind(kind, slug)
@@ -446,9 +456,11 @@ export default function SeoLandingPagesManagement() {
             ? 'Auto from quick answer'
             : description.source === 'bio'
               ? 'Auto from bio'
-              : undefined,
+              : description.source === 'location'
+                ? 'Auto area template'
+                : undefined,
     }
-  }, [kind, draft, selectedSlug])
+  }, [kind, draft, selectedSlug, catalogLabelMap])
   const tabNeedsAttention = useCallback(
     (tab: EditorTab) =>
       qualityReport.items.some((i) => i.tab === tab && !i.ok && i.priority === 'required') ||
@@ -817,7 +829,7 @@ export default function SeoLandingPagesManagement() {
       </SectionCard>
       <SectionCard
         title="Search appearance"
-        description="Leave blank to auto-generate from title + quick answer on the consumer site."
+        description="Matches profixer.in — leave blank to auto-generate from H1, area & quick answer. Use Suggest to lock in publish-ready copy."
       >
       <SeoLandingSerpPreview
         title={metaPreview.title}
@@ -828,49 +840,108 @@ export default function SeoLandingPagesManagement() {
         className="mb-4 rounded-lg border border-border/60 bg-muted/20 p-4"
       />
       <div className="space-y-2">
-        <Label>SEO title</Label>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Label>SEO title</Label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={!canMutate}
+            onClick={() => {
+              const suggested = suggestSeoLandingMetaTitle(kind, draft, catalogLabelMap)
+              if (!suggested) {
+                appToast('Add a page title (H1) in Setup first', 'error')
+                return
+              }
+              patchDraft({ seo: { ...(draft.seo as object), title: suggested } })
+            }}
+          >
+            Suggest from page
+          </Button>
+        </div>
         <Input
           value={String((draft.seo as Record<string, unknown>)?.title ?? '')}
           onChange={(e) => patchDraft({ seo: { ...(draft.seo as object), title: e.target.value } })}
-          placeholder="AC Repair Cost in Mira Bhayandar (2026) | ProFixer"
+          placeholder={metaPreview.title || 'AC Repair Cost in Mira Bhayandar (2026) | ProFixer'}
         />
         <FieldHint>
-          Aim 50–60 chars · {String((draft.seo as Record<string, unknown>)?.title ?? '').length}/60
+          Aim 50–60 chars · custom{' '}
+          {String((draft.seo as Record<string, unknown>)?.title ?? '').length}/60
+          {!String((draft.seo as Record<string, unknown>)?.title ?? '').trim() ? (
+            <>
+              {' '}
+              · live preview {metaPreview.title.length} chars
+            </>
+          ) : null}
         </FieldHint>
         <SeoContentLengthHint
           warning={
-            String((draft.seo as Record<string, unknown>)?.title ?? '').trim()
-              ? evaluateLength(
-                  'meta-title',
-                  'SEO title',
-                  String((draft.seo as Record<string, unknown>)?.title ?? ''),
-                  SEO_LANDING_LENGTH_RULES.metaTitle,
-                )
-              : null
+            (() => {
+              const custom = String((draft.seo as Record<string, unknown>)?.title ?? '').trim()
+              const value = custom || metaPreview.title
+              return value
+                ? evaluateLength(
+                    'meta-title',
+                    custom ? 'SEO title' : 'Meta title (live)',
+                    value,
+                    SEO_LANDING_LENGTH_RULES.metaTitle,
+                  )
+                : null
+            })()
           }
           compact
         />
       </div>
       <div className="space-y-2">
-        <Label>Meta description</Label>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Label>Meta description</Label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={!canMutate}
+            onClick={() => {
+              const suggested = suggestSeoLandingMetaDescription(kind, draft, catalogLabelMap)
+              if (!suggested) {
+                appToast('Add a quick answer in Content first', 'error')
+                return
+              }
+              patchDraft({ seo: { ...(draft.seo as object), description: suggested } })
+            }}
+          >
+            Suggest from quick answer
+          </Button>
+        </div>
         <Textarea
-          rows={2}
+          rows={3}
           value={String((draft.seo as Record<string, unknown>)?.description ?? '')}
           onChange={(e) => patchDraft({ seo: { ...(draft.seo as object), description: e.target.value } })}
+          placeholder={metaPreview.description || 'Indicative charges, verified pros, same-day slots…'}
         />
         <FieldHint>
-          Aim 150–160 chars · {String((draft.seo as Record<string, unknown>)?.description ?? '').length}/160
+          Aim 150–160 chars · custom{' '}
+          {String((draft.seo as Record<string, unknown>)?.description ?? '').length}/160
+          {!String((draft.seo as Record<string, unknown>)?.description ?? '').trim() ? (
+            <>
+              {' '}
+              · live preview {metaPreview.description.length} chars
+            </>
+          ) : null}
         </FieldHint>
         <SeoContentLengthHint
           warning={
-            String((draft.seo as Record<string, unknown>)?.description ?? '').trim()
-              ? evaluateLength(
-                  'meta-description',
-                  'Meta description',
-                  String((draft.seo as Record<string, unknown>)?.description ?? ''),
-                  SEO_LANDING_LENGTH_RULES.metaDescription,
-                )
-              : null
+            (() => {
+              const custom = String((draft.seo as Record<string, unknown>)?.description ?? '').trim()
+              const value = custom || metaPreview.description
+              return value
+                ? evaluateLength(
+                    'meta-description',
+                    custom ? 'Meta description' : 'Meta description (live)',
+                    value,
+                    SEO_LANDING_LENGTH_RULES.metaDescription,
+                  )
+                : null
+            })()
           }
           compact
         />
@@ -1192,9 +1263,10 @@ export default function SeoLandingPagesManagement() {
             onChange={(html) => patchDraft({ quickAnswer: html })}
             disabled={!canMutate}
             placeholder="Direct answer for AI Overviews — 40+ characters of plain text minimum."
-            helperText={`${stripHtmlPlain(String(draft.quickAnswer ?? '')).length}/40 characters minimum (HTML tags excluded)`}
+            helperText={`${stripHtmlPlain(String(draft.quickAnswer ?? '')).length}/40 characters minimum (HTML tags excluded). Use image or ☁ for diagrams/photos.`}
             height={160}
             showCharCount
+            enableImages
           />
           <SeoContentLengthHint
             warning={evaluateLength(

@@ -3,6 +3,10 @@
  * Heuristics for readability, SERP display, and thin/ bloated content — not ranking factors.
  */
 import type { ContentSection } from '../types/seoLandingSections'
+import {
+  effectiveSeoLandingMetaDescription,
+  effectiveSeoLandingMetaTitle,
+} from './seoLandingEffectiveMeta'
 import type { SeoLandingEntityKind } from './seoLandingPageKinds'
 
 export type LengthUnit = 'chars' | 'words' | 'count'
@@ -363,6 +367,7 @@ export function analyzeContentSectionWarnings(section: ContentSection, index: nu
 export function analyzeSeoLandingLengthWarnings(
   kind: SeoLandingEntityKind,
   draft: Record<string, unknown>,
+  catalogLabelMap: Record<string, string> = {},
 ): LengthWarning[] {
   const warnings: LengthWarning[] = []
 
@@ -489,15 +494,24 @@ export function analyzeSeoLandingLengthWarnings(
   const seo = draft.seo && typeof draft.seo === 'object' ? (draft.seo as Record<string, unknown>) : {}
   const customTitle = String(seo.title ?? '').trim()
   const customDesc = String(seo.description ?? '').trim()
-  if (customTitle) {
-    const w = evaluateLength('meta-title', 'SEO title', customTitle, SEO_LANDING_LENGTH_RULES.metaTitle, 'seo')
+  const liveTitle = customTitle || effectiveSeoLandingMetaTitle(kind, draft, catalogLabelMap).value
+  const liveDesc = customDesc || effectiveSeoLandingMetaDescription(kind, draft, catalogLabelMap).value
+
+  if (liveTitle) {
+    const w = evaluateLength(
+      'meta-title',
+      customTitle ? 'SEO title' : 'Meta title (live)',
+      liveTitle,
+      SEO_LANDING_LENGTH_RULES.metaTitle,
+      'seo',
+    )
     if (w) warnings.push(w)
   }
-  if (customDesc) {
+  if (liveDesc) {
     const w = evaluateLength(
       'meta-description',
-      'Meta description',
-      customDesc,
+      customDesc ? 'Meta description' : 'Meta description (live)',
+      liveDesc,
       SEO_LANDING_LENGTH_RULES.metaDescription,
       'seo',
     )

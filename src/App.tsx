@@ -18,6 +18,7 @@ import { LoadingProvider } from './components/providers/LoadingProvider'
 import { ToastProvider } from './components/providers/ToastProvider'
 import { AppDialogsProvider } from './components/providers/AppDialogsProvider'
 import { Toaster } from './components/ui'
+import { QuillTableInsertDialog } from './components/forms/QuillTableInsertDialog'
 import type { Permission } from './types/rbac.types'
 
 // Route-level code splitting (industry standard for performance)
@@ -1942,6 +1943,7 @@ function App() {
             <CommandPalette />
           {/* shadcn/ui Toaster */}
           <Toaster />
+          <QuillTableInsertDialog />
           <ToastProvider />
           <LoadingProvider />
           </CommandPaletteProvider>
