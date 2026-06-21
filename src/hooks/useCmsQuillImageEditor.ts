@@ -6,7 +6,13 @@ import {
   buildCmsQuillModules,
   type CmsQuillToolbarPreset,
 } from '../lib/cmsQuillImage'
+import {
+  applyCmsImageLayoutAtIndex,
+  type CmsImageLayout,
+} from '../lib/quillCmsImage'
+import { layoutOptionsFromFields } from '../components/cms/CmsQuillImageLayoutFields'
 import { useToast } from '../components/ui/use-toast'
+import '../lib/quillCmsImage'
 
 const CLOUDINARY_LIBRARY_LIMIT = 48
 
@@ -24,6 +30,9 @@ export function useCmsQuillImageEditor(params: {
   const [altDialogOpen, setAltDialogOpen] = useState(false)
   const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null)
   const [altDraft, setAltDraft] = useState('')
+  const [layoutDraft, setLayoutDraft] = useState<CmsImageLayout>('float-right')
+  const [widthDraft, setWidthDraft] = useState<number | 'full' | ''>(240)
+  const [heightDraft, setHeightDraft] = useState<number | 'auto' | ''>('auto')
 
   const [cloudinaryOpen, setCloudinaryOpen] = useState(false)
   const [cloudinaryLoading, setCloudinaryLoading] = useState(false)
@@ -35,6 +44,9 @@ export function useCmsQuillImageEditor(params: {
     pendingIndexRef.current = insertIndex
     setPendingImageUrl(url)
     setAltDraft('')
+    setLayoutDraft('float-right')
+    setWidthDraft(240)
+    setHeightDraft('auto')
     setAltDialogOpen(true)
   }, [])
 
@@ -81,13 +93,16 @@ export function useCmsQuillImageEditor(params: {
     }
     const idx = pendingIndexRef.current
     editor.insertEmbed(idx, 'image', url, 'user')
-    editor.formatText(idx, 1, { alt }, 'user')
+    applyCmsImageLayoutAtIndex(editor, idx, {
+      alt,
+      ...layoutOptionsFromFields(layoutDraft, widthDraft, heightDraft),
+    })
     editor.setSelection(idx + 1, 0)
     setAltDialogOpen(false)
     setPendingImageUrl(null)
     setAltDraft('')
-    toast({ title: 'Image inserted', description: 'Alt text saved with this image.' })
-  }, [altDraft, pendingImageUrl, toast])
+    toast({ title: 'Image inserted', description: 'Layout and alt text saved.' })
+  }, [altDraft, heightDraft, layoutDraft, pendingImageUrl, toast, widthDraft])
 
   const cancelAlt = useCallback(() => {
     setAltDialogOpen(false)
@@ -125,6 +140,12 @@ export function useCmsQuillImageEditor(params: {
     pendingImageUrl,
     altDraft,
     setAltDraft,
+    layoutDraft,
+    setLayoutDraft,
+    widthDraft,
+    setWidthDraft,
+    heightDraft,
+    setHeightDraft,
     confirmAlt,
     cancelAlt,
     cloudinaryOpen,

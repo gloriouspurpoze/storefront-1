@@ -2459,13 +2459,12 @@ export default function CategoryMarketingManagement() {
                       height={240}
                       placeholder="Two short paragraphs: who you serve in this area and what happens after booking."
                       helperText="Tip: keep the primary keyword in the first paragraph; use lists and images for skimmable trust points."
-                      preview={
+                      previewContext={
                         config.intro.trim() ? (
                           <>
                             {config.mainHeading.trim() ? (
                               <h2 className="mb-2 text-lg font-bold text-foreground">{config.mainHeading}</h2>
                             ) : null}
-                            <ConsumerPreviewRichHtml html={config.intro} />
                           </>
                         ) : undefined
                       }

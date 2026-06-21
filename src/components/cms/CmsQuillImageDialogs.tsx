@@ -2,12 +2,20 @@ import React from 'react'
 import { ImageIcon, X } from 'lucide-react'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
+import type { CmsImageLayout } from '../../lib/quillCmsImage'
+import { CmsQuillImageLayoutFields } from './CmsQuillImageLayoutFields'
 
 type AltDialogProps = {
   open: boolean
   pendingImageUrl: string | null
   altDraft: string
+  layout: CmsImageLayout
+  widthPx: number | 'full' | ''
+  heightPx: number | 'auto' | ''
   onAltChange: (value: string) => void
+  onLayoutChange: (layout: CmsImageLayout) => void
+  onWidthChange: (width: number | 'full' | '') => void
+  onHeightChange: (height: number | 'auto' | '') => void
   onConfirm: () => void
   onCancel: () => void
 }
@@ -16,17 +24,23 @@ export function CmsQuillAltTextDialog({
   open,
   pendingImageUrl,
   altDraft,
+  layout,
+  widthPx,
+  heightPx,
   onAltChange,
+  onLayoutChange,
+  onWidthChange,
+  onHeightChange,
   onConfirm,
   onCancel,
 }: AltDialogProps) {
   if (!open) return null
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-lg border border-border bg-card p-5 shadow-xl">
-        <h3 className="text-base font-semibold">Image alt text (required)</h3>
+      <div className="w-full max-w-md rounded-lg border border-border bg-card p-5 shadow-xl max-h-[90vh] overflow-y-auto">
+        <h3 className="text-base font-semibold">Insert image</h3>
         <p className="mt-1 text-xs text-muted-foreground">
-          Describe what the image shows — used for accessibility and Google Image search.
+          Alt text is required. Pick left/right float so text wraps beside the image on the live site.
         </p>
         {pendingImageUrl ? (
           <div className="mt-3 overflow-hidden rounded-md border border-border/60 bg-muted/30">
@@ -39,6 +53,14 @@ export function CmsQuillAltTextDialog({
           onChange={(e) => onAltChange(e.target.value)}
           placeholder="e.g. Technician checking AC gas pressure gauge"
           autoFocus
+        />
+        <CmsQuillImageLayoutFields
+          layout={layout}
+          widthPx={widthPx}
+          heightPx={heightPx}
+          onLayoutChange={onLayoutChange}
+          onWidthChange={onWidthChange}
+          onHeightChange={onHeightChange}
         />
         <div className="mt-4 flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={onCancel}>

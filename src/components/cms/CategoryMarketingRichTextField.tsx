@@ -10,7 +10,10 @@ import {
   CATEGORY_MARKETING_BODY_CLOUDINARY_FOLDER,
   CMS_QUILL_FULL_FORMATS_WITH_IMAGE,
 } from '../../lib/cmsQuillImage'
+import { cmsRichImageLayoutCss } from '../../lib/quillCmsImage'
 import { quillTableEditorCss } from '../../lib/quillTableSupport'
+import { QuillImageLayoutBar } from './QuillImageLayoutBar'
+import { RichTextPreview } from '../forms/RichTextPreview'
 import 'react-quill-new/dist/quill.snow.css'
 
 export interface CategoryMarketingRichTextFieldProps {
@@ -23,7 +26,10 @@ export interface CategoryMarketingRichTextFieldProps {
   disabled?: boolean
   placeholder?: string
   height?: number
-  preview?: React.ReactNode
+  /** Live preview below editor. Default on. */
+  showPreview?: boolean
+  /** Optional content shown above preview body (e.g. page heading). */
+  previewContext?: React.ReactNode
 }
 
 export function CategoryMarketingRichTextField({
@@ -36,9 +42,11 @@ export function CategoryMarketingRichTextField({
   disabled = false,
   placeholder = 'Start typing…',
   height = 200,
-  preview,
+  showPreview = true,
+  previewContext,
 }: CategoryMarketingRichTextFieldProps) {
   const [editorReady, setEditorReady] = useState(false)
+  const [selectionTick, setSelectionTick] = useState(0)
   const image = useCmsQuillImageEditor({
     folder: CATEGORY_MARKETING_BODY_CLOUDINARY_FOLDER,
     toolbarPreset: 'category-marketing',
@@ -63,6 +71,16 @@ export function CategoryMarketingRichTextField({
         ) : null}
       </div>
 
+      <QuillImageLayoutBar
+        quill={editorReady ? image.quillRef.current?.getEditor() ?? null : null}
+        selectionTick={selectionTick}
+        disabled={disabled}
+        onApplied={() => {
+          const rq = image.quillRef.current
+          if (rq) onChange(rq.getEditor().root.innerHTML)
+        }}
+      />
+
       <div
         className={cn(
           'category-marketing-rte',
@@ -85,6 +103,7 @@ export function CategoryMarketingRichTextField({
             height: auto;
             border-radius: 0.375rem;
           }
+          ${cmsRichImageLayoutCss('category-marketing-rte')}
           ${quillTableEditorCss('category-marketing-rte')}
         `}</style>
         {editorReady ? (
@@ -93,6 +112,7 @@ export function CategoryMarketingRichTextField({
             theme="snow"
             value={value}
             onChange={onChange}
+            onChangeSelection={() => setSelectionTick((n) => n + 1)}
             modules={image.quillModules as ReactQuill.ReactQuillProps['modules']}
             formats={[...CMS_QUILL_FULL_FORMATS_WITH_IMAGE]}
             placeholder={placeholder}
@@ -109,23 +129,28 @@ export function CategoryMarketingRichTextField({
       </div>
 
       <p className={cn('text-xs', error ? 'text-destructive' : 'text-muted-foreground')}>
-        {error || helperText || 'Toolbar: headings, lists, links, tables (▦), image upload (alt required), Cloudinary library.'}
+        {error || helperText || 'Headings, lists, links, tables (▦), images with left/right float. Click an image to adjust layout.'}
       </p>
 
-      {preview ? (
-        <div className="rounded-lg border border-dashed border-primary/30 bg-muted/20 p-3">
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Live preview (consumer style)
-          </p>
-          {preview}
-        </div>
+      {showPreview ? (
+        <RichTextPreview
+          html={value}
+          variant="marketing"
+          context={previewContext}
+        />
       ) : null}
 
       <CmsQuillAltTextDialog
         open={image.altDialogOpen}
         pendingImageUrl={image.pendingImageUrl}
         altDraft={image.altDraft}
+        layout={image.layoutDraft}
+        widthPx={image.widthDraft}
+        heightPx={image.heightDraft}
         onAltChange={image.setAltDraft}
+        onLayoutChange={image.setLayoutDraft}
+        onWidthChange={image.setWidthDraft}
+        onHeightChange={image.setHeightDraft}
         onConfirm={image.confirmAlt}
         onCancel={image.cancelAlt}
       />

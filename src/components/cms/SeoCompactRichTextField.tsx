@@ -10,7 +10,10 @@ import {
   CMS_QUILL_COMPACT_FORMATS_WITH_IMAGE,
   SEO_LANDING_QUICK_ANSWER_CLOUDINARY_FOLDER,
 } from '../../lib/cmsQuillImage'
+import { cmsRichImageLayoutCss } from '../../lib/quillCmsImage'
 import { mergeFormatsWithTableSupport, mergeModulesWithTableSupport, quillTableEditorCss } from '../../lib/quillTableSupport'
+import { QuillImageLayoutBar } from './QuillImageLayoutBar'
+import { RichTextPreview } from '../forms/RichTextPreview'
 import 'react-quill-new/dist/quill.snow.css'
 
 const COMPACT_MODULES = mergeModulesWithTableSupport({
@@ -43,6 +46,8 @@ export interface SeoCompactRichTextFieldProps {
   showCharCount?: boolean
   /** Upload + Cloudinary library for inline images (alt text required). */
   enableImages?: boolean
+  /** Live preview below editor. Default on. */
+  showPreview?: boolean
 }
 
 class QuillGuard extends Component<
@@ -76,8 +81,10 @@ export function SeoCompactRichTextField({
   height = 140,
   showCharCount,
   enableImages = false,
+  showPreview = true,
 }: SeoCompactRichTextFieldProps) {
   const [editorReady, setEditorReady] = useState(false)
+  const [selectionTick, setSelectionTick] = useState(0)
   const image = useCmsQuillImageEditor({
     folder: SEO_LANDING_QUICK_ANSWER_CLOUDINARY_FOLDER,
     toolbarPreset: 'compact',
@@ -101,6 +108,8 @@ export function SeoCompactRichTextField({
         formats={COMPACT_FORMATS}
         enableTables
         showCharCount={showCharCount}
+        showPreview={showPreview}
+        previewVariant="compact"
       />
     )
   }
@@ -118,6 +127,16 @@ export function SeoCompactRichTextField({
           </span>
         ) : null}
       </div>
+
+      <QuillImageLayoutBar
+        quill={editorReady ? image.quillRef.current?.getEditor() ?? null : null}
+        selectionTick={selectionTick}
+        disabled={disabled}
+        onApplied={() => {
+          const rq = image.quillRef.current
+          if (rq) onChange(rq.getEditor().root.innerHTML)
+        }}
+      />
 
       <div
         className={cn(
@@ -141,6 +160,7 @@ export function SeoCompactRichTextField({
             height: auto;
             border-radius: 0.375rem;
           }
+          ${cmsRichImageLayoutCss('seo-compact-rte')}
           ${quillTableEditorCss('seo-compact-rte')}
         `}</style>
         {editorReady ? (
@@ -162,6 +182,7 @@ export function SeoCompactRichTextField({
               theme="snow"
               value={value}
               onChange={onChange}
+              onChangeSelection={() => setSelectionTick((n) => n + 1)}
               modules={image.quillModules as ReactQuill.ReactQuillProps['modules']}
               formats={[...CMS_QUILL_COMPACT_FORMATS_WITH_IMAGE]}
               placeholder={placeholder}
@@ -179,17 +200,27 @@ export function SeoCompactRichTextField({
       </div>
 
       <p className="mt-1.5 text-sm text-muted-foreground">
-        {helperText || 'Bold, lists, links, tables (▦), image upload (alt required), Cloudinary library (☁).'}
+        {helperText || 'Bold, lists, links, tables (▦), images with left/right float, Cloudinary (☁). Click an image to adjust layout.'}
       </p>
       {showCharCount ? (
         <p className="mt-0.5 text-xs text-muted-foreground">{charCount} characters (HTML excluded)</p>
+      ) : null}
+
+      {showPreview ? (
+        <RichTextPreview html={value} variant="quick-answer" />
       ) : null}
 
       <CmsQuillAltTextDialog
         open={image.altDialogOpen}
         pendingImageUrl={image.pendingImageUrl}
         altDraft={image.altDraft}
+        layout={image.layoutDraft}
+        widthPx={image.widthDraft}
+        heightPx={image.heightDraft}
         onAltChange={image.setAltDraft}
+        onLayoutChange={image.setLayoutDraft}
+        onWidthChange={image.setWidthDraft}
+        onHeightChange={image.setHeightDraft}
         onConfirm={image.confirmAlt}
         onCancel={image.cancelAlt}
       />

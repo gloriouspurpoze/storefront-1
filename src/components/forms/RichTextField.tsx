@@ -9,6 +9,7 @@ import {
   mergeModulesWithTableSupport,
   quillTableEditorCss,
 } from '../../lib/quillTableSupport'
+import { RichTextPreview, type RichTextPreviewVariant } from './RichTextPreview'
 import 'react-quill-new/dist/quill.snow.css'
 
 /** Stable references — `react-quill-new` treats unequal `modules` as a full editor teardown/rebuild. */
@@ -83,6 +84,11 @@ export interface RichTextFieldProps {
   maxLength?: number
   /** Insert HTML tables via toolbar (▦). Default on. */
   enableTables?: boolean
+  /** Live consumer-style preview below the editor. Default on. */
+  showPreview?: boolean
+  previewVariant?: RichTextPreviewVariant
+  /** Optional content above preview (e.g. related heading). */
+  previewContext?: React.ReactNode
 }
 
 const StatusIcon = ({ status }: { status?: RichTextFieldProps['status'] }) => {
@@ -120,6 +126,9 @@ export const RichTextField: React.FC<RichTextFieldProps> = ({
   showCharCount = false,
   maxLength,
   enableTables = true,
+  showPreview = true,
+  previewVariant = 'default',
+  previewContext,
 }) => {
   const quillRef = useRef<ReactQuill>(null)
   /** Mount Quill after DOM commit (layout phase) — fewer races with React 19 concurrent passes than useEffect. */
@@ -211,6 +220,10 @@ export const RichTextField: React.FC<RichTextFieldProps> = ({
           </div>
         )}
       </div>
+
+      {showPreview ? (
+        <RichTextPreview html={value} variant={previewVariant} context={previewContext} />
+      ) : null}
 
       <div className="mt-1.5 flex items-center justify-between gap-2">
         <p className={cn('m-0 text-sm', error ? 'text-destructive' : 'text-muted-foreground')}>

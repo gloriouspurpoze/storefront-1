@@ -107,6 +107,10 @@ export const CMS_QUILL_COMPACT_FORMATS_WITH_IMAGE = mergeFormatsWithTableSupport
   'bullet',
   'link',
   'image',
+  'width',
+  'height',
+  'alt',
+  'data-layout',
 ])
 
 export const CMS_QUILL_FULL_FORMATS_WITH_IMAGE = mergeFormatsWithTableSupport([
@@ -123,4 +127,8 @@ export const CMS_QUILL_FULL_FORMATS_WITH_IMAGE = mergeFormatsWithTableSupport([
   'align',
   'link',
   'image',
+  'width',
+  'height',
+  'alt',
+  'data-layout',
 ])
