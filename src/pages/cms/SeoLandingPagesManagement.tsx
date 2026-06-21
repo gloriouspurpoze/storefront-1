@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ExternalLink,
   FileSearch,
+  Filter,
   Loader2,
   Plus,
   Save,
@@ -38,6 +39,7 @@ import { SeoLandingInternalLinksEditor } from '../../components/cms/SeoLandingIn
 import { SeoCompactRichTextField } from '../../components/cms/SeoCompactRichTextField'
 import { SeoLandingKeyTakeawaysEditor } from '../../components/cms/SeoLandingKeyTakeawaysEditor'
 import { SeoCuratedMultiSelect, SeoCuratedSingleSelect } from '../../components/cms/SeoCuratedPickers'
+import { SeoLandingPublishPanel } from '../../components/cms/SeoLandingPublishPanel'
 import { SeoLandingPageHealthPanel } from '../../components/cms/SeoLandingPageHealthPanel'
 import { SeoPlatformCatalogPriceImportBar } from '../../components/cms/SeoPlatformCatalogPriceImportBar'
 import { SeoLandingSerpPreview } from '../../components/cms/SeoLandingSerpPreview'
@@ -76,6 +78,8 @@ import {
 } from '../../lib/seoLandingSuggestLinks'
 import {
   buildSeoCategoryPickerOptions,
+  buildGlobalSeoCategoryFilterOptions,
+  countSeoPagesForKindAndCategory,
   fetchPlatformServicesForSeoCategory,
   filterKnownSeoCategorySlugs,
   getSeoPageCategorySlugs,
@@ -96,6 +100,7 @@ import {
   buildSeoLandingQualityReport,
   quickSeoLandingPageStatus,
 } from '../../lib/seoLandingContentQuality'
+import { validateSeoLandingForConsumer } from '../../lib/seoLandingConsumerValidation'
 import {
   effectiveSeoLandingMetaDescription,
   effectiveSeoLandingMetaTitle,
@@ -287,6 +292,32 @@ async function saveKindRecord(kind: SeoLandingEntityKind, data: Record<string, u
   }
 }
 
+function parseKindRecordMap(raw: Record<string, unknown>): Record<string, EntityDraft> {
+  const map: Record<string, EntityDraft> = {}
+  if (raw && typeof raw === 'object') {
+    for (const [key, value] of Object.entries(raw)) {
+      if (value && typeof value === 'object') {
+        map[key] = { ...(value as EntityDraft), slug: key }
+      }
+    }
+  }
+  return map
+}
+
+/** Lightweight index of all page kinds for global category filter counts. */
+async function fetchAllKindRecordsForIndex(): Promise<
+  Partial<Record<SeoLandingEntityKind, Record<string, EntityDraft>>>
+> {
+  const kinds = SEO_LANDING_KINDS.map((k) => k.id).filter((k) => seoLandingKindHasCategoryFilter(k))
+  const entries = await Promise.all(
+    kinds.map(async (k) => {
+      const raw = await fetchKindRecord(k)
+      return [k, parseKindRecordMap(raw)] as const
+    }),
+  )
+  return Object.fromEntries(entries)
+}
+
 function FieldHint({ children }: { children: React.ReactNode }) {
   return <p className="text-xs text-muted-foreground leading-relaxed">{children}</p>
 }
@@ -335,6 +366,9 @@ export default function SeoLandingPagesManagement() {
   const [pageSearch, setPageSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [categoryRecords, setCategoryRecords] = useState<Category[]>([])
+  const [allKindIndex, setAllKindIndex] = useState<
+    Partial<Record<SeoLandingEntityKind, Record<string, EntityDraft>>>
+  >({})
   const [priceGuideImporting, setPriceGuideImporting] = useState(false)
 
   const meta = kindMeta(kind)
@@ -355,40 +389,10 @@ export default function SeoLandingPagesManagement() {
     [catalogOptions],
   )
 
-  const sidebarCategoryFilterOptions = useMemo(() => {
-    const counts = new Map<string, number>()
-    let uncategorized = 0
-    for (const s of slugs) {
-      const cats = getSeoPageCategorySlugs(kind, records[s] ?? {})
-      if (cats.length === 0) {
-        uncategorized++
-      } else {
-        const seen = new Set<string>()
-        for (const c of cats) {
-          if (seen.has(c)) continue
-          seen.add(c)
-          counts.set(c, (counts.get(c) ?? 0) + 1)
-        }
-      }
-    }
-    const opts: { value: string; label: string; hint?: string }[] = []
-    for (const o of catalogCuratedOptions) {
-      const n = counts.get(o.value)
-      if (n && n > 0) {
-        opts.push({ value: o.value, label: o.label, hint: `${n}` })
-      }
-    }
-    for (const [c, n] of counts) {
-      if (!opts.some((o) => o.value === c)) {
-        opts.push({ value: c, label: catalogLabelMap[c] ?? c, hint: `${n}` })
-      }
-    }
-    opts.sort((a, b) => a.label.localeCompare(b.label))
-    if (uncategorized > 0) {
-      opts.push({ value: '__uncategorized__', label: 'Uncategorized', hint: `${uncategorized}` })
-    }
-    return opts
-  }, [slugs, records, kind, catalogCuratedOptions, catalogLabelMap])
+  const globalCategoryFilterOptions = useMemo(
+    () => buildGlobalSeoCategoryFilterOptions(allKindIndex, catalogCuratedOptions, catalogLabelMap),
+    [allKindIndex, catalogCuratedOptions, catalogLabelMap],
+  )
 
   const filteredSlugs = useMemo(() => {
     const q = pageSearch.trim().toLowerCase()
@@ -476,15 +480,9 @@ export default function SeoLandingPagesManagement() {
     try {
       setLoading(true)
       const raw = await fetchKindRecord(kind)
-      const map: Record<string, EntityDraft> = {}
-      if (raw && typeof raw === 'object') {
-        for (const [key, value] of Object.entries(raw)) {
-          if (value && typeof value === 'object') {
-            map[key] = { ...(value as EntityDraft), slug: key }
-          }
-        }
-      }
+      const map = parseKindRecordMap(raw)
       setRecords(map)
+      setAllKindIndex((prev) => ({ ...prev, [kind]: map }))
       const first = Object.keys(map).sort()[0] ?? ''
       setSelectedSlug((prev) => (prev && map[prev] ? prev : first))
       setEditorTab('setup')
@@ -498,12 +496,24 @@ export default function SeoLandingPagesManagement() {
     }
   }, [kind])
 
+  const refreshCategoryIndex = useCallback(async () => {
+    try {
+      const index = await fetchAllKindRecordsForIndex()
+      setAllKindIndex(index)
+    } catch {
+      /* non-blocking */
+    }
+  }, [])
+
   useEffect(() => {
     load()
   }, [load])
 
   useEffect(() => {
-    setCategoryFilter('')
+    void refreshCategoryIndex()
+  }, [refreshCategoryIndex])
+
+  useEffect(() => {
     setPageSearch('')
   }, [kind])
 
@@ -548,18 +558,53 @@ export default function SeoLandingPagesManagement() {
     }
     const oldKey = selectedSlug
     const newKey = oldKey ? normalizeSeoLandingSlug(String(records[oldKey]?.slug ?? oldKey)) : ''
+
+    let autoNoindexCount = 0
+    const payload: Record<string, EntityDraft> = {}
+    for (const [key, row] of Object.entries(prepared.payload)) {
+      const v = validateSeoLandingForConsumer(kind, row)
+      const seo = (row.seo && typeof row.seo === 'object' ? row.seo : {}) as Record<string, unknown>
+      if (!v.ok && !seo.noindex) {
+        payload[key] = { ...row, seo: { ...seo, noindex: true } }
+        autoNoindexCount++
+      } else {
+        payload[key] = row
+      }
+    }
+
     try {
       setSaving(true)
-      await saveKindRecord(kind, prepared.payload)
-      setRecords(prepared.payload)
+      await saveKindRecord(kind, payload)
+      setRecords(payload)
+      setAllKindIndex((prev) => ({ ...prev, [kind]: payload }))
       if (newKey) setSelectedSlug(newKey)
-      appToast(`${meta.label} saved.`, 'success')
+      if (autoNoindexCount > 0) {
+        appToast(
+          `${meta.label} saved. ${autoNoindexCount} page(s) kept as draft (noindex) until quality gates pass.`,
+          'success',
+        )
+      } else {
+        appToast(`${meta.label} saved.`, 'success')
+      }
+      void refreshCategoryIndex()
     } catch (e: unknown) {
       console.error(e)
       appToast('Save failed — check API static-content route is provisioned.', 'error')
     } finally {
       setSaving(false)
     }
+  }
+
+  const handlePublishToGoogle = async () => {
+    if (!canMutate || !selectedSlug) return
+    const v = validateSeoLandingForConsumer(kind, draft)
+    if (!v.ok) {
+      appToast('Fix required checklist items before publishing to Google.', 'error')
+      setEditorTab(v.errors.some((e) => e.includes('Quick answer') || e.includes('takeaway')) ? 'content' : 'setup')
+      return
+    }
+    patchDraft({ seo: { ...(draft.seo as object), noindex: false } })
+    appToast('Indexing enabled — click Save to push live.', 'success')
   }
 
   const addSlug = () => {
@@ -613,8 +658,11 @@ export default function SeoLandingPagesManagement() {
   const draftSlug = normalizeSeoLandingSlug(String(draft.slug ?? selectedSlug))
   const slugPendingRename = Boolean(selectedSlug && draftSlug && draftSlug !== selectedSlug)
   const schemaPreview = useMemo(
-    () => (selectedSlug ? buildSeoLandingSchemaPreview(kind, draftSlug || selectedSlug, draft) : null),
-    [kind, selectedSlug, draftSlug, draft],
+    () =>
+      selectedSlug
+        ? buildSeoLandingSchemaPreview(kind, draftSlug || selectedSlug, draft, catalogLabelMap)
+        : null,
+    [kind, selectedSlug, draftSlug, draft, catalogLabelMap],
   )
   const preferredCategory = serviceSlug ? getPreferredServiceCategoryUrlSlug(serviceSlug) : ''
   const localityName =
@@ -753,8 +801,8 @@ export default function SeoLandingPagesManagement() {
 
   const categoryLocationBlock = showCategoryLocation ? (
     <SectionCard
-      title="Category & location"
-      description="Pick from the live service catalog — slugs must match Categories and Service areas admin."
+      title="Local SEO — category & area"
+      description="Required for Service + LocalBusiness schema, local meta titles, and booking/near-me internal links."
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <SeoCuratedSingleSelect
@@ -802,6 +850,17 @@ export default function SeoLandingPagesManagement() {
 
   const seoBlock = (
     <>
+      <SeoLandingPublishPanel
+        kind={kind}
+        draft={draft}
+        slug={draftSlug || selectedSlug}
+        catalogLabelMap={catalogLabelMap}
+        derivedServiceUrl={derivedServiceUrl}
+        derivedNearMeUrl={derivedNearMeUrl}
+        canMutate={canMutate}
+        onPublish={() => void handlePublishToGoogle()}
+        onSetNoindex={(value) => patchDraft({ seo: { ...(draft.seo as object), noindex: value } })}
+      />
       <SectionCard
         title="Structured data (JSON-LD)"
         description={SCHEMA_INDUSTRY_NOTES[kind]}
@@ -1389,7 +1448,7 @@ export default function SeoLandingPagesManagement() {
     <div className="flex min-h-0 flex-col p-4 sm:p-6 md:p-8">
       <PageHeader
         title="SEO landing pages"
-        subtitle="Programmatic content for problems, charges, guides, areas, providers & local money pages — synced to profixer.in via CMS blobs."
+        subtitle="Create, optimize & publish programmatic pages for Google — problems, charges, guides, areas & local money pages. Synced to profixer.in."
         action={
           <Button onClick={handleSave} disabled={saving || !canMutate || loading}>
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
@@ -1398,11 +1457,66 @@ export default function SeoLandingPagesManagement() {
         }
       />
 
+      {/* Global service category filter — persists across Problems / Charges / Guides tabs */}
+      <Card className="mt-6 border-primary/15 bg-muted/20">
+        <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Filter className="h-5 w-5" aria-hidden />
+            </div>
+            <div className="min-w-0 space-y-1">
+              <Label className="text-sm font-semibold">Filter by service category</Label>
+              <p className="text-xs text-muted-foreground">
+                Select a trade once, then switch between Problems, Charges, Guides and other page types —
+                the list stays filtered to that category.
+              </p>
+            </div>
+          </div>
+          <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:min-w-[280px]">
+            <Select
+              value={categoryFilter || '__all__'}
+              onValueChange={(v) => setCategoryFilter(v === '__all__' ? '' : v)}
+              disabled={catalogOptionsLoading}
+            >
+              <SelectTrigger className="bg-background text-sm">
+                <SelectValue placeholder="All service categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All service categories</SelectItem>
+                {globalCategoryFilterOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    <span>{opt.label}</span>
+                    <span className="ml-2 font-mono text-xs text-muted-foreground">({opt.hint})</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {categoryFilter ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 justify-start px-2 text-xs text-muted-foreground"
+                onClick={() => setCategoryFilter('')}
+              >
+                Clear category filter
+              </Button>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Page type picker */}
-      <div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {SEO_LANDING_KINDS.map((k) => {
           const Icon = k.icon
           const active = kind === k.id
+          const kindCount =
+            categoryFilter && seoLandingKindHasCategoryFilter(k.id)
+              ? countSeoPagesForKindAndCategory(k.id, allKindIndex[k.id] ?? {}, categoryFilter)
+              : k.id === kind
+                ? slugs.length
+                : Object.keys(allKindIndex[k.id] ?? {}).length
           return (
             <button
               key={k.id}
@@ -1411,6 +1525,10 @@ export default function SeoLandingPagesManagement() {
               className={cn(
                 'rounded-xl border p-4 text-left transition hover:border-primary/40 hover:bg-muted/40',
                 active ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-border bg-card',
+                categoryFilter &&
+                  seoLandingKindHasCategoryFilter(k.id) &&
+                  kindCount === 0 &&
+                  'opacity-60',
               )}
             >
               <div className="flex items-start gap-3">
@@ -1422,8 +1540,15 @@ export default function SeoLandingPagesManagement() {
                 >
                   <Icon className="h-5 w-5" />
                 </div>
-                <div className="min-w-0 space-y-1">
-                  <p className="font-semibold text-foreground">{k.label}</p>
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-semibold text-foreground">{k.label}</p>
+                    <Badge variant={kindCount > 0 ? 'secondary' : 'outline'} className="font-mono text-[10px]">
+                      {categoryFilter && seoLandingKindHasCategoryFilter(k.id)
+                        ? `${kindCount} in filter`
+                        : `${kindCount}`}
+                    </Badge>
+                  </div>
                   <p className="font-mono text-xs text-muted-foreground">{k.pathPrefix || '/{slug}'}</p>
                   <p className="line-clamp-2 text-xs text-muted-foreground">{k.intent}</p>
                 </div>
@@ -1479,33 +1604,13 @@ export default function SeoLandingPagesManagement() {
                   className="pl-8 text-sm"
                 />
               </div>
-              {seoLandingKindHasCategoryFilter(kind) && sidebarCategoryFilterOptions.length > 0 ? (
-                <Select
-                  value={categoryFilter || '__all__'}
-                  onValueChange={(v) => setCategoryFilter(v === '__all__' ? '' : v)}
-                  disabled={catalogOptionsLoading}
-                >
-                  <SelectTrigger className="text-sm">
-                    <SelectValue placeholder="Filter by service category…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__all__">All service categories</SelectItem>
-                    {sidebarCategoryFilterOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        <span>{opt.label}</span>
-                        <span className="ml-2 font-mono text-xs text-muted-foreground">({opt.hint})</span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : null}
               {listFilterActive ? (
                 <p className="text-xs text-muted-foreground">
-                  Showing {filteredSlugs.length} of {slugs.length} pages
+                  Showing {filteredSlugs.length} of {slugs.length} {meta.shortLabel.toLowerCase()} pages
                   {categoryFilter ? (
                     <>
                       {' '}
-                      in{' '}
+                      for{' '}
                       <strong className="text-foreground">
                         {categoryFilter === '__uncategorized__'
                           ? 'Uncategorized'
@@ -1514,11 +1619,24 @@ export default function SeoLandingPagesManagement() {
                     </>
                   ) : null}
                 </p>
+              ) : categoryFilter && seoLandingKindHasCategoryFilter(kind) ? (
+                <p className="text-xs text-muted-foreground">
+                  Category filter:{' '}
+                  <strong className="text-foreground">
+                    {categoryFilter === '__uncategorized__'
+                      ? 'Uncategorized'
+                      : catalogLabelMap[normalizeSeoCategorySlug(categoryFilter)] ?? categoryFilter}
+                  </strong>
+                </p>
               ) : null}
               <ul className="max-h-[min(420px,50vh)] space-y-1 overflow-y-auto">
                 {filteredSlugs.length === 0 ? (
                   <li className="rounded-md px-2 py-6 text-center text-sm text-muted-foreground">
-                    {slugs.length === 0 ? 'No pages — create a slug below.' : 'No matches.'}
+                    {slugs.length === 0
+                      ? 'No pages — create a slug below.'
+                      : categoryFilter
+                        ? `No ${meta.shortLabel.toLowerCase()} pages for this category yet.`
+                        : 'No matches.'}
                   </li>
                 ) : (
                   filteredSlugs.map((s) => {

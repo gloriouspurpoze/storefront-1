@@ -10,6 +10,11 @@ import {
 } from './serviceCatalogUrlSlugs'
 
 import type { SeoLandingEntityKind } from './seoLandingPageKinds'
+import { SEO_LANDING_KINDS } from './seoLandingPageKinds'
+
+export type SeoLandingRecordsByKind = Partial<
+  Record<SeoLandingEntityKind, Record<string, Record<string, unknown>>>
+>
 
 export function seoLandingKindHasCategoryFilter(kind: SeoLandingEntityKind): boolean {
   return kind !== 'locations'
@@ -49,6 +54,69 @@ export function seoPageMatchesCategoryFilter(
   }
   const filterNorm = normalizeSeoCategorySlug(filter)
   return getSeoPageCategorySlugs(kind, draft).some((c) => c === filterNorm)
+}
+
+/** Count pages in one kind matching the category filter (empty filter = all pages). */
+export function countSeoPagesForKindAndCategory(
+  kind: SeoLandingEntityKind,
+  records: Record<string, Record<string, unknown>>,
+  categoryFilter: string,
+): number {
+  if (!categoryFilter.trim()) return Object.keys(records).length
+  return Object.values(records).filter((d) => seoPageMatchesCategoryFilter(kind, d, categoryFilter)).length
+}
+
+/** Category filter dropdown — counts across problems, charges, guides, providers & landing pages. */
+export function buildGlobalSeoCategoryFilterOptions(
+  recordsByKind: SeoLandingRecordsByKind,
+  catalogCuratedOptions: { value: string; label: string; hint?: string }[],
+  catalogLabelMap: Record<string, string>,
+): { value: string; label: string; hint: string }[] {
+  const counts = new Map<string, number>()
+  let uncategorized = 0
+
+  for (const k of SEO_LANDING_KINDS) {
+    if (!seoLandingKindHasCategoryFilter(k.id)) continue
+    const records = recordsByKind[k.id] ?? {}
+    for (const d of Object.values(records)) {
+      const cats = getSeoPageCategorySlugs(k.id, d)
+      if (cats.length === 0) {
+        uncategorized++
+      } else {
+        const seen = new Set<string>()
+        for (const c of cats) {
+          if (seen.has(c)) continue
+          seen.add(c)
+          counts.set(c, (counts.get(c) ?? 0) + 1)
+        }
+      }
+    }
+  }
+
+  const opts: { value: string; label: string; hint: string }[] = catalogCuratedOptions.map((o) => ({
+    value: o.value,
+    label: o.label,
+    hint: String(counts.get(o.value) ?? 0),
+  }))
+
+  for (const [c, n] of counts) {
+    if (!opts.some((o) => o.value === c)) {
+      opts.push({ value: c, label: catalogLabelMap[c] ?? c, hint: String(n) })
+    }
+  }
+
+  opts.sort((a, b) => {
+    const na = Number.parseInt(a.hint, 10) || 0
+    const nb = Number.parseInt(b.hint, 10) || 0
+    if (nb !== na) return nb - na
+    return a.label.localeCompare(b.label)
+  })
+
+  if (uncategorized > 0) {
+    opts.push({ value: '__uncategorized__', label: 'Uncategorized', hint: String(uncategorized) })
+  }
+
+  return opts
 }
 
 export function seoCategorySlugAliases(storageSlug: string): string[] {
