@@ -31,4 +31,6 @@ export const env = {
     .split(',')
     .map((s) => s.trim().toLowerCase().replace(/^\.+/, ''))
     .filter(Boolean),
+  /** Google Identity Services client ID; required for "Continue with Google". */
+  GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim() || undefined,
 }

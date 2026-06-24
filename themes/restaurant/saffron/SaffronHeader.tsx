@@ -1,14 +1,24 @@
 'use client'
 
 import Link from 'next/link'
+import { useMemo } from 'react'
+import type { StorefrontConfig } from '@/lib/storefront-api'
+import {
+  getOrderingAvailabilityFromConfig,
+  getOrderingHoursFromConfig,
+  getTodayOrderingLabel,
+  isStoreOpenNow,
+} from '@/lib/orderingHours'
 import { AccountNavLink } from '@/components/account/AccountNavLink'
 import type { ThemeTenant } from '../types'
 
 interface SaffronHeaderProps {
   tenant: ThemeTenant
+  config?: StorefrontConfig | null
   cartCount: number
   isOpen?: boolean
   onCartClick?: () => void
+  onMenuOpen?: () => void
 }
 
 /**
@@ -18,10 +28,22 @@ interface SaffronHeaderProps {
  */
 export function SaffronHeader({
   tenant,
+  config,
   cartCount,
-  isOpen = true,
+  isOpen: isOpenProp,
   onCartClick,
+  onMenuOpen,
 }: SaffronHeaderProps) {
+  const hours = useMemo(() => getOrderingHoursFromConfig(config), [config])
+  const availability = useMemo(() => getOrderingAvailabilityFromConfig(config), [config])
+  const isOpen = isOpenProp ?? isStoreOpenNow(hours)
+  const hoursLabel = getTodayOrderingLabel(hours)
+  const statusText = availability.slotsNote
+    ? availability.slotsNote
+    : isOpen
+      ? `Open · ${hoursLabel}`
+      : `Closed · ${hoursLabel}`
+
   return (
     <header
       style={{
@@ -37,33 +59,48 @@ export function SaffronHeader({
         height: '64px',
       }}
     >
-      <Link
-        href="/"
-        style={{
-          fontFamily: "var(--font-playfair, 'Playfair Display', serif)",
-          fontSize: '22px',
-          fontWeight: 500,
-          letterSpacing: '-0.3px',
-          color: 'var(--ink, #1A1714)',
-          textDecoration: 'none',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-        }}
-        aria-label={`${tenant.name} home`}
-      >
-        {tenant.logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={tenant.logoUrl}
-            alt=""
-            style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
-          />
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+        {onMenuOpen ? (
+          <button
+            type="button"
+            className="sf-menu-toggle-btn"
+            aria-label="Open menu"
+            onClick={onMenuOpen}
+          >
+            ☰
+          </button>
         ) : null}
-        <span>{tenant.name}</span>
-      </Link>
+        <Link
+          href="/"
+          style={{
+            fontFamily: "var(--font-playfair, 'Playfair Display', serif)",
+            fontSize: '22px',
+            fontWeight: 500,
+            letterSpacing: '-0.3px',
+            color: 'var(--ink, #1A1714)',
+            textDecoration: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            minWidth: 0,
+          }}
+          aria-label={`${tenant.name} home`}
+        >
+          {tenant.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={tenant.logoUrl}
+              alt=""
+              style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
+            />
+          ) : null}
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {tenant.name}
+          </span>
+        </Link>
+      </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexShrink: 0 }}>
         <div
           style={{
             fontSize: '13px',
@@ -84,7 +121,7 @@ export function SaffronHeader({
               flexShrink: 0,
             }}
           />
-          {isOpen ? 'Open · Closes 11 PM' : 'Closed'}
+          {statusText}
         </div>
 
         <AccountNavLink

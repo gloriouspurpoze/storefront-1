@@ -86,6 +86,10 @@ declare global {
   }
 }
 
+export function isGoogleSignInConfigured(): boolean {
+  return Boolean(env.GOOGLE_CLIENT_ID)
+}
+
 function loadGoogleScript(): Promise<void> {
   return new Promise((resolve, reject) => {
     if (window.google?.accounts?.id) {
@@ -116,7 +120,7 @@ function loadGoogleScript(): Promise<void> {
 }
 
 export async function signInWithGoogle(): Promise<{ user: StorefrontAuthUser; tokens: StorefrontAuthTokens; isNewUser: boolean }> {
-  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim()
+  const clientId = env.GOOGLE_CLIENT_ID
   if (!clientId) {
     throw new Error('Google sign-in is not configured for this store.')
   }

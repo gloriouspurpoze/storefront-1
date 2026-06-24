@@ -273,6 +273,32 @@ export interface StorefrontContent {
 
 export interface StorefrontTemplateCheckoutSettings {
   showPreferredDateOfDelivery?: boolean
+  showPreferredTimeOfDelivery?: boolean
+}
+
+export interface StorefrontOrderingDayHours {
+  closed: boolean
+  openTime?: string
+  closeTime?: string
+}
+
+export interface StorefrontOrderingAvailability {
+  earliestDate?: string
+  latestDate?: string
+  slotsNote?: string
+}
+
+export interface StorefrontShippingPolicyZone {
+  label: string
+  details: string
+  fee?: string
+}
+
+export interface StorefrontShippingPolicy {
+  summary?: string
+  body?: string
+  processingNote?: string
+  zones?: StorefrontShippingPolicyZone[]
 }
 
 export type StorefrontTemplateSettings = Record<string, StorefrontTemplateCheckoutSettings>
@@ -323,6 +349,12 @@ export interface StorefrontConfig {
   featureFlags: Record<string, boolean | Record<string, boolean> | undefined>
   featureAddons?: Record<string, { sku: string; purchased?: boolean }>
   customCss?: string
+  orderingHours?: Record<
+    'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday',
+    StorefrontOrderingDayHours
+  >
+  orderingAvailability?: StorefrontOrderingAvailability
+  shippingPolicy?: StorefrontShippingPolicy
 }
 
 export async function fetchStorefrontConfig(tenantId: string): Promise<StorefrontConfig | null> {

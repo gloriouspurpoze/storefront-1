@@ -9,7 +9,8 @@ import type { ThemeTenant } from '@/themes/restaurant/types'
 import { BB_IMG_FALLBACK } from './catalog'
 import { layoutBrownButterProducts, type TinGroup } from './productLayout'
 import { useBrownButterCart } from './useBrownButterCart'
-import { AccountNavLink } from '@/components/account/AccountNavLink'
+import { AccountProfileLink } from '@/components/account/AccountProfileLink'
+import { StorefrontHeaderBar, StorefrontMenuDrawer } from '@/components/StorefrontMenuDrawer'
 import './brown-butter.css'
 
 type DeliveryMode = 'pickup' | 'local' | 'ship'
@@ -148,6 +149,7 @@ export function BrownButterPage({
   products?: PublicProduct[]
 }) {
   const siteName = config?.branding?.siteName || tenant.name
+  const headerTitle = config?.branding?.tagline || '📍 Delivering Across Mumbai'
   const logoUrl = config?.branding?.logoUrl || tenant.logoUrl || '/private/thebrownbutter/media/logo.jpeg'
   const contactPhone = config?.branding?.contactPhone || config?.branding?.socials?.whatsapp
 
@@ -170,6 +172,7 @@ export function BrownButterPage({
   const [address, setAddress] = useState('')
   const [birthday, setBirthday] = useState('')
   const [mounted, setMounted] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -437,6 +440,18 @@ export function BrownButterPage({
 
   return (
     <div className="bb-root bb-page">
+      <StorefrontMenuDrawer
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        config={config}
+        showShippingPolicy={false}
+      />
+      <StorefrontHeaderBar
+        title={headerTitle}
+        subtitle={siteName}
+        onMenuOpen={() => setMenuOpen(true)}
+        actions={<AccountProfileLink className="inline-flex items-center justify-center text-lg hover:opacity-80" />}
+      />
       <div className="bb-card">
         <div id="form-view">
           <div className="logo-ring">
@@ -453,10 +468,6 @@ export function BrownButterPage({
             <span className="hero-badge">🧈 Small-batch</span>
             <span className="hero-badge">🚚 Mumbai-wide</span>
             <span className="hero-badge">⭐ Baked fresh daily</span>
-          </div>
-
-          <div className="bb-auth-links">
-            <AccountNavLink />
           </div>
 
           {productsLoading && (
