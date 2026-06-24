@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { notFound } from 'next/navigation'
-import { AccountShell } from '@/components/account/AccountShell'
+import { ThemedAccountShell } from '@/components/account/themes/ThemedAccountShell'
 import { fetchStorefrontConfig } from '@/lib/storefront-api'
 import { loadTenantFromRequest } from '@/lib/load-tenant'
 
@@ -15,8 +15,13 @@ export default async function AccountLayout({ children }: { children: ReactNode 
   const siteName = branding.siteName || tenant.name
 
   return (
-    <AccountShell tenantName={siteName} logoUrl={branding.logoUrl}>
+    <ThemedAccountShell
+      themeKey={config?.themeKey}
+      tenantName={siteName}
+      logoUrl={branding.logoUrl}
+      tagline={branding.tagline}
+    >
       {children}
-    </AccountShell>
+    </ThemedAccountShell>
   )
 }

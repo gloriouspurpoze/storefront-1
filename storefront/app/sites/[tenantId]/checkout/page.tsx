@@ -14,6 +14,9 @@ import { toThemeTenant as toRestTenant } from '@/themes/restaurant/types'
 import { toThemeTenant as toRetailTenant } from '@/themes/retail/types'
 import { fetchStorefrontConfig } from '@/lib/storefront-api'
 import { showPreferredDateOfDelivery } from '@/lib/templateSettings'
+import { isRetailLayoutTheme } from '@/themes/retail/retailLayoutRouter'
+import { isRestaurantLayoutTheme } from '@/themes/restaurant/restaurantLayoutRouter'
+import { LayoutThemePageShell } from '@/components/LayoutThemePageShell'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,15 +37,32 @@ export default async function CheckoutPage() {
     const themeTenant = toRestTenant(tenant, tenant.fallbackTagline)
     const config = await fetchStorefrontConfig(tenant.id)
     const showPreferredDate = showPreferredDateOfDelivery(config, config?.themeKey)
+    const siteName = config?.branding?.siteName || tenant.name
+    const tagline = config?.branding?.tagline || themeTenant.tagline
+
+    const main = (
+      <main className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
+        <h1 className="font-serif text-3xl font-bold text-stone-900">Checkout</h1>
+        <div className="mt-8">
+          <RestaurantCheckoutClient tenant={themeTenant} showPreferredDate={showPreferredDate} />
+        </div>
+      </main>
+    )
+
+    if (isRestaurantLayoutTheme(config?.themeKey)) {
+      return (
+        <RestaurantShell tenantId={tenant.id}>
+          <LayoutThemePageShell config={config} siteName={siteName} tagline={tagline} showShippingPolicy={false}>
+            {main}
+          </LayoutThemePageShell>
+        </RestaurantShell>
+      )
+    }
+
     return (
       <RestaurantShell tenantId={tenant.id}>
         <RestHeader tenant={themeTenant} />
-        <main className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
-          <h1 className="font-serif text-3xl font-bold text-stone-900">Checkout</h1>
-          <div className="mt-8">
-            <RestaurantCheckoutClient tenant={themeTenant} showPreferredDate={showPreferredDate} />
-          </div>
-        </main>
+        {main}
         <RestFooter tenant={themeTenant} />
       </RestaurantShell>
     )
@@ -53,15 +73,32 @@ export default async function CheckoutPage() {
     const themeTenant = toRetailTenant(tenant, tenant.fallbackTagline)
     const config = await fetchStorefrontConfig(tenant.id)
     const showPreferredDate = showPreferredDateOfDelivery(config, config?.themeKey)
+    const siteName = config?.branding?.siteName || tenant.name
+    const tagline = config?.branding?.tagline || themeTenant.tagline
+
+    const main = (
+      <main className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
+        <h1 className="text-3xl font-bold text-slate-900">Checkout</h1>
+        <div className="mt-8">
+          <CheckoutClient tenant={themeTenant} showPreferredDate={showPreferredDate} />
+        </div>
+      </main>
+    )
+
+    if (isRetailLayoutTheme(config?.themeKey)) {
+      return (
+        <RetailShell tenantId={tenant.id}>
+          <LayoutThemePageShell config={config} siteName={siteName} tagline={tagline} wide>
+            {main}
+          </LayoutThemePageShell>
+        </RetailShell>
+      )
+    }
+
     return (
       <RetailShell tenantId={tenant.id}>
         <RetailHeader tenant={themeTenant} />
-        <main className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
-          <h1 className="text-3xl font-bold text-slate-900">Checkout</h1>
-          <div className="mt-8">
-            <CheckoutClient tenant={themeTenant} showPreferredDate={showPreferredDate} />
-          </div>
-        </main>
+        {main}
         <RetailFooter tenant={themeTenant} />
       </RetailShell>
     )

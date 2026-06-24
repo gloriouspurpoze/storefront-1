@@ -273,6 +273,32 @@ export interface StorefrontContent {
 
 export interface StorefrontTemplateCheckoutSettings {
   showPreferredDateOfDelivery?: boolean
+  showPreferredTimeOfDelivery?: boolean
+}
+
+export interface StorefrontOrderingDayHours {
+  closed: boolean
+  openTime?: string
+  closeTime?: string
+}
+
+export interface StorefrontOrderingAvailability {
+  earliestDate?: string
+  latestDate?: string
+  slotsNote?: string
+}
+
+export interface StorefrontShippingPolicyZone {
+  label: string
+  details: string
+  fee?: string
+}
+
+export interface StorefrontShippingPolicy {
+  summary?: string
+  body?: string
+  processingNote?: string
+  zones?: StorefrontShippingPolicyZone[]
 }
 
 export type StorefrontTemplateSettings = Record<string, StorefrontTemplateCheckoutSettings>

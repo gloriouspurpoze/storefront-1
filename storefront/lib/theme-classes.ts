@@ -17,6 +17,10 @@ export function themeRootClass(themeKey?: string): string {
       return 'theme-menufast-cards'
     case 'soft-studio':
       return 'theme-soft-studio'
+    case 'luxe-essence':
+      return 'theme-luxe-essence'
+    case 'private-thebrownbutter':
+      return 'theme-brown-butter'
     default:
       return 'theme-classic'
   }

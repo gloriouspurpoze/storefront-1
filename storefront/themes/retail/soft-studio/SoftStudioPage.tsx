@@ -12,6 +12,8 @@ import {
 import { formatMoney, useCart } from '../cart'
 import type { ThemeTenant } from '../types'
 import { AccountNavLink } from '@/components/account/AccountNavLink'
+import { AccountProfileLink } from '@/components/account/AccountProfileLink'
+import { StorefrontMenuDrawer } from '@/components/StorefrontMenuDrawer'
 import './soft-studio.css'
 
 const THUMB_CLASSES = ['ss-product-thumb-1', 'ss-product-thumb-2', 'ss-product-thumb-3', 'ss-product-thumb-4']
@@ -68,6 +70,7 @@ export function SoftStudioPage({
 
   const { lines, itemCount, subtotal, addProduct, setQuantity, removeLine, clear } = useCart()
 
+  const [menuOpen, setMenuOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
@@ -160,6 +163,7 @@ export function SoftStudioPage({
 
   return (
     <div className="ss-root">
+      <StorefrontMenuDrawer open={menuOpen} onClose={() => setMenuOpen(false)} config={config} />
       <nav className="ss-nav">
         <div className="ss-nav-logo">{siteName}</div>
         <ul className="ss-nav-links">
@@ -180,6 +184,16 @@ export function SoftStudioPage({
           </li>
         </ul>
         <div className="ss-nav-right">
+          <button
+            type="button"
+            className="sf-menu-toggle-btn"
+            onClick={() => setMenuOpen(true)}
+            aria-expanded={menuOpen}
+            aria-label="Open menu"
+          >
+            ☰
+          </button>
+          <AccountProfileLink className="inline-flex items-center justify-center opacity-90 hover:opacity-100" />
           <button type="button" className="ss-cart-btn" onClick={() => setCartOpen(true)}>
             🛍 Cart <span className="ss-cart-count">{itemCount}</span>
           </button>

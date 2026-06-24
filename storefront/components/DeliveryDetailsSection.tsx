@@ -2,21 +2,46 @@
 
 import type { DeliveryDetailsValue } from '@/lib/templateSettings'
 import { todayDateInputValue } from '@/lib/templateSettings'
+import {
+  getDeliveryTimeBounds,
+  getMinDeliveryDate,
+  type OrderingAvailabilityConfig,
+  type OrderingHoursConfig,
+} from '@/lib/orderingHours'
 
 export function DeliveryDetailsSection({
   showPreferredDate,
+  showPreferredTime = false,
   showAddressFields = true,
   value,
   onChange,
   variant = 'card',
+  orderingHours,
+  orderingAvailability,
 }: {
   showPreferredDate: boolean
+  showPreferredTime?: boolean
   showAddressFields?: boolean
   value: DeliveryDetailsValue
   onChange: (next: DeliveryDetailsValue) => void
   variant?: 'card' | 'plain'
+  orderingHours?: OrderingHoursConfig
+  orderingAvailability?: OrderingAvailabilityConfig | null
 }) {
   const set = (patch: Partial<DeliveryDetailsValue>) => onChange({ ...value, ...patch })
+
+  const minDate =
+    orderingHours && showPreferredDate
+      ? getMinDeliveryDate(orderingHours, new Date(), {
+          requireTimeSlot: showPreferredTime,
+          availability: orderingAvailability,
+        })
+      : todayDateInputValue()
+
+  const timeBounds =
+    showPreferredTime && orderingHours && value.preferredDate
+      ? getDeliveryTimeBounds(orderingHours, value.preferredDate)
+      : null
 
   const fieldStyle: React.CSSProperties =
     variant === 'plain'
@@ -60,7 +85,7 @@ export function DeliveryDetailsSection({
     marginBottom: variant === 'card' ? '8px' : '4px',
   }
 
-  if (!showAddressFields && !showPreferredDate) return null
+  if (!showAddressFields && !showPreferredDate && !showPreferredTime) return null
 
   return (
     <div style={wrapperStyle}>
@@ -128,10 +153,34 @@ export function DeliveryDetailsSection({
           </span>
           <input
             type="date"
-            min={todayDateInputValue()}
+            min={minDate}
             value={value.preferredDate ?? ''}
-            onChange={(e) => set({ preferredDate: e.target.value })}
+            onChange={(e) => set({ preferredDate: e.target.value, preferredTime: undefined })}
             style={fieldStyle}
+          />
+        </label>
+      )}
+      {showPreferredTime && (
+        <label style={{ display: 'block', marginTop: showPreferredDate ? '8px' : 0 }}>
+          <span
+            style={{
+              display: 'block',
+              fontSize: '12px',
+              fontWeight: 500,
+              color: '#4A4540',
+              marginBottom: '4px',
+            }}
+          >
+            Preferred time of delivery
+          </span>
+          <input
+            type="time"
+            min={timeBounds?.min}
+            max={timeBounds?.max}
+            value={value.preferredTime ?? ''}
+            onChange={(e) => set({ preferredTime: e.target.value })}
+            style={fieldStyle}
+            disabled={!value.preferredDate}
           />
         </label>
       )}
