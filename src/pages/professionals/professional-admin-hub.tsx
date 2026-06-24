@@ -68,6 +68,9 @@ import { formatCurrency, formatDate } from '../../lib/utils'
 import { normalizeLedgerPaymentsList } from '../../lib/paymentLedgerNormalize'
 import { getProfessionalCategoryLabel } from '../../constants/professionalCategories'
 import { ProfessionalConductPanel } from '../../components/professionals/ProfessionalConductPanel'
+import { PartnerLoyaltyBadge } from '../../components/professionals/PartnerLoyaltyBadge'
+import { PartnerLoyaltyService } from '../../services/api/partner-loyalty.service'
+import type { PartnerLoyaltyRosterRow } from '../../types/partner-loyalty.types'
 import {
   formatSlotList,
   normalizeWeeklyAvailability,
@@ -185,6 +188,7 @@ export function ProfessionalAdminHub() {
   const [loadingPro, setLoadingPro] = useState(true)
   const [proError, setProError] = useState<string | null>(null)
   const [professional, setProfessional] = useState<Professional | null>(null)
+  const [loyalty, setLoyalty] = useState<PartnerLoyaltyRosterRow | null>(null)
   // Live presence (heartbeat-driven). Falls back to `professional.availability`
   // until the live-ops socket delivers the first `professional:presence`
   // event for this id this session.
@@ -247,17 +251,23 @@ export function ProfessionalAdminHub() {
     setLoadingPro(true)
     setProError(null)
     try {
-      const res = await ProfessionalsService.getProfessional(id)
+      const [res, loyaltyRes] = await Promise.all([
+        ProfessionalsService.getProfessional(id),
+        PartnerLoyaltyService.getProfessional(id).catch(() => null),
+      ])
       const inner = extractProfessionalFromGetResponse(res.data as unknown)
       if (!inner) {
         setProError('Professional not found')
         setProfessional(null)
+        setLoyalty(null)
         return
       }
       setProfessional(normalizeProfessionalFromApi(inner))
+      setLoyalty(loyaltyRes?.success ? loyaltyRes.data ?? null : null)
     } catch (e) {
       setProError(e instanceof Error ? e.message : 'Failed to load professional')
       setProfessional(null)
+      setLoyalty(null)
     } finally {
       setLoadingPro(false)
     }
@@ -742,6 +752,13 @@ export function ProfessionalAdminHub() {
                     Account: {accountStatus}
                   </Badge>
                   <Badge variant="outline">Verification: {professional.verificationStatus}</Badge>
+                  {(loyalty?.tier || professional.loyaltyTier) && (
+                    <PartnerLoyaltyBadge
+                      tier={loyalty?.tier ?? professional.loyaltyTier}
+                      label={loyalty?.label}
+                      score={loyalty?.score ?? professional.loyaltyScore}
+                    />
+                  )}
                   <Badge
                     variant={
                       liveAvailability === 'available'

@@ -145,6 +145,16 @@ export const crmApi = {
     return sendJson<{ imported: number }>('POST', '/crm/sync/email')
   },
 
+  async syncPlatform() {
+    return sendJson<{
+      created: number
+      updated: number
+      skipped: number
+      fromUsers: number
+      fromBookings: number
+    }>('POST', '/crm/sync/platform')
+  },
+
   async getFieldPolicies() {
     return getJson<{ rules: Array<{ roleKey: string; entity: string; field: string; read: boolean; write: boolean }> }>(
       '/crm/admin/field-policies'

@@ -106,6 +106,8 @@ export interface CrmDeal {
   platformOrderId?: string
   locality?: string
   serviceCategory?: string
+  /** Customer phone for ops follow-up (also links/creates primary contact). */
+  phone?: string
   createdAt: string
   updatedAt: string
 }

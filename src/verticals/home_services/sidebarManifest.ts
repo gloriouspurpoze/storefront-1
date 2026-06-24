@@ -23,6 +23,7 @@ export const homeServicesSidebarGroups: SidebarNavGroupDef[] = [
       { id: 'amc', name: 'AMC contracts', href: '/amc/overview', icon: 'ShieldCheck', permissions: ['view_amc'], badge: null },
       { id: 'rate_cards', name: 'Rate cards', href: '/rate-cards/overview', icon: 'ListOrdered', permissions: ['view_rate_cards'], badge: null },
       { id: 'fees_cities', name: 'Fees & cities', href: '/operations/commercial/terms', icon: 'CircleDollarSign', permissions: ['view_operating_terms'], badge: null },
+      { id: 'partner_loyalty', name: 'Partner loyalty', href: '/operations/commercial/loyalty', icon: 'Trophy', permissions: ['view_operating_terms'], badge: null },
       { id: 'provider_assets', name: 'Professional assets', href: '/operations/provider-assets', icon: 'Boxes', permissions: ['view_provider_assets'], badge: null },
       { id: 'professional_conduct', name: 'Conduct & incentives', href: '/operations/professional-conduct', icon: 'Gavel', permissions: ['view_professional_conduct'], badge: null },
       { id: 'home_services_pos', name: 'POS — Home services', href: '/operations/pos', icon: 'ScanLine', permissions: ['create_bookings', 'manage_bookings'], badge: null },

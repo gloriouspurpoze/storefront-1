@@ -247,8 +247,8 @@ const PayoutTransparencyPage = lazy(() =>
 const DisputeCasesPage = lazy(() =>
   import('./pages/operations/DisputeCasesPage').then((m) => ({ default: m.DisputeCasesPage })),
 )
-const HomeServicePOSPage = lazy(() =>
-  import('./pages/operations/HomeServicePOSPage').then((m) => ({ default: m.HomeServicePOSPage })),
+const PosEntryPage = lazy(() =>
+  import('./pages/operations/PosEntryPage').then((m) => ({ default: m.PosEntryPage })),
 )
 const OperationsCommercialLayout = lazy(() =>
   import('./pages/operations/operations-commercial-layout').then((m) => ({ default: m.OperationsCommercialLayout })),
@@ -265,6 +265,9 @@ const OperationsCommercialCitiesPage = lazy(() =>
   import('./pages/operations/operations-commercial-cities').then((m) => ({
     default: m.OperationsCommercialCitiesPage,
   })),
+)
+const PartnerLoyaltyConfigPage = lazy(() =>
+  import('./pages/operations/partner-loyalty-config').then((m) => ({ default: m.PartnerLoyaltyConfigPage })),
 )
 const KnowledgeKitHub = lazy(() =>
   import('./pages/knowledge-kit/knowledge-kit-hub').then((m) => ({ default: m.KnowledgeKitHub })),
@@ -414,6 +417,9 @@ const BoardCanvasRoom = lazy(() =>
 const AcceptBoardInvite = lazy(() =>
   import('./pages/boards/AcceptBoardInvite').then((m) => ({ default: m.AcceptBoardInvite })),
 )
+const TrackBookingPage = lazy(() =>
+  import('./pages/public/TrackBookingPage').then((m) => ({ default: m.TrackBookingPage })),
+)
 
 /** Gate aligned with `routePermissions` `/marketing` entry in rbac.config. */
 const MARKETING_WORKSPACE_PERMISSIONS: Permission[] = [
@@ -466,6 +472,7 @@ function App() {
                 />
               ))}
               <Route path="/unauthorized" element={<Unauthorized />} />
+              <Route path="/track-booking" element={<TrackBookingPage />} />
               
               {/* Protected routes with RBAC */}
               <Route path="/*" element={
@@ -832,7 +839,7 @@ function App() {
                         path="/operations/pos"
                         element={
                           <RoleBasedRoute permissions={['create_bookings', 'manage_bookings']}>
-                            <HomeServicePOSPage />
+                            <PosEntryPage />
                           </RoleBasedRoute>
                         }
                       />
@@ -847,6 +854,7 @@ function App() {
                         <Route index element={<OperationsCommercialIndexRedirect />} />
                         <Route path="terms" element={<OperationsCommercialTermsPage />} />
                         <Route path="cities" element={<OperationsCommercialCitiesPage />} />
+                        <Route path="loyalty" element={<PartnerLoyaltyConfigPage />} />
                       </Route>
                       <Route
                         path="/knowledge-kit"
@@ -1778,7 +1786,9 @@ function App() {
                       <Route
                         path="/cms/email-templates"
                         element={
-                          <RoleBasedRoute permissions={['manage_system_settings']}>
+                          <RoleBasedRoute
+                            permissions={['view_cms', 'manage_cms', 'edit_settings', 'manage_system_settings']}
+                          >
                             <EmailTemplatesManagement />
                           </RoleBasedRoute>
                         }

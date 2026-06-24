@@ -16,8 +16,8 @@
  * @date November 7, 2025
  */
 
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useMemo, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   Save,
@@ -59,30 +59,58 @@ const WORKING_DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 's
 
 export function CreateProfessional() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const fromApplication = searchParams.get('fromApplication')?.trim() || ''
+
+  const initialForm = useMemo(() => {
+    const experienceRaw = searchParams.get('experience')
+    const experience = experienceRaw ? Math.max(0, parseInt(experienceRaw, 10) || 2) : 2
+    const servicesRaw = searchParams.get('services')?.trim()
+    const serviceLabels = servicesRaw ? servicesRaw.split(',').map((s) => s.trim()).filter(Boolean) : []
+    const categoryValues = serviceLabels
+      .map((label) => {
+        const match = CATEGORIES.find(
+          (c) => c.label.toLowerCase() === label.toLowerCase() || c.value.replace(/_/g, ' ') === label.toLowerCase(),
+        )
+        return match?.value
+      })
+      .filter((v): v is string => Boolean(v))
+
+    return {
+      firstName: searchParams.get('firstName')?.trim() || '',
+      lastName: searchParams.get('lastName')?.trim() || '',
+      email: searchParams.get('email')?.trim() || '',
+      phoneNumber: searchParams.get('phone')?.replace(/\D/g, '').slice(-10) || '',
+      city: searchParams.get('city')?.trim() || '',
+      experience,
+      categories: categoryValues,
+    }
+  }, [searchParams])
+
   const [activeStep, setActiveStep] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
 
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phoneNumber: '',
+    firstName: initialForm.firstName,
+    lastName: initialForm.lastName,
+    email: initialForm.email,
+    phoneNumber: initialForm.phoneNumber,
     alternatePhone: '',
     dateOfBirth: '',
     gender: 'male' as 'male' | 'female' | 'other',
     password: 'SecurePass123!',
-    categories: [] as string[],
+    categories: initialForm.categories as string[],
     skills: [] as string[],
-    experience: 2,
+    experience: initialForm.experience,
     expertiseLevel: 'intermediate' as 'beginner' | 'intermediate' | 'expert',
     bio: 'Experienced professional. Quality service guaranteed. Available for bookings.',
     isIndependent: true,
     address: {
       street: 'To be updated',
-      area: '',
-      city: 'Mumbai',
+      area: initialForm.city || '',
+      city: initialForm.city || 'Mumbai',
       state: 'Maharashtra',
       pincode: '',
     },
@@ -788,8 +816,20 @@ export function CreateProfessional() {
             <h1 className="text-3xl font-bold tracking-tight">Create Professional</h1>
           </div>
           <p className="text-sm text-muted-foreground">Add a new professional with login access</p>
+          {fromApplication ? (
+            <Badge variant="secondary" className="mt-2">
+              Prefilled from application {fromApplication}
+            </Badge>
+          ) : null}
         </div>
       </div>
+
+      {fromApplication ? (
+        <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground">
+          Onboarding a partner who applied via the website or app. Confirm details, complete location &amp; documents,
+          then create their login.
+        </div>
+      ) : null}
 
       <Card className="mb-6 border bg-card shadow-sm">
         <CardContent className="py-6">

@@ -60,6 +60,7 @@ import {
   SupportStats,
 } from '../../services/api/supportTickets.service'
 import { usersService } from '../../services/api/users.service'
+import { filterUsersForAudience } from '../../lib/userAudienceFilters'
 import { cn } from '../../lib/utils'
 import { formatMoney } from '../../lib/financeFormat'
 
@@ -246,8 +247,15 @@ export default function SupportTicketsQueuePage() {
 
   useEffect(() => {
     if (!canAgent) return
-    void usersService.getUsers({ scope: 'members', limit: 20, page: 1 }).then((res) => {
-      setAssignMembers(res.users.map((u) => ({ id: u.id, firstName: u.firstName, lastName: u.lastName, email: u.email })))
+    void usersService.getUsers({ scope: 'members', user_type: 'admin', limit: 20, page: 1 }).then((res) => {
+      setAssignMembers(
+        filterUsersForAudience(res.users, 'members').map((u) => ({
+          id: u.id,
+          firstName: u.firstName,
+          lastName: u.lastName,
+          email: u.email,
+        })),
+      )
     })
   }, [canAgent])
 

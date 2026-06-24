@@ -200,10 +200,10 @@ export function CrmSettings() {
         subtitle="Google Calendar & Gmail sync, field-level permissions, and go-live checklist — all backed by fixer-backend when CRM API mode is on."
       />
       <CrmSubnav />
-
+{/* 
       <div className="mb-6">
         <CrmWhatsAppStaffPlaybook variant="compact" />
-      </div>
+      </div> */}
 
       <Card className="mb-6 border-dashed">
         <CardHeader className="pb-3">

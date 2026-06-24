@@ -65,6 +65,7 @@ import {
   StickyNote,
   Loader2,
   Copy,
+  UserSearch,
 } from 'lucide-react'
 import { AssignProfessionalDialog } from '../../components/bookings/AssignProfessionalDialog'
 import { BookingsService } from '../../services/api/bookings.service'
@@ -78,7 +79,10 @@ import { isLikelyImageUrl, parseBookingNotesContent } from '../../lib/parseBooki
 import { appToast } from '../../lib/appToast'
 import { cn } from '../../lib/utils'
 import { useEngagementStatus } from '../../hooks/useEngagementStatus'
+import { crmService } from '../../services/api/crm.service'
+import { adminPathToCrmForBooking } from '../../lib/crmPlatformSync'
 import { CHART_PALETTE } from '../../lib/chartPalette'
+import { CustomerTrackLinkCard } from '../../components/bookings/CustomerTrackLinkCard'
 
 /** rgba() from #RRGGBB + opacity (replaces legacy alpha helper) */
 function muiAlpha(hex: string, opacity: number): string {
@@ -872,6 +876,7 @@ export function BookingDetails() {
   const [adminRefundBusy, setAdminRefundBusy] = useState(false)
   const [disputeReason, setDisputeReason] = useState('')
   const [disputeBusy, setDisputeBusy] = useState(false)
+  const [crmHref, setCrmHref] = useState<string | null>(null)
 
   // Check if current professional is assigned to this booking
   const isAssignedProfessional = booking && isProfessional && booking.professional && (
@@ -884,6 +889,34 @@ export function BookingDetails() {
   useEffect(() => {
     loadBooking()
   }, [id])
+
+  useEffect(() => {
+    if (!booking || !isAdmin) {
+      setCrmHref(null)
+      return
+    }
+    let active = true
+    crmService
+      .listContacts()
+      .then((contacts) => {
+        if (!active) return
+        const href = adminPathToCrmForBooking(
+          {
+            customerId: booking.customer._id,
+            id: booking._id,
+            _id: booking._id,
+          },
+          contacts,
+        )
+        setCrmHref(href)
+      })
+      .catch(() => {
+        if (active) setCrmHref(null)
+      })
+    return () => {
+      active = false
+    }
+  }, [booking?._id, booking?.customer._id, isAdmin])
 
   // Admin: fetch earning by booking when booking is completed (for Payment & earnings section)
   useEffect(() => {
@@ -2004,8 +2037,27 @@ export function BookingDetails() {
                   </div>
                 </div>
               </dl>
+
+              {crmHref ? (
+                <div className="mt-5 border-t border-hairline pt-4">
+                  <ShadcnButton type="button" variant="outline" size="sm" className="gap-1.5" asChild>
+                    <Link to={crmHref}>
+                      <UserSearch className="h-4 w-4" />
+                      View CRM lead / contact
+                    </Link>
+                  </ShadcnButton>
+                  <p className="mt-2 text-caption-md text-graphite">
+                    Booking status syncs to CRM lifecycle automatically (scheduled → in progress → completed).
+                  </p>
+                </div>
+              ) : null}
             </ShCardContent>
           </ShCard>
+
+          <CustomerTrackLinkCard
+            bookingId={booking._id}
+            customerPhone={booking.customer.phone || booking.address?.phone}
+          />
 
           {/* Service & Order Items — single card, no nested elevations or tinted tiles. */}
           <ShCard>

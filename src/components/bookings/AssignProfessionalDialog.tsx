@@ -385,11 +385,7 @@ export function AssignProfessionalDialog({
     setLoading(true)
     setError(null)
     try {
-      const response = await ProfessionalsService.getProfessionals({
-        page: 1,
-        limit: 500,
-      })
-      const list = response.data.professionals || []
+      const list = await ProfessionalsService.fetchAllProfessionals({})
       setProfessionals(list.map((p) => normalizeProfessionalFromApi(p)))
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load professionals')

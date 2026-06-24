@@ -44,6 +44,7 @@ const NAV_EXACT_ONLY_HREFS = new Set<string>([
   '/crm',
   '/users',
   '/users/customers',
+  '/users/members',
   '/team-work',
   '/support',
   '/marketing',

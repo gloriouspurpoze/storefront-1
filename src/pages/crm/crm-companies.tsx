@@ -1,5 +1,5 @@
 ﻿import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Download, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Building2, Download, Pencil, Plus, Trash2 } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { CrmSubnav } from '../../components/crm/CrmSubnav'
 import { ConfirmDeleteDialog } from '../../components/crm/ConfirmDeleteDialog'
@@ -23,6 +23,7 @@ import { Button } from '../../components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -30,6 +31,22 @@ import {
 import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
 import { Textarea } from '../../components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select'
+import {
+  B2B_COUNTRY_PRESETS,
+  B2B_DEFAULT_COUNTRY,
+  B2B_EMPLOYEE_BANDS,
+  B2B_INDUSTRY_PRESETS,
+  B2B_REVENUE_BANDS,
+  normalizeCompanyPhone,
+  normalizeCompanyWebsite,
+} from '../../lib/crmCompanyForm'
 import { cn } from '../../lib/utils'
 
 const emptySelection: GridRowSelectionModel = { type: 'include', ids: new Set() }
@@ -51,6 +68,7 @@ export function CrmCompanies() {
   const [deleteTarget, setDeleteTarget] = useState<'single' | 'bulk' | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [companyToDeleteId, setCompanyToDeleteId] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     let c = true
@@ -83,24 +101,32 @@ export function CrmCompanies() {
   const [form, setForm] = useState({
     name: '',
     industry: '',
+    industryOther: '',
     website: '',
     phone: '',
     city: '',
-    country: '',
+    country: B2B_DEFAULT_COUNTRY,
     employeeCount: '',
     annualRevenue: '',
     notes: '',
   })
+
+  const industrySelectValue = useMemo(() => {
+    if (!form.industry) return ''
+    if ((B2B_INDUSTRY_PRESETS as readonly string[]).includes(form.industry)) return form.industry
+    return 'Other'
+  }, [form.industry])
 
   const openCreate = () => {
     setEditing(null)
     setForm({
       name: '',
       industry: '',
+      industryOther: '',
       website: '',
       phone: '',
       city: '',
-      country: '',
+      country: B2B_DEFAULT_COUNTRY,
       employeeCount: '',
       annualRevenue: '',
       notes: '',
@@ -110,19 +136,57 @@ export function CrmCompanies() {
 
   const openEdit = useCallback((row: CrmCompany) => {
     setEditing(row)
+    const industry = row.industry ?? ''
+    const isPreset = (B2B_INDUSTRY_PRESETS as readonly string[]).includes(industry)
     setForm({
       name: row.name,
-      industry: row.industry ?? '',
-      website: row.website ?? '',
+      industry: isPreset ? industry : industry ? 'Other' : '',
+      industryOther: isPreset ? '' : industry,
+      website: row.website?.replace(/^https?:\/\//i, '') ?? '',
       phone: row.phone ?? '',
       city: row.city ?? '',
-      country: row.country ?? '',
+      country: row.country ?? B2B_DEFAULT_COUNTRY,
       employeeCount: row.employeeCount ?? '',
       annualRevenue: row.annualRevenue ?? '',
       notes: row.notes ?? '',
     })
     setOpen(true)
   }, [])
+
+  const saveCompany = async () => {
+    if (!form.name.trim()) {
+      setSnackbar({ open: true, message: 'Account name is required', severity: 'error' })
+      return
+    }
+    const industry =
+      industrySelectValue === 'Other' ? form.industryOther.trim() : form.industry.trim()
+    if (industrySelectValue === 'Other' && !industry) {
+      setSnackbar({ open: true, message: 'Enter a custom industry or pick a preset', severity: 'error' })
+      return
+    }
+    setSaving(true)
+    try {
+      await crmService.upsertCompany({
+        id: editing?.id,
+        name: form.name.trim(),
+        industry: industry || undefined,
+        website: normalizeCompanyWebsite(form.website),
+        phone: normalizeCompanyPhone(form.phone),
+        city: form.city.trim() || undefined,
+        country: form.country.trim() || undefined,
+        employeeCount: form.employeeCount || undefined,
+        annualRevenue: form.annualRevenue || undefined,
+        notes: form.notes.trim() || undefined,
+      })
+      setOpen(false)
+      refresh()
+      setSnackbar({ open: true, message: 'B2B account saved', severity: 'success' })
+    } catch {
+      setSnackbar({ open: true, message: 'Save failed', severity: 'error' })
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const refresh = useCallback(() => setTick((x) => x + 1), [])
 
@@ -279,93 +343,186 @@ export function CrmCompanies() {
         }}
       />
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editing ? 'Edit B2B account' : 'New B2B account'}</DialogTitle>
+      <Dialog open={open} onOpenChange={(v) => !saving && setOpen(v)}>
+        <DialogContent className="max-w-2xl gap-0 p-0">
+          <DialogHeader className="border-b px-6 py-4 text-left">
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-primary" />
+              {editing ? 'Edit B2B account' : 'New B2B account'}
+            </DialogTitle>
+            <DialogDescription>
+              Societies, builders, and commercial clients. Link contacts and large deals to this account.
+            </DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col gap-3 py-1">
-            <div className="space-y-1.5">
-              <Label htmlFor="co-name">Name *</Label>
-              <Input
-                id="co-name"
-                value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              />
-            </div>
-            {(['industry', 'website', 'phone', 'city', 'country'] as const).map((key) => (
-              <div key={key} className="space-y-1.5">
-                <Label className="capitalize" htmlFor={`co-${key}`}>
-                  {key}
-                </Label>
-                <Input
-                  id={`co-${key}`}
-                  value={form[key]}
-                  onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+
+          <div className="max-h-[min(70vh,640px)] overflow-y-auto px-6 py-4">
+            <div className="space-y-6">
+              <section className="space-y-3">
+                <h3 className="text-sm font-semibold text-foreground">Account</h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label htmlFor="co-name">Account name *</Label>
+                    <Input
+                      id="co-name"
+                      placeholder="e.g. Sunrise Heights CHS"
+                      value={form.name}
+                      onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Industry</Label>
+                    <Select
+                      value={industrySelectValue || undefined}
+                      onValueChange={(v) =>
+                        setForm((f) => ({
+                          ...f,
+                          industry: v,
+                          industryOther: v === 'Other' ? f.industryOther : '',
+                        }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select industry" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {B2B_INDUSTRY_PRESETS.map((opt) => (
+                          <SelectItem key={opt} value={opt}>
+                            {opt}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="co-website">Website</Label>
+                    <div className="flex">
+                      <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-2.5 text-xs text-muted-foreground">
+                        https://
+                      </span>
+                      <Input
+                        id="co-website"
+                        className="rounded-l-none"
+                        placeholder="company.com"
+                        value={form.website}
+                        onChange={(e) => setForm((f) => ({ ...f, website: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  {industrySelectValue === 'Other' ? (
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label htmlFor="co-industry-other">Custom industry</Label>
+                      <Input
+                        id="co-industry-other"
+                        placeholder="e.g. Facility management"
+                        value={form.industryOther}
+                        onChange={(e) => setForm((f) => ({ ...f, industryOther: e.target.value }))}
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="text-sm font-semibold text-foreground">Contact & location</h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="co-phone">Phone</Label>
+                    <Input
+                      id="co-phone"
+                      type="tel"
+                      placeholder="10-digit mobile or landline"
+                      value={form.phone}
+                      onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="co-city">City</Label>
+                    <Input
+                      id="co-city"
+                      placeholder="e.g. Mumbai"
+                      value={form.city}
+                      onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Country</Label>
+                    <Select value={form.country} onValueChange={(v) => setForm((f) => ({ ...f, country: v }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {B2B_COUNTRY_PRESETS.map((c) => (
+                          <SelectItem key={c} value={c}>
+                            {c}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="text-sm font-semibold text-foreground">Size & revenue</h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label>Employees</Label>
+                    <Select
+                      value={form.employeeCount || undefined}
+                      onValueChange={(v) => setForm((f) => ({ ...f, employeeCount: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select band" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {B2B_EMPLOYEE_BANDS.map((b) => (
+                          <SelectItem key={b} value={b}>
+                            {b}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Annual revenue</Label>
+                    <Select
+                      value={form.annualRevenue || undefined}
+                      onValueChange={(v) => setForm((f) => ({ ...f, annualRevenue: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select band" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {B2B_REVENUE_BANDS.map((b) => (
+                          <SelectItem key={b} value={b}>
+                            {b}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="text-sm font-semibold text-foreground">Notes</h3>
+                <Textarea
+                  id="co-notes"
+                  rows={3}
+                  placeholder="AMC contract, billing contact, GSTIN, society gate rules…"
+                  value={form.notes}
+                  onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                 />
-              </div>
-            ))}
-            <div className="space-y-1.5">
-              <Label htmlFor="co-emp">Employees</Label>
-              <Input
-                id="co-emp"
-                value={form.employeeCount}
-                onChange={(e) => setForm((f) => ({ ...f, employeeCount: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="co-rev">Annual revenue</Label>
-              <Input
-                id="co-rev"
-                value={form.annualRevenue}
-                onChange={(e) => setForm((f) => ({ ...f, annualRevenue: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="co-notes">Notes</Label>
-              <Textarea
-                id="co-notes"
-                rows={3}
-                value={form.notes}
-                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-              />
+              </section>
             </div>
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+
+          <DialogFooter className="border-t px-6 py-4">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={saving}>
               Cancel
             </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                if (!form.name.trim()) {
-                  setSnackbar({ open: true, message: 'Name is required', severity: 'error' })
-                  return
-                }
-                void (async () => {
-                  try {
-                    await crmService.upsertCompany({
-                      id: editing?.id,
-                      name: form.name.trim(),
-                      industry: form.industry || undefined,
-                      website: form.website || undefined,
-                      phone: form.phone || undefined,
-                      city: form.city || undefined,
-                      country: form.country || undefined,
-                      employeeCount: form.employeeCount || undefined,
-                      annualRevenue: form.annualRevenue || undefined,
-                      notes: form.notes || undefined,
-                    })
-                    setOpen(false)
-                    refresh()
-                    setSnackbar({ open: true, message: 'B2B account saved', severity: 'success' })
-                  } catch {
-                    setSnackbar({ open: true, message: 'Save failed', severity: 'error' })
-                  }
-                })()
-              }}
-            >
-              Save
+            <Button type="button" onClick={() => void saveCompany()} disabled={saving}>
+              {saving ? 'Saving…' : editing ? 'Save changes' : 'Create account'}
             </Button>
           </DialogFooter>
         </DialogContent>

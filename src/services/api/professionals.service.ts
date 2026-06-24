@@ -23,6 +23,9 @@ import {
   BlockProfessionalRequest,
 } from '../../types/professional.types'
 
+/** Backend pagination validator: `limit` must be ≤ 100. */
+export const PROFESSIONALS_API_MAX_PAGE_SIZE = 100
+
 export class ProfessionalsService {
   /**
    * Get all professionals with filters
@@ -31,21 +34,66 @@ export class ProfessionalsService {
     query: ProfessionalsQuery = {},
     requestConfig?: Omit<RequestConfig, 'method' | 'body'>,
   ) {
+    const cappedQuery = { ...query }
+    if (
+      cappedQuery.limit != null &&
+      Number(cappedQuery.limit) > PROFESSIONALS_API_MAX_PAGE_SIZE
+    ) {
+      cappedQuery.limit = PROFESSIONALS_API_MAX_PAGE_SIZE
+    }
+
     const params = new URLSearchParams()
-    
-    Object.entries(query).forEach(([key, value]) => {
+
+    Object.entries(cappedQuery).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         params.append(key, value.toString())
       }
     })
 
     const endpoint = `/professionals${params.toString() ? `?${params.toString()}` : ''}`
-    
+
     return api.get<ProfessionalsResponse>(endpoint, {
       loadingMessage: 'Loading professionals...',
       showSuccessToast: false,
       ...requestConfig,
     })
+  }
+
+  /**
+   * Load all professionals matching filters (pages of 100 until exhausted).
+   */
+  static async fetchAllProfessionals(
+    query: Omit<ProfessionalsQuery, 'page' | 'limit'> = {},
+    options?: {
+      maxPages?: number
+      requestConfig?: Omit<RequestConfig, 'method' | 'body'>
+    },
+  ): Promise<Professional[]> {
+    const silent = {
+      showLoading: false,
+      showErrorToast: false,
+      ...options?.requestConfig,
+    }
+    const byId = new Map<string, Professional>()
+    let page = 1
+    let totalPages = 1
+    const maxPages = options?.maxPages ?? 40
+
+    do {
+      const res = await this.getProfessionals(
+        { ...query, page, limit: PROFESSIONALS_API_MAX_PAGE_SIZE },
+        silent,
+      )
+      if (!res.success || !res.data) break
+      for (const row of res.data.professionals ?? []) {
+        const id = String(row.id || row._id || '')
+        if (id) byId.set(id, row)
+      }
+      totalPages = Math.max(1, res.data.pagination?.totalPages ?? 1)
+      page += 1
+    } while (page <= totalPages && page <= maxPages)
+
+    return Array.from(byId.values())
   }
 
   /**

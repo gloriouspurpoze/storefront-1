@@ -2,14 +2,43 @@ import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { cn } from '../../lib/utils'
 
+/** Industry-standard home-services CRM spine: funnel → people → pipeline → tasks → config */
 const CRM_TABS = [
-  { label: 'Overview', path: '/crm' },
-  { label: 'Leads', path: '/crm/leads' },
-  { label: 'Contacts', path: '/crm/contacts' },
-  { label: 'B2B accounts', path: '/crm/companies' },
-  { label: 'Deals', path: '/crm/deals' },
-  { label: 'Activities', path: '/crm/activities' },
-  { label: 'Settings', path: '/crm/settings' },
+  {
+    label: 'Overview',
+    path: '/crm',
+    title: 'Pipeline KPIs, overdue tasks, and quick links',
+  },
+  {
+    label: 'Leads',
+    path: '/crm/leads',
+    title: 'Pre-conversion: inquiry through in-progress (incl. WhatsApp)',
+  },
+  {
+    label: 'Contacts',
+    path: '/crm/contacts',
+    title: 'Converted customers and active partners',
+  },
+  {
+    label: 'B2B accounts',
+    path: '/crm/companies',
+    title: 'Societies, AMCs, and corporate buyers',
+  },
+  {
+    label: 'Deals',
+    path: '/crm/deals',
+    title: 'Revenue pipeline: quote → scheduled → paid',
+  },
+  {
+    label: 'Activities',
+    path: '/crm/activities',
+    title: 'Calls, WhatsApp, visits, and follow-up tasks',
+  },
+  {
+    label: 'Settings',
+    path: '/crm/settings',
+    title: 'Field policies, platform sync, and integrations',
+  },
 ] as const
 
 export function CrmSubnav() {
@@ -24,6 +53,7 @@ export function CrmSubnav() {
             <Link
               key={t.path}
               to={t.path}
+              title={t.title}
               className={cn(
                 'inline-flex min-h-11 shrink-0 items-center border-b-2 px-3 text-sm font-semibold no-underline transition-colors',
                 isActive

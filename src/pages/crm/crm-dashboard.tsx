@@ -16,14 +16,15 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Cell,
 } from 'recharts'
-import { CHART_TOKENS } from '../../lib/chartPalette'
+import { CHART_TOKENS, CHART_CATEGORICAL } from '../../lib/chartPalette'
 import { PageHeader } from '../../components/common/PageHeader'
 import { CrmSubnav } from '../../components/crm/CrmSubnav'
 import { crmService } from '../../services/api/crm.service'
 import { usePermissions } from '../../hooks/usePermissions'
-import type { CrmActivity, CrmDealStage, CrmMetrics } from '../../types/crm.types'
-import { ACTIVITY_TYPE_LABELS, DEAL_PIPELINE_STAGES, DEAL_STAGE_LABELS } from '../../lib/crmNiche'
+import type { CrmActivity, CrmDeal, CrmDealStage, CrmMetrics } from '../../types/crm.types'
+import { ACTIVITY_TYPE_LABELS, DEAL_PIPELINE_STAGES, DEAL_STAGE_LABELS, coerceCrmMetrics, migrateDealStage, normalizeDealsByStage } from '../../lib/crmNiche'
 import { formatMoneyAmount, APP_CURRENCY } from '../../lib/utils'
 import { Card, CardContent } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
@@ -46,6 +47,19 @@ const EMPTY_METRICS: CrmMetrics = {
   ),
 }
 
+/** Backend may still return legacy stage keys with zero counts — rebuild from deal rows when needed. */
+function enrichMetricsFromDeals(metrics: CrmMetrics, deals: CrmDeal[]): CrmMetrics {
+  const chartTotal = Object.values(metrics.dealsByStage).reduce((a, b) => a + b, 0)
+  if (chartTotal > 0 || deals.length === 0) return metrics
+
+  const raw: Record<string, number> = {}
+  for (const d of deals) {
+    const stage = migrateDealStage(d.stage)
+    raw[stage] = (raw[stage] ?? 0) + 1
+  }
+  return { ...metrics, dealsByStage: normalizeDealsByStage(raw) }
+}
+
 export function CrmDashboard() {
   const { checkPermission } = usePermissions()
   const canManage = checkPermission('manage_crm')
@@ -59,10 +73,11 @@ export function CrmDashboard() {
     let cancelled = false
     setLoading(true)
     setLoadError(null)
-    Promise.all([crmService.getMetrics(), crmService.listActivities()])
-      .then(([m, acts]) => {
+    Promise.all([crmService.getMetrics(), crmService.listActivities(), crmService.listDeals()])
+      .then(([m, acts, deals]) => {
         if (cancelled) return
-        setMetrics(m)
+        const metrics = enrichMetricsFromDeals(coerceCrmMetrics(m), deals)
+        setMetrics(metrics)
         setRecent(
           [...acts]
             .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
@@ -85,11 +100,15 @@ export function CrmDashboard() {
   }, [tick])
 
   const chartData = useMemo(() => {
-    return DEAL_PIPELINE_STAGES.map((k) => ({
+    return DEAL_PIPELINE_STAGES.map((k, i) => ({
+      stage: k,
       name: DEAL_STAGE_LABELS[k],
       deals: metrics.dealsByStage[k] ?? 0,
+      fill: CHART_CATEGORICAL[i % CHART_CATEGORICAL.length],
     }))
   }, [metrics])
+
+  const chartDealTotal = useMemo(() => chartData.reduce((a, d) => a + d.deals, 0), [chartData])
 
   return (
     <div className="p-4 md:p-6">
@@ -98,9 +117,9 @@ export function CrmDashboard() {
         subtitle="ProFixer.in job pipeline — MongoDB via /api/crm. Use WhatsApp lead source + activities; link platform IDs when jobs exist."
       />
       <CrmSubnav />
-      <div className="mb-6">
+      {/* <div className="mb-6">
         <CrmWhatsAppStaffPlaybook />
-      </div>
+      </div> */}
 
       {loading ? (
         <div className="flex justify-center py-12">
@@ -178,15 +197,40 @@ export function CrmDashboard() {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
             <Card className="lg:col-span-7">
               <CardContent className="pt-6">
-                <h2 className="mb-4 text-lg font-semibold">Deals by stage</h2>
-                <div className="h-80 w-full min-h-[240px]">
+                <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+                  <div>
+                    <h2 className="text-lg font-semibold">Deals by stage</h2>
+                    <p className="text-xs text-muted-foreground">
+                      Revenue pipeline deals — not the same as active leads ({metrics.activeLeads} contacts in funnel).
+                    </p>
+                  </div>
+                  {chartDealTotal > 0 ? (
+                    <p className="text-sm font-medium tabular-nums text-muted-foreground">{chartDealTotal} deals total</p>
+                  ) : null}
+                </div>
+                <div className="relative h-80 w-full min-h-[240px]">
+                  {chartDealTotal === 0 ? (
+                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-lg border border-dashed bg-muted/20 px-4 text-center">
+                      <p className="text-sm font-medium">No deals in pipeline yet</p>
+                      <p className="mt-1 max-w-sm text-xs text-muted-foreground">
+                        Create deals under CRM → Deals. Leads ({metrics.activeLeads}) are contacts — they appear here only after you add a deal.
+                      </p>
+                    </div>
+                  ) : null}
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" opacity={0.4} />
-                      <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                      <Tooltip />
-                      <Bar dataKey="deals" fill={CHART_TOKENS.primary} radius={[4, 4, 0, 0]} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={CHART_TOKENS.grid} opacity={0.6} />
+                      <XAxis dataKey="name" tick={{ fontSize: 11, fill: CHART_TOKENS.axis }} interval={0} angle={-20} textAnchor="end" height={56} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: CHART_TOKENS.axis }} />
+                      <Tooltip
+                        contentStyle={{ background: CHART_TOKENS.surface, borderColor: CHART_TOKENS.grid, color: CHART_TOKENS.ink }}
+                        formatter={(value: number) => [value, 'Deals']}
+                      />
+                      <Bar dataKey="deals" radius={[4, 4, 0, 0]} maxBarSize={48}>
+                        {chartData.map((entry) => (
+                          <Cell key={entry.stage} fill={entry.fill} />
+                        ))}
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

@@ -238,7 +238,7 @@ export const coreSidebarGroups: SidebarNavGroupDef[] = [
           { id: 'blogs', name: 'Blog posts', href: '/cms/blogs', icon: 'BookOpen', permissions: ['manage_cms'], module: 'cms' },
           { id: 'blog_categories', name: 'Blog categories', href: '/cms/blog-categories', icon: 'Tag', permissions: ['manage_cms'], module: 'cms' },
           { id: 'newsletter', name: 'Newsletter', href: '/cms/newsletter', icon: 'Megaphone', permissions: ['manage_cms'], module: 'cms' },
-          { id: 'email_templates', name: 'Email templates', href: '/cms/email-templates', icon: 'Mail', permissions: ['manage_system_settings'], module: 'cms' },
+          { id: 'email_templates', name: 'Email templates', href: '/cms/email-templates', icon: 'Mail', permissions: ['view_cms', 'manage_cms', 'edit_settings', 'manage_system_settings'], module: 'cms' },
           { id: 'social_links', name: 'Social links', href: '/cms/social-links', icon: 'Link2', permissions: ['manage_cms'], module: 'cms' },
           { id: 'testimonials', name: 'Testimonials', href: '/cms/testimonials', icon: 'Star', permissions: ['manage_cms'], module: 'cms' },
           { id: 'reviews', name: 'Reviews', href: '/cms/reviews', icon: 'Star', permissions: ['manage_cms'], module: 'cms' },

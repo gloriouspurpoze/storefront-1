@@ -21,6 +21,11 @@ import {
   normalizeRecordType,
   type CrmMetricsApiShape,
 } from '../../lib/crmNiche'
+import {
+  buildPlatformSyncPlan,
+  type PlatformSyncStats,
+} from '../../lib/crmPlatformSync'
+import type { Booking, User } from '../../types'
 import { crmApi } from './crm.api'
 
 /** Production builds always use the CRM API. In development, set REACT_APP_CRM_USE_API=true (recommended). */
@@ -312,8 +317,8 @@ const localStore = {
     const row: CrmContact = {
       id,
       recordType: partial.recordType ?? existing?.recordType ?? 'customer',
-      firstName: partial.firstName ?? existing?.firstName ?? '',
-      lastName: partial.lastName ?? existing?.lastName ?? '',
+      firstName: (partial.firstName ?? existing?.firstName ?? 'Customer').trim() || 'Customer',
+      lastName: (partial.lastName ?? existing?.lastName ?? '—').trim() || '—',
       email: partial.email ?? existing?.email ?? '',
       phone: partial.phone,
       jobTitle: partial.jobTitle,
@@ -368,6 +373,7 @@ const localStore = {
       platformOrderId: partial.platformOrderId ?? existing?.platformOrderId,
       locality: partial.locality ?? existing?.locality,
       serviceCategory: partial.serviceCategory ?? existing?.serviceCategory,
+      phone: partial.phone ?? existing?.phone,
       createdAt: existing?.createdAt ?? nowIso(),
       updatedAt: nowIso(),
     }
@@ -526,7 +532,6 @@ export const crmService = {
     localStore.deleteActivity(id)
   },
 
-  /** CSV export — API uses server-side field masking; local mode exports browser data. */
   async downloadExport(entity: 'contacts' | 'companies' | 'deals' | 'activities'): Promise<void> {
     if (isCrmApiMode()) return crmApi.downloadExport(entity)
     const esc = (v: unknown) => {
@@ -561,5 +566,53 @@ export const crmService = {
     a.download = `${entity}.csv`
     a.click()
     URL.revokeObjectURL(url)
+  },
+
+  /**
+   * Industry flow: mirror platform Users + Bookings into CRM contacts.
+   * API mode uses server-side POST /crm/sync/platform; local demo uses in-browser plan.
+   */
+  async syncFromPlatform(input?: {
+    users: User[]
+    bookings: Booking[]
+    contacts?: CrmContact[]
+  }): Promise<PlatformSyncStats> {
+    if (isCrmApiMode()) {
+      return crmApi.syncPlatform()
+    }
+
+    if (!input) {
+      return { created: 0, updated: 0, skipped: 0, fromUsers: 0, fromBookings: 0 }
+    }
+
+    const contacts = input.contacts ?? (await this.listContacts())
+    const plan = buildPlatformSyncPlan(input.users, input.bookings, contacts)
+
+    let created = 0
+    let updated = 0
+
+    for (const row of plan.creates) {
+      if (!row.firstName?.trim() || !row.email?.trim()) continue
+      await this.upsertContact({
+        firstName: row.firstName.trim(),
+        lastName: (row.lastName ?? '—').trim(),
+        email: row.email.trim(),
+        ...row,
+      })
+      created += 1
+    }
+
+    for (const row of plan.updates) {
+      await this.upsertContact(row)
+      updated += 1
+    }
+
+    return {
+      created,
+      updated,
+      skipped: input.users.length + input.bookings.length - created - updated,
+      fromUsers: input.users.filter((u) => u.userType === 'customer').length,
+      fromBookings: input.bookings.length,
+    }
   },
 }

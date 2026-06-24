@@ -533,7 +533,7 @@ export function Bookings() {
       <div className="flex-1 p-4 md:p-6">
       <PageHeader
         title="Bookings"
-        subtitle="Search, filter, and open any booking. Short references keep rows scannable; full IDs are one click away."
+        subtitle="Jobs from web & app — each booking advances the linked CRM lead through the funnel."
         icon={<CalendarDays className="h-7 w-7 text-primary sm:h-8 sm:w-8" />}
       />
 

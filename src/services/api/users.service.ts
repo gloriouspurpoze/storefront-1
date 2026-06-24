@@ -2,6 +2,12 @@ import { apiClient } from '../apiClient'
 import type { User } from '../../types'
 import type { Permission, RbacPermissionMode, UserRole } from '../../types/rbac.types'
 import { mapBackendUserToAppUser } from '../../lib/mapBackendUser'
+import {
+  generatePosCustomerPassword,
+  normalizePhoneForRegister,
+  phonesMatch,
+  walkInPlaceholderEmail,
+} from '../../lib/posCustomer'
 
 export type { User }
 
@@ -109,6 +115,105 @@ export const usersService = {
     const raw = response?.data?.user ?? response?.data?.data?.user
     if (!raw) throw new Error('User not found')
     return mapListUser(raw)
+  },
+
+  async findOrCreateDirectoryCustomer(input: {
+    firstName: string
+    lastName: string
+    phone: string
+    email?: string
+    mode: 'walk_in' | 'full_account'
+    password?: string
+  }): Promise<{
+    user: User
+    created: boolean
+    matchedExisting: boolean
+    mode: 'walk_in' | 'full_account' | 'existing'
+    password?: string
+    serverMessage?: string
+  }> {
+    const phone = normalizePhoneForRegister(input.phone.trim())
+    if (!/^\+[1-9]\d{7,14}$/.test(phone)) {
+      throw new Error('Enter a valid phone (10 digits for India or full +country…).')
+    }
+
+    const searchDigits = phone.replace(/\D/g, '').slice(-10)
+    const list = await this.getUsers({
+      scope: 'directory',
+      user_type: 'customer',
+      search: searchDigits,
+      limit: 25,
+      page: 1,
+    })
+    const existing = list.users.find((u) => phonesMatch(u.phone, phone))
+    if (existing) {
+      return { user: existing, created: false, matchedExisting: true, mode: 'existing' }
+    }
+
+    if (input.mode === 'walk_in') {
+      try {
+        const response = (await apiClient.post(
+          '/users/directory/find-or-create',
+          {
+            first_name: input.firstName.trim(),
+            last_name: input.lastName.trim(),
+            phone,
+            email: input.email?.trim() || undefined,
+            source: 'pos_walk_in',
+          },
+          { showSuccessToast: false, showErrorToast: false, showLoading: false },
+        )) as { data?: { user?: unknown; created?: boolean; message?: string }; message?: string }
+        const userRaw = response?.data?.user
+        if (userRaw) {
+          return {
+            user: mapListUser(userRaw),
+            created: Boolean(response?.data?.created ?? true),
+            matchedExisting: false,
+            mode: 'walk_in',
+            serverMessage:
+              typeof response?.data?.message === 'string'
+                ? response.data.message
+                : response?.message,
+          }
+        }
+      } catch {
+        /* fall through to register fallback */
+      }
+    }
+
+    const fn = input.firstName.trim()
+    const ln = input.lastName.trim()
+    const email =
+      input.mode === 'full_account'
+        ? input.email?.trim().toLowerCase() || ''
+        : input.email?.trim().toLowerCase() || walkInPlaceholderEmail(phone)
+
+    if (input.mode === 'full_account' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new Error('Enter a valid email for a full account.')
+    }
+
+    const password =
+      input.mode === 'full_account'
+        ? input.password?.trim() || generatePosCustomerPassword()
+        : generatePosCustomerPassword()
+
+    const { user, serverMessage } = await this.createUser({
+      email,
+      firstName: fn,
+      lastName: ln,
+      phone,
+      userType: 'customer',
+      password,
+    })
+
+    return {
+      user,
+      created: true,
+      matchedExisting: false,
+      mode: input.mode,
+      password: input.mode === 'full_account' ? password : undefined,
+      serverMessage,
+    }
   },
 
   async createUser(

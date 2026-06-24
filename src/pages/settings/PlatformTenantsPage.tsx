@@ -1292,7 +1292,7 @@ export function PlatformTenantsPage() {
 
                 <p className="text-xs text-muted-foreground">
                   Need to set per-feature permissions for an existing member? Open the{' '}
-                  <Link to="/users" className="font-medium text-primary underline-offset-4 hover:underline">
+                  <Link to="/users/customers" className="font-medium text-primary underline-offset-4 hover:underline">
                     Users page
                   </Link>{' '}
                   while this organization is the active context — that's what the <strong className="text-foreground">Launch</strong> button on the table sets.

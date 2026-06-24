@@ -15,7 +15,10 @@ import {
   Clock,
   StickyNote,
   Loader2,
+  MessageCircle,
+  UserPlus,
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { PageHeader } from '../../components/common/PageHeader'
 import { Pagination } from '../../components/common/Pagination'
 import {
@@ -82,6 +85,25 @@ const statusClass: Record<ProfessionalApplicationStatus, string> = {
   approved: 'border-storm-mist/30 bg-storm-deep/10 text-storm-deep',
   rejected: 'border-destructive/20 bg-destructive/10 text-destructive',
   archived: 'border-border bg-muted text-muted-foreground',
+}
+
+function partnerWhatsAppHref(phone: string) {
+  const digits = phone.replace(/\D/g, '').slice(-10)
+  return `https://wa.me/91${digits}?text=${encodeURIComponent('Hi, this is ProFixer hiring team regarding your partner application.')}`
+}
+
+function onboardProfessionalHref(app: ProfessionalApplication) {
+  const params = new URLSearchParams()
+  const parts = app.fullName.trim().split(/\s+/)
+  if (parts[0]) params.set('firstName', parts[0])
+  if (parts.length > 1) params.set('lastName', parts.slice(1).join(' '))
+  if (app.phone) params.set('phone', app.phone.replace(/\D/g, '').slice(-10))
+  if (app.email) params.set('email', app.email)
+  if (app.city) params.set('city', app.city)
+  if (app.experienceYears != null) params.set('experience', String(app.experienceYears))
+  if (app.servicesInterested?.length) params.set('services', app.servicesInterested.join(','))
+  params.set('fromApplication', app.applicationId || app._id)
+  return `/professionals/create?${params.toString()}`
 }
 
 function formatDate(value: string | undefined) {
@@ -196,7 +218,7 @@ export function ProviderApplications() {
     <div className="p-4 md:p-6">
       <PageHeader
         title="Provider Applications"
-        subtitle="Web leads, imports, and new accounts from the Profixer Provider mobile app (self-registration)"
+        subtitle="Web form leads from /become-provider, mobile app sign-ups, and imports — review, contact, then onboard as a professional"
         action={
           <Button variant="outline" size="sm" className="gap-1.5" onClick={handleRefresh}>
             <RefreshCw className="h-4 w-4" />
@@ -397,6 +419,29 @@ export function ProviderApplications() {
                   <span className="text-xs">Phone</span>
                 </div>
                 <p className="mb-3 text-sm">{selectedApp.phone}</p>
+
+                <div className="mb-4 flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" size="sm" className="gap-1.5" asChild>
+                    <a href={`tel:${selectedApp.phone.replace(/\D/g, '').length >= 10 ? '+91' + selectedApp.phone.replace(/\D/g, '').slice(-10) : selectedApp.phone}`}>
+                      <Phone className="h-4 w-4" />
+                      Call
+                    </a>
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" className="gap-1.5" asChild>
+                    <a href={partnerWhatsAppHref(selectedApp.phone)} target="_blank" rel="noopener noreferrer">
+                      <MessageCircle className="h-4 w-4" />
+                      WhatsApp
+                    </a>
+                  </Button>
+                  {(selectedApp.status === 'approved' || selectedApp.status === 'contacted') && (
+                    <Button type="button" variant="default" size="sm" className="gap-1.5" asChild>
+                      <Link to={onboardProfessionalHref(selectedApp)}>
+                        <UserPlus className="h-4 w-4" />
+                        Onboard professional
+                      </Link>
+                    </Button>
+                  )}
+                </div>
 
                 {selectedApp.email && (
                   <>
