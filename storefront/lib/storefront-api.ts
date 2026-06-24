@@ -349,12 +349,9 @@ export interface StorefrontConfig {
   featureFlags: Record<string, boolean | Record<string, boolean> | undefined>
   featureAddons?: Record<string, { sku: string; purchased?: boolean }>
   customCss?: string
-  orderingHours?: Record<
-    'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday',
-    StorefrontOrderingDayHours
-  >
-  orderingAvailability?: StorefrontOrderingAvailability
-  shippingPolicy?: StorefrontShippingPolicy
+  orderingHours?: Partial<import('@/lib/orderingHours').OrderingHoursConfig>
+  orderingAvailability?: import('@/lib/orderingHours').OrderingAvailabilityConfig
+  shippingPolicy?: import('@/lib/shippingPolicy').ShippingPolicyConfig
 }
 
 export async function fetchStorefrontConfig(tenantId: string): Promise<StorefrontConfig | null> {

@@ -32,6 +32,7 @@ import { TeamWorkSprintPanel } from '../../components/team-work/TeamWorkSprintPa
 import { ScheduleMeetingDialog } from '../../components/team-work/ScheduleMeetingDialog'
 import { teamWorkApi } from '../../services/api/teamWork.api'
 import { usersService } from '../../services/api/users.service'
+import { filterUsersForAudience } from '../../lib/userAudienceFilters'
 import type {
   TeamWorkItem,
   TeamWorkIssueType,
@@ -658,7 +659,7 @@ export function TeamWorkHub() {
           teamWorkApi.getMeta(),
           teamWorkApi.listItems(listParams),
           teamWorkApi.listItems({ projectId, issueType: 'epic', limit: '80' }),
-          usersService.getUsers({ scope: 'members', limit: 100, page: 1 }),
+          usersService.getUsers({ scope: 'members', user_type: 'admin', limit: 100, page: 1 }),
         ])
         setMeta(m)
         let boardItems = list.items
@@ -668,7 +669,7 @@ export function TeamWorkHub() {
         setItems(boardItems)
         setTotal(list.total)
         setEpics(epicList.items.filter((e) => e.issueType === 'epic'))
-        setAdminUsers(admins.users)
+        setAdminUsers(filterUsersForAudience(admins.users, 'members'))
       } catch {
         setLoadError(
           'Could not load this board. You may not be on the member list for a restricted project, or the API rejected the request.',

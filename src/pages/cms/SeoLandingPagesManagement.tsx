@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   ExternalLink,
   FileSearch,
+  Filter,
   Loader2,
   Plus,
   Save,
@@ -25,6 +27,7 @@ import {
 } from '../../components/ui/select'
 import { PageHeader } from '../../components/common/PageHeader'
 import { CMSService } from '../../services/api'
+import { CategoriesService } from '../../services/api/categories.service'
 import { useCmsCatalogCategories } from '../../hooks/useCmsCatalogCategories'
 import { useServiceCatalogLocalities } from '../../hooks/useServiceCatalogLocalities'
 import { usePermissions } from '../../hooks/usePermissions'
@@ -34,19 +37,34 @@ import { SeoSectionsEditor } from '../../components/cms/SeoSectionsEditor'
 import { SeoLandingFaqEditor } from '../../components/cms/SeoLandingFaqEditor'
 import { SeoLandingPriceTableEditor } from '../../components/cms/SeoLandingPriceTableEditor'
 import { SeoLandingInternalLinksEditor } from '../../components/cms/SeoLandingInternalLinksEditor'
+import { SeoCompactRichTextField } from '../../components/cms/SeoCompactRichTextField'
+import { SeoLandingKeyTakeawaysEditor } from '../../components/cms/SeoLandingKeyTakeawaysEditor'
+import { SeoCuratedMultiSelect, SeoCuratedSingleSelect } from '../../components/cms/SeoCuratedPickers'
+import { SeoLandingPublishPanel } from '../../components/cms/SeoLandingPublishPanel'
+import { SeoLandingPageHealthPanel } from '../../components/cms/SeoLandingPageHealthPanel'
+import { SeoPlatformCatalogPriceImportBar } from '../../components/cms/SeoPlatformCatalogPriceImportBar'
+import { SeoLandingSerpPreview } from '../../components/cms/SeoLandingSerpPreview'
 import {
-  buildNearMeLocalityPublicPath,
-  buildNearMeCategoryPublicPath,
-} from '../../lib/nearMeSeo'
+  buildCanonicalPresets,
+  buildSeoYearOptions,
+  SEO_AREA_CITY_OPTIONS,
+} from '../../lib/seoLandingCuratedOptions'
 import {
-  buildServiceLocalityPublicPath,
-  getPreferredServiceCategoryUrlSlug,
-} from '../../lib/serviceCatalogUrlSlugs'
+  buildSeoLandingSchemaPreview,
+  SCHEMA_INDUSTRY_NOTES,
+} from '../../lib/buildSeoLandingPreviewJsonLd'
+import { isValidSeoLandingSlug, normalizeSeoLandingSlug } from '../../lib/seoLandingSlug'
+import {
+  buildEmergencyCompositeSlug,
+  isValidEmergencyCompositeSlug,
+  parseEmergencyCompositeSlug,
+  publicEmergencyUrl,
+} from '../../lib/emergencyLandingSlugs'
+import { resolveSeoLandingFunnelUrls, resolveSeoLandingRoutingSlugs } from '../../lib/seoLandingRouting'
 import {
   kindMeta,
   pageListTitle,
   publicUrlForKind,
-  publishGatesForDraft,
   estimateSeoLandingWordCount,
   SEO_LANDING_KINDS,
   SEO_LANDING_MIN_WORDS,
@@ -58,10 +76,144 @@ import {
   mergeSuggestedInternalLinks,
   suggestSeoLandingInternalLinks,
 } from '../../lib/seoLandingSuggestLinks'
+import {
+  buildSeoCategoryPickerOptions,
+  buildGlobalSeoCategoryFilterOptions,
+  countSeoPagesForKindAndCategory,
+  fetchPlatformServicesForSeoCategory,
+  filterKnownSeoCategorySlugs,
+  getSeoPageCategorySlugs,
+  isValidSeoCategorySlug,
+  normalizeSeoCategorySlug,
+  seoLandingKindHasCategoryFilter,
+  seoPageMatchesCategoryFilter,
+} from '../../lib/seoLandingCatalogSlugs'
+import {
+  buildPriceTableFromPlatformServices,
+  buildPriceTablePatch,
+  mergePriceTableWithCatalog,
+  readPriceTableRows,
+  suggestPriceTableCaption,
+  usesTopLevelPriceTable,
+} from '../../lib/platformServicesPriceGuide'
+import {
+  buildSeoLandingQualityReport,
+  quickSeoLandingPageStatus,
+} from '../../lib/seoLandingContentQuality'
+import { validateSeoLandingForConsumer } from '../../lib/seoLandingConsumerValidation'
+import {
+  effectiveSeoLandingMetaDescription,
+  effectiveSeoLandingMetaTitle,
+  suggestSeoLandingMetaDescription,
+  suggestSeoLandingMetaTitle,
+} from '../../lib/seoLandingEffectiveMeta'
+import {
+  SEO_LANDING_LENGTH_RULES,
+  analyzeSeoLandingLengthWarnings,
+  evaluateLength,
+  lengthWarningsNeedAttention,
+} from '../../lib/seoLandingContentLengthRules'
+import { SeoContentLengthHint } from '../../components/cms/SeoContentLengthHint'
 import type { ContentSection } from '../../types/seoLandingSections'
+import type { Category } from '../../types'
 
 type EntityDraft = Record<string, unknown>
 type EditorTab = 'setup' | 'content' | 'links' | 'seo'
+
+function stripHtmlPlain(s?: string): string {
+  return (s ?? '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+function prepareRecordsForSave(
+  kind: SeoLandingEntityKind,
+  records: Record<string, EntityDraft>,
+  catalogOptions: { value: string; label: string }[],
+  validLocalities: Set<string>,
+): { ok: true; payload: Record<string, EntityDraft> } | { ok: false; message: string } {
+  const payload: Record<string, EntityDraft> = {}
+  for (const [key, row] of Object.entries(records)) {
+    let desired: string
+    const entity: EntityDraft = { ...row }
+
+    if (kind === 'emergency') {
+      const svcRaw = String(entity.serviceSlug ?? entity.service ?? '').trim()
+      const loc = String(entity.locationSlug ?? entity.localitySlug ?? '').trim().toLowerCase()
+      if (!svcRaw) {
+        return { ok: false, message: `Emergency page “${key}” needs a service category.` }
+      }
+      if (!loc || !validLocalities.has(loc)) {
+        return { ok: false, message: `Emergency page “${key}” needs a valid service area.` }
+      }
+      if (!isValidSeoCategorySlug(svcRaw, catalogOptions)) {
+        return {
+          ok: false,
+          message: `Invalid service category “${svcRaw}” on emergency page “${key}”.`,
+        }
+      }
+      entity.serviceSlug = normalizeSeoCategorySlug(svcRaw)
+      entity.locationSlug = loc
+      desired = buildEmergencyCompositeSlug(entity.serviceSlug as string, loc)
+      if (!isValidEmergencyCompositeSlug(desired)) {
+        return { ok: false, message: `Invalid emergency page key “${desired}”.` }
+      }
+      entity.slug = desired
+    } else {
+      desired = normalizeSeoLandingSlug(String(row.slug ?? key))
+      if (!isValidSeoLandingSlug(desired)) {
+        return { ok: false, message: `Invalid URL slug “${desired || key}” — use lowercase letters, numbers, and hyphens.` }
+      }
+      entity.slug = desired
+    }
+
+    if (payload[desired]) {
+      return { ok: false, message: `Duplicate slug “${desired}” — each page needs a unique URL.` }
+    }
+
+    if (entity.serviceSlug && !isValidSeoCategorySlug(String(entity.serviceSlug), catalogOptions)) {
+      return {
+        ok: false,
+        message: `Invalid service category “${entity.serviceSlug}” on “${desired}” — pick from the catalog dropdown.`,
+      }
+    }
+    if (entity.serviceSlug) {
+      entity.serviceSlug = normalizeSeoCategorySlug(String(entity.serviceSlug))
+    }
+    if (entity.locationSlug && !validLocalities.has(String(entity.locationSlug).trim().toLowerCase())) {
+      return {
+        ok: false,
+        message: `Invalid service area “${entity.locationSlug}” on “${desired}” — pick from Service areas.`,
+      }
+    }
+    if (Array.isArray(entity.servicesOffered)) {
+      entity.servicesOffered = filterKnownSeoCategorySlugs(
+        entity.servicesOffered.map(String),
+        catalogOptions,
+      )
+    }
+    if (Array.isArray(entity.areasServed)) {
+      entity.areasServed = entity.areasServed.map(String).filter((s) => validLocalities.has(s))
+    }
+    if (Array.isArray(entity.neighbours)) {
+      entity.neighbours = entity.neighbours.map(String).filter((s) => validLocalities.has(s) && s !== desired)
+    }
+    if (kind === 'locations' && !validLocalities.has(desired)) {
+      return {
+        ok: false,
+        message: `Area page slug “${desired}” must match a Service areas catalog entry.`,
+      }
+    }
+
+    if (kind === 'landing-pages') {
+      const seo = (entity.seo as Record<string, unknown> | undefined) ?? {}
+      const canonical = String(seo.canonicalPath ?? '').trim()
+      if (!canonical || canonical === `/${key}`) {
+        entity.seo = { ...seo, canonicalPath: `/${desired}` }
+      }
+    }
+    payload[desired] = entity
+  }
+  return { ok: true, payload }
+}
 
 function emptyDraft(kind: SeoLandingEntityKind, slug: string): EntityDraft {
   const base: EntityDraft = {
@@ -75,8 +227,45 @@ function emptyDraft(kind: SeoLandingEntityKind, slug: string): EntityDraft {
     relatedLinks: [],
     seo: { noindex: false },
   }
-  if (kind === 'problems' || kind === 'cost-guides') {
+  if (kind === 'problems' || kind === 'cost-guides' || kind === 'guides' || kind === 'landing-pages' || kind === 'emergency') {
     base.serviceSlug = 'ac-repair'
+  }
+  if (kind === 'emergency') {
+    return {
+      slug: '',
+      title: '',
+      subtitle: '',
+      serviceSlug: 'appliance-repair',
+      locationSlug: 'mira-bhayandar',
+      locationName: '',
+      quickAnswer: '',
+      keyTakeaways: [
+        'Same-day emergency slots when available across Mumbai',
+        'Verified technicians — urgency surcharge quoted upfront',
+        'Book online or call for the fastest confirmation',
+      ],
+      body: '',
+      sections: [],
+      faqs: [
+        {
+          question: 'How fast is emergency response?',
+          answer:
+            'ProFixer offers the earliest available slot for urgent home service. Peak demand may affect same-hour arrival — book online or call for the fastest confirmation.',
+        },
+        {
+          question: 'Is emergency service more expensive?',
+          answer:
+            'Pricing follows the transparent rate card where possible. Any urgency surcharge is quoted before work begins — no hidden after-hours fees added on site.',
+        },
+        {
+          question: 'What counts as an emergency?',
+          answer:
+            'Active leaks, no power, no cooling in peak heat, or safety risks (sparks, burning smell) are typical emergencies. For life-threatening situations, call emergency services first.',
+        },
+      ],
+      relatedLinks: [],
+      seo: { noindex: false },
+    }
   }
   if (kind === 'cost-guides') {
     base.year = new Date().getFullYear()
@@ -142,6 +331,8 @@ async function fetchKindRecord(kind: SeoLandingEntityKind): Promise<Record<strin
       return CMSService.getSeoCostGuides()
     case 'guides':
       return CMSService.getSeoGuides()
+    case 'emergency':
+      return CMSService.getSeoEmergency()
     case 'providers':
       return CMSService.getSeoProviders()
     case 'locations':
@@ -159,6 +350,8 @@ async function saveKindRecord(kind: SeoLandingEntityKind, data: Record<string, u
       return CMSService.updateSeoCostGuides(data)
     case 'guides':
       return CMSService.updateSeoGuides(data)
+    case 'emergency':
+      return CMSService.updateSeoEmergency(data)
     case 'providers':
       return CMSService.updateSeoProviders(data)
     case 'locations':
@@ -168,38 +361,30 @@ async function saveKindRecord(kind: SeoLandingEntityKind, data: Record<string, u
   }
 }
 
-function linesToArray(text: string): string[] {
-  return text
-    .split('\n')
-    .map((l) => l.trim())
-    .filter(Boolean)
-}
-
-function arrayToLines(arr: unknown): string {
-  if (!Array.isArray(arr)) return ''
-  return arr.map(String).join('\n')
-}
-
-const strip = (s?: string) => (s ?? '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
-
-function effectiveBodyLength(draft: EntityDraft): number {
-  let len = strip(String(draft.body ?? '')).length
-  const sections = Array.isArray(draft.sections) ? (draft.sections as ContentSection[]) : []
-  for (const s of sections) {
-    len += strip(s.heading).length
-    if (s.type === 'rich_text' || s.type === 'callout') len += strip(s.html).length
-    if (s.type === 'key_takeaways') len += (s.items ?? []).join(' ').length
-    if (s.type === 'faqs') len += (s.faqs ?? []).reduce((n, f) => n + f.question.length + strip(f.answer).length, 0)
-    if (s.type === 'how_to') len += (s.steps ?? []).reduce((n, st) => n + st.name.length + st.text.length, 0)
-    if (s.type === 'causes') len += (s.causes ?? []).reduce((n, c) => n + c.cause.length + c.fix.length, 0)
-    if (s.type === 'price_table') len += (s.rows ?? []).reduce((n, r) => n + r.item.length + (r.note?.length ?? 0), 0)
-    if (s.type === 'cards')
-      len += (s.cards ?? []).reduce(
-        (n, c) => n + c.title.length + (c.description?.length ?? 0) + (c.value?.length ?? 0),
-        0,
-      )
+function parseKindRecordMap(raw: Record<string, unknown>): Record<string, EntityDraft> {
+  const map: Record<string, EntityDraft> = {}
+  if (raw && typeof raw === 'object') {
+    for (const [key, value] of Object.entries(raw)) {
+      if (value && typeof value === 'object') {
+        map[key] = { ...(value as EntityDraft), slug: key }
+      }
+    }
   }
-  return len
+  return map
+}
+
+/** Lightweight index of all page kinds for global category filter counts. */
+async function fetchAllKindRecordsForIndex(): Promise<
+  Partial<Record<SeoLandingEntityKind, Record<string, EntityDraft>>>
+> {
+  const kinds = SEO_LANDING_KINDS.map((k) => k.id).filter((k) => seoLandingKindHasCategoryFilter(k))
+  const entries = await Promise.all(
+    kinds.map(async (k) => {
+      const raw = await fetchKindRecord(k)
+      return [k, parseKindRecordMap(raw)] as const
+    }),
+  )
+  return Object.fromEntries(entries)
 }
 
 function FieldHint({ children }: { children: React.ReactNode }) {
@@ -227,9 +412,10 @@ function SectionCard({
 }
 
 export default function SeoLandingPagesManagement() {
+  const [searchParams] = useSearchParams()
   const { checkPermission } = usePermissions()
   const canMutate = checkPermission('manage_system_settings')
-  const { options: catalogOptions } = useCmsCatalogCategories()
+  const { options: catalogOptions, loading: catalogOptionsLoading } = useCmsCatalogCategories()
   const { rows: managedLocalities, loading: localitiesLoading } = useServiceCatalogLocalities()
 
   const sortedLocalities = useMemo(
@@ -240,40 +426,127 @@ export default function SeoLandingPagesManagement() {
     [managedLocalities],
   )
 
-  const [kind, setKind] = useState<SeoLandingEntityKind>('problems')
+  const [kind, setKind] = useState<SeoLandingEntityKind>(() => {
+    const q = searchParams.get('kind')
+    if (q && SEO_LANDING_KINDS.some((k) => k.id === q)) return q as SeoLandingEntityKind
+    return 'problems'
+  })
   const [editorTab, setEditorTab] = useState<EditorTab>('setup')
   const [records, setRecords] = useState<Record<string, EntityDraft>>({})
   const [selectedSlug, setSelectedSlug] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [newSlug, setNewSlug] = useState('')
+  const [newEmergencyCategory, setNewEmergencyCategory] = useState('appliance-repair')
+  const [newEmergencyArea, setNewEmergencyArea] = useState('')
   const [pageSearch, setPageSearch] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('')
+  const [categoryRecords, setCategoryRecords] = useState<Category[]>([])
+  const [allKindIndex, setAllKindIndex] = useState<
+    Partial<Record<SeoLandingEntityKind, Record<string, EntityDraft>>>
+  >({})
+  const [priceGuideImporting, setPriceGuideImporting] = useState(false)
 
   const meta = kindMeta(kind)
   const slugs = useMemo(() => Object.keys(records).sort(), [records])
+
+  const catalogLabelMap = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const o of catalogOptions) {
+      map[o.value] = o.label
+      const preferred = normalizeSeoCategorySlug(o.value)
+      if (!map[preferred]) map[preferred] = o.label
+    }
+    return map
+  }, [catalogOptions])
+
+  const catalogCuratedOptions = useMemo(
+    () => buildSeoCategoryPickerOptions(catalogOptions),
+    [catalogOptions],
+  )
+
+  const globalCategoryFilterOptions = useMemo(
+    () => buildGlobalSeoCategoryFilterOptions(allKindIndex, catalogCuratedOptions, catalogLabelMap),
+    [allKindIndex, catalogCuratedOptions, catalogLabelMap],
+  )
+
   const filteredSlugs = useMemo(() => {
     const q = pageSearch.trim().toLowerCase()
-    if (!q) return slugs
     return slugs.filter((s) => {
-      const d = records[s]
-      const title = pageListTitle(kind, d ?? {}).toLowerCase()
-      return s.includes(q) || title.includes(q)
+      const d = records[s] ?? {}
+      if (categoryFilter && !seoPageMatchesCategoryFilter(kind, d, categoryFilter)) {
+        return false
+      }
+      if (!q) return true
+      const title = pageListTitle(kind, d).toLowerCase()
+      const catLabels = getSeoPageCategorySlugs(kind, d)
+        .map((c) => (catalogLabelMap[c] ?? c).toLowerCase())
+        .join(' ')
+      const serviceSlug = String(d.serviceSlug ?? d.service ?? '').toLowerCase()
+      return s.includes(q) || title.includes(q) || catLabels.includes(q) || serviceSlug.includes(q)
     })
-  }, [slugs, pageSearch, records, kind])
+  }, [slugs, pageSearch, categoryFilter, records, kind, catalogLabelMap])
+
+  const listFilterActive = Boolean(pageSearch.trim() || categoryFilter)
 
   const draft: EntityDraft = useMemo(
     () => (selectedSlug ? records[selectedSlug] ?? emptyDraft(kind, selectedSlug) : emptyDraft(kind, '')),
     [records, selectedSlug, kind],
   )
 
-  const bodyLen = useMemo(() => effectiveBodyLength(draft), [draft])
   const wordCount = useMemo(() => estimateSeoLandingWordCount(kind, draft), [kind, draft])
-  const publishGates = useMemo(() => publishGatesForDraft(kind, draft, bodyLen), [kind, draft, bodyLen])
-  const catalogLabelMap = useMemo(
-    () => Object.fromEntries(catalogOptions.map((o) => [o.value, o.label])),
-    [catalogOptions],
+  const qualityReport = useMemo(
+    () => buildSeoLandingQualityReport(kind, draft, catalogLabelMap),
+    [kind, draft, catalogLabelMap],
   )
-  const readyToIndex = publishGates.every((g) => g.ok)
+  const lengthWarnings = useMemo(
+    () => analyzeSeoLandingLengthWarnings(kind, draft, catalogLabelMap),
+    [kind, draft, catalogLabelMap],
+  )
+  const lengthIssueCount = lengthWarningsNeedAttention(lengthWarnings).length
+  const readyToIndex = qualityReport.statusLabel === 'Publish ready'
+  const metaPreview = useMemo(() => {
+    const slug = normalizeSeoLandingSlug(String(draft.slug ?? selectedSlug))
+    const title = effectiveSeoLandingMetaTitle(kind, draft, catalogLabelMap)
+    const description = effectiveSeoLandingMetaDescription(kind, draft, catalogLabelMap)
+    const canonical = String((draft.seo as Record<string, unknown> | undefined)?.canonicalPath ?? '').trim()
+    const origin = 'https://www.profixer.in'
+    const path = publicUrlForKind(kind, slug, draft)
+    const url = canonical
+      ? canonical.startsWith('http')
+        ? canonical
+        : `${origin}${canonical.startsWith('/') ? canonical : `/${canonical}`}`
+      : `${origin}${path}`
+    return {
+      title: title.value,
+      description: description.value,
+      url,
+      titleSource:
+        title.source === 'seo'
+          ? 'Custom SEO title'
+          : title.source === 'page'
+            ? 'Auto from H1'
+            : title.source === 'name'
+              ? 'Auto from name'
+              : undefined,
+      descriptionSource:
+        description.source === 'seo'
+          ? 'Custom meta description'
+          : description.source === 'quickAnswer'
+            ? 'Auto from quick answer'
+            : description.source === 'bio'
+              ? 'Auto from bio'
+              : description.source === 'location'
+                ? 'Auto area template'
+                : undefined,
+    }
+  }, [kind, draft, selectedSlug, catalogLabelMap])
+  const tabNeedsAttention = useCallback(
+    (tab: EditorTab) =>
+      qualityReport.items.some((i) => i.tab === tab && !i.ok && i.priority === 'required') ||
+      lengthWarnings.some((w) => w.tab === tab && w.severity !== 'ok'),
+    [qualityReport.items, lengthWarnings],
+  )
   const sectionsHaveInlinePriceTable = useMemo(() => {
     const sections = Array.isArray(draft.sections) ? (draft.sections as ContentSection[]) : []
     return sections.some((s) => s.type === 'price_table')
@@ -283,17 +556,16 @@ export default function SeoLandingPagesManagement() {
     try {
       setLoading(true)
       const raw = await fetchKindRecord(kind)
-      const map: Record<string, EntityDraft> = {}
-      if (raw && typeof raw === 'object') {
-        for (const [key, value] of Object.entries(raw)) {
-          if (value && typeof value === 'object') {
-            map[key] = { ...(value as EntityDraft), slug: key }
-          }
-        }
-      }
+      const map = parseKindRecordMap(raw)
       setRecords(map)
+      setAllKindIndex((prev) => ({ ...prev, [kind]: map }))
       const first = Object.keys(map).sort()[0] ?? ''
-      setSelectedSlug((prev) => (prev && map[prev] ? prev : first))
+      const pageParam = searchParams.get('page')?.trim().toLowerCase()
+      setSelectedSlug((prev) => {
+        if (pageParam && map[pageParam]) return pageParam
+        if (prev && map[prev]) return prev
+        return first
+      })
       setEditorTab('setup')
     } catch (e: unknown) {
       console.error(e)
@@ -303,27 +575,105 @@ export default function SeoLandingPagesManagement() {
     } finally {
       setLoading(false)
     }
-  }, [kind])
+  }, [kind, searchParams])
+
+  const refreshCategoryIndex = useCallback(async () => {
+    try {
+      const index = await fetchAllKindRecordsForIndex()
+      setAllKindIndex(index)
+    } catch {
+      /* non-blocking */
+    }
+  }, [])
 
   useEffect(() => {
     load()
   }, [load])
 
+  useEffect(() => {
+    void refreshCategoryIndex()
+  }, [refreshCategoryIndex])
+
+  useEffect(() => {
+    setPageSearch('')
+  }, [kind])
+
+  useEffect(() => {
+    let cancelled = false
+    CategoriesService.getCategoriesForServiceUIs({ page: 1, limit: 500, is_active: true })
+      .then((list) => {
+        if (!cancelled) setCategoryRecords(Array.isArray(list) ? list : [])
+      })
+      .catch(() => {
+        if (!cancelled) setCategoryRecords([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const patchDraft = (patch: Partial<EntityDraft>) => {
     if (!selectedSlug) return
-    setRecords((prev) => ({
-      ...prev,
-      [selectedSlug]: { ...emptyDraft(kind, selectedSlug), ...prev[selectedSlug], ...patch, slug: selectedSlug },
-    }))
+    setRecords((prev) => {
+      const current = prev[selectedSlug] ?? emptyDraft(kind, selectedSlug)
+      const nextSlug =
+        patch.slug !== undefined ? normalizeSeoLandingSlug(String(patch.slug)) : String(current.slug ?? selectedSlug)
+      return {
+        ...prev,
+        [selectedSlug]: {
+          ...emptyDraft(kind, selectedSlug),
+          ...current,
+          ...patch,
+          slug: nextSlug || selectedSlug,
+        },
+      }
+    })
   }
 
   const handleSave = async () => {
     if (!canMutate) return
+    const prepared = prepareRecordsForSave(kind, records, catalogOptions, validLocalitySlugs)
+    if (!prepared.ok) {
+      appToast(prepared.message, 'error')
+      return
+    }
+    const oldKey = selectedSlug
+    const row = oldKey ? records[oldKey] : undefined
+    let newKey = oldKey ?? ''
+    if (row && kind === 'emergency') {
+      newKey = buildEmergencyCompositeSlug(String(row.serviceSlug ?? ''), String(row.locationSlug ?? ''))
+    } else if (row) {
+      newKey = normalizeSeoLandingSlug(String(row.slug ?? oldKey))
+    }
+
+    let autoNoindexCount = 0
+    const payload: Record<string, EntityDraft> = {}
+    for (const [key, row] of Object.entries(prepared.payload)) {
+      const v = validateSeoLandingForConsumer(kind, row)
+      const seo = (row.seo && typeof row.seo === 'object' ? row.seo : {}) as Record<string, unknown>
+      if (!v.ok && !seo.noindex) {
+        payload[key] = { ...row, seo: { ...seo, noindex: true } }
+        autoNoindexCount++
+      } else {
+        payload[key] = row
+      }
+    }
+
     try {
       setSaving(true)
-      await saveKindRecord(kind, records)
-      appToast(`${meta.label} saved.`, 'success')
-      await load()
+      await saveKindRecord(kind, payload)
+      setRecords(payload)
+      setAllKindIndex((prev) => ({ ...prev, [kind]: payload }))
+      if (newKey) setSelectedSlug(newKey)
+      if (autoNoindexCount > 0) {
+        appToast(
+          `${meta.label} saved. ${autoNoindexCount} page(s) kept as draft (noindex) until quality gates pass.`,
+          'success',
+        )
+      } else {
+        appToast(`${meta.label} saved.`, 'success')
+      }
+      void refreshCategoryIndex()
     } catch (e: unknown) {
       console.error(e)
       appToast('Save failed — check API static-content route is provisioned.', 'error')
@@ -332,14 +682,88 @@ export default function SeoLandingPagesManagement() {
     }
   }
 
+  const handlePublishToGoogle = async () => {
+    if (!canMutate || !selectedSlug) return
+    const v = validateSeoLandingForConsumer(kind, draft)
+    if (!v.ok) {
+      appToast('Fix required checklist items before publishing to Google.', 'error')
+      setEditorTab(v.errors.some((e) => e.includes('Quick answer') || e.includes('takeaway')) ? 'content' : 'setup')
+      return
+    }
+    patchDraft({ seo: { ...(draft.seo as object), noindex: false } })
+    appToast('Indexing enabled — click Save to push live.', 'success')
+  }
+
   const addSlug = () => {
-    const slug = newSlug.trim().toLowerCase().replace(/\s+/g, '-')
+    if (kind === 'emergency') {
+      const svc = normalizeSeoCategorySlug(newEmergencyCategory.trim())
+      const loc = newEmergencyArea.trim().toLowerCase()
+      if (!svc) {
+        appToast('Pick a service category', 'error')
+        return
+      }
+      if (!loc || !validLocalitySlugs.has(loc)) {
+        appToast('Pick a valid service area', 'error')
+        return
+      }
+      const slug = buildEmergencyCompositeSlug(svc, loc)
+      if (records[slug]) {
+        appToast('Emergency page already exists for this category + area', 'error')
+        return
+      }
+      const hit = sortedLocalities.find((l) => l.slug === loc)
+      const catLabel = catalogLabelMap[svc] ?? svc.replace(/-/g, ' ')
+      const locLabel = hit?.name ?? loc
+      setRecords((prev) => ({
+        ...prev,
+        [slug]: {
+          ...emptyDraft(kind, slug),
+          slug,
+          serviceSlug: svc,
+          locationSlug: loc,
+          locationName: locLabel,
+          title: `Emergency ${catLabel} in ${locLabel}`,
+          subtitle: `Urgent ${catLabel.toLowerCase()} near you in ${locLabel} — same-day slots when available.`,
+        },
+      }))
+      setSelectedSlug(slug)
+      setNewEmergencyArea('')
+      setEditorTab('setup')
+      return
+    }
+
+    const slug = normalizeSeoLandingSlug(newSlug)
     if (!slug) return
+    if (!isValidSeoLandingSlug(slug)) {
+      appToast('Slug must be 2–120 chars: lowercase letters, numbers, hyphens only.', 'error')
+      return
+    }
+    if (kind === 'locations' && !validLocalitySlugs.has(slug)) {
+      appToast('Area pages must use a slug from Service areas catalog.', 'error')
+      return
+    }
     if (records[slug]) {
       appToast('Slug already exists', 'error')
       return
     }
-    setRecords((prev) => ({ ...prev, [slug]: emptyDraft(kind, slug) }))
+    setRecords((prev) => {
+      const draftRow =
+        kind === 'locations'
+          ? (() => {
+              const hit = sortedLocalities.find((l) => l.slug === slug)
+              return hit
+                ? {
+                    ...emptyDraft(kind, slug),
+                    name: hit.name,
+                    city: SEO_AREA_CITY_OPTIONS.some((c) => c.value === hit.parentCity)
+                      ? hit.parentCity!
+                      : 'Mumbai',
+                  }
+                : emptyDraft(kind, slug)
+            })()
+          : emptyDraft(kind, slug)
+      return { ...prev, [slug]: draftRow }
+    })
     setSelectedSlug(slug)
     setNewSlug('')
     setEditorTab('setup')
@@ -353,101 +777,203 @@ export default function SeoLandingPagesManagement() {
     setSelectedSlug(Object.keys(next).sort()[0] ?? '')
   }
 
-  const serviceSlug = String(draft.serviceSlug ?? '')
-  const locationSlug = String(draft.locationSlug ?? '').trim().toLowerCase()
-  const preferredCategory = serviceSlug ? getPreferredServiceCategoryUrlSlug(serviceSlug) : ''
+  const { serviceSlug, locationSlug } = resolveSeoLandingRoutingSlugs(draft)
+  const draftSlug =
+    kind === 'emergency'
+      ? String(draft.slug ?? selectedSlug).trim().toLowerCase()
+      : normalizeSeoLandingSlug(String(draft.slug ?? selectedSlug))
+  const slugPendingRename =
+    kind !== 'emergency' && Boolean(selectedSlug && draftSlug && draftSlug !== selectedSlug)
+  const schemaPreview = useMemo(
+    () =>
+      selectedSlug
+        ? buildSeoLandingSchemaPreview(kind, draftSlug || selectedSlug, draft, catalogLabelMap)
+        : null,
+    [kind, selectedSlug, draftSlug, draft, catalogLabelMap],
+  )
+  const funnelUrls = useMemo(() => resolveSeoLandingFunnelUrls(draft), [draft])
+  const derivedServiceUrl = funnelUrls.booking
+  const derivedNearMeUrl = funnelUrls.nearMe
+  const derivedEmergencyUrl = funnelUrls.emergency
+  const emergencyIsPrimaryCategory = funnelUrls.emergencyIsPrimaryCategory
   const localityName =
     String(draft.locationName ?? '').trim() ||
     sortedLocalities.find((l) => l.slug === locationSlug)?.name ||
     ''
 
-  const derivedServiceUrl =
-    serviceSlug && locationSlug
-      ? buildServiceLocalityPublicPath(serviceSlug, locationSlug)
-      : serviceSlug
-        ? `/services/${preferredCategory}`
-        : ''
-  const derivedNearMeUrl =
-    serviceSlug && locationSlug
-      ? buildNearMeLocalityPublicPath(serviceSlug, locationSlug)
-      : serviceSlug
-        ? buildNearMeCategoryPublicPath(serviceSlug)
-        : ''
-
   const patchLocationSlug = (slug: string) => {
     const normalized = slug.trim().toLowerCase()
     const hit = sortedLocalities.find((l) => l.slug === normalized)
-    patchDraft({
+    if (!hit) return
+    const patch: Partial<EntityDraft> = {
       locationSlug: normalized,
-      ...(hit && !String(draft.locationName ?? '').trim() ? { locationName: hit.name } : {}),
+      locationName: hit.name,
+    }
+    if (kind === 'emergency') {
+      const svc = String(draft.serviceSlug ?? '').trim()
+      if (svc) {
+        patch.slug = buildEmergencyCompositeSlug(svc, normalized)
+      }
+    }
+    patchDraft(patch)
+  }
+
+  const patchServiceCategory = (value: string) => {
+    const patch: Partial<EntityDraft> = { serviceSlug: value }
+    if (kind === 'emergency') {
+      const loc = String(draft.locationSlug ?? '').trim().toLowerCase()
+      if (loc) {
+        patch.slug = buildEmergencyCompositeSlug(value, loc)
+      }
+    }
+    patchDraft(patch)
+  }
+
+  const importPriceGuideFromCatalog = useCallback(
+    async (mode: 'replace' | 'merge') => {
+      const slug = String(draft.serviceSlug ?? '').trim()
+      if (!slug) {
+        appToast('Pick a service category in Setup first', 'error')
+        return
+      }
+      const existing = readPriceTableRows(draft, kind)
+      if (mode === 'replace' && existing.length > 0) {
+        const ok = window.confirm(
+          `Replace ${existing.length} charge row(s) with industry catalog prices from Platform Services?`,
+        )
+        if (!ok) return
+      }
+      setPriceGuideImporting(true)
+      try {
+        const services = await fetchPlatformServicesForSeoCategory(slug, catalogOptions, categoryRecords)
+        const catalogRows = buildPriceTableFromPlatformServices(services)
+        if (catalogRows.length === 0) {
+          appToast('No priced platform services found for this category', 'error')
+          return
+        }
+        const rows = mode === 'merge' ? mergePriceTableWithCatalog(existing, catalogRows) : catalogRows
+        const categoryLabel = catalogLabelMap[normalizeSeoCategorySlug(slug)] ?? slug
+        const patch: Partial<EntityDraft> = buildPriceTablePatch(kind, draft, rows)
+        if (kind === 'landing-pages' && !String(draft.priceTableCaption ?? '').trim()) {
+          patch.priceTableCaption = suggestPriceTableCaption({
+            categoryLabel,
+            locationName: localityName || undefined,
+            year: Number(draft.year) || new Date().getFullYear(),
+            kind,
+          })
+        }
+        patchDraft(patch)
+        const added = mode === 'merge' ? Math.max(0, rows.length - existing.length) : catalogRows.length
+        appToast(
+          mode === 'merge'
+            ? added > 0
+              ? `Added ${added} charge row(s) from platform catalog`
+              : 'All catalog services are already in the charge table'
+            : `Loaded ${catalogRows.length} charge row(s) from platform catalog`,
+          'success',
+        )
+      } catch (e: unknown) {
+        appToast(e instanceof Error ? e.message : 'Failed to load platform services', 'error')
+      } finally {
+        setPriceGuideImporting(false)
+      }
+    },
+    [
+      draft,
+      kind,
+      catalogOptions,
+      categoryRecords,
+      catalogLabelMap,
+      localityName,
+    ],
+  )
+
+  const priceTableRows = useMemo(() => readPriceTableRows(draft, kind), [draft, kind])
+
+  const localityCuratedOptions = useMemo(
+    () => sortedLocalities.map((l) => ({ value: l.slug, label: l.name, hint: l.slug })),
+    [sortedLocalities],
+  )
+  const neighbourOptions = useMemo(
+    () => localityCuratedOptions.filter((o) => o.value !== draftSlug),
+    [localityCuratedOptions, draftSlug],
+  )
+  const yearOptions = useMemo(() => buildSeoYearOptions(), [])
+  const validLocalitySlugs = useMemo(() => new Set(sortedLocalities.map((l) => l.slug)), [sortedLocalities])
+  const canonicalPresets = useMemo(
+    () =>
+      buildCanonicalPresets({
+        slug: draftSlug || selectedSlug,
+        pathPrefix: meta.pathPrefix,
+        derivedServiceUrl,
+        derivedNearMeUrl,
+      }),
+    [draftSlug, selectedSlug, meta.pathPrefix, derivedServiceUrl, derivedNearMeUrl],
+  )
+  const canonicalPath = String((draft.seo as Record<string, unknown> | undefined)?.canonicalPath ?? '').trim()
+  const canonicalPresetValue = canonicalPresets.some((p) => p.value === canonicalPath && p.value !== '__custom__')
+    ? canonicalPath
+    : canonicalPath
+      ? '__custom__'
+      : ''
+
+  const applyLocationFromCatalog = (areaSlug: string) => {
+    const hit = sortedLocalities.find((l) => l.slug === areaSlug)
+    if (!hit) return
+    const city =
+      SEO_AREA_CITY_OPTIONS.some((c) => c.value === hit.parentCity) ? hit.parentCity! : 'Mumbai'
+    patchDraft({
+      slug: areaSlug,
+      name: hit.name,
+      city,
     })
   }
 
-  const publicUrl = selectedSlug ? publicUrlForKind(kind, selectedSlug) : ''
+  const publicUrl =
+    kind === 'emergency' && serviceSlug && locationSlug
+      ? publicEmergencyUrl(serviceSlug, locationSlug)
+      : draftSlug || selectedSlug
+        ? publicUrlForKind(kind, draftSlug || selectedSlug, draft)
+        : ''
   const listTitle = pageListTitle(kind, draft)
 
   const showCategoryLocation =
-    kind === 'problems' || kind === 'cost-guides' || kind === 'guides' || kind === 'landing-pages'
+    kind === 'problems' ||
+    kind === 'cost-guides' ||
+    kind === 'guides' ||
+    kind === 'landing-pages' ||
+    kind === 'emergency'
 
   const categoryLocationBlock = showCategoryLocation ? (
     <SectionCard
-      title="Category & location"
-      description="Drives booking CTAs and internal links to /services/… and /near-me/… on the live site."
+      title="Local SEO — category & area"
+      description="Required for Service + LocalBusiness schema, local meta titles, and booking / near-me / emergency internal links."
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label>Service category</Label>
-          <Select value={serviceSlug || undefined} onValueChange={(v) => patchDraft({ serviceSlug: v })}>
-            <SelectTrigger>
-              <SelectValue placeholder="Pick category" />
-            </SelectTrigger>
-            <SelectContent>
-              {catalogOptions.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label>Service area</Label>
-          <Select
-            value={
-              locationSlug && sortedLocalities.some((l) => l.slug === locationSlug)
-                ? locationSlug
-                : locationSlug
-                  ? '__custom__'
-                  : '__none__'
-            }
-            onValueChange={(v) => {
-              if (v === '__custom__' || v === '__none__') return
-              patchLocationSlug(v)
-            }}
-            disabled={localitiesLoading}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Pick area from Service areas" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__">— No area —</SelectItem>
-              {sortedLocalities.map((loc) => (
-                <SelectItem key={loc.slug} value={loc.slug}>
-                  {loc.name}
-                </SelectItem>
-              ))}
-              <SelectItem value="__custom__">Custom slug (type below)</SelectItem>
-            </SelectContent>
-          </Select>
-          <Input
-            value={locationSlug}
-            onChange={(e) => patchLocationSlug(e.target.value)}
-            placeholder="mira-bhayandar"
-            className="font-mono text-sm"
-          />
-        </div>
+        <SeoCuratedSingleSelect
+          label="Service category"
+          value={serviceSlug ? normalizeSeoCategorySlug(serviceSlug) : ''}
+          onChange={patchServiceCategory}
+          options={catalogCuratedOptions}
+          loading={catalogOptionsLoading}
+          placeholder="Pick category"
+          disabled={!canMutate}
+          invalidHint="Unknown category — choose from the service catalog list."
+        />
+        <SeoCuratedSingleSelect
+          label="Service area"
+          value={locationSlug}
+          onChange={patchLocationSlug}
+          options={localityCuratedOptions}
+          loading={localitiesLoading}
+          placeholder="Pick area"
+          allowEmpty
+          emptyLabel="— No area —"
+          disabled={!canMutate}
+          invalidHint="Unknown area slug — choose from Service areas catalog."
+        />
       </div>
-      {(derivedServiceUrl || derivedNearMeUrl) && (
+      {(derivedServiceUrl || derivedNearMeUrl || serviceSlug) && (
         <div className="rounded-md border border-border/60 bg-background px-3 py-2 text-xs space-y-1">
           <p>
             <span className="text-muted-foreground">Booking →</span>{' '}
@@ -456,6 +982,16 @@ export default function SeoLandingPagesManagement() {
           <p>
             <span className="text-muted-foreground">Near-me →</span>{' '}
             <code className="text-foreground">{derivedNearMeUrl || '—'}</code>
+          </p>
+          <p>
+            <span className="text-muted-foreground">Emergency →</span>{' '}
+            {derivedEmergencyUrl ? (
+              <code className="text-foreground">{derivedEmergencyUrl}</code>
+            ) : serviceSlug ? (
+              <span className="text-amber-600">Pick service area above</span>
+            ) : (
+              <span className="text-muted-foreground">—</span>
+            )}
           </p>
           {localityName ? (
             <p>
@@ -468,31 +1004,164 @@ export default function SeoLandingPagesManagement() {
   ) : null
 
   const seoBlock = (
-    <SectionCard
-      title="Search appearance"
-      description="Leave blank to auto-generate from title + quick answer on the consumer site."
-    >
+    <>
+      <SeoLandingPublishPanel
+        kind={kind}
+        draft={draft}
+        slug={draftSlug || selectedSlug}
+        catalogLabelMap={catalogLabelMap}
+        catalogOptions={catalogOptions}
+        derivedServiceUrl={derivedServiceUrl}
+        derivedNearMeUrl={derivedNearMeUrl}
+        derivedEmergencyUrl={derivedEmergencyUrl}
+        emergencyIsPrimaryCategory={emergencyIsPrimaryCategory}
+        canMutate={canMutate}
+        onPublish={() => void handlePublishToGoogle()}
+        onSetNoindex={(value) => patchDraft({ seo: { ...(draft.seo as object), noindex: value } })}
+      />
+      <SectionCard
+        title="Structured data (JSON-LD)"
+        description={SCHEMA_INDUSTRY_NOTES[kind]}
+      >
+        {schemaPreview ? (
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-1.5">
+              {schemaPreview.nodes.map((node) => (
+                <Badge key={node.type} variant={node.ready ? 'success' : 'warning'} title={node.note}>
+                  {node.type}
+                </Badge>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground font-mono break-all">{schemaPreview.pageUrl}</p>
+            <ul className="list-disc space-y-1 pl-4 text-xs text-muted-foreground">
+              {schemaPreview.footnotes.map((n) => (
+                <li key={n}>{n}</li>
+              ))}
+            </ul>
+            <pre className="max-h-[min(320px,40vh)] overflow-auto rounded-lg border border-border/70 bg-muted/30 p-3 text-[11px] leading-relaxed font-mono">
+              {JSON.stringify(schemaPreview.document, null, 2)}
+            </pre>
+          </div>
+        ) : null}
+      </SectionCard>
+      <SectionCard
+        title="Search appearance"
+        description="Matches profixer.in — leave blank to auto-generate from H1, area & quick answer. Use Suggest to lock in publish-ready copy."
+      >
+      <SeoLandingSerpPreview
+        title={metaPreview.title}
+        description={metaPreview.description}
+        url={metaPreview.url}
+        titleSource={metaPreview.titleSource}
+        descriptionSource={metaPreview.descriptionSource}
+        className="mb-4 rounded-lg border border-border/60 bg-muted/20 p-4"
+      />
       <div className="space-y-2">
-        <Label>SEO title</Label>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Label>SEO title</Label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={!canMutate}
+            onClick={() => {
+              const suggested = suggestSeoLandingMetaTitle(kind, draft, catalogLabelMap)
+              if (!suggested) {
+                appToast('Add a page title (H1) in Setup first', 'error')
+                return
+              }
+              patchDraft({ seo: { ...(draft.seo as object), title: suggested } })
+            }}
+          >
+            Suggest from page
+          </Button>
+        </div>
         <Input
           value={String((draft.seo as Record<string, unknown>)?.title ?? '')}
           onChange={(e) => patchDraft({ seo: { ...(draft.seo as object), title: e.target.value } })}
-          placeholder="AC Repair Cost in Mira Bhayandar (2026) | ProFixer"
+          placeholder={metaPreview.title || 'AC Repair Cost in Mira Bhayandar (2026) | ProFixer'}
         />
         <FieldHint>
-          Aim 50–60 chars · {String((draft.seo as Record<string, unknown>)?.title ?? '').length}/60
+          Aim 50–60 chars · custom{' '}
+          {String((draft.seo as Record<string, unknown>)?.title ?? '').length}/60
+          {!String((draft.seo as Record<string, unknown>)?.title ?? '').trim() ? (
+            <>
+              {' '}
+              · live preview {metaPreview.title.length} chars
+            </>
+          ) : null}
         </FieldHint>
+        <SeoContentLengthHint
+          warning={
+            (() => {
+              const custom = String((draft.seo as Record<string, unknown>)?.title ?? '').trim()
+              const value = custom || metaPreview.title
+              return value
+                ? evaluateLength(
+                    'meta-title',
+                    custom ? 'SEO title' : 'Meta title (live)',
+                    value,
+                    SEO_LANDING_LENGTH_RULES.metaTitle,
+                  )
+                : null
+            })()
+          }
+          compact
+        />
       </div>
       <div className="space-y-2">
-        <Label>Meta description</Label>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Label>Meta description</Label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={!canMutate}
+            onClick={() => {
+              const suggested = suggestSeoLandingMetaDescription(kind, draft, catalogLabelMap)
+              if (!suggested) {
+                appToast('Add a quick answer in Content first', 'error')
+                return
+              }
+              patchDraft({ seo: { ...(draft.seo as object), description: suggested } })
+            }}
+          >
+            Suggest from quick answer
+          </Button>
+        </div>
         <Textarea
-          rows={2}
+          rows={3}
           value={String((draft.seo as Record<string, unknown>)?.description ?? '')}
           onChange={(e) => patchDraft({ seo: { ...(draft.seo as object), description: e.target.value } })}
+          placeholder={metaPreview.description || 'Indicative charges, verified pros, same-day slots…'}
         />
         <FieldHint>
-          Aim 150–160 chars · {String((draft.seo as Record<string, unknown>)?.description ?? '').length}/160
+          Aim 150–160 chars · custom{' '}
+          {String((draft.seo as Record<string, unknown>)?.description ?? '').length}/160
+          {!String((draft.seo as Record<string, unknown>)?.description ?? '').trim() ? (
+            <>
+              {' '}
+              · live preview {metaPreview.description.length} chars
+            </>
+          ) : null}
         </FieldHint>
+        <SeoContentLengthHint
+          warning={
+            (() => {
+              const custom = String((draft.seo as Record<string, unknown>)?.description ?? '').trim()
+              const value = custom || metaPreview.description
+              return value
+                ? evaluateLength(
+                    'meta-description',
+                    custom ? 'Meta description' : 'Meta description (live)',
+                    value,
+                    SEO_LANDING_LENGTH_RULES.metaDescription,
+                  )
+                : null
+            })()
+          }
+          compact
+        />
       </div>
       <div className="space-y-2">
         <Label>Keywords</Label>
@@ -514,19 +1183,40 @@ export default function SeoLandingPagesManagement() {
         />
       </div>
       <div className="space-y-2">
-        <Label>Canonical path</Label>
-        <Input
-          className="font-mono text-sm"
-          value={String((draft.seo as Record<string, unknown>)?.canonicalPath ?? '')}
-          onChange={(e) =>
-            patchDraft({ seo: { ...(draft.seo as object), canonicalPath: e.target.value } })
-          }
-          placeholder={
-            kind === 'landing-pages'
-              ? derivedServiceUrl || `/${selectedSlug}`
-              : `${meta.pathPrefix}/${selectedSlug}`
-          }
+        <SeoCuratedSingleSelect
+          label="Canonical preset"
+          value={canonicalPresetValue || '__none__'}
+          onChange={(v) => {
+            if (v === '__custom__' || v === '__none__') {
+              if (v === '__none__') {
+                patchDraft({ seo: { ...(draft.seo as object), canonicalPath: '' } })
+              }
+              return
+            }
+            patchDraft({ seo: { ...(draft.seo as object), canonicalPath: v } })
+          }}
+          options={[
+            { value: '__none__', label: 'Auto (consumer default)' },
+            ...canonicalPresets.filter((p) => p.value !== '__custom__'),
+            { value: '__custom__', label: 'Custom path (advanced)…' },
+          ]}
+          disabled={!canMutate}
+          placeholder="Choose canonical target"
         />
+        {canonicalPresetValue === '__custom__' || (canonicalPath && !canonicalPresets.some((p) => p.value === canonicalPath)) ? (
+          <Input
+            className="font-mono text-sm"
+            value={canonicalPath}
+            onChange={(e) =>
+              patchDraft({ seo: { ...(draft.seo as object), canonicalPath: e.target.value } })
+            }
+            placeholder={
+              kind === 'landing-pages'
+                ? derivedServiceUrl || `/${selectedSlug}`
+                : `${meta.pathPrefix}/${selectedSlug}`
+            }
+          />
+        ) : null}
         <FieldHint>
           Self-canonical for indexable money pages. Point to <code>/services/…</code> if this page overlaps an industry landing.
         </FieldHint>
@@ -544,36 +1234,119 @@ export default function SeoLandingPagesManagement() {
         />
       </div>
     </SectionCard>
+    </>
   )
+
+  const renderUrlSlugCard = () =>
+    kind === 'emergency' ? (
+      <SectionCard
+        title="Public emergency URL"
+        description="Derived from category + area — not a free-form slug."
+      >
+        <div className="space-y-2 text-xs">
+          <p>
+            <span className="text-muted-foreground">CMS key →</span>{' '}
+            <code className="text-foreground">{draftSlug || selectedSlug || '—'}</code>
+          </p>
+          <p>
+            <span className="text-muted-foreground">Live path →</span>{' '}
+            <code className="text-foreground">{publicUrl || '—'}</code>
+          </p>
+          <FieldHint>
+            Change category or area in Local SEO below, then Save to update the record key.
+          </FieldHint>
+        </div>
+      </SectionCard>
+    ) : (
+    <SectionCard
+      title="Public URL slug"
+      description={`Record key in CMS JSON → ${meta.pathPrefix || 'top-level'}/{slug}`}
+    >
+      <div className="space-y-2">
+        <Label>URL slug</Label>
+        <Input
+          value={draftSlug}
+          onChange={(e) => patchDraft({ slug: normalizeSeoLandingSlug(e.target.value) })}
+          className="font-mono text-sm"
+          placeholder={meta.exampleSlug}
+          disabled={!canMutate}
+        />
+        <FieldHint>
+          Live path:{' '}
+          <code className="text-foreground">{publicUrl || '—'}</code>
+          {slugPendingRename ? (
+            <span className="text-amber-600 dark:text-amber-400">
+              {' '}
+              — save to apply rename (set up a 301 redirect from the old URL in production).
+            </span>
+          ) : null}
+        </FieldHint>
+        {draftSlug && !isValidSeoLandingSlug(draftSlug) ? (
+          <p className="text-xs text-destructive">Use lowercase letters, numbers, and hyphens (2–120 chars).</p>
+        ) : null}
+      </div>
+    </SectionCard>
+    )
 
   const renderSetupTab = () => {
     if (kind === 'locations') {
       return (
         <div className="space-y-4">
-          <SectionCard title="Area identity" description="Matches /areas/{slug} — slug is the URL key in the sidebar.">
+          <SectionCard
+            title="Area from catalog"
+            description="URL slug must match a row in Service areas — prevents broken /areas/ links."
+          >
+            <SeoCuratedSingleSelect
+              label="Service area"
+              value={draftSlug}
+              onChange={applyLocationFromCatalog}
+              options={localityCuratedOptions}
+              loading={localitiesLoading}
+              placeholder="Pick area"
+              disabled={!canMutate}
+              invalidHint="This slug is not in Service areas — pick a catalog area to fix the URL."
+            />
+            <FieldHint>
+              Public URL: <code className="text-foreground">{publicUrl || '—'}</code>
+              {slugPendingRename ? (
+                <span className="text-amber-600 dark:text-amber-400"> — save to apply slug change.</span>
+              ) : null}
+            </FieldHint>
+          </SectionCard>
+          <SectionCard title="Area identity" description="Display fields — name and city sync from the catalog picker.">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Display name</Label>
-                <Input value={String(draft.name ?? '')} onChange={(e) => patchDraft({ name: e.target.value })} placeholder="Mira Bhayandar" />
+                <Input
+                  value={String(draft.name ?? '')}
+                  readOnly
+                  className="bg-muted/40"
+                  placeholder="Pick an area above"
+                />
               </div>
-              <div className="space-y-2">
-                <Label>City</Label>
-                <Input value={String(draft.city ?? 'Mumbai')} onChange={(e) => patchDraft({ city: e.target.value })} />
-              </div>
+              <SeoCuratedSingleSelect
+                label="City / metro"
+                value={String(draft.city ?? 'Mumbai')}
+                onChange={(v) => patchDraft({ city: v })}
+                options={[...SEO_AREA_CITY_OPTIONS]}
+                disabled={!canMutate}
+              />
             </div>
             <div className="space-y-2">
               <Label>Hero subtitle</Label>
               <Textarea rows={2} value={String(draft.subtitle ?? '')} onChange={(e) => patchDraft({ subtitle: e.target.value })} />
             </div>
-            <div className="space-y-2">
-              <Label>Neighbour areas (one slug per line)</Label>
-              <Textarea
-                rows={3}
-                value={arrayToLines(draft.neighbours)}
-                onChange={(e) => patchDraft({ neighbours: linesToArray(e.target.value) })}
-                placeholder="borivali&#10;dahisar"
-              />
-            </div>
+            <SeoCuratedMultiSelect
+              label="Neighbour areas"
+              description="Internal links to nearby area hubs — catalog slugs only."
+              value={Array.isArray(draft.neighbours) ? draft.neighbours.map(String) : []}
+              onChange={(neighbours) => patchDraft({ neighbours })}
+              options={neighbourOptions}
+              loading={localitiesLoading}
+              disabled={!canMutate}
+              maxItems={8}
+              emptyHint="Add neighbouring service areas from the dropdown."
+            />
           </SectionCard>
           <SectionCard title="Trust stats" description="Shown on the area hub — keep numbers realistic.">
             <div className="grid grid-cols-3 gap-3">
@@ -616,7 +1389,9 @@ export default function SeoLandingPagesManagement() {
 
     if (kind === 'providers') {
       return (
-        <SectionCard title="Provider profile" description="Public URL: /provider/{slug}">
+        <div className="space-y-4">
+          {renderUrlSlugCard()}
+          <SectionCard title="Provider profile" description="Public URL: /provider/{slug}">
           <div className="space-y-2">
             <Label>Name</Label>
             <Input value={String(draft.name ?? '')} onChange={(e) => patchDraft({ name: e.target.value })} />
@@ -626,35 +1401,50 @@ export default function SeoLandingPagesManagement() {
             <Textarea rows={4} value={String(draft.bio ?? '')} onChange={(e) => patchDraft({ bio: e.target.value })} />
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Services (one slug per line)</Label>
-              <Textarea
-                rows={3}
-                value={arrayToLines(draft.servicesOffered)}
-                onChange={(e) => patchDraft({ servicesOffered: linesToArray(e.target.value) })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Areas served (one slug per line)</Label>
-              <Textarea
-                rows={3}
-                value={arrayToLines(draft.areasServed)}
-                onChange={(e) => patchDraft({ areasServed: linesToArray(e.target.value) })}
-              />
-            </div>
+            <SeoCuratedMultiSelect
+              label="Services offered"
+              description="Category slugs from the service catalog."
+              value={Array.isArray(draft.servicesOffered) ? draft.servicesOffered.map(String) : []}
+              onChange={(servicesOffered) => patchDraft({ servicesOffered })}
+              options={catalogCuratedOptions}
+              loading={catalogOptionsLoading}
+              disabled={!canMutate}
+              maxItems={6}
+            />
+            <SeoCuratedMultiSelect
+              label="Areas served"
+              description="Locality slugs from Service areas."
+              value={Array.isArray(draft.areasServed) ? draft.areasServed.map(String) : []}
+              onChange={(areasServed) => patchDraft({ areasServed })}
+              options={localityCuratedOptions}
+              loading={localitiesLoading}
+              disabled={!canMutate}
+              maxItems={8}
+            />
           </div>
         </SectionCard>
+        </div>
       )
     }
 
     return (
       <div className="space-y-4">
+        {renderUrlSlugCard()}
         <SectionCard title="Page headline" description="Becomes H1 and default meta title when SEO title is empty.">
           <div className="space-y-2">
             <Label>Title</Label>
             <Input value={String(draft.title ?? '')} onChange={(e) => patchDraft({ title: e.target.value })} />
+            <SeoContentLengthHint
+              warning={evaluateLength(
+                'page-title',
+                'Page title',
+                String(draft.title ?? ''),
+                SEO_LANDING_LENGTH_RULES.pageTitle,
+              )}
+              compact
+            />
           </div>
-          {(kind === 'problems' || kind === 'cost-guides' || kind === 'guides') && (
+          {(kind === 'problems' || kind === 'cost-guides' || kind === 'guides' || kind === 'emergency') && (
             <div className="space-y-2">
               <Label>Subtitle (under H1)</Label>
               <Input
@@ -662,27 +1452,34 @@ export default function SeoLandingPagesManagement() {
                 onChange={(e) => patchDraft({ subtitle: e.target.value })}
                 placeholder="Common causes, fixes & what it costs"
               />
+              {String(draft.subtitle ?? '').trim() ? (
+                <SeoContentLengthHint
+                  warning={evaluateLength(
+                    'subtitle',
+                    'Subtitle',
+                    String(draft.subtitle ?? ''),
+                    SEO_LANDING_LENGTH_RULES.subtitle,
+                  )}
+                  compact
+                />
+              ) : null}
             </div>
           )}
           {kind === 'landing-pages' && (
             <div className="space-y-2">
               <Label>Location display name</Label>
-              <Input
-                value={String(draft.locationName ?? '')}
-                onChange={(e) => patchDraft({ locationName: e.target.value })}
-                placeholder="Bhayandar West, Thane"
-              />
+              <Input value={localityName} readOnly className="bg-muted/40" placeholder="Pick service area above" />
+              <FieldHint>Synced from Service areas catalog. Change the area picker to update.</FieldHint>
             </div>
           )}
           {kind === 'cost-guides' && (
-            <div className="space-y-2 max-w-[12rem]">
-              <Label>Price guide year</Label>
-              <Input
-                type="number"
-                value={String(draft.year ?? new Date().getFullYear())}
-                onChange={(e) => patchDraft({ year: Number(e.target.value) })}
-              />
-            </div>
+            <SeoCuratedSingleSelect
+              label="Price guide year"
+              value={String(draft.year ?? new Date().getFullYear())}
+              onChange={(v) => patchDraft({ year: Number(v) })}
+              options={yearOptions}
+              disabled={!canMutate}
+            />
           )}
         </SectionCard>
         {categoryLocationBlock}
@@ -697,26 +1494,31 @@ export default function SeoLandingPagesManagement() {
           title="AI Overview & summary"
           description="Quick answer is required (40+ chars) before Google will index the page."
         >
-          <div className="space-y-2">
-            <Label>Quick answer</Label>
-            <Textarea
-              rows={3}
-              value={String(draft.quickAnswer ?? '')}
-              onChange={(e) => patchDraft({ quickAnswer: e.target.value })}
-            />
-            <FieldHint>
-              {String(draft.quickAnswer ?? '').trim().length}/40 characters minimum
-            </FieldHint>
-          </div>
+          <SeoCompactRichTextField
+            label="Quick answer"
+            value={String(draft.quickAnswer ?? '')}
+            onChange={(html) => patchDraft({ quickAnswer: html })}
+            disabled={!canMutate}
+            placeholder="Direct answer for AI Overviews — 40+ characters of plain text minimum."
+            helperText={`${stripHtmlPlain(String(draft.quickAnswer ?? '')).length}/40 characters minimum (HTML tags excluded). Use image or ☁ for diagrams/photos.`}
+            height={160}
+            showCharCount
+            enableImages
+          />
+          <SeoContentLengthHint
+            warning={evaluateLength(
+              'quick-answer',
+              'Quick answer',
+              String(draft.quickAnswer ?? ''),
+              SEO_LANDING_LENGTH_RULES.quickAnswer,
+            )}
+          />
           {kind !== 'locations' && (
-            <div className="space-y-2">
-              <Label>Key takeaways (one per line)</Label>
-              <Textarea
-                rows={4}
-                value={arrayToLines(draft.keyTakeaways)}
-                onChange={(e) => patchDraft({ keyTakeaways: linesToArray(e.target.value) })}
-              />
-            </div>
+            <SeoLandingKeyTakeawaysEditor
+              takeaways={draft.keyTakeaways}
+              onChange={(keyTakeaways) => patchDraft({ keyTakeaways })}
+              disabled={!canMutate}
+            />
           )}
         </SectionCard>
       )}
@@ -749,32 +1551,50 @@ export default function SeoLandingPagesManagement() {
         </SectionCard>
       )}
 
-      {(kind === 'cost-guides' || kind === 'landing-pages') && (
+      {(kind === 'problems' || kind === 'cost-guides' || kind === 'guides' || kind === 'landing-pages' || kind === 'emergency') && (
         <SectionCard
-          title={kind === 'cost-guides' ? 'Charge table' : 'Price table'}
+          title={
+            kind === 'cost-guides' ? 'Charge table' : kind === 'landing-pages' ? 'Price table' : 'Price guide'
+          }
           description={
             kind === 'cost-guides'
               ? 'Primary pricing block for /charges pages — this is what visitors see as the main price list.'
-              : 'Optional top-level prices for flat local money pages. Use this OR a “Price table” block inside Page sections — not both.'
+              : kind === 'landing-pages'
+                ? 'Optional top-level prices for flat local money pages. Use this OR a “Price table” block inside Page sections — not both.'
+                : kind === 'problems'
+                  ? 'Typical repair charges for this category. Saved as a Price table block in Page sections on the live site.'
+                  : 'Industry service charges for this guide. Saved as a Price table block in Page sections on the live site.'
           }
         >
-          {sectionsHaveInlinePriceTable ? (
+          {usesTopLevelPriceTable(kind) && sectionsHaveInlinePriceTable ? (
             <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-foreground">
               You already added a <strong>Price table</strong> block under Page sections. The live site will show
               that inline table and <strong>ignore</strong> this standalone list — clear one or the other to avoid
               confusion.
             </div>
           ) : null}
+          <SeoPlatformCatalogPriceImportBar
+            serviceSlug={serviceSlug}
+            categoryLabelMap={catalogLabelMap}
+            canMutate={canMutate}
+            loading={priceGuideImporting}
+            onImport={(mode) => void importPriceGuideFromCatalog(mode)}
+          />
           <SeoLandingPriceTableEditor
-            rows={draft.priceTable}
+            rows={priceTableRows}
             caption={kind === 'landing-pages' ? String(draft.priceTableCaption ?? '') : undefined}
-            onChange={(rows) => patchDraft({ priceTable: rows })}
+            onChange={(rows) => patchDraft(buildPriceTablePatch(kind, draft, rows))}
             onCaptionChange={kind === 'landing-pages' ? (caption) => patchDraft({ priceTableCaption: caption }) : undefined}
             disabled={!canMutate}
           />
           {kind === 'cost-guides' ? (
             <FieldHint>
               Year in Setup tab is appended to the caption on-site (e.g. “AC charges (2026)”).
+            </FieldHint>
+          ) : kind === 'problems' || kind === 'guides' ? (
+            <FieldHint>
+              Rows sync to the <strong>Price table</strong> section below — add one manually under Page sections if
+              you prefer a custom heading order.
             </FieldHint>
           ) : null}
         </SectionCard>
@@ -806,7 +1626,7 @@ export default function SeoLandingPagesManagement() {
     <div className="flex min-h-0 flex-col p-4 sm:p-6 md:p-8">
       <PageHeader
         title="SEO landing pages"
-        subtitle="Programmatic content for problems, charges, guides, areas, providers & local money pages — synced to profixer.in via CMS blobs."
+        subtitle="Create, optimize & publish programmatic pages for Google — problems, charges, guides, areas & local money pages. Synced to profixer.in."
         action={
           <Button onClick={handleSave} disabled={saving || !canMutate || loading}>
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
@@ -815,11 +1635,66 @@ export default function SeoLandingPagesManagement() {
         }
       />
 
+      {/* Global service category filter — persists across Problems / Charges / Guides tabs */}
+      <Card className="mt-6 border-primary/15 bg-muted/20">
+        <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Filter className="h-5 w-5" aria-hidden />
+            </div>
+            <div className="min-w-0 space-y-1">
+              <Label className="text-sm font-semibold">Filter by service category</Label>
+              <p className="text-xs text-muted-foreground">
+                Select a trade once, then switch between Problems, Charges, Guides and other page types —
+                the list stays filtered to that category.
+              </p>
+            </div>
+          </div>
+          <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:min-w-[280px]">
+            <Select
+              value={categoryFilter || '__all__'}
+              onValueChange={(v) => setCategoryFilter(v === '__all__' ? '' : v)}
+              disabled={catalogOptionsLoading}
+            >
+              <SelectTrigger className="bg-background text-sm">
+                <SelectValue placeholder="All service categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All service categories</SelectItem>
+                {globalCategoryFilterOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    <span>{opt.label}</span>
+                    <span className="ml-2 font-mono text-xs text-muted-foreground">({opt.hint})</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {categoryFilter ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 justify-start px-2 text-xs text-muted-foreground"
+                onClick={() => setCategoryFilter('')}
+              >
+                Clear category filter
+              </Button>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Page type picker */}
-      <div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {SEO_LANDING_KINDS.map((k) => {
           const Icon = k.icon
           const active = kind === k.id
+          const kindCount =
+            categoryFilter && seoLandingKindHasCategoryFilter(k.id)
+              ? countSeoPagesForKindAndCategory(k.id, allKindIndex[k.id] ?? {}, categoryFilter)
+              : k.id === kind
+                ? slugs.length
+                : Object.keys(allKindIndex[k.id] ?? {}).length
           return (
             <button
               key={k.id}
@@ -828,6 +1703,10 @@ export default function SeoLandingPagesManagement() {
               className={cn(
                 'rounded-xl border p-4 text-left transition hover:border-primary/40 hover:bg-muted/40',
                 active ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-border bg-card',
+                categoryFilter &&
+                  seoLandingKindHasCategoryFilter(k.id) &&
+                  kindCount === 0 &&
+                  'opacity-60',
               )}
             >
               <div className="flex items-start gap-3">
@@ -839,8 +1718,15 @@ export default function SeoLandingPagesManagement() {
                 >
                   <Icon className="h-5 w-5" />
                 </div>
-                <div className="min-w-0 space-y-1">
-                  <p className="font-semibold text-foreground">{k.label}</p>
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-semibold text-foreground">{k.label}</p>
+                    <Badge variant={kindCount > 0 ? 'secondary' : 'outline'} className="font-mono text-[10px]">
+                      {categoryFilter && seoLandingKindHasCategoryFilter(k.id)
+                        ? `${kindCount} in filter`
+                        : `${kindCount}`}
+                    </Badge>
+                  </div>
                   <p className="font-mono text-xs text-muted-foreground">{k.pathPrefix || '/{slug}'}</p>
                   <p className="line-clamp-2 text-xs text-muted-foreground">{k.intent}</p>
                 </div>
@@ -868,7 +1754,8 @@ export default function SeoLandingPagesManagement() {
             </p>
           </div>
           <Badge variant={slugs.length > 0 ? 'success' : 'secondary'}>
-            {slugs.length} page{slugs.length === 1 ? '' : 's'}
+            {listFilterActive ? `${filteredSlugs.length} of ${slugs.length}` : slugs.length} page
+            {(listFilterActive ? filteredSlugs.length : slugs.length) === 1 ? '' : 's'}
           </Badge>
         </CardContent>
       </Card>
@@ -878,7 +1765,7 @@ export default function SeoLandingPagesManagement() {
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(220px,280px)_1fr]">
+        <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(220px,260px)_1fr_minmax(260px,300px)]">
           {/* Sidebar */}
           <Card className="h-fit lg:sticky lg:top-4">
             <CardHeader className="pb-3">
@@ -889,22 +1776,64 @@ export default function SeoLandingPagesManagement() {
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search slug or title…"
+                  placeholder="Search slug, title or category…"
                   value={pageSearch}
                   onChange={(e) => setPageSearch(e.target.value)}
                   className="pl-8 text-sm"
                 />
               </div>
+              {listFilterActive ? (
+                <p className="text-xs text-muted-foreground">
+                  Showing {filteredSlugs.length} of {slugs.length} {meta.shortLabel.toLowerCase()} pages
+                  {categoryFilter ? (
+                    <>
+                      {' '}
+                      for{' '}
+                      <strong className="text-foreground">
+                        {categoryFilter === '__uncategorized__'
+                          ? 'Uncategorized'
+                          : catalogLabelMap[normalizeSeoCategorySlug(categoryFilter)] ?? categoryFilter}
+                      </strong>
+                    </>
+                  ) : null}
+                </p>
+              ) : categoryFilter && seoLandingKindHasCategoryFilter(kind) ? (
+                <p className="text-xs text-muted-foreground">
+                  Category filter:{' '}
+                  <strong className="text-foreground">
+                    {categoryFilter === '__uncategorized__'
+                      ? 'Uncategorized'
+                      : catalogLabelMap[normalizeSeoCategorySlug(categoryFilter)] ?? categoryFilter}
+                  </strong>
+                </p>
+              ) : null}
               <ul className="max-h-[min(420px,50vh)] space-y-1 overflow-y-auto">
                 {filteredSlugs.length === 0 ? (
                   <li className="rounded-md px-2 py-6 text-center text-sm text-muted-foreground">
-                    {slugs.length === 0 ? 'No pages — create a slug below.' : 'No matches.'}
+                    {slugs.length === 0
+                      ? 'No pages — create a slug below.'
+                      : categoryFilter
+                        ? `No ${meta.shortLabel.toLowerCase()} pages for this category yet.`
+                        : 'No matches.'}
                   </li>
                 ) : (
                   filteredSlugs.map((s) => {
                     const row = records[s]
                     const title = pageListTitle(kind, row ?? {})
                     const active = selectedSlug === s
+                    const status = quickSeoLandingPageStatus(kind, row ?? {})
+                    const pageCategories = getSeoPageCategorySlugs(kind, row ?? {})
+                    const categoryLine = pageCategories
+                      .map((c) => catalogLabelMap[c] ?? c)
+                      .join(' · ')
+                    const statusDot =
+                      status === 'success'
+                        ? 'bg-emerald-500'
+                        : status === 'info'
+                          ? 'bg-primary'
+                          : status === 'warning'
+                            ? 'bg-amber-500'
+                            : 'bg-muted-foreground/40'
                     return (
                       <li key={s}>
                         <button
@@ -920,12 +1849,25 @@ export default function SeoLandingPagesManagement() {
                               : 'border-transparent hover:border-border hover:bg-muted/50',
                           )}
                         >
-                          <p className="truncate font-mono text-xs text-foreground">{s}</p>
-                          {title ? (
-                            <p className="truncate text-xs text-muted-foreground">{title}</p>
-                          ) : (
-                            <p className="text-xs italic text-muted-foreground">No title yet</p>
-                          )}
+                          <div className="flex items-start gap-2">
+                            <span
+                              className={cn('mt-1.5 h-2 w-2 shrink-0 rounded-full', statusDot)}
+                              title={`Status: ${buildSeoLandingQualityReport(kind, row ?? {}).statusLabel}`}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate font-mono text-xs text-foreground">{s}</p>
+                              {title ? (
+                                <p className="truncate text-xs text-muted-foreground">{title}</p>
+                              ) : (
+                                <p className="text-xs italic text-muted-foreground">No title yet</p>
+                              )}
+                              {categoryLine ? (
+                                <p className="truncate text-[11px] text-primary/80">{categoryLine}</p>
+                              ) : seoLandingKindHasCategoryFilter(kind) ? (
+                                <p className="text-[11px] italic text-muted-foreground/70">No category</p>
+                              ) : null}
+                            </div>
+                          </div>
                         </button>
                       </li>
                     )
@@ -933,13 +1875,74 @@ export default function SeoLandingPagesManagement() {
                 )}
               </ul>
               <div className="flex gap-2 border-t border-border pt-3">
-                <Input
-                  placeholder="new-page-slug"
-                  value={newSlug}
-                  onChange={(e) => setNewSlug(e.target.value)}
-                  className="text-sm font-mono"
-                  onKeyDown={(e) => e.key === 'Enter' && addSlug()}
-                />
+                {kind === 'locations' ? (
+                  <Select
+                    value={newSlug || undefined}
+                    onValueChange={setNewSlug}
+                    disabled={localitiesLoading || !canMutate}
+                  >
+                    <SelectTrigger className="flex-1 text-sm">
+                      <SelectValue placeholder="Pick area to add…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {localityCuratedOptions
+                        .filter((o) => !records[o.value])
+                        .map((o) => (
+                          <SelectItem key={o.value} value={o.value}>
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                ) : kind === 'emergency' ? (
+                  <>
+                    <Select
+                      value={newEmergencyCategory || undefined}
+                      onValueChange={setNewEmergencyCategory}
+                      disabled={!canMutate}
+                    >
+                      <SelectTrigger className="flex-1 text-sm">
+                        <SelectValue placeholder="Category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {catalogCuratedOptions.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={newEmergencyArea || undefined}
+                      onValueChange={setNewEmergencyArea}
+                      disabled={localitiesLoading || !canMutate}
+                    >
+                      <SelectTrigger className="flex-1 text-sm">
+                        <SelectValue placeholder="Area" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {localityCuratedOptions
+                          .filter((o) => {
+                            const slug = buildEmergencyCompositeSlug(newEmergencyCategory, o.value)
+                            return !records[slug]
+                          })
+                          .map((o) => (
+                            <SelectItem key={o.value} value={o.value}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </>
+                ) : (
+                  <Input
+                    placeholder="new-page-slug"
+                    value={newSlug}
+                    onChange={(e) => setNewSlug(normalizeSeoLandingSlug(e.target.value))}
+                    className="text-sm font-mono"
+                    onKeyDown={(e) => e.key === 'Enter' && addSlug()}
+                  />
+                )}
                 <Button type="button" size="icon" variant="outline" onClick={addSlug} title="Add page" disabled={!canMutate}>
                   <Plus className="h-4 w-4" />
                 </Button>
@@ -982,16 +1985,14 @@ export default function SeoLandingPagesManagement() {
                         <ExternalLink className="h-3.5 w-3.5" />
                       </a>
                       <div className="flex flex-wrap gap-1.5">
-                        {publishGates.map((g) => (
-                          <Badge key={g.label} variant={g.ok ? 'success' : 'warning'} title={g.detail}>
-                            {g.label}
-                          </Badge>
-                        ))}
-                        {readyToIndex ? (
-                          <Badge variant="info">Ready to index</Badge>
-                        ) : (
-                          <Badge variant="secondary">Draft / gated</Badge>
-                        )}
+                        <Badge variant={qualityReport.statusVariant}>{qualityReport.statusLabel}</Badge>
+                        <Badge variant="outline">{qualityReport.score}% health</Badge>
+                        {lengthIssueCount > 0 ? (
+                          <Badge variant="warning">{lengthIssueCount} length issue{lengthIssueCount === 1 ? '' : 's'}</Badge>
+                        ) : null}
+                        <Badge variant={readyToIndex ? 'success' : 'secondary'}>
+                          {readyToIndex ? 'Ready to index' : 'Draft / gated'}
+                        </Badge>
                       </div>
                     </div>
                     <Button
@@ -1008,12 +2009,31 @@ export default function SeoLandingPagesManagement() {
                   </CardContent>
                 </Card>
 
+                <div className="xl:hidden">
+                  <SeoLandingPageHealthPanel
+                    report={qualityReport}
+                    lengthWarnings={lengthWarnings}
+                    onNavigateTab={setEditorTab}
+                  />
+                </div>
+
                 <Tabs value={editorTab} onValueChange={(v) => setEditorTab(v as EditorTab)}>
                   <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 sm:w-auto sm:inline-flex">
-                    <TabsTrigger value="setup">Setup</TabsTrigger>
-                    <TabsTrigger value="content">Content</TabsTrigger>
-                    <TabsTrigger value="links">Internal links</TabsTrigger>
-                    <TabsTrigger value="seo">SEO & publish</TabsTrigger>
+                    {(
+                      [
+                        ['setup', 'Setup'],
+                        ['content', 'Content'],
+                        ['links', 'Internal links'],
+                        ['seo', 'SEO & publish'],
+                      ] as const
+                    ).map(([value, label]) => (
+                      <TabsTrigger key={value} value={value} className="relative gap-1.5">
+                        {label}
+                        {tabNeedsAttention(value) ? (
+                          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-label="Required items open" />
+                        ) : null}
+                      </TabsTrigger>
+                    ))}
                   </TabsList>
                   <TabsContent value="setup" className="mt-4 space-y-4">
                     {renderSetupTab()}
@@ -1038,6 +2058,15 @@ export default function SeoLandingPagesManagement() {
               </>
             )}
           </div>
+
+          {selectedSlug ? (
+            <SeoLandingPageHealthPanel
+              report={qualityReport}
+              lengthWarnings={lengthWarnings}
+              onNavigateTab={setEditorTab}
+              className="hidden xl:block xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto"
+            />
+          ) : null}
         </div>
       )}
     </div>

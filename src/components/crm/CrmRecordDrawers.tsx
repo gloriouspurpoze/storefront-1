@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { Pencil, X } from 'lucide-react'
+import { CalendarClock, Check, Pencil, X } from 'lucide-react'
 import type { CrmActivity, CrmCompany, CrmContact, CrmDeal } from '../../types/crm.types'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
@@ -15,6 +15,13 @@ import {
   adminPathToOrder,
   adminPathToUser,
 } from '../../lib/crmNiche'
+import { getProfessionalCategoryLabel } from '../../constants/professionalCategories'
+import {
+  FOLLOW_UP_STATUS_LABEL,
+  FOLLOW_UP_STATUS_STYLES,
+  formatFollowUpWhen,
+  type DealFollowUpSummary,
+} from '../../lib/crmDealFollowUp'
 
 function formatActivityWhen(a: CrmActivity) {
   const t = a.dueAt ?? a.completedAt ?? a.createdAt
@@ -184,6 +191,9 @@ type DealDrawerProps = {
   companyName?: string
   contactName?: string
   activities: CrmActivity[]
+  followUp?: DealFollowUpSummary | null
+  onScheduleFollowUp?: () => void
+  onMarkFollowUpDone?: (activityId: string) => void
   onEdit: () => void
 }
 
@@ -195,6 +205,9 @@ export function CrmDealDetailDrawer({
   companyName,
   contactName,
   activities,
+  followUp,
+  onScheduleFollowUp,
+  onMarkFollowUpDone,
   onEdit,
 }: DealDrawerProps) {
   const sorted = [...activities].sort(
@@ -247,9 +260,18 @@ export function CrmDealDetailDrawer({
                   <span className="font-medium">Locality:</span> {deal.locality}
                 </p>
               ) : null}
+              {deal.phone ? (
+                <p>
+                  <span className="font-medium">Phone:</span>{' '}
+                  <a href={`tel:${deal.phone}`} className="text-primary underline-offset-2 hover:underline">
+                    {deal.phone}
+                  </a>
+                </p>
+              ) : null}
               {deal.serviceCategory ? (
                 <p>
-                  <span className="font-medium">Service:</span> {deal.serviceCategory}
+                  <span className="font-medium">Service:</span>{' '}
+                  {getProfessionalCategoryLabel(deal.serviceCategory)}
                 </p>
               ) : null}
               {companyName ? (
@@ -281,6 +303,64 @@ export function CrmDealDetailDrawer({
               )}
               {deal.notes ? <p className="text-muted-foreground">{deal.notes}</p> : null}
             </div>
+
+            {followUp ? (
+              <div
+                className={cn(
+                  'mb-4 rounded-lg border p-3 text-sm',
+                  FOLLOW_UP_STATUS_STYLES[followUp.status].strip
+                )}
+              >
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="font-medium">Next follow-up</p>
+                  <Badge variant="outline" className={cn('border text-[0.65rem]', FOLLOW_UP_STATUS_STYLES[followUp.status].badge)}>
+                    {FOLLOW_UP_STATUS_LABEL[followUp.status]}
+                  </Badge>
+                </div>
+                {followUp.nextActivity ? (
+                  <>
+                    <p className="font-medium leading-snug">{followUp.nextActivity.subject}</p>
+                    <p className="mt-1 text-xs opacity-90">
+                      {followUp.nextActivity.dueAt
+                        ? formatFollowUpWhen(followUp.nextActivity.dueAt)
+                        : 'Open task — no due date'}
+                      {followUp.openCount > 1 ? ` · ${followUp.openCount} open tasks` : ''}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {onMarkFollowUpDone ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-7 gap-1"
+                          onClick={() => onMarkFollowUpDone(followUp.nextActivity!.id)}
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                          Mark done
+                        </Button>
+                      ) : null}
+                      {onScheduleFollowUp ? (
+                        <Button type="button" size="sm" variant="outline" className="h-7 gap-1" onClick={onScheduleFollowUp}>
+                          <CalendarClock className="h-3.5 w-3.5" />
+                          Schedule another
+                        </Button>
+                      ) : null}
+                    </div>
+                  </>
+                ) : (
+                  <div>
+                    <p className="text-xs opacity-90">No open follow-ups on this deal.</p>
+                    {onScheduleFollowUp ? (
+                      <Button type="button" size="sm" className="mt-2 h-7 gap-1" onClick={onScheduleFollowUp}>
+                        <CalendarClock className="h-3.5 w-3.5" />
+                        Schedule follow-up
+                      </Button>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+            ) : null}
+
             <Separator className="mb-3" />
             <h3 className="mb-2 text-sm font-medium">Activity timeline</h3>
             <ul className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1 text-sm">

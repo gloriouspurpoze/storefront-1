@@ -48,7 +48,7 @@ import {
 } from '../../components/ui/select'
 import { cn } from '../../lib/utils'
 import { ACTIVITY_TYPES_ORDERED, ACTIVITY_TYPE_LABELS } from '../../lib/crmNiche'
-import { CrmWhatsAppStaffPlaybook } from '../../components/crm/CrmWhatsAppStaffPlaybook'
+// import { CrmWhatsAppStaffPlaybook } from '../../components/crm/CrmWhatsAppStaffPlaybook'
 const STATUS_OPTS: CrmActivityStatus[] = ['open', 'done', 'cancelled']
 
 const emptySelection: GridRowSelectionModel = { type: 'include', ids: new Set() }
@@ -349,7 +349,7 @@ export function CrmActivities() {
       <CrmSubnav />
 
       <div className="mb-4 space-y-3">
-        <CrmWhatsAppStaffPlaybook variant="compact" />
+        {/* <CrmWhatsAppStaffPlaybook variant="compact" /> */}
         <p className="text-sm text-muted-foreground">
           After a WhatsApp thread, use <strong className="text-foreground">Log WhatsApp outcome</strong>, link the activity to the contact or deal,
           then mark the task done. Open tasks past due appear on the CRM overview.

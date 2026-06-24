@@ -1,8 +1,9 @@
-﻿import React, { useEffect, useMemo, useState } from 'react'
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import axios from 'axios'
 import {
   ChevronDown,
   Code2,
+  Copy,
   Eye,
   GripVertical,
   HelpCircle,
@@ -33,6 +34,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/ta
 import { useToast } from '../../components/ui/use-toast'
 import { cn } from '../../lib/utils'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
+import { usePermissions } from '../../hooks/usePermissions'
+import {
+  groupEmailTemplatesByCategory,
+  insertAtCursor,
+} from '../../lib/emailTemplateCatalog'
 import { CMSService } from '../../services/api/cms.service'
 
 type TemplateListItem = Awaited<ReturnType<typeof CMSService.listEmailTemplates>>[number]
@@ -62,8 +68,13 @@ function apiErr(e: unknown): string {
 
 export default function EmailTemplatesManagement() {
   const { toast } = useToast()
+  const { checkAnyPermission } = usePermissions()
+  const canManage = checkAnyPermission(['manage_cms', 'edit_settings', 'manage_system_settings'])
+  const editorRef = useRef<HTMLTextAreaElement>(null)
+  const savedHtmlRef = useRef('')
   const [list, setList] = useState<TemplateListItem[]>([])
   const [listQuery, setListQuery] = useState('')
+  const [listError, setListError] = useState<string | null>(null)
   const [loadingList, setLoadingList] = useState(true)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [detail, setDetail] = useState<Awaited<ReturnType<typeof CMSService.getEmailTemplate>> | null>(null)
@@ -90,22 +101,42 @@ export default function EmailTemplatesManagement() {
       (t) =>
         t.title.toLowerCase().includes(q) ||
         t.filename.toLowerCase().includes(q) ||
-        t.description.toLowerCase().includes(q),
+        t.description.toLowerCase().includes(q) ||
+        (t.categoryLabel ?? '').toLowerCase().includes(q),
     )
   }, [list, listQuery])
 
+  const groupedList = useMemo(() => groupEmailTemplatesByCategory(filteredList), [filteredList])
+
+  const isDirty = detail != null && editorHtml !== savedHtmlRef.current
+
   const refreshList = async () => {
     setLoadingList(true)
+    setListError(null)
     try {
       const data = await CMSService.listEmailTemplates()
-      setList(data)
+      setList(Array.isArray(data) ? data : [])
       setSelectedId((prev) => prev ?? (data[0]?.id ?? null))
     } catch (e: unknown) {
+      setList([])
+      setListError(apiErr(e))
       toast({ title: 'Error', description: apiErr(e), variant: 'destructive' })
     } finally {
       setLoadingList(false)
     }
   }
+
+  const selectTemplate = useCallback(
+    (id: string) => {
+      if (id === selectedId) return
+      if (isDirty) {
+        const ok = window.confirm('You have unsaved changes. Switch templates anyway?')
+        if (!ok) return
+      }
+      setSelectedId(id)
+    },
+    [isDirty, selectedId],
+  )
 
   useEffect(() => {
     void refreshList()
@@ -125,6 +156,7 @@ export default function EmailTemplatesManagement() {
         if (cancelled) return
         setDetail(d)
         setEditorHtml(d.html)
+        savedHtmlRef.current = d.html
       } catch (e: unknown) {
         toast({ title: 'Error', description: apiErr(e), variant: 'destructive' })
       } finally {
@@ -160,40 +192,57 @@ export default function EmailTemplatesManagement() {
 
   const selectedSummary = useMemo(() => list.find((t) => t.id === selectedId), [list, selectedId])
 
+  const runPreviewForHtml = useCallback(
+    async (html: string, templateId: string, opts?: { silent?: boolean; switchTab?: boolean }) => {
+      setPreviewLoading(true)
+      try {
+        const data = await CMSService.previewEmailTemplate(templateId, {
+          htmlDraft: html,
+          sourceFormat: mjmlMode ? 'mjml' : 'html',
+        })
+        setPreviewHtml(data.html)
+        setValidationHints(data.validationHints ?? null)
+        const h = data.validationHints
+        if (!opts?.silent) {
+          if (h && (h.missing.length || h.unknown.length)) {
+            toast({
+              title: 'Preview ready — check placeholders',
+              description:
+                [h.missing.length ? `Missing: ${h.missing.join(', ')}` : '', h.unknown.length ? `Unknown: ${h.unknown.join(', ')}` : '']
+                  .filter(Boolean)
+                  .join(' · ') || undefined,
+            })
+          } else {
+            toast({ title: 'Preview updated', description: 'Rendered with sample data from the server.' })
+          }
+        }
+        if (opts?.switchTab ?? !isXlUp) {
+          setWorkspaceTab('preview')
+        }
+      } catch (e: unknown) {
+        if (!opts?.silent) {
+          toast({ title: 'Preview error', description: apiErr(e), variant: 'destructive' })
+        }
+      } finally {
+        setPreviewLoading(false)
+      }
+    },
+    [isXlUp, mjmlMode, toast],
+  )
+
   const runPreview = async () => {
     if (!selectedId) return
-    setPreviewLoading(true)
-    try {
-      const data = await CMSService.previewEmailTemplate(selectedId, {
-        htmlDraft: editorHtml,
-        sourceFormat: mjmlMode ? 'mjml' : 'html',
-      })
-      setPreviewHtml(data.html)
-      setValidationHints(data.validationHints ?? null)
-      const h = data.validationHints
-      if (h && (h.missing.length || h.unknown.length)) {
-        toast({
-          title: 'Preview ready — check placeholders',
-          description:
-            [h.missing.length ? `Missing: ${h.missing.join(', ')}` : '', h.unknown.length ? `Unknown: ${h.unknown.join(', ')}` : '']
-              .filter(Boolean)
-              .join(' · ') || undefined,
-        })
-      } else {
-        toast({ title: 'Preview updated', description: 'Rendered with sample data from the server.' })
-      }
-      if (!isXlUp) {
-        setWorkspaceTab('preview')
-      }
-    } catch (e: unknown) {
-      toast({ title: 'Preview error', description: apiErr(e), variant: 'destructive' })
-    } finally {
-      setPreviewLoading(false)
-    }
+    await runPreviewForHtml(editorHtml, selectedId)
   }
 
+  useEffect(() => {
+    if (!selectedId || !detail || loadingDetail) return
+    void runPreviewForHtml(editorHtml, selectedId, { silent: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- preview when template loads
+  }, [selectedId, detail?.id, loadingDetail])
+
   const saveOverride = async () => {
-    if (!selectedId) return
+    if (!selectedId || !canManage) return
     setSaving(true)
     try {
       await CMSService.saveEmailTemplateOverride(selectedId, {
@@ -208,12 +257,15 @@ export default function EmailTemplatesManagement() {
         description: mjmlMode ? 'MJML was compiled to HTML for storage and sending.' : 'Outgoing mail will use this HTML.',
       })
       setChangeNote('')
+      savedHtmlRef.current = editorHtml
       await refreshList()
       const d = await CMSService.getEmailTemplate(selectedId)
       setDetail(d)
       setEditorHtml(d.html)
+      savedHtmlRef.current = d.html
       const v = await CMSService.listEmailTemplateVersions(selectedId)
       setVersions(v)
+      await runPreviewForHtml(d.html, selectedId, { silent: true })
     } catch (e: unknown) {
       toast({ title: 'Error', description: apiErr(e), variant: 'destructive' })
     } finally {
@@ -222,7 +274,7 @@ export default function EmailTemplatesManagement() {
   }
 
   const revertDefault = async () => {
-    if (!selectedId) return
+    if (!selectedId || !canManage) return
     setSaving(true)
     try {
       await CMSService.revertEmailTemplateToDefault(selectedId)
@@ -230,11 +282,13 @@ export default function EmailTemplatesManagement() {
       const d = await CMSService.getEmailTemplate(selectedId)
       setDetail(d)
       setEditorHtml(d.html)
+      savedHtmlRef.current = d.html
       setPreviewHtml(null)
       setValidationHints(null)
       await refreshList()
       const v = await CMSService.listEmailTemplateVersions(selectedId)
       setVersions(v)
+      await runPreviewForHtml(d.html, selectedId, { silent: true })
     } catch (e: unknown) {
       toast({ title: 'Error', description: apiErr(e), variant: 'destructive' })
     } finally {
@@ -243,7 +297,7 @@ export default function EmailTemplatesManagement() {
   }
 
   const restoreVersion = async (versionId: string) => {
-    if (!selectedId) return
+    if (!selectedId || !canManage) return
     setRestoringId(versionId)
     try {
       await CMSService.restoreEmailTemplateVersion(selectedId, versionId)
@@ -251,10 +305,12 @@ export default function EmailTemplatesManagement() {
       const d = await CMSService.getEmailTemplate(selectedId)
       setDetail(d)
       setEditorHtml(d.html)
+      savedHtmlRef.current = d.html
       setPreviewHtml(null)
       await refreshList()
       const v = await CMSService.listEmailTemplateVersions(selectedId)
       setVersions(v)
+      await runPreviewForHtml(d.html, selectedId, { silent: true })
     } catch (e: unknown) {
       toast({ title: 'Restore failed', description: apiErr(e), variant: 'destructive' })
     } finally {
@@ -293,14 +349,30 @@ export default function EmailTemplatesManagement() {
 
   const editorField = (
     <textarea
+      ref={editorRef}
       id="email-html-editor"
       className="box-border min-h-0 w-full flex-1 resize-none rounded-md border border-input bg-background px-3 py-2 font-mono text-[13px] leading-relaxed outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
       spellCheck={false}
       value={editorHtml}
       onChange={(e) => setEditorHtml(e.target.value)}
+      readOnly={!canManage}
       aria-label={sourceLabel}
     />
   )
+
+  const insertPlaceholder = (key: string) => {
+    insertAtCursor(editorRef.current, `{{${key}}}`, editorHtml, setEditorHtml)
+  }
+
+  const copyPlaceholder = async (key: string) => {
+    const token = `{{${key}}}`
+    try {
+      await navigator.clipboard.writeText(token)
+      toast({ title: 'Copied', description: token })
+    } catch {
+      toast({ title: 'Copy failed', variant: 'destructive' })
+    }
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -318,9 +390,8 @@ export default function EmailTemplatesManagement() {
         </summary>
         <ul className="mt-3 space-y-2 pl-6 text-muted-foreground marker:text-muted-foreground [&>li]:list-disc">
           <li>
-            Pick a template on the left, edit <strong className="text-foreground">HTML</strong> or{' '}
-            <strong className="text-foreground">MJML</strong>, then <strong className="text-foreground">Preview</strong> before
-            saving.
+            Click a merge tag to insert at the cursor, or use the copy icon. Run{' '}
+            <strong className="text-foreground">Preview</strong> before saving — preview auto-loads when you open a template.
           </li>
           <li>
             <strong className="text-foreground">Save</strong> stores your override and snapshots the previous version.{' '}
@@ -362,57 +433,69 @@ export default function EmailTemplatesManagement() {
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             ) : filteredList.length === 0 ? (
-              <p className="px-2 py-6 text-center text-sm text-muted-foreground">No templates match your search.</p>
+              <p className="px-2 py-6 text-center text-sm text-muted-foreground">
+                {listError ? listError : 'No templates match your search.'}
+              </p>
             ) : (
-              <ul className="space-y-0.5">
-                {filteredList.map((t) => (
-                  <li key={t.id}>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedId(t.id)}
-                      className={cn(
-                        'w-full rounded-lg px-3 py-2.5 text-left text-sm transition-colors',
-                        selectedId === t.id
-                          ? 'bg-primary text-primary-foreground shadow-sm'
-                          : 'hover:bg-muted/80',
-                      )}
-                    >
-                      <div className="font-medium leading-snug">{t.title}</div>
-                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                        {t.hasCustom ? (
-                          <Badge
-                            variant="secondary"
+              <div className="space-y-3">
+                {groupedList.map((group) => (
+                  <div key={group.category}>
+                    <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      {group.label}
+                    </p>
+                    <ul className="space-y-0.5">
+                      {group.items.map((t) => (
+                        <li key={t.id}>
+                          <button
+                            type="button"
+                            onClick={() => selectTemplate(t.id)}
                             className={cn(
-                              'text-[10px] font-normal',
-                              selectedId === t.id && 'bg-primary-foreground/20 text-primary-foreground',
+                              'w-full rounded-lg px-3 py-2.5 text-left text-sm transition-colors',
+                              selectedId === t.id
+                                ? 'bg-primary text-primary-foreground shadow-sm'
+                                : 'hover:bg-muted/80',
                             )}
                           >
-                            Custom
-                          </Badge>
-                        ) : (
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              'text-[10px] font-normal',
-                              selectedId === t.id && 'border-primary-foreground/40 bg-primary-foreground/10 text-primary-foreground',
-                            )}
-                          >
-                            Default
-                          </Badge>
-                        )}
-                        <span
-                          className={cn(
-                            'truncate font-mono text-[10px] opacity-80',
-                            selectedId === t.id && 'text-primary-foreground/90',
-                          )}
-                        >
-                          {t.filename}
-                        </span>
-                      </div>
-                    </button>
-                  </li>
+                            <div className="font-medium leading-snug">{t.title}</div>
+                            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                              {t.hasCustom ? (
+                                <Badge
+                                  variant="secondary"
+                                  className={cn(
+                                    'text-[10px] font-normal',
+                                    selectedId === t.id && 'bg-primary-foreground/20 text-primary-foreground',
+                                  )}
+                                >
+                                  Custom
+                                </Badge>
+                              ) : (
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    'text-[10px] font-normal',
+                                    selectedId === t.id &&
+                                      'border-primary-foreground/40 bg-primary-foreground/10 text-primary-foreground',
+                                  )}
+                                >
+                                  Default
+                                </Badge>
+                              )}
+                              <span
+                                className={cn(
+                                  'truncate font-mono text-[10px] opacity-80',
+                                  selectedId === t.id && 'text-primary-foreground/90',
+                                )}
+                              >
+                                {t.filename}
+                              </span>
+                            </div>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ))}
-              </ul>
+              </div>
             )}
           </div>
         </aside>
@@ -439,9 +522,15 @@ export default function EmailTemplatesManagement() {
                         {detail.filename}
                       </Badge>
                       {mjmlMode ? <Badge variant="secondary">MJML → HTML</Badge> : null}
+                      {isDirty ? <Badge variant="warning">Unsaved changes</Badge> : null}
                     </div>
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    {!canManage ? (
+                      <Badge variant="outline" className="text-xs font-normal">
+                        View only
+                      </Badge>
+                    ) : null}
                     <div className="flex items-center gap-2 rounded-md border bg-background px-2.5 py-1.5">
                       <Checkbox id="mjml-mode-toolbar" checked={mjmlMode} onCheckedChange={(v) => setMjmlMode(v === true)} />
                       <Label htmlFor="mjml-mode-toolbar" className="cursor-pointer text-xs font-normal">
@@ -456,7 +545,7 @@ export default function EmailTemplatesManagement() {
                       )}
                       Preview
                     </Button>
-                    <Button type="button" size="sm" onClick={() => void saveOverride()} disabled={saving}>
+                    <Button type="button" size="sm" onClick={() => void saveOverride()} disabled={saving || !canManage || !isDirty}>
                       {saving ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Save className="mr-1.5 h-4 w-4" />}
                       Save
                     </Button>
@@ -467,14 +556,14 @@ export default function EmailTemplatesManagement() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-52">
-                        <DropdownMenuItem onClick={loadRepoBaseline}>
+                        <DropdownMenuItem onClick={loadRepoBaseline} disabled={!canManage}>
                           <Code2 className="mr-2 h-4 w-4" />
                           Load repo default into editor
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => void revertDefault()}
-                          disabled={saving || !selectedSummary?.hasCustom}
+                          disabled={saving || !canManage || !selectedSummary?.hasCustom}
                           className="text-destructive focus:text-destructive"
                         >
                           <RotateCcw className="mr-2 h-4 w-4" />
@@ -505,14 +594,27 @@ export default function EmailTemplatesManagement() {
 
                 <div>
                   <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">Merge tags (registry)</p>
-                  <div className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
+                  <div className="-mx-1 flex flex-wrap gap-1 px-1 pb-1">
                     {detail.placeholders.map((p) => (
-                      <code
-                        key={p}
-                        className="shrink-0 rounded-md border bg-background px-2 py-1 font-mono text-[11px] text-foreground"
-                      >
-                        {`{{${p}}}`}
-                      </code>
+                      <span key={p} className="inline-flex items-center gap-0.5">
+                        <button
+                          type="button"
+                          className="shrink-0 rounded-md border bg-background px-2 py-1 font-mono text-[11px] text-foreground hover:bg-muted"
+                          onClick={() => insertPlaceholder(p)}
+                          title="Insert at cursor"
+                        >
+                          {`{{${p}}}`}
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                          onClick={() => void copyPlaceholder(p)}
+                          title="Copy to clipboard"
+                          aria-label={`Copy {{${p}}}`}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </button>
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -676,7 +778,7 @@ export default function EmailTemplatesManagement() {
                           variant="outline"
                           size="sm"
                           className="shrink-0"
-                          disabled={restoringId === row.id || !selectedId}
+                          disabled={restoringId === row.id || !selectedId || !canManage}
                           onClick={() => void restoreVersion(row.id)}
                         >
                           {restoringId === row.id ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Restore'}

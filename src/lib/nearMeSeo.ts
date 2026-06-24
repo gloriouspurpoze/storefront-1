@@ -108,6 +108,28 @@ export function buildDefaultNearMeSeoCopy(input: DefaultNearMeSeoInput): NearMeS
     keywords: Array.from(new Set(keywords.filter(Boolean))),
     canonicalPath,
     robotsMeta: '',
+    introHtml: isLocal
+      ? `<p>Book verified ${serviceLower} near you in ${loc}. Same-day slots when available, transparent pricing, and digital invoices on ProFixer.</p>`
+      : '',
+    keyTakeaways: isLocal
+      ? [
+          'Same-day booking when slots allow',
+          'Verified technicians with transparent pricing',
+          '30-day workmanship warranty on eligible jobs',
+        ]
+      : [],
+    faqs: isLocal
+      ? [
+          {
+            question: `How do I book ${serviceLower} near me in ${locShort}?`,
+            answer: `Choose your service on ProFixer, confirm ${locShort} as your area, and pick the earliest available slot online or by phone.`,
+          },
+          {
+            question: 'Do you cover nearby neighbourhoods?',
+            answer: `Yes — use the area locator on this page to compare ${serviceLower} options in neighbourhoods near ${locShort}.`,
+          },
+        ]
+      : [],
   }
 }
 
@@ -163,6 +185,39 @@ export function assessNearMeSeoReadiness(
     })
   } else {
     rows.push({ tone: 'ok', title: 'Near-me keywords', detail: `${kw} keyword(s) set.` })
+  }
+
+  const intro = nm.introHtml.trim()
+  if (!intro) {
+    rows.push({
+      tone: 'info',
+      title: 'Near-me intro',
+      detail: 'Blank — page shows meta description only. Add intro HTML for booking context.',
+    })
+  } else {
+    rows.push({ tone: 'ok', title: 'Near-me intro', detail: `${intro.replace(/<[^>]*>/g, ' ').trim().length} chars body copy.` })
+  }
+
+  const takeaways = nm.keyTakeaways.filter((t) => t.trim()).length
+  if (takeaways === 0) {
+    rows.push({
+      tone: 'info',
+      title: 'Near-me key takeaways',
+      detail: 'Optional — add 3–5 trust bullets (same-day, pricing, warranty).',
+    })
+  } else {
+    rows.push({ tone: 'ok', title: 'Near-me key takeaways', detail: `${takeaways} bullet(s).` })
+  }
+
+  const faqCount = nm.faqs.filter((f) => f.question.trim() && f.answer.trim()).length
+  if (faqCount < 2) {
+    rows.push({
+      tone: faqCount === 0 ? 'info' : 'warn',
+      title: 'Near-me FAQs',
+      detail: faqCount === 0 ? 'Add 2–5 booking FAQs for on-page + FAQ schema.' : `${faqCount}/2+ FAQ pairs.`,
+    })
+  } else {
+    rows.push({ tone: 'ok', title: 'Near-me FAQs', detail: `${faqCount} FAQ pair(s).` })
   }
 
   const can = nm.canonicalPath.trim()
@@ -263,4 +318,36 @@ export function assessNapCitationsReadiness(cfg: CategoryMarketingConfig): NapRe
   }
 
   return rows
+}
+
+/** Map SEO landing / URL slug to category-marketing catalog storage key. */
+export function resolveCatalogStorageSlugForNearMe(
+  serviceSlug: string,
+  catalogOptions: readonly { value: string }[],
+): string {
+  const raw = serviceSlug.trim().toLowerCase()
+  if (!raw) return raw
+  const hit = catalogOptions.find(
+    (o) =>
+      o.value.toLowerCase() === raw ||
+      getPreferredServiceCategoryUrlSlug(o.value).toLowerCase() === raw,
+  )
+  return hit?.value ?? raw
+}
+
+/** Deep link to Industry service pages → near-me CMS block. */
+export function buildCategoryMarketingNearMeEditUrl(
+  serviceSlug: string,
+  localitySlug?: string,
+  catalogOptions: readonly { value: string }[] = [],
+): string {
+  const catalog = catalogOptions.length
+    ? resolveCatalogStorageSlugForNearMe(serviceSlug, catalogOptions)
+    : serviceSlug.trim()
+  const params = new URLSearchParams()
+  params.set('tab', 'landing')
+  if (catalog) params.set('catalog', catalog)
+  if (localitySlug?.trim()) params.set('locality', localitySlug.trim().toLowerCase())
+  params.set('section', 'near-me')
+  return `/cms/category-marketing?${params.toString()}`
 }

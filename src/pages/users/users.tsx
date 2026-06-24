@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Plus,
@@ -18,10 +18,14 @@ import { UserFormDialog } from '../../components/users/UserFormDialog'
 import { UserDetailsDialog } from '../../components/users/UserDetailsDialog'
 import { ConfirmDialog } from '../../components/common/ConfirmDialog'
 import { usersService } from '../../services/api/users.service'
+import { crmService } from '../../services/api/crm.service'
+import { adminPathToCrmForUser } from '../../lib/crmPlatformSync'
+import type { CrmContact } from '../../types/crm.types'
 import type { UpdateUserRequest } from '../../services/api/users.service'
 import type { User } from '../../types'
 import { cn } from '../../lib/utils'
 import { useAppSelector } from '../../store/hooks'
+import { filterUsersForAudience } from '../../lib/userAudienceFilters'
 
 interface UserStats {
   total: number
@@ -47,15 +51,7 @@ type UsersPageMode = 'directory' | 'members'
 
 /** Enforce list separation even if GET /users/all ignores `scope`. */
 function narrowUsersForPageMode(rows: User[], pageMode: UsersPageMode): User[] {
-  if (pageMode === 'directory') {
-    return rows.filter((u) => u.userType === 'customer')
-  }
-  return rows.filter(
-    (u) =>
-      u.userType === 'admin' ||
-      u.userType === 'super_admin' ||
-      u.isDashboardMember === true,
-  )
+  return filterUsersForAudience(rows, pageMode === 'directory' ? 'customers' : 'members')
 }
 
 function UsersPageContent({ mode }: { mode: UsersPageMode }) {
@@ -80,6 +76,7 @@ function UsersPageContent({ mode }: { mode: UsersPageMode }) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [crmContacts, setCrmContacts] = useState<CrmContact[]>([])
 
   const [snackbar, setSnackbar] = useState<{
     open: boolean
@@ -145,7 +142,9 @@ function UsersPageContent({ mode }: { mode: UsersPageMode }) {
           page: 1,
           limit: 100,
           scope,
-          ...(mode === 'directory' ? { user_type: 'customer' as const } : {}),
+          ...(mode === 'directory'
+            ? { user_type: 'customer' as const }
+            : { user_type: 'admin' as const }),
         })
         if (!isMounted) return
         const list = narrowUsersForPageMode(response.users, mode)
@@ -168,6 +167,22 @@ function UsersPageContent({ mode }: { mode: UsersPageMode }) {
   }, [scope, mode])
 
   useEffect(() => {
+    if (mode !== 'directory') return
+    let active = true
+    crmService
+      .listContacts()
+      .then((rows) => {
+        if (active) setCrmContacts(rows)
+      })
+      .catch(() => {
+        if (active) setCrmContacts([])
+      })
+    return () => {
+      active = false
+    }
+  }, [mode, users.length])
+
+  useEffect(() => {
     if (!snackbar.open) return undefined
     const t = window.setTimeout(() => setSnackbar((s) => ({ ...s, open: false })), 6000)
     return () => window.clearTimeout(t)
@@ -180,7 +195,9 @@ function UsersPageContent({ mode }: { mode: UsersPageMode }) {
         page: 1,
         limit: 100,
         scope,
-        ...(mode === 'directory' ? { user_type: 'customer' as const } : {}),
+        ...(mode === 'directory'
+          ? { user_type: 'customer' as const }
+          : { user_type: 'admin' as const }),
       })
       const list = narrowUsersForPageMode(response.users, mode)
       setUsers(list)
@@ -429,7 +446,7 @@ function UsersPageContent({ mode }: { mode: UsersPageMode }) {
           <p className="text-muted-foreground">
             {mode === 'directory' ? (
               <>
-                Consumer accounts (customer role only). Dashboard staff live under{' '}
+                Consumer accounts — each sign-up auto-creates a CRM lead. Dashboard staff live under{' '}
                 <Link to="/users/members" className="font-medium text-primary underline-offset-4 hover:underline">
                   Team members
                 </Link>
@@ -491,7 +508,8 @@ function UsersPageContent({ mode }: { mode: UsersPageMode }) {
       {(searchTerm || selectedType !== 'all' || selectedStatus !== 'all' || selectedVerification !== 'all') && (
         <div className="mb-2">
           <p className="text-sm text-muted-foreground">
-            Showing {filteredUsers.length} of {users.length} users
+            Showing {filteredUsers.length} of {users.length}{' '}
+            {mode === 'directory' ? 'customers' : 'team members'}
           </p>
         </div>
       )}
@@ -529,6 +547,11 @@ function UsersPageContent({ mode }: { mode: UsersPageMode }) {
         }}
         user={selectedUser}
         onEdit={handleEditFromDetails}
+        crmHref={
+          selectedUser && mode === 'directory'
+            ? adminPathToCrmForUser(selectedUser.id, crmContacts)
+            : null
+        }
       />
 
       <ConfirmDialog

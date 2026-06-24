@@ -4,10 +4,16 @@ import ReactQuill from 'react-quill-new'
 import { Label } from '../ui/label'
 import { Textarea } from '../ui/textarea'
 import { cn } from '../../lib/utils'
+import {
+  mergeFormatsWithTableSupport,
+  mergeModulesWithTableSupport,
+  quillTableEditorCss,
+} from '../../lib/quillTableSupport'
+import { RichTextPreview, type RichTextPreviewVariant } from './RichTextPreview'
 import 'react-quill-new/dist/quill.snow.css'
 
 /** Stable references — `react-quill-new` treats unequal `modules` as a full editor teardown/rebuild. */
-const RICH_TEXT_DEFAULT_MODULES = {
+const RICH_TEXT_DEFAULT_MODULES = mergeModulesWithTableSupport({
   toolbar: [
     [{ header: [1, 2, 3, 4, 5, 6, false] }],
     ['bold', 'italic', 'underline', 'strike'],
@@ -19,9 +25,9 @@ const RICH_TEXT_DEFAULT_MODULES = {
     ['clean'],
   ],
   clipboard: { matchVisual: false },
-} as const
+})
 
-const RICH_TEXT_DEFAULT_FORMATS = [
+const RICH_TEXT_DEFAULT_FORMATS = mergeFormatsWithTableSupport([
   'header',
   'bold',
   'italic',
@@ -36,7 +42,7 @@ const RICH_TEXT_DEFAULT_FORMATS = [
   'link',
   'image',
   'video',
-] as const
+])
 
 /** Catches Quill / React 19 edge cases during mount or reconciliation; keeps the form usable. */
 class QuillGuard extends Component<
@@ -76,6 +82,13 @@ export interface RichTextFieldProps {
   formats?: string[]
   showCharCount?: boolean
   maxLength?: number
+  /** Insert HTML tables via toolbar (▦). Default on. */
+  enableTables?: boolean
+  /** Live consumer-style preview below the editor. Default on. */
+  showPreview?: boolean
+  previewVariant?: RichTextPreviewVariant
+  /** Optional content above preview (e.g. related heading). */
+  previewContext?: React.ReactNode
 }
 
 const StatusIcon = ({ status }: { status?: RichTextFieldProps['status'] }) => {
@@ -112,6 +125,10 @@ export const RichTextField: React.FC<RichTextFieldProps> = ({
   formats,
   showCharCount = false,
   maxLength,
+  enableTables = true,
+  showPreview = true,
+  previewVariant = 'default',
+  previewContext,
 }) => {
   const quillRef = useRef<ReactQuill>(null)
   /** Mount Quill after DOM commit (layout phase) — fewer races with React 19 concurrent passes than useEffect. */
@@ -119,6 +136,14 @@ export const RichTextField: React.FC<RichTextFieldProps> = ({
   useLayoutEffect(() => {
     setEditorReady(true)
   }, [])
+
+  const resolvedModules = enableTables
+    ? mergeModulesWithTableSupport((modules ?? RICH_TEXT_DEFAULT_MODULES) as Record<string, unknown>)
+    : ((modules ?? RICH_TEXT_DEFAULT_MODULES) as Record<string, unknown>)
+
+  const resolvedFormats = enableTables
+    ? mergeFormatsWithTableSupport(formats ?? RICH_TEXT_DEFAULT_FORMATS)
+    : ((formats ?? [...RICH_TEXT_DEFAULT_FORMATS]) as string[])
 
   const handleChange = (content: string) => {
     if (maxLength && content.length > maxLength) {
@@ -159,6 +184,7 @@ export const RichTextField: React.FC<RichTextFieldProps> = ({
         <style>{`
           .rich-text-field .ql-container { min-height: ${height}px; }
           .rich-text-field .ql-editor { min-height: ${Math.max(0, height - 42)}px; padding: 12px 15px; }
+          ${enableTables ? quillTableEditorCss('rich-text-field') : ''}
         `}</style>
         {editorReady ? (
           <QuillGuard
@@ -179,8 +205,8 @@ export const RichTextField: React.FC<RichTextFieldProps> = ({
               theme="snow"
               value={value}
               onChange={handleChange}
-              modules={(modules ?? (RICH_TEXT_DEFAULT_MODULES as Record<string, unknown>)) as ReactQuill.ReactQuillProps['modules']}
-              formats={(formats ?? [...RICH_TEXT_DEFAULT_FORMATS]) as string[]}
+              modules={resolvedModules as ReactQuill.ReactQuillProps['modules']}
+              formats={resolvedFormats}
               placeholder={placeholder}
               readOnly={disabled}
             />
@@ -194,6 +220,10 @@ export const RichTextField: React.FC<RichTextFieldProps> = ({
           </div>
         )}
       </div>
+
+      {showPreview ? (
+        <RichTextPreview html={value} variant={previewVariant} context={previewContext} />
+      ) : null}
 
       <div className="mt-1.5 flex items-center justify-between gap-2">
         <p className={cn('m-0 text-sm', error ? 'text-destructive' : 'text-muted-foreground')}>

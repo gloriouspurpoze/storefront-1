@@ -18,6 +18,7 @@
  */
 
 import type { Professional, ProfessionalWeekdayKey } from '../types/professional.types'
+import { loyaltyPriorityBoostForTier } from './partnerLoyaltyScore'
 import {
   bookingScheduledDayHint,
   normalizeWeeklyAvailability,
@@ -52,6 +53,7 @@ export type MatchReason =
   | 'experience'
   | 'availability'
   | 'schedule'
+  | 'loyalty'
 
 export interface MatchBreakdown {
   reason: MatchReason
@@ -346,6 +348,18 @@ function scheduleScore(
   return { score: WEIGHTS.schedule * 0.5, detail: 'No calendar on file' }
 }
 
+/** Loyalty tier priority boost — up to 12 pts from Elite tier config. */
+function loyaltyScore(pro: Professional): { score: number; detail: string } {
+  const boost = loyaltyPriorityBoostForTier(pro.loyaltyTier)
+  if (boost <= 0) {
+    return { score: 0, detail: pro.loyaltyTier ? `${pro.loyaltyTier} tier` : 'Bronze tier' }
+  }
+  return {
+    score: boost,
+    detail: `${pro.loyaltyTier ?? 'bronze'} partner (+${boost} priority)`,
+  }
+}
+
 function bandFromScore(score: number): MatchResult['band'] {
   if (score >= 80) return 'excellent'
   if (score >= 65) return 'good'
@@ -384,6 +398,7 @@ export function scoreProfessional(
   const x = experienceScore(pro)
   const av = availabilityScore(pro)
   const sch = scheduleScore(pro, input.scheduledDateIso)
+  const loy = loyaltyScore(pro)
 
   const breakdown: MatchBreakdown[] = [
     { reason: 'distance', contribution: d.score, label: 'Proximity', detail: d.detail },
@@ -394,11 +409,11 @@ export function scoreProfessional(
     { reason: 'experience', contribution: x.score, label: 'Experience', detail: x.detail },
     { reason: 'availability', contribution: av.score, label: 'Availability', detail: av.detail },
     { reason: 'schedule', contribution: sch.score, label: 'Schedule', detail: sch.detail },
+    { reason: 'loyalty', contribution: loy.score, label: 'Loyalty tier', detail: loy.detail },
   ]
 
-  const score = Math.round(
-    breakdown.reduce((sum, b) => sum + (Number.isFinite(b.contribution) ? b.contribution : 0), 0),
-  )
+  const baseScore = breakdown.reduce((sum, b) => sum + (Number.isFinite(b.contribution) ? b.contribution : 0), 0)
+  const score = Math.round(baseScore)
 
   const warnings = [
     ...elig.warnings,

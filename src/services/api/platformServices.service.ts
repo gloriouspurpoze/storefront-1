@@ -291,6 +291,22 @@ export interface PlatformServiceStats {
   average_rating: number
 }
 
+function unwrapPlatformServicesList(response: unknown): PlatformService[] {
+  if (!response || typeof response !== 'object') return []
+  const root = response as Record<string, unknown>
+  const data = root.data
+  if (data && typeof data === 'object') {
+    const d = data as Record<string, unknown>
+    if (Array.isArray(d.services)) return d.services as PlatformService[]
+    const nested = d.data
+    if (nested && typeof nested === 'object' && Array.isArray((nested as Record<string, unknown>).services)) {
+      return (nested as Record<string, unknown>).services as PlatformService[]
+    }
+  }
+  if (Array.isArray(root.services)) return root.services as PlatformService[]
+  return []
+}
+
 export const platformServicesService = {
   /**
    * Get all platform services with pagination and filtering
@@ -408,16 +424,61 @@ export const platformServicesService = {
    * Get featured services
    */
   async getFeaturedServices(): Promise<PlatformService[]> {
-    const response = await apiClient.get('/platform-services/featured') as any
-    return response.data.data.services
+    const response = await apiClient.get('/platform-services/featured', {
+      showSuccessToast: false,
+      showLoading: false,
+    }) as unknown
+    return unwrapPlatformServicesList(response)
   },
 
   /**
-   * Get services by category
+   * Get services by category slug or id (`/platform-services/category/:key`).
    */
   async getServicesByCategory(category: string): Promise<PlatformService[]> {
-    const response = await apiClient.get(`/platform-services/category/${category}`) as any
-    return response.data.data.services
+    const key = encodeURIComponent(category.trim())
+    if (!key) return []
+    const response = await apiClient.get(`/platform-services/category/${key}`, {
+      showSuccessToast: false,
+      showLoading: false,
+      showErrorToast: false,
+    }) as unknown
+    return unwrapPlatformServicesList(response)
+  },
+
+  /**
+   * Resolve bookable services for a category — tries Mongo id, catalog slug, and list API fallbacks.
+   */
+  async listServicesForCategoryKeys(keys: string[]): Promise<PlatformService[]> {
+    const seenKeys = new Set<string>()
+    const candidates = keys.map((k) => k.trim()).filter(Boolean)
+    for (const key of candidates) {
+      const norm = key.toLowerCase()
+      if (seenKeys.has(norm)) continue
+      seenKeys.add(norm)
+      try {
+        const fromRoute = await this.getServicesByCategory(key)
+        if (fromRoute.length > 0) return fromRoute
+      } catch {
+        /* try next key */
+      }
+    }
+    for (const key of candidates) {
+      const norm = key.toLowerCase()
+      if (seenKeys.has(`list:${norm}`)) continue
+      seenKeys.add(`list:${norm}`)
+      try {
+        const res = await this.getServices({
+          page: 1,
+          limit: 500,
+          category: key,
+          is_active: true,
+        })
+        if (res.services?.length) return res.services
+      } catch {
+        /* try next */
+      }
+    }
+    return []
   },
 
   /**

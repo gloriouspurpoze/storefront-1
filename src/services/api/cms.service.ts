@@ -863,6 +863,24 @@ export class CMSService {
     return response.data?.data ?? response.data;
   }
 
+  /** CMS emergency landing pages → `/emergency/{category}/{area}`. */
+  static async getSeoEmergency(): Promise<Record<string, unknown>> {
+    const response = await axios.get(
+      `${API_BASE}/cms/admin/static-content/seo-emergency`,
+      this.getAuthHeaders(),
+    );
+    return response.data?.data ?? response.data ?? {};
+  }
+
+  static async updateSeoEmergency(data: Record<string, unknown>) {
+    const response = await axios.put(
+      `${API_BASE}/cms/admin/static-content/seo-emergency`,
+      data,
+      this.getAuthHeaders(),
+    );
+    return response.data?.data ?? response.data;
+  }
+
   // ==================== TRANSACTIONAL EMAIL TEMPLATES (HTML + preview) ====================
 
   static async listEmailTemplates(): Promise<
@@ -870,6 +888,8 @@ export class CMSService {
       id: string;
       title: string;
       description: string;
+      category?: string;
+      categoryLabel?: string;
       filename: string;
       placeholders: string[];
       hasCustom: boolean;
@@ -877,7 +897,7 @@ export class CMSService {
     }>
   > {
     const response = await axios.get(`${API_BASE}/cms/admin/email-templates`, this.getAuthHeaders());
-    return response.data.data;
+    return response.data?.data ?? [];
   }
 
   static async getEmailTemplate(id: string): Promise<{
@@ -893,7 +913,9 @@ export class CMSService {
     updatedAt: string | null;
   }> {
     const response = await axios.get(`${API_BASE}/cms/admin/email-templates/${id}`, this.getAuthHeaders());
-    return response.data.data;
+    const data = response.data?.data;
+    if (!data) throw new Error('Template not found');
+    return data;
   }
 
   static async previewEmailTemplate(
@@ -912,7 +934,7 @@ export class CMSService {
       body,
       this.getAuthHeaders()
     );
-    return response.data.data;
+    return response.data?.data ?? { html: '', validationHints: undefined };
   }
 
   static async saveEmailTemplateOverride(
@@ -940,7 +962,7 @@ export class CMSService {
       `${API_BASE}/cms/admin/email-templates/${id}/versions`,
       this.getAuthHeaders()
     );
-    return response.data.data;
+    return response.data?.data ?? [];
   }
 
   static async restoreEmailTemplateVersion(templateId: string, versionId: string): Promise<void> {

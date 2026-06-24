@@ -7,7 +7,9 @@ import {
   User as UserIcon,
   Ban,
   CheckCircle2,
+  UserSearch,
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import {
   Dialog,
   DialogContent,
@@ -29,6 +31,8 @@ interface UserDetailsDialogProps {
   onClose: () => void
   user: User | null
   onEdit?: () => void
+  /** Deep link to CRM lead/contact when platform sync has matched this user. */
+  crmHref?: string | null
 }
 
 const userTypeBadge = (type: string) => {
@@ -44,7 +48,7 @@ const userTypeBadge = (type: string) => {
   }
 }
 
-export const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({ open, onClose, user, onEdit }) => {
+export const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({ open, onClose, user, onEdit, crmHref }) => {
   if (!user) return null
 
   const t = userTypeBadge(user.userType)
@@ -175,6 +179,24 @@ export const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({ open, onCl
               <UserAccessChips user={user} maxPermissionChips={80} />
             </div>
           )}
+
+          {crmHref && user.userType === 'customer' ? (
+            <>
+              <Separator />
+              <div>
+                <h3 className="mb-2 text-sm font-semibold">CRM</h3>
+                <Button type="button" variant="outline" size="sm" className="gap-1.5" asChild>
+                  <Link to={crmHref} onClick={onClose}>
+                    <UserSearch className="h-4 w-4" />
+                    View CRM lead / contact
+                  </Link>
+                </Button>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Linked automatically from this customer account. Opens Leads or Contacts based on job stage.
+                </p>
+              </div>
+            </>
+          ) : null}
 
           <Separator />
 

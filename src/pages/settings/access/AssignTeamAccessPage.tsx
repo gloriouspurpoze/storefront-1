@@ -29,6 +29,7 @@ import {
 import { ConfirmDialog } from '../../../components/common/ConfirmDialog'
 import { PermissionChipPicker } from '../../../components/users/PermissionChipPicker'
 import { usersService } from '../../../services/api/users.service'
+import { filterUsersForAudience } from '../../../lib/userAudienceFilters'
 import { notificationsService } from '../../../services/api/notifications.service'
 import type { UpdateUserRequest } from '../../../services/api/users.service'
 import type { User } from '../../../types'
@@ -127,11 +128,12 @@ export function AssignTeamAccessPage() {
     try {
       const res = await usersService.getUsers({
         scope: 'members',
+        user_type: 'admin',
         page: 1,
         limit: 80,
         ...(debouncedSearch.length >= 2 ? { search: debouncedSearch } : {}),
       })
-      setMembers(res.users)
+      setMembers(filterUsersForAudience(res.users, 'members'))
     } catch (e) {
       toast({
         variant: 'destructive',

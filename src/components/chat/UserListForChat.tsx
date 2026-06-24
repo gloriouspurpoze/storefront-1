@@ -7,6 +7,7 @@ import { useSelector } from 'react-redux'
 import type { RootState } from '../../store'
 import { Search, MessageCircle, User as UserIcon, CheckCircle, Loader2 } from 'lucide-react'
 import { usersService, User } from '../../services/api/users.service'
+import { filterUsersForAudience } from '../../lib/userAudienceFilters'
 import { ChatService, ConversationType, normalizeConversationList } from '../../services/api/chat.service'
 import { Input } from '../ui/input'
 import { Button } from '../ui/button'
@@ -54,7 +55,7 @@ export const UserListForChat: React.FC<UserListForChatProps> = ({ onUserSelect, 
       })
 
       if (response.users) {
-        setUsers(response.users)
+        setUsers(filterUsersForAudience(response.users, 'customers'))
       }
     } catch (err: unknown) {
       console.error('Error fetching users:', err)

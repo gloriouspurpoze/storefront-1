@@ -1,20 +1,15 @@
 ﻿import React, { useState, useEffect, useMemo, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   Loader2,
   Trash2,
   Plus,
   Megaphone,
-  Image as ImageIconLucide,
-  CheckCircle2,
   AlertTriangle,
   Info,
-  GitCompareArrows,
-  Sparkles,
 } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Badge } from '../../components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
 import { Checkbox } from '../../components/ui/checkbox'
 import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
@@ -64,12 +59,10 @@ import {
   emptyCategoryMarketingConfig,
   emptyLocalityGuideSection,
   emptyBookingStep,
-  emptyComparisonRow,
   emptyFaq,
   emptyRelatedLink,
   emptyServiceCard,
   emptyServiceTypeBlock,
-  emptySparePart,
   emptyTrustBenefit,
   mergeCategoryConfig,
   normalizeCategoryMarketingRecord,
@@ -77,8 +70,18 @@ import {
 import { appToast } from '../../lib/appToast'
 import { useIndustryServicePagesCatalog } from './IndustryServicePagesContext'
 import { useServiceCatalogLocalities } from '../../hooks/useServiceCatalogLocalities'
-import { IndustryLandingWorkspaceOverview } from '../../components/cms/IndustryLandingWorkspaceOverview'
-import { IndustryLandingEditorPreview } from '../../components/cms/IndustryLandingEditorPreview'
+import { CategoryMarketingPageHealthPanel } from '../../components/cms/CategoryMarketingPageHealthPanel'
+import { CategoryMarketingWriterToolbar } from '../../components/cms/CategoryMarketingWriterToolbar'
+import { CategoryMarketingWriterSection } from '../../components/cms/CategoryMarketingWriterSection'
+import { CategoryMarketingCompactTabsList } from '../../components/cms/CategoryMarketingCompactTabs'
+import { CategoryMarketingAdvancedTools } from '../../components/cms/CategoryMarketingAdvancedTools'
+import { CategoryMarketingPricingPanel } from '../../components/cms/CategoryMarketingPricingPanel'
+import {
+  applyPricingPatchToCategoryMarketingBlob,
+  prepareCategoryMarketingSliceForApi,
+  type CategoryMarketingPricingPatch,
+} from '../../lib/categoryMarketingApiSave'
+import { SeoContentLengthHint } from '../../components/cms/SeoContentLengthHint'
 import { localitySlugFromCompositeKey } from '../../lib/categoryMarketingCoverageOverview'
 import { diffCategoryMarketingConfigs } from '../../lib/categoryMarketingConfigDiff'
 import { buildLocalitySeoAutofillPack } from '../../lib/categoryMarketingSeoAutofill'
@@ -100,19 +103,14 @@ import {
   buildDefaultNearMeSeoCopy,
   resolveNearMePreviewUrl,
 } from '../../lib/nearMeSeo'
-
-type TabKey =
-  | 'metadata'
-  | 'localSeo'
-  | 'hero'
-  | 'cards'
-  | 'detailed'
-  | 'trust'
-  | 'areas'
-  | 'pricing'
-  | 'faqs'
-  | 'localityGuide'
-  | 'closing'
+import {
+  analyzeCategoryMarketingLengthWarnings,
+  buildCategoryMarketingQualityReport,
+  CATEGORY_MARKETING_LENGTH,
+  lengthWarningsNeedAttention,
+} from '../../lib/categoryMarketingContentQuality'
+import { evaluateLength } from '../../lib/seoLandingContentLengthRules'
+import type { TabKey } from './categoryMarketingTabConfig'
 
 /** Consumer site origin — placeholders and checklist copy only. */
 const PROFIXER_PUBLIC_ORIGIN = 'https://www.profixer.in/'
@@ -210,6 +208,8 @@ export default function CategoryMarketingManagement() {
   const [tab, setTab] = useState<TabKey>('metadata')
   const [localityDiffExpanded, setLocalityDiffExpanded] = useState(false)
   const [seoAutofillConfirmOpen, setSeoAutofillConfirmOpen] = useState(false)
+  const [advancedToolsOpen, setAdvancedToolsOpen] = useState(false)
+  const [searchParams] = useSearchParams()
 
   const normalizedLocalitySlug = useMemo(
     () =>
@@ -303,6 +303,22 @@ export default function CategoryMarketingManagement() {
     fetchData()
   }, [])
 
+  useEffect(() => {
+    const loc = searchParams.get('locality')?.trim()
+    if (loc) {
+      setLocalitySlugForKey(loc)
+      setEmptyCustomSlugMode(false)
+    }
+    if (searchParams.get('section') === 'near-me') {
+      setTab('metadata')
+      const timer = window.setTimeout(() => {
+        document.getElementById('near-me-seo-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, loading ? 600 : 200)
+      return () => window.clearTimeout(timer)
+    }
+    return undefined
+  }, [searchParams, loading])
+
   const fetchData = async () => {
     try {
       setLoading(true)
@@ -325,6 +341,33 @@ export default function CategoryMarketingManagement() {
 
   /** Always merged so API/import quirks never leave `.map`/`.filter` targets undefined at runtime. */
   const config = useMemo(() => mergeCategoryConfig(data[effectiveKey] ?? {}), [data, effectiveKey])
+
+  const qualityCtx = useMemo(
+    () => ({
+      isLocalKey: Boolean(normalizedLocalitySlug),
+      industryLabel,
+      localityDisplayLabel,
+      effectiveKey,
+    }),
+    [normalizedLocalitySlug, industryLabel, localityDisplayLabel, effectiveKey],
+  )
+
+  const qualityReport = useMemo(
+    () => buildCategoryMarketingQualityReport(config, qualityCtx),
+    [config, qualityCtx],
+  )
+  const lengthWarnings = useMemo(
+    () => analyzeCategoryMarketingLengthWarnings(config, qualityCtx),
+    [config, qualityCtx],
+  )
+  const lengthIssueCount = lengthWarningsNeedAttention(lengthWarnings).length
+
+  const tabNeedsAttention = useCallback(
+    (t: TabKey) =>
+      qualityReport.items.some((i) => i.tab === t && !i.ok && i.priority === 'required') ||
+      lengthWarnings.some((w) => w.tab === t && w.severity !== 'ok'),
+    [qualityReport.items, lengthWarnings],
+  )
 
   const updateConfig = (updates: Partial<CategoryMarketingConfig>) => {
     setData((prev) => {
@@ -702,13 +745,13 @@ export default function CategoryMarketingManagement() {
   const handleSave = async () => {
     try {
       setSaving(true)
-      const configToSave: CategoryMarketingConfig = {
+      const configToSave = prepareCategoryMarketingSliceForApi({
         ...config,
         technicalSeo: {
           ...config.technicalSeo,
           breadcrumbItems: filterValidBreadcrumbItems(config.technicalSeo.breadcrumbItems),
         },
-      }
+      })
       const payload = { ...data, [effectiveKey]: configToSave }
       await CMSService.updateCategoryMarketing(payload)
       appToast('Category marketing saved.', 'success')
@@ -723,6 +766,23 @@ export default function CategoryMarketingManagement() {
       setSaving(false)
     }
   }
+
+  const persistPricingToApi = useCallback(
+    async (patch: CategoryMarketingPricingPatch) => {
+      const mergedLocal = prepareCategoryMarketingSliceForApi(
+        mergeCategoryConfig({ ...config, ...patch }),
+      )
+      const payload = applyPricingPatchToCategoryMarketingBlob(
+        { ...data, [effectiveKey]: mergedLocal },
+        selectedCategory,
+        patch,
+        normalizedLocalitySlug || null,
+      )
+      await CMSService.updateCategoryMarketing(payload)
+      setData(payload)
+    },
+    [config, data, effectiveKey, normalizedLocalitySlug, selectedCategory],
+  )
 
   const addServiceType = () => {
     updateConfig({
@@ -783,14 +843,15 @@ export default function CategoryMarketingManagement() {
   }
 
   return (
-    <div className="space-y-4 pb-8">
+    <div className="space-y-3 pb-8">
       {!industryHub && (
         <PageHeader
           title="Industry service pages"
-          subtitle="Structure: pick Industry → Location → edit page content in tabs. Save per storage key. Industry-wide defaults merge with each location on the live site. Tokens: [City], [Location], [ServiceName]."
+          subtitle="Write landing copy per industry and location. Use [City], [Location], [ServiceName] in text fields."
           action={
             <Button
               variant="default"
+              size="sm"
               leftIcon={saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Megaphone className="h-4 w-4" />}
               onClick={handleSave}
               disabled={saving}
@@ -801,607 +862,123 @@ export default function CategoryMarketingManagement() {
         />
       )}
 
-      {industryHub ? (
-        <div className="flex justify-end">
-          <Button
-            variant="default"
-            size="sm"
-            leftIcon={saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Megaphone className="h-4 w-4" />}
-            onClick={handleSave}
-            disabled={saving}
-          >
-            Save landing template
-          </Button>
-        </div>
+      <CategoryMarketingWriterToolbar
+        industryLabel={industryLabel}
+        selectedCategory={selectedCategory}
+        effectiveKey={effectiveKey}
+        localityDisplayLabel={localityDisplayLabel}
+        normalizedLocalitySlug={normalizedLocalitySlug}
+        localitySlugForKey={localitySlugForKey}
+        localitySelectValue={localitySelectValue}
+        safeLocalitySelectValue={safeLocalitySelectValue}
+        sortedManagedLocalities={sortedManagedLocalities}
+        managedLocalitiesLoading={managedLocalitiesLoading}
+        managedLocalitiesError={managedLocalitiesError}
+        emptyCustomSlugMode={emptyCustomSlugMode}
+        industryHub={Boolean(industryHub)}
+        catalogSelectValue={catalogSelectValue}
+        catalogOptions={catalogOptions}
+        catalogOptionsLoading={catalogOptionsLoading}
+        saving={saving}
+        qualityScore={qualityReport.score}
+        qualityLabel={qualityReport.statusLabel}
+        qualityVariant={qualityReport.statusVariant}
+        lengthIssueCount={lengthIssueCount}
+        onSave={() => void handleSave()}
+        onAutofill={() => setSeoAutofillConfirmOpen(true)}
+        onCategoryChange={(v) => {
+          setSelectedCategory(v)
+          setLocalitySlugForKey('')
+          setEmptyCustomSlugMode(false)
+        }}
+        onLocalitySelect={(v) => {
+          if (v === '__none__') {
+            setLocalitySlugForKey('')
+            setEmptyCustomSlugMode(false)
+          } else if (v === '__custom__') {
+            setEmptyCustomSlugMode(true)
+          } else {
+            setLocalitySlugForKey(v)
+            setEmptyCustomSlugMode(false)
+          }
+        }}
+        onLocalitySlugChange={setLocalitySlugForKey}
+        onLocalitySlugBlur={() => {
+          setLocalitySlugForKey((s) =>
+            s
+              .trim()
+              .toLowerCase()
+              .replace(/[^a-z0-9-]+/g, '-')
+              .replace(/^-|-$/g, ''),
+          )
+          setEmptyCustomSlugMode(false)
+        }}
+      />
+
+      {!normalizedLocalitySlug ? (
+        <p className="text-xs text-muted-foreground">
+          Pick a <strong className="font-medium text-foreground">location</strong> to unlock locality starter pack and hyperlocal fields.
+        </p>
       ) : null}
-
-      <Card className="border-border/80 shadow-sm">
-        <CardContent className="space-y-4 py-4">
-          <div className="border-b border-border/60 pb-3">
-            <p className="text-sm font-semibold text-foreground">1 · Industry &amp; location</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Pick the vertical and the area (or &quot;All areas&quot; for defaults). Then use{' '}
-              <strong className="font-medium text-foreground">section tabs</strong> below for page content — the panel
-              under this card shows what&apos;s already filled for this pair.
-            </p>
-            {industryHub ? (
-              <p className="mt-2 text-xs text-muted-foreground">
-                Catalog industry: <span className="font-semibold text-foreground">{industryLabel}</span>{' '}
-                <span className="font-mono text-[11px] text-muted-foreground">({selectedCategory})</span>
-              </p>
-            ) : null}
-          </div>
-          <div className="grid gap-4 md:grid-cols-12 md:items-end">
-            {!industryHub ? (
-              <div className="space-y-1.5 md:col-span-5">
-                <Label htmlFor="catalog-category-select" className="text-xs font-medium text-muted-foreground">
-                  Industry (catalog)
-                </Label>
-                <Select
-                  value={catalogSelectValue}
-                  onValueChange={(v) => {
-                    setSelectedCategory(v)
-                    setLocalitySlugForKey('')
-                    setEmptyCustomSlugMode(false)
-                  }}
-                  disabled={catalogOptionsLoading || catalogOptions.length === 0}
-                >
-                  <SelectTrigger id="catalog-category-select" className="h-9 w-full">
-                    <SelectValue placeholder="Select industry" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {catalogOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : null}
-            <div className={cn('space-y-1.5', !industryHub ? 'md:col-span-4' : 'md:col-span-6')}>
-              <Label htmlFor="cmm-locality-picker" className="text-xs font-medium text-muted-foreground">
-                Location (service area)
-              </Label>
-              <Select
-                value={safeLocalitySelectValue}
-                onValueChange={(v) => {
-                  if (v === '__none__') {
-                    setLocalitySlugForKey('')
-                    setEmptyCustomSlugMode(false)
-                  } else if (v === '__custom__') {
-                    setEmptyCustomSlugMode(true)
-                  } else {
-                    setLocalitySlugForKey(v)
-                    setEmptyCustomSlugMode(false)
-                  }
-                }}
-                disabled={managedLocalitiesLoading}
-              >
-                <SelectTrigger id="cmm-locality-picker" className="h-9 w-full">
-                  <SelectValue placeholder={managedLocalitiesLoading ? 'Loading areas…' : 'Pick a service area'} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">All areas — industry default template</SelectItem>
-                  {sortedManagedLocalities.map((loc) => (
-                    <SelectItem key={loc._id} value={loc.slug}>
-                      {`${loc.name} (${loc.slug})${!loc.isActive ? ' — inactive' : ''}`}
-                    </SelectItem>
-                  ))}
-                  <SelectItem value="__custom__">Custom slug (advanced)…</SelectItem>
-                </SelectContent>
-              </Select>
-              {localitySelectValue === '__custom__' ? (
-                <Input
-                  id="cmm-f-1-custom"
-                  className="h-9 font-mono text-sm"
-                  value={localitySlugForKey}
-                  onChange={(e) => setLocalitySlugForKey(e.target.value)}
-                  onBlur={() => {
-                    setLocalitySlugForKey((s) =>
-                      s
-                        .trim()
-                        .toLowerCase()
-                        .replace(/[^a-z0-9-]+/g, '-')
-                        .replace(/^-|-$/g, ''),
-                    )
-                    setEmptyCustomSlugMode(false)
-                  }}
-                  placeholder="legacy-or-imported-slug"
-                  aria-label="Custom locality slug"
-                />
-              ) : null}
-              {managedLocalitiesError ? (
-                <p className="text-[11px] text-bloom-coral dark:text-bloom-coral">
-                  Could not load managed areas — use Custom slug or open{' '}
-                  <Link to="/cms/category-marketing?tab=service-areas" className="underline">
-                    Service areas
-                  </Link>
-                  .
-                </p>
-              ) : (
-                <p className="text-[11px] leading-snug text-muted-foreground">
-                  Manage the list under{' '}
-                  <Link to="/cms/category-marketing?tab=service-areas" className="font-medium underline">
-                    Service areas
-                  </Link>
-                  . Empty = industry-wide. With locality → CMS key{' '}
-                  <span className="font-mono">{selectedCategory}__{'{slug}'}</span> (separator{' '}
-                  <span className="font-mono">__</span>).
-                </p>
-              )}
-            </div>
-            <div className="flex flex-col justify-end md:col-span-3 md:text-right">
-              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                Saved storage key
-              </span>
-              <code className="mt-1 break-all rounded-md bg-muted px-2 py-1 text-left text-xs font-semibold md:text-right">
-                {effectiveKey}
-              </code>
-            </div>
-          </div>
-          {normalizedLocalitySlug ? (
-            <div className="flex flex-col gap-2 border-t border-border/60 pt-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0 space-y-1">
-                <p className="text-xs font-semibold text-foreground">Technical SEO automation</p>
-                <p className="text-[11px] leading-snug text-muted-foreground">
-                  One pass uses your <strong className="font-medium text-foreground">category</strong> and{' '}
-                  <strong className="font-medium text-foreground">location</strong> to prefill every tab with a realistic starter:
-                  metadata (length-checked title and description), URL slug pattern, hero and intro,{' '}
-                  <strong className="font-medium text-foreground">service cards</strong> and detailed options, trust and areas
-                  copy, booking steps, pricing and comparison blocks, FAQs (FAQPage-ready), locality guide (base plus
-                  category-specific sections where defined), related links, technical and local SEO shells, closing copy, and
-                  JSON-LD notes. <strong className="font-medium text-foreground">LocalBusiness</strong> stays off until NAP is
-                  verified. Expect to tune numbers, hours, and brand voice before publish.
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className="h-9 shrink-0 gap-2 self-start sm:self-center"
-                leftIcon={<Sparkles className="h-4 w-4" aria-hidden />}
-                onClick={() => setSeoAutofillConfirmOpen(true)}
-              >
-                Fill all tabs — starter pack
-              </Button>
-            </div>
-          ) : (
-            <p className="border-t border-border/60 pt-4 text-[11px] leading-snug text-muted-foreground">
-              Choose a <strong className="text-foreground">location</strong> (not &quot;All areas&quot;) to enable the full-tab starter autofill for this
-              storage key.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {!loading && normalizedLocalitySlug && localityVersusIndustryDiff ? (
-        <Card className="overflow-hidden border-border/80 shadow-sm">
-          <Accordion type="single" collapsible defaultValue="locality-diff">
-            <AccordionItem value="locality-diff" className="border-0">
-              <AccordionTrigger className="px-4 py-3 hover:no-underline sm:px-5">
-                <div className="flex w-full flex-col gap-2 text-left sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <GitCompareArrows className="hidden h-4 w-4 shrink-0 text-muted-foreground sm:block" aria-hidden />
-                    <span className="text-sm font-semibold text-foreground">Diff vs industry-wide template</span>
-                    {localityVersusIndustryDiff.rows.length === 0 ? (
-                      <Badge variant="success">No field overrides</Badge>
-                    ) : (
-                      <Badge variant="secondary">{localityVersusIndustryDiff.rows.length} changed path(s)</Badge>
-                    )}
-                  </div>
-                  <span className="text-[11px] text-muted-foreground">
-                    <span className="font-mono">{selectedCategory}</span> → <span className="font-mono">{effectiveKey}</span>
-                  </span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="border-t border-border/60 px-4 pb-4 pt-2 sm:px-5">
-                <div className="mb-4 rounded-lg border border-border/70 bg-gradient-to-br from-muted/35 via-background to-background p-4 shadow-sm sm:p-5">
-                  <p className="text-sm font-semibold tracking-tight text-foreground">What this diff shows</p>
-                  <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                    Each row is a JSON <span className="font-mono text-[11px]">path</span>: values from the saved{' '}
-                    <strong className="font-medium text-foreground">industry-wide</strong> key versus this{' '}
-                    <strong className="font-medium text-foreground">locality</strong> record, including staged edits before Save.
-                    Snippets are truncated; use the <strong className="text-foreground">Live preview → Visual page</strong> tab for
-                    a consumer-style layout (desktop/mobile). Rich-text fields support inline images with required alt text.
-                  </p>
-                </div>
-                {!localityVersusIndustryDiff.hasSavedIndustryKey ? (
-                  <div
-                    role="status"
-                    className="mb-3 rounded-md border border-bloom-coral/90 bg-bloom-rose/70 px-3 py-2 text-xs text-bloom-coral dark:border-bloom-coral dark:bg-bloom-coral/30 dark:text-bloom-deep"
-                  >
-                    There is no saved CMS row for{' '}
-                    <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">{selectedCategory}</code> in this
-                    payload yet — the baseline below is the merged <strong>empty template</strong>, not necessarily what the
-                    consumer shows (the live site may still merge static fallbacks). Save an industry-wide template first for
-                    a meaningful diff.
-                  </div>
-                ) : null}
-                {localityVersusIndustryDiff.rows.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    Every normalized field matches the industry-wide key — the locality record does not override JSON at the
-                    leaf level. You can still add locality-only copy later; remember to <strong>Save</strong> this key.
-                  </p>
-                ) : (
-                  <>
-                    <p className="mb-3 text-xs text-muted-foreground">
-                      Staged edits are included. Values are truncated; hover or copy from the editor tabs for full text.
-                    </p>
-                    <div className="max-h-[min(420px,50vh)] overflow-auto rounded-md border border-border/80">
-                      <table className="w-full min-w-[640px] border-collapse text-left text-[11px] sm:text-xs">
-                        <thead className="sticky top-0 z-[1] bg-muted/95 backdrop-blur-sm">
-                          <tr className="border-b border-border/80">
-                            <th className="px-2 py-2 font-semibold sm:px-3">Path</th>
-                            <th className="px-2 py-2 font-semibold sm:px-3">Industry ({selectedCategory})</th>
-                            <th className="px-2 py-2 font-semibold sm:px-3">This locality</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(localityDiffExpanded
-                            ? localityVersusIndustryDiff.rows
-                            : localityVersusIndustryDiff.rows.slice(0, 100)
-                          ).map((row) => (
-                            <tr key={row.path} className="border-b border-border/40 align-top last:border-0 hover:bg-muted/30">
-                              <td className="max-w-[200px] whitespace-normal break-all px-2 py-1.5 font-mono text-[10px] text-muted-foreground sm:max-w-none sm:px-3 sm:text-[11px]">
-                                {row.path}
-                              </td>
-                              <td className="whitespace-pre-wrap break-words px-2 py-1.5 text-muted-foreground sm:px-3">
-                                {row.industry}
-                              </td>
-                              <td className="whitespace-pre-wrap break-words px-2 py-1.5 text-foreground sm:px-3">
-                                {row.locality}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                    {localityVersusIndustryDiff.rows.length > 100 ? (
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <span className="text-xs text-muted-foreground">
-                          Showing {localityDiffExpanded ? localityVersusIndustryDiff.rows.length : 100} of{' '}
-                          {localityVersusIndustryDiff.rows.length} paths.
-                        </span>
-                        <Button type="button" size="sm" variant="outline" onClick={() => setLocalityDiffExpanded((v) => !v)}>
-                          {localityDiffExpanded ? 'Show fewer' : 'Show all'}
-                        </Button>
-                      </div>
-                    ) : null}
-                  </>
-                )}
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </Card>
-      ) : null}
-
-      {!loading ? (
-        <>
-          <IndustryLandingEditorPreview
-            config={config}
-            effectiveKey={effectiveKey}
-            industryLabel={industryLabel}
-            localityDisplayLabel={localityDisplayLabel}
-            publicOrigin={publicSiteOrigin}
-            catalogStorageSlug={selectedCategory}
-            industryRobotsMeta={industryRobotsMeta}
-          />
-          {showElectricianSeoChecklist && normalizedLocalitySlug ? (
-            <Card className="border-primary/20 bg-primary/[0.03]">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Electrician SEO checklist (2026)</CardTitle>
-                <CardDescription>
-                  Align this locality with your organic growth plan — technical, content depth, and local signals.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-3 sm:grid-cols-2">
-                {ELECTRICIAN_SERVICE_SEO_CHECKLIST.map((item) => (
-                  <div key={item.id} className="rounded-lg border border-border/60 bg-card/80 p-3 text-sm">
-                    <p className="font-medium text-foreground">{item.title}</p>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{item.detail}</p>
-                    {item.tab ? (
-                      <Badge variant="outline" className="mt-2 text-[10px]">
-                        Tab: {item.tab}
-                      </Badge>
-                    ) : null}
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          ) : null}
-          <IndustryLandingWorkspaceOverview
-            industrySlug={selectedCategory}
-            industryLabel={industryLabel}
-            localitySlug={normalizedLocalitySlug}
-            localityDisplayLabel={localityDisplayLabel}
-            effectiveStorageKey={effectiveKey}
-            config={config}
-            allData={data}
-            onOpenSavedKey={openSavedStorageKey}
-          />
-        </>
-      ) : null}
-
-      <Accordion type="single" collapsible className="rounded-lg border border-border/80 bg-card px-1 shadow-sm">
-        <AccordionItem value="clone-import" className="border-0">
-          <AccordionTrigger className="px-3 py-3 text-sm font-semibold hover:no-underline">
-            Clone from another key · JSON import
-          </AccordionTrigger>
-          <AccordionContent className="space-y-4 px-3 pb-4">
-            <p className="text-sm text-muted-foreground">
-              Duplicate into <strong className="text-foreground">{effectiveKey}</strong> (staged until Save). Typical flow:
-              industry template → add locality slug → merge locality or local SEO only.
-            </p>
-            {Object.keys(data).filter((k) => k !== effectiveKey).length === 0 ? (
-              <div
-                role="alert"
-                className="rounded-md border border-bloom-coral/40 bg-bloom-rose p-3 text-sm text-bloom-coral dark:border-bloom-coral dark:bg-bloom-coral/30"
-              >
-                No other keys loaded yet — save a template once, or use JSON import below.
-              </div>
-            ) : null}
-            <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end">
-              <div className="min-w-[200px] flex-1 space-y-1.5">
-                <Label htmlFor="duplicate-source-select" className="text-xs text-muted-foreground">
-                  Source key
-                </Label>
-                <Select
-                  value={duplicateSourceKey || '__empty__'}
-                  onValueChange={(v) => setDuplicateSourceKey(v === '__empty__' ? '' : v)}
-                >
-                  <SelectTrigger id="duplicate-source-select" className="h-9 w-full lg:max-w-xs">
-                    <SelectValue placeholder="Select a key…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__empty__">Select a key…</SelectItem>
-                    {Object.keys(data)
-                      .sort((a, b) => a.localeCompare(b))
-                      .filter((k) => k !== effectiveKey)
-                      .map((k) => (
-                        <SelectItem key={k} value={k}>
-                          {k}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={!duplicateSourceKey || !data[duplicateSourceKey]}
-                  onClick={() => {
-                    const src = data[duplicateSourceKey]
-                    if (!src) return
-                    const full = mergeCategoryConfig(src)
-                    setData((prev) => ({
-                      ...prev,
-                      [effectiveKey]: JSON.parse(JSON.stringify(full)) as CategoryMarketingConfig,
-                    }))
-                    appToast(
-                      `Replaced "${effectiveKey}" with a full copy from "${duplicateSourceKey}". Click Save to persist.`,
-                      'success',
-                    )
-                  }}
-                >
-                  Full replace
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={!duplicateSourceKey || !data[duplicateSourceKey]}
-                  onClick={() => {
-                    const src = data[duplicateSourceKey]
-                    if (!src) return
-                    const full = mergeCategoryConfig(src)
-                    updateConfig({
-                      localityGuide: JSON.parse(JSON.stringify(full.localityGuide)) as LocalityGuideCmsFields,
-                    })
-                    appToast(`Merged locality guide from "${duplicateSourceKey}". Save to persist.`, 'success')
-                  }}
-                >
-                  Locality only
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={!duplicateSourceKey || !data[duplicateSourceKey]}
-                  onClick={() => {
-                    const src = data[duplicateSourceKey]
-                    if (!src) return
-                    const full = mergeCategoryConfig(src)
-                    updateConfig({
-                      localSeo: JSON.parse(JSON.stringify(full.localSeo)) as LocalSeoCmsFields,
-                    })
-                    appToast(`Merged local SEO from "${duplicateSourceKey}". Save to persist.`, 'success')
-                  }}
-                >
-                  Local SEO only
-                </Button>
-              </div>
-            </div>
-            <div className="rounded-md border border-border/70 bg-muted/20 p-3">
-              <Label className="text-xs text-muted-foreground">Import JSON (merge into current key)</Label>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Partial or full object; merges nested <code className="text-[11px]">leadMagnet</code>,{' '}
-                <code className="text-[11px]">localityGuide</code>, <code className="text-[11px]">localSeo</code>,{' '}
-                <code className="text-[11px]">technicalSeo</code>.
-              </p>
-              <Textarea
-                className="mt-2 w-full font-mono text-[13px]"
-                rows={6}
-                value={importJsonText}
-                onChange={(e) => setImportJsonText(e.target.value)}
-              />
-              <div className="mt-2 flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  variant="default"
-                  onClick={() => {
-                    try {
-                      const parsed = JSON.parse(importJsonText) as Record<string, unknown>
-                      const patch = mergeCategoryConfig(parsed)
-                      setData((prev) => {
-                        const base = mergeCategoryConfig(prev[effectiveKey] ?? emptyCategoryMarketingConfig())
-                        const combined = mergeCategoryConfig({
-                          ...base,
-                          ...patch,
-                          leadMagnet: { ...base.leadMagnet, ...patch.leadMagnet },
-                          localityGuide: { ...base.localityGuide, ...patch.localityGuide },
-                          localSeo: { ...base.localSeo, ...patch.localSeo },
-                          technicalSeo: {
-                            ...base.technicalSeo,
-                            ...patch.technicalSeo,
-                            aggregateRating: {
-                              ...base.technicalSeo.aggregateRating,
-                              ...patch.technicalSeo?.aggregateRating,
-                            },
-                          },
-                        })
-                        return { ...prev, [effectiveKey]: combined }
-                      })
-                      appToast(`Merged JSON into "${effectiveKey}". Save to persist.`, 'success')
-                    } catch (e) {
-                      appToast(e instanceof Error ? e.message : 'Invalid JSON', 'error')
-                    }
-                  }}
-                >
-                  Apply merge
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setImportJsonText('')}>
-                  Clear
-                </Button>
-              </div>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
 
       {loading ? (
         <div className="flex min-h-[280px] items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
-          <p className="text-xs font-semibold text-muted-foreground">
-            2 · Page content — tabs apply to <span className="font-mono text-foreground">{effectiveKey}</span>
-          </p>
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_240px]">
+          <div className="flex min-w-0 flex-col gap-2">
+          <div className="xl:hidden">
+            <CategoryMarketingPageHealthPanel
+              report={qualityReport}
+              lengthWarnings={lengthWarnings}
+              onNavigateTab={setTab}
+              compact
+            />
+          </div>
           <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="w-full">
-            <div className="overflow-x-auto rounded-lg border border-border/80 bg-muted/25 shadow-sm">
-              <TabsList className="mb-0 inline-flex h-auto min-h-9 w-max min-w-full justify-start gap-0.5 rounded-none border-0 bg-transparent p-1.5">
-                <TabsTrigger value="metadata" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
-                  Metadata &amp; SEO
-                </TabsTrigger>
-                <TabsTrigger value="localSeo" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
-                  Local SEO
-                </TabsTrigger>
-                <TabsTrigger value="hero" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
-                  Hero &amp; intro
-                </TabsTrigger>
-                <TabsTrigger value="cards" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
-                  Service cards
-                </TabsTrigger>
-                <TabsTrigger value="detailed" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
-                  Detailed options
-                </TabsTrigger>
-                <TabsTrigger value="trust" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
-                  Trust
-                </TabsTrigger>
-                <TabsTrigger value="areas" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
-                  Areas &amp; booking
-                </TabsTrigger>
-                <TabsTrigger value="pricing" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
-                  Pricing
-                </TabsTrigger>
-                <TabsTrigger value="faqs" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
-                  FAQs &amp; links
-                </TabsTrigger>
-                <TabsTrigger value="localityGuide" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
-                  Locality guide
-                </TabsTrigger>
-                <TabsTrigger value="closing" className="shrink-0 rounded-md px-2.5 py-1.5 text-xs sm:text-sm">
-                  Closing
-                </TabsTrigger>
-              </TabsList>
-            </div>
+            <CategoryMarketingCompactTabsList tabNeedsAttention={tabNeedsAttention} />
 
-            <TabsContent value="metadata" className="mt-3 px-0 outline-none">
-              <div className="flex flex-col gap-4">
-                <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/[0.06] via-transparent to-transparent">
-                  <CardHeader className="pb-2">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="min-w-0 space-y-1">
-                        <CardTitle className="text-lg font-semibold tracking-tight">SEO readiness</CardTitle>
-                        <CardDescription>
-                          Quick checks for <span className="font-mono text-foreground">{effectiveKey}</span> ·{' '}
-                          {industryLabel}. Public pages merge this JSON on{' '}
-                          <span className="font-medium text-foreground">{PROFIXER_PUBLIC_ORIGIN}</span> — also run Search
-                          Console, sitemaps, and internal links (Cross-linking tab).
-                        </CardDescription>
-                      </div>
-                      <div className="flex shrink-0 flex-wrap gap-2">
-                        <Badge variant="success">{seoReadinessRows.okCount} OK</Badge>
-                        {seoReadinessRows.warnCount > 0 ? (
-                          <Badge variant="warning">{seoReadinessRows.warnCount} needs work</Badge>
-                        ) : (
-                          <Badge variant="secondary">No blockers flagged</Badge>
-                        )}
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="grid gap-2 pt-0 sm:grid-cols-2">
-                    {seoReadinessRows.rows.map((row, idx) => (
-                      <div
-                        key={`${row.title}-${idx}`}
-                        className={cn(
-                          'flex gap-2.5 rounded-lg border p-3 text-sm',
-                          row.tone === 'ok' &&
-                            'border-storm-mist/90 bg-storm-mist/50 dark:border-storm-deep/60 dark:bg-storm-deep/25',
-                          row.tone === 'warn' &&
-                            'border-bloom-coral/90 bg-bloom-rose/55 dark:border-bloom-coral/55 dark:bg-bloom-coral/25',
-                          row.tone === 'info' && 'border-border/80 bg-muted/25',
-                        )}
-                      >
-                        {row.tone === 'ok' ? (
-                          <CheckCircle2
-                            className="mt-0.5 h-4 w-4 shrink-0 text-storm-deep dark:text-storm-sea"
-                            aria-hidden
-                          />
-                        ) : row.tone === 'warn' ? (
-                          <AlertTriangle
-                            className="mt-0.5 h-4 w-4 shrink-0 text-bloom-coral dark:text-bloom-coral"
-                            aria-hidden
-                          />
-                        ) : (
-                          <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                        )}
-                        <div className="min-w-0">
-                          <p className="font-medium text-foreground">{row.title}</p>
-                          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{row.detail}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
+            <TabsContent value="metadata" className="mt-2 space-y-3 px-0 outline-none">
+              <div className="flex flex-col gap-3">
+                {(seoReadinessRows.warnCount > 0 || seoReadinessRows.rows.some((r) => r.tone === 'info')) ? (
+                  <Accordion type="single" collapsible className="rounded-lg border border-border/70">
+                    <AccordionItem value="seo-checks" className="border-0">
+                      <AccordionTrigger className="px-3 py-2 text-sm hover:no-underline">
+                        <span className="flex items-center gap-2">
+                          SEO checks
+                          {seoReadinessRows.warnCount > 0 ? (
+                            <Badge variant="warning">{seoReadinessRows.warnCount} to fix</Badge>
+                          ) : (
+                            <Badge variant="secondary">Optional tips</Badge>
+                          )}
+                        </span>
+                      </AccordionTrigger>
+                      <AccordionContent className="space-y-2 px-3 pb-3">
+                        {seoReadinessRows.rows
+                          .filter((r) => r.tone !== 'ok')
+                          .map((row, idx) => (
+                            <div key={`${row.title}-${idx}`} className="flex gap-2 rounded-md border border-border/60 bg-muted/20 p-2 text-xs">
+                              {row.tone === 'warn' ? (
+                                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden />
+                              ) : (
+                                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                              )}
+                              <div>
+                                <p className="font-medium text-foreground">{row.title}</p>
+                                <p className="mt-0.5 text-muted-foreground">{row.detail}</p>
+                              </div>
+                            </div>
+                          ))}
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                ) : null}
 
-                <div
-                  role="alert"
-                  className="rounded-md border border-primary/80 bg-primary-soft/70 px-3 py-2.5 text-xs leading-relaxed dark:border-primary dark:bg-primary/30 sm:text-sm"
+                <CategoryMarketingWriterSection
+                  title="Search snippet"
+                  hint="Title and description for Google. Tokens: [City], [Location], [ServiceName]."
                 >
-                  <span className="font-medium text-foreground">Editorial flow:</span> one H1 (Hero tab). H2 → sections, H3 →
-                  subsections; no skipped levels. Primary keyword in H1, intro, and ≥2 headings. Use [City] / [Location] where
-                  the site substitutes area.
-                </div>
-                <Card className="overflow-hidden">
-                  <CardHeader className="border-b border-border/60 bg-muted/20 pb-4">
-                    <CardTitle className="text-lg font-semibold tracking-tight">SERP snippet &amp; intent</CardTitle>
-                    <CardDescription>
-                      Title, meta, URL pattern, and primary query — these drive the blue link and snippet on Google for{' '}
-                      {PROFIXER_PUBLIC_ORIGIN} service URLs.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4 pt-6">
                       <div className="space-y-2">
                       <Label htmlFor="cmm-f-3">SEO title</Label>
                       <Input id="cmm-f-3" className="w-full" value={config.seoTitle} onChange={(e) => updateConfig({ seoTitle: e.target.value })} maxLength={SEO_TITLE_HARD_MAX_CHARS + 10} placeholder="AC Repair Near Me [City] – Same-Day, Transparent Pricing" />
@@ -1420,6 +997,15 @@ export default function CategoryMarketingManagement() {
                         {config.seoTitle.length} characters — target {SEO_TITLE_MIN_CHARS}–{SEO_TITLE_OPTIMAL_MAX_CHARS}{' '}
                         (hard max ~{SEO_TITLE_HARD_MAX_CHARS})
                       </p>
+                      <SeoContentLengthHint
+                        warning={evaluateLength(
+                          'cm-seo-title-inline',
+                          'SEO title',
+                          config.seoTitle,
+                          CATEGORY_MARKETING_LENGTH.metaTitle,
+                        )}
+                        compact
+                      />
                       <div className="space-y-2">
                       <Label htmlFor="cmm-f-4">Meta description</Label>
                       <Textarea id="cmm-f-4" className="w-full" rows={3} value={config.metaDescription} onChange={(e) => updateConfig({ metaDescription: e.target.value })} maxLength={META_DESC_HARD_MAX_CHARS + 20} />
@@ -1438,6 +1024,15 @@ export default function CategoryMarketingManagement() {
                         {config.metaDescription.length} characters — target {META_DESC_MIN_CHARS}–
                         {META_DESC_OPTIMAL_MAX_CHARS} (hard max {META_DESC_HARD_MAX_CHARS})
                       </p>
+                      <SeoContentLengthHint
+                        warning={evaluateLength(
+                          'cm-meta-desc-inline',
+                          'Meta description',
+                          config.metaDescription,
+                          CATEGORY_MARKETING_LENGTH.metaDescription,
+                        )}
+                        compact
+                      />
                       <div className="space-y-2">
                       <Label htmlFor="cmm-f-5">URL slug pattern</Label>
                       <Input
@@ -1453,18 +1048,9 @@ export default function CategoryMarketingManagement() {
                       <Label htmlFor="cmm-f-6">Primary keyword</Label>
                       <Input id="cmm-f-6" className="w-full" value={config.primaryKeyword} onChange={(e) => updateConfig({ primaryKeyword: e.target.value })} />
                     </div>
-                  </CardContent>
-                </Card>
+                </CategoryMarketingWriterSection>
 
-                <Card className="overflow-hidden">
-                  <CardHeader className="border-b border-border/60 bg-muted/20 pb-4">
-                    <CardTitle className="text-lg font-semibold tracking-tight">Hero microcopy &amp; chips</CardTitle>
-                    <CardDescription>
-                      Trust pill, highlight line, proof points, and topic chips above the fold. Supports [City], [Location],
-                      [ServiceName].
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4 pt-6">
+                <CategoryMarketingWriterSection title="Hero microcopy" hint="Trust pill, highlight line, and proof points above the fold.">
                       <div className="space-y-2">
                       <Label htmlFor="cmm-f-7">Hero trust badge (pill beside H1)</Label>
                       <Input id="cmm-f-7" className="w-full" value={(config as any).heroTrustBadge ?? ''} onChange={(e) => updateConfig({ heroTrustBadge: e.target.value } as any)} placeholder="e.g. 30-day warranty · Verified pros" />
@@ -1583,26 +1169,15 @@ export default function CategoryMarketingManagement() {
                       >
                         Add keyword
                       </Button>
-                  </CardContent>
-                </Card>
+                </CategoryMarketingWriterSection>
 
-                <div role="alert" className="rounded-md border border-primary/20 bg-primary-soft/80 p-3 text-sm dark:border-primary dark:bg-primary/30">
-                  <strong>Technical SEO:</strong> the consumer app maps <code>technicalSeo</code> to{' '}
-                  <code>rel=&quot;canonical&quot;</code>, Open Graph / Twitter, robots, hreflang, and JSON-LD (WebPage, Service,
-                  HowTo, BreadcrumbList, Speakable, VideoObject when enabled). Use absolute URLs on{' '}
-                  <span className="font-medium">{PROFIXER_PUBLIC_ORIGIN}</span>. Pair <strong>OG image alt</strong> with the
-                  image URL under Local SEO → Social preview.
-                </div>
-
-                <Card className="overflow-hidden">
-                  <CardHeader className="border-b border-border/60 bg-muted/20 pb-4">
-                    <CardTitle className="text-lg font-semibold tracking-tight">Canonical, Open Graph &amp; Twitter</CardTitle>
-                    <CardDescription>
-                      Overrides are optional: when empty, the live site falls back to SEO title and meta description. Always use
-                      absolute URLs for canonical and share images.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4 pt-6">
+                <Accordion type="single" collapsible className="rounded-lg border border-border/70">
+                  <AccordionItem value="technical-seo" className="border-0">
+                    <AccordionTrigger className="px-3 py-2 text-sm hover:no-underline">
+                      Technical SEO <span className="ml-2 text-xs font-normal text-muted-foreground">(canonical, OG, schema — optional)</span>
+                    </AccordionTrigger>
+                    <AccordionContent className="space-y-3 px-1 pb-3">
+                <CategoryMarketingWriterSection title="Canonical & social tags" hint="Leave blank to fall back to SEO title and meta description.">
                       <div className="space-y-2">
                       <Label htmlFor="cmm-f-12">Canonical URL</Label>
                       <Input
@@ -1664,19 +1239,9 @@ export default function CategoryMarketingManagement() {
                       <Input id="cmm-f-18" className="w-full" value={config.technicalSeo.twitterCreator} onChange={(e) => updateTechnicalSeo({ twitterCreator: e.target.value.replace(/^@/, '') })} placeholder="founder_handle" />
                     </div>
                       </div>
-                  </CardContent>
-                </Card>
+                </CategoryMarketingWriterSection>
 
-                <Card className="overflow-hidden">
-                  <CardHeader className="border-b border-border/60 bg-muted/20 pb-4">
-                    <CardTitle className="text-lg font-semibold tracking-tight">Robots, hreflang &amp; breadcrumbs</CardTitle>
-                    <CardDescription>
-                      Robots string maps to <code className="text-xs">&lt;meta name=&quot;robots&quot;&gt;</code> when set.
-                      Hreflang rows become <code className="text-xs">link rel=&quot;alternate&quot;</code> for regional
-                      variants.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4 pt-6">
+                <CategoryMarketingWriterSection title="Robots & breadcrumbs" hint="Production pages: index, follow.">
                       <div className="space-y-2">
                       <Label htmlFor="cmm-f-19">Robots meta content</Label>
                       <Input
@@ -1810,20 +1375,9 @@ export default function CategoryMarketingManagement() {
                       >
                         Add breadcrumb item
                       </Button>
-                  </CardContent>
-                </Card>
+                </CategoryMarketingWriterSection>
 
-                <Card className="overflow-hidden">
-                  <CardHeader className="border-b border-border/60 bg-muted/20 pb-4">
-                    <CardTitle className="text-lg font-semibold tracking-tight">
-                      Structured data, entities &amp; answer engines
-                    </CardTitle>
-                    <CardDescription>
-                      Clear entities and factual summaries help Google and LLM-based search cite you accurately. Only use
-                      aggregate rating when it matches visible, genuine reviews.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4 pt-6">
+                <CategoryMarketingWriterSection title="Structured data & answer engines" hint="Schema toggles and entity hints for JSON-LD.">
                       <div className="space-y-2">
                       <Label htmlFor="cmm-f-24">Primary schema.org @type hint</Label>
                       <Input id="cmm-f-24" className="w-full" value={config.technicalSeo.schemaPrimaryType} onChange={(e) => updateTechnicalSeo({ schemaPrimaryType: e.target.value })} placeholder="ProfessionalService or HomeAndConstructionBusiness" />
@@ -1872,6 +1426,15 @@ export default function CategoryMarketingManagement() {
                       <Label htmlFor="cmm-f-25">Answer-engine summary</Label>
                       <Textarea id="cmm-f-25" className="w-full" rows={3} value={config.technicalSeo.answerEngineSummary} onChange={(e) => updateTechnicalSeo({ answerEngineSummary: e.target.value })} placeholder="2–4 factual sentences: who you serve, what’s included, pricing stance, same-day policy." />
                       <p className="text-xs text-muted-foreground">Use for a visible “In brief” block and/or speakable text — avoid keyword stuffing.</p>
+                      <SeoContentLengthHint
+                        warning={evaluateLength(
+                          'cm-answer-inline',
+                          'Answer-engine summary',
+                          config.technicalSeo.answerEngineSummary,
+                          CATEGORY_MARKETING_LENGTH.answerSummary,
+                        )}
+                        compact
+                      />
                     </div>
                       <div className="space-y-2">
                       <Label htmlFor="cmm-f-26">Content modified date (ISO)</Label>
@@ -2001,44 +1564,29 @@ export default function CategoryMarketingManagement() {
                       >
                         Add video URL
                       </Button>
-                  </CardContent>
-                </Card>
+                </CategoryMarketingWriterSection>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
 
-                <Card className="overflow-hidden">
-                  <CardHeader className="border-b border-border/60 bg-muted/20 pb-4">
-                    <CardTitle className="text-lg font-semibold tracking-tight">
-                      Near-me pages (`/near-me/…`)
-                    </CardTitle>
-                    <CardDescription>
-                      Optional overrides for auto-generated near-me landing pages. Leave blank to use smart defaults
-                      from the catalog industry. For hyperlocal copy, save under a composite key (e.g.{' '}
-                      <code className="text-xs">ac-repair__mira-bhayandar</code>).
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4 pt-6">
-                    <div className="rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-sm">
-                      <p className="text-muted-foreground">
-                        Live URL:{' '}
-                        <a
-                          href={nearMePreviewUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-mono text-foreground underline-offset-2 hover:underline"
-                        >
-                          {nearMePreviewUrl.replace(publicSiteOrigin, '') || nearMePreviewUrl}
-                        </a>
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Pairs with service page{' '}
-                        <span className="font-mono">{servicesPreviewUrl.replace(publicSiteOrigin, '')}</span> — set
-                        canonical below if you want Google to consolidate on /services/ instead.
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button type="button" size="sm" variant="outline" onClick={applyNearMeDefaults}>
-                        Apply near-me defaults
-                      </Button>
-                    </div>
+                <CategoryMarketingWriterSection
+                  id="near-me-seo-section"
+                  title="Near-me page"
+                  hint="Overrides for /near-me/ URLs. Hyperlocal copy needs a composite storage key (industry__locality)."
+                  actions={
+                    <Button type="button" size="sm" variant="outline" onClick={applyNearMeDefaults}>
+                      Defaults
+                    </Button>
+                  }
+                >
+                    <p className="text-xs text-muted-foreground">
+                      Live:{' '}
+                      <a href={nearMePreviewUrl} target="_blank" rel="noopener noreferrer" className="font-mono text-foreground underline-offset-2 hover:underline">
+                        {nearMePreviewUrl.replace(publicSiteOrigin, '') || nearMePreviewUrl}
+                      </a>
+                      {' · '}
+                      Service: <span className="font-mono">{servicesPreviewUrl.replace(publicSiteOrigin, '')}</span>
+                    </p>
                     <div className="space-y-2">
                       <Label htmlFor="cmm-nearme-title">Near-me page title (H1 / meta title)</Label>
                       <Input
@@ -2107,28 +1655,145 @@ export default function CategoryMarketingManagement() {
                         placeholder="index, follow"
                       />
                     </div>
-                  </CardContent>
-                </Card>
+                    <CategoryMarketingRichTextField
+                      label="Near-me intro (body HTML — renders below hero on live page)"
+                      value={config.nearMeSeo.introHtml}
+                      onChange={(html) => updateNearMeSeo({ introHtml: html })}
+                      height={180}
+                    />
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <Label>Key takeaways (near-me page)</Label>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          leftIcon={<Plus className="h-4 w-4" />}
+                          onClick={() =>
+                            updateNearMeSeo({
+                              keyTakeaways: [...config.nearMeSeo.keyTakeaways, ''],
+                            })
+                          }
+                        >
+                          Add takeaway
+                        </Button>
+                      </div>
+                      {(config.nearMeSeo.keyTakeaways.length ? config.nearMeSeo.keyTakeaways : ['']).map(
+                        (point, i) => (
+                          <div key={i} className="flex flex-row items-center gap-2">
+                            <Input
+                              className="w-full h-9 text-sm"
+                              value={point}
+                              onChange={(e) => {
+                                const base = config.nearMeSeo.keyTakeaways.length
+                                  ? [...config.nearMeSeo.keyTakeaways]
+                                  : ['']
+                                const next = [...base]
+                                next[i] = e.target.value
+                                updateNearMeSeo({ keyTakeaways: next })
+                              }}
+                              placeholder="Same-day booking when slots allow"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-9 w-9 shrink-0 text-destructive hover:text-destructive"
+                              onClick={() =>
+                                updateNearMeSeo({
+                                  keyTakeaways: config.nearMeSeo.keyTakeaways.filter((_, j) => j !== i),
+                                })
+                              }
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ),
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <Label>Near-me FAQs (FAQPage JSON-LD when both Q+A filled)</Label>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          leftIcon={<Plus className="h-4 w-4" />}
+                          onClick={() =>
+                            updateNearMeSeo({ faqs: [...config.nearMeSeo.faqs, emptyFaq()] })
+                          }
+                        >
+                          Add FAQ
+                        </Button>
+                      </div>
+                      {config.nearMeSeo.faqs.map((faq, i) => (
+                        <Accordion
+                          key={i}
+                          type="single"
+                          collapsible
+                          defaultValue={`nearme-faq-${i}`}
+                          className="rounded-md border"
+                        >
+                          <AccordionItem value={`nearme-faq-${i}`} className="border-0">
+                            <div className="flex items-stretch gap-1 border-b px-2">
+                              <AccordionTrigger className="flex-1 py-3 text-left text-sm font-medium hover:no-underline">
+                                {faq.question || `Near-me FAQ ${i + 1}`}
+                              </AccordionTrigger>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9 shrink-0 text-destructive hover:text-destructive"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  updateNearMeSeo({
+                                    faqs: config.nearMeSeo.faqs.filter((_, j) => j !== i),
+                                  })
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <AccordionContent className="px-2 pb-4 pt-2">
+                              <div className="flex flex-col gap-3">
+                                <div className="space-y-2">
+                                  <Label htmlFor={`cmm-nearme-faq-q-${i}`}>Question</Label>
+                                  <Input
+                                    id={`cmm-nearme-faq-q-${i}`}
+                                    className="w-full"
+                                    value={faq.question}
+                                    onChange={(e) => {
+                                      const next = [...config.nearMeSeo.faqs]
+                                      next[i] = { ...next[i], question: e.target.value }
+                                      updateNearMeSeo({ faqs: next })
+                                    }}
+                                  />
+                                </div>
+                                <CategoryMarketingRichTextField
+                                  label="Answer"
+                                  value={faq.answer}
+                                  onChange={(html) => {
+                                    const next = [...config.nearMeSeo.faqs]
+                                    next[i] = { ...next[i], answer: html }
+                                    updateNearMeSeo({ faqs: next })
+                                  }}
+                                  height={160}
+                                />
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        </Accordion>
+                      ))}
+                    </div>
+                </CategoryMarketingWriterSection>
               </div>
             </TabsContent>
 
             <TabsContent value="localSeo" className="mt-2 px-0 outline-none">
-              <div className="flex flex-col gap-4">
-                <div role="alert" className="rounded-md border border-primary/20 bg-primary-soft/80 p-3 text-sm dark:border-primary dark:bg-primary/30">
-                  <strong>Consumer app contract:</strong> map-pack style data should be read only from this CMS record
-                  (<code>localSeo</code> and related fields). Avoid hardcoding service areas, NAP, or GBP URLs in the
-                  public bundle so hyperlocal pages stay editable from admin.
-                </div>
-                <Card>
-                  <CardContent>
-                    <p className="mb-2 text-base font-semibold">
-                      Structured data &amp; profile
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Toggle LocalBusiness-oriented JSON-LD on the consumer site when you have a consistent NAP and
-                      service-area story for this key.
-                    </p>
-                    <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3">
+                <CategoryMarketingWriterSection title="Local profile" hint="Enable LocalBusiness schema when NAP is verified.">
+                    <div className="flex flex-col gap-3">
                       <div className="flex items-start gap-3">
                         <Checkbox
                           id="fcl-local-business-schema"
@@ -2159,17 +1824,9 @@ export default function CategoryMarketingManagement() {
                       ) : null}
                     </div>
                     </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent>
-                    <p className="mb-2 text-base font-semibold">
-                      Service area (local SEO)
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Lists and narrative power “near me” relevance and internal linking to locality URLs.
-                    </p>
-                    <div className="flex flex-col gap-4">
+                </CategoryMarketingWriterSection>
+                <CategoryMarketingWriterSection title="Service area" hint="Neighborhoods and local-intent keywords.">
+                    <div className="flex flex-col gap-3">
                       <div className="space-y-2">
                       <Label htmlFor="cmm-f-35">Service area headline</Label>
                       <Input id="cmm-f-35" className="w-full" value={config.localSeo.serviceAreaHeadline} onChange={(e) => updateLocalSeo({ serviceAreaHeadline: e.target.value })} placeholder="Same-day AC repair across [Location] and surrounding suburbs" />
@@ -2253,17 +1910,9 @@ export default function CategoryMarketingManagement() {
                         Add local keyword
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent>
-                    <p className="mb-2 text-base font-semibold">
-                      NAP &amp; citations
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Keep consistent with Google Business Profile for trust and schema quality.
-                    </p>
-                    <div className="flex flex-col gap-4">
+                </CategoryMarketingWriterSection>
+                <CategoryMarketingWriterSection title="NAP & citations" hint="Match Google Business Profile.">
+                    <div className="flex flex-col gap-3">
                       <div className="space-y-2">
                       <Label htmlFor="cmm-f-nap-phone">Business phone</Label>
                       <Input id="cmm-f-nap-phone" className="w-full" value={config.contactPhone} onChange={(e) => updateConfig({ contactPhone: e.target.value })} placeholder="+919812345678" aria-invalid={napPhoneError(config.contactPhone) ? true : undefined} />
@@ -2343,37 +1992,30 @@ export default function CategoryMarketingManagement() {
                         Add URL
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent>
-                    <p className="mb-2 text-base font-semibold">
-                      Social preview
-                    </p>
+                </CategoryMarketingWriterSection>
+                <CategoryMarketingWriterSection title="Social preview image">
                     <div className="space-y-2">
                       <Label htmlFor="cmm-f-47">Open Graph image override (absolute URL)</Label>
                       <Input id="cmm-f-47" className="w-full" value={config.localSeo.ogImageOverride} onChange={(e) => updateLocalSeo({ ogImageOverride: e.target.value })} placeholder="https://…" />
                       <p className="text-xs text-muted-foreground">Optional; consumer should prefer this for og:image on this service URL when set.</p>
                     </div>
-                  </CardContent>
-                </Card>
+                </CategoryMarketingWriterSection>
               </div>
             </TabsContent>
 
             <TabsContent value="hero" className="mt-2 px-0 outline-none">
-              <div className="flex flex-col gap-4">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Hero &amp; lead copy</CardTitle>
-                    <CardDescription>
-                      The H1 is plain text for SERP consistency. Use the rich editor for the intro: links, bullets, and emphasis
-                      render on the consumer site when the template supports HTML.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6 pt-0">
+              <div className="flex flex-col gap-3">
+                <CategoryMarketingWriterSection
+                  title="Hero & lead copy"
+                  hint="H1 is plain text; intro supports rich HTML on the live site."
+                >
                     <div className="space-y-2">
                       <Label htmlFor="cmm-f-48">Main heading (H1)</Label>
                       <Input id="cmm-f-48" className="w-full" value={config.mainHeading} onChange={(e) => updateConfig({ mainHeading: e.target.value })} placeholder="AC Repair & Service in [City] – Same-Day, Transparent Pricing" />
+                      <SeoContentLengthHint
+                        warning={evaluateLength('cm-h1-inline', 'Page H1', config.mainHeading, CATEGORY_MARKETING_LENGTH.pageH1)}
+                        compact
+                      />
                     </div>
                     <CategoryMarketingRichTextField
                       label="Intro (rich text)"
@@ -2382,16 +2024,18 @@ export default function CategoryMarketingManagement() {
                       height={240}
                       placeholder="Two short paragraphs: who you serve in this area and what happens after booking."
                       helperText="Tip: keep the primary keyword in the first paragraph; use lists and images for skimmable trust points."
-                      preview={
+                      previewContext={
                         config.intro.trim() ? (
                           <>
                             {config.mainHeading.trim() ? (
                               <h2 className="mb-2 text-lg font-bold text-foreground">{config.mainHeading}</h2>
                             ) : null}
-                            <ConsumerPreviewRichHtml html={config.intro} />
                           </>
                         ) : undefined
                       }
+                    />
+                    <SeoContentLengthHint
+                      warning={evaluateLength('cm-intro-inline', 'Hero intro', config.intro, CATEGORY_MARKETING_LENGTH.intro)}
                     />
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
@@ -2403,20 +2047,9 @@ export default function CategoryMarketingManagement() {
                         <Input id="cmm-f-51" className="w-full" value={config.introLeadMagnetUrl} onChange={(e) => updateConfig({ introLeadMagnetUrl: e.target.value })} />
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent>
-                    <div className="flex items-center gap-1">
-                      <ImageIconLucide className="h-4 w-4 text-primary" />
-                      <p className="text-base font-semibold">
-                        Images
-                      </p>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Hero and secondary images for this industry block.
-                    </p>
-                    <div className="flex flex-col gap-4">
+                </CategoryMarketingWriterSection>
+                <CategoryMarketingWriterSection title="Hero images" hint="Primary beside copy; secondary stacks below.">
+                    <div className="flex flex-col gap-3">
                       <ImageUploadField
                         label="Image 1 (Hero — right of lead copy)"
                         value={
@@ -2446,27 +2079,26 @@ export default function CategoryMarketingManagement() {
                         helperText="Optional. Stacks beneath Image 1 in the hero's right column. Max 5MB."
                       />
                     </div>
-                  </CardContent>
-                </Card>
+                </CategoryMarketingWriterSection>
               </div>
             </TabsContent>
 
             <TabsContent value="cards" className="mt-2 px-0 outline-none">
-              <Card>
-                <CardContent>
-                  <div className="flex flex-wrap items-center justify-between">
-                    <p className="text-sm text-muted-foreground">
-                      Our Services grid (card per row in CMS; site renders as grid)
-                    </p>
-                    <Button
-                      size="sm"
-                      leftIcon={<Plus className="h-4 w-4" />}
-                      onClick={() => updateConfig({ serviceCards: [...config.serviceCards, emptyServiceCard()] })}
-                    >
-                      Add card
-                    </Button>
-                  </div>
-                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <CategoryMarketingWriterSection
+                title="Service cards grid"
+                hint="Bookable options shown on the landing page."
+                actions={
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    leftIcon={<Plus className="h-4 w-4" />}
+                    onClick={() => updateConfig({ serviceCards: [...config.serviceCards, emptyServiceCard()] })}
+                  >
+                    Add card
+                  </Button>
+                }
+              >
+                  <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="cmm-f-svccards-eyebrow">Section eyebrow</Label>
                       <Input
@@ -2512,7 +2144,7 @@ export default function CategoryMarketingManagement() {
                           </Button>
                         </div>
                         <AccordionContent className="px-2 pb-4 pt-2">
-                        <div className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-3">
                           <div className="space-y-2">
                       <Label htmlFor="cmm-f-52">Service name (H3)</Label>
                       <Input id="cmm-f-52" className="w-full" value={card.title} onChange={(e) => {
@@ -2581,22 +2213,20 @@ export default function CategoryMarketingManagement() {
                       </AccordionItem>
                     </Accordion>
                   ))}
-                </CardContent>
-              </Card>
+              </CategoryMarketingWriterSection>
             </TabsContent>
 
             <TabsContent value="detailed" className="mt-2 px-0 outline-none">
-              <Card>
-                <CardContent>
-                  <div className="flex flex-wrap items-center justify-between">
-                    <p className="text-sm text-muted-foreground">
-                      Detailed service options (H3 + bullets)
-                    </p>
-                    <Button size="sm" leftIcon={<Plus className="h-4 w-4" />} onClick={addServiceType}>
-                      Add block
-                    </Button>
-                  </div>
-                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <CategoryMarketingWriterSection
+                title="Detailed service options"
+                hint="H3 blocks with bullet lists."
+                actions={
+                  <Button size="sm" variant="outline" leftIcon={<Plus className="h-4 w-4" />} onClick={addServiceType}>
+                    Add block
+                  </Button>
+                }
+              >
+                  <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="cmm-f-svctypes-eyebrow">Section eyebrow</Label>
                       <Input
@@ -2650,7 +2280,7 @@ export default function CategoryMarketingManagement() {
                           </Button>
                         </div>
                         <AccordionContent className="px-2 pb-4 pt-2">
-                        <div className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-3">
                           <div className="space-y-2">
                       <Label htmlFor="cmm-f-59">Title (H3)</Label>
                       <Input id="cmm-f-59" className="w-full" value={block.title} onChange={(e) => updateServiceType(typeIndex, 'title', e.target.value)} placeholder="Foam & power jet AC service" />
@@ -2681,29 +2311,28 @@ export default function CategoryMarketingManagement() {
                       </AccordionItem>
                     </Accordion>
                   ))}
-                </CardContent>
-              </Card>
+              </CategoryMarketingWriterSection>
             </TabsContent>
 
             <TabsContent value="trust" className="mt-2 px-0 outline-none">
-              <div className="flex flex-col gap-4">
-                <Card>
-                  <CardContent>
-                    <div className="flex flex-wrap items-center justify-between">
-                      <p className="text-sm text-muted-foreground">
-                        Why homeowners book ProFixer (bold subheading + paragraph)
-                      </p>
-                      <Button
-                        size="sm"
-                        leftIcon={<Plus className="h-4 w-4" />}
-                        onClick={() =>
-                          updateConfig({ trustBenefits: [...config.trustBenefits, emptyTrustBenefit()] })
-                        }
-                      >
-                        Add benefit
-                      </Button>
-                    </div>
-                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-3">
+                <CategoryMarketingWriterSection
+                  title="Why book ProFixer"
+                  hint="Bold subheading + supporting copy per benefit."
+                  actions={
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      leftIcon={<Plus className="h-4 w-4" />}
+                      onClick={() =>
+                        updateConfig({ trustBenefits: [...config.trustBenefits, emptyTrustBenefit()] })
+                      }
+                    >
+                      Add
+                    </Button>
+                  }
+                >
+                    <div className="grid gap-3 sm:grid-cols-2">
                       <div className="space-y-2">
                         <Label htmlFor="cmm-f-trust-eyebrow">Section eyebrow</Label>
                         <Input
@@ -2754,13 +2383,8 @@ export default function CategoryMarketingManagement() {
                           } ><Trash2 className="h-4 w-4" /></Button>
                       </div>
                     ))}
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      Legacy &quot;4 ways&quot; block (optional; use if the site still reads this section)
-                    </p>
+                </CategoryMarketingWriterSection>
+                <CategoryMarketingWriterSection title="4 ways block (legacy)" hint="Optional — only if the live template still reads this.">
                     <div className="space-y-2">
                       <Label htmlFor="cmm-f-64">Ways heading</Label>
                       <Input id="cmm-f-64" className="w-full" value={config.waysHeading} onChange={(e) => updateConfig({ waysHeading: e.target.value })} />
@@ -2785,13 +2409,8 @@ export default function CategoryMarketingManagement() {
                     >
                       Add way
                     </Button>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      What&apos;s included in our service experience
-                    </p>
+                </CategoryMarketingWriterSection>
+                <CategoryMarketingWriterSection title="What's included">
                     {(config.experienceIncluded.length ? config.experienceIncluded : ['']).map((line, i) => (
                       <div key={i} className="flex flex-row items-center gap-2">
                         <div className="space-y-2"><Input className="w-full h-9 text-sm" value={line} onChange={(e) => updateStringList('experienceIncluded', i, e.target.value)} placeholder="e.g. Skilled technicians, clear approvals" />
@@ -2802,19 +2421,14 @@ export default function CategoryMarketingManagement() {
                     <Button size="sm" leftIcon={<Plus className="h-4 w-4" />} onClick={() => addStringListItem('experienceIncluded')}>
                       Add line
                     </Button>
-                  </CardContent>
-                </Card>
+                </CategoryMarketingWriterSection>
               </div>
             </TabsContent>
 
             <TabsContent value="areas" className="mt-2 px-0 outline-none">
-              <div className="flex flex-col gap-4">
-                <Card>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      Areas we serve
-                    </p>
-                    <div className="grid gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-3">
+                <CategoryMarketingWriterSection title="Areas we serve" hint="Locality list and coverage copy.">
+                    <div className="grid gap-3 sm:grid-cols-2">
                       <div className="space-y-2">
                         <Label htmlFor="cmm-f-areas-eyebrow">Section eyebrow</Label>
                         <Input
@@ -2862,22 +2476,21 @@ export default function CategoryMarketingManagement() {
                       <Label htmlFor="cmm-f-69">CTA after areas (e.g. check availability)</Label>
                       <Input id="cmm-f-69" className="w-full" value={config.areasCta} onChange={(e) => updateConfig({ areasCta: e.target.value })} />
                     </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent>
-                    <div className="flex flex-wrap items-center justify-between">
-                      <p className="text-sm text-muted-foreground">
-                        How to book (numbered steps)
-                      </p>
-                      <Button
-                        size="sm"
-                        leftIcon={<Plus className="h-4 w-4" />}
-                        onClick={() => updateConfig({ bookingSteps: [...config.bookingSteps, emptyBookingStep()] })}
-                      >
-                        Add step
-                      </Button>
-                    </div>
+                </CategoryMarketingWriterSection>
+                <CategoryMarketingWriterSection
+                  title="How to book"
+                  hint="Numbered steps — powers HowTo schema when enabled."
+                  actions={
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      leftIcon={<Plus className="h-4 w-4" />}
+                      onClick={() => updateConfig({ bookingSteps: [...config.bookingSteps, emptyBookingStep()] })}
+                    >
+                      Add step
+                    </Button>
+                  }
+                >
                     {config.bookingSteps.map((step, i) => (
                       <div key={i} className="flex flex-row items-start gap-2">
                         <div className="flex min-w-0 flex-1 flex-col gap-4">
@@ -2949,176 +2562,46 @@ export default function CategoryMarketingManagement() {
                       <Input id="cmm-f-74" className="w-full" value={config.contactWhatsapp} onChange={(e) => updateConfig({ contactWhatsapp: e.target.value })} />
                     </div>
                     </div>
-                  </CardContent>
-                </Card>
+                </CategoryMarketingWriterSection>
               </div>
             </TabsContent>
 
             <TabsContent value="pricing" className="mt-2 px-0 outline-none">
-              <div className="flex flex-col gap-4">
-                <div role="alert" className="rounded-md border border-primary/20 bg-primary-soft/80 p-3 text-sm dark:border-primary dark:bg-primary/30">
-                  <p className="text-sm">
-                    <strong>Service charges</strong> for this industry are maintained in{' '}
-                    <Link to="/cms/category-marketing?tab=rate-card">Rate card</Link> (same catalog category key). Use spare parts and
-                    included/excluded lists here so the consumer page can show a full pricing section without duplicating
-                    labour/service rows.
-                  </p>
-                </div>
-                <Card>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <Label htmlFor="cmm-f-pricing-heading">Pricing section heading (H2)</Label>
-                      <Input
-                        id="cmm-f-pricing-heading"
-                        className="w-full"
-                        placeholder="[ServiceName] charges — indicative rates in [Location]"
-                        value={config.pricingHeading}
-                        onChange={(e) => updateConfig({ pricingHeading: e.target.value })}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Title above the rate table. Leave blank to auto-build “[ServiceName] charges — indicative rates in [Location]”.
-                        Supports [City], [Location], [ServiceName] tokens.
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent>
-                    <div className="flex flex-wrap items-center justify-between">
-                      <p className="text-sm text-muted-foreground">
-                        Spare parts (item + price range)
-                      </p>
-                      <Button
-                        size="sm"
-                        leftIcon={<Plus className="h-4 w-4" />}
-                        onClick={() => updateConfig({ spareParts: [...config.spareParts, emptySparePart()] })}
-                      >
-                        Add row
-                      </Button>
-                    </div>
-                    {config.spareParts.map((row, i) => (
-                      <div key={i} className="flex flex-row items-center gap-2">
-                        <div className="space-y-2">
-                      <Label htmlFor="cmm-f-75">Item</Label>
-                      <Input id="cmm-f-75" className="w-full h-9 text-sm" value={row.name} onChange={(e) => {
-                            const next = [...config.spareParts]
-                            next[i] = { ...next[i], name: e.target.value }
-                            updateConfig({ spareParts: next })
-                          }} />
-                    </div>
-                        <div className="space-y-2">
-                      <Label htmlFor="cmm-f-76">Price range</Label>
-                      <Input id="cmm-f-76" className="w-full h-9 text-sm" value={row.priceRange} onChange={(e) => {
-                            const next = [...config.spareParts]
-                            next[i] = { ...next[i], priceRange: e.target.value }
-                            updateConfig({ spareParts: next })
-                          }} />
-                    </div>
-                        <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0 text-destructive hover:text-destructive" onClick={() => updateConfig({ spareParts: config.spareParts.filter((_, j) => j !== i) })} ><Trash2 className="h-4 w-4" /></Button>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      What&apos;s included vs not included (pricing section)
-                    </p>
+              <div className="flex flex-col gap-3">
+                <CategoryMarketingWriterSection title="Pricing heading">
+                  <div className="space-y-2">
+                    <Label htmlFor="cmm-f-pricing-heading">Section heading (H2)</Label>
+                    <Input
+                      id="cmm-f-pricing-heading"
+                      className="w-full"
+                      placeholder="[ServiceName] charges — indicative rates in [Location]"
+                      value={config.pricingHeading}
+                      onChange={(e) => updateConfig({ pricingHeading: e.target.value })}
+                    />
                     <p className="text-xs text-muted-foreground">
-                      Included
+                      Blank = auto “[ServiceName] charges — indicative rates in [Location]”.
                     </p>
-                    {(config.pricingIncluded.length ? config.pricingIncluded : ['']).map((line, i) => (
-                      <div key={i} className="flex flex-row items-center gap-2">
-                        <div className="space-y-2"><Input className="w-full h-9 text-sm" value={line} onChange={(e) => updateStringList('pricingIncluded', i, e.target.value)} />
-                    </div>
-                        <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive" onClick={() => removeStringListItem('pricingIncluded', i)} ><Trash2 className="h-4 w-4" /></Button>
-                      </div>
-                    ))}
-                    <Button size="sm" leftIcon={<Plus className="h-4 w-4" />} onClick={() => addStringListItem('pricingIncluded')}>
-                      Add included
-                    </Button>
-                    <p className="text-xs text-muted-foreground">
-                      Not included
-                    </p>
-                    {(config.pricingExcluded.length ? config.pricingExcluded : ['']).map((line, i) => (
-                      <div key={i} className="flex flex-row items-center gap-2">
-                        <div className="space-y-2"><Input className="w-full h-9 text-sm" value={line} onChange={(e) => updateStringList('pricingExcluded', i, e.target.value)} />
-                    </div>
-                        <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive" onClick={() => removeStringListItem('pricingExcluded', i)} ><Trash2 className="h-4 w-4" /></Button>
-                      </div>
-                    ))}
-                    <Button size="sm" leftIcon={<Plus className="h-4 w-4" />} onClick={() => addStringListItem('pricingExcluded')}>
-                      Add excluded
-                    </Button>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent>
-                    <div className="flex flex-wrap items-center justify-between">
-                      <p className="text-sm text-muted-foreground">
-                        ProFixer vs local providers
-                      </p>
-                      <Button
-                        size="sm"
-                        leftIcon={<Plus className="h-4 w-4" />}
-                        onClick={() =>
-                          updateConfig({ comparisonRows: [...config.comparisonRows, emptyComparisonRow()] })
-                        }
-                      >
-                        Add row
-                      </Button>
-                    </div>
-                    {config.comparisonRows.map((row, i) => (
-                      <div className="flex flex-col gap-4" key={i}>
-                        <div className="flex flex-row items-start gap-2">
-                          <div className="flex min-w-0 flex-1 flex-col gap-4">
-                            <div className="space-y-2">
-                      <Label htmlFor="cmm-f-79">Dimension</Label>
-                      <Input id="cmm-f-79" className="w-full h-9 text-sm" value={row.label} onChange={(e) => {
-                                const next = [...config.comparisonRows]
-                                next[i] = { ...next[i], label: e.target.value }
-                                updateConfig({ comparisonRows: next })
-                              }} />
-                    </div>
-                            <div className="space-y-2">
-                      <Label htmlFor="cmm-f-80">ProFixer</Label>
-                      <Input id="cmm-f-80" className="w-full h-9 text-sm" value={row.profixer} onChange={(e) => {
-                                const next = [...config.comparisonRows]
-                                next[i] = { ...next[i], profixer: e.target.value }
-                                updateConfig({ comparisonRows: next })
-                              }} />
-                    </div>
-                            <div className="space-y-2">
-                      <Label htmlFor="cmm-f-81">Typical local</Label>
-                      <Input id="cmm-f-81" className="w-full h-9 text-sm" value={row.others} onChange={(e) => {
-                                const next = [...config.comparisonRows]
-                                next[i] = { ...next[i], others: e.target.value }
-                                updateConfig({ comparisonRows: next })
-                              }} />
-                    </div>
-                          </div>
-                          <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0 text-destructive hover:text-destructive" onClick={() =>
-                              updateConfig({ comparisonRows: config.comparisonRows.filter((_, j) => j !== i) })
-                            } ><Trash2 className="h-4 w-4" /></Button>
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
+                  </div>
+                </CategoryMarketingWriterSection>
+                <CategoryMarketingPricingPanel
+                  selectedCategory={selectedCategory}
+                  industryLabel={industryLabel}
+                  effectiveKey={effectiveKey}
+                  config={config}
+                  catalogOptions={catalogOptions}
+                  onUpdate={updateConfig}
+                  onApplyAndSave={persistPricingToApi}
+                  saving={saving}
+                />
               </div>
             </TabsContent>
 
             <TabsContent value="faqs" className="mt-2 px-0 outline-none">
-              <div className="flex flex-col gap-4">
-                <Card>
-                  <CardHeader className="border-b border-border/60 bg-muted/20 pb-4">
-                    <CardTitle className="text-lg font-semibold tracking-tight">Locality aside card</CardTitle>
-                    <CardDescription>
-                      Sidebar beside FAQs on locality service pages — title, intro, breadcrumb eyebrow. Breadcrumb trail
-                      uses the Technical SEO → Breadcrumb trail when filled. Supports [City], [Location], [ServiceName].
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4 pt-6">
+              <div className="flex flex-col gap-3">
+                <CategoryMarketingWriterSection
+                  title="FAQ sidebar"
+                  hint="Optional aside beside FAQs on locality pages. Tokens: [City], [Location], [ServiceName]."
+                >
                     <div className="space-y-2">
                       <Label htmlFor="cmm-aside-title">Aside title</Label>
                       <Input
@@ -3145,22 +2628,21 @@ export default function CategoryMarketingManagement() {
                         placeholder="You are here"
                       />
                     </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent>
-                    <div className="flex flex-wrap items-center justify-between">
-                      <p className="text-sm text-muted-foreground">
-                        FAQs (H3 + answer — industry-specific)
-                      </p>
-                      <Button
-                        size="sm"
-                        leftIcon={<Plus className="h-4 w-4" />}
-                        onClick={() => updateConfig({ faqs: [...config.faqs, emptyFaq()] })}
-                      >
-                        Add FAQ
-                      </Button>
-                    </div>
+                </CategoryMarketingWriterSection>
+                <CategoryMarketingWriterSection
+                  title="FAQs"
+                  hint="Question + answer pairs — used for FAQPage schema when enabled."
+                  actions={
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      leftIcon={<Plus className="h-4 w-4" />}
+                      onClick={() => updateConfig({ faqs: [...config.faqs, emptyFaq()] })}
+                    >
+                      Add
+                    </Button>
+                  }
+                >
                     {config.faqs.map((faq, i) => (
                       <Accordion key={i} type="single" collapsible defaultValue={`faq-${i}`} className="mb-2 rounded-md border">
                         <AccordionItem value={`faq-${i}`} className="border-0">
@@ -3183,7 +2665,7 @@ export default function CategoryMarketingManagement() {
                             </Button>
                           </div>
                           <AccordionContent className="px-2 pb-4 pt-2">
-                          <div className="flex flex-col gap-4">
+                          <div className="flex flex-col gap-3">
                             <div className="space-y-2">
                       <Label htmlFor="cmm-f-82">Question</Label>
                       <Input id="cmm-f-82" className="w-full" value={faq.question} onChange={(e) => {
@@ -3207,22 +2689,21 @@ export default function CategoryMarketingManagement() {
                         </AccordionItem>
                       </Accordion>
                     ))}
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent>
-                    <div className="flex flex-wrap items-center justify-between">
-                      <p className="text-sm text-muted-foreground">
-                        Related resources (internal links)
-                      </p>
-                      <Button
-                        size="sm"
-                        leftIcon={<Plus className="h-4 w-4" />}
-                        onClick={() => updateConfig({ relatedLinks: [...config.relatedLinks, emptyRelatedLink()] })}
-                      >
-                        Add link
-                      </Button>
-                    </div>
+                </CategoryMarketingWriterSection>
+                <CategoryMarketingWriterSection
+                  title="Related links"
+                  hint="Internal links shown near FAQs."
+                  actions={
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      leftIcon={<Plus className="h-4 w-4" />}
+                      onClick={() => updateConfig({ relatedLinks: [...config.relatedLinks, emptyRelatedLink()] })}
+                    >
+                      Add
+                    </Button>
+                  }
+                >
                     {config.relatedLinks.map((link: RelatedLinkBlock, i: number) => (
                       <div key={i} className="flex flex-row items-center gap-2">
                         <div className="space-y-2">
@@ -3256,35 +2737,17 @@ export default function CategoryMarketingManagement() {
                         </Button>
                       </div>
                     ))}
-                  </CardContent>
-                </Card>
+                </CategoryMarketingWriterSection>
               </div>
             </TabsContent>
 
             <TabsContent value="localityGuide" className="mt-2 px-0 outline-none">
-              <div className="flex flex-col gap-4">
-                <Card className="overflow-hidden border-border/80 shadow-sm">
-                  <CardHeader className="border-b border-border/60 bg-muted/15 pb-4">
-                    <CardTitle className="text-base">Locality article</CardTitle>
-                    <CardDescription className="text-sm leading-relaxed">
-                      Hyperlocal guide body for this CMS key. Use headings and lists for scanability; the consumer site should
-                      render this HTML safely (same allowlist as other rich fields).
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6 pt-6">
-                    <div
-                      role="note"
-                      className="rounded-lg border border-primary/20 bg-primary/[0.04] p-4 text-sm leading-snug text-foreground dark:bg-primary/10"
-                    >
-                      <p className="font-medium text-foreground">Key format</p>
-                      <p className="mt-1.5 text-xs text-muted-foreground">
-                        Slug drives storage: <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">{selectedCategory}__mira-road</code>{' '}
-                        (replace <code className="font-mono">mira-road</code> with your segment). Separator is{' '}
-                        <strong className="font-mono font-normal text-foreground">__</strong> (two underscores), e.g.{' '}
-                        <code className="font-mono">electric__mira-road</code> — not a single underscore.
-                      </p>
-                    </div>
-                    <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3">
+                <CategoryMarketingWriterSection
+                  title="Locality article"
+                  hint={`Long-form guide for this key. Storage: ${selectedCategory}__{area-slug} (double underscore).`}
+                >
+                    <div className="flex flex-col gap-3">
                       <div className="flex items-start gap-3">
                         <Checkbox
                           id="fcl-locality-enabled"
@@ -3314,10 +2777,7 @@ export default function CategoryMarketingManagement() {
                         <Input id="cmm-f-86" className="w-full" value={config.localityGuide.articleH2} onChange={(e) => updateLocalityGuide({ articleH2: e.target.value })} />
                       </div>
                       <div className="rounded-lg border border-border/70 bg-muted/10 p-4">
-                        <div className="flex items-center gap-1">
-                          <ImageIconLucide className="h-4 w-4 text-primary" />
-                          <p className="text-sm font-semibold">Guide images</p>
-                        </div>
+                        <p className="text-sm font-semibold">Guide images</p>
                         <p className="mt-1 text-xs text-muted-foreground">
                           Shown at the top of this locality guide. These are the same Image 1 / Image 2 as the
                           industry hero block — editing here updates both.
@@ -3434,7 +2894,7 @@ export default function CategoryMarketingManagement() {
                               Section {si + 1}: {sec.h2.trim() || '(untitled)'}
                             </AccordionTrigger>
                             <AccordionContent className="px-2 pb-4 pt-0">
-                            <div className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-3">
                               <div className="space-y-2">
                       <Label htmlFor="cmm-f-89">Section H2</Label>
                       <Input id="cmm-f-89" className="w-full h-9 text-sm" value={sec.h2} onChange={(e) => {
@@ -3568,32 +3028,21 @@ export default function CategoryMarketingManagement() {
                         </Label>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                </CategoryMarketingWriterSection>
               </div>
             </TabsContent>
 
             <TabsContent value="closing" className="mt-2 px-0 outline-none">
-              <div className="flex flex-col gap-4">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Closing content</CardTitle>
-                    <CardDescription>Final persuasive block before the footer; same rich formatting as the hero intro.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-0">
+              <div className="flex flex-col gap-3">
+                <CategoryMarketingWriterSection title="Closing copy" hint="Final persuasive block before the footer.">
                     <CategoryMarketingRichTextField
                       label="Closing paragraph(s)"
                       value={config.closingParagraph}
                       onChange={(html) => updateConfig({ closingParagraph: html })}
                       height={220}
                     />
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      Lead magnet (footer / aside — URL often configured on consumer app)
-                    </p>
+                </CategoryMarketingWriterSection>
+                <CategoryMarketingWriterSection title="Lead magnet" hint="Optional footer / aside CTA.">
                     <div className="space-y-2">
                       <Label htmlFor="cmm-f-94">Headline</Label>
                       <Input id="cmm-f-94" className="w-full" value={config.leadMagnet.headline} onChange={(e) =>
@@ -3614,35 +3063,112 @@ export default function CategoryMarketingManagement() {
                         updateConfig({ leadMagnet: { ...config.leadMagnet, ctaLabel: e.target.value } })
                       } />
                     </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      JSON-LD (optional)
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Prefer generating FAQPage / LocalBusiness on the consumer site from structured fields. Use this
-                      only if you need a fixed snippet; validate JSON before publishing.
-                    </p>
-                    <div className="space-y-2"><Textarea className="w-full" rows={8} value={config.jsonLdExtra} onChange={(e) => updateConfig({ jsonLdExtra: e.target.value })} />
-                    </div>
-                  </CardContent>
-                </Card>
+                </CategoryMarketingWriterSection>
+                <Accordion type="single" collapsible className="rounded-lg border border-border/70">
+                  <AccordionItem value="jsonld-extra" className="border-0">
+                    <AccordionTrigger className="px-3 py-2 text-sm hover:no-underline">
+                      Custom JSON-LD snippet <span className="ml-2 text-xs font-normal text-muted-foreground">(advanced)</span>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-3 pb-3">
+                      <p className="mb-2 text-xs text-muted-foreground">
+                        Prefer structured fields elsewhere. Validate JSON before publish.
+                      </p>
+                      <Textarea className="w-full font-mono text-xs" rows={6} value={config.jsonLdExtra} onChange={(e) => updateConfig({ jsonLdExtra: e.target.value })} />
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </div>
             </TabsContent>
           </Tabs>
+          </div>
 
-          <Button
-            variant="default"
-            leftIcon={saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Megaphone className="h-4 w-4" />}
-            onClick={handleSave}
-            disabled={saving}
-          >
-            Save all
-          </Button>
+          <CategoryMarketingPageHealthPanel
+            report={qualityReport}
+            lengthWarnings={lengthWarnings}
+            onNavigateTab={setTab}
+            compact
+            className="hidden xl:block xl:sticky xl:top-[5.5rem] xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto"
+          />
         </div>
       )}
+
+      {!loading ? (
+        <CategoryMarketingAdvancedTools
+          config={config}
+          effectiveKey={effectiveKey}
+          selectedCategory={selectedCategory}
+          industryLabel={industryLabel}
+          localityDisplayLabel={localityDisplayLabel}
+          normalizedLocalitySlug={normalizedLocalitySlug}
+          publicSiteOrigin={publicSiteOrigin}
+          industryRobotsMeta={industryRobotsMeta}
+          data={data}
+          duplicateSourceKey={duplicateSourceKey}
+          importJsonText={importJsonText}
+          localityDiff={localityVersusIndustryDiff}
+          localityDiffExpanded={localityDiffExpanded}
+          onDuplicateSourceChange={setDuplicateSourceKey}
+          onImportTextChange={setImportJsonText}
+          onToggleDiffExpanded={() => setLocalityDiffExpanded((v) => !v)}
+          onFullReplace={() => {
+            const src = data[duplicateSourceKey]
+            if (!src) return
+            const full = mergeCategoryConfig(src)
+            setData((prev) => ({
+              ...prev,
+              [effectiveKey]: JSON.parse(JSON.stringify(full)) as CategoryMarketingConfig,
+            }))
+            appToast(`Replaced "${effectiveKey}" from "${duplicateSourceKey}". Save to persist.`, 'success')
+          }}
+          onMergeLocality={() => {
+            const src = data[duplicateSourceKey]
+            if (!src) return
+            const full = mergeCategoryConfig(src)
+            updateConfig({
+              localityGuide: JSON.parse(JSON.stringify(full.localityGuide)) as LocalityGuideCmsFields,
+            })
+            appToast(`Merged locality guide from "${duplicateSourceKey}". Save to persist.`, 'success')
+          }}
+          onMergeLocalSeo={() => {
+            const src = data[duplicateSourceKey]
+            if (!src) return
+            const full = mergeCategoryConfig(src)
+            updateConfig({
+              localSeo: JSON.parse(JSON.stringify(full.localSeo)) as LocalSeoCmsFields,
+            })
+            appToast(`Merged local SEO from "${duplicateSourceKey}". Save to persist.`, 'success')
+          }}
+          onApplyJsonMerge={() => {
+            try {
+              const parsed = JSON.parse(importJsonText) as Record<string, unknown>
+              const patch = mergeCategoryConfig(parsed)
+              setData((prev) => {
+                const base = mergeCategoryConfig(prev[effectiveKey] ?? emptyCategoryMarketingConfig())
+                const combined = mergeCategoryConfig({
+                  ...base,
+                  ...patch,
+                  leadMagnet: { ...base.leadMagnet, ...patch.leadMagnet },
+                  localityGuide: { ...base.localityGuide, ...patch.localityGuide },
+                  localSeo: { ...base.localSeo, ...patch.localSeo },
+                  technicalSeo: {
+                    ...base.technicalSeo,
+                    ...patch.technicalSeo,
+                    aggregateRating: {
+                      ...base.technicalSeo.aggregateRating,
+                      ...patch.technicalSeo?.aggregateRating,
+                    },
+                  },
+                })
+                return { ...prev, [effectiveKey]: combined }
+              })
+              appToast(`Merged JSON into "${effectiveKey}". Save to persist.`, 'success')
+            } catch (e) {
+              appToast(e instanceof Error ? e.message : 'Invalid JSON', 'error')
+            }
+          }}
+          onClearImport={() => setImportJsonText('')}
+        />
+      ) : null}
 
       <ConfirmDialog
         open={seoAutofillConfirmOpen}

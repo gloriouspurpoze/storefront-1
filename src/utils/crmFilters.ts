@@ -26,6 +26,7 @@ export function filterDeals(
       !includesQ(q, d.notes) &&
       !includesQ(q, d.locality) &&
       !includesQ(q, d.serviceCategory) &&
+      !includesQ(q, d.phone) &&
       !includesQ(q, d.platformBookingId) &&
       !includesQ(q, d.platformOrderId)
     )

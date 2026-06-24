@@ -4,6 +4,11 @@ import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
 import { Textarea } from '../ui/textarea'
+import {
+  SEO_LANDING_LENGTH_RULES,
+  evaluateLength,
+} from '../../lib/seoLandingContentLengthRules'
+import { SeoContentLengthHint } from './SeoContentLengthHint'
 
 export type FaqRow = { question: string; answer: string }
 
@@ -67,12 +72,20 @@ export function SeoLandingFaqEditor({ faqs, onChange, disabled }: SeoLandingFaqE
             placeholder="Question shown on page & in FAQ schema"
             disabled={disabled}
           />
+          <SeoContentLengthHint
+            warning={evaluateLength(`faq-q-${i}`, 'Question', row.question, SEO_LANDING_LENGTH_RULES.faqQuestion)}
+            compact
+          />
           <Textarea
             rows={2}
             value={row.answer}
             onChange={(e) => patch(i, { answer: e.target.value })}
             placeholder="Answer (plain text or short HTML)"
             disabled={disabled}
+          />
+          <SeoContentLengthHint
+            warning={evaluateLength(`faq-a-${i}`, 'Answer', row.answer, SEO_LANDING_LENGTH_RULES.faqAnswer)}
+            compact
           />
         </div>
       ))}

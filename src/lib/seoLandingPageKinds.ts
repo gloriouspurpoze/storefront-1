@@ -5,13 +5,16 @@ import {
   DollarSign,
   LayoutTemplate,
   MapPin,
+  Siren,
   User,
 } from 'lucide-react'
+import { parseEmergencyCompositeSlug, publicEmergencyUrl } from './emergencyLandingSlugs'
 
 export type SeoLandingEntityKind =
   | 'problems'
   | 'cost-guides'
   | 'guides'
+  | 'emergency'
   | 'providers'
   | 'locations'
   | 'landing-pages'
@@ -66,6 +69,18 @@ export const SEO_LANDING_KINDS: SeoLandingKindMeta[] = [
     intent: 'HowTo schema + practical steps',
   },
   {
+    id: 'emergency',
+    label: 'Emergency pages',
+    shortLabel: 'Emergency',
+    pathPrefix: '/emergency',
+    icon: Siren,
+    description:
+      'Urgent-intent landing pages at /emergency/{category}/{area} — separate from problem/charges content.',
+    exampleSlug: 'appliance-repair__mira-bhayandar',
+    exampleUrl: `${ORIGIN}/emergency/appliance-repair/mira-bhayandar`,
+    intent: '24/7 urgency + fast booking + emergency FAQs',
+  },
+  {
     id: 'providers',
     label: 'Provider profiles',
     shortLabel: 'Providers',
@@ -104,7 +119,19 @@ export function kindMeta(kind: SeoLandingEntityKind): SeoLandingKindMeta {
   return SEO_LANDING_KINDS.find((k) => k.id === kind) ?? SEO_LANDING_KINDS[0]
 }
 
-export function publicUrlForKind(kind: SeoLandingEntityKind, slug: string): string {
+export function publicUrlForKind(
+  kind: SeoLandingEntityKind,
+  slug: string,
+  draft?: Record<string, unknown>,
+): string {
+  if (kind === 'emergency') {
+    const parsed = parseEmergencyCompositeSlug(slug)
+    if (parsed) return publicEmergencyUrl(parsed.serviceSlug, parsed.locationSlug)
+    const svc = String(draft?.serviceSlug ?? draft?.service ?? '').trim()
+    const loc = String(draft?.locationSlug ?? draft?.localitySlug ?? '').trim()
+    if (svc && loc) return publicEmergencyUrl(svc, loc)
+    return '/emergency'
+  }
   const prefix = kindMeta(kind).pathPrefix
   if (!slug) return prefix || '/'
   return prefix ? `${prefix}/${slug}` : `/${slug}`
@@ -249,11 +276,11 @@ export function publishGatesForDraft(
       detail: name ? 'Set' : 'Add provider name',
     })
   } else {
-    const qa = String(draft.quickAnswer ?? '').trim().length
+    const qa = stripHtml(String(draft.quickAnswer ?? '')).length
     gates.push({
       label: 'Quick answer',
       ok: qa >= 40,
-      detail: qa >= 40 ? `${qa} chars` : `${qa}/40 chars (draft stays noindex until filled)`,
+      detail: qa >= 40 ? `${qa} chars (plain text)` : `${qa}/40 chars (draft stays noindex until filled)`,
     })
   }
 
@@ -291,6 +318,14 @@ export function publishGatesForDraft(
 export function pageListTitle(kind: SeoLandingEntityKind, draft: Record<string, unknown>): string {
   if (kind === 'providers' || kind === 'locations') {
     return String(draft.name ?? '').trim()
+  }
+  if (kind === 'emergency') {
+    const title = String(draft.title ?? '').trim()
+    if (title) return title
+    const parsed = parseEmergencyCompositeSlug(String(draft.slug ?? ''))
+    if (parsed) {
+      return `${parsed.serviceSlug.replace(/-/g, ' ')} · ${parsed.locationSlug.replace(/-/g, ' ')}`
+    }
   }
   return String(draft.title ?? '').trim()
 }

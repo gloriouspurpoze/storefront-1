@@ -14,6 +14,7 @@ import type {
 } from '../../types/marketingWorkspace.types'
 import { TASK_COLUMN_LABEL, TASK_PRIORITY_LABEL, TASK_TYPE_LABEL } from '../../lib/marketingWorkspaceLabels'
 import { usersService } from '../../services/api/users.service'
+import { filterUsersForAudience } from '../../lib/userAudienceFilters'
 import type { User } from '../../types'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent } from '../../components/ui/card'
@@ -101,9 +102,9 @@ export function MarketingTasksPage() {
     let cancelled = false
     setTeamMembersLoading(true)
     void usersService
-      .getUsers({ scope: 'members', limit: 100, page: 1 })
+      .getUsers({ scope: 'members', user_type: 'admin', limit: 100, page: 1 })
       .then((r) => {
-        if (!cancelled) setTeamMembers(r.users)
+        if (!cancelled) setTeamMembers(filterUsersForAudience(r.users, 'members'))
       })
       .catch(() => {
         if (!cancelled) setTeamMembers([])

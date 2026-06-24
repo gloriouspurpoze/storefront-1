@@ -1,6 +1,8 @@
 import type { InternalLinkRow } from '../components/cms/SeoLandingInternalLinksEditor'
+import { resolveSeoLandingRoutingSlugs } from './seoLandingRouting'
 import { buildNearMeCategoryPublicPath, buildNearMeLocalityPublicPath } from './nearMeSeo'
 import {
+  buildEmergencyLocalityPublicPath,
   buildServiceLocalityPublicPath,
   getPreferredServiceCategoryUrlSlug,
 } from './serviceCatalogUrlSlugs'
@@ -29,19 +31,10 @@ export function suggestSeoLandingInternalLinks(
   catalogLabels?: Record<string, string>,
 ): InternalLinkRow[] {
   const links: InternalLinkRow[] = []
-  const serviceSlug = String(
-    draft.serviceSlug ??
-      (Array.isArray(draft.servicesOffered) ? draft.servicesOffered[0] : '') ??
-      '',
-  ).trim()
-  const locationSlug = String(
-    draft.locationSlug ??
-      (Array.isArray(draft.areasServed) ? draft.areasServed[0] : '') ??
-      (kind === 'locations' ? draft.slug : '') ??
-      '',
-  )
-    .trim()
-    .toLowerCase()
+  const { serviceSlug, locationSlug } = resolveSeoLandingRoutingSlugs(draft, {
+    kind,
+    pageSlug: String(draft.slug ?? ''),
+  })
   const locationName = String(draft.locationName ?? draft.name ?? '').trim()
   const locLabel = locationName || titleCaseArea(locationSlug)
   const catLabel = (serviceSlug && catalogLabels?.[serviceSlug]) || formatCategoryLabel(serviceSlug)
@@ -55,6 +48,10 @@ export function suggestSeoLandingInternalLinks(
     links.push({
       label: `${catLabel.toLowerCase()} near me in ${locLabel}`,
       url: buildNearMeLocalityPublicPath(serviceSlug, locationSlug),
+    })
+    links.push({
+      label: `Emergency ${catLabel} in ${locLabel}`,
+      url: buildEmergencyLocalityPublicPath(serviceSlug, locationSlug),
     })
   }
 

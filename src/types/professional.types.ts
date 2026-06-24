@@ -145,6 +145,11 @@ export interface Professional {
   /** Profixer platform commission % on job value (0–50). Partner keeps (100 − this)%. */
   commissionRate?: number
 
+  /** Partner loyalty program */
+  loyaltyTier?: 'bronze' | 'silver' | 'gold' | 'elite'
+  loyaltyScore?: number
+  loyaltyTierAssignedAt?: string
+
   // Timestamps
   createdAt: string
   updatedAt: string

@@ -654,6 +654,16 @@ export const routePermissions: RoutePermission[] = [
     requiredPermissions: ['view_users'],
     allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
   },
+  {
+    path: '/users/customers',
+    requiredPermissions: ['view_users'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
+  {
+    path: '/users/members',
+    requiredPermissions: ['view_users'],
+    allowedRoles: ['super_admin', 'admin', 'manager', 'staff']
+  },
   
   // Providers
   {
@@ -999,6 +1009,12 @@ export const routePermissions: RoutePermission[] = [
   {
     path: '/cms',
     requiredPermissions: ['manage_system_settings'],
+    allowedRoles: ['super_admin', 'admin', 'manager']
+  },
+  {
+    path: '/cms/email-templates',
+    requiredPermissions: ['view_cms', 'manage_cms', 'edit_settings', 'manage_system_settings'],
+    requireAll: false,
     allowedRoles: ['super_admin', 'admin', 'manager']
   },
 

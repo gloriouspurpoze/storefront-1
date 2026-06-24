@@ -56,7 +56,7 @@ const cards: {
   },
   {
     title: 'Supply quality',
-    description: 'Ratings, verification, completion signals — tier-ready workforce view.',
+    description: 'Partner loyalty tiers — rating, jobs, cancel rate, and priority for assignment.',
     href: '/operations/supply-quality',
     icon: Users,
   },

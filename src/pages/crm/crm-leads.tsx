@@ -1,5 +1,6 @@
 ﻿import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Download, Eye, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Download, Eye, Link2, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { PageHeader } from '../../components/common/PageHeader'
 import { CrmSubnav } from '../../components/crm/CrmSubnav'
 import { ConfirmDeleteDialog } from '../../components/crm/ConfirmDeleteDialog'
@@ -9,6 +10,7 @@ import { CrmEmptyState } from '../../components/crm/CrmEmptyState'
 import { CrmDataGridSkeleton } from '../../components/crm/CrmDataGridSkeleton'
 import { CrmContactDetailDrawer } from '../../components/crm/CrmRecordDrawers'
 import { CrmWhatsAppStaffPlaybook } from '../../components/crm/CrmWhatsAppStaffPlaybook'
+import { CrmPlatformSyncBanner } from '../../components/crm/CrmPlatformSyncBanner'
 import {
   DataGrid,
   GridActionsCellItem,
@@ -20,6 +22,7 @@ import { usePermissions } from '../../hooks/usePermissions'
 import { useCrmFieldAccess } from '../../hooks/useCrmFieldAccess'
 import { buildCrmContactUpsertPayload, canCreateContactWithPolicies } from '../../lib/crmContactUpsertPayload'
 import { useCrmSearchParam } from '../../hooks/useCrmUrlFilters'
+import { useCrmPlatformSync } from '../../hooks/useCrmPlatformSync'
 import { activitiesForContact, filterContacts } from '../../utils/crmFilters'
 import type { CrmActivity, CrmCompany, CrmContact, CrmContactLifecycle, CrmRecordType } from '../../types/crm.types'
 import {
@@ -31,6 +34,9 @@ import {
   PARTNER_FUNNEL,
   RECORD_TYPE_LABELS,
   isLeadLifecycle,
+  isContactLifecycle,
+  adminPathToBooking,
+  adminPathToUser,
 } from '../../lib/crmNiche'
 import { Card, CardContent } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
@@ -63,6 +69,12 @@ export function CrmLeads() {
   const { fields: crmFieldPolicies } = useCrmFieldAccess()
   const { qInput, setQInput, setParam, searchParams } = useCrmSearchParam()
   const lifecycleFilter = searchParams.get('lifecycle') ?? 'all'
+  const highlightId = searchParams.get('highlight')
+
+  const { syncing, lastSync, syncError, syncNow } = useCrmPlatformSync({
+    auto: canManage,
+    enabled: canManage,
+  })
 
   const [tick, setTick] = useState(0)
   const [open, setOpen] = useState(false)
@@ -178,6 +190,16 @@ export function CrmLeads() {
 
   const refresh = useCallback(() => setTick((x) => x + 1), [])
 
+  const handleSync = useCallback(async () => {
+    const stats = await syncNow()
+    if (stats && (stats.created > 0 || stats.updated > 0)) refresh()
+  }, [syncNow, refresh])
+
+  useEffect(() => {
+    if (!lastSync || (lastSync.created === 0 && lastSync.updated === 0)) return
+    refresh()
+  }, [lastSync, refresh])
+
   const openEdit = useCallback((row: CrmContact) => {
     setEditing(row)
     setForm({
@@ -241,7 +263,26 @@ export function CrmLeads() {
         ),
       },
       { field: 'locality', headerName: 'Locality', width: 120 },
-      { field: 'leadSource', headerName: 'Source', width: 120 },
+      { field: 'leadSource', headerName: 'Source', width: 130 },
+      {
+        field: 'platformLinks',
+        headerName: 'Platform',
+        width: 110,
+        sortable: false,
+        renderCell: (p) => {
+          const hasUser = Boolean(p.row.platformUserId?.trim())
+          const hasBooking = Boolean(p.row.platformBookingId?.trim())
+          if (!hasUser && !hasBooking) {
+            return <span className="text-xs text-muted-foreground">Manual</span>
+          }
+          return (
+            <div className="flex items-center gap-1">
+              <Link2 className="h-3.5 w-3.5 text-storm-deep" aria-hidden />
+              <span className="text-xs text-storm-deep">Linked</span>
+            </div>
+          )
+        },
+      },
       {
         field: 'companyId',
         headerName: 'B2B account',
@@ -302,7 +343,7 @@ export function CrmLeads() {
     <div className="p-4 md:p-6">
       <PageHeader
         title="Leads"
-        subtitle="Home service inquiries and partner onboarding — before job is paid or partner is active."
+        subtitle="Pre-job funnel — auto-synced from customer sign-ups and bookings; WhatsApp enquiries added manually."
         action={
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" className="gap-1" onClick={() => crmService.downloadExport('contacts')}>
@@ -341,9 +382,17 @@ export function CrmLeads() {
       />
       <CrmSubnav />
 
-      <div className="mb-4">
+      <CrmPlatformSyncBanner
+        syncing={syncing}
+        lastSync={lastSync}
+        syncError={syncError}
+        onSync={() => void handleSync()}
+        canManage={canManage}
+      />
+
+      {/* <div className="mb-4">
         <CrmWhatsAppStaffPlaybook />
-      </div>
+      </div> */}
 
       <CrmListToolbar qInput={qInput} onQChange={setQInput} searchPlaceholder="Search leads…">
         <div className="space-y-1.5">
@@ -382,7 +431,7 @@ export function CrmLeads() {
           <Card>
             <CrmEmptyState
               title="No leads in the funnel"
-              description="Start with WhatsApp as lead source, then log activities and link booking/order IDs when the job exists."
+              description="Customer sign-ups and bookings sync here automatically. For WhatsApp or phone enquiries, use New WhatsApp lead."
               actionLabel={canManage ? 'New WhatsApp lead' : undefined}
               onAction={canManage ? () => openNewLeadWithSource(CRM_WHATSAPP_LEAD_SOURCE) : undefined}
             />
@@ -399,6 +448,7 @@ export function CrmLeads() {
                 rows={filteredRows}
                 columns={columns}
                 getRowId={(r) => r.id}
+                getRowClassName={(p) => (highlightId && p.id === highlightId ? 'bg-primary/5' : '')}
                 pageSizeOptions={[10, 25, 50]}
                 initialPageSize={10}
                 checkboxSelection={canManage}
@@ -617,7 +667,14 @@ export function CrmLeads() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="ld-puid">Platform user ID</Label>
-              <p className="text-xs text-muted-foreground">Paste from Users when the customer already has an app account.</p>
+              <p className="text-xs text-muted-foreground">
+                Auto-filled when synced from Users. Only paste manually for legacy rows.
+              </p>
+              {form.platformUserId.trim() ? (
+                <Button type="button" variant="link" className="h-auto p-0 text-xs" asChild>
+                  <Link to={adminPathToUser(form.platformUserId.trim())}>Open user profile</Link>
+                </Button>
+              ) : null}
               <Input
                 id="ld-puid"
                 value={form.platformUserId}
@@ -627,7 +684,12 @@ export function CrmLeads() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="ld-pbid">Platform booking ID</Label>
-              <p className="text-xs text-muted-foreground">From Bookings when a slot/job exists.</p>
+              <p className="text-xs text-muted-foreground">Auto-filled when a booking exists for this customer.</p>
+              {form.platformBookingId.trim() ? (
+                <Button type="button" variant="link" className="h-auto p-0 text-xs" asChild>
+                  <Link to={adminPathToBooking(form.platformBookingId.trim())}>Open booking</Link>
+                </Button>
+              ) : null}
               <Input
                 id="ld-pbid"
                 value={form.platformBookingId}

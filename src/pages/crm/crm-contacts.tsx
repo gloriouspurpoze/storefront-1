@@ -23,12 +23,15 @@ import { useCrmSearchParam } from '../../hooks/useCrmUrlFilters'
 import { activitiesForContact, filterContacts } from '../../utils/crmFilters'
 import type { CrmActivity, CrmCompany, CrmContact, CrmContactLifecycle, CrmRecordType } from '../../types/crm.types'
 import {
-  ALL_CONTACT_LIFECYCLES,
   CONTACT_LIFECYCLE_LABELS,
   CRM_LEAD_SOURCE_PRESETS,
   CRM_WHATSAPP_LEAD_SOURCE,
   RECORD_TYPE_LABELS,
+  isContactLifecycle,
+  POST_FUNNEL_LIFECYCLES,
 } from '../../lib/crmNiche'
+import { CrmPlatformSyncBanner } from '../../components/crm/CrmPlatformSyncBanner'
+import { useCrmPlatformSync } from '../../hooks/useCrmPlatformSync'
 import { Card, CardContent } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
 import {
@@ -59,6 +62,12 @@ export function CrmContacts() {
   const { fields: crmFieldPolicies } = useCrmFieldAccess()
   const { qInput, setQInput, setParam, searchParams } = useCrmSearchParam()
   const lifecycleFilter = searchParams.get('lifecycle') ?? 'all'
+  const highlightId = searchParams.get('highlight')
+
+  const { syncing, lastSync, syncError, syncNow } = useCrmPlatformSync({
+    auto: canManage,
+    enabled: canManage,
+  })
 
   const [tick, setTick] = useState(0)
   const [open, setOpen] = useState(false)
@@ -109,10 +118,24 @@ export function CrmContacts() {
     [companies]
   )
 
+  const contactRows = useMemo(() => rows.filter((c) => isContactLifecycle(c.lifecycle)), [rows])
+
   const filteredRows = useMemo(
-    () => filterContacts(rows, qInput, lifecycleFilter, companyName),
-    [rows, qInput, lifecycleFilter, companyName]
+    () => filterContacts(contactRows, qInput, lifecycleFilter, companyName),
+    [contactRows, qInput, lifecycleFilter, companyName]
   )
+
+  const refresh = useCallback(() => setTick((x) => x + 1), [])
+
+  const handleSync = useCallback(async () => {
+    const stats = await syncNow()
+    if (stats && (stats.created > 0 || stats.updated > 0)) refresh()
+  }, [syncNow, refresh])
+
+  useEffect(() => {
+    if (!lastSync || (lastSync.created === 0 && lastSync.updated === 0)) return
+    refresh()
+  }, [lastSync, refresh])
 
   const [form, setForm] = useState({
     firstName: '',
@@ -197,8 +220,6 @@ export function CrmContacts() {
     })
     setOpen(true)
   }, [])
-
-  const refresh = useCallback(() => setTick((x) => x + 1), [])
 
   const runDeleteIds = async (ids: string[]) => {
     setDeleteLoading(true)
@@ -301,13 +322,13 @@ export function CrmContacts() {
   const drawerActivities = drawerContact ? activitiesForContact(activities, drawerContact.id) : []
   const drawerCompanyName = drawerContact?.companyId ? companyName(drawerContact.companyId) : undefined
 
-  const isEmpty = !loading && !loadError && rows.length === 0
+  const isEmpty = !loading && !loadError && contactRows.length === 0
 
   return (
     <div className="p-4 md:p-6">
       <PageHeader
         title="Contacts"
-        subtitle="Customers, partners, and B2B contacts — link to platform user / booking / order when known."
+        subtitle="Post-conversion customers & active partners — auto-promoted from Leads when jobs complete or repeat."
         action={
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" className="gap-1" onClick={() => crmService.downloadExport('contacts')}>
@@ -331,9 +352,17 @@ export function CrmContacts() {
       />
       <CrmSubnav />
 
-      <div className="mb-4">
+      <CrmPlatformSyncBanner
+        syncing={syncing}
+        lastSync={lastSync}
+        syncError={syncError}
+        onSync={() => void handleSync()}
+        canManage={canManage}
+      />
+
+      {/* <div className="mb-4">
         <CrmWhatsAppStaffPlaybook />
-      </div>
+      </div> */}
 
       <CrmListToolbar qInput={qInput} onQChange={setQInput} searchPlaceholder="Search contacts…">
         <div className="space-y-1.5">
@@ -344,7 +373,7 @@ export function CrmContacts() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All</SelectItem>
-              {ALL_CONTACT_LIFECYCLES.map((s) => (
+              {POST_FUNNEL_LIFECYCLES.map((s) => (
                 <SelectItem key={s} value={s}>
                   {CONTACT_LIFECYCLE_LABELS[s]}
                 </SelectItem>
@@ -372,7 +401,7 @@ export function CrmContacts() {
           <Card>
             <CrmEmptyState
               title="No contacts yet"
-              description="Add homeowners, partners, or B2B contacts and link them to the platform when IDs exist."
+              description="Customers appear here after jobs complete or when marked repeat/paid. Platform sync promotes leads automatically."
               actionLabel={canManage ? 'Add contact' : undefined}
               onAction={canManage ? openCreate : undefined}
             />
@@ -382,13 +411,14 @@ export function CrmContacts() {
       >
         <Card>
           <CardContent className="p-0">
-            {filteredRows.length === 0 && rows.length > 0 ? (
+            {filteredRows.length === 0 && contactRows.length > 0 ? (
               <CrmEmptyState title="No matching contacts" description="Try adjusting search or lifecycle filter." />
             ) : (
               <DataGrid
                 rows={filteredRows}
                 columns={columns}
                 getRowId={(r) => r.id}
+                getRowClassName={(p) => (highlightId && p.id === highlightId ? 'bg-primary/5' : '')}
                 pageSizeOptions={[10, 25, 50]}
                 initialPageSize={10}
                 checkboxSelection={canManage}
@@ -550,7 +580,7 @@ export function CrmContacts() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {ALL_CONTACT_LIFECYCLES.map((s) => (
+                  {POST_FUNNEL_LIFECYCLES.map((s) => (
                     <SelectItem key={s} value={s}>
                       {CONTACT_LIFECYCLE_LABELS[s]}
                     </SelectItem>

@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/button'
 const tabs = [
   { to: '/operations/commercial/terms', label: 'Fees & commissions' },
   { to: '/operations/commercial/cities', label: 'Operating cities' },
+  { to: '/operations/commercial/loyalty', label: 'Partner loyalty' },
 ] as const
 
 export function OperationsCommercialLayout() {
