@@ -12,7 +12,8 @@ import {
 } from './useMenuCart'
 import { showPreferredDateOfDelivery } from '@/lib/templateSettings'
 import { isMenuItemInStock } from '@/lib/storefront-api'
-import { AccountNavLink } from '@/components/account/AccountNavLink'
+import { AccountProfileLink } from '@/components/account/AccountProfileLink'
+import { StorefrontMenuDrawer } from '@/components/StorefrontMenuDrawer'
 import './menufast.css'
 
 function WhatsAppIcon() {
@@ -40,6 +41,7 @@ export function MenuFastMinimalPage({
   const { entries, itemCount, subtotal, addItem, removeItem, qtyFor, clearCart } =
     useMenuCart(initialCategories)
   const [orderNumber, setOrderNumber] = useState<string | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const waUrl = buildWhatsAppOrderUrl(whatsapp, siteName, entries)
   const currency = entries[0]?.item.currency ?? 'INR'
@@ -66,6 +68,12 @@ export function MenuFastMinimalPage({
 
   return (
     <div className="mf-root">
+      <StorefrontMenuDrawer
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        config={config}
+        showShippingPolicy={false}
+      />
       <div className="mf-phone-wrap">
         <div className="mf-phone">
           <div className="mf-phone-bar">
@@ -73,6 +81,18 @@ export function MenuFastMinimalPage({
           </div>
 
           <div className="mf-min-header">
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginBottom: '0.5rem' }}>
+              <button
+                type="button"
+                className="sf-menu-toggle-btn"
+                onClick={() => setMenuOpen(true)}
+                aria-expanded={menuOpen}
+                aria-label="Open menu"
+              >
+                ☰
+              </button>
+              <AccountProfileLink className="inline-flex items-center justify-center hover:opacity-80" />
+            </div>
             <div className="mf-min-logo-row">
               <div className="mf-min-logo">
                 {logoUrl ? (
@@ -166,9 +186,6 @@ export function MenuFastMinimalPage({
                 Or order via WhatsApp
               </a>
             )}
-            <div className="mf-auth-links">
-              <AccountNavLink />
-            </div>
             <div className="mf-powered">Powered by Profixer</div>
           </div>
         </div>

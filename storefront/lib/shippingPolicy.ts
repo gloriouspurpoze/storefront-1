@@ -22,7 +22,7 @@ export function getShippingPolicyFromConfig(
     summary: raw.summary?.trim() || undefined,
     body: raw.body?.trim() || undefined,
     processingNote: raw.processingNote?.trim() || undefined,
-    zones: raw.zones?.filter((z) => z.label?.trim() || z.details?.trim()),
+    zones: raw.zones?.filter((z: ShippingPolicyZone) => z.label?.trim() || z.details?.trim()),
   }
 }
 

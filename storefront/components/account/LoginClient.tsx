@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState, type FormEvent } from 'react'
 import { useAccountAuth } from './AccountAuthProvider'
 import {
+  isGoogleSignInConfigured,
   sendPhoneOtp,
   signInWithGoogle,
   verifyPhoneOtp,
@@ -47,6 +48,7 @@ export function LoginClient() {
 
   const returnUrl = searchParams.get('returnUrl') || '/account'
   const isSignup = searchParams.get('signup') === '1'
+  const googleEnabled = isGoogleSignInConfigured()
 
   useEffect(() => {
     if (isReady && isAuthenticated) {
@@ -112,8 +114,12 @@ export function LoginClient() {
         </h1>
         <p className="mt-2 text-sm text-neutral-500">
           {isSignup
-            ? 'Use Google or your phone number to create an account and track orders from this store.'
-            : 'View your order history and track purchases from this store.'}
+            ? googleEnabled
+              ? 'Use Google or your phone number to create an account and track orders from this store.'
+              : 'Use your phone number to create an account and track orders from this store.'
+            : googleEnabled
+              ? 'View your order history and track purchases from this store.'
+              : 'Sign in with your phone number to view your order history and track purchases from this store.'}
         </p>
         <p className="mt-3 text-sm text-neutral-600">
           {isSignup ? (
@@ -145,21 +151,25 @@ export function LoginClient() {
           </p>
         ) : null}
 
-        <button
-          type="button"
-          onClick={onGoogle}
-          disabled={googleLoading}
-          className="mt-6 flex w-full items-center justify-center gap-3 rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm font-medium text-neutral-800 transition hover:bg-neutral-50 disabled:opacity-60"
-        >
-          <GoogleMark />
-          {googleLoading ? 'Signing in…' : 'Continue with Google'}
-        </button>
+        {googleEnabled ? (
+          <>
+            <button
+              type="button"
+              onClick={onGoogle}
+              disabled={googleLoading}
+              className="mt-6 flex w-full items-center justify-center gap-3 rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm font-medium text-neutral-800 transition hover:bg-neutral-50 disabled:opacity-60"
+            >
+              <GoogleMark />
+              {googleLoading ? 'Signing in…' : 'Continue with Google'}
+            </button>
 
-        <div className="my-6 flex items-center gap-3">
-          <div className="h-px flex-1 bg-neutral-200" />
-          <span className="text-xs text-neutral-400">or</span>
-          <div className="h-px flex-1 bg-neutral-200" />
-        </div>
+            <div className="my-6 flex items-center gap-3">
+              <div className="h-px flex-1 bg-neutral-200" />
+              <span className="text-xs text-neutral-400">or</span>
+              <div className="h-px flex-1 bg-neutral-200" />
+            </div>
+          </>
+        ) : null}
 
         {!otpSent ? (
           <form onSubmit={onSendOtp} className="space-y-4">

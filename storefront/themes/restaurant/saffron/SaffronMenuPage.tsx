@@ -7,6 +7,7 @@ import type { ThemeTenant } from '../types'
 import { SaffronHeader } from './SaffronHeader'
 import { SaffronHero } from './SaffronHero'
 import { SaffronFooter } from './SaffronFooter'
+import { StorefrontMenuDrawer } from '@/components/StorefrontMenuDrawer'
 import { MenuOrderCheckoutBlock } from '../MenuOrderCheckoutBlock'
 import { DeliveryDetailsSection } from '@/components/DeliveryDetailsSection'
 import {
@@ -742,6 +743,7 @@ export function SaffronMenuPage({
   const [promoApplied, setPromoApplied] = useState(false)
   const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>('delivery')
   const [mobileCartOpen, setMobileCartOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [orderPlaced, setOrderPlaced] = useState(false)
   const [placedOrderNumber, setPlacedOrderNumber] = useState('')
@@ -904,11 +906,19 @@ export function SaffronMenuPage({
         lineHeight: '1.6',
       }}
     >
+      <StorefrontMenuDrawer
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        config={config}
+        showShippingPolicy={false}
+      />
       {/* Sticky header with live cart count */}
       <SaffronHeader
         tenant={tenant}
+        config={config}
         cartCount={totalCartCount}
         onCartClick={() => setMobileCartOpen(true)}
+        onMenuOpen={() => setMenuOpen(true)}
       />
 
       {/* Dark hero banner */}
