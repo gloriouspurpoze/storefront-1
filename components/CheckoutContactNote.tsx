@@ -5,13 +5,19 @@ import type { ReactNode } from 'react'
 export function SignedInCheckoutNote({
   email,
   children,
+  className,
 }: {
   email: string
   children?: ReactNode
-}) 
-{
+  className?: string
+}) {
   return (
-    <p className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
+    <p
+      className={
+        className ??
+        'rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600'
+      }
+    >
       {children ?? (
         <>
           Signed in — order confirmation will be sent to{' '}

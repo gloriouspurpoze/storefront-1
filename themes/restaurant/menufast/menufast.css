@@ -493,3 +493,183 @@
   color: #999;
   font-size: 14px;
 }
+
+/* ─── Account pages ─────────────────────────────────────────────────────────── */
+.mf-account-page {
+  min-height: 100vh;
+  background: #f0ede8;
+  font-family: 'DM Sans', sans-serif;
+  color: #1a1a1a;
+}
+
+.mf-account-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  background: #fff;
+  border-bottom: 1px solid #e8e4de;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.mf-account-brand {
+  font-family: 'Fraunces', serif;
+  font-size: 1.1rem;
+  font-weight: 400;
+  color: #1a1a1a;
+  text-decoration: none;
+}
+
+.mf-account-nav {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.mf-account-nav-link {
+  font-size: 0.8rem;
+  color: #666;
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0;
+}
+
+.mf-account-nav-link:hover,
+.mf-account-nav-link--active {
+  color: #1a1a1a;
+  font-weight: 500;
+}
+
+.mf-account-store-link {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #fff;
+  background: #1a1a1a;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+}
+
+.mf-account-main {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+.mf-account-footer {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #888;
+  padding: 20px;
+}
+
+.mf-acct-content { width: 100%; }
+.mf-acct-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 24px 20px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+}
+.mf-acct-title { font-family: 'Fraunces', serif; font-size: 1.5rem; margin: 0; }
+.mf-acct-subtitle { margin-top: 8px; font-size: 0.85rem; color: #666; }
+.mf-acct-text { font-size: 0.85rem; color: #444; }
+.mf-acct-muted { font-size: 0.82rem; color: #888; }
+.mf-acct-link { font-weight: 500; color: #1a1a1a; text-decoration: underline; }
+.mf-acct-error {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fdecea;
+  color: #c62828;
+  font-size: 0.82rem;
+}
+.mf-acct-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 20px;
+  font-family: inherit;
+  font-weight: 500;
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-decoration: none;
+}
+.mf-acct-btn--primary { background: #1a1a1a; color: #fff; padding: 12px 20px; }
+.mf-acct-btn--secondary { background: #f0ede8; color: #1a1a1a; padding: 12px 20px; }
+.mf-acct-btn--google {
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid #e0ddd8;
+  color: #1a1a1a;
+}
+.mf-acct-btn--block { width: 100%; }
+.mf-acct-divider { margin: 16px 0; display: flex; align-items: center; gap: 10px; color: #999; font-size: 0.72rem; }
+.mf-acct-phone-row { margin-top: 6px; display: flex; gap: 8px; }
+.mf-acct-phone-prefix {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid #e0ddd8;
+  background: #f5f5f3;
+  font-size: 0.85rem;
+}
+.mf-acct-empty {
+  background: #fff;
+  border-radius: 20px;
+  padding: 36px 20px;
+  text-align: center;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+}
+.mf-acct-empty-title { font-family: 'Fraunces', serif; font-size: 1.1rem; }
+.mf-acct-page-title { font-family: 'Fraunces', serif; font-size: 1.6rem; margin: 0; }
+.mf-acct-page-sub { margin-top: 6px; font-size: 0.85rem; color: #666; }
+.mf-acct-order-list { list-style: none; margin: 0; padding: 0; }
+.mf-acct-order {
+  width: 100%;
+  text-align: left;
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  border: none;
+}
+.mf-acct-order--expanded { box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); }
+.mf-acct-order-meta { font-size: 0.78rem; color: #888; margin-top: 2px; }
+.mf-acct-order-items {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0ede8;
+  font-size: 0.82rem;
+  list-style: none;
+}
+.mf-acct-tracking {
+  margin-bottom: 12px;
+  padding: 14px;
+  background: #f9f8f6;
+  border-radius: 12px;
+}
+.mf-acct-form { display: flex; flex-direction: column; gap: 14px; }
+.mf-acct-label { display: block; font-size: 0.82rem; font-weight: 500; }
+.mf-acct-input {
+  margin-top: 6px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #e0ddd8;
+  font-family: inherit;
+  font-size: 0.85rem;
+}
+.mf-acct-track-footer { margin-top: 24px; text-align: center; font-size: 0.82rem; color: #888; }

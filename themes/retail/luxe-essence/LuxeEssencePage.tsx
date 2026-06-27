@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { PublicProduct, StorefrontConfig } from '@/lib/storefront-api'
 import { DeliveryDetailsSection } from '@/components/DeliveryDetailsSection'
-import { SignedInCheckoutNote } from '@/components/CheckoutContactNote'
+// import { SignedInCheckoutNote } from '@/components/CheckoutContactNote'
 import { runStorefrontCheckout } from '@/lib/runStorefrontCheckout'
 import { resolveCheckoutContactForSubmit } from '@/lib/storefrontCustomerContact'
 import { useCheckoutCustomerPrefill } from '@/lib/useCheckoutCustomerPrefill'
@@ -527,7 +527,7 @@ export function LuxeEssencePage({
             </div>
 
             <div className="le-form-section-title">Contact</div>
-            {lockedEmail && prefillEmail ? <SignedInCheckoutNote email={prefillEmail} /> : null}
+            {/* {lockedEmail && prefillEmail ? <SignedInCheckoutNote email={prefillEmail} /> : null} */}
             <div className="le-form-group">
               <label htmlFor="le-name">Full name</label>
               <input

@@ -5,6 +5,15 @@ import { createPortal } from 'react-dom'
 import type { PublicProduct, StorefrontConfig } from '@/lib/storefront-api'
 import { fetchProducts } from '@/lib/storefront-api'
 import { runStorefrontCheckout } from '@/lib/runStorefrontCheckout'
+import {
+  getOrderingAvailabilityFromConfig,
+  getOrderingHoursFromConfig,
+  isStoreOpenNow,
+  ORDERING_DAY_KEYS,
+  ORDERING_DAY_LABELS,
+  formatDayOrderingHours,
+} from '@/lib/orderingHours'
+import { getShippingPolicyFromConfig } from '@/lib/shippingPolicy'
 import type { ThemeTenant } from '@/themes/restaurant/types'
 import { BB_IMG_FALLBACK } from './catalog'
 import { layoutBrownButterProducts, type TinGroup } from './productLayout'
@@ -22,7 +31,69 @@ function formatInr(n: number): string {
   return `₹${n.toLocaleString('en-IN')}`
 }
 
-function BbImage({ src, alt, style }: { src?: string; alt: string; style?: React.CSSProperties }) {
+function categoryEmoji(sectionId: string, label: string): string {
+  const key = `${sectionId} ${label}`.toLowerCase()
+  if (key.includes('tin')) return '🎁'
+  if (key.includes('cake')) return '🎂'
+  if (key.includes('brownie')) return '🍫'
+  if (key.includes('cup')) return '🧁'
+  return '🍪'
+}
+
+function summarizeStoreHours(config: StorefrontConfig | null): string {
+  const hours = getOrderingHoursFromConfig(config)
+  const openDays = ORDERING_DAY_KEYS.filter((d) => !hours[d].closed)
+  if (openDays.length === 0) return 'Currently closed'
+
+  const timeLabel = formatDayOrderingHours(hours[openDays[0]])
+  const allSameHours = openDays.every(
+    (d) =>
+      formatDayOrderingHours(hours[d]) === timeLabel &&
+      hours[d].openTime === hours[openDays[0]].openTime &&
+      hours[d].closeTime === hours[openDays[0]].closeTime,
+  )
+
+  if (openDays.length === 7 && allSameHours) return `Daily · ${timeLabel}`
+  if (
+    openDays.length === 6 &&
+    hours.sunday.closed &&
+    !hours.monday.closed &&
+    allSameHours
+  ) {
+    return `Mon – Sat · ${timeLabel}`
+  }
+
+  const first = ORDERING_DAY_LABELS[openDays[0]].slice(0, 3)
+  const last = ORDERING_DAY_LABELS[openDays[openDays.length - 1]].slice(0, 3)
+  return `${first} – ${last} · ${timeLabel}`
+}
+
+function formatDeliverySummary(config: StorefrontConfig | null): string {
+  const policy = getShippingPolicyFromConfig(config)
+  if (policy.summary) return policy.summary
+  if (policy.zones?.length) {
+    return policy.zones
+      .map((z) => {
+        const fee = z.fee?.trim()
+        if (fee) return `${z.label} ${fee}`
+        return z.details ? `${z.label} · ${z.details}` : z.label
+      })
+      .join(' · ')
+  }
+  return 'Mira Road free · Mumbai ₹70 · Outside 2–7 days'
+}
+
+function BbImage({
+  src,
+  alt,
+  className,
+  style,
+}: {
+  src?: string
+  alt: string
+  className?: string
+  style?: React.CSSProperties
+}) {
   const [url, setUrl] = useState(src || BB_IMG_FALLBACK)
   useEffect(() => {
     setUrl(src || BB_IMG_FALLBACK)
@@ -30,7 +101,7 @@ function BbImage({ src, alt, style }: { src?: string; alt: string; style?: React
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      className="item-img"
+      className={className ?? 'card-img'}
       src={url}
       alt={alt}
       width={400}
@@ -57,25 +128,64 @@ function ProductCard({
   const outOfStock = !product.inStock
 
   return (
-    <div className={`menu-item cup${selected ? ' has-selection' : ''}`} data-id={product.slug}>
-      <div className="img-wrap">
+    <div
+      className={`product-card${selected ? ' selected' : ''}${selected ? ' show-stepper' : ''}`}
+      data-id={product.slug}
+      onClick={() => {
+        if (!outOfStock && !selected) onAdd()
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && !outOfStock && !selected) onAdd()
+      }}
+      role={outOfStock ? undefined : 'button'}
+      tabIndex={outOfStock ? undefined : 0}
+    >
+      <div className="card-img-wrap">
         <BbImage src={product.imageUrl} alt={product.name} />
+        <div className="veg-dot" aria-label="Vegetarian" />
         <div className="check-badge">✓</div>
       </div>
-      <div className="item-body">
-        <div className="item-name">{product.name}</div>
-        <div className="item-desc">{product.shortDescription ?? product.description ?? ''}</div>
-        <div className="cup-bottom">
-          <div className="item-price">{formatInr(product.price)}</div>
+      <div className="card-body">
+        <div className="card-name">{product.name}</div>
+        <div className="card-desc">{product.shortDescription ?? product.description ?? ''}</div>
+        <div className="card-bottom">
+          <div className="card-price">{formatInr(product.price)}</div>
           {outOfStock ? (
-            <span className="variant-name" style={{ opacity: 0.6 }}>Sold out</span>
+            <span className="sold-out-label">Sold out</span>
           ) : !selected ? (
-            <button type="button" className="add-btn" onClick={onAdd}>Add</button>
+            <button
+              type="button"
+              className="add-btn"
+              onClick={(e) => {
+                e.stopPropagation()
+                onAdd()
+              }}
+            >
+              + Add
+            </button>
           ) : (
             <div className="qty-stepper">
-              <button type="button" className="qty-btn" onClick={() => onSetQty(qty - 1)}>−</button>
+              <button
+                type="button"
+                className="qty-btn"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onSetQty(qty - 1)
+                }}
+              >
+                −
+              </button>
               <span className="qty-num">{qty}</span>
-              <button type="button" className="qty-btn" onClick={() => onSetQty(qty + 1)}>+</button>
+              <button
+                type="button"
+                className="qty-btn"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onSetQty(qty + 1)
+                }}
+              >
+                +
+              </button>
             </div>
           )}
         </div>
@@ -98,43 +208,104 @@ function TinGroupCard({
   const groupSelected = group.variants.some((v) => qtyFor(v.id) > 0)
 
   return (
-    <div className={`menu-item${groupSelected ? ' has-selection' : ''}`} data-id={group.id}>
-      <div className="img-wrap">
+    <div className={`tin-card${groupSelected ? ' selected' : ''}`} data-id={group.id}>
+      <div className="card-img-wrap">
         <BbImage src={group.img} alt={group.name} />
         <div className="check-badge">✓</div>
       </div>
-      <div className="item-body">
-        <div className="item-name">{group.name}</div>
-        <div className="item-desc">{group.desc}</div>
-        <div className="variant-rows">
-          {group.variants.map((v) => {
-            const qty = qtyFor(v.id)
-            const active = qty > 0
-            const outOfStock = !v.inStock
-            return (
-              <div key={v.id} className={`variant-item${active ? ' active' : ''}`}>
-                <div className="variant-left">
-                  <span className="variant-name">{v.sizeLabel}</span>
-                  <span className="variant-price">{formatInr(v.price)}</span>
-                </div>
-                <div className="variant-right">
-                  {outOfStock ? (
-                    <span className="variant-name" style={{ opacity: 0.6 }}>Sold out</span>
-                  ) : !active ? (
-                    <button type="button" className="v-add-btn" onClick={() => onAdd(v)}>Add</button>
-                  ) : (
-                    <div className="v-qty-stepper">
-                      <button type="button" className="v-qty-btn" onClick={() => onSetQty(v, qty - 1)}>−</button>
-                      <span className="v-qty-num">{qty}</span>
-                      <button type="button" className="v-qty-btn" onClick={() => onSetQty(v, qty + 1)}>+</button>
-                    </div>
-                  )}
-                </div>
+      <div className="card-body card-body--compact">
+        <div className="card-name">{group.name}</div>
+        <div className="card-desc">{group.desc}</div>
+      </div>
+      <div className="variant-rows">
+        {group.variants.map((v) => {
+          const qty = qtyFor(v.id)
+          const active = qty > 0
+          const outOfStock = !v.inStock
+          return (
+            <div
+              key={v.id}
+              className={`variant-item${active ? ' active v-show-stepper' : ''}`}
+            >
+              <div className="variant-left">
+                <span className="variant-size">{v.sizeLabel}</span>
+                <span className="variant-price">{formatInr(v.price)}</span>
               </div>
-            )
-          })}
+              <div className="variant-right">
+                {outOfStock ? (
+                  <span className="sold-out-label">Sold out</span>
+                ) : !active ? (
+                  <button type="button" className="v-add-btn" onClick={() => onAdd(v)}>
+                    + Add
+                  </button>
+                ) : (
+                  <div className="v-qty-stepper">
+                    <button type="button" className="v-qty-btn" onClick={() => onSetQty(v, qty - 1)}>
+                      −
+                    </button>
+                    <span className="v-qty-num">{qty}</span>
+                    <button type="button" className="v-qty-btn" onClick={() => onSetQty(v, qty + 1)}>
+                      +
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function StoreFooter({
+  config,
+  contactPhone,
+}: {
+  config: StorefrontConfig | null
+  contactPhone?: string
+}) {
+  const pickup = config?.branding?.address || 'Near Tanwar Hospital, Mira Road'
+  const whatsapp = config?.branding?.socials?.whatsapp || contactPhone
+  const waHref = whatsapp ? `https://wa.me/${whatsapp.replace(/\D/g, '')}` : undefined
+
+  return (
+    <div className="store-footer">
+      <div className="footer-row">
+        <div className="footer-icon">🕐</div>
+        <div className="footer-text">
+          <div className="footer-label">Store hours</div>
+          <div className="footer-value">{summarizeStoreHours(config)}</div>
         </div>
       </div>
+      <div className="footer-row">
+        <div className="footer-icon">📍</div>
+        <div className="footer-text">
+          <div className="footer-label">Pickup location</div>
+          <div className="footer-value">{pickup}</div>
+        </div>
+      </div>
+      <div className="footer-row">
+        <div className="footer-icon">🚚</div>
+        <div className="footer-text">
+          <div className="footer-label">Delivery</div>
+          <div className="footer-value">{formatDeliverySummary(config)}</div>
+        </div>
+      </div>
+      {contactPhone ? (
+        <div className="footer-row">
+          <div className="footer-icon">💬</div>
+          <div className="footer-text">
+            <div className="footer-label">Questions?</div>
+            <div className="footer-value">{contactPhone}</div>
+          </div>
+          {waHref ? (
+            <a className="footer-wa-btn" href={waHref} target="_blank" rel="noopener noreferrer">
+              WhatsApp
+            </a>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -152,6 +323,12 @@ export function BrownButterPage({
   const headerTitle = config?.branding?.tagline || '📍 Delivering Across Mumbai'
   const logoUrl = config?.branding?.logoUrl || tenant.logoUrl || '/private/thebrownbutter/media/logo.jpeg'
   const contactPhone = config?.branding?.contactPhone || config?.branding?.socials?.whatsapp
+  const heroLocation =
+    config?.branding?.address?.split(',')[0]?.trim() || 'Mira Road, Mumbai'
+
+  const orderingHours = useMemo(() => getOrderingHoursFromConfig(config), [config])
+  const orderingAvailability = useMemo(() => getOrderingAvailabilityFromConfig(config), [config])
+  const storeOpen = useMemo(() => isStoreOpenNow(orderingHours), [orderingHours])
 
   const { entries, itemCount, subtotal, add, setQty, qtyFor, clear } = useBrownButterCart()
   const [products, setProducts] = useState<PublicProduct[]>(initialProducts)
@@ -162,6 +339,7 @@ export function BrownButterPage({
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [noItemWarn, setNoItemWarn] = useState(false)
+  const [activeCategory, setActiveCategory] = useState('all')
 
   const [delivery, setDelivery] = useState<DeliveryMode>('pickup')
   const [pincode, setPincode] = useState('')
@@ -179,6 +357,15 @@ export function BrownButterPage({
   }, [])
 
   useEffect(() => {
+    const onScroll = () => {
+      document.querySelector('.sf-store-header')?.classList.toggle('scrolled', window.scrollY > 10)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  useEffect(() => {
     if (initialProducts.length > 0) {
       setProducts(initialProducts)
       setProductsLoading(false)
@@ -192,6 +379,26 @@ export function BrownButterPage({
   }, [tenant.id, initialProducts])
 
   const sections = useMemo(() => layoutBrownButterProducts(products), [products])
+
+  const categoryTabs = useMemo(() => {
+    const tabs: Array<{ id: string; label: string; emoji: string }> = [
+      { id: 'all', label: 'All', emoji: '🍪' },
+    ]
+    for (const section of sections) {
+      if (section.tinGroups.length + section.cards.length === 0) continue
+      tabs.push({
+        id: section.id,
+        label: section.label,
+        emoji: categoryEmoji(section.id, section.label),
+      })
+    }
+    return tabs
+  }, [sections])
+
+  const visibleSections = useMemo(() => {
+    if (activeCategory === 'all') return sections
+    return sections.filter((s) => s.id === activeCategory)
+  }, [sections, activeCategory])
 
   const showCartBar = itemCount > 0 && view === 'menu'
 
@@ -281,7 +488,7 @@ export function BrownButterPage({
   if (view === 'success') {
     return (
       <div className="bb-root bb-page">
-        <div className="bb-card">
+        <div className="bb-success-card">
           <div className="success-screen" style={{ display: 'block' }}>
             <span className="big-emoji">🍪</span>
             <h2>Order received!</h2>
@@ -440,55 +647,86 @@ export function BrownButterPage({
 
   return (
     <div className="bb-root bb-page">
-      <StorefrontMenuDrawer
-        open={menuOpen}
-        onClose={() => setMenuOpen(false)}
-        config={config}
-        showShippingPolicy={false}
-      />
+      <StorefrontMenuDrawer open={menuOpen} onClose={() => setMenuOpen(false)} config={config} />
       <StorefrontHeaderBar
         title={headerTitle}
-        subtitle={siteName}
         onMenuOpen={() => setMenuOpen(true)}
-        actions={<AccountProfileLink className="inline-flex items-center justify-center text-lg hover:opacity-80" />}
+        actions={
+          <AccountProfileLink className="action-profile-btn" iconClassName="h-4 w-4" />
+        }
       />
-      <div className="bb-card">
-        <div id="form-view">
-          <div className="logo-ring">
-            <BbImage src={logoUrl} alt={`${siteName} logo`} />
+
+      <div className="bb-store-wrap">
+        <section className="hero">
+          <div className="status-card">
+            <div className="status-left">
+              <div className={`status-indicator${storeOpen ? '' : ' status-indicator--closed'}`} />
+              <div className="status-details">
+                <p>{storeOpen ? 'Accepting Orders Fresh Daily' : 'Currently Closed'}</p>
+                <span>
+                  {orderingAvailability.slotsNote || 'Delivery slots start at 11:00 AM IST'}
+                </span>
+              </div>
+            </div>
+            <div className={`status-badge${storeOpen ? '' : ' status-badge--closed'}`}>
+              {storeOpen ? 'Open' : 'Closed'}
+            </div>
           </div>
-          <h1>
-            <span className="h1-text">Place an Order</span> 🍪
-          </h1>
-          <p className="sub">
-            Fresh baked. <span>Mumbai</span> delivery.
+
+          <div className="hero-img-ring">
+            <BbImage src={logoUrl} alt={`${siteName} logo`} className="hero-logo-img" />
+          </div>
+          <h1 className="hero-title">{siteName}</h1>
+          <p className="hero-sub">
+            Fresh baked · <strong>{heroLocation}</strong>
           </p>
 
-          <div className="hero-badges">
-            <span className="hero-badge">🧈 Small-batch</span>
-            <span className="hero-badge">🚚 Mumbai-wide</span>
-            <span className="hero-badge">⭐ Baked fresh daily</span>
+          <div className="trust-badges">
+            <span className="trust-badge">🧈 Small-batch</span>
+            <span className="trust-badge">⭐ Baked fresh daily</span>
+            <span className="trust-badge">🎁 Custom orders</span>
           </div>
+        </section>
 
+        {categoryTabs.length > 1 && (
+          <div className="cat-nav-wrap">
+            <div className="cat-nav" role="tablist" aria-label="Menu categories">
+              {categoryTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeCategory === tab.id}
+                  className={`cat-tab${activeCategory === tab.id ? ' active' : ''}`}
+                  onClick={() => setActiveCategory(tab.id)}
+                >
+                  <span className="tab-emoji">{tab.emoji}</span> {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="menu-content">
           {productsLoading && (
-            <p className="footer-note" style={{ marginTop: 24 }}>
-              Loading menu…
-            </p>
+            <p className="menu-empty-note">Loading menu…</p>
           )}
 
           {!productsLoading && !hasMenu && (
-            <p className="footer-note" style={{ marginTop: 24 }}>
+            <p className="menu-empty-note">
               No products available yet. Check back soon or contact us to order.
             </p>
           )}
 
-          {sections.map((section) => {
-            const itemCount = section.tinGroups.length + section.cards.length
-            if (itemCount === 0) return null
+          {visibleSections.map((section) => {
+            const sectionItems = section.tinGroups.length + section.cards.length
+            if (sectionItems === 0) return null
 
             return (
-              <div key={section.id} className="menu-section">
-                <div className="section-label">{section.label}</div>
+              <div key={section.id} className="menu-section" data-cat={section.id}>
+                <div className="menu-section-label">
+                  {categoryEmoji(section.id, section.label)} {section.label}
+                </div>
                 <div className="menu-grid">
                   {section.tinGroups.map((group) => (
                     <TinGroupCard
@@ -512,11 +750,9 @@ export function BrownButterPage({
               </div>
             )
           })}
-
-          <p className="footer-note">
-            Made fresh in <strong>Mira Road</strong> · {tenant.slug}
-          </p>
         </div>
+
+        <StoreFooter config={config} contactPhone={contactPhone} />
       </div>
 
       {mounted ? createPortal(cartChrome, document.body) : null}
