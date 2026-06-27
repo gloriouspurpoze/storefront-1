@@ -1,11 +1,19 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import { fetchCustomerOrders, type CustomerOrderSummary } from '@/lib/storefront-api'
+import { useCallback, useEffect, useState } from 'react'
+import {
+  fetchCustomerOrderTracking,
+  fetchCustomerOrders,
+  type CustomerOrderSummary,
+  type PublicOrderTracking,
+} from '@/lib/storefront-api'
 import { useAccountAuth } from './AccountAuthProvider'
+import { useAccountTheme } from './AccountThemeContext'
+import { accountThemeClasses } from './accountThemeClasses'
+import { AccountPageHeader } from './AccountPageHeader'
+import { OrderStatusBadge, OrderTrackingPanel } from './OrderTrackingPanel'
 import { displayName } from '@/lib/storefront-auth'
-import { resolveTrackingUrl } from '@/lib/carrierTracking'
 
 function formatMoney(amount: number): string {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount)
@@ -20,15 +28,17 @@ function formatDate(iso?: string): string {
   }
 }
 
-function statusLabel(status: string): string {
-  return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
-}
-
 export function OrderHistory({ tenantId }: { tenantId: string }) {
   const { user, tokens, isReady, isAuthenticated } = useAccountAuth()
+  const themeKey = useAccountTheme()
+  const t = accountThemeClasses(themeKey)
   const [orders, setOrders] = useState<CustomerOrderSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [expandedOrder, setExpandedOrder] = useState<string | null>(null)
+  const [trackingByOrder, setTrackingByOrder] = useState<Record<string, PublicOrderTracking>>({})
+  const [trackingLoading, setTrackingLoading] = useState<string | null>(null)
+  const [trackingError, setTrackingError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isReady) return
@@ -41,10 +51,7 @@ export function OrderHistory({ tenantId }: { tenantId: string }) {
     setLoading(true)
     setError(null)
 
-    fetchCustomerOrders({
-      tenantId,
-      accessToken: tokens.accessToken,
-    })
+    fetchCustomerOrders({ tenantId, accessToken: tokens.accessToken })
       .then((data) => {
         if (!cancelled) setOrders(data.orders)
       })
@@ -62,18 +69,54 @@ export function OrderHistory({ tenantId }: { tenantId: string }) {
     }
   }, [isReady, isAuthenticated, tokens?.accessToken, tenantId])
 
+  const loadTracking = useCallback(
+    async (orderNumber: string) => {
+      if (!tokens?.accessToken) return
+
+      setTrackingLoading(orderNumber)
+      setTrackingError(null)
+      try {
+        const data = await fetchCustomerOrderTracking({
+          tenantId,
+          accessToken: tokens.accessToken,
+          orderNumber,
+        })
+        if (!data) {
+          setTrackingError('Could not load tracking for this order.')
+          return
+        }
+        setTrackingByOrder((prev) => ({ ...prev, [orderNumber]: data }))
+      } catch {
+        setTrackingError('Could not load tracking for this order.')
+      } finally {
+        setTrackingLoading(null)
+      }
+    },
+    [tenantId, tokens?.accessToken],
+  )
+
+  const onCardClick = (orderNumber: string) => {
+    if (expandedOrder === orderNumber) {
+      setExpandedOrder(null)
+      setTrackingError(null)
+      return
+    }
+    setExpandedOrder(orderNumber)
+    setTrackingError(null)
+    if (!trackingByOrder[orderNumber]) {
+      void loadTracking(orderNumber)
+    }
+  }
+
   if (!isReady) {
-    return <p className="text-sm text-neutral-500">Loading…</p>
+    return <p className={t.statusLoading}>Loading…</p>
   }
 
   if (!isAuthenticated) {
     return (
-      <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-8 text-center">
-        <p className="text-neutral-600">Sign in to view your orders.</p>
-        <Link
-          href="/account/login"
-          className="mt-4 inline-flex rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-neutral-800"
-        >
+      <div className={t.emptyState}>
+        <p className={t.text}>Sign in to view your orders.</p>
+        <Link href="/account/login" className={`${t.btnPrimary} ${t.btnBlock}`}>
           Sign in
         </Link>
       </div>
@@ -82,83 +125,76 @@ export function OrderHistory({ tenantId }: { tenantId: string }) {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">Your orders</h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          Order history for {user ? displayName(user) : 'your account'} at this store.
-        </p>
-      </div>
+      <AccountPageHeader
+        title="Your orders"
+        // subtitle={`Order history for ${user ? displayName(user) : 'your account'}. Tap an order for live tracking.`}
+      />
 
       {loading ? (
-        <p className="text-sm text-neutral-500">Loading orders…</p>
+        <p className={t.statusLoading}>Loading orders…</p>
       ) : error ? (
-        <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p role="alert" className={t.error}>
           {error}
         </p>
       ) : orders.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-neutral-300 bg-neutral-50 p-10 text-center">
-          <p className="font-medium text-neutral-800">No orders yet</p>
-          <p className="mt-1 text-sm text-neutral-500">
-            Orders placed with the same Google account or email will appear here.
+        <div className={t.emptyState}>
+          <p className={t.emptyTitle}>No orders yet</p>
+          <p className={`${t.textMuted} mt-1`}>
+            Orders placed while signed in will appear here.
           </p>
-          <Link
-            href="/"
-            className="mt-5 inline-flex rounded-xl border border-neutral-300 bg-white px-5 py-2.5 text-sm font-medium text-neutral-800 hover:bg-neutral-50"
-          >
+          <Link href="/" className={`${t.btnSecondary} ${t.btnBlock}`}>
             Continue shopping
           </Link>
         </div>
       ) : (
-        <ul className="space-y-4">
+        <ul className={t.orderList}>
           {orders.map((order) => {
-            const trackUrl = resolveTrackingUrl({
-              carrier: order.carrier as Parameters<typeof resolveTrackingUrl>[0]['carrier'],
-              trackingNumber: order.trackingNumber,
-              trackingUrl: order.trackingUrl,
-            })
+            const isExpanded = expandedOrder === order.orderNumber
+            const tracking = trackingByOrder[order.orderNumber]
+            const isLoadingTrack = trackingLoading === order.orderNumber
+
             return (
-              <li
-                key={order.id}
-                className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-neutral-900">{order.orderNumber}</p>
-                    <p className="mt-0.5 text-sm text-neutral-500">{formatDate(order.createdAt)}</p>
+              <li key={order.id}>
+                <button
+                  type="button"
+                  onClick={() => onCardClick(order.orderNumber)}
+                  className={`${t.orderCard} ${isExpanded ? t.orderCardExpanded : ''}`}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium">{order.orderNumber}</p>
+                      <p className={t.orderMeta}>{formatDate(order.createdAt)}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <p className="font-medium">{formatMoney(order.totalAmount)}</p>
+                      <OrderStatusBadge status={order.status} />
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-medium text-neutral-900">{formatMoney(order.totalAmount)}</p>
-                    <p className="mt-0.5 text-xs font-medium uppercase tracking-wide text-neutral-500">
-                      {statusLabel(order.status)}
-                    </p>
+
+                  <ul className={t.orderItems}>
+                    {order.items.map((item, idx) => (
+                      <li key={`${order.id}-${idx}`}>
+                        {item.quantity}× {item.name}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <p className={`${t.textMuted} mt-3 text-xs font-medium`}>
+                    {isExpanded ? 'Hide tracking ↑' : 'View tracking details →'}
+                  </p>
+                </button>
+
+                {isExpanded ? (
+                  <div className={t.trackingPanel}>
+                    {isLoadingTrack ? (
+                      <p className={t.statusLoading}>Loading tracking…</p>
+                    ) : trackingError && !tracking ? (
+                      <p className={t.error}>{trackingError}</p>
+                    ) : tracking ? (
+                      <OrderTrackingPanel tracking={tracking} compact />
+                    ) : null}
                   </div>
-                </div>
-
-                <ul className="mt-4 space-y-1 border-t border-neutral-100 pt-4 text-sm text-neutral-600">
-                  {order.items.map((item, idx) => (
-                    <li key={`${order.id}-${idx}`}>
-                      {item.quantity}× {item.name}
-                    </li>
-                  ))}
-                </ul>
-
-                {trackUrl ? (
-                  <a
-                    href={trackUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-4 inline-flex text-sm font-medium text-neutral-900 underline underline-offset-2"
-                  >
-                    Track shipment
-                  </a>
-                ) : (
-                  <Link
-                    href={`/orders/track?orderNumber=${encodeURIComponent(order.orderNumber)}`}
-                    className="mt-4 inline-flex text-sm font-medium text-neutral-700 underline underline-offset-2"
-                  >
-                    Track order
-                  </Link>
-                )}
+                ) : null}
               </li>
             )
           })}

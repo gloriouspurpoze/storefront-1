@@ -499,15 +499,36 @@ export async function fetchCustomerProfile(input: {
   return json.data
 }
 
+export async function fetchCustomerOrderTracking(input: {
+  tenantId: string
+  accessToken: string
+  orderNumber: string
+}): Promise<PublicOrderTracking | null> {
+  const encoded = encodeURIComponent(input.orderNumber.trim())
+  const res = await fetch(apiUrl(`/public/storefront/customers/orders/${encoded}/track`), {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${input.accessToken}`,
+      'x-tenant-id': input.tenantId,
+    },
+    cache: 'no-store',
+  })
+  const json = (await res.json().catch(() => null)) as ApiEnvelope<PublicOrderTracking> | null
+  if (!res.ok || !json?.success || !json.data) return null
+  return json.data
+}
+
 export async function fetchPublicOrderTracking(input: {
   tenantId: string
   orderNumber: string
-  email: string
+  email?: string
+  phone?: string
 }): Promise<PublicOrderTracking | null> {
-  const params = new URLSearchParams({
-    orderNumber: input.orderNumber.trim(),
-    email: input.email.trim().toLowerCase(),
-  })
+  const params = new URLSearchParams({ orderNumber: input.orderNumber.trim() })
+  if (input.email?.trim()) params.set('email', input.email.trim().toLowerCase())
+  if (input.phone?.trim()) params.set('phone', input.phone.trim())
+  if (!params.has('email') && !params.has('phone')) return null
   const res = await fetch(
     apiUrl(`/public/storefront/orders/track?${params.toString()}`),
     {

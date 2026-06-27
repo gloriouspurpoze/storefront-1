@@ -3,22 +3,25 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
+import { themeRootClass } from '@/lib/theme-classes'
 import { useAccountAuth } from './AccountAuthProvider'
 import { displayName } from '@/lib/storefront-auth'
 
 interface AccountShellProps {
   tenantName: string
   logoUrl?: string
+  themeKey?: string
   children: ReactNode
 }
 
-export function AccountShell({ tenantName, logoUrl, children }: AccountShellProps) {
+export function AccountShell({ tenantName, logoUrl, themeKey, children }: AccountShellProps) {
   const pathname = usePathname()
   const { user, isAuthenticated, logout } = useAccountAuth()
   const isLogin = pathname?.endsWith('/login')
+  const rootClass = themeRootClass(themeKey)
 
   return (
-    <div className="min-h-screen bg-white text-neutral-900">
+    <div className={`min-h-screen bg-white text-neutral-900 ${rootClass}`}>
       <header className="border-b border-neutral-200 bg-white">
         <div className="mx-auto flex h-14 w-full max-w-3xl items-center justify-between gap-4 px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2.5 text-neutral-900">
@@ -26,7 +29,10 @@ export function AccountShell({ tenantName, logoUrl, children }: AccountShellProp
               // eslint-disable-next-line @next/next/no-img-element
               <img src={logoUrl} alt="" className="h-7 w-7 rounded-md object-cover" />
             ) : (
-              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-neutral-900 text-xs font-semibold text-white">
+              <span
+                className="flex h-7 w-7 items-center justify-center rounded-md text-xs font-semibold text-white"
+                style={{ backgroundColor: 'var(--site-brand)' }}
+              >
                 {tenantName.charAt(0).toUpperCase()}
               </span>
             )}
