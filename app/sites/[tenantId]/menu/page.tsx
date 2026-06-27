@@ -16,7 +16,9 @@ import {
   isRestaurantLayoutTheme,
   RestaurantLayoutPage,
 } from '@/themes/restaurant/restaurantLayoutRouter'
+import { Suspense } from 'react'
 import { RestaurantShell } from '@/themes/restaurant/RestaurantShell'
+import { QrTableContext } from '@/components/QrTableContext'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,13 +38,18 @@ export default async function MenuPage() {
 
   if (isRestaurantLayoutTheme(cfg?.themeKey)) {
     return (
-      <RestaurantLayoutPage
-        themeKey={cfg?.themeKey}
-        menu={menu}
-        products={products}
-        tenant={themeTenant}
-        config={cfg}
-      />
+      <>
+        <Suspense fallback={null}>
+          <QrTableContext tenantId={tenant.id} />
+        </Suspense>
+        <RestaurantLayoutPage
+          themeKey={cfg?.themeKey}
+          menu={menu}
+          products={products}
+          tenant={themeTenant}
+          config={cfg}
+        />
+      </>
     )
   }
 
@@ -50,6 +57,9 @@ export default async function MenuPage() {
     <RestaurantShell tenantId={tenant.id}>
       <SiteHeader tenant={themeTenant} />
       <main className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
+        <Suspense fallback={null}>
+          <QrTableContext tenantId={tenant.id} />
+        </Suspense>
         <p className="text-xs font-semibold uppercase tracking-[0.3em] text-amber-800/80">Menu</p>
         <h1 className="mt-3 font-serif text-4xl font-bold text-stone-900 sm:text-5xl">Our menu</h1>
         <p className="mt-3 max-w-lg text-stone-600">

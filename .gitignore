@@ -32,3 +32,6 @@ next-env.d.ts
 
 # vercel
 .vercel
+
+# dev QR registry (local admin ↔ storefront sync)
+.qr-data/

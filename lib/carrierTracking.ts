@@ -22,7 +22,7 @@ export function resolveTrackingUrl(params: {
     }
   }
 
-  const awb = params.trackingNumber?.trim()
+  const awb = (params.trackingNumber ?? '').trim().replace(/[\s-]+/g, '')
   if (!awb) return null
 
   const encoded = encodeURIComponent(awb)
@@ -33,6 +33,8 @@ export function resolveTrackingUrl(params: {
       return `https://www.bluedart.com/web/guest/trackdartresult?trackNo=${encoded}`
     case 'dtdc':
       return `https://www.dtdc.in/tracking/tracking_results.asp?Ttype=awb_no&strCnno=${encoded}`
+    case 'indiapost':
+      return `https://www.indiapost.gov.in/_layouts/15/DOP.Portal.Tracking/TrackConsignment.aspx?consignmentnumber=${encoded}`
     case 'shiprocket':
       return `https://shiprocket.co/tracking/${encoded}`
     default:
