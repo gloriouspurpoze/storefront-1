@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import type { QrCodeRecord } from '@profixer/utils'
+import type { QrCodeRecord } from '@/lib/qr'
 import { writeQrRegistry } from '@/lib/qr-registry'
 
 /**

@@ -1,5 +1,5 @@
 import { env } from './env'
-import type { QrCodeRecord, QrResolveResult } from '@profixer/utils'
+import type { QrCodeRecord, QrResolveResult } from '@/lib/qr'
 
 interface ApiEnvelope<T> {
   success: boolean

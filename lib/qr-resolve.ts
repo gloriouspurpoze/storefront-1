@@ -1,5 +1,5 @@
-import type { QrCodeRecord, QrResolveResult } from '@profixer/utils'
-import { buildQrScanUrl, resolveQrRecord } from '@profixer/utils'
+import type { QrCodeRecord, QrResolveResult } from '@/lib/qr'
+import { buildQrScanUrl, resolveQrRecord } from '@/lib/qr'
 import { fetchPublicQrCodes, resolveQrViaApi } from './qr-api'
 import { findQrInRegistry, incrementScanInRegistry } from './qr-registry'
 

@@ -10,7 +10,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@profixer/utils": "file:../packages/utils",
     "@react-email/components": "^0.0.31",
     "@react-email/render": "^1.0.3",
     "next": "^15.0.3",
