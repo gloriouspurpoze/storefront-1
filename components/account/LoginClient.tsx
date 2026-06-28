@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState, type FormEvent } from 'react'
 import { useAccountAuth } from './AccountAuthProvider'
+import { useAccountTheme } from './AccountThemeContext'
+import { accountThemeClasses } from './accountThemeClasses'
 import {
   isGoogleSignInConfigured,
   sendPhoneOtp,
@@ -38,6 +40,8 @@ export function LoginClient() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { isAuthenticated, isReady, setSession } = useAccountAuth()
+  const themeKey = useAccountTheme()
+  const t = accountThemeClasses(themeKey)
 
   const [googleLoading, setGoogleLoading] = useState(false)
   const [phone, setPhone] = useState('')
@@ -100,19 +104,16 @@ export function LoginClient() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-md">
-      <Link
-        href="/"
-        className="mb-8 inline-flex text-sm text-neutral-500 transition hover:text-neutral-900"
-      >
-        ← Back to store
-      </Link>
+    <div className={t.contentWrap}>
+      {!themeKey ? (
+        <Link href="/" className={t.backLink}>
+          ← Back to store
+        </Link>
+      ) : null}
 
-      <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
-        <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">
-          {isSignup ? 'Create your account' : 'Sign in'}
-        </h1>
-        <p className="mt-2 text-sm text-neutral-500">
+      <div className={t.card}>
+        <h1 className={t.title}>{isSignup ? 'Create your account' : 'Sign in'}</h1>
+        <p className={t.subtitle}>
           {isSignup
             ? googleEnabled
               ? 'Use Google or your phone number to create an account and track orders from this store.'
@@ -121,21 +122,18 @@ export function LoginClient() {
               ? 'View your order history and track purchases from this store.'
               : 'Sign in with your phone number to view your order history and track purchases from this store.'}
         </p>
-        <p className="mt-3 text-sm text-neutral-600">
+        <p className={t.signupRow}>
           {isSignup ? (
             <>
               Already have an account?{' '}
-              <Link href="/account/login" className="font-medium text-neutral-900 underline-offset-2 hover:underline">
+              <Link href="/account/login" className={t.link}>
                 Sign in
               </Link>
             </>
           ) : (
             <>
               New here?{' '}
-              <Link
-                href="/account/login?signup=1"
-                className="font-medium text-neutral-900 underline-offset-2 hover:underline"
-              >
+              <Link href="/account/login?signup=1" className={t.link}>
                 Create an account
               </Link>
             </>
@@ -143,10 +141,7 @@ export function LoginClient() {
         </p>
 
         {error ? (
-          <p
-            role="alert"
-            className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-          >
+          <p role="alert" className={t.error}>
             {error}
           </p>
         ) : null}
@@ -157,30 +152,32 @@ export function LoginClient() {
               type="button"
               onClick={onGoogle}
               disabled={googleLoading}
-              className="mt-6 flex w-full items-center justify-center gap-3 rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm font-medium text-neutral-800 transition hover:bg-neutral-50 disabled:opacity-60"
+              className={t.btnGoogle}
             >
               <GoogleMark />
               {googleLoading ? 'Signing in…' : 'Continue with Google'}
             </button>
 
-            <div className="my-6 flex items-center gap-3">
-              <div className="h-px flex-1 bg-neutral-200" />
-              <span className="text-xs text-neutral-400">or</span>
-              <div className="h-px flex-1 bg-neutral-200" />
+            <div className={t.divider} role="presentation">
+              {themeKey ? <span>or</span> : (
+                <>
+                  <div className="h-px flex-1 bg-neutral-200" />
+                  <span className="text-xs text-neutral-400">or</span>
+                  <div className="h-px flex-1 bg-neutral-200" />
+                </>
+              )}
             </div>
           </>
         ) : null}
 
         {!otpSent ? (
-          <form onSubmit={onSendOtp} className="space-y-4">
+          <form onSubmit={onSendOtp} className={t.form}>
             <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-neutral-700">
+              <label htmlFor="phone" className={t.label}>
                 Phone number
               </label>
-              <div className="mt-1.5 flex gap-2">
-                <span className="inline-flex items-center rounded-lg border border-neutral-300 bg-neutral-50 px-3 text-sm text-neutral-600">
-                  +91
-                </span>
+              <div className={t.phoneRow}>
+                <span className={t.phonePrefix}>+91</span>
                 <input
                   id="phone"
                   type="tel"
@@ -190,25 +187,25 @@ export function LoginClient() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                   placeholder="10-digit mobile number"
-                  className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-sm outline-none ring-neutral-900 focus:ring-2"
+                  className={t.input}
                 />
               </div>
             </div>
             <button
               type="submit"
               disabled={phoneLoading || phone.length < 10}
-              className="w-full rounded-xl bg-neutral-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:opacity-60"
+              className={`${t.btnPrimary} ${t.btnBlock}`}
             >
               {phoneLoading ? 'Sending…' : 'Send OTP'}
             </button>
           </form>
         ) : (
-          <form onSubmit={onVerifyOtp} className="space-y-4">
-            <p className="text-sm text-neutral-600">
+          <form onSubmit={onVerifyOtp} className={t.form}>
+            <p className={t.text}>
               Enter the 6-digit code sent to <strong>+91 {phone}</strong>
             </p>
             <div>
-              <label htmlFor="otp" className="block text-sm font-medium text-neutral-700">
+              <label htmlFor="otp" className={t.label}>
                 Verification code
               </label>
               <input
@@ -221,13 +218,13 @@ export function LoginClient() {
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 placeholder="000000"
-                className="mt-1.5 w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-sm tracking-[0.3em] outline-none ring-neutral-900 focus:ring-2"
+                className={`${t.input} tracking-[0.3em]`}
               />
             </div>
             <button
               type="submit"
               disabled={phoneLoading || otp.length !== 6}
-              className="w-full rounded-xl bg-neutral-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:opacity-60"
+              className={`${t.btnPrimary} ${t.btnBlock}`}
             >
               {phoneLoading ? 'Verifying…' : 'Verify & sign in'}
             </button>
@@ -237,7 +234,7 @@ export function LoginClient() {
                 setOtpSent(false)
                 setOtp('')
               }}
-              className="w-full text-sm text-neutral-500 hover:text-neutral-800"
+              className={`${t.btnSecondary} ${t.btnBlock}`}
             >
               Use a different number
             </button>

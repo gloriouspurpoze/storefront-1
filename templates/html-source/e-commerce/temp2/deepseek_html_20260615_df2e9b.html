@@ -6,56 +6,105 @@
   <title>DualEcom | Modern Store Templates for SaaS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=DM+Sans:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
-  <!-- Font Awesome 6 (free icons) -->
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@400;500;600&family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --sky: #7ec8e3;
-      --sky-dark: #5db5d3;
-      --sky-light: #e8f6fb;
-      --butter: #f5c842;
-      --butter-dark: #c9950a;
-      --butter-light: #fffbe6;
-      --cream: #fffdf5;
-      --navy: #1a2a3a;
-      --navy-mid: #2d4a62;
-      --muted: #8a9bb0;
-      --muted-light: #c5d2df;
-      --white: #ffffff;
-      --red: #ff6b6b;
-      --green: #22c55e;
-      --green-soft: rgba(34, 197, 94, 0.1);
-      --page-bg: #eef7fb;
-      --card-bg: #ffffff;
-      --border: #e0edf5;
-      --font-display: 'Nunito', sans-serif;
-      --font-body: 'DM Sans', sans-serif;
-      --r-sm: 12px;
-      --r-md: 16px;
-      --r-lg: 24px;
-      --r-xl: 32px;
+      --demo-ink: #1e1e2a;
+      --demo-muted: #7b7b8c;
+      --demo-border: #e4dfef;
+      --demo-surface: #ffffff;
     }
 
     body {
-      font-family: var(--font-body);
-      background: var(--page-bg);
-      color: var(--navy);
+      font-family: 'DM Sans', sans-serif;
+      background: #f0eef3;
+      color: var(--demo-ink);
       min-height: 100vh;
-      line-height: 1.4;
-      background-image:
-        radial-gradient(ellipse 60% 40% at 20% 0%, rgba(126,200,227,0.22) 0%, transparent 60%),
-        radial-gradient(ellipse 40% 30% at 85% 90%, rgba(245,200,66,0.15) 0%, transparent 55%);
+      line-height: 1.45;
     }
 
     body.menu-open { overflow: hidden; }
 
-    /* demo saas header */
+    /* ── Template 1: Artisan & Cozy (Soft Studio palette) ── */
+    .template-1 {
+      --t-bg: #f9f5f0;
+      --t-surface: #ffffff;
+      --t-border: rgba(61, 43, 61, 0.12);
+      --t-border-strong: #edd5c5;
+      --t-ink: #2a1f2a;
+      --t-ink-strong: #3d2b3d;
+      --t-muted: #8c7e8c;
+      --t-accent: #c4786a;
+      --t-accent-soft: #f2eae0;
+      --t-highlight: #8a9e8a;
+      --t-highlight-soft: rgba(138, 158, 138, 0.12);
+      --t-success: #5a7a5a;
+      --t-success-soft: rgba(90, 122, 90, 0.12);
+      --t-badge: #c4786a;
+      --t-ring: conic-gradient(from 140deg, #3d2b3d, #c4786a, #8a9e8a, #edd5c5);
+      --t-title-gradient: none;
+      --t-title-color: #3d2b3d;
+      --t-font-display: 'Cormorant Garamond', serif;
+      --t-font-body: 'DM Sans', sans-serif;
+      --t-title-weight: 600;
+      --t-title-size: 32px;
+      --t-title-spacing: 0;
+      --t-nav-bg: rgba(249, 245, 240, 0.92);
+      --t-header-bg: rgba(249, 245, 240, 0.9);
+      --t-shadow: rgba(61, 43, 61, 0.08);
+      --t-shadow-accent: rgba(196, 120, 106, 0.15);
+      --t-overlay: rgba(42, 31, 42, 0.36);
+      --t-drawer-bg: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(249,245,240,0.98));
+      --t-drawer-info-bg: #f2eae0;
+      --t-drawer-info-border: rgba(237, 213, 197, 0.8);
+      --t-btn-style: outline;
+      --t-radius-sm: 10px;
+      --t-radius-lg: 20px;
+    }
+
+    /* ── Template 2: Luxe Essence (matches themes/retail/luxe-essence/) ── */
+    .template-2 {
+      --t-bg: #faf9fc;
+      --t-surface: #fffefb;
+      --t-border: #e4dfef;
+      --t-border-strong: #fff0e5;
+      --t-ink: #1e1e2a;
+      --t-ink-strong: #2d2a3e;
+      --t-muted: #7b7b8c;
+      --t-accent: #d6784a;
+      --t-accent-soft: #f2f0f7;
+      --t-highlight: #d6784a;
+      --t-highlight-soft: #f2f0f7;
+      --t-success: #3d8a5a;
+      --t-success-soft: rgba(61, 138, 90, 0.12);
+      --t-badge: #e05a5a;
+      --t-ring: conic-gradient(from 140deg, #e4dfef, #d6784a, #2d2a3e, #f3f0fa);
+      --t-title-gradient: none;
+      --t-title-color: #2d2a3e;
+      --t-font-display: 'Inter', sans-serif;
+      --t-font-body: 'Inter', sans-serif;
+      --t-title-weight: 600;
+      --t-title-size: 28px;
+      --t-title-spacing: -0.02em;
+      --t-nav-bg: rgba(250, 249, 252, 0.92);
+      --t-header-bg: rgba(255, 254, 251, 0.9);
+      --t-shadow: rgba(45, 42, 62, 0.06);
+      --t-shadow-accent: rgba(214, 120, 74, 0.14);
+      --t-overlay: rgba(45, 42, 62, 0.36);
+      --t-drawer-bg: linear-gradient(180deg, rgba(255,254,251,0.98), rgba(250,249,252,0.98));
+      --t-drawer-info-bg: #f2f0f7;
+      --t-drawer-info-border: rgba(228, 223, 239, 0.9);
+      --t-btn-style: filled;
+      --t-radius-sm: 40px;
+      --t-radius-lg: 24px;
+    }
+
     .saas-bar {
-      background: var(--navy);
-      color: var(--white);
+      background: var(--demo-ink);
+      color: #fff;
       text-align: center;
       padding: 10px;
       font-size: 0.85rem;
@@ -63,12 +112,11 @@
     }
 
     .saas-bar span {
-      background: var(--butter);
-      color: var(--navy);
+      background: #d6784a;
+      color: #fff;
       padding: 2px 10px;
       border-radius: 40px;
-      font-weight: 700;
-      font-family: var(--font-display);
+      font-weight: 600;
       margin-left: 8px;
     }
 
@@ -78,30 +126,35 @@
       flex-wrap: wrap;
       gap: 12px;
       padding: 16px 20px;
-      background: rgba(238, 247, 251, 0.85);
-      border-bottom: 1px solid var(--border);
+      background: var(--demo-surface);
+      border-bottom: 1px solid var(--demo-border);
     }
 
     .template-btn {
-      background: var(--white);
-      border: 1.5px solid var(--border);
-      font-family: var(--font-display);
-      font-weight: 800;
+      background: var(--demo-surface);
+      border: 1.5px solid var(--demo-border);
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
       font-size: 0.85rem;
       padding: 8px 18px;
       border-radius: 20px;
       cursor: pointer;
       transition: all 0.18s ease;
-      color: var(--muted);
+      color: var(--demo-muted);
     }
 
-    .template-btn:hover { border-color: var(--sky); color: var(--sky-dark); }
+    .template-btn:hover { border-color: #c4786a; color: #3d2b3d; }
 
-    .template-btn.active {
-      background: var(--navy);
-      border-color: var(--navy);
-      color: var(--white);
-      box-shadow: 0 4px 14px rgba(26, 42, 58, 0.15);
+    .template-btn.active[data-template="temp1"] {
+      background: #3d2b3d;
+      border-color: #3d2b3d;
+      color: #fff;
+    }
+
+    .template-btn.active[data-template="temp2"] {
+      background: #2d2a3e;
+      border-color: #2d2a3e;
+      color: #fff;
     }
 
     .store-container {
@@ -116,6 +169,9 @@
       width: 100%;
       max-width: 480px;
       animation: fade 0.25s ease;
+      background: var(--t-bg);
+      font-family: var(--t-font-body);
+      color: var(--t-ink);
     }
 
     .template-wrapper.active-template { display: flex; flex-direction: column; }
@@ -135,14 +191,14 @@
       position: sticky;
       top: 0;
       z-index: 1000;
-      background: rgba(255, 255, 255, 0.85);
+      background: var(--t-header-bg);
       -webkit-backdrop-filter: blur(16px);
       backdrop-filter: blur(16px);
-      border-bottom: 1px solid rgba(232, 238, 243, 0.7);
+      border-bottom: 1px solid var(--t-border);
       padding: 12px 20px;
     }
 
-    .store-header.scrolled { box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+    .store-header.scrolled { box-shadow: 0 2px 12px var(--t-shadow); }
 
     .header-container {
       max-width: 500px;
@@ -157,22 +213,33 @@
       width: 40px;
       height: 40px;
       border-radius: 50%;
-      border: 1.5px solid var(--border);
-      background: var(--white);
+      border: 1.5px solid var(--t-border);
+      background: var(--t-surface);
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
       transition: background 0.15s, border-color 0.15s, transform 0.15s;
-      color: var(--navy);
+      color: var(--t-ink-strong);
       font-size: 18px;
       flex-shrink: 0;
     }
 
+    .template-2 .menu-toggle-btn {
+      background: var(--t-ink-strong);
+      color: #fff;
+      border-color: var(--t-ink-strong);
+    }
+
     .menu-toggle-btn:hover {
-      background: var(--sky-light);
-      border-color: var(--sky);
+      background: var(--t-accent-soft);
+      border-color: var(--t-accent);
       transform: translateY(-1px);
+    }
+
+    .template-2 .menu-toggle-btn:hover {
+      background: #3d3a52;
+      border-color: #3d3a52;
     }
 
     .brand-block {
@@ -184,20 +251,14 @@
 
     .brand-meta h2,
     .brand-block h2 {
-      font-family: var(--font-display);
-      font-weight: 900;
-      font-size: 15px;
-      color: var(--navy);
+      font-family: var(--t-font-display);
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--t-ink-strong);
       line-height: 1.1;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-    }
-
-    .brand-meta p,
-    .brand-block p {
-      font-size: 11px;
-      color: var(--muted);
     }
 
     .header-actions {
@@ -207,15 +268,18 @@
       flex-shrink: 0;
     }
 
+    /* Shared menu drawer — palette follows active template via body[data-theme] */
     .menu-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(26, 42, 58, 0.36);
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.22s ease;
       z-index: 1200;
     }
+
+    body[data-theme="artisan"] .menu-overlay { background: rgba(42, 31, 42, 0.36); }
+    body[data-theme="luxe"] .menu-overlay { background: rgba(45, 42, 62, 0.36); }
 
     .menu-overlay.open {
       opacity: 1;
@@ -228,8 +292,6 @@
       left: 0;
       width: min(90vw, 360px);
       height: 100vh;
-      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,252,255,0.98));
-      box-shadow: 12px 0 36px rgba(26, 42, 58, 0.18);
       transform: translateX(-100%);
       transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
       z-index: 1201;
@@ -238,6 +300,16 @@
       flex-direction: column;
       gap: 18px;
       overflow-y: auto;
+    }
+
+    body[data-theme="artisan"] .menu-drawer {
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(249,245,240,0.98));
+      box-shadow: 12px 0 36px rgba(42, 31, 42, 0.14);
+    }
+
+    body[data-theme="luxe"] .menu-drawer {
+      background: #fffefb;
+      box-shadow: 12px 0 36px rgba(45, 42, 62, 0.14);
     }
 
     .menu-overlay.open .menu-drawer { transform: translateX(0); }
@@ -250,20 +322,21 @@
     }
 
     .drawer-title {
-      font-family: var(--font-display);
-      font-size: 22px;
-      font-weight: 900;
-      color: var(--navy);
+      font-family: var(--drawer-font, 'Inter', sans-serif);
+      font-size: 20px;
+      font-weight: 600;
       line-height: 1.1;
     }
+
+    body[data-theme="artisan"] .drawer-title { color: #3d2b3d; font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 600; }
+    body[data-theme="luxe"] .drawer-title { color: #2d2a3e; }
 
     .drawer-close {
       width: 38px;
       height: 38px;
       border-radius: 50%;
-      border: 1.5px solid var(--border);
-      background: var(--white);
-      color: var(--navy);
+      border: 1.5px solid var(--demo-border);
+      background: #fff;
       cursor: pointer;
       font-size: 18px;
       display: flex;
@@ -271,10 +344,13 @@
       justify-content: center;
     }
 
+    body[data-theme="artisan"] .drawer-close { color: #3d2b3d; }
+    body[data-theme="luxe"] .drawer-close { color: #2d2a3e; }
+
     .drawer-subtitle {
       font-size: 13px;
       line-height: 1.5;
-      color: var(--muted);
+      color: var(--demo-muted);
     }
 
     .drawer-links {
@@ -285,106 +361,98 @@
 
     .drawer-link {
       width: 100%;
-      border: 1.5px solid var(--border);
-      background: var(--white);
-      border-radius: 20px;
+      border: 1.5px solid var(--demo-border);
+      background: #fff;
+      border-radius: 16px;
       padding: 16px 16px 14px;
       text-align: left;
       cursor: pointer;
       transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
     }
 
-    .drawer-link:hover {
-      border-color: var(--sky);
-      transform: translateY(-1px);
-      box-shadow: 0 6px 18px rgba(126, 200, 227, 0.12);
-    }
+    body[data-theme="artisan"] .drawer-link:hover { border-color: #c4786a; box-shadow: 0 6px 18px rgba(196, 120, 106, 0.12); }
+    body[data-theme="luxe"] .drawer-link:hover { border-color: #d6784a; box-shadow: 0 6px 18px rgba(214, 120, 74, 0.12); }
+
+    .drawer-link:hover { transform: translateY(-1px); }
 
     .drawer-link-title {
-      font-family: var(--font-display);
       font-size: 15px;
-      font-weight: 900;
-      color: var(--navy);
+      font-weight: 600;
       margin-bottom: 4px;
     }
+
+    body[data-theme="artisan"] .drawer-link-title { color: #3d2b3d; font-family: 'Cormorant Garamond', serif; font-size: 17px; }
+    body[data-theme="luxe"] .drawer-link-title { color: #2d2a3e; }
 
     .drawer-link-copy {
       font-size: 12.5px;
       line-height: 1.5;
-      color: var(--muted);
+      color: var(--demo-muted);
     }
 
     .drawer-info {
-      background: var(--sky-light);
-      border: 1.5px solid rgba(126, 200, 227, 0.35);
-      border-radius: 20px;
+      border-radius: 16px;
       padding: 16px;
     }
 
-    .drawer-info h3 {
-      font-family: var(--font-display);
-      font-size: 14px;
-      font-weight: 900;
-      color: var(--navy);
-      margin-bottom: 8px;
+    body[data-theme="artisan"] .drawer-info {
+      background: #f2eae0;
+      border: 1.5px solid rgba(237, 213, 197, 0.8);
     }
 
-    .drawer-info p {
+    body[data-theme="luxe"] .drawer-info {
+      background: #f2f0f7;
+      border: 1.5px solid rgba(228, 223, 239, 0.9);
+    }
+
+    .drawer-info-text {
       font-size: 12.5px;
       line-height: 1.55;
-      color: var(--navy-mid);
+      color: #5b5b6e;
     }
 
     .ordering-hours-title {
-      font-family: var(--font-display);
       font-size: 14px;
-      font-weight: 900;
-      color: var(--navy);
+      font-weight: 600;
       margin-bottom: 10px;
     }
+
+    body[data-theme="artisan"] .ordering-hours-title { color: #3d2b3d; font-family: 'Cormorant Garamond', serif; font-size: 16px; }
+    body[data-theme="luxe"] .ordering-hours-title { color: #2d2a3e; }
 
     .ordering-hours-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 8px 12px;
       padding: 8px 0;
-      border-bottom: 1px solid rgba(126, 200, 227, 0.2);
+      border-bottom: 1px solid rgba(0,0,0,0.06);
       font-size: 12.5px;
       line-height: 1.45;
-      color: var(--navy-mid);
+      color: #5b5b6e;
     }
 
     .ordering-hours-row:last-child { border-bottom: none; }
 
-    .ordering-hours-row span:first-child {
-      font-weight: 700;
-      color: var(--navy);
-    }
-
+    .ordering-hours-row span:first-child { font-weight: 600; color: var(--demo-ink); }
     .ordering-hours-row span:last-child { text-align: right; }
 
-    .actions {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    /* header cart/account icons — kept for existing cart modal flow */
     .icon-btn {
       background: none;
       border: none;
       font-size: 1.3rem;
       cursor: pointer;
       position: relative;
-      color: var(--navy);
+      color: var(--t-ink-strong);
       transition: 0.2s;
     }
+
+    .icon-btn:hover { color: var(--t-accent); }
 
     .cart-count {
       position: absolute;
       top: -8px;
       right: -12px;
-      background: #e05a5a;
+      background: var(--t-badge);
       color: white;
       font-size: 0.7rem;
       font-weight: bold;
@@ -393,7 +461,6 @@
       min-width: 18px;
     }
 
-    /* hero */
     .hero {
       padding: 28px 16px 0;
       display: flex;
@@ -403,15 +470,15 @@
     }
 
     .status-card {
-      background: var(--white);
-      border-radius: 20px;
+      background: var(--t-surface);
+      border-radius: var(--t-radius-lg);
       padding: 14px 16px;
       margin-bottom: 24px;
-      box-shadow: 0 4px 20px rgba(126, 200, 227, 0.08);
+      box-shadow: 0 4px 20px var(--t-shadow);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border: 1.5px solid #e8eef3;
+      border: 1.5px solid var(--t-border);
       width: 100%;
     }
 
@@ -424,7 +491,7 @@
     .status-indicator {
       width: 10px;
       height: 10px;
-      background: var(--green);
+      background: var(--t-success);
       border-radius: 50%;
       position: relative;
     }
@@ -434,7 +501,7 @@
       position: absolute;
       inset: -4px;
       border-radius: 50%;
-      border: 2px solid var(--green);
+      border: 2px solid var(--t-success);
       animation: pulseGlow 2s infinite;
       opacity: 0.4;
     }
@@ -445,24 +512,24 @@
     }
 
     .status-details p {
-      font-family: var(--font-display);
+      font-family: var(--t-font-display);
       font-size: 13px;
-      font-weight: 800;
-      color: var(--navy);
+      font-weight: 600;
+      color: var(--t-ink-strong);
     }
 
     .status-details span {
       font-size: 11px;
-      color: var(--muted);
+      color: var(--t-muted);
       display: block;
     }
 
     .status-badge {
-      font-family: var(--font-display);
+      font-family: var(--t-font-display);
       font-size: 11px;
-      font-weight: 800;
-      color: var(--green);
-      background: var(--green-soft);
+      font-weight: 600;
+      color: var(--t-success);
+      background: var(--t-success-soft);
       padding: 4px 10px;
       border-radius: 12px;
     }
@@ -472,8 +539,8 @@
       height: 96px;
       border-radius: 50%;
       padding: 3px;
-      background: conic-gradient(from 140deg, var(--sky), var(--butter), var(--sky-dark), var(--sky));
-      box-shadow: 0 8px 28px rgba(126,200,227,0.4);
+      background: var(--t-ring);
+      box-shadow: 0 8px 28px var(--t-shadow-accent);
       margin-bottom: 16px;
       animation: logoFloat 4.5s ease-in-out infinite;
       overflow: hidden;
@@ -484,7 +551,7 @@
       height: 100%;
       object-fit: cover;
       border-radius: 50%;
-      border: 3px solid var(--white);
+      border: 3px solid var(--t-surface);
       display: block;
     }
 
@@ -494,25 +561,22 @@
     }
 
     .hero-title {
-      font-family: var(--font-display);
-      font-weight: 900;
-      font-size: 28px;
+      font-family: var(--t-font-display);
+      font-weight: var(--t-title-weight);
+      font-size: var(--t-title-size);
       line-height: 1.1;
-      letter-spacing: -0.5px;
-      background: linear-gradient(120deg, var(--navy) 0%, var(--sky-dark) 70%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
+      letter-spacing: var(--t-title-spacing);
+      color: var(--t-title-color);
       margin-bottom: 6px;
     }
 
     .hero-sub {
       font-size: 13.5px;
-      color: var(--muted);
+      color: var(--t-muted);
       margin-bottom: 18px;
     }
 
-    .hero-sub strong { color: var(--sky-dark); font-weight: 700; }
+    .hero-sub strong { color: var(--t-accent); font-weight: 600; }
 
     .trust-badges {
       display: flex;
@@ -523,11 +587,11 @@
     }
 
     .trust-badge {
-      font-family: var(--font-display);
+      font-family: var(--t-font-display);
       font-size: 11.5px;
-      font-weight: 800;
-      color: var(--sky-dark);
-      background: var(--sky-light);
+      font-weight: 600;
+      color: var(--t-accent);
+      background: var(--t-accent-soft);
       padding: 6px 12px;
       border-radius: 20px;
       white-space: nowrap;
@@ -537,7 +601,7 @@
       position: sticky;
       top: 59px;
       z-index: 90;
-      background: rgba(238,247,251,0.9);
+      background: var(--t-nav-bg);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       padding: 10px 16px;
@@ -560,12 +624,12 @@
       align-items: center;
       gap: 5px;
       white-space: nowrap;
-      font-family: var(--font-display);
-      font-weight: 800;
+      font-family: var(--t-font-display);
+      font-weight: 600;
       font-size: 12.5px;
-      color: var(--muted);
-      background: var(--white);
-      border: 1.5px solid var(--border);
+      color: var(--t-muted);
+      background: var(--t-surface);
+      border: 1.5px solid var(--t-border);
       border-radius: 20px;
       padding: 7px 14px;
       cursor: pointer;
@@ -573,12 +637,17 @@
       flex-shrink: 0;
     }
 
-    .cat-tab:hover { border-color: var(--sky); color: var(--sky-dark); }
+    .cat-tab:hover { border-color: var(--t-accent); color: var(--t-accent); }
 
     .cat-tab.active {
-      background: var(--navy);
-      border-color: var(--navy);
-      color: var(--white);
+      background: var(--t-ink-strong);
+      border-color: var(--t-ink-strong);
+      color: #fff;
+    }
+
+    .template-2 .cat-tab.active {
+      background: var(--t-accent);
+      border-color: var(--t-accent);
     }
 
     .cat-tab .tab-emoji { font-size: 13px; }
@@ -594,12 +663,12 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      font-family: var(--font-display);
-      font-weight: 900;
+      font-family: var(--t-font-display);
+      font-weight: 600;
       font-size: 12px;
       letter-spacing: 1.2px;
       text-transform: uppercase;
-      color: var(--sky-dark);
+      color: var(--t-accent);
       margin-bottom: 14px;
     }
 
@@ -607,7 +676,7 @@
       content: '';
       flex: 1;
       height: 1.5px;
-      background: linear-gradient(90deg, var(--sky-light) 0%, transparent 100%);
+      background: linear-gradient(90deg, var(--t-accent-soft) 0%, transparent 100%);
       border-radius: 2px;
     }
 
@@ -619,9 +688,9 @@
     }
 
     .product-card {
-      background: var(--white);
-      border: 1.5px solid var(--border);
-      border-radius: var(--r-lg);
+      background: var(--t-surface);
+      border: 1.5px solid var(--t-border);
+      border-radius: var(--t-radius-lg);
       overflow: hidden;
       transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
       display: flex;
@@ -629,15 +698,16 @@
     }
 
     .product-card:hover {
-      border-color: var(--sky);
+      border-color: var(--t-accent);
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(126,200,227,0.15);
+      box-shadow: 0 6px 20px var(--t-shadow-accent);
     }
 
     .card-img-wrap {
       position: relative;
       overflow: hidden;
       height: 200px;
+      background: var(--t-accent-soft);
     }
 
     .card-img {
@@ -660,15 +730,15 @@
     }
 
     .card-name {
-      font-family: var(--font-display);
-      font-weight: 900;
+      font-family: var(--t-font-display);
+      font-weight: 600;
       font-size: 15px;
-      color: var(--navy);
+      color: var(--t-ink-strong);
     }
 
     .card-desc {
       font-size: 12px;
-      color: var(--muted);
+      color: var(--t-muted);
       line-height: 1.5;
       margin-bottom: 10px;
     }
@@ -681,40 +751,62 @@
     }
 
     .card-price {
-      font-family: var(--font-display);
-      font-weight: 900;
+      font-family: var(--t-font-display);
+      font-weight: 700;
       font-size: 18px;
-      color: var(--navy);
+      color: var(--t-ink-strong);
     }
 
     .add-btn,
     .add-to-cart {
-      font-family: var(--font-display);
-      font-weight: 900;
+      font-family: var(--t-font-body);
+      font-weight: 600;
       font-size: 12.5px;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
       padding: 9px 20px;
-      border-radius: var(--r-sm);
-      background: var(--white);
-      color: var(--sky-dark);
-      border: 1.5px solid var(--sky);
+      border-radius: var(--t-radius-sm);
       cursor: pointer;
       transition: background 0.15s, color 0.15s, transform 0.1s;
       min-width: 90px;
     }
 
-    .add-btn:hover,
-    .add-to-cart:hover { background: var(--sky); color: var(--white); }
+    /* Artisan: outline button */
+    .template-1 .add-btn,
+    .template-1 .add-to-cart {
+      background: var(--t-surface);
+      color: var(--t-accent);
+      border: 1.5px solid var(--t-accent);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .template-1 .add-btn:hover,
+    .template-1 .add-to-cart:hover {
+      background: var(--t-accent);
+      color: #fff;
+    }
+
+    /* Luxe Essence: filled accent button */
+    .template-2 .add-btn,
+    .template-2 .add-to-cart {
+      background: var(--t-accent);
+      color: #fff;
+      border: none;
+      border-radius: 40px;
+    }
+
+    .template-2 .add-btn:hover,
+    .template-2 .add-to-cart:hover {
+      background: #c4693d;
+    }
 
     .add-btn:active,
     .add-to-cart:active { transform: scale(0.96); }
 
     .store-footer {
       margin: 8px 16px 0;
-      background: var(--white);
-      border: 1.5px solid var(--border);
-      border-radius: var(--r-lg);
+      background: var(--t-surface);
+      border: 1.5px solid var(--t-border);
+      border-radius: var(--t-radius-lg);
       padding: 18px 20px;
     }
 
@@ -723,7 +815,7 @@
       align-items: center;
       gap: 10px;
       padding: 8px 0;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid var(--t-border);
     }
 
     .footer-row:last-child { border-bottom: none; }
@@ -731,7 +823,7 @@
     .footer-icon {
       width: 32px;
       height: 32px;
-      background: var(--sky-light);
+      background: var(--t-accent-soft);
       border-radius: 8px;
       display: flex;
       align-items: center;
@@ -745,7 +837,7 @@
     .footer-label {
       font-size: 11px;
       font-weight: 600;
-      color: var(--muted);
+      color: var(--t-muted);
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
@@ -753,17 +845,13 @@
     .footer-value {
       font-size: 13.5px;
       font-weight: 600;
-      color: var(--navy);
+      color: var(--t-ink-strong);
       margin-top: 1px;
     }
 
     .footer-wa-btn {
-      font-family: var(--font-display);
-      font-weight: 800;
+      font-weight: 600;
       font-size: 12px;
-      color: #166534;
-      background: rgba(34,197,94,0.1);
-      border: 1.5px solid rgba(34,197,94,0.3);
       border-radius: 10px;
       padding: 5px 12px;
       cursor: pointer;
@@ -772,17 +860,27 @@
       transition: background 0.15s;
     }
 
-    .footer-wa-btn:hover { background: rgba(34,197,94,0.18); }
+    .template-1 .footer-wa-btn {
+      color: #3d5a3d;
+      background: rgba(138, 158, 138, 0.12);
+      border: 1.5px solid rgba(138, 158, 138, 0.3);
+    }
+
+    .template-2 .footer-wa-btn {
+      color: var(--t-ink-strong);
+      background: var(--t-accent-soft);
+      border: 1.5px solid var(--t-border);
+    }
 
     footer.demo-footer {
       text-align: center;
       margin-top: 24px;
       padding: 0 16px;
-      color: var(--muted);
+      color: var(--demo-muted);
       font-size: 0.8rem;
     }
 
-    /* cart & account sidebar modals (functional) — unchanged */
+    /* Modals — Luxe Essence palette (shared demo chrome) */
     .modal-overlay {
       position: fixed;
       top: 0;
@@ -799,10 +897,12 @@
       opacity: 0;
       transition: 0.2s;
     }
+
     .modal-overlay.active {
       visibility: visible;
       opacity: 1;
     }
+
     .modal-card {
       background: white;
       width: 90%;
@@ -812,22 +912,29 @@
       border-radius: 32px;
       padding: 24px;
       box-shadow: 0 25px 40px rgba(0,0,0,0.2);
+      font-family: 'Inter', sans-serif;
     }
+
     .modal-card h3 {
-      font-size: 1.6rem;
+      font-size: 1.5rem;
+      font-weight: 600;
       margin-bottom: 20px;
+      color: #2d2a3e;
     }
+
     .cart-item {
       display: flex;
       justify-content: space-between;
       padding: 12px 0;
       border-bottom: 1px solid #eee;
     }
+
     .total-row {
       font-weight: 700;
       margin: 20px 0;
       font-size: 1.2rem;
     }
+
     .checkout-btn, .close-modal, .track-btn {
       background: #2d2a3e;
       color: white;
@@ -838,14 +945,20 @@
       font-weight: 600;
       margin-top: 12px;
       cursor: pointer;
+      font-family: inherit;
     }
+
+    .checkout-btn:hover { background: #3d3a52; }
+
     .track-input {
       width: 100%;
       padding: 12px;
-      border: 1px solid #ddd;
+      border: 1px solid #e4dfef;
       border-radius: 32px;
       margin: 12px 0;
+      font-family: inherit;
     }
+
     .order-status {
       background: #f2f0f7;
       padding: 16px;
@@ -854,7 +967,7 @@
     }
   </style>
 </head>
-<body>
+<body data-theme="artisan">
 <div class="saas-bar">
   🚀 Multi-Template Ecommerce SaaS — Fully functional cart, account panel, order tracking & checkout simulation
   <span>2 templates ready</span>
@@ -887,7 +1000,7 @@
     </aside>
   </div>
 
-  <!-- ========== TEMPLATE 1: Handmade / Crochet / Gift vibe ========= -->
+  <!-- TEMPLATE 1: Artisan & Cozy — Soft Studio palette -->
   <div id="template1" class="template-wrapper template-1 active-template">
     <div class="store-wrap">
       <header class="store-header" id="topBar1">
@@ -898,7 +1011,7 @@
               <h2>📍 Handmade gifts, shipped nationwide</h2>
             </div>
           </a>
-          <div class="header-actions actions">
+          <div class="header-actions">
             <button class="icon-btn" id="accountBtn1"><i class="fas fa-user-circle"></i></button>
             <button class="icon-btn" id="cartBtn1"><i class="fas fa-shopping-bag"></i><span id="cartCount1" class="cart-count">0</span></button>
             <button class="icon-btn" id="trackBtn1"><i class="fas fa-truck"></i></button>
@@ -971,7 +1084,7 @@
     </div>
   </div>
 
-  <!-- ========== TEMPLATE 2: Perfume / Elegant / Modern objects ========= -->
+  <!-- TEMPLATE 2: Luxe Essence — matches themes/retail/luxe-essence/ -->
   <div id="template2" class="template-wrapper template-2">
     <div class="store-wrap">
       <header class="store-header" id="topBar2">
@@ -982,7 +1095,7 @@
               <h2>📍 Niche perfumery, worldwide shipping</h2>
             </div>
           </a>
-          <div class="header-actions actions">
+          <div class="header-actions">
             <button class="icon-btn" id="accountBtn2"><i class="fas fa-user-circle"></i></button>
             <button class="icon-btn" id="cartBtn2"><i class="fas fa-shopping-bag"></i><span id="cartCount2" class="cart-count">0</span></button>
             <button class="icon-btn" id="trackBtn2"><i class="fas fa-truck"></i></button>
@@ -1057,11 +1170,8 @@
   <footer class="demo-footer">⚡ Functional demo: cart, account, order tracking, checkout. Backend integration ready.</footer>
 </div>
 
-<!-- GLOBAL MODAL for cart/account/tracking -->
 <div id="globalModal" class="modal-overlay">
-  <div class="modal-card" id="modalContent">
-    <!-- dynamic content -->
-  </div>
+  <div class="modal-card" id="modalContent"></div>
 </div>
 
 <script>
@@ -1092,10 +1202,10 @@
       title: 'Shipping policy',
       html: `
         <div class="ordering-hours-title">Shipping policy</div>
-        <p style="font-size:12.5px;line-height:1.55;color:var(--navy-mid);margin-bottom:8px;">
+        <p class="drawer-info-text" style="margin-bottom:8px;">
           Orders are typically processed within 1–2 business days after payment confirmation.
         </p>
-        <p style="font-size:12.5px;line-height:1.55;color:var(--navy-mid);">
+        <p class="drawer-info-text">
           Free shipping on orders of ₹1,500 or more. Standard shipping is ₹120 below that threshold.
         </p>
       `
@@ -1132,7 +1242,6 @@
     if (event.key === 'Escape') closeMenu();
   });
 
-  // ---------- PRODUCT DATA for each template (realistic items) ----------
   const productsData = {
     temp1: [
       { id: 'c1', name: 'Handmade Crochet Bunny', price: 28.99, img: 'https://placehold.co/400x300/f3e9de/9c7e5e?text=🐰+Crochet+Bunny', desc: 'Soft wool bunny, hand-stitched with love. Perfect nursery gift.' },
@@ -1150,12 +1259,10 @@
     ]
   };
 
-  // ---------- GLOBAL STATE (shared cart, account, orders) ----------
-  let currentCart = [];      // array of { id, name, price, quantity, templateOrigin }
-  let currentUser = { isLogged: true, name: "Guest User", email: "guest@example.com" }; // simple account simulation
-  let ordersHistory = [];    // each order: { id, date, total, items }
+  let currentCart = [];
+  let currentUser = { isLogged: true, name: "Guest User", email: "guest@example.com" };
+  let ordersHistory = [];
 
-  // Helper: save to localStorage for persistence across template switch
   function saveState() {
     localStorage.setItem('ecom_cart', JSON.stringify(currentCart));
     localStorage.setItem('ecom_orders', JSON.stringify(ordersHistory));
@@ -1171,7 +1278,6 @@
     if (savedUser) currentUser = JSON.parse(savedUser);
   }
 
-  // Cart helpers
   function addToCart(product, templateId) {
     const existing = currentCart.find(item => item.id === product.id);
     if (existing) {
@@ -1181,7 +1287,6 @@
     }
     saveState();
     updateAllCartCounters();
-    showToast?.("Added to cart 🛍️");
   }
 
   function updateAllCartCounters() {
@@ -1202,9 +1307,9 @@
   }
 
   function updateQuantity(index, delta) {
-    let item = currentCart[index];
+    const item = currentCart[index];
     if (item) {
-      let newQty = item.quantity + delta;
+      const newQty = item.quantity + delta;
       if (newQty <= 0) {
         removeCartItem(index);
       } else {
@@ -1218,7 +1323,6 @@
     }
   }
 
-  // checkout: creates order, clears cart, shows success
   function checkout() {
     if (currentCart.length === 0) {
       alert("Your cart is empty!");
@@ -1236,13 +1340,10 @@
     updateAllCartCounters();
     closeModal();
     alert(`✅ Order placed! ${newOrder.id}\nTotal: $${newOrder.total.toFixed(2)}. You can track it in "Order Tracking".`);
-    // update account modal if open
   }
 
-  // modal handling
   const modal = document.getElementById('globalModal');
   const modalContentDiv = document.getElementById('modalContent');
-  let currentModalType = '';
 
   function closeModal() {
     modal.classList.remove('active');
@@ -1251,28 +1352,26 @@
   function openModal(contentHtml, type) {
     modalContentDiv.innerHTML = contentHtml;
     modal.classList.add('active');
-    currentModalType = type;
-    // attach event listeners for dynamic buttons
     if (type === 'cart') {
       document.querySelectorAll('.cart-inc').forEach(btn => {
-        btn.addEventListener('click', (e) => { let idx = btn.dataset.idx; updateQuantity(parseInt(idx), 1); });
+        btn.addEventListener('click', () => { updateQuantity(parseInt(btn.dataset.idx), 1); });
       });
       document.querySelectorAll('.cart-dec').forEach(btn => {
-        btn.addEventListener('click', (e) => { let idx = btn.dataset.idx; updateQuantity(parseInt(idx), -1); });
+        btn.addEventListener('click', () => { updateQuantity(parseInt(btn.dataset.idx), -1); });
       });
       document.querySelectorAll('.remove-item').forEach(btn => {
-        btn.addEventListener('click', (e) => { let idx = btn.dataset.idx; removeCartItem(parseInt(idx)); });
+        btn.addEventListener('click', () => { removeCartItem(parseInt(btn.dataset.idx)); });
       });
       const checkoutBtn = document.getElementById('checkoutActionBtn');
       if (checkoutBtn) checkoutBtn.onclick = () => { checkout(); closeModal(); };
     } else if (type === 'account') {
       const saveAccountBtn = document.getElementById('saveAccountBtn');
-      if(saveAccountBtn) {
+      if (saveAccountBtn) {
         saveAccountBtn.onclick = () => {
           const newName = document.getElementById('accName').value;
           const newEmail = document.getElementById('accEmail').value;
-          if(newName) currentUser.name = newName;
-          if(newEmail) currentUser.email = newEmail;
+          if (newName) currentUser.name = newName;
+          if (newEmail) currentUser.email = newEmail;
           saveState();
           alert("Account updated!");
           openAccountModal();
@@ -1280,12 +1379,12 @@
       }
     } else if (type === 'tracking') {
       const trackBtn = document.getElementById('trackOrderBtn');
-      if(trackBtn){
+      if (trackBtn) {
         trackBtn.onclick = () => {
           const orderId = document.getElementById('trackOrderId').value.trim();
           const found = ordersHistory.find(o => o.id === orderId);
           const statusDiv = document.getElementById('trackStatusResult');
-          if(found){
+          if (found) {
             statusDiv.innerHTML = `<div class="order-status"><strong>✅ Order found</strong><br/>ID: ${found.id}<br/>Date: ${found.date}<br/>Total: $${found.total.toFixed(2)}<br/>Status: Shipped (demo) 📦<br/>Items: ${found.items.length} product(s)</div>`;
           } else {
             statusDiv.innerHTML = `<div class="order-status" style="background:#ffe8e8;">❌ No order with ID "${orderId}". Try ORD-xxxx</div>`;
@@ -1296,7 +1395,7 @@
   }
 
   function renderCartModal() {
-    if(currentCart.length === 0){
+    if (currentCart.length === 0) {
       openModal(`<h3><i class="fas fa-shopping-bag"></i> Your Cart</h3><p>Your cart is empty.</p><button class="close-modal" id="closeModalBtn">Close</button>`, 'cart');
     } else {
       let itemsHtml = `<div class="cart-list">`;
@@ -1312,12 +1411,12 @@
             </div>
           </div>`;
       });
-      const total = currentCart.reduce((s,i) => s + (i.price * i.quantity),0);
+      const total = currentCart.reduce((s, i) => s + (i.price * i.quantity), 0);
       itemsHtml += `</div><div class="total-row">Total: $${total.toFixed(2)}</div><button id="checkoutActionBtn" class="checkout-btn">Proceed to Checkout</button><button id="closeModalBtn" class="close-modal" style="background:#aaa;">Close</button>`;
-      openModal(`<h3>🛒 Cart (${currentCart.reduce((a,b)=>a+b.quantity,0)} items)</h3>${itemsHtml}`, 'cart');
+      openModal(`<h3>🛒 Cart (${currentCart.reduce((a, b) => a + b.quantity, 0)} items)</h3>${itemsHtml}`, 'cart');
     }
     const closeBtn = document.getElementById('closeModalBtn');
-    if(closeBtn) closeBtn.onclick = closeModal;
+    if (closeBtn) closeBtn.onclick = closeModal;
   }
 
   function openAccountModal() {
@@ -1325,10 +1424,10 @@
       <h3><i class="fas fa-user-circle"></i> My Account</h3>
       <div style="margin:16px 0;">
         <label>Name</label>
-        <input type="text" id="accName" value="${currentUser.name}" style="width:100%; padding:10px; margin:6px 0; border-radius:40px; border:1px solid #ddd;">
+        <input type="text" id="accName" value="${currentUser.name}" style="width:100%; padding:10px; margin:6px 0; border-radius:40px; border:1px solid #e4dfef;">
         <label>Email</label>
-        <input type="email" id="accEmail" value="${currentUser.email}" style="width:100%; padding:10px; margin:6px 0; border-radius:40px; border:1px solid #ddd;">
-        <div style="margin-top:20px; background:#f7f5fc; border-radius:20px; padding:12px;">
+        <input type="email" id="accEmail" value="${currentUser.email}" style="width:100%; padding:10px; margin:6px 0; border-radius:40px; border:1px solid #e4dfef;">
+        <div style="margin-top:20px; background:#f2f0f7; border-radius:20px; padding:12px;">
           <strong>📦 Order History</strong>
           ${ordersHistory.length === 0 ? '<p>No orders yet.</p>' : ordersHistory.map(o => `<div style="margin:10px 0;"><b>${o.id}</b> - $${o.total.toFixed(2)} (${o.date})</div>`).join('')}
         </div>
@@ -1337,7 +1436,7 @@
       </div>`;
     openModal(content, 'account');
     const closeBtn = document.getElementById('closeModalBtn');
-    if(closeBtn) closeBtn.onclick = closeModal;
+    if (closeBtn) closeBtn.onclick = closeModal;
   }
 
   function openTrackingModal() {
@@ -1351,14 +1450,13 @@
     `;
     openModal(content, 'tracking');
     const closeBtn = document.getElementById('closeModalBtn');
-    if(closeBtn) closeBtn.onclick = closeModal;
+    if (closeBtn) closeBtn.onclick = closeModal;
   }
 
-  // render product grid for template
   function renderProducts(templateKey, containerId) {
     const products = productsData[templateKey];
     const container = document.getElementById(containerId);
-    if(!container) return;
+    if (!container) return;
     container.innerHTML = '';
     products.forEach(prod => {
       const card = document.createElement('div');
@@ -1381,54 +1479,50 @@
     container.querySelectorAll('.add-to-cart').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const id = btn.dataset.id;
-        const name = btn.dataset.name;
-        const price = parseFloat(btn.dataset.price);
-        const img = btn.dataset.img;
-        const product = { id, name, price, img };
-        addToCart(product, templateKey);
+        addToCart({
+          id: btn.dataset.id,
+          name: btn.dataset.name,
+          price: parseFloat(btn.dataset.price),
+          img: btn.dataset.img
+        }, templateKey);
       });
     });
   }
 
-  // template switching logic
   let activeTemplate = 'temp1';
+
   function switchTemplate(tempId) {
     activeTemplate = tempId;
+    document.body.dataset.theme = tempId === 'temp1' ? 'artisan' : 'luxe';
+
     const wrapper1 = document.getElementById('template1');
     const wrapper2 = document.getElementById('template2');
-    if(tempId === 'temp1') {
+    if (tempId === 'temp1') {
       wrapper1.classList.add('active-template');
       wrapper2.classList.remove('active-template');
     } else {
       wrapper2.classList.add('active-template');
       wrapper1.classList.remove('active-template');
     }
-    // update button states
+
     document.querySelectorAll('.template-btn').forEach(btn => {
-      if((tempId === 'temp1' && btn.dataset.template === 'temp1') || (tempId === 'temp2' && btn.dataset.template === 'temp2'))
-        btn.classList.add('active');
-      else btn.classList.remove('active');
+      btn.classList.toggle('active', btn.dataset.template === tempId);
     });
   }
 
-  // bind UI controls
   function bindGlobalEvents() {
     document.querySelectorAll('.template-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const target = btn.dataset.template;
-        if(target === 'temp1') switchTemplate('temp1');
-        else switchTemplate('temp2');
+      btn.addEventListener('click', () => {
+        switchTemplate(btn.dataset.template);
       });
     });
-    // modals dynamic (since ids on both templates)
     document.getElementById('cartBtn1')?.addEventListener('click', renderCartModal);
     document.getElementById('cartBtn2')?.addEventListener('click', renderCartModal);
     document.getElementById('accountBtn1')?.addEventListener('click', openAccountModal);
     document.getElementById('accountBtn2')?.addEventListener('click', openAccountModal);
     document.getElementById('trackBtn1')?.addEventListener('click', openTrackingModal);
     document.getElementById('trackBtn2')?.addEventListener('click', openTrackingModal);
-    modal.addEventListener('click', (e) => { if(e.target === modal) closeModal(); });
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
   }
 
   function init() {
@@ -1443,6 +1537,7 @@
       document.getElementById('topBar2')?.classList.toggle('scrolled', window.scrollY > 10);
     });
   }
+
   init();
 </script>
 </body>

@@ -248,6 +248,7 @@
 
 /* Brown Butter header bar — only used on that theme */
 .theme-brown-butter .sf-store-header {
+  width: 100%;
   position: sticky;
   top: 0;
   z-index: 1000;
@@ -279,13 +280,18 @@
 }
 
 .theme-brown-butter .sf-store-header__brand h2 {
-  font-weight: 800;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
   font-size: 15px;
   color: var(--sf-menu-ink);
   line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.theme-brown-butter .sf-store-header.scrolled {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 
 .theme-brown-butter .sf-store-header__brand p {

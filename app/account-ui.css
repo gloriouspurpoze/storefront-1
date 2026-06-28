@@ -9,3 +9,4 @@
 @source '../components/account/**/*.{js,ts,jsx,tsx}';
 @source '../components/account/themes/**/*.{js,ts,jsx,tsx}';
 @source '../themes/retail/TrackOrderClient.tsx';
+@source '../components/CheckoutContactNote.tsx';
