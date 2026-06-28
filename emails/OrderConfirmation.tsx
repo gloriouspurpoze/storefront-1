@@ -8,7 +8,6 @@ function formatInr(amount: number): string {
   return `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
 }
 
-
 export default function OrderConfirmation({
   tenant,
   customer,
