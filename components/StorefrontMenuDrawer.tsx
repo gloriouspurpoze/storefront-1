@@ -13,6 +13,7 @@ export function StorefrontMenuDrawer({
   onClose,
   config,
   showShippingPolicy = true,
+  shippingPolicyLabel = 'Shipping policy',
   orderingHoursNote,
   shippingPolicyContent,
 }: {
@@ -20,6 +21,7 @@ export function StorefrontMenuDrawer({
   onClose: () => void
   config?: StorefrontConfig | null
   showShippingPolicy?: boolean
+  shippingPolicyLabel?: string
   orderingHoursNote?: React.ReactNode
   shippingPolicyContent?: React.ReactNode
 }) {
@@ -78,9 +80,9 @@ export function StorefrontMenuDrawer({
               className={`sf-menu-drawer__link${section === 'shipping-policy' ? ' active' : ''}`}
               onClick={() => setSection('shipping-policy')}
             >
-              <div className="sf-menu-drawer__link-title">Shipping policy</div>
+              <div className="sf-menu-drawer__link-title">{shippingPolicyLabel}</div>
               <div className="sf-menu-drawer__link-copy">
-                Read the delivery zones, charges, and expected timelines.
+                Read delivery zones, charges, and expected timelines.
               </div>
             </button>
           )}

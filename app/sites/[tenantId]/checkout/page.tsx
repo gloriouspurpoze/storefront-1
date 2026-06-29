@@ -44,7 +44,7 @@ export default async function CheckoutPage() {
       <main className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
         <h1 className="font-serif text-3xl font-bold text-stone-900">Checkout</h1>
         <div className="mt-8">
-          <RestaurantCheckoutClient tenant={themeTenant} showPreferredDate={showPreferredDate} />
+          <RestaurantCheckoutClient tenant={themeTenant} config={config} showPreferredDate={showPreferredDate} />
         </div>
       </main>
     )
@@ -52,7 +52,7 @@ export default async function CheckoutPage() {
     if (isRestaurantLayoutTheme(config?.themeKey)) {
       return (
         <RestaurantShell tenantId={tenant.id}>
-          <LayoutThemePageShell config={config} siteName={siteName} tagline={tagline} showShippingPolicy={false}>
+          <LayoutThemePageShell config={config} siteName={siteName} tagline={tagline} showShippingPolicy variant="restaurant">
             {main}
           </LayoutThemePageShell>
         </RestaurantShell>
@@ -61,7 +61,7 @@ export default async function CheckoutPage() {
 
     return (
       <RestaurantShell tenantId={tenant.id}>
-        <RestHeader tenant={themeTenant} />
+        <RestHeader tenant={themeTenant} config={config} />
         {main}
         <RestFooter tenant={themeTenant} />
       </RestaurantShell>
@@ -80,7 +80,7 @@ export default async function CheckoutPage() {
       <main className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
         <h1 className="text-3xl font-bold text-slate-900">Checkout</h1>
         <div className="mt-8">
-          <CheckoutClient tenant={themeTenant} showPreferredDate={showPreferredDate} />
+          <CheckoutClient tenant={themeTenant} config={config} showPreferredDate={showPreferredDate} />
         </div>
       </main>
     )
@@ -97,7 +97,7 @@ export default async function CheckoutPage() {
 
     return (
       <RetailShell tenantId={tenant.id}>
-        <RetailHeader tenant={themeTenant} />
+        <RetailHeader tenant={themeTenant} config={config} />
         {main}
         <RetailFooter tenant={themeTenant} />
       </RetailShell>

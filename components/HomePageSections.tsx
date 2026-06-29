@@ -13,7 +13,7 @@ import { toThemeTenant as toHsTenant } from '@/themes/home-services/types'
 import { SiteHeader as RestHeader } from '@/themes/restaurant/SiteHeader'
 import { SiteFooter as RestFooter } from '@/themes/restaurant/SiteFooter'
 import { Hero as RestHero } from '@/themes/restaurant/Hero'
-import { MenuSection } from '@/themes/restaurant/MenuSection'
+import { MenuSectionInteractive } from '@/themes/restaurant/MenuSectionInteractive'
 import { toThemeTenant as toRestTenant } from '@/themes/restaurant/types'
 import { isRestaurantLayoutTheme, RestaurantLayoutPage } from '@/themes/restaurant/restaurantLayoutRouter'
 import { RestaurantShell } from '@/themes/restaurant/RestaurantShell'
@@ -158,7 +158,7 @@ export async function HomePageSections({
 
     return (
       <RestaurantShell tenantId={tenant.id}>
-        <RestHeader tenant={themeTenant} />
+        <RestHeader tenant={themeTenant} config={cfg} />
         <main>
           {order.map((t) => {
             if (t === 'hero' && flagOn(cfg, 'showHero') && sectionEnabled(cfg, 'hero'))
@@ -173,7 +173,7 @@ export async function HomePageSections({
                     </Link>
                   </div>
                   <div className="mt-8">
-                    <MenuSection categories={preview} compact />
+                    <MenuSectionInteractive categories={preview} compact />
                   </div>
                 </section>
               )
@@ -229,7 +229,7 @@ export async function HomePageSections({
 
     return (
       <RetailShell tenantId={tenant.id}>
-        <RetailHeader tenant={themeTenant} />
+        <RetailHeader tenant={themeTenant} config={cfg} />
         <main>
           {order.map((t) => {
             if (t === 'hero' && flagOn(cfg, 'showHero') && sectionEnabled(cfg, 'hero'))

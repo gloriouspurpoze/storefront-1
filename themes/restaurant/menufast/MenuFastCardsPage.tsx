@@ -14,6 +14,8 @@ import { showPreferredDateOfDelivery } from '@/lib/templateSettings'
 import { isMenuItemInStock } from '@/lib/storefront-api'
 import { AccountProfileLink } from '@/components/account/AccountProfileLink'
 import { StorefrontMenuDrawer } from '@/components/StorefrontMenuDrawer'
+import { StoreStatusBadge } from '@/components/StoreStatusBadge'
+import { MenuItemDetailModal } from '@/components/MenuItemDetailModal'
 import './menufast.css'
 
 export function MenuFastCardsPage({
@@ -33,6 +35,12 @@ export function MenuFastCardsPage({
   const [activeCat, setActiveCat] = useState<string>('all')
   const [orderNumber, setOrderNumber] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
+
+  const selectedItem =
+    selectedItemId != null
+      ? initialCategories.flatMap((c) => c.items).find((item) => item.id === selectedItemId) ?? null
+      : null
   const { entries, itemCount, subtotal, addItem, removeItem, qtyFor, clearCart } =
     useMenuCart(initialCategories)
 
@@ -70,7 +78,20 @@ export function MenuFastCardsPage({
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         config={config}
-        showShippingPolicy={false}
+        showShippingPolicy
+        shippingPolicyLabel="Delivery policy"
+      />
+      <MenuItemDetailModal
+        item={selectedItem}
+        open={selectedItem != null}
+        onClose={() => setSelectedItemId(null)}
+        quantity={selectedItem ? qtyFor(selectedItem.id) : 0}
+        onAdd={() => {
+          if (selectedItem) addItem(selectedItem)
+        }}
+        onRemove={() => {
+          if (selectedItem) removeItem(selectedItem.id)
+        }}
       />
       <div className="mf-phone-wrap">
         <div className="mf-phone">
@@ -79,17 +100,20 @@ export function MenuFastCardsPage({
           </div>
 
           <div className="mf-cards-header">
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginBottom: '0.5rem' }}>
-              <button
-                type="button"
-                className="sf-menu-toggle-btn"
-                onClick={() => setMenuOpen(true)}
-                aria-expanded={menuOpen}
-                aria-label="Open menu"
-              >
-                ☰
-              </button>
-              <AccountProfileLink className="inline-flex items-center justify-center hover:opacity-80" />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: '0.5rem' }}>
+              <StoreStatusBadge config={config} compact />
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="sf-menu-toggle-btn"
+                  onClick={() => setMenuOpen(true)}
+                  aria-expanded={menuOpen}
+                  aria-label="Open menu"
+                >
+                  ☰
+                </button>
+                <AccountProfileLink className="inline-flex items-center justify-center hover:opacity-80" />
+              </div>
             </div>
             <div className="mf-cards-logo-row">
               <div className="mf-cards-logo">
@@ -139,7 +163,19 @@ export function MenuFastCardsPage({
                     const qty = qtyFor(item.id)
                     const inStock = isMenuItemInStock(item)
                     return (
-                      <div key={item.id} className="mf-item-card">
+                      <div
+                        key={item.id}
+                        className="mf-item-card"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setSelectedItemId(item.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            setSelectedItemId(item.id)
+                          }
+                        }}
+                      >
                         <div className="mf-item-img">
                           {item.imageUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
@@ -160,7 +196,7 @@ export function MenuFastCardsPage({
                               <div className="mf-item-card-desc">{item.description}</div>
                             )}
                           </div>
-                          <div className="mf-item-card-bottom">
+                          <div className="mf-item-card-bottom" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                             {isVegItem(item) && <span className="mf-veg" aria-label="Vegetarian" />}
                             {!inStock ? (
                               <span className="mf-oos-label">Out of stock</span>
@@ -202,6 +238,7 @@ export function MenuFastCardsPage({
             )}
             <MenuOrderCheckoutBlock
               tenant={tenant}
+              config={config}
               lines={lines}
               showPreferredDate={showPreferredDate}
               onClear={clearCart}

@@ -14,6 +14,8 @@ import { showPreferredDateOfDelivery } from '@/lib/templateSettings'
 import { isMenuItemInStock } from '@/lib/storefront-api'
 import { AccountProfileLink } from '@/components/account/AccountProfileLink'
 import { StorefrontMenuDrawer } from '@/components/StorefrontMenuDrawer'
+import { StoreStatusBadge } from '@/components/StoreStatusBadge'
+import { MenuItemDetailModal } from '@/components/MenuItemDetailModal'
 import './menufast.css'
 
 function WhatsAppIcon() {
@@ -42,6 +44,12 @@ export function MenuFastMinimalPage({
     useMenuCart(initialCategories)
   const [orderNumber, setOrderNumber] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
+
+  const selectedItem =
+    selectedItemId != null
+      ? initialCategories.flatMap((c) => c.items).find((item) => item.id === selectedItemId) ?? null
+      : null
 
   const waUrl = buildWhatsAppOrderUrl(whatsapp, siteName, entries)
   const currency = entries[0]?.item.currency ?? 'INR'
@@ -72,7 +80,20 @@ export function MenuFastMinimalPage({
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         config={config}
-        showShippingPolicy={false}
+        showShippingPolicy
+        shippingPolicyLabel="Delivery policy"
+      />
+      <MenuItemDetailModal
+        item={selectedItem}
+        open={selectedItem != null}
+        onClose={() => setSelectedItemId(null)}
+        quantity={selectedItem ? qtyFor(selectedItem.id) : 0}
+        onAdd={() => {
+          if (selectedItem) addItem(selectedItem)
+        }}
+        onRemove={() => {
+          if (selectedItem) removeItem(selectedItem.id)
+        }}
       />
       <div className="mf-phone-wrap">
         <div className="mf-phone">
@@ -81,17 +102,20 @@ export function MenuFastMinimalPage({
           </div>
 
           <div className="mf-min-header">
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginBottom: '0.5rem' }}>
-              <button
-                type="button"
-                className="sf-menu-toggle-btn"
-                onClick={() => setMenuOpen(true)}
-                aria-expanded={menuOpen}
-                aria-label="Open menu"
-              >
-                ☰
-              </button>
-              <AccountProfileLink className="inline-flex items-center justify-center hover:opacity-80" />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: '0.5rem' }}>
+              <StoreStatusBadge config={config} compact />
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="sf-menu-toggle-btn"
+                  onClick={() => setMenuOpen(true)}
+                  aria-expanded={menuOpen}
+                  aria-label="Open menu"
+                >
+                  ☰
+                </button>
+                <AccountProfileLink className="inline-flex items-center justify-center hover:opacity-80" />
+              </div>
             </div>
             <div className="mf-min-logo-row">
               <div className="mf-min-logo">
@@ -126,7 +150,19 @@ export function MenuFastMinimalPage({
                     const qty = qtyFor(item.id)
                     const inStock = isMenuItemInStock(item)
                     return (
-                      <div key={item.id} className="mf-min-row">
+                      <div
+                        key={item.id}
+                        className="mf-min-row"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setSelectedItemId(item.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            setSelectedItemId(item.id)
+                          }
+                        }}
+                      >
                         <div style={{ flex: 1 }}>
                           <div className="mf-min-item-name">
                             {isVegItem(item) && <span className="mf-veg" aria-label="Vegetarian" />}
@@ -137,7 +173,11 @@ export function MenuFastMinimalPage({
                             <div className="mf-min-item-desc">{item.description}</div>
                           )}
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div
+                          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => e.stopPropagation()}
+                        >
                           <div className="mf-min-price">{formatMenuPrice(item.price, item.currency)}</div>
                           {!inStock ? (
                             <span className="mf-oos-label">Out of stock</span>
@@ -168,6 +208,7 @@ export function MenuFastMinimalPage({
           <div className="mf-min-footer">
             <MenuOrderCheckoutBlock
               tenant={tenant}
+              config={config}
               lines={lines}
               showPreferredDate={showPreferredDate}
               onClear={clearCart}
