@@ -1271,3 +1271,33 @@
 @media (max-width: 700px) {
   .ss-account-nav { flex-wrap: wrap; padding: 14px 20px; }
 }
+
+.ss-nav-logo {
+  text-decoration: none;
+}
+
+.ss-nav-status {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .ss-nav-status {
+    display: inline-flex;
+    margin: 0 auto;
+  }
+}
+
+.ss-hero-status {
+  margin-bottom: 1rem;
+  max-width: 320px;
+}
+
+.ss-product-card-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.ss-product-actions {
+  padding: 0 16px 16px;
+}
