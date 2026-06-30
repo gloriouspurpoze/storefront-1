@@ -18,10 +18,11 @@ import {
 import { getOrderingAvailabilityFromConfig, getOrderingHoursFromConfig } from '@/lib/orderingHours'
 import { formatMoney, useCart } from '../cart'
 import type { ThemeTenant } from '../types'
-import { AccountNavLink } from '@/components/account/AccountNavLink'
 import { AccountProfileLink } from '@/components/account/AccountProfileLink'
 import { StorefrontMenuDrawer } from '@/components/StorefrontMenuDrawer'
 import { ShippingPolicyModal } from '@/components/ShippingPolicyModal'
+import { StoreStatusBadge, StoreStatusCard } from '@/components/StoreStatusBadge'
+import { runPreCheckoutGuards } from '@/lib/checkoutGuard'
 import './luxe-essence.css'
 
 const FREE_SHIPPING_MIN = 1500
@@ -145,6 +146,14 @@ export function LuxeEssencePage({
       setCheckoutError(contact.message)
       return
     }
+    const guard = runPreCheckoutGuards(config, deliveryDetails, {
+      requireDate: showPreferredDate,
+      requireTime: showPreferredTime,
+    })
+    if (!guard.ok) {
+      setCheckoutError(guard.message)
+      return
+    }
     if (showPreferredDate || showPreferredTime) {
       const slotCheck = validateDeliveryDetails(deliveryDetails, orderingHours, {
         requireDate: showPreferredDate,
@@ -206,23 +215,7 @@ export function LuxeEssencePage({
           <p className="le-tagline">{tagline}</p>
         </div>
 
-        <ul className="le-nav-desktop">
-          <li>
-            <a href="#products">Shop</a>
-          </li>
-          <li>
-            <a href="/products">All products</a>
-          </li>
-          <li>
-            <a href="/orders/track">Track order</a>
-          </li>
-          <li>
-            <a href="/shipping-policy">Shipping</a>
-          </li>
-          <li>
-            <AccountNavLink />
-          </li>
-        </ul>
+        <StoreStatusBadge config={config} className="le-header-status" />
 
         <div className="le-actions">
           <button
@@ -235,9 +228,6 @@ export function LuxeEssencePage({
             ☰
           </button>
           <AccountProfileLink className="le-icon-btn" iconClassName="h-5 w-5" />
-          <Link href="/orders/track" className="le-icon-btn" aria-label="Track order" title="Track order">
-            🚚
-          </Link>
           <button
             type="button"
             className="le-icon-btn"
@@ -252,6 +242,7 @@ export function LuxeEssencePage({
 
       <section className="le-hero">
         <div>
+          <StoreStatusCard config={config} className="le-hero-status" />
           <p className="le-hero-eyebrow">New season</p>
           <h2 className="le-hero-title">
             {heroHeadline ? (
@@ -322,28 +313,30 @@ export function LuxeEssencePage({
           <div className="le-product-grid">
             {products.map((product) => (
               <article key={product.id} className="le-product-card">
-                <div className="le-product-img">
-                  <ProductImage product={product} />
-                </div>
-                <div className="le-product-info">
-                  <div className="le-product-title">{product.name}</div>
-                  {(product.shortDescription || product.description) && (
-                    <div className="le-product-desc">
-                      {product.shortDescription || product.description}
-                    </div>
-                  )}
-                  <div className="le-product-price">
-                    {formatMoney(product.price, product.currency)}
+                <Link href={`/products/${product.slug}`} className="le-product-card-link">
+                  <div className="le-product-img">
+                    <ProductImage product={product} />
                   </div>
-                  <button
-                    type="button"
-                    className="le-add-to-cart"
-                    disabled={!product.inStock}
-                    onClick={() => handleAdd(product)}
-                  >
-                    {product.inStock ? 'Add to cart' : 'Out of stock'}
-                  </button>
-                </div>
+                  <div className="le-product-info">
+                    <div className="le-product-title">{product.name}</div>
+                    {(product.shortDescription || product.description) && (
+                      <div className="le-product-desc">
+                        {product.shortDescription || product.description}
+                      </div>
+                    )}
+                    <div className="le-product-price">
+                      {formatMoney(product.price, product.currency)}
+                    </div>
+                  </div>
+                </Link>
+                <button
+                  type="button"
+                  className="le-add-to-cart"
+                  disabled={!product.inStock}
+                  onClick={() => handleAdd(product)}
+                >
+                  {product.inStock ? 'Add to cart' : 'Out of stock'}
+                </button>
               </article>
             ))}
           </div>

@@ -1,5 +1,5 @@
 import { env } from './env'
-import type { QrCodeRecord, QrResolveResult } from '@/lib/qr'
+import type { QrCodeRecord, QrResolveResult } from './qr'
 
 interface ApiEnvelope<T> {
   success: boolean

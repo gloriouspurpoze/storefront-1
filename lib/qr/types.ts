@@ -1,4 +1,4 @@
-/** QR code registry — tenant-scoped identity + routing. */
+/** QR code registry — tenant-scoped identity + routing (vendored from @profixer/utils). */
 
 export type QrCodeStatus = 'active' | 'paused' | 'revoked'
 

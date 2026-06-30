@@ -1116,3 +1116,31 @@
   --sf-menu-link-radius: 16px;
   --sf-menu-info-radius: 16px;
 }
+
+.le-header-status {
+  display: none;
+}
+
+.le-hero-status {
+  margin-bottom: 1rem;
+  max-width: 320px;
+}
+
+.le-product-card-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.le-product-card .le-add-to-cart {
+  margin: 0 18px 22px;
+  width: calc(100% - 36px);
+}
+
+@media (min-width: 900px) {
+  .le-header-status {
+    display: inline-flex;
+    flex: 1;
+    justify-content: center;
+  }
+}

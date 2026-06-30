@@ -2,30 +2,49 @@
 
 Design reference HTML lives here. Each file is converted into a React layout under `storefront/themes/`.
 
+## Launch themes (finalized)
+
+Six layout templates ship as the default catalog. Super admins can enable/disable themes globally at **Settings → Theme catalog** and restrict per-tenant access in **Platform tenants → Storefront → Themes**.
+
+| Vertical | `themeKey` | Display name | React implementation |
+|----------|------------|--------------|----------------------|
+| **retail** (e-commerce) | `classic` | Classic | Section-based homepage — `themes/retail/SiteHeader`, `ProductGrid`, `/products/[slug]` |
+| retail | `soft-studio` | Soft Studio | `themes/retail/soft-studio/SoftStudioPage.tsx` |
+| retail | `luxe-essence` | Luxe Essence | `themes/retail/luxe-essence/LuxeEssencePage.tsx` |
+| **restaurant** | `classic` | Classic | Section-based — `themes/restaurant/SiteHeader`, `MenuSectionInteractive` |
+| restaurant | `menufast-minimal` | MenuFast Minimal | `themes/restaurant/menufast/MenuFastMinimalPage.tsx` |
+| restaurant | `menufast-cards` | MenuFast Cards | `themes/restaurant/menufast/MenuFastCardsPage.tsx` |
+
+### Shared behavior (all six)
+
+- **Store status** — open/closed badge from Availability settings (`orderingHours`, `slotsNote`)
+- **Nav** — logo, status, ☰ menu drawer, account, cart only (secondary links live in drawer/footer)
+- **Shipping / delivery policy** — tenant config; modal gate at checkout; full page at `/shipping-policy`
+- **E-commerce** — product card → `/products/[slug]` detail page
+- **Restaurant** — menu card/row → `MenuItemDetailModal` popup
+
 ## Restaurant (`restaurant/`)
 
-| HTML source | `themeKey` (admin picker) | React implementation | Best for |
-|-------------|---------------------------|----------------------|----------|
-| `temp1/index.html` | `saffron` | `themes/restaurant/saffron/` | Full-service restaurants, editorial order-online |
-| `temp2/menufast_menu_templates.html` (Minimal tab) | `menufast-minimal` | `themes/restaurant/menufast/MenuFastMinimalPage.tsx` | Tiffin, cloud kitchens, daily menus |
-| `temp2/menufast_menu_templates.html` (Cards tab) | `menufast-cards` | `themes/restaurant/menufast/MenuFastCardsPage.tsx` | Bakeries, cafés, image-heavy menus |
+| HTML source | `themeKey` | Notes |
+|-------------|------------|-------|
+| `temp2/menufast_menu_templates.html` (Minimal tab) | `menufast-minimal` | List layout |
+| `temp2/menufast_menu_templates.html` (Cards tab) | `menufast-cards` | Image cards |
+| — | `classic` | Default section-based restaurant site |
 
-**Note:** `temp2` is one HTML mockup with two layout variants. Both are registered as separate selectable templates.
+Legacy layout `saffron` (`temp1/index.html`) remains in code but is hidden from the launch catalog by default.
 
 ## Retail / e-commerce (`e-commerce/`)
 
-| HTML source | `themeKey` (admin picker) | React implementation | Best for |
-|-------------|---------------------------|----------------------|----------|
-| `temp1/theme1-soft-studio.html` | `soft-studio` | `themes/retail/soft-studio/SoftStudioPage.tsx` | D2C brands, boutiques, handmade goods |
-
-**Note:** E-commerce tenants use vertical key `retail` in the backend. The theme catalog filters by `verticalKey`, so only retail / e-commerce tenant admins see these templates.
+| HTML source | `themeKey` | Notes |
+|-------------|------------|-------|
+| `temp1/theme1-soft-studio.html` | `soft-studio` | D2C / boutique |
+| `temp2/deepseek_html_20260615_df2e9b.html` | `luxe-essence` | Luxury retail |
 
 ## Home services
 
 | Vertical | Layout template 1 | Layout template 2 |
 |----------|-------------------|-------------------|
 | `home_services` | `classic` | `trade-pro` |
-| `retail` (also) | `classic` | `luxury-retail` (Pro) |
 
 Add folders under `html-source/home_services/` when design mocks are ready.
 
@@ -37,35 +56,23 @@ Add folders under `html-source/home_services/` when design mocks are ready.
 4. Under **Layout templates**, click a card — saves immediately via `PATCH /api/storefront-studio/config` (`themeKey`)
 5. Click **Preview** (top right) to open the live storefront
 
-Catalog is served from `fixer-backend/src/modules/storefront-studio/catalog/storefrontThemes.ts` and filtered by the tenant's `verticalKey`.
+Catalog is served from `fixer-backend/src/modules/storefront-studio/catalog/storefrontThemes.ts`, filtered by the tenant's `verticalKey`, global `themeVisibility`, and optional per-tenant `enabledThemeKeys`. See [13-storefront-theme-catalog-api.md](../../docs/saas/13-storefront-theme-catalog-api.md).
 
 ## Ordering APIs (storefront checkout)
 
-The storefront client already called these endpoints; they are now implemented on the backend:
-
 | Method | Path | Purpose |
 |--------|------|---------|
-| `POST` | `/api/public/storefront/checkout/create-order` | Validate cart, create Razorpay order (`x-tenant-id` header) |
-| `POST` | `/api/public/storefront/checkout/verify` | Verify payment signature, create `Order`, CRM contact, confirmation email |
-| `GET` | `/api/public/storefront/orders/track` | Track order by order number + email |
+| `POST` | `/api/public/storefront/checkout/create-order` | Validate cart, create Razorpay order |
+| `POST` | `/api/public/storefront/checkout/verify` | Verify payment, create order |
+| `GET` | `/api/public/storefront/orders/track` | Track order |
 
-**Request body (create-order):**
-```json
-{
-  "items": [{ "productId": "...", "quantity": 2 }],
-  "customerEmail": "guest@example.com",
-  "customerName": "Guest Name",
-  "notes": "optional delivery note"
-}
-```
+**Frontend helper:** `storefront/lib/runStorefrontCheckout.ts`
 
-**Requires:** `RAZORPAY_KEY_ID` + `RAZORPAY_KEY_SECRET` in backend `.env`.
-
-**Frontend helper:** `storefront/lib/runStorefrontCheckout.ts` (used by all restaurant templates + retail checkout).
-
+## Adding a new template
 
 1. Add HTML mock under `html-source/{vertical}/`
 2. Register in `storefrontThemes.ts` with `kind: 'layout'` and `htmlSource` path
 3. Build React components under `storefront/themes/{vertical}/`
-4. Wire in `HomePageSections.tsx` (or vertical layout router)
-5. Restart backend so catalog API picks up the new entry
+4. Wire in layout router + `HomePageSections.tsx`
+5. Add to global theme catalog (enabled by default or off)
+6. Restart backend so catalog API picks up the new entry

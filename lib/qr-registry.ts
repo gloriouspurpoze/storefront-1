@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs'
 import path from 'path'
-import type { QrCodeRecord } from '@/lib/qr'
-import { normalizePublicCode } from '@/lib/qr'
+import type { QrCodeRecord } from './qr'
+import { normalizePublicCode } from './qr'
 
 const DATA_DIR = path.join(process.cwd(), '.qr-data')
 

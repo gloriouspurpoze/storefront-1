@@ -1,13 +1,20 @@
 'use client'
 
 import { useState } from 'react'
+import type { StorefrontConfig } from '@/lib/storefront-api'
 import { DeliveryDetailsSection } from '@/components/DeliveryDetailsSection'
 import { runStorefrontCheckout } from '@/lib/runStorefrontCheckout'
-import { formatDeliveryNotes, type DeliveryDetailsValue } from '@/lib/templateSettings'
+import {
+  formatDeliveryNotes,
+  showPreferredTimeOfDelivery,
+  type DeliveryDetailsValue,
+} from '@/lib/templateSettings'
 import type { ThemeTenant } from './types'
+import { useShippingPolicyCheckoutGate, validateBeforePayment } from '@/lib/useShippingPolicyCheckoutGate'
 
 export function MenuOrderCheckoutBlock({
   tenant,
+  config,
   lines,
   notes,
   showPreferredDate = false,
@@ -18,6 +25,7 @@ export function MenuOrderCheckoutBlock({
   className,
 }: {
   tenant: ThemeTenant
+  config?: StorefrontConfig | null
   lines: Array<{ productId: string; quantity: number }>
   notes?: string
   showPreferredDate?: boolean
@@ -33,10 +41,12 @@ export function MenuOrderCheckoutBlock({
   const [deliveryDetails, setDeliveryDetails] = useState<DeliveryDetailsValue>({})
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const { requestCheckout, modal } = useShippingPolicyCheckoutGate(config)
+  const showPreferredTime = showPreferredTimeOfDelivery(config, config?.themeKey)
 
   const disabled = loading || lines.length === 0
 
-  const onPay = async () => {
+  const processPayment = async () => {
     if (disabled) return
     const trimmedEmail = email.trim().toLowerCase()
     const trimmedName = name.trim()
@@ -46,6 +56,15 @@ export function MenuOrderCheckoutBlock({
     }
     if (!trimmedName) {
       setError('Please enter your name.')
+      return
+    }
+
+    const guardMessage = validateBeforePayment(config, deliveryDetails, {
+      requireDate: showPreferredDate,
+      requireTime: showPreferredTime,
+    })
+    if (guardMessage) {
+      setError(guardMessage)
       return
     }
 
@@ -72,47 +91,54 @@ export function MenuOrderCheckoutBlock({
     }
   }
 
+  const onPay = () => {
+    requestCheckout(() => void processPayment())
+  }
+
   if (lines.length === 0) return null
 
   return (
-    <div className={className} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-      {showDeliveryDetails && (
-        <DeliveryDetailsSection
-          showPreferredDate={showPreferredDate}
-          value={deliveryDetails}
-          onChange={setDeliveryDetails}
-          variant="plain"
+    <>
+      {modal}
+      <div className={className} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        {showDeliveryDetails && (
+          <DeliveryDetailsSection
+            showPreferredDate={showPreferredDate}
+            value={deliveryDetails}
+            onChange={setDeliveryDetails}
+            variant="plain"
+          />
+        )}
+        <input
+          type="email"
+          placeholder="Email *"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          style={fieldStyle}
+          autoComplete="email"
         />
-      )}
-      <input
-        type="email"
-        placeholder="Email *"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        style={fieldStyle}
-        autoComplete="email"
-      />
-      <input
-        type="text"
-        placeholder="Full name *"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        style={fieldStyle}
-        autoComplete="name"
-      />
-      <input
-        type="tel"
-        placeholder="Phone (optional)"
-        value={phone}
-        onChange={(e) => setPhone(e.target.value)}
-        style={fieldStyle}
-        autoComplete="tel"
-      />
-      {error && <p style={{ fontSize: '12px', color: '#c62828', margin: 0 }}>{error}</p>}
-      <button type="button" onClick={() => void onPay()} disabled={disabled} style={payBtnStyle}>
-        {loading ? 'Processing…' : primaryLabel}
-      </button>
-    </div>
+        <input
+          type="text"
+          placeholder="Full name *"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          style={fieldStyle}
+          autoComplete="name"
+        />
+        <input
+          type="tel"
+          placeholder="Phone (optional)"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          style={fieldStyle}
+          autoComplete="tel"
+        />
+        {error && <p style={{ fontSize: '12px', color: '#c62828', margin: 0 }}>{error}</p>}
+        <button type="button" onClick={onPay} disabled={disabled} style={payBtnStyle}>
+          {loading ? 'Processing…' : primaryLabel}
+        </button>
+      </div>
+    </>
   )
 }
 

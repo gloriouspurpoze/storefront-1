@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { PublicProduct, StorefrontConfig } from '@/lib/storefront-api'
 import { DeliveryDetailsSection } from '@/components/DeliveryDetailsSection'
@@ -7,13 +8,18 @@ import { runStorefrontCheckout } from '@/lib/runStorefrontCheckout'
 import {
   formatDeliveryNotes,
   showPreferredDateOfDelivery,
+  showPreferredTimeOfDelivery,
+  validateDeliveryDetails,
   type DeliveryDetailsValue,
 } from '@/lib/templateSettings'
+import { getOrderingAvailabilityFromConfig, getOrderingHoursFromConfig } from '@/lib/orderingHours'
 import { formatMoney, useCart } from '../cart'
 import type { ThemeTenant } from '../types'
-import { AccountNavLink } from '@/components/account/AccountNavLink'
 import { AccountProfileLink } from '@/components/account/AccountProfileLink'
 import { StorefrontMenuDrawer } from '@/components/StorefrontMenuDrawer'
+import { StoreStatusBadge, StoreStatusCard } from '@/components/StoreStatusBadge'
+import { ShippingPolicyModal } from '@/components/ShippingPolicyModal'
+import { runPreCheckoutGuards } from '@/lib/checkoutGuard'
 import './soft-studio.css'
 
 const THUMB_CLASSES = ['ss-product-thumb-1', 'ss-product-thumb-2', 'ss-product-thumb-3', 'ss-product-thumb-4']
@@ -67,12 +73,17 @@ export function SoftStudioPage({
   const heroSubcopy = config?.content?.heroSubcopy || tagline
   const contactEmail = config?.branding?.contactEmail
   const showPreferredDate = showPreferredDateOfDelivery(config, config?.themeKey ?? 'soft-studio')
+  const showPreferredTime = showPreferredTimeOfDelivery(config, config?.themeKey ?? 'soft-studio')
+  const orderingHours = useMemo(() => getOrderingHoursFromConfig(config), [config])
+  const orderingAvailability = useMemo(() => getOrderingAvailabilityFromConfig(config), [config])
 
   const { lines, itemCount, subtotal, addProduct, setQuantity, removeLine, clear } = useCart()
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
   const [checkoutOpen, setCheckoutOpen] = useState(false)
+  const [shippingPolicyOpen, setShippingPolicyOpen] = useState(false)
+  const [policyAcknowledged, setPolicyAcknowledged] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [orderNumber, setOrderNumber] = useState<string | null>(null)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
@@ -105,6 +116,14 @@ export function SoftStudioPage({
     setCheckoutOpen(true)
     setCheckoutError(null)
     setOrderNumber(null)
+    if (!policyAcknowledged) {
+      setShippingPolicyOpen(true)
+    }
+  }
+
+  const onShippingPolicyClose = () => {
+    setShippingPolicyOpen(false)
+    setPolicyAcknowledged(true)
   }
 
   const closeCheckout = () => {
@@ -130,6 +149,26 @@ export function SoftStudioPage({
     if (!trimmedName) {
       setCheckoutError('Please enter your name.')
       return
+    }
+
+    const guard = runPreCheckoutGuards(config, deliveryDetails, {
+      requireDate: showPreferredDate,
+      requireTime: showPreferredTime,
+    })
+    if (!guard.ok) {
+      setCheckoutError(guard.message)
+      return
+    }
+    if (showPreferredDate || showPreferredTime) {
+      const slotCheck = validateDeliveryDetails(deliveryDetails, orderingHours, {
+        requireDate: showPreferredDate,
+        requireTime: showPreferredTime,
+        availability: orderingAvailability,
+      })
+      if (!slotCheck.ok) {
+        setCheckoutError(slotCheck.message)
+        return
+      }
     }
 
     setCheckoutError(null)
@@ -164,25 +203,12 @@ export function SoftStudioPage({
   return (
     <div className="ss-root">
       <StorefrontMenuDrawer open={menuOpen} onClose={() => setMenuOpen(false)} config={config} />
+      <ShippingPolicyModal open={shippingPolicyOpen} onClose={onShippingPolicyClose} config={config} />
       <nav className="ss-nav">
-        <div className="ss-nav-logo">{siteName}</div>
-        <ul className="ss-nav-links">
-          <li>
-            <a href="#products">Shop</a>
-          </li>
-          <li>
-            <a href="#products">Collections</a>
-          </li>
-          <li>
-            <a href="/products">All products</a>
-          </li>
-          <li>
-            <a href="/orders/track">Track order</a>
-          </li>
-          <li>
-            <AccountNavLink />
-          </li>
-        </ul>
+        <Link href="/" className="ss-nav-logo">
+          {siteName}
+        </Link>
+        <StoreStatusBadge config={config} className="ss-nav-status" />
         <div className="ss-nav-right">
           <button
             type="button"
@@ -202,6 +228,7 @@ export function SoftStudioPage({
 
       <div className="ss-hero">
         <div className="ss-hero-text">
+          <StoreStatusCard config={config} className="ss-hero-status" />
           <p className="ss-hero-eyebrow">Curated for you</p>
           <h1 className="ss-hero-h1">
             {heroHeadline ? (
@@ -283,28 +310,32 @@ export function SoftStudioPage({
           <div className="ss-products-grid">
             {products.map((product, index) => (
               <article key={product.id} className="ss-product-card">
-                <ProductThumb product={product} index={index} />
-                {index === 0 && <span className="ss-product-tag">Featured</span>}
-                <div className="ss-product-info">
-                  <div className="ss-product-name">{product.name}</div>
-                  {(product.shortDescription || product.description) && (
-                    <div className="ss-product-desc">
-                      {product.shortDescription || product.description}
+                <Link href={`/products/${product.slug}`} className="ss-product-card-link">
+                  <ProductThumb product={product} index={index} />
+                  {index === 0 && <span className="ss-product-tag">Featured</span>}
+                  <div className="ss-product-info">
+                    <div className="ss-product-name">{product.name}</div>
+                    {(product.shortDescription || product.description) && (
+                      <div className="ss-product-desc">
+                        {product.shortDescription || product.description}
+                      </div>
+                    )}
+                    <div className="ss-product-footer">
+                      <span className="ss-product-price">
+                        {formatMoney(product.price, product.currency)}
+                      </span>
                     </div>
-                  )}
-                  <div className="ss-product-footer">
-                    <span className="ss-product-price">
-                      {formatMoney(product.price, product.currency)}
-                    </span>
-                    <button
-                      type="button"
-                      className="ss-add-btn"
-                      disabled={!product.inStock}
-                      onClick={() => handleAdd(product)}
-                    >
-                      {product.inStock ? 'Add to cart' : 'Out of stock'}
-                    </button>
                   </div>
+                </Link>
+                <div className="ss-product-actions">
+                  <button
+                    type="button"
+                    className="ss-add-btn"
+                    disabled={!product.inStock}
+                    onClick={() => handleAdd(product)}
+                  >
+                    {product.inStock ? 'Add to cart' : 'Out of stock'}
+                  </button>
                 </div>
               </article>
             ))}

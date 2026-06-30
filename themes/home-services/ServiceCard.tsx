@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import type { PublicService } from './types'
 
 /** Shared card for the services grid + booking-page picker. */
@@ -11,11 +12,12 @@ export function ServiceCard({ service }: { service: PublicService }) {
     >
       <div className="relative aspect-[5/3] overflow-hidden bg-slate-100">
         {service.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={service.imageUrl}
-            alt=""
-            className="h-full w-full object-cover transition group-hover:scale-105"
+            alt={service.name}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover transition group-hover:scale-105"
           />
         ) : (
           <div
