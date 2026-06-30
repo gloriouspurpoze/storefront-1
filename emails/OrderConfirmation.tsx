@@ -4,6 +4,8 @@ import { EmailLayout } from './components/EmailLayout'
 import type { OrderConfirmationEmailProps } from './types'
 
 
+
+
 function formatInr(amount: number): string {
   return `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
 }
