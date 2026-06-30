@@ -26,7 +26,7 @@ export const env = {
   /** Comma-separated platform host suffixes (e.g. `profixer.app,profixer.localhost`). */
   HOST_SUFFIXES: (
     process.env.NEXT_PUBLIC_STOREFRONT_HOST_SUFFIXES ??
-    'profixer.app,profixer.localhost,localhost'
+    'profixer.app,lvh.me,profixer.localhost,localhost'
   )
     .split(',')
     .map((s) => s.trim().toLowerCase().replace(/^\.+/, ''))
