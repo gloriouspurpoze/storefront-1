@@ -35,6 +35,20 @@
   min-width: 0;
   flex: 1;
   justify-content: center;
+  align-items: center;
+  gap: 16px;
+}
+
+.sf-standard-nav__link {
+  font-size: 14px;
+  font-weight: 600;
+  color: inherit;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.sf-standard-nav__link:hover {
+  text-decoration: underline;
 }
 
 .sf-standard-nav__brand {

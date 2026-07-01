@@ -544,3 +544,49 @@ export async function fetchPublicOrderTracking(input: {
   if (!res.ok || !json?.success || !json.data) return null
   return json.data
 }
+
+// ——— Bazaar gift match ———
+
+export interface GiftMatchRecommendation {
+  productId: string
+  name: string
+  slug: string
+  priceInr: number
+  imageUrl?: string
+  reason: string
+}
+
+export interface GiftMatchResult {
+  explanation: string
+  recommendations: GiftMatchRecommendation[]
+  providerUsed: 'openai' | 'gemini'
+}
+
+export async function postGiftMatch(input: {
+  tenantId: string
+  recipient: string
+  occasion: string
+  budgetMin?: number
+  budgetMax?: number
+}): Promise<GiftMatchResult> {
+  const res = await fetch(apiUrl('/bazaar/store/gift-match'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      'x-tenant-id': input.tenantId,
+    },
+    body: JSON.stringify({
+      recipient: input.recipient,
+      occasion: input.occasion,
+      budgetMin: input.budgetMin,
+      budgetMax: input.budgetMax,
+    }),
+    cache: 'no-store',
+  })
+  const json = (await res.json().catch(() => null)) as ApiEnvelope<GiftMatchResult> | null
+  if (!res.ok || !json?.success || !json.data) {
+    throw new Error(json?.message || 'Gift match request failed')
+  }
+  return json.data
+}
