@@ -1,49 +1,18 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
-import { notFound } from 'next/navigation'
-import { headers } from 'next/headers'
 import Script from 'next/script'
-import { resolveTenant } from '@/lib/tenant-resolver'
-import type { ResolvedTenant } from '@/lib/types'
 import { fetchStorefrontConfig, type StorefrontConfig } from '@/lib/storefront-api'
+import { assertRouteTenant } from '@/lib/load-tenant'
+import type { ResolvedTenant } from '@/lib/types'
 import { themeRootClass } from '@/lib/theme-classes'
 import { AccountAuthProvider } from '@/components/account/AccountAuthProvider'
-
 interface RouteParams {
   params: Promise<{ tenantId: string }>
 }
 
-/**
- * Reads tenant info from the headers stamped by `middleware.ts`. Falls back to
- * a fresh resolve in case the request bypassed middleware (e.g. dev-time
- * direct hit to `/_sites/<id>` — useful for previews).
- */
-async function getTenant(): Promise<ResolvedTenant | null> {
-  const h = await headers()
-  const host = h.get('host') ?? ''
-  // Trust middleware-stamped headers first (it already resolved + cached).
-  const id = h.get('x-tenant-id')
-  const slug = h.get('x-tenant-slug')
-  const verticalKey = h.get('x-tenant-vertical') as ResolvedTenant['verticalKey'] | null
-  const nameRaw = h.get('x-tenant-name')
-  if (id && slug && verticalKey && nameRaw) {
-    return {
-      id,
-      slug,
-      name: decodeURIComponent(nameRaw),
-      verticalKey,
-      publicSiteTheme: null, // theme isn't worth stuffing into headers; resolved fresh below if needed
-      matchedBy: 'platform_subdomain',
-    }
-  }
-  // Fallback: full resolve.
-  return resolveTenant(host)
-}
-
 export async function generateMetadata({ params }: RouteParams): Promise<Metadata> {
-  void params
-  const tenant = await getTenant()
-  if (!tenant) return { title: 'Site not found' }
+  const { tenantId } = await params
+  const tenant = await assertRouteTenant(tenantId)
 
   const cfg = await fetchStorefrontConfig(tenant.id)
   const seo = cfg?.seo ?? {}
@@ -151,9 +120,8 @@ export default async function TenantLayout({
   children: ReactNode
   params: Promise<{ tenantId: string }>
 }) {
-  void params
-  const tenant = await getTenant()
-  if (!tenant) notFound()
+  const { tenantId } = await params
+  const tenant = await assertRouteTenant(tenantId)
   const cfg = await fetchStorefrontConfig(tenant.id)
   const jsonLd = structuredData(tenant, cfg)
   const analytics = cfg?.seo?.analytics ?? {}
@@ -209,7 +177,7 @@ export default async function TenantLayout({
         />
       )}
       {cfg?.customCss && <style dangerouslySetInnerHTML={{ __html: cfg.customCss }} />}
-      <AccountAuthProvider>{children}</AccountAuthProvider>
+      <AccountAuthProvider tenantId={tenant.id}>{children}</AccountAuthProvider>
     </div>
   )
 }

@@ -85,10 +85,7 @@ async function resolveViaEdgeConfig(host: string): Promise<ResolvedTenant | null
 export async function resolveTenant(host: string): Promise<ResolvedTenant | null> {
   if (!host) return null
   const clean = stripPortAndWww(host.toLowerCase())
-  console.log('clean', clean)
   const edge = await resolveViaEdgeConfig(clean)
-  console.log('edge', edge)
   if (edge) return edge
-  console.log('resolveTenantViaApi', clean)
   return resolveTenantViaApi(clean)
 }

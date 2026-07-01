@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { env } from '@/lib/env'
+import { withTenantId } from '@/lib/tenant-headers'
 import { sendStorefrontEmail } from '@/lib/storefront-email/send'
 import type {
   OrderConfirmationEmailProps,
@@ -42,9 +43,9 @@ async function fetchEmailContext(
   if (newStatus) params.set('new_status', newStatus)
 
   const res = await fetch(`${env.API_BASE_URL}/internal/storefront/emails/context?${params}`, {
-    headers: {
+    headers: withTenantId(tenantId, {
       'x-storefront-email-secret': EMAIL_SECRET || '',
-    },
+    }),
     cache: 'no-store',
   })
 

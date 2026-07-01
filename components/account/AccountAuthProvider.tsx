@@ -28,31 +28,43 @@ interface AccountAuthContextValue {
 
 const AccountAuthContext = createContext<AccountAuthContextValue | null>(null)
 
-export function AccountAuthProvider({ children }: { children: ReactNode }) {
+export function AccountAuthProvider({
+  tenantId,
+  children,
+}: {
+  tenantId: string
+  children: ReactNode
+}) {
   const [user, setUser] = useState<StorefrontAuthUser | null>(null)
   const [tokens, setTokens] = useState<StorefrontAuthTokens | null>(null)
   const [isReady, setIsReady] = useState(false)
 
   useEffect(() => {
-    const stored = getStoredAuth()
+    const stored = getStoredAuth(tenantId)
     if (stored) {
       setUser(stored.user)
       setTokens(stored.tokens)
+    } else {
+      setUser(null)
+      setTokens(null)
     }
     setIsReady(true)
-  }, [])
+  }, [tenantId])
 
-  const setSession = useCallback((nextUser: StorefrontAuthUser, nextTokens: StorefrontAuthTokens) => {
-    saveAuth(nextUser, nextTokens)
-    setUser(nextUser)
-    setTokens(nextTokens)
-  }, [])
+  const setSession = useCallback(
+    (nextUser: StorefrontAuthUser, nextTokens: StorefrontAuthTokens) => {
+      saveAuth(tenantId, nextUser, nextTokens)
+      setUser(nextUser)
+      setTokens(nextTokens)
+    },
+    [tenantId],
+  )
 
   const logout = useCallback(() => {
-    clearAuth()
+    clearAuth(tenantId)
     setUser(null)
     setTokens(null)
-  }, [])
+  }, [tenantId])
 
   const value = useMemo(
     () => ({

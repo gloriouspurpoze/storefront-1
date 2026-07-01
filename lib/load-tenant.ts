@@ -1,4 +1,5 @@
 import { headers } from 'next/headers'
+import { notFound } from 'next/navigation'
 import { resolveTenant } from './tenant-resolver'
 import type { ResolvedTenant, VerticalKey } from './types'
 
@@ -20,4 +21,19 @@ export async function loadTenantFromRequest(): Promise<ResolvedTenant | null> {
     }
   }
   return resolveTenant(h.get('host') ?? '')
+}
+
+/**
+ * Ensure the dynamic `[tenantId]` segment matches the host-resolved tenant.
+ * Prevents cross-tenant content when `/sites/<id>/…` is hit directly or tampered.
+ */
+export async function assertRouteTenant(routeTenantId: string): Promise<ResolvedTenant> {
+  const tenant = await loadTenantFromRequest()
+  if (!tenant || tenant.id !== routeTenantId) notFound()
+  return tenant
+}
+
+/** Marketplace / cross-vertical pages — validates URL tenant id against host. */
+export async function loadThemeTenant(routeTenantId: string): Promise<ResolvedTenant> {
+  return assertRouteTenant(routeTenantId)
 }

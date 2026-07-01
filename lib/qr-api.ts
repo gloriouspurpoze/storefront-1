@@ -1,4 +1,5 @@
 import { env } from './env'
+import { withTenantId } from './tenant-headers'
 import type { QrCodeRecord, QrResolveResult } from './qr'
 
 interface ApiEnvelope<T> {
@@ -15,10 +16,7 @@ export async function fetchPublicQrCodes(tenantId: string): Promise<QrCodeRecord
   if (!tenantId) return []
   try {
     const res = await fetch(apiUrl('/public/qr/codes'), {
-      headers: {
-        Accept: 'application/json',
-        'x-tenant-id': tenantId,
-      },
+      headers: withTenantId(tenantId, { Accept: 'application/json' }),
       next: { revalidate: 30, tags: [`tenant:${tenantId}:qr`] },
     })
     if (!res.ok) return []
@@ -38,10 +36,7 @@ export async function resolveQrViaApi(
     const res = await fetch(
       apiUrl(`/public/qr/${encodeURIComponent(publicCode)}/resolve`),
       {
-        headers: {
-          Accept: 'application/json',
-          'x-tenant-id': tenantId,
-        },
+        headers: withTenantId(tenantId, { Accept: 'application/json' }),
         cache: 'no-store',
       },
     )
