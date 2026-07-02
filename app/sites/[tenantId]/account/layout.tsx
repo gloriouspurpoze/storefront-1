@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { notFound } from 'next/navigation'
 import { ThemedAccountShell } from '@/components/account/themes/ThemedAccountShell'
+import { AccountDashboardLayout } from '@/components/account/AccountDashboardLayout'
 import { fetchStorefrontConfig } from '@/lib/storefront-api'
 import { loadTenantFromRequest } from '@/lib/load-tenant'
 
@@ -21,7 +22,7 @@ export default async function AccountLayout({ children }: { children: ReactNode 
       logoUrl={branding.logoUrl}
       tagline={branding.tagline}
     >
-      {children}
+      <AccountDashboardLayout>{children}</AccountDashboardLayout>
     </ThemedAccountShell>
   )
 }

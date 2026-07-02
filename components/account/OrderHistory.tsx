@@ -13,6 +13,7 @@ import { useAccountTheme } from './AccountThemeContext'
 import { accountThemeClasses } from './accountThemeClasses'
 import { AccountPageHeader } from './AccountPageHeader'
 import { OrderStatusBadge, OrderTrackingPanel } from './OrderTrackingPanel'
+import { RequireStorefrontAuth } from './RequireStorefrontAuth'
 import { displayName } from '@/lib/storefront-auth'
 
 function formatMoney(amount: number): string {
@@ -112,23 +113,13 @@ export function OrderHistory({ tenantId }: { tenantId: string }) {
     return <p className={t.statusLoading}>Loading…</p>
   }
 
-  if (!isAuthenticated) {
-    return (
-      <div className={t.emptyState}>
-        <p className={t.text}>Sign in to view your orders.</p>
-        <Link href="/account/login" className={`${t.btnPrimary} ${t.btnBlock}`}>
-          Sign in
-        </Link>
-      </div>
-    )
-  }
-
   return (
-    <div>
-      <AccountPageHeader
-        title="Your orders"
-        // subtitle={`Order history for ${user ? displayName(user) : 'your account'}. Tap an order for live tracking.`}
-      />
+    <RequireStorefrontAuth returnPath="/account/orders">
+      <div>
+        <AccountPageHeader
+          title="Your orders"
+          subtitle={user ? `Order history for ${displayName(user)}. Tap an order for live tracking.` : undefined}
+        />
 
       {loading ? (
         <p className={t.statusLoading}>Loading orders…</p>
@@ -140,7 +131,7 @@ export function OrderHistory({ tenantId }: { tenantId: string }) {
         <div className={t.emptyState}>
           <p className={t.emptyTitle}>No orders yet</p>
           <p className={`${t.textMuted} mt-1`}>
-            Orders placed while signed in will appear here.
+            Orders you place while signed in appear here automatically.
           </p>
           <Link href="/" className={`${t.btnSecondary} ${t.btnBlock}`}>
             Continue shopping
@@ -200,6 +191,7 @@ export function OrderHistory({ tenantId }: { tenantId: string }) {
           })}
         </ul>
       )}
-    </div>
+      </div>
+    </RequireStorefrontAuth>
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 import { DeliveryDetailsSection } from '@/components/DeliveryDetailsSection'
 import { runStorefrontCheckout } from '@/lib/runStorefrontCheckout'
@@ -11,6 +11,8 @@ import {
 } from '@/lib/templateSettings'
 import type { ThemeTenant } from './types'
 import { useShippingPolicyCheckoutGate, validateBeforePayment } from '@/lib/useShippingPolicyCheckoutGate'
+import { RequireStorefrontAuth } from '@/components/account/RequireStorefrontAuth'
+import { useCheckoutCustomerPrefill } from '@/lib/useCheckoutCustomerPrefill'
 
 export function MenuOrderCheckoutBlock({
   tenant,
@@ -43,6 +45,20 @@ export function MenuOrderCheckoutBlock({
   const [loading, setLoading] = useState(false)
   const { requestCheckout, modal } = useShippingPolicyCheckoutGate(config)
   const showPreferredTime = showPreferredTimeOfDelivery(config, config?.themeKey)
+  const {
+    accessToken,
+    email: prefillEmail,
+    name: prefillName,
+    phone: prefillPhone,
+    isReady,
+  } = useCheckoutCustomerPrefill()
+
+  useEffect(() => {
+    if (!isReady) return
+    if (prefillEmail && !email) setEmail(prefillEmail)
+    if (prefillName && !name) setName(prefillName)
+    if (prefillPhone && !phone) setPhone(prefillPhone)
+  }, [isReady, prefillEmail, prefillName, prefillPhone, email, name, phone])
 
   const disabled = loading || lines.length === 0
 
@@ -62,6 +78,7 @@ export function MenuOrderCheckoutBlock({
     const guardMessage = validateBeforePayment(config, deliveryDetails, {
       requireDate: showPreferredDate,
       requireTime: showPreferredTime,
+      requireAddress: showDeliveryDetails,
     })
     if (guardMessage) {
       setError(guardMessage)
@@ -81,6 +98,8 @@ export function MenuOrderCheckoutBlock({
         lines,
         customer: { email: trimmedEmail, name: trimmedName, phone: phone.trim() || undefined },
         notes: orderNotes,
+        deliveryDetails: showDeliveryDetails ? deliveryDetails : undefined,
+        accessToken,
       })
       onClear()
       onSuccess(result.orderNumber)
@@ -98,47 +117,49 @@ export function MenuOrderCheckoutBlock({
   if (lines.length === 0) return null
 
   return (
-    <>
-      {modal}
-      <div className={className} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        {showDeliveryDetails && (
-          <DeliveryDetailsSection
-            showPreferredDate={showPreferredDate}
-            value={deliveryDetails}
-            onChange={setDeliveryDetails}
-            variant="plain"
+    <RequireStorefrontAuth returnPath="/checkout">
+      <>
+        {modal}
+        <div className={className} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          {showDeliveryDetails && (
+            <DeliveryDetailsSection
+              showPreferredDate={showPreferredDate}
+              value={deliveryDetails}
+              onChange={setDeliveryDetails}
+              variant="plain"
+            />
+          )}
+          <input
+            type="email"
+            placeholder="Email *"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={fieldStyle}
+            autoComplete="email"
           />
-        )}
-        <input
-          type="email"
-          placeholder="Email *"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={fieldStyle}
-          autoComplete="email"
-        />
-        <input
-          type="text"
-          placeholder="Full name *"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          style={fieldStyle}
-          autoComplete="name"
-        />
-        <input
-          type="tel"
-          placeholder="Phone (optional)"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          style={fieldStyle}
-          autoComplete="tel"
-        />
-        {error && <p style={{ fontSize: '12px', color: '#c62828', margin: 0 }}>{error}</p>}
-        <button type="button" onClick={onPay} disabled={disabled} style={payBtnStyle}>
-          {loading ? 'Processing…' : primaryLabel}
-        </button>
-      </div>
-    </>
+          <input
+            type="text"
+            placeholder="Full name *"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            style={fieldStyle}
+            autoComplete="name"
+          />
+          <input
+            type="tel"
+            placeholder="Phone (optional)"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            style={fieldStyle}
+            autoComplete="tel"
+          />
+          {error && <p style={{ fontSize: '12px', color: '#c62828', margin: 0 }}>{error}</p>}
+          <button type="button" onClick={onPay} disabled={disabled} style={payBtnStyle}>
+            {loading ? 'Processing…' : primaryLabel}
+          </button>
+        </div>
+      </>
+    </RequireStorefrontAuth>
   )
 }
 

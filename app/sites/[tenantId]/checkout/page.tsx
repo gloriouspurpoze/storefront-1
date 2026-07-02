@@ -41,9 +41,9 @@ export default async function CheckoutPage() {
     const tagline = config?.branding?.tagline || themeTenant.tagline
 
     const main = (
-      <main className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
-        <h1 className="font-serif text-3xl font-bold text-stone-900">Checkout</h1>
-        <div className="mt-8">
+      <main className="sf-page-shell">
+        <h1 className="sf-page-title">Checkout</h1>
+        <div className="sf-page-body">
           <RestaurantCheckoutClient tenant={themeTenant} config={config} showPreferredDate={showPreferredDate} />
         </div>
       </main>
@@ -77,10 +77,15 @@ export default async function CheckoutPage() {
     const tagline = config?.branding?.tagline || themeTenant.tagline
 
     const main = (
-      <main className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
-        <h1 className="text-3xl font-bold text-slate-900">Checkout</h1>
-        <div className="mt-8">
-          <CheckoutClient tenant={themeTenant} config={config} showPreferredDate={showPreferredDate} />
+      <main className="sf-page-shell">
+        <h1 className="sf-page-title">Checkout</h1>
+        <div className="sf-page-body">
+          <CheckoutClient
+            tenant={themeTenant}
+            config={config}
+            showPreferredDate={showPreferredDate}
+            themeKey={config?.themeKey}
+          />
         </div>
       </main>
     )

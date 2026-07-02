@@ -20,6 +20,8 @@ import { StorefrontMenuDrawer } from '@/components/StorefrontMenuDrawer'
 import { StoreStatusBadge, StoreStatusCard } from '@/components/StoreStatusBadge'
 import { ShippingPolicyModal } from '@/components/ShippingPolicyModal'
 import { runPreCheckoutGuards } from '@/lib/checkoutGuard'
+import { useCartAuthGate } from '@/lib/useCartAuthGate'
+import { useCheckoutCustomerPrefill } from '@/lib/useCheckoutCustomerPrefill'
 import './soft-studio.css'
 
 const THUMB_CLASSES = ['ss-product-thumb-1', 'ss-product-thumb-2', 'ss-product-thumb-3', 'ss-product-thumb-4']
@@ -78,6 +80,8 @@ export function SoftStudioPage({
   const orderingAvailability = useMemo(() => getOrderingAvailabilityFromConfig(config), [config])
 
   const { lines, itemCount, subtotal, addProduct, setQuantity, removeLine, clear } = useCart()
+  const { requireAuthForCart } = useCartAuthGate()
+  const { accessToken } = useCheckoutCustomerPrefill()
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
@@ -105,13 +109,15 @@ export function SoftStudioPage({
   const handleAdd = useCallback(
     (product: PublicProduct) => {
       if (!product.inStock) return
+      if (!requireAuthForCart()) return
       addProduct(product)
       showToast(`${product.name} added to cart`)
     },
-    [addProduct, showToast],
+    [addProduct, requireAuthForCart, showToast],
   )
 
   const openCheckout = () => {
+    if (!requireAuthForCart()) return
     setCartOpen(false)
     setCheckoutOpen(true)
     setCheckoutError(null)
@@ -181,6 +187,8 @@ export function SoftStudioPage({
         lines: lines.map((l) => ({ productId: l.productId, quantity: l.quantity })),
         customer: { email: trimmedEmail, name: trimmedName, phone: phone.trim() || undefined },
         notes: formatDeliveryNotes(deliveryDetails),
+        deliveryDetails,
+        accessToken,
       })
       clear()
       setOrderNumber(result.orderNumber)
@@ -220,7 +228,13 @@ export function SoftStudioPage({
             ☰
           </button>
           <AccountProfileLink className="inline-flex items-center justify-center opacity-90 hover:opacity-100" />
-          <button type="button" className="ss-cart-btn" onClick={() => setCartOpen(true)}>
+          <button
+            type="button"
+            className="ss-cart-btn"
+            onClick={() => {
+              if (requireAuthForCart()) setCartOpen(true)
+            }}
+          >
             🛍 Cart <span className="ss-cart-count">{itemCount}</span>
           </button>
         </div>
@@ -559,6 +573,9 @@ export function SoftStudioPage({
                   value={deliveryDetails}
                   onChange={setDeliveryDetails}
                   showPreferredDate={showPreferredDate}
+                  showPreferredTime={showPreferredTime}
+                  orderingHours={orderingHours}
+                  orderingAvailability={orderingAvailability}
                   variant="plain"
                 />
               </div>

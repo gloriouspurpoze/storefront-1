@@ -27,7 +27,7 @@ export function StandardStorefrontNav({
   itemCount = 0,
   variant = 'retail',
   onCartClick,
-  cartHref = '/checkout',
+  cartHref = '/cart',
   showShippingPolicy,
   accountMode = 'nav',
   className,

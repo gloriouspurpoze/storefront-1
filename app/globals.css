@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import './account-ui.css';
+@import '../themes/retail/retail-page-shell.css';
 
 /**
  * Per-tenant brand colors are injected by `sites/[tenantId]/layout.tsx` as

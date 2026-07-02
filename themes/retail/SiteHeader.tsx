@@ -20,7 +20,7 @@ export function SiteHeader({
       config={config}
       itemCount={itemCount}
       variant="retail"
-      cartHref="/checkout"
+      cartHref="/cart"
     />
   )
 }

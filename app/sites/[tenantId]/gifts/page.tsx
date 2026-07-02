@@ -25,15 +25,17 @@ export default async function GiftsPage() {
   return (
     <RetailShell tenantId={tenant.id}>
       <SiteHeader tenant={theme} config={cfg} />
-      <main className="mx-auto w-full max-w-4xl px-4 py-12 sm:px-6 sm:py-16">
-        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">Gift match</p>
-        <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Gifts they&apos;ll love</h1>
-        <p className="mt-3 max-w-2xl text-muted-foreground">
+      <main className="sf-page-shell sf-page-shell--medium">
+        <p className="sf-page-eyebrow">Gift match</p>
+        <h1 className="sf-page-title">Gifts they&apos;ll love</h1>
+        <p className="sf-page-lead">
           Answer a few quick questions and we&apos;ll suggest handcrafted picks from our catalog.
         </p>
-        <GiftMatchWidget tenantId={tenant.id} className="mt-10" />
+        <div className="sf-page-body sf-page-body--tight">
+          <GiftMatchWidget tenantId={tenant.id} />
+        </div>
       </main>
-      <SiteFooter tenant={theme} config={cfg} />
+      <SiteFooter tenant={theme} />
     </RetailShell>
   )
 }

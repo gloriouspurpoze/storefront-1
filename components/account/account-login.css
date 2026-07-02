@@ -1,0 +1,256 @@
+/* Shared login / signup layout — works with theme class overrides */
+
+.sf-login {
+  width: 100%;
+}
+
+.sf-login-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.sf-login-header {
+  text-align: center;
+  margin-bottom: 1.75rem;
+}
+
+.sf-login-header .ss-acct-title,
+.sf-login-header .le-acct-title,
+.sf-login-header .bb-acct-title,
+.sf-login-header .saf-acct-title,
+.sf-login-header .mf-acct-title {
+  font-size: clamp(1.625rem, 4vw, 2rem);
+}
+
+.sf-login-header .ss-acct-subtitle,
+.sf-login-header .le-acct-subtitle,
+.sf-login-header .bb-acct-subtitle,
+.sf-login-header .saf-acct-subtitle,
+.sf-login-header .mf-acct-subtitle,
+.sf-login-header .text-sm {
+  margin-top: 0.5rem;
+  line-height: 1.55;
+  max-width: 22rem;
+  margin-inline: auto;
+}
+
+.sf-login-methods {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.sf-login-google {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  min-height: 3rem;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.sf-login-google:hover:not(:disabled) {
+  background: #f8fafc !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.sf-login-google:disabled {
+  opacity: 0.75;
+  cursor: wait;
+}
+
+.sf-login-google:focus-visible {
+  outline: 2px solid var(--site-brand, #4338ca);
+  outline-offset: 2px;
+}
+
+.sf-login-google-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+.sf-login-divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.5rem 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.sf-login-divider::before,
+.sf-login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(15, 23, 42, 0.1);
+}
+
+.sf-login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sf-login-phone {
+  display: flex;
+  align-items: stretch;
+  border: 1.5px solid rgba(15, 23, 42, 0.12);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.sf-login-phone:focus-within {
+  border-color: var(--site-brand, #4338ca);
+  box-shadow: 0 0 0 3px rgba(67, 56, 202, 0.12);
+}
+
+.sf-login-phone__prefix {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.875rem;
+  background: #f8fafc;
+  border-right: 1px solid rgba(15, 23, 42, 0.08);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #475569;
+  flex-shrink: 0;
+}
+
+.sf-login-phone__input {
+  flex: 1;
+  min-width: 0;
+  margin-top: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0.75rem 1rem !important;
+  font-size: 1rem !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.sf-login-phone__input:focus {
+  outline: none;
+  box-shadow: none !important;
+}
+
+.sf-login-otp-input {
+  text-align: center;
+  font-size: 1.375rem !important;
+  font-weight: 600;
+  letter-spacing: 0.35em;
+  padding: 0.875rem 1rem !important;
+}
+
+.sf-login-otp-hint {
+  text-align: center;
+  margin: 0 0 0.25rem;
+}
+
+.sf-login-otp-hint strong {
+  font-weight: 600;
+  color: inherit;
+}
+
+.sf-login-submit {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  margin-top: 0.25rem;
+  font-size: 0.9375rem !important;
+}
+
+.sf-login-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.sf-login-spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: sf-login-spin 0.65s linear infinite;
+}
+
+.sf-login-google .sf-login-spinner {
+  border-color: rgba(15, 23, 42, 0.15);
+  border-top-color: #334155;
+}
+
+@keyframes sf-login-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sf-login-footer {
+  margin-top: 1.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  text-align: center;
+}
+
+.sf-login-footer .ss-acct-signup-row,
+.sf-login-footer .le-acct-signup-row,
+.sf-login-footer .bb-acct-signup-row,
+.sf-login-footer .mt-3 {
+  margin-top: 0;
+}
+
+.sf-login-trust {
+  margin: 0.875rem 0 0;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+/* Soft Studio overrides */
+.ss-root .sf-login-phone {
+  border-color: rgba(61, 43, 61, 0.15);
+  background: #fff;
+}
+
+.ss-root .sf-login-phone:focus-within {
+  border-color: var(--ss-plum);
+  box-shadow: 0 0 0 3px rgba(61, 43, 61, 0.1);
+}
+
+.ss-root .sf-login-phone__prefix {
+  background: var(--ss-warm);
+  color: var(--ss-muted);
+  border-right-color: rgba(61, 43, 61, 0.1);
+}
+
+.ss-root .sf-login-divider::before,
+.ss-root .sf-login-divider::after {
+  background: rgba(61, 43, 61, 0.1);
+}
+
+.ss-root .sf-login-divider {
+  color: var(--ss-muted);
+}
+
+.ss-root .sf-login-footer {
+  border-top-color: rgba(61, 43, 61, 0.08);
+}
+
+.ss-root .sf-login-trust {
+  color: var(--ss-muted);
+}
+
+.ss-root .sf-login-google:focus-visible {
+  outline-color: var(--ss-plum);
+}

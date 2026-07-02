@@ -35,8 +35,14 @@ export function AccountShellNav({
     <nav className={className} aria-label="Account">
       {isAuthenticated ? (
         <>
-          <Link href="/account" className={isActive('/account') && !pathname?.includes('/login') ? active : link}>
+          <Link href="/account" className={isActive('/account') && !pathname?.includes('/account/orders') && !pathname?.includes('/account/profile') ? active : link}>
+            Overview
+          </Link>
+          <Link href="/account/orders" className={isActive('/account/orders') ? active : link}>
             Orders
+          </Link>
+          <Link href="/account/profile" className={isActive('/account/profile') ? active : link}>
+            Profile
           </Link>
           <Link href="/orders/track" className={isActive('/orders/track') ? active : link}>
             Track

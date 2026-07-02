@@ -6,7 +6,7 @@ import { checkoutPrefillFromUser } from '@/lib/storefrontCustomerContact'
 
 /** Prefill checkout contact fields from the signed-in storefront customer session. */
 export function useCheckoutCustomerPrefill() {
-  const { user, isAuthenticated, isReady } = useAccountAuth()
+  const { user, tokens, isAuthenticated, isReady } = useAccountAuth()
   const prefill = useMemo(
     () => checkoutPrefillFromUser(isAuthenticated ? user : null),
     [user, isAuthenticated],
@@ -15,6 +15,7 @@ export function useCheckoutCustomerPrefill() {
   return {
     ...prefill,
     user: isAuthenticated ? user : null,
+    accessToken: isAuthenticated ? tokens?.accessToken : undefined,
     isReady,
     isAuthenticated,
   }

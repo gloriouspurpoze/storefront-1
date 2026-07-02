@@ -11,6 +11,8 @@ const config: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   typedRoutes: true,
+  /** Allow tenant subdomains (e.g. bazaar.lvh.me:3001) to load /_next/* in dev. */
+  allowedDevOrigins: ['*.lvh.me', 'lvh.me'],
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'res.cloudinary.com' },

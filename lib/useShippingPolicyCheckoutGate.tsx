@@ -48,7 +48,7 @@ export function useShippingPolicyCheckoutGate(config?: StorefrontConfig | null) 
 export function validateBeforePayment(
   config: StorefrontConfig | null | undefined,
   deliveryDetails: DeliveryDetailsValue,
-  opts: { requireDate?: boolean; requireTime?: boolean },
+  opts: { requireDate?: boolean; requireTime?: boolean; requireAddress?: boolean },
 ): string | null {
   const guard = runPreCheckoutGuards(config, deliveryDetails, opts)
   return guard.ok ? null : guard.message

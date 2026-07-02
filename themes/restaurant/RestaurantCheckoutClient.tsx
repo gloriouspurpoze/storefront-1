@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 import { DeliveryDetailsSection } from '@/components/DeliveryDetailsSection'
 import { runStorefrontCheckout } from '@/lib/runStorefrontCheckout'
@@ -13,6 +13,8 @@ import {
 import { formatMoney, useCart } from './cart'
 import type { ThemeTenant } from './types'
 import { useShippingPolicyCheckoutGate, validateBeforePayment } from '@/lib/useShippingPolicyCheckoutGate'
+import { RequireStorefrontAuth } from '@/components/account/RequireStorefrontAuth'
+import { useCheckoutCustomerPrefill } from '@/lib/useCheckoutCustomerPrefill'
 
 type Status =
   | { kind: 'idle' }
@@ -34,17 +36,29 @@ export function RestaurantCheckoutClient({
   const [deliveryDetails, setDeliveryDetails] = useState<DeliveryDetailsValue>({})
   const { requestCheckout, modal } = useShippingPolicyCheckoutGate(config)
   const showPreferredTime = showPreferredTimeOfDelivery(config, config?.themeKey ?? 'classic')
+  const { accessToken, email: prefillEmail, name: prefillName, phone: prefillPhone, isReady } =
+    useCheckoutCustomerPrefill()
+  const [email, setEmail] = useState('')
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
 
-  const processPayment = async (form: FormData) => {
-    const email = String(form.get('email') ?? '').trim().toLowerCase()
-    const name = String(form.get('name') ?? '').trim()
-    const phone = String(form.get('phone') ?? '').trim()
+  useEffect(() => {
+    if (!isReady) return
+    if (prefillEmail && !email) setEmail(prefillEmail)
+    if (prefillName && !name) setName(prefillName)
+    if (prefillPhone && !phone) setPhone(prefillPhone)
+  }, [isReady, prefillEmail, prefillName, prefillPhone, email, name, phone])
 
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  const processPayment = async () => {
+    const trimmedEmail = email.trim().toLowerCase()
+    const trimmedName = name.trim()
+    const trimmedPhone = phone.trim()
+
+    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
       setStatus({ kind: 'error', message: 'Please enter a valid email.' })
       return
     }
-    if (!name) {
+    if (!trimmedName) {
       setStatus({ kind: 'error', message: 'Please enter your name.' })
       return
     }
@@ -65,8 +79,10 @@ export function RestaurantCheckoutClient({
         tenantName: tenant.name,
         brandColor: tenant.brand,
         lines: lines.map((l) => ({ productId: l.productId, quantity: l.quantity })),
-        customer: { email, name, phone: phone || undefined },
+        customer: { email: trimmedEmail, name: trimmedName, phone: trimmedPhone || undefined },
         notes: formatDeliveryNotes(deliveryDetails),
+        deliveryDetails,
+        accessToken,
       })
       clear()
       setStatus({ kind: 'success', orderNumber: result.orderNumber })
@@ -81,12 +97,15 @@ export function RestaurantCheckoutClient({
   const onPay = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (status.kind === 'processing' || !lines.length) return
-    const form = new FormData(e.currentTarget)
-    requestCheckout(() => void processPayment(form))
+    requestCheckout(() => void processPayment())
   }
 
+  const wrap = (node: React.ReactNode) => (
+    <RequireStorefrontAuth returnPath="/checkout">{node}</RequireStorefrontAuth>
+  )
+
   if (status.kind === 'success') {
-    return (
+    return wrap(
       <>
         {modal}
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-8 text-center">
@@ -96,19 +115,27 @@ export function RestaurantCheckoutClient({
               ? `Order ${status.orderNumber} confirmed. We emailed your receipt.`
               : 'Payment received. We emailed your confirmation.'}
           </p>
-          <Link
-            href="/menu"
-            className="mt-6 inline-flex rounded-full bg-emerald-700 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-800"
-          >
-            Back to menu
-          </Link>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <Link
+              href="/account/orders"
+              className="inline-flex rounded-full bg-emerald-700 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-800"
+            >
+              View orders
+            </Link>
+            <Link
+              href="/menu"
+              className="inline-flex rounded-full border border-emerald-300 px-6 py-2.5 text-sm font-medium text-emerald-900 hover:bg-emerald-100"
+            >
+              Back to menu
+            </Link>
+          </div>
         </div>
-      </>
+      </>,
     )
   }
 
   if (!lines.length) {
-    return (
+    return wrap(
       <>
         {modal}
         <div className="rounded-2xl border border-stone-200 bg-white p-8 text-center">
@@ -121,13 +148,13 @@ export function RestaurantCheckoutClient({
             Browse menu
           </Link>
         </div>
-      </>
+      </>,
     )
   }
 
   const currency = lines[0]?.currency ?? 'INR'
 
-  return (
+  return wrap(
     <>
       {modal}
       <form onSubmit={onPay} className="grid gap-8 lg:grid-cols-2">
@@ -188,6 +215,8 @@ export function RestaurantCheckoutClient({
               type="email"
               required
               placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm"
             />
             <input
@@ -195,12 +224,16 @@ export function RestaurantCheckoutClient({
               type="text"
               required
               placeholder="Full name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm"
             />
             <input
               name="phone"
               type="tel"
               placeholder="Phone (optional)"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
               className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm"
             />
           </div>
@@ -219,6 +252,6 @@ export function RestaurantCheckoutClient({
           </button>
         </div>
       </form>
-    </>
+    </>,
   )
 }

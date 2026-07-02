@@ -100,6 +100,7 @@ export function DeliveryDetailsSection({
               onChange={(e) => set({ addressLine1: e.target.value })}
               style={{ ...fieldStyle, flex: '1 1 120px' }}
               autoComplete="address-line1"
+              required
             />
             <input
               type="text"
@@ -125,15 +126,17 @@ export function DeliveryDetailsSection({
               onChange={(e) => set({ city: e.target.value })}
               style={{ ...fieldStyle, flex: '1 1 120px' }}
               autoComplete="address-level2"
+              required
             />
             <input
               type="text"
               placeholder="PIN"
               maxLength={6}
               value={value.pincode ?? ''}
-              onChange={(e) => set({ pincode: e.target.value })}
+              onChange={(e) => set({ pincode: e.target.value.replace(/\D/g, '').slice(0, 6) })}
               style={{ ...fieldStyle, flex: '0 0 88px' }}
               autoComplete="postal-code"
+              required
             />
           </div>
         </>

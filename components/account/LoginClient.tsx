@@ -12,10 +12,11 @@ import {
   signInWithGoogle,
   verifyPhoneOtp,
 } from '@/lib/storefront-auth'
+import './account-login.css'
 
 function GoogleMark() {
   return (
-    <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" aria-hidden>
+    <svg className="sf-login-google-icon" viewBox="0 0 24 24" aria-hidden>
       <path
         fill="#4285F4"
         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -34,6 +35,10 @@ function GoogleMark() {
       />
     </svg>
   )
+}
+
+function Spinner() {
+  return <span className="sf-login-spinner" aria-hidden />
 }
 
 export function LoginClient() {
@@ -104,41 +109,22 @@ export function LoginClient() {
   }
 
   return (
-    <div className={t.contentWrap}>
+    <div className={`sf-login ${t.contentWrap}`}>
       {!themeKey ? (
         <Link href="/" className={t.backLink}>
           ← Back to store
         </Link>
       ) : null}
 
-      <div className={t.card}>
-        <h1 className={t.title}>{isSignup ? 'Create your account' : 'Sign in'}</h1>
-        <p className={t.subtitle}>
-          {isSignup
-            ? googleEnabled
-              ? 'Use Google or your phone number to create an account and track orders from this store.'
-              : 'Use your phone number to create an account and track orders from this store.'
-            : googleEnabled
-              ? 'View your order history and track purchases from this store.'
-              : 'Sign in with your phone number to view your order history and track purchases from this store.'}
-        </p>
-        <p className={t.signupRow}>
-          {isSignup ? (
-            <>
-              Already have an account?{' '}
-              <Link href="/account/login" className={t.link}>
-                Sign in
-              </Link>
-            </>
-          ) : (
-            <>
-              New here?{' '}
-              <Link href="/account/login?signup=1" className={t.link}>
-                Create an account
-              </Link>
-            </>
-          )}
-        </p>
+      <div className={`sf-login-card ${t.card}`}>
+        <header className="sf-login-header">
+          <h1 className={t.title}>{isSignup ? 'Create your account' : 'Welcome back'}</h1>
+          <p className={t.subtitle}>
+            {isSignup
+              ? 'Join to track orders, save your details, and check out faster.'
+              : 'Sign in to view orders and track deliveries from this store.'}
+          </p>
+        </header>
 
         {error ? (
           <p role="alert" className={t.error}>
@@ -146,100 +132,135 @@ export function LoginClient() {
           </p>
         ) : null}
 
-        {googleEnabled ? (
-          <>
-            <button
-              type="button"
-              onClick={onGoogle}
-              disabled={googleLoading}
-              className={t.btnGoogle}
-            >
-              <GoogleMark />
-              {googleLoading ? 'Signing in…' : 'Continue with Google'}
-            </button>
+        <div className="sf-login-methods">
+          {googleEnabled ? (
+            <>
+              <button
+                type="button"
+                onClick={onGoogle}
+                disabled={googleLoading}
+                className={`sf-login-google ${t.btnGoogle}`}
+              >
+                {googleLoading ? <Spinner /> : <GoogleMark />}
+                <span>{googleLoading ? 'Connecting…' : 'Continue with Google'}</span>
+              </button>
 
-            <div className={t.divider} role="presentation">
-              {themeKey ? <span>or</span> : (
-                <>
-                  <div className="h-px flex-1 bg-neutral-200" />
-                  <span className="text-xs text-neutral-400">or</span>
-                  <div className="h-px flex-1 bg-neutral-200" />
-                </>
-              )}
-            </div>
-          </>
-        ) : null}
+              <div className="sf-login-divider" role="presentation">
+                <span>or continue with phone</span>
+              </div>
+            </>
+          ) : null}
 
-        {!otpSent ? (
-          <form onSubmit={onSendOtp} className={t.form}>
-            <div>
-              <label htmlFor="phone" className={t.label}>
-                Phone number
-              </label>
-              <div className={t.phoneRow}>
-                <span className={t.phonePrefix}>+91</span>
+          {!otpSent ? (
+            <form onSubmit={onSendOtp} className={t.form}>
+              <div className="sf-login-field">
+                <label htmlFor="phone" className={t.label}>
+                  Mobile number
+                </label>
+                <div className="sf-login-phone">
+                  <span className="sf-login-phone__prefix" aria-hidden>
+                    +91
+                  </span>
+                  <input
+                    id="phone"
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel-national"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    placeholder="10-digit number"
+                    className={`sf-login-phone__input ${t.input}`}
+                  />
+                </div>
+              </div>
+              <button
+                type="submit"
+                disabled={phoneLoading || phone.length < 10}
+                className={`${t.btnPrimary} ${t.btnBlock} sf-login-submit`}
+              >
+                {phoneLoading ? (
+                  <>
+                    <Spinner />
+                    Sending code…
+                  </>
+                ) : (
+                  'Send verification code'
+                )}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={onVerifyOtp} className={t.form}>
+              <p className={`sf-login-otp-hint ${t.text}`}>
+                We sent a 6-digit code to <strong>+91 {phone}</strong>
+              </p>
+              <div className="sf-login-field">
+                <label htmlFor="otp" className={t.label}>
+                  Verification code
+                </label>
                 <input
-                  id="phone"
-                  type="tel"
+                  id="otp"
+                  type="text"
                   inputMode="numeric"
-                  autoComplete="tel"
+                  autoComplete="one-time-code"
                   required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  placeholder="10-digit mobile number"
-                  className={t.input}
+                  maxLength={6}
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="· · · · · ·"
+                  className={`sf-login-otp-input ${t.input}`}
                 />
               </div>
-            </div>
-            <button
-              type="submit"
-              disabled={phoneLoading || phone.length < 10}
-              className={`${t.btnPrimary} ${t.btnBlock}`}
-            >
-              {phoneLoading ? 'Sending…' : 'Send OTP'}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={onVerifyOtp} className={t.form}>
-            <p className={t.text}>
-              Enter the 6-digit code sent to <strong>+91 {phone}</strong>
-            </p>
-            <div>
-              <label htmlFor="otp" className={t.label}>
-                Verification code
-              </label>
-              <input
-                id="otp"
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                required
-                maxLength={6}
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="000000"
-                className={`${t.input} tracking-[0.3em]`}
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={phoneLoading || otp.length !== 6}
-              className={`${t.btnPrimary} ${t.btnBlock}`}
-            >
-              {phoneLoading ? 'Verifying…' : 'Verify & sign in'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setOtpSent(false)
-                setOtp('')
-              }}
-              className={`${t.btnSecondary} ${t.btnBlock}`}
-            >
-              Use a different number
-            </button>
-          </form>
-        )}
+              <button
+                type="submit"
+                disabled={phoneLoading || otp.length !== 6}
+                className={`${t.btnPrimary} ${t.btnBlock} sf-login-submit`}
+              >
+                {phoneLoading ? (
+                  <>
+                    <Spinner />
+                    Verifying…
+                  </>
+                ) : (
+                  'Verify & continue'
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setOtpSent(false)
+                  setOtp('')
+                }}
+                className={`${t.btnSecondary} ${t.btnBlock}`}
+              >
+                Use a different number
+              </button>
+            </form>
+          )}
+        </div>
+
+        <footer className="sf-login-footer">
+          <p className={t.signupRow}>
+            {isSignup ? (
+              <>
+                Already have an account?{' '}
+                <Link href="/account/login" className={t.link}>
+                  Sign in
+                </Link>
+              </>
+            ) : (
+              <>
+                New here?{' '}
+                <Link href="/account/login?signup=1" className={t.link}>
+                  Create an account
+                </Link>
+              </>
+            )}
+          </p>
+          <p className="sf-login-trust">
+            <span aria-hidden>🔒</span> Secure sign-in · Your data stays private
+          </p>
+        </footer>
       </div>
     </div>
   )

@@ -32,7 +32,7 @@ function RetailLayoutNav({
       config={config}
       itemCount={itemCount}
       variant="retail"
-      cartHref="/checkout"
+      cartHref="/cart"
       showShippingPolicy={showShippingPolicy}
       accountMode="profile"
       className={wide ? 'sf-standard-nav--wide' : undefined}
@@ -66,7 +66,7 @@ function RestaurantLayoutNav({
       config={config}
       itemCount={itemCount}
       variant="restaurant"
-      cartHref="/checkout"
+      cartHref="/cart"
       showShippingPolicy={showShippingPolicy}
       accountMode="profile"
       className={wide ? 'sf-standard-nav--wide' : undefined}

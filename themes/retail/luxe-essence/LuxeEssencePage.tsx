@@ -23,6 +23,7 @@ import { StorefrontMenuDrawer } from '@/components/StorefrontMenuDrawer'
 import { ShippingPolicyModal } from '@/components/ShippingPolicyModal'
 import { StoreStatusBadge, StoreStatusCard } from '@/components/StoreStatusBadge'
 import { runPreCheckoutGuards } from '@/lib/checkoutGuard'
+import { useCartAuthGate } from '@/lib/useCartAuthGate'
 import './luxe-essence.css'
 
 const FREE_SHIPPING_MIN = 1500
@@ -69,6 +70,7 @@ export function LuxeEssencePage({
   const orderingAvailability = useMemo(() => getOrderingAvailabilityFromConfig(config), [config])
 
   const { lines, itemCount, subtotal, addProduct, setQuantity, removeLine, clear } = useCart()
+  const { requireAuthForCart } = useCartAuthGate()
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
@@ -88,6 +90,7 @@ export function LuxeEssencePage({
     phone: prefillPhone,
     lockedEmail,
     user,
+    accessToken,
     isReady,
   } = useCheckoutCustomerPrefill()
 
@@ -113,13 +116,15 @@ export function LuxeEssencePage({
   const handleAdd = useCallback(
     (product: PublicProduct) => {
       if (!product.inStock) return
+      if (!requireAuthForCart()) return
       addProduct(product)
       showToast(`${product.name} added to cart`)
     },
-    [addProduct, showToast],
+    [addProduct, requireAuthForCart, showToast],
   )
 
   const openCheckout = () => {
+    if (!requireAuthForCart()) return
     setCartOpen(false)
     setCheckoutOpen(true)
     setShippingPolicyOpen(true)
@@ -177,6 +182,8 @@ export function LuxeEssencePage({
         lines: lines.map((l) => ({ productId: l.productId, quantity: l.quantity })),
         customer: { email: trimmedEmail, name: trimmedName, phone: trimmedPhone },
         notes: formatDeliveryNotes(deliveryDetails),
+        deliveryDetails,
+        accessToken,
       })
       clear()
       setOrderNumber(result.orderNumber)
@@ -231,7 +238,9 @@ export function LuxeEssencePage({
           <button
             type="button"
             className="le-icon-btn"
-            onClick={() => setCartOpen(true)}
+            onClick={() => {
+              if (requireAuthForCart()) setCartOpen(true)
+            }}
             aria-label="Open cart"
           >
             🛍️
