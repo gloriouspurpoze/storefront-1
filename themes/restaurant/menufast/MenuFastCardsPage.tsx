@@ -12,6 +12,7 @@ import {
 } from './useMenuCart'
 import { showPreferredDateOfDelivery } from '@/lib/templateSettings'
 import { isMenuItemInStock } from '@/lib/storefront-api'
+import { productHasVariants, formatListPrice } from '@/lib/productVariants'
 import { AccountProfileLink } from '@/components/account/AccountProfileLink'
 import { StorefrontMenuDrawer } from '@/components/StorefrontMenuDrawer'
 import { StoreStatusBadge } from '@/components/StoreStatusBadge'
@@ -36,12 +37,13 @@ export function MenuFastCardsPage({
   const [orderNumber, setOrderNumber] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
+  const [modalVariantId, setModalVariantId] = useState<string | undefined>()
 
   const selectedItem =
     selectedItemId != null
       ? initialCategories.flatMap((c) => c.items).find((item) => item.id === selectedItemId) ?? null
       : null
-  const { entries, itemCount, subtotal, addItem, removeItem, qtyFor, clearCart } =
+  const { cart, entries, itemCount, subtotal, addItem, removeItem, qtyFor, clearCart } =
     useMenuCart(initialCategories)
 
   const filteredCategories = useMemo(() => {
@@ -51,7 +53,11 @@ export function MenuFastCardsPage({
 
   const waUrl = buildWhatsAppOrderUrl(whatsapp, siteName, entries)
   const currency = entries[0]?.item.currency ?? initialCategories[0]?.items[0]?.currency ?? 'INR'
-  const lines = entries.map((e) => ({ productId: e.item.id, quantity: e.quantity }))
+  const lines = entries.map((e) => ({
+    productId: e.item.id,
+    quantity: e.quantity,
+    variantId: e.variantId,
+  }))
   const showPreferredDate = showPreferredDateOfDelivery(config, config?.themeKey ?? 'menufast-cards')
 
   if (orderNumber) {
@@ -84,13 +90,22 @@ export function MenuFastCardsPage({
       <MenuItemDetailModal
         item={selectedItem}
         open={selectedItem != null}
-        onClose={() => setSelectedItemId(null)}
-        quantity={selectedItem ? qtyFor(selectedItem.id) : 0}
-        onAdd={() => {
-          if (selectedItem) addItem(selectedItem)
+        onClose={() => {
+          setSelectedItemId(null)
+          setModalVariantId(undefined)
         }}
-        onRemove={() => {
-          if (selectedItem) removeItem(selectedItem.id)
+        quantity={selectedItem ? qtyFor(selectedItem.id, modalVariantId) : 0}
+        onAdd={(variantId) => {
+          if (selectedItem) {
+            setModalVariantId(variantId)
+            addItem(selectedItem, variantId)
+          }
+        }}
+        onRemove={(variantId) => {
+          if (selectedItem) {
+            setModalVariantId(variantId)
+            removeItem(selectedItem.id, variantId)
+          }
         }}
       />
       <div className="mf-phone-wrap">
@@ -160,7 +175,10 @@ export function MenuFastCardsPage({
                 <div key={cat.id} style={{ marginBottom: '1.25rem' }}>
                   {activeCat === 'all' && <div className="mf-cat-title">{cat.name}</div>}
                   {cat.items.map((item) => {
-                    const qty = qtyFor(item.id)
+                    const hasVariants = productHasVariants(item)
+                    const qty = Object.keys(cart)
+                      .filter((k) => k === item.id || k.startsWith(`${item.id}:`))
+                      .reduce((sum, k) => sum + (cart[k] ?? 0), 0)
                     const inStock = isMenuItemInStock(item)
                     return (
                       <div
@@ -189,7 +207,7 @@ export function MenuFastCardsPage({
                             <div className="mf-item-info-top">
                               <div className="mf-item-card-name">{item.name}</div>
                               <div className="mf-item-card-price">
-                                {formatMenuPrice(item.price, item.currency)}
+                                {formatListPrice(item, (amount) => formatMenuPrice(amount, item.currency))}
                               </div>
                             </div>
                             {item.description && (
@@ -200,6 +218,15 @@ export function MenuFastCardsPage({
                             {isVegItem(item) && <span className="mf-veg" aria-label="Vegetarian" />}
                             {!inStock ? (
                               <span className="mf-oos-label">Out of stock</span>
+                            ) : hasVariants ? (
+                              <button
+                                type="button"
+                                className="mf-add-btn"
+                                aria-label={`Choose options for ${item.name}`}
+                                onClick={() => setSelectedItemId(item.id)}
+                              >
+                                ···
+                              </button>
                             ) : qty === 0 ? (
                               <button
                                 type="button"

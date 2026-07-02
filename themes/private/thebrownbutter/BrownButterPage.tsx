@@ -203,11 +203,11 @@ function TinGroupCard({
   onSetQty,
 }: {
   group: TinGroup
-  qtyFor: (productId: string) => number
-  onAdd: (product: PublicProduct) => void
-  onSetQty: (product: PublicProduct, qty: number) => void
+  qtyFor: (productId: string, variantId?: string) => number
+  onAdd: (product: PublicProduct, variantId?: string) => void
+  onSetQty: (product: PublicProduct, qty: number, variantId?: string) => void
 }) {
-  const groupSelected = group.variants.some((v) => qtyFor(v.id) > 0)
+  const groupSelected = group.variants.some((v) => qtyFor(v.id, v.variantId) > 0)
 
   return (
     <div className={`tin-card${groupSelected ? ' selected' : ''}`} data-id={group.id}>
@@ -221,12 +221,12 @@ function TinGroupCard({
       </div>
       <div className="variant-rows">
         {group.variants.map((v) => {
-          const qty = qtyFor(v.id)
+          const qty = qtyFor(v.id, v.variantId)
           const active = qty > 0
           const outOfStock = !v.inStock
           return (
             <div
-              key={v.id}
+              key={v.variantId ?? v.id}
               className={`variant-item${active ? ' active v-show-stepper' : ''}`}
             >
               <div className="variant-left">
@@ -237,16 +237,16 @@ function TinGroupCard({
                 {outOfStock ? (
                   <span className="sold-out-label">Sold out</span>
                 ) : !active ? (
-                  <button type="button" className="v-add-btn" onClick={() => onAdd(v)}>
+                  <button type="button" className="v-add-btn" onClick={() => onAdd(v, v.variantId)}>
                     + Add
                   </button>
                 ) : (
                   <div className="v-qty-stepper">
-                    <button type="button" className="v-qty-btn" onClick={() => onSetQty(v, qty - 1)}>
+                    <button type="button" className="v-qty-btn" onClick={() => onSetQty(v, qty - 1, v.variantId)}>
                       −
                     </button>
                     <span className="v-qty-num">{qty}</span>
-                    <button type="button" className="v-qty-btn" onClick={() => onSetQty(v, qty + 1)}>
+                    <button type="button" className="v-qty-btn" onClick={() => onSetQty(v, qty + 1, v.variantId)}>
                       +
                     </button>
                   </div>
@@ -451,7 +451,11 @@ export function BrownButterPage({
       return
     }
 
-    const lines = entries.map((e) => ({ productId: e.id, quantity: e.qty }))
+    const lines = entries.map((e) => ({
+      productId: e.id,
+      quantity: e.qty,
+      variantId: e.variantId,
+    }))
 
     const notes = [
       `Delivery: ${delivery}`,
@@ -740,8 +744,8 @@ export function BrownButterPage({
                       key={group.id}
                       group={group}
                       qtyFor={qtyFor}
-                      onAdd={add}
-                      onSetQty={setQty}
+                      onAdd={(product, variantId) => add(product, variantId)}
+                      onSetQty={(product, qty, variantId) => setQty(product, qty, variantId)}
                     />
                   ))}
                   {section.cards.map((product) => (

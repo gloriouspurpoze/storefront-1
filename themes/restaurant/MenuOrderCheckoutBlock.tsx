@@ -28,7 +28,7 @@ export function MenuOrderCheckoutBlock({
 }: {
   tenant: ThemeTenant
   config?: StorefrontConfig | null
-  lines: Array<{ productId: string; quantity: number }>
+  lines: Array<{ productId: string; quantity: number; variantId?: string }>
   notes?: string
   showPreferredDate?: boolean
   showDeliveryDetails?: boolean

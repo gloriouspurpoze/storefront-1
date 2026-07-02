@@ -1,0 +1,95 @@
+.sf-variant-selector {
+  margin-top: 1.25rem;
+}
+
+.sf-variant-selector__label {
+  margin: 0 0 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #334155;
+}
+
+.sf-variant-selector__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sf-variant-selector__chip {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 9999px;
+  background: #fff;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #0f172a;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.sf-variant-selector__chip:hover:not(:disabled) {
+  border-color: #94a3b8;
+}
+
+.sf-variant-selector__chip[aria-pressed='true'] {
+  border-color: var(--site-brand, #4f46e5);
+  background: color-mix(in srgb, var(--site-brand, #4f46e5) 8%, white);
+  color: var(--site-brand, #4f46e5);
+}
+
+.sf-variant-selector__chip:disabled,
+.sf-variant-selector__chip--oos {
+  cursor: not-allowed;
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+
+.sf-variant-selector--soft-studio .sf-variant-selector__chip {
+  border-radius: 0.75rem;
+  border-color: #e8e0d4;
+  background: #faf8f3;
+}
+
+.sf-variant-selector--soft-studio .sf-variant-selector__chip[aria-pressed='true'] {
+  border-color: #c4a882;
+  background: #f3ebe0;
+  color: #5c4a32;
+}
+
+.sf-variant-selector--luxe .sf-variant-selector__chip {
+  border-radius: 0;
+  border-color: #d4cfc7;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sf-variant-selector--luxe .sf-variant-selector__chip[aria-pressed='true'] {
+  border-color: #1a1a1a;
+  background: #1a1a1a;
+  color: #fff;
+}
+
+.sf-variant-selector--restaurant .sf-variant-selector__chip {
+  border-radius: 0.625rem;
+}
+
+.sf-variant-selector--saffron .sf-variant-selector__chip {
+  border-radius: 0.5rem;
+  border-color: #e8ddd0;
+  background: #fdfaf6;
+}
+
+.sf-variant-selector--saffron .sf-variant-selector__chip[aria-pressed='true'] {
+  border-color: #c45c26;
+  background: #fff5ee;
+  color: #c45c26;
+}

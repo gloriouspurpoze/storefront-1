@@ -133,6 +133,8 @@ export interface PublicMenuItem {
   imageUrl?: string
   dietary?: string[]
   inStock?: boolean
+  hasVariants?: boolean
+  variants?: PublicProductVariant[]
 }
 
 export function isMenuItemInStock(item: Pick<PublicMenuItem, 'inStock'>): boolean {
@@ -156,6 +158,14 @@ export async function fetchMenu(tenantId: string): Promise<PublicMenuCategory[]>
 
 // ——— Retail (Phase 3) ———
 
+export interface PublicProductVariant {
+  id: string
+  name: string
+  price: number
+  originalPrice?: number
+  inStock?: boolean
+}
+
 export interface PublicProduct {
   id: string
   slug: string
@@ -167,6 +177,8 @@ export interface PublicProduct {
   currency: string
   imageUrl?: string
   inStock: boolean
+  hasVariants?: boolean
+  variants?: PublicProductVariant[]
   /** Assigned admin category — drives Brown Butter section grouping. */
   categorySlug?: string
   categoryName?: string
@@ -230,7 +242,7 @@ export interface StorefrontShippingAddressPayload {
 
 export async function createCheckoutOrder(input: {
   tenantId: string
-  items: Array<{ productId: string; quantity: number }>
+  items: Array<{ productId: string; quantity: number; variantId?: string }>
   customerEmail: string
   customerName?: string
   notes?: string

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { PublicProduct } from '@/lib/storefront-api'
 import { formatMoney } from '@/lib/format'
+import { formatListPrice, productHasVariants } from '@/lib/productVariants'
 
 export function ProductGrid({ products }: { products: PublicProduct[] }) {
   if (!products.length) {
@@ -38,13 +39,18 @@ export function ProductGrid({ products }: { products: PublicProduct[] }) {
               {p.shortDescription ? (
                 <p className="mt-1 line-clamp-2 text-sm text-slate-500">{p.shortDescription}</p>
               ) : null}
-              <div className="mt-auto flex items-baseline gap-2 pt-3">
+              <div className="mt-auto flex flex-wrap items-baseline gap-2 pt-3">
                 <span className="font-semibold text-slate-900">
-                  {formatMoney(p.price, p.currency)}
+                  {formatListPrice(p, (amount) => formatMoney(amount, p.currency))}
                 </span>
-                {p.originalPrice && p.originalPrice > p.price ? (
+                {!productHasVariants(p) && p.originalPrice && p.originalPrice > p.price ? (
                   <span className="text-sm text-slate-400 line-through">
                     {formatMoney(p.originalPrice, p.currency)}
+                  </span>
+                ) : null}
+                {productHasVariants(p) ? (
+                  <span className="text-xs font-medium text-slate-500">
+                    {p.variants!.length} options
                   </span>
                 ) : null}
               </div>

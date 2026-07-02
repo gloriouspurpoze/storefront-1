@@ -96,6 +96,14 @@
   color: #0f172a;
 }
 
+.sf-menu-item-modal__price-was {
+  margin-left: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
 .sf-menu-item-modal__desc {
   margin: 10px 0 0;
   font-size: 14px;

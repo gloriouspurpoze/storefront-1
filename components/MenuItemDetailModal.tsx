@@ -1,11 +1,18 @@
 'use client'
 
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { PublicMenuItem } from '@/lib/storefront-api'
-import { isMenuItemInStock } from '@/lib/storefront-api'
 import { isVegItem } from '@/themes/restaurant/menufast/useMenuCart'
 import { formatMoney } from '@/lib/format'
+import {
+  getDefaultVariant,
+  getEffectiveOriginalPrice,
+  getEffectivePrice,
+  isVariantInStock,
+  productHasVariants,
+} from '@/lib/productVariants'
+import { ProductVariantSelector } from '@/components/ProductVariantSelector'
 import './menu-item-detail-modal.css'
 
 export function MenuItemDetailModal({
@@ -15,14 +22,24 @@ export function MenuItemDetailModal({
   quantity,
   onAdd,
   onRemove,
+  tone = 'restaurant',
 }: {
   item: PublicMenuItem | null
   open: boolean
   onClose: () => void
   quantity: number
-  onAdd: () => void
-  onRemove: () => void
+  onAdd: (variantId?: string) => void
+  onRemove: (variantId?: string) => void
+  tone?: 'restaurant' | 'saffron'
 }) {
+  const hasVariants = item ? productHasVariants(item) : false
+  const defaultVariant = useMemo(() => (item ? getDefaultVariant(item) : null), [item])
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(defaultVariant?.id ?? null)
+
+  useEffect(() => {
+    setSelectedVariantId(defaultVariant?.id ?? null)
+  }, [item?.id, defaultVariant?.id])
+
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
@@ -41,7 +58,10 @@ export function MenuItemDetailModal({
 
   if (!open || !item || typeof document === 'undefined') return null
 
-  const inStock = isMenuItemInStock(item)
+  const inStock = isVariantInStock(item, selectedVariantId)
+  const needsSelection = hasVariants && !selectedVariantId
+  const price = getEffectivePrice(item, selectedVariantId)
+  const originalPrice = getEffectiveOriginalPrice(item, selectedVariantId)
   const popular = (item.dietary ?? []).some((d) => d.toLowerCase() === 'popular')
 
   return createPortal(
@@ -70,8 +90,24 @@ export function MenuItemDetailModal({
             </h2>
             {popular && <span className="sf-menu-item-modal__badge">Popular</span>}
           </div>
-          <p className="sf-menu-item-modal__price">{formatMoney(item.price, item.currency)}</p>
+          <p className="sf-menu-item-modal__price">
+            {formatMoney(price, item.currency)}
+            {originalPrice ? (
+              <span className="sf-menu-item-modal__price-was">
+                {formatMoney(originalPrice, item.currency)}
+              </span>
+            ) : null}
+          </p>
           {item.description ? <p className="sf-menu-item-modal__desc">{item.description}</p> : null}
+          {hasVariants ? (
+            <ProductVariantSelector
+              variants={item.variants!}
+              selectedId={selectedVariantId}
+              onSelect={setSelectedVariantId}
+              label="Size"
+              tone={tone}
+            />
+          ) : null}
           {(item.dietary ?? []).filter((d) => d.toLowerCase() !== 'popular').length > 0 ? (
             <div className="sf-menu-item-modal__tags">
               {item.dietary
@@ -86,17 +122,31 @@ export function MenuItemDetailModal({
           <div className="sf-menu-item-modal__actions">
             {!inStock ? (
               <span className="sf-menu-item-modal__oos">Out of stock</span>
+            ) : needsSelection ? (
+              <span className="sf-menu-item-modal__oos">Select an option</span>
             ) : quantity === 0 ? (
-              <button type="button" className="sf-menu-item-modal__add" onClick={onAdd}>
+              <button
+                type="button"
+                className="sf-menu-item-modal__add"
+                onClick={() => onAdd(selectedVariantId ?? undefined)}
+              >
                 Add to cart
               </button>
             ) : (
               <div className="sf-menu-item-modal__qty">
-                <button type="button" aria-label="Decrease quantity" onClick={onRemove}>
+                <button
+                  type="button"
+                  aria-label="Decrease quantity"
+                  onClick={() => onRemove(selectedVariantId ?? undefined)}
+                >
                   −
                 </button>
                 <span>{quantity}</span>
-                <button type="button" aria-label="Increase quantity" onClick={onAdd}>
+                <button
+                  type="button"
+                  aria-label="Increase quantity"
+                  onClick={() => onAdd(selectedVariantId ?? undefined)}
+                >
                   +
                 </button>
               </div>

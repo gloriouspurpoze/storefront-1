@@ -3,9 +3,18 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { PublicMenuItem } from '@/lib/storefront-api'
 import { isMenuItemInStock } from '@/lib/storefront-api'
+import {
+  cartLineKey,
+  findVariant,
+  getEffectivePrice,
+  isVariantInStock,
+  productHasVariants,
+} from '@/lib/productVariants'
 
 export interface CartLine {
   productId: string
+  variantId?: string
+  variantName?: string
   name: string
   price: number
   currency: string
@@ -17,9 +26,9 @@ interface CartContextValue {
   lines: CartLine[]
   itemCount: number
   subtotal: number
-  addMenuItem: (item: PublicMenuItem, quantity?: number) => void
-  setQuantity: (productId: string, quantity: number) => void
-  removeLine: (productId: string) => void
+  addMenuItem: (item: PublicMenuItem, quantity?: number, variantId?: string) => void
+  setQuantity: (productId: string, quantity: number, variantId?: string) => void
+  removeLine: (productId: string, variantId?: string) => void
   clear: () => void
 }
 
@@ -46,6 +55,11 @@ function writeCart(tenantId: string, lines: CartLine[]): void {
   localStorage.setItem(storageKey(tenantId), JSON.stringify(lines))
 }
 
+function lineDisplayName(item: PublicMenuItem, variantId?: string): string {
+  const variant = findVariant(item, variantId)
+  return variant ? `${item.name} — ${variant.name}` : item.name
+}
+
 export function CartProvider({
   tenantId,
   children,
@@ -68,14 +82,17 @@ export function CartProvider({
   )
 
   const addMenuItem = useCallback(
-    (item: PublicMenuItem, quantity = 1) => {
-      if (!isMenuItemInStock(item)) return
+    (item: PublicMenuItem, quantity = 1, variantId?: string) => {
+      if (!isVariantInStock(item, variantId)) return
+      if (productHasVariants(item) && !variantId) return
       const qty = Math.min(Math.max(Math.floor(quantity), 1), 99)
+      const key = cartLineKey(item.id, variantId)
+      const variant = findVariant(item, variantId)
       setLines((prev) => {
-        const existing = prev.find((l) => l.productId === item.id)
+        const existing = prev.find((l) => cartLineKey(l.productId, l.variantId) === key)
         const next = existing
           ? prev.map((l) =>
-              l.productId === item.id
+              cartLineKey(l.productId, l.variantId) === key
                 ? { ...l, quantity: Math.min(l.quantity + qty, 99) }
                 : l,
             )
@@ -83,8 +100,10 @@ export function CartProvider({
               ...prev,
               {
                 productId: item.id,
-                name: item.name,
-                price: item.price,
+                variantId,
+                variantName: variant?.name,
+                name: lineDisplayName(item, variantId),
+                price: getEffectivePrice(item, variantId),
                 currency: item.currency,
                 imageUrl: item.imageUrl,
                 quantity: qty,
@@ -98,14 +117,17 @@ export function CartProvider({
   )
 
   const setQuantity = useCallback(
-    (productId: string, quantity: number) => {
+    (productId: string, quantity: number, variantId?: string) => {
+      const key = cartLineKey(productId, variantId)
       const qty = Math.floor(quantity)
       setLines((prev) => {
         const next =
           qty <= 0
-            ? prev.filter((l) => l.productId !== productId)
+            ? prev.filter((l) => cartLineKey(l.productId, l.variantId) !== key)
             : prev.map((l) =>
-                l.productId === productId ? { ...l, quantity: Math.min(qty, 99) } : l,
+                cartLineKey(l.productId, l.variantId) === key
+                  ? { ...l, quantity: Math.min(qty, 99) }
+                  : l,
               )
         writeCart(tenantId, next)
         return next
@@ -115,9 +137,10 @@ export function CartProvider({
   )
 
   const removeLine = useCallback(
-    (productId: string) => {
+    (productId: string, variantId?: string) => {
+      const key = cartLineKey(productId, variantId)
       setLines((prev) => {
-        const next = prev.filter((l) => l.productId !== productId)
+        const next = prev.filter((l) => cartLineKey(l.productId, l.variantId) !== key)
         writeCart(tenantId, next)
         return next
       })

@@ -10,6 +10,7 @@ import { deliveryDetailsToShippingAddress } from '@/lib/storefrontShippingAddres
 export interface StorefrontCheckoutLine {
   productId: string
   quantity: number
+  variantId?: string
 }
 
 export interface StorefrontCheckoutCustomer {

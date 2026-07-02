@@ -1,6 +1,7 @@
 import type { PublicProduct } from '@/lib/storefront-api'
+import { productHasVariants } from '@/lib/productVariants'
 
-export type TinVariant = PublicProduct & { sizeLabel: string }
+export type TinVariant = PublicProduct & { sizeLabel: string; variantId?: string }
 
 export type TinGroup = {
   id: string
@@ -36,17 +37,46 @@ function isCupCategory(categorySlug?: string): boolean {
   return categorySlug === 'bb-cookie-cups' || categorySlug.includes('cup')
 }
 
+function embeddedVariantsToTinGroup(product: PublicProduct): TinGroup | null {
+  if (!productHasVariants(product) || !product.variants?.length) return null
+  return {
+    id: product.id,
+    name: product.name,
+    desc: product.shortDescription ?? product.description ?? '',
+    img: product.imageUrl,
+    variants: product.variants.map((v) => ({
+      ...product,
+      price: v.price,
+      originalPrice: v.originalPrice,
+      inStock: v.inStock !== false,
+      sizeLabel: v.name,
+      variantId: v.id,
+    })),
+  }
+}
+
 function groupTinProducts(products: PublicProduct[]): { tinGroups: TinGroup[]; cards: PublicProduct[] } {
   const byBase = new Map<string, PublicProduct[]>()
+  const embeddedGroups: TinGroup[] = []
+  const standalone: PublicProduct[] = []
 
   for (const product of products) {
+    const embedded = embeddedVariantsToTinGroup(product)
+    if (embedded) {
+      embeddedGroups.push(embedded)
+      continue
+    }
+    standalone.push(product)
+  }
+
+  for (const product of standalone) {
     const base = baseProductName(product.name)
     const bucket = byBase.get(base) ?? []
     bucket.push(product)
     byBase.set(base, bucket)
   }
 
-  const tinGroups: TinGroup[] = []
+  const tinGroups: TinGroup[] = [...embeddedGroups]
   const cards: PublicProduct[] = []
 
   for (const [base, items] of byBase) {
@@ -112,13 +142,20 @@ export function layoutBrownButterProducts(products: PublicProduct[]): BrownButte
   return [...sectionMap.entries()]
     .map(([id, bucket]) => {
       if (bucket.layout === 'cards') {
-        const cards = [...bucket.products].sort((a, b) => a.name.localeCompare(b.name))
+        const tinFromEmbedded: TinGroup[] = []
+        const cards: PublicProduct[] = []
+        for (const p of bucket.products) {
+          const embedded = embeddedVariantsToTinGroup(p)
+          if (embedded) tinFromEmbedded.push(embedded)
+          else cards.push(p)
+        }
+        cards.sort((a, b) => a.name.localeCompare(b.name))
         return {
           id,
           label: bucket.label,
           sortOrder: bucket.sortOrder,
           layout: 'cards' as const,
-          tinGroups: [],
+          tinGroups: tinFromEmbedded,
           cards,
         }
       }

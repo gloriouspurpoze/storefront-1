@@ -10,22 +10,25 @@ import { SaffronFooter } from './SaffronFooter'
 import { StorefrontMenuDrawer } from '@/components/StorefrontMenuDrawer'
 import { MenuOrderCheckoutBlock } from '../MenuOrderCheckoutBlock'
 import { DeliveryDetailsSection } from '@/components/DeliveryDetailsSection'
+import { ProductVariantSelector } from '@/components/ProductVariantSelector'
+import { MenuItemDetailModal } from '@/components/MenuItemDetailModal'
 import {
   formatDeliveryNotes,
   showPreferredDateOfDelivery,
   type DeliveryDetailsValue,
 } from '@/lib/templateSettings'
+import {
+  cartLineKey,
+  formatListPrice,
+  getDefaultVariant,
+  getEffectivePrice,
+  productHasVariants,
+} from '@/lib/productVariants'
+import { formatMenuPrice, useMenuCart, type CartEntry } from '../menufast/useMenuCart'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type CartMap = Record<string, number>
 type DeliveryMode = 'delivery' | 'pickup'
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatPrice(price: number, currency = 'INR'): string {
-  return currency === 'INR' ? `₹${price.toLocaleString('en-IN')}` : `${currency} ${price}`
-}
 
 interface BadgeStyle {
   bg: string
@@ -52,17 +55,29 @@ function getBadgeStyle(tag: string): BadgeStyle {
 function MenuItemCard({
   item,
   qty,
+  selectedVariantId,
+  onVariantSelect,
   onAdd,
   onRemove,
+  onOpenDetail,
 }: {
   item: PublicMenuItem
   qty: number
+  selectedVariantId?: string
+  onVariantSelect: (variantId: string) => void
   onAdd: () => void
   onRemove: () => void
+  onOpenDetail?: () => void
 }) {
   const currency = item.currency ?? 'INR'
   const badges = item.dietary ?? []
+  const hasVariants = productHasVariants(item)
   const inStock = isMenuItemInStock(item)
+  const priceLabel = hasVariants
+    ? selectedVariantId
+      ? formatMenuPrice(getEffectivePrice(item, selectedVariantId), currency)
+      : formatListPrice(item, (amount) => formatMenuPrice(amount, currency))
+    : formatMenuPrice(item.price, currency)
 
   return (
     <div
@@ -143,8 +158,19 @@ function MenuItemCard({
           </div>
         )}
         <div style={{ fontSize: '15px', fontWeight: 500, color: 'var(--ink, #1A1714)' }}>
-          {formatPrice(item.price, currency)}
+          {priceLabel}
         </div>
+        {hasVariants && item.variants && (
+          <div style={{ marginTop: '8px' }}>
+            <ProductVariantSelector
+              variants={item.variants}
+              selectedId={selectedVariantId}
+              onSelect={onVariantSelect}
+              label="Size"
+              tone="saffron"
+            />
+          </div>
+        )}
       </div>
 
       {/* Image + add/qty control */}
@@ -154,12 +180,26 @@ function MenuItemCard({
           <img
             src={item.imageUrl}
             alt={item.name}
+            role={onOpenDetail ? 'button' : undefined}
+            tabIndex={onOpenDetail ? 0 : undefined}
+            onClick={onOpenDetail}
+            onKeyDown={
+              onOpenDetail
+                ? (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      onOpenDetail()
+                    }
+                  }
+                : undefined
+            }
             style={{
               width: '100px',
               height: '80px',
               objectFit: 'cover',
               borderRadius: 'var(--saf-radius-sm, 6px)',
               display: 'block',
+              cursor: onOpenDetail ? 'pointer' : undefined,
             }}
           />
         ) : (
@@ -179,7 +219,34 @@ function MenuItemCard({
           </div>
         )}
 
-        {!inStock ? null : qty === 0 ? (
+        {!inStock ? null : hasVariants && !selectedVariantId ? (
+          <button
+            onClick={onOpenDetail}
+            title="Choose options"
+            style={{
+              position: 'absolute',
+              bottom: '-10px',
+              right: '-10px',
+              minWidth: '30px',
+              height: '30px',
+              padding: '0 8px',
+              borderRadius: '100px',
+              background: 'var(--ink, #1A1714)',
+              color: 'var(--cream, #FAF8F3)',
+              border: '2px solid var(--cream, #FAF8F3)',
+              fontSize: '14px',
+              lineHeight: '1',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontFamily: 'inherit',
+              transition: 'background 0.15s, transform 0.1s',
+            }}
+          >
+            ···
+          </button>
+        ) : qty === 0 ? (
           <button
             onClick={onAdd}
             title="Add to cart"
@@ -279,7 +346,7 @@ function MenuItemCard({
 // ─── Cart Content ─────────────────────────────────────────────────────────────
 
 interface CartContentProps {
-  cartEntries: { item: PublicMenuItem; quantity: number }[]
+  cartEntries: CartEntry[]
   subtotal: number
   deliveryFee: number
   tax: number
@@ -292,8 +359,8 @@ interface CartContentProps {
   showPreferredDate: boolean
   deliveryDetails: DeliveryDetailsValue
   onDeliveryDetailsChange: (val: DeliveryDetailsValue) => void
-  onAdd: (item: PublicMenuItem) => void
-  onRemove: (itemId: string) => void
+  onAdd: (item: PublicMenuItem, variantId?: string) => void
+  onRemove: (itemId: string, variantId?: string) => void
   onClear: () => void
   onPromoChange: (val: string) => void
   onApplyPromo: () => void
@@ -331,18 +398,6 @@ function CartContent({
   const itemCount = cartEntries.reduce((s, e) => s + e.quantity, 0)
   const currency = cartEntries[0]?.item.currency ?? 'INR'
 
-  const inputStyle: React.CSSProperties = {
-    padding: '8px 10px',
-    border: '1px solid var(--saf-border-strong, rgba(26,23,20,0.2))',
-    borderRadius: 'var(--saf-radius-sm, 6px)',
-    fontSize: '13px',
-    fontFamily: 'inherit',
-    color: 'var(--ink, #1A1714)',
-    outline: 'none',
-    background: 'var(--cream, #FAF8F3)',
-    transition: 'border-color 0.15s',
-  }
-
   return (
     <>
       {/* Cart header */}
@@ -369,7 +424,7 @@ function CartContent({
           <div style={{ fontSize: '12px', color: 'var(--ink-muted, #8A847C)', marginTop: '2px' }}>
             {isEmpty
               ? 'Nothing added yet'
-              : `${itemCount} item${itemCount !== 1 ? 's' : ''} · ${formatPrice(subtotal, currency)}`}
+              : `${itemCount} item${itemCount !== 1 ? 's' : ''} · ${formatMenuPrice(subtotal, currency)}`}
           </div>
         </div>
         {!isEmpty && (
@@ -461,8 +516,11 @@ function CartContent({
             <div
               style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '1rem' }}
             >
-              {cartEntries.map(({ item, quantity }) => (
-                <div key={item.id} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+              {cartEntries.map(({ item, quantity, variantId, lineName, unitPrice }) => (
+                <div
+                  key={cartLineKey(item.id, variantId)}
+                  style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}
+                >
                   <div
                     style={{
                       width: '44px',
@@ -492,11 +550,11 @@ function CartContent({
                     <div
                       style={{ fontSize: '13px', fontWeight: 500, marginBottom: '4px' }}
                     >
-                      {item.name}
+                      {lineName}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <button
-                        onClick={() => onRemove(item.id)}
+                        onClick={() => onRemove(item.id, variantId)}
                         style={{
                           width: '22px',
                           height: '22px',
@@ -526,7 +584,7 @@ function CartContent({
                         {quantity}
                       </span>
                       <button
-                        onClick={() => onAdd(item)}
+                        onClick={() => onAdd(item, variantId)}
                         style={{
                           width: '22px',
                           height: '22px',
@@ -555,7 +613,7 @@ function CartContent({
                       flexShrink: 0,
                     }}
                   >
-                    {formatPrice(item.price * quantity, currency)}
+                    {formatMenuPrice(unitPrice * quantity, currency)}
                   </div>
                 </div>
               ))}
@@ -652,16 +710,16 @@ function CartContent({
           <div
             style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '1rem' }}
           >
-            <BillRow label="Item total" value={formatPrice(subtotal, currency)} />
+            <BillRow label="Item total" value={formatMenuPrice(subtotal, currency)} />
             <BillRow
               label="Delivery fee"
-              value={deliveryFee === 0 ? '🎉 Free' : formatPrice(deliveryFee, currency)}
+              value={deliveryFee === 0 ? '🎉 Free' : formatMenuPrice(deliveryFee, currency)}
             />
-            <BillRow label="Taxes & charges" value={formatPrice(tax, currency)} />
+            <BillRow label="Taxes & charges" value={formatMenuPrice(tax, currency)} />
             {promoApplied && (
               <BillRow
                 label="Promo discount"
-                value={`-${formatPrice(discount, currency)}`}
+                value={`-${formatMenuPrice(discount, currency)}`}
                 accent
               />
             )}
@@ -678,7 +736,7 @@ function CartContent({
               }}
             >
               <span>Total</span>
-              <span>{formatPrice(total, currency)}</span>
+              <span>{formatMenuPrice(total, currency)}</span>
             </div>
           </div>
         )}
@@ -687,13 +745,17 @@ function CartContent({
         {!isEmpty && (
           <MenuOrderCheckoutBlock
             tenant={tenant}
-            lines={cartEntries.map((e) => ({ productId: e.item.id, quantity: e.quantity }))}
+            lines={cartEntries.map((e) => ({
+              productId: e.item.id,
+              quantity: e.quantity,
+              variantId: e.variantId,
+            }))}
             notes={formatDeliveryNotes(deliveryDetails, instructions.trim() || undefined)}
             showPreferredDate={false}
             showDeliveryDetails={false}
             onClear={onClear}
             onSuccess={onOrderSuccess}
-            primaryLabel={`Pay & place order · ${formatPrice(total, currency)}`}
+            primaryLabel={`Pay & place order · ${formatMenuPrice(total, currency)}`}
           />
         )}
       </div>
@@ -736,7 +798,11 @@ export function SaffronMenuPage({
   tenant: ThemeTenant
   config: StorefrontConfig | null
 }) {
-  const [cart, setCart] = useState<CartMap>({})
+  const { entries, itemCount, subtotal, addItem, removeItem, clearCart, qtyFor } =
+    useMenuCart(initialCategories)
+  const [variantSelection, setVariantSelection] = useState<Record<string, string>>({})
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
+  const [modalVariantId, setModalVariantId] = useState<string | undefined>()
   const [activeCategory, setActiveCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [promoCode, setPromoCode] = useState('')
@@ -766,32 +832,50 @@ export function SaffronMenuPage({
     toastTimer.current = setTimeout(() => setToast(null), 2500)
   }, [])
 
-  const addToCart = useCallback(
-    (item: PublicMenuItem) => {
-      if (!isMenuItemInStock(item)) return
-      setCart((prev) => ({ ...prev, [item.id]: (prev[item.id] ?? 0) + 1 }))
-      showToast(`${item.name} added to cart`)
-    },
-    [showToast],
+  const allItems = useMemo(
+    () => initialCategories.flatMap((cat) => cat.items),
+    [initialCategories],
   )
 
-  const removeFromCart = useCallback((itemId: string) => {
-    setCart((prev) => {
-      const qty = prev[itemId] ?? 0
-      if (qty <= 1) {
-        const next = { ...prev }
-        delete next[itemId]
-        return next
-      }
-      return { ...prev, [itemId]: qty - 1 }
-    })
+  const selectedItem =
+    selectedItemId != null ? allItems.find((i) => i.id === selectedItemId) ?? null : null
+
+  const getSelectedVariantId = useCallback(
+    (item: PublicMenuItem) =>
+      variantSelection[item.id] ?? getDefaultVariant(item)?.id ?? undefined,
+    [variantSelection],
+  )
+
+  const setItemVariant = useCallback((itemId: string, variantId: string) => {
+    setVariantSelection((prev) => ({ ...prev, [itemId]: variantId }))
   }, [])
 
-  const clearCart = useCallback(() => {
-    setCart({})
+  const addToCart = useCallback(
+    (item: PublicMenuItem, variantId?: string) => {
+      const resolvedVariantId = productHasVariants(item)
+        ? variantId ?? getSelectedVariantId(item)
+        : undefined
+      if (!isMenuItemInStock(item)) return
+      addItem(item, resolvedVariantId)
+      const variant = item.variants?.find((v) => v.id === resolvedVariantId)
+      const label = variant ? `${item.name} — ${variant.name}` : item.name
+      showToast(`${label} added to cart`)
+    },
+    [addItem, getSelectedVariantId, showToast],
+  )
+
+  const removeFromCart = useCallback(
+    (itemId: string, variantId?: string) => {
+      removeItem(itemId, variantId)
+    },
+    [removeItem],
+  )
+
+  const handleClearCart = useCallback(() => {
+    clearCart()
     setPromoApplied(false)
     setPromoCode('')
-  }, [])
+  }, [clearCart])
 
   const applyPromo = useCallback(() => {
     const val = promoCode.trim().toUpperCase()
@@ -805,35 +889,9 @@ export function SaffronMenuPage({
     }
   }, [promoCode, showToast])
 
-  // Flatten all items for cart lookup
-  const allItems = useMemo(
-    () => initialCategories.flatMap((cat) => cat.items),
-    [initialCategories],
-  )
+  const cartEntries = entries
 
-  // Cart entries (with item objects)
-  const cartEntries = useMemo(
-    () =>
-      Object.entries(cart)
-        .filter(([, qty]) => qty > 0)
-        .map(([id, quantity]) => {
-          const item = allItems.find((i) => i.id === id)
-          if (!item) return null
-          return { item, quantity }
-        })
-        .filter((e): e is { item: PublicMenuItem; quantity: number } => e !== null),
-    [cart, allItems],
-  )
-
-  const totalCartCount = useMemo(
-    () => cartEntries.reduce((s, e) => s + e.quantity, 0),
-    [cartEntries],
-  )
-
-  const subtotal = useMemo(
-    () => cartEntries.reduce((s, e) => s + e.item.price * e.quantity, 0),
-    [cartEntries],
-  )
+  const totalCartCount = itemCount
 
   const currency = cartEntries[0]?.item.currency ?? 'INR'
   const deliveryFee = deliveryMode === 'pickup' ? 0 : subtotal >= 499 ? 0 : 40
@@ -877,7 +935,7 @@ export function SaffronMenuPage({
     onDeliveryDetailsChange: setDeliveryDetails,
     onAdd: addToCart,
     onRemove: removeFromCart,
-    onClear: clearCart,
+    onClear: handleClearCart,
     onPromoChange: setPromoCode,
     onApplyPromo: applyPromo,
     onDeliveryModeChange: setDeliveryMode,
@@ -886,7 +944,7 @@ export function SaffronMenuPage({
     onOrderSuccess: (orderNumber) => {
       setPlacedOrderNumber(orderNumber)
       setOrderPlaced(true)
-      clearCart()
+      handleClearCart()
     },
   }
 
@@ -911,6 +969,29 @@ export function SaffronMenuPage({
         onClose={() => setMenuOpen(false)}
         config={config}
         showShippingPolicy={false}
+      />
+      <MenuItemDetailModal
+        item={selectedItem}
+        open={selectedItem != null}
+        tone="saffron"
+        onClose={() => {
+          setSelectedItemId(null)
+          setModalVariantId(undefined)
+        }}
+        quantity={selectedItem ? qtyFor(selectedItem.id, modalVariantId) : 0}
+        onAdd={(variantId) => {
+          if (selectedItem) {
+            setModalVariantId(variantId)
+            if (variantId) setItemVariant(selectedItem.id, variantId)
+            addToCart(selectedItem, variantId)
+          }
+        }}
+        onRemove={(variantId) => {
+          if (selectedItem) {
+            setModalVariantId(variantId)
+            removeFromCart(selectedItem.id, variantId)
+          }
+        }}
       />
       {/* Sticky header with live cart count */}
       <SaffronHeader
@@ -1087,7 +1168,9 @@ export function SaffronMenuPage({
 
                 {/* Items */}
                 <div style={{ padding: '0 2rem' }}>
-                  {cat.items.map((item, idx) => (
+                  {cat.items.map((item, idx) => {
+                    const selectedVariantId = getSelectedVariantId(item)
+                    return (
                     <div
                       key={item.id}
                       style={{
@@ -1099,12 +1182,23 @@ export function SaffronMenuPage({
                     >
                       <MenuItemCard
                         item={item}
-                        qty={cart[item.id] ?? 0}
-                        onAdd={() => addToCart(item)}
-                        onRemove={() => removeFromCart(item.id)}
+                        selectedVariantId={selectedVariantId}
+                        onVariantSelect={(variantId) => setItemVariant(item.id, variantId)}
+                        qty={qtyFor(item.id, selectedVariantId)}
+                        onAdd={() => addToCart(item, selectedVariantId)}
+                        onRemove={() => removeFromCart(item.id, selectedVariantId)}
+                        onOpenDetail={
+                          productHasVariants(item)
+                            ? () => {
+                                setSelectedItemId(item.id)
+                                setModalVariantId(getSelectedVariantId(item))
+                              }
+                            : undefined
+                        }
                       />
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             ))
@@ -1174,7 +1268,7 @@ export function SaffronMenuPage({
                 fontSize: '13px',
               }}
             >
-              {formatPrice(total, currency)}
+              {formatMenuPrice(total, currency)}
             </span>
           )}
         </button>
@@ -1301,7 +1395,7 @@ export function SaffronMenuPage({
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setOrderPlaced(false)
-              clearCart()
+              handleClearCart()
               setMobileCartOpen(false)
             }
           }}
@@ -1342,7 +1436,7 @@ export function SaffronMenuPage({
             <button
               onClick={() => {
                 setOrderPlaced(false)
-                clearCart()
+                handleClearCart()
                 setMobileCartOpen(false)
               }}
               style={{
