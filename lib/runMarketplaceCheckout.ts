@@ -1,4 +1,5 @@
 import { env } from './env'
+import { withTenantId } from './tenant-headers'
 import { openRazorpayCheckout } from './razorpayCheckout'
 
 export interface MarketplaceCheckoutLine {
@@ -29,11 +30,10 @@ export async function quoteMarketplaceCheckout(input: {
 }) {
   const res = await fetch(apiUrl('/public/marketplace/checkout/quote'), {
     method: 'POST',
-    headers: {
+    headers: withTenantId(input.tenantId, {
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      'x-tenant-id': input.tenantId,
-    },
+    }),
     body: JSON.stringify({ lines: input.lines }),
   })
   const json = (await res.json().catch(() => null)) as ApiEnvelope<{
@@ -57,11 +57,10 @@ export async function createMarketplaceCheckoutOrder(input: {
 }) {
   const res = await fetch(apiUrl('/public/marketplace/checkout/create'), {
     method: 'POST',
-    headers: {
+    headers: withTenantId(input.tenantId, {
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      'x-tenant-id': input.tenantId,
-    },
+    }),
     body: JSON.stringify({
       lines: input.lines,
       customerEmail: input.customerEmail,
@@ -93,11 +92,10 @@ export async function verifyMarketplaceCheckout(input: {
 }) {
   const res = await fetch(apiUrl('/public/marketplace/checkout/verify'), {
     method: 'POST',
-    headers: {
+    headers: withTenantId(input.tenantId, {
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      'x-tenant-id': input.tenantId,
-    },
+    }),
     body: JSON.stringify(input),
   })
   const json = (await res.json().catch(() => null)) as ApiEnvelope<{
@@ -172,7 +170,7 @@ export async function searchMarketplace(input: {
   if (input.types) params.set('types', input.types)
   if (input.page) params.set('page', String(input.page))
   const res = await fetch(apiUrl(`/public/marketplace/search?${params}`), {
-    headers: { Accept: 'application/json', 'x-tenant-id': input.tenantId },
+    headers: withTenantId(input.tenantId, { Accept: 'application/json' }),
   })
   const json = (await res.json().catch(() => null)) as ApiEnvelope<{ listings: unknown[] }> | null
   if (!res.ok || !json?.success) {
@@ -183,7 +181,7 @@ export async function searchMarketplace(input: {
 
 export async function fetchSellerStore(input: { tenantId: string; sellerSlug: string }) {
   const res = await fetch(apiUrl(`/public/marketplace/sellers/${encodeURIComponent(input.sellerSlug)}`), {
-    headers: { Accept: 'application/json', 'x-tenant-id': input.tenantId },
+    headers: withTenantId(input.tenantId, { Accept: 'application/json' }),
   })
   const json = (await res.json().catch(() => null)) as ApiEnvelope<{ seller: unknown; listings: unknown[] }> | null
   if (!res.ok || !json?.success || !json.data) {

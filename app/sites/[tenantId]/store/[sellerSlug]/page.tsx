@@ -1,5 +1,5 @@
 import { fetchSellerStore } from '@/lib/runMarketplaceCheckout'
-import { loadThemeTenant } from '@/themes/home-services/loadThemeTenant'
+import { loadThemeTenant } from '@/lib/load-tenant'
 import Link from 'next/link'
 
 export default async function SellerStorePage({

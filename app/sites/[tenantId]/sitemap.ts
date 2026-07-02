@@ -1,7 +1,8 @@
 import type { MetadataRoute } from 'next'
 import { headers } from 'next/headers'
-import { loadTenantFromRequest } from '@/lib/load-tenant'
+import { assertRouteTenant } from '@/lib/load-tenant'
 import { env } from '@/lib/env'
+import { withTenantId } from '@/lib/tenant-headers'
 
 interface SitemapApiUrl {
   loc: string
@@ -10,9 +11,13 @@ interface SitemapApiUrl {
   priority?: number
 }
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const tenant = await loadTenantFromRequest()
-  if (!tenant) return []
+export default async function sitemap({
+  params,
+}: {
+  params: Promise<{ tenantId: string }>
+}): Promise<MetadataRoute.Sitemap> {
+  const { tenantId } = await params
+  const tenant = await assertRouteTenant(tenantId)
 
   const h = await headers()
   const host = h.get('host') ?? ''
@@ -23,7 +28,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const res = await fetch(
       `${env.API_BASE_URL.replace(/\/+$/, '')}/public/storefront/sitemap?baseUrl=${encodeURIComponent(baseUrl)}`,
       {
-        headers: { Accept: 'application/json', 'x-tenant-id': tenant.id },
+        headers: withTenantId(tenant.id, { Accept: 'application/json' }),
         next: { revalidate: 300 },
       },
     )

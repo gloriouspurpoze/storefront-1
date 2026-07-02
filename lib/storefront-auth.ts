@@ -17,8 +17,6 @@ export interface StorefrontAuthTokens {
   refreshToken: string
 }
 
-const STORAGE_KEY = 'sf-customer-auth'
-
 interface StoredAuth {
   user: StorefrontAuthUser
   tokens: StorefrontAuthTokens
@@ -28,10 +26,16 @@ function apiUrl(path: string): string {
   return `${env.API_BASE_URL.replace(/\/+$/, '')}${path}`
 }
 
-export function getStoredAuth(): StoredAuth | null {
-  if (typeof window === 'undefined') return null
+const STORAGE_KEY_PREFIX = 'sf-customer-auth'
+
+function storageKey(tenantId: string): string {
+  return `${STORAGE_KEY_PREFIX}:${tenantId}`
+}
+
+export function getStoredAuth(tenantId: string): StoredAuth | null {
+  if (typeof window === 'undefined' || !tenantId) return null
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(storageKey(tenantId))
     if (!raw) return null
     const parsed = JSON.parse(raw) as StoredAuth
     if (!parsed?.tokens?.accessToken || !parsed?.user?.id) return null
@@ -41,12 +45,16 @@ export function getStoredAuth(): StoredAuth | null {
   }
 }
 
-export function saveAuth(user: StorefrontAuthUser, tokens: StorefrontAuthTokens): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ user, tokens }))
+export function saveAuth(
+  tenantId: string,
+  user: StorefrontAuthUser,
+  tokens: StorefrontAuthTokens,
+): void {
+  localStorage.setItem(storageKey(tenantId), JSON.stringify({ user, tokens }))
 }
 
-export function clearAuth(): void {
-  localStorage.removeItem(STORAGE_KEY)
+export function clearAuth(tenantId: string): void {
+  localStorage.removeItem(storageKey(tenantId))
 }
 
 export function displayName(user: StorefrontAuthUser): string {

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { headers } from 'next/headers'
-import { resolveTenant } from '@/lib/tenant-resolver'
+import { assertRouteTenant } from '@/lib/load-tenant'
 import { resolveQrScan } from '@/lib/qr-resolve'
 import { slugFromPlatformHost } from '@/lib/tenant-resolver'
 
@@ -17,24 +17,22 @@ export async function GET(
   ctx: { params: Promise<{ tenantId: string; code: string }> },
 ) {
   const { tenantId, code } = await ctx.params
+  const tenant = await assertRouteTenant(tenantId)
   const h = await headers()
   const host = h.get('host') ?? ''
   const slug =
+    tenant.slug ??
     slugFromPlatformHost(host) ??
     h.get('x-tenant-slug') ??
     'tenant'
-  const verticalKey = h.get('x-tenant-vertical') ?? undefined
+  const verticalKey = tenant.verticalKey ?? h.get('x-tenant-vertical') ?? undefined
 
-  let resolvedSlug = slug
-  const tenant = await resolveTenant(host)
-  if (tenant) resolvedSlug = tenant.slug
-
-  const origin = storefrontOrigin(host, resolvedSlug)
+  const origin = storefrontOrigin(host, slug)
 
   try {
     const result = await resolveQrScan({
-      tenantId,
-      tenantSlug: resolvedSlug,
+      tenantId: tenant.id,
+      tenantSlug: slug,
       verticalKey,
       publicCode: code,
       storefrontOrigin: origin,

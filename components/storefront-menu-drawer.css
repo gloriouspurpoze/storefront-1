@@ -97,6 +97,28 @@
   color: var(--sf-menu-muted);
 }
 
+.sf-menu-drawer__quick-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.sf-menu-drawer__quick-link {
+  display: inline-flex;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--sf-menu-accent-soft, rgba(99, 102, 241, 0.1));
+  color: var(--sf-menu-accent, #4338ca);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.sf-menu-drawer__quick-link:hover {
+  filter: brightness(0.97);
+}
+
 .sf-menu-drawer__links {
   display: flex;
   flex-direction: column;

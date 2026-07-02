@@ -8,6 +8,7 @@
  * - Client-only helpers (lead submit) don't get cached.
  */
 import { env } from './env'
+import { withTenantId } from './tenant-headers'
 
 export interface PublicService {
   id: string
@@ -42,10 +43,7 @@ async function getJson<T>(
   try {
     const res = await fetch(apiUrl(path), {
       method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        'x-tenant-id': tenantId,
-      },
+      headers: withTenantId(tenantId, { Accept: 'application/json' }),
       next: {
         revalidate: opts.revalidate ?? 60,
         tags: opts.tags ?? [`tenant:${tenantId}`],
@@ -111,11 +109,10 @@ export async function submitLead(input: LeadInput): Promise<LeadResult> {
   const { tenantId, ...body } = input
   const res = await fetch(apiUrl('/public/storefront/leads'), {
     method: 'POST',
-    headers: {
+    headers: withTenantId(tenantId, {
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      'x-tenant-id': tenantId,
-    },
+    }),
     body: JSON.stringify(body),
   })
   const json = (await res.json().catch(() => null)) as ApiEnvelope<LeadResult> | null
@@ -228,11 +225,10 @@ export async function createCheckoutOrder(input: {
 }): Promise<CheckoutOrderResult> {
   const res = await fetch(apiUrl('/public/storefront/checkout/create-order'), {
     method: 'POST',
-    headers: {
+    headers: withTenantId(input.tenantId, {
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      'x-tenant-id': input.tenantId,
-    },
+    }),
     body: JSON.stringify({
       items: input.items,
       customerEmail: input.customerEmail,
@@ -385,11 +381,10 @@ export async function verifyCheckout(input: {
   const { tenantId, ...body } = input
   const res = await fetch(apiUrl('/public/storefront/checkout/verify'), {
     method: 'POST',
-    headers: {
+    headers: withTenantId(tenantId, {
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      'x-tenant-id': tenantId,
-    },
+    }),
     body: JSON.stringify(body),
   })
   const json = (await res.json().catch(() => null)) as ApiEnvelope<CheckoutVerifyResult> | null
@@ -456,11 +451,10 @@ export async function fetchCustomerOrders(input: {
     apiUrl(`/public/storefront/customers/orders${qs ? `?${qs}` : ''}`),
     {
       method: 'GET',
-      headers: {
+      headers: withTenantId(input.tenantId, {
         Accept: 'application/json',
         Authorization: `Bearer ${input.accessToken}`,
-        'x-tenant-id': input.tenantId,
-      },
+      }),
       cache: 'no-store',
     },
   )
@@ -484,11 +478,10 @@ export async function fetchCustomerProfile(input: {
 }): Promise<CustomerProfile | null> {
   const res = await fetch(apiUrl('/public/storefront/customers/me'), {
     method: 'GET',
-    headers: {
+    headers: withTenantId(input.tenantId, {
       Accept: 'application/json',
       Authorization: `Bearer ${input.accessToken}`,
-      'x-tenant-id': input.tenantId,
-    },
+    }),
     cache: 'no-store',
   })
   const json = (await res.json().catch(() => null)) as {
@@ -507,11 +500,10 @@ export async function fetchCustomerOrderTracking(input: {
   const encoded = encodeURIComponent(input.orderNumber.trim())
   const res = await fetch(apiUrl(`/public/storefront/customers/orders/${encoded}/track`), {
     method: 'GET',
-    headers: {
+    headers: withTenantId(input.tenantId, {
       Accept: 'application/json',
       Authorization: `Bearer ${input.accessToken}`,
-      'x-tenant-id': input.tenantId,
-    },
+    }),
     cache: 'no-store',
   })
   const json = (await res.json().catch(() => null)) as ApiEnvelope<PublicOrderTracking> | null
@@ -533,14 +525,58 @@ export async function fetchPublicOrderTracking(input: {
     apiUrl(`/public/storefront/orders/track?${params.toString()}`),
     {
       method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        'x-tenant-id': input.tenantId,
-      },
+    headers: withTenantId(input.tenantId, {
+      Accept: 'application/json',
+    }),
       cache: 'no-store',
     },
   )
   const json = (await res.json().catch(() => null)) as ApiEnvelope<PublicOrderTracking> | null
   if (!res.ok || !json?.success || !json.data) return null
+  return json.data
+}
+
+// ——— Bazaar gift match ———
+
+export interface GiftMatchRecommendation {
+  productId: string
+  name: string
+  slug: string
+  priceInr: number
+  imageUrl?: string
+  reason: string
+}
+
+export interface GiftMatchResult {
+  explanation: string
+  recommendations: GiftMatchRecommendation[]
+  providerUsed: 'openai' | 'gemini'
+}
+
+export async function postGiftMatch(input: {
+  tenantId: string
+  recipient: string
+  occasion: string
+  budgetMin?: number
+  budgetMax?: number
+}): Promise<GiftMatchResult> {
+  const res = await fetch(apiUrl('/bazaar/store/gift-match'), {
+    method: 'POST',
+    headers: withTenantId(input.tenantId, {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    }),
+    body: JSON.stringify({
+      recipient: input.recipient,
+      occasion: input.occasion,
+      budgetMin: input.budgetMin,
+      budgetMax: input.budgetMax,
+    }),
+    cache: 'no-store',
+  })
+  const json = (await res.json().catch(() => null)) as ApiEnvelope<GiftMatchResult> | null
+  if (!res.ok || !json?.success || !json.data) {
+    throw new Error(json?.message || 'Gift match request failed')
+  }
   return json.data
 }

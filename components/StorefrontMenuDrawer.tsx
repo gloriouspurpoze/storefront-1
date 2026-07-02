@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 import { OrderingHoursTable } from '@/components/OrderingHoursTable'
@@ -14,6 +15,7 @@ export function StorefrontMenuDrawer({
   config,
   showShippingPolicy = true,
   shippingPolicyLabel = 'Shipping policy',
+  showGiftMatch = false,
   orderingHoursNote,
   shippingPolicyContent,
 }: {
@@ -22,6 +24,7 @@ export function StorefrontMenuDrawer({
   config?: StorefrontConfig | null
   showShippingPolicy?: boolean
   shippingPolicyLabel?: string
+  showGiftMatch?: boolean
   orderingHoursNote?: React.ReactNode
   shippingPolicyContent?: React.ReactNode
 }) {
@@ -63,6 +66,13 @@ export function StorefrontMenuDrawer({
           </button>
         </div>
         <p className="sf-menu-drawer__subtitle">Quick store details and policies.</p>
+        {showGiftMatch ? (
+          <div className="sf-menu-drawer__quick-links">
+            <Link href="/gifts" className="sf-menu-drawer__quick-link" onClick={onClose}>
+              Gift match
+            </Link>
+          </div>
+        ) : null}
         <div className="sf-menu-drawer__links">
           <button
             type="button"

@@ -252,6 +252,18 @@ export async function HomePageSections({
             if (t === 'faq' && sectionEnabled(cfg, 'faq')) return <FaqBlock key={t} cfg={cfg} />
             return null
           })}
+          <section className="border-t border-border bg-muted/30 py-14">
+            <div className="mx-auto max-w-6xl px-4 text-center sm:px-6">
+              <h2 className="text-2xl font-bold text-slate-900">Not sure what to gift?</h2>
+              <p className="mt-2 text-slate-600">Tell us who it&apos;s for and we&apos;ll suggest a few handcrafted picks.</p>
+              <Link
+                href="/gifts"
+                className="mt-6 inline-flex rounded-full bg-indigo-700 px-6 py-3 text-sm font-semibold text-white hover:bg-indigo-800"
+              >
+                Try gift match
+              </Link>
+            </div>
+          </section>
         </main>
         <RetailFooter tenant={themeTenant} />
       </RetailShell>

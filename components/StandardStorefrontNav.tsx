@@ -15,6 +15,12 @@ export interface StandardNavTenant {
   brand?: string
 }
 
+function giftMatchEnabled(config?: StorefrontConfig | null, variant?: 'retail' | 'restaurant'): boolean {
+  if (variant !== 'retail') return false
+  const flags = config?.featureFlags as Record<string, boolean | undefined> | undefined
+  return flags?.giftMatch === true
+}
+
 export function StandardStorefrontNav({
   tenant,
   config,
@@ -43,6 +49,7 @@ export function StandardStorefrontNav({
   const [menuOpen, setMenuOpen] = useState(false)
   const shippingVisible = showShippingPolicy ?? variant === 'retail'
   const policyLabel = variant === 'restaurant' ? 'Delivery policy' : 'Shipping policy'
+  const showGiftMatch = giftMatchEnabled(config, variant)
 
   const cartControl =
     onCartClick != null ? (
@@ -65,6 +72,7 @@ export function StandardStorefrontNav({
         config={config}
         showShippingPolicy={shippingVisible}
         shippingPolicyLabel={policyLabel}
+        showGiftMatch={showGiftMatch}
       />
       <header className={`sf-standard-nav sf-standard-nav--${variant}${className ? ` ${className}` : ''}`}>
         <nav className="sf-standard-nav__inner">
@@ -97,6 +105,11 @@ export function StandardStorefrontNav({
           </div>
 
           <div className="sf-standard-nav__center">
+            {showGiftMatch ? (
+              <Link href="/gifts" className="sf-standard-nav__link">
+                Gifts
+              </Link>
+            ) : null}
             <StoreStatusBadge config={config} compact className="sf-standard-nav__status" />
           </div>
 
@@ -139,6 +152,7 @@ export function StandardStorefrontNavActions({
 }) {
   const shippingVisible = showShippingPolicy ?? variant === 'retail'
   const policyLabel = variant === 'restaurant' ? 'Delivery policy' : 'Shipping policy'
+  const showGiftMatch = giftMatchEnabled(config, variant)
 
   return (
     <>
@@ -148,6 +162,7 @@ export function StandardStorefrontNavActions({
         config={config}
         showShippingPolicy={shippingVisible}
         shippingPolicyLabel={policyLabel}
+        showGiftMatch={showGiftMatch}
       />
       <div className="sf-standard-nav-actions">
         <StoreStatusBadge config={config} compact className="sf-standard-nav-actions__status" />
