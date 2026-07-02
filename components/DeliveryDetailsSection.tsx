@@ -24,7 +24,7 @@ export function DeliveryDetailsSection({
   showAddressFields?: boolean
   value: DeliveryDetailsValue
   onChange: (next: DeliveryDetailsValue) => void
-  variant?: 'card' | 'plain'
+  variant?: 'card' | 'plain' | 'menufast'
   orderingHours?: OrderingHoursConfig
   orderingAvailability?: OrderingAvailabilityConfig | null
 }) {
@@ -43,8 +43,11 @@ export function DeliveryDetailsSection({
       ? getDeliveryTimeBounds(orderingHours, value.preferredDate)
       : null
 
-  const fieldStyle: React.CSSProperties =
-    variant === 'plain'
+  const isMenufast = variant === 'menufast'
+
+  const fieldStyle: React.CSSProperties = isMenufast
+    ? {}
+    : variant === 'plain'
       ? {
           width: '100%',
           padding: '10px 12px',
@@ -65,8 +68,11 @@ export function DeliveryDetailsSection({
           width: '100%',
         }
 
-  const wrapperStyle: React.CSSProperties =
-    variant === 'card'
+  const fieldClass = isMenufast ? 'mf-cards-checkout-field' : undefined
+
+  const wrapperStyle: React.CSSProperties = isMenufast
+    ? {}
+    : variant === 'card'
       ? {
           background: 'white',
           border: '1px solid rgba(26,23,20,0.1)',
@@ -76,29 +82,38 @@ export function DeliveryDetailsSection({
         }
       : { display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.75rem' }
 
-  const labelStyle: React.CSSProperties = {
-    fontSize: variant === 'card' ? '11px' : '12px',
-    fontWeight: 600,
-    textTransform: 'uppercase',
-    letterSpacing: '0.08em',
-    color: '#8A847C',
-    marginBottom: variant === 'card' ? '8px' : '4px',
-  }
+  const labelStyle: React.CSSProperties = isMenufast
+    ? {}
+    : {
+        fontSize: variant === 'card' ? '11px' : '12px',
+        fontWeight: 600,
+        textTransform: 'uppercase',
+        letterSpacing: '0.08em',
+        color: '#8A847C',
+        marginBottom: variant === 'card' ? '8px' : '4px',
+      }
 
   if (!showAddressFields && !showPreferredDate && !showPreferredTime) return null
 
+  const fieldInputProps = (extraStyle?: React.CSSProperties) =>
+    isMenufast
+      ? { className: fieldClass, style: extraStyle }
+      : { style: { ...fieldStyle, ...extraStyle } }
+
   return (
-    <div style={wrapperStyle}>
-      <div style={labelStyle}>Delivery details</div>
+    <div className={isMenufast ? 'mf-cards-checkout-delivery' : undefined} style={isMenufast ? undefined : wrapperStyle}>
+      <div className={isMenufast ? 'mf-cards-checkout-label' : undefined} style={isMenufast ? undefined : labelStyle}>
+        Delivery details
+      </div>
       {showAddressFields && (
         <>
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+          <div className={isMenufast ? 'mf-cards-checkout-row' : undefined} style={isMenufast ? undefined : { display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
             <input
               type="text"
               placeholder="Flat / House no."
               value={value.addressLine1 ?? ''}
               onChange={(e) => set({ addressLine1: e.target.value })}
-              style={{ ...fieldStyle, flex: '1 1 120px' }}
+              {...fieldInputProps(isMenufast ? undefined : { flex: '1 1 120px' })}
               autoComplete="address-line1"
               required
             />
@@ -107,24 +122,29 @@ export function DeliveryDetailsSection({
               placeholder="Building / Street"
               value={value.addressLine2 ?? ''}
               onChange={(e) => set({ addressLine2: e.target.value })}
-              style={{ ...fieldStyle, flex: '1 1 120px' }}
+              {...fieldInputProps(isMenufast ? undefined : { flex: '1 1 120px' })}
               autoComplete="address-line2"
             />
           </div>
           <div
-            style={{
-              display: 'flex',
-              gap: '8px',
-              marginBottom: showPreferredDate ? '8px' : 0,
-              flexWrap: 'wrap',
-            }}
+            className={isMenufast ? 'mf-cards-checkout-row' : undefined}
+            style={
+              isMenufast
+                ? undefined
+                : {
+                    display: 'flex',
+                    gap: '8px',
+                    marginBottom: showPreferredDate ? '8px' : 0,
+                    flexWrap: 'wrap',
+                  }
+            }
           >
             <input
               type="text"
               placeholder="City"
               value={value.city ?? ''}
               onChange={(e) => set({ city: e.target.value })}
-              style={{ ...fieldStyle, flex: '1 1 120px' }}
+              {...fieldInputProps(isMenufast ? undefined : { flex: '1 1 120px' })}
               autoComplete="address-level2"
               required
             />
@@ -134,7 +154,9 @@ export function DeliveryDetailsSection({
               maxLength={6}
               value={value.pincode ?? ''}
               onChange={(e) => set({ pincode: e.target.value.replace(/\D/g, '').slice(0, 6) })}
-              style={{ ...fieldStyle, flex: '0 0 88px' }}
+              {...(isMenufast
+                ? { className: 'mf-cards-checkout-field mf-cards-checkout-field--pin' }
+                : fieldInputProps({ flex: '0 0 88px' }))}
               autoComplete="postal-code"
               required
             />
@@ -142,16 +164,8 @@ export function DeliveryDetailsSection({
         </>
       )}
       {showPreferredDate && (
-        <label style={{ display: 'block' }}>
-          <span
-            style={{
-              display: 'block',
-              fontSize: '12px',
-              fontWeight: 500,
-              color: '#4A4540',
-              marginBottom: '4px',
-            }}
-          >
+        <label className={isMenufast ? 'mf-cards-checkout-field-label' : undefined} style={isMenufast ? undefined : { display: 'block' }}>
+          <span className={isMenufast ? 'mf-cards-checkout-sublabel' : undefined} style={isMenufast ? undefined : { display: 'block', fontSize: '12px', fontWeight: 500, color: '#4A4540', marginBottom: '4px' }}>
             Preferred date of delivery
           </span>
           <input
@@ -159,21 +173,16 @@ export function DeliveryDetailsSection({
             min={minDate}
             value={value.preferredDate ?? ''}
             onChange={(e) => set({ preferredDate: e.target.value, preferredTime: undefined })}
-            style={fieldStyle}
+            {...fieldInputProps()}
           />
         </label>
       )}
       {showPreferredTime && (
-        <label style={{ display: 'block', marginTop: showPreferredDate ? '8px' : 0 }}>
-          <span
-            style={{
-              display: 'block',
-              fontSize: '12px',
-              fontWeight: 500,
-              color: '#4A4540',
-              marginBottom: '4px',
-            }}
-          >
+        <label
+          className={isMenufast ? 'mf-cards-checkout-field-label' : undefined}
+          style={isMenufast ? undefined : { display: 'block', marginTop: showPreferredDate ? '8px' : 0 }}
+        >
+          <span className={isMenufast ? 'mf-cards-checkout-sublabel' : undefined} style={isMenufast ? undefined : { display: 'block', fontSize: '12px', fontWeight: 500, color: '#4A4540', marginBottom: '4px' }}>
             Preferred time of delivery
           </span>
           <input
@@ -182,7 +191,7 @@ export function DeliveryDetailsSection({
             max={timeBounds?.max}
             value={value.preferredTime ?? ''}
             onChange={(e) => set({ preferredTime: e.target.value })}
-            style={fieldStyle}
+            {...fieldInputProps()}
             disabled={!value.preferredDate}
           />
         </label>

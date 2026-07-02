@@ -144,6 +144,11 @@
   cursor: pointer;
 }
 
+.sf-menu-item-modal__add:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .sf-menu-item-modal__qty {
   display: inline-flex;
   align-items: center;

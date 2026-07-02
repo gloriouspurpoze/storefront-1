@@ -26,8 +26,39 @@ export function AccountDashboardNav() {
   const themeKey = useAccountTheme()
   const t = accountThemeClasses(themeKey)
   const isLogin = pathname?.includes('/account/login')
+  const isCards = themeKey === 'menufast-cards'
 
   if (isLogin || !isAuthenticated) return null
+
+  if (isCards) {
+    return (
+      <aside className="mf-acct-sidebar" aria-label="Account sections">
+        {user ? (
+          <p className="mf-acct-sidebar-user">
+            <span className="mf-acct-sidebar-label">Signed in</span>
+            {displayName(user)}
+          </p>
+        ) : null}
+        <nav className="mf-acct-sidebar-nav" aria-label="Account navigation">
+          {NAV_ITEMS.map((item) => {
+            const active = isNavActive(pathname, item.href, item.exact)
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`mf-acct-sidebar-link${active ? ' mf-acct-sidebar-link--active' : ''}`}
+              >
+                {item.label}
+              </Link>
+            )
+          })}
+          <button type="button" className="mf-acct-sidebar-link mf-acct-sidebar-link--button" onClick={() => void logout()}>
+            Sign out
+          </button>
+        </nav>
+      </aside>
+    )
+  }
 
   return (
     <aside className="mb-8 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm lg:mb-0 lg:min-w-[220px] lg:shrink-0">

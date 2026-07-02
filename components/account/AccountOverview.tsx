@@ -37,6 +37,7 @@ function isActiveOrder(status: string): boolean {
 export function AccountOverview({ tenantId }: { tenantId: string }) {
   const { user, tokens, isReady, isAuthenticated } = useAccountAuth()
   const themeKey = useAccountTheme()
+  const isCards = themeKey === 'menufast-cards'
   const t = accountThemeClasses(themeKey)
   const [profile, setProfile] = useState<CustomerProfile | null>(null)
   const [orders, setOrders] = useState<CustomerOrderSummary[]>([])
@@ -86,7 +87,7 @@ export function AccountOverview({ tenantId }: { tenantId: string }) {
     <RequireStorefrontAuth returnPath="/account">
       <AccountPageHeader
         title={`Welcome back${user ? `, ${displayName(user).split(' ')[0]}` : ''}`}
-        subtitle="Manage orders, track deliveries, and update your profile."
+        subtitle={isCards ? 'Your orders and account at a glance.' : 'Manage orders, track deliveries, and update your profile.'}
       />
 
       {loading ? (
@@ -97,34 +98,53 @@ export function AccountOverview({ tenantId }: { tenantId: string }) {
         </p>
       ) : (
         <>
-          <div className="mb-8 grid gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Active orders</p>
-              <p className="mt-2 text-3xl font-semibold text-neutral-900">{stats.active}</p>
+          {isCards ? (
+            <div className="mf-acct-stats">
+              <div className="mf-acct-stat">
+                <span className="mf-acct-stat-label">Active orders</span>
+                <span className="mf-acct-stat-value">{stats.active}</span>
+              </div>
+              <div className="mf-acct-stat">
+                <span className="mf-acct-stat-label">Recent orders</span>
+                <span className="mf-acct-stat-value">{stats.recentCount}</span>
+              </div>
+              <div className="mf-acct-stat">
+                <span className="mf-acct-stat-label">Recent spend</span>
+                <span className="mf-acct-stat-value mf-acct-stat-value--money">{formatMoney(stats.totalSpent)}</span>
+              </div>
             </div>
-            <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Recent orders</p>
-              <p className="mt-2 text-3xl font-semibold text-neutral-900">{stats.recentCount}</p>
+          ) : (
+            <div className="mb-8 grid gap-4 sm:grid-cols-3">
+              <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Active orders</p>
+                <p className="mt-2 text-3xl font-semibold text-neutral-900">{stats.active}</p>
+              </div>
+              <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Recent orders</p>
+                <p className="mt-2 text-3xl font-semibold text-neutral-900">{stats.recentCount}</p>
+              </div>
+              <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Recent spend</p>
+                <p className="mt-2 text-2xl font-semibold text-neutral-900">{formatMoney(stats.totalSpent)}</p>
+              </div>
             </div>
-            <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Recent spend</p>
-              <p className="mt-2 text-2xl font-semibold text-neutral-900">{formatMoney(stats.totalSpent)}</p>
-            </div>
-          </div>
+          )}
 
-          <div className="mb-8 flex flex-wrap gap-3">
+          <div className={isCards ? 'mf-acct-actions' : 'mb-8 flex flex-wrap gap-3'}>
             <Link href="/" className={t.btnPrimary}>
-              Shop now
+              {isCards ? 'Order from menu' : 'Shop now'}
             </Link>
             <Link href="/orders/track" className={t.btnSecondary}>
               Track an order
             </Link>
-            <Link href="/account/profile" className={t.btnSecondary}>
-              Edit profile
-            </Link>
+            {!isCards ? (
+              <Link href="/account/profile" className={t.btnSecondary}>
+                Edit profile
+              </Link>
+            ) : null}
           </div>
 
-          {profile ? (
+          {!isCards && profile ? (
             <div className="mb-8 rounded-2xl border border-neutral-200 bg-neutral-50 p-5">
               <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Account</p>
               <p className="mt-2 font-medium text-neutral-900">
@@ -135,9 +155,9 @@ export function AccountOverview({ tenantId }: { tenantId: string }) {
             </div>
           ) : null}
 
-          <section>
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-neutral-900">Recent orders</h2>
+          <section className={isCards ? 'mf-acct-section' : undefined}>
+            <div className={isCards ? 'mf-acct-section-head' : 'mb-4 flex items-center justify-between gap-3'}>
+              <h2 className={isCards ? 'mf-acct-section-title' : 'text-lg font-semibold text-neutral-900'}>Recent orders</h2>
               <Link href="/account/orders" className={t.link}>
                 View all
               </Link>
@@ -156,13 +176,13 @@ export function AccountOverview({ tenantId }: { tenantId: string }) {
                 {orders.map((order) => (
                   <li key={order.id}>
                     <Link href="/account/orders" className={`${t.orderCard} block no-underline`}>
-                      <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className={isCards ? 'mf-acct-order-row' : 'flex flex-wrap items-start justify-between gap-3'}>
                         <div>
-                          <p className="font-medium text-neutral-900">{order.orderNumber}</p>
+                          <p className={isCards ? 'mf-acct-order-num' : 'font-medium text-neutral-900'}>{order.orderNumber}</p>
                           <p className={t.orderMeta}>{formatDate(order.createdAt)}</p>
                         </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <p className="font-medium text-neutral-900">{formatMoney(order.totalAmount)}</p>
+                        <div className={isCards ? 'mf-acct-order-row-end' : 'flex flex-col items-end gap-2'}>
+                          <p className={isCards ? 'mf-acct-order-amount' : 'font-medium text-neutral-900'}>{formatMoney(order.totalAmount)}</p>
                           <OrderStatusBadge status={order.status} />
                         </div>
                       </div>
@@ -173,7 +193,7 @@ export function AccountOverview({ tenantId }: { tenantId: string }) {
                           </li>
                         ))}
                         {order.items.length > 2 ? (
-                          <li className="text-neutral-400">+{order.items.length - 2} more</li>
+                          <li className={isCards ? 'mf-acct-muted' : 'text-neutral-400'}>+{order.items.length - 2} more</li>
                         ) : null}
                       </ul>
                     </Link>

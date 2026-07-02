@@ -13,6 +13,7 @@ import { RequireStorefrontAuth } from './RequireStorefrontAuth'
 export function AccountProfilePanel({ tenantId }: { tenantId: string }) {
   const { user, tokens, isReady, isAuthenticated } = useAccountAuth()
   const themeKey = useAccountTheme()
+  const isCards = themeKey === 'menufast-cards'
   const t = accountThemeClasses(themeKey)
   const [profile, setProfile] = useState<CustomerProfile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -78,29 +79,29 @@ export function AccountProfilePanel({ tenantId }: { tenantId: string }) {
               </div>
             )}
             <div>
-              <p className="text-lg font-semibold text-neutral-900">
+              <p className={isCards ? 'mf-acct-order-num' : 'text-lg font-semibold text-neutral-900'}>
                 {profile ? `${profile.firstName} ${profile.lastName ?? ''}`.trim() : user ? displayName(user) : '—'}
               </p>
               <p className={t.textMuted}>Customer account</p>
             </div>
           </div>
 
-          <dl className="grid gap-4 sm:grid-cols-2">
+          <dl className={isCards ? 'mf-acct-profile-dl' : 'grid gap-4 sm:grid-cols-2'}>
             <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Email</dt>
-              <dd className="mt-1 text-sm font-medium text-neutral-900">{profile?.email ?? user?.email ?? '—'}</dd>
+              <dt className={isCards ? 'mf-acct-stat-label' : 'text-xs font-semibold uppercase tracking-wide text-neutral-500'}>Email</dt>
+              <dd className={isCards ? 'mf-acct-profile-value' : 'mt-1 text-sm font-medium text-neutral-900'}>{profile?.email ?? user?.email ?? '—'}</dd>
             </div>
             <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Phone</dt>
-              <dd className="mt-1 text-sm font-medium text-neutral-900">{profile?.phone ?? user?.phone ?? '—'}</dd>
+              <dt className={isCards ? 'mf-acct-stat-label' : 'text-xs font-semibold uppercase tracking-wide text-neutral-500'}>Phone</dt>
+              <dd className={isCards ? 'mf-acct-profile-value' : 'mt-1 text-sm font-medium text-neutral-900'}>{profile?.phone ?? user?.phone ?? '—'}</dd>
             </div>
             <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-neutral-500">First name</dt>
-              <dd className="mt-1 text-sm font-medium text-neutral-900">{profile?.firstName ?? '—'}</dd>
+              <dt className={isCards ? 'mf-acct-stat-label' : 'text-xs font-semibold uppercase tracking-wide text-neutral-500'}>First name</dt>
+              <dd className={isCards ? 'mf-acct-profile-value' : 'mt-1 text-sm font-medium text-neutral-900'}>{profile?.firstName ?? '—'}</dd>
             </div>
             <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Last name</dt>
-              <dd className="mt-1 text-sm font-medium text-neutral-900">{profile?.lastName ?? '—'}</dd>
+              <dt className={isCards ? 'mf-acct-stat-label' : 'text-xs font-semibold uppercase tracking-wide text-neutral-500'}>Last name</dt>
+              <dd className={isCards ? 'mf-acct-profile-value' : 'mt-1 text-sm font-medium text-neutral-900'}>{profile?.lastName ?? '—'}</dd>
             </div>
           </dl>
 
@@ -109,12 +110,12 @@ export function AccountProfilePanel({ tenantId }: { tenantId: string }) {
             details for an open order.
           </p>
 
-          <div className="flex flex-wrap gap-3 border-t border-neutral-100 pt-4">
+          <div className={isCards ? 'mf-acct-actions mf-acct-actions--inline' : 'flex flex-wrap gap-3 border-t border-neutral-100 pt-4'}>
             <Link href="/account/orders" className={t.btnSecondary}>
               View orders
             </Link>
             <Link href="/" className={t.btnPrimary}>
-              Continue shopping
+              {isCards ? 'Order from menu' : 'Continue shopping'}
             </Link>
           </div>
         </div>

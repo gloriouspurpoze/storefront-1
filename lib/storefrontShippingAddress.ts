@@ -8,6 +8,8 @@ export interface StorefrontShippingAddressPayload {
   city: string
   state?: string
   zipCode: string
+  /** Duplicate of zipCode — some API paths persist `pincode` only. */
+  pincode?: string
   country: string
   phone?: string
   email?: string
@@ -18,6 +20,12 @@ export function splitCustomerName(full: string): { firstName: string; lastName: 
   if (parts.length === 0) return { firstName: 'Guest', lastName: 'Customer' }
   if (parts.length === 1) return { firstName: parts[0], lastName: 'Customer' }
   return { firstName: parts[0], lastName: parts.slice(1).join(' ') }
+}
+
+export function hasShippableDeliveryDetails(details: Partial<DeliveryDetailsValue>): boolean {
+  return Boolean(
+    details.addressLine1?.trim() || details.city?.trim() || details.pincode?.trim(),
+  )
 }
 
 export function validateShippingAddress(
@@ -47,13 +55,16 @@ export function deliveryDetailsToShippingAddress(
     .filter(Boolean)
     .join(', ')
 
+  const pin = details.pincode!.trim()
+
   return {
     firstName,
     lastName,
     address: street,
     city: details.city!.trim(),
     state: '',
-    zipCode: details.pincode!.trim(),
+    zipCode: pin,
+    pincode: pin,
     country: 'India',
     phone: customer.phone?.trim() || undefined,
     email: customer.email.trim(),

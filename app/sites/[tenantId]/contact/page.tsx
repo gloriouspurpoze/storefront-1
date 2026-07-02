@@ -9,6 +9,7 @@ import { SiteHeader as RestHeader } from '@/themes/restaurant/SiteHeader'
 import { SiteFooter as RestFooter } from '@/themes/restaurant/SiteFooter'
 import { ReservationForm } from '@/themes/restaurant/ReservationForm'
 import { toThemeTenant as toRestTenant } from '@/themes/restaurant/types'
+import { MenuFastCardsContactPage } from '@/themes/restaurant/menufast/MenuFastCardsContactPage'
 import { loadRetailTenant } from '@/themes/retail/loadThemeTenant'
 import { RetailShell } from '@/themes/retail/RetailShell'
 import { SiteHeader as RetailHeader } from '@/themes/retail/SiteHeader'
@@ -16,6 +17,7 @@ import { SiteFooter as RetailFooter } from '@/themes/retail/SiteFooter'
 import { BookingForm as RetailContactForm } from '@/themes/home-services/BookingForm'
 import { toThemeTenant as toRetailTenant } from '@/themes/retail/types'
 import { loadTenantFromRequest } from '@/lib/load-tenant'
+import { fetchStorefrontConfig } from '@/lib/storefront-api'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,6 +46,12 @@ export default async function ContactPage() {
     case 'restaurant': {
       const tenant = await loadRestaurantTenant()
       const theme = toRestTenant(tenant, tenant.fallbackTagline)
+      const config = await fetchStorefrontConfig(tenant.id)
+      if (config?.themeKey === 'menufast-cards') {
+        return (
+          <MenuFastCardsContactPage tenant={theme} config={config} tenantId={tenant.id} />
+        )
+      }
       return (
         <>
           <RestHeader tenant={theme} />

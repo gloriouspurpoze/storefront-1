@@ -18,6 +18,7 @@ export function StorefrontMenuDrawer({
   showGiftMatch = false,
   orderingHoursNote,
   shippingPolicyContent,
+  drawerId = 'storefront-menu-drawer',
 }: {
   open: boolean
   onClose: () => void
@@ -27,6 +28,7 @@ export function StorefrontMenuDrawer({
   showGiftMatch?: boolean
   orderingHoursNote?: React.ReactNode
   shippingPolicyContent?: React.ReactNode
+  drawerId?: string
 }) {
   const [section, setSection] = useState<DrawerSection>('ordering-hours')
   const slotsNote = orderingHoursNote ?? getOrderingAvailabilityFromConfig(config).slotsNote
@@ -58,7 +60,12 @@ export function StorefrontMenuDrawer({
       aria-hidden={!open}
       onClick={onOverlayClick}
     >
-      <aside className="sf-menu-drawer" aria-label="Store menu" onClick={(e) => e.stopPropagation()}>
+      <aside
+        id={drawerId}
+        className="sf-menu-drawer"
+        aria-label="Store menu"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="sf-menu-drawer__head">
           <div className="sf-menu-drawer__title">Menu</div>
           <button type="button" className="sf-menu-drawer__close" aria-label="Close menu" onClick={onClose}>

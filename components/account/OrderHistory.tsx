@@ -32,6 +32,7 @@ function formatDate(iso?: string): string {
 export function OrderHistory({ tenantId }: { tenantId: string }) {
   const { user, tokens, isReady, isAuthenticated } = useAccountAuth()
   const themeKey = useAccountTheme()
+  const isCards = themeKey === 'menufast-cards'
   const t = accountThemeClasses(themeKey)
   const [orders, setOrders] = useState<CustomerOrderSummary[]>([])
   const [loading, setLoading] = useState(true)
@@ -151,13 +152,13 @@ export function OrderHistory({ tenantId }: { tenantId: string }) {
                   onClick={() => onCardClick(order.orderNumber)}
                   className={`${t.orderCard} ${isExpanded ? t.orderCardExpanded : ''}`}
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className={isCards ? 'mf-acct-order-row' : 'flex flex-wrap items-start justify-between gap-3'}>
                     <div>
-                      <p className="font-medium">{order.orderNumber}</p>
+                      <p className={isCards ? 'mf-acct-order-num' : 'font-medium'}>{order.orderNumber}</p>
                       <p className={t.orderMeta}>{formatDate(order.createdAt)}</p>
                     </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <p className="font-medium">{formatMoney(order.totalAmount)}</p>
+                    <div className={isCards ? 'mf-acct-order-row-end' : 'flex flex-col items-end gap-2'}>
+                      <p className={isCards ? 'mf-acct-order-amount' : 'font-medium'}>{formatMoney(order.totalAmount)}</p>
                       <OrderStatusBadge status={order.status} />
                     </div>
                   </div>

@@ -1,9 +1,12 @@
 import {
   createCheckoutOrder,
+  placeCheckoutOrder,
   verifyCheckout,
+  type StorefrontOfflinePaymentMethod,
   type StorefrontShippingAddressPayload,
 } from '@/lib/storefront-api'
 import { openRazorpayCheckout } from '@/lib/razorpayCheckout'
+import type { StorefrontPaymentMethod } from '@/lib/storefrontPaymentMethods'
 import type { DeliveryDetailsValue } from '@/lib/templateSettings'
 import { deliveryDetailsToShippingAddress } from '@/lib/storefrontShippingAddress'
 
@@ -34,6 +37,7 @@ export async function runStorefrontCheckout(input: {
   deliveryDetails?: Partial<DeliveryDetailsValue>
   shippingAddress?: StorefrontShippingAddressPayload
   accessToken?: string
+  paymentMethod?: StorefrontPaymentMethod
 }): Promise<StorefrontCheckoutSuccess> {
   if (!input.lines.length) {
     throw new Error('Your cart is empty.')
@@ -47,6 +51,26 @@ export async function runStorefrontCheckout(input: {
 
   if (input.deliveryDetails && !shippingAddress) {
     throw new Error('Please complete your delivery address (street, city, and PIN code).')
+  }
+
+  const method = input.paymentMethod ?? 'razorpay'
+
+  if (method === 'cod' || method === 'pay_at_restaurant') {
+    const placed = await placeCheckoutOrder({
+      tenantId: input.tenantId,
+      items: input.lines,
+      customerEmail: input.customer.email,
+      customerName: input.customer.name,
+      notes: input.notes,
+      phone: input.customer.phone,
+      paymentMethod: method as StorefrontOfflinePaymentMethod,
+      shippingAddress,
+      accessToken: input.accessToken,
+    })
+    return {
+      orderNumber: placed.orderNumber ?? '',
+      contactId: placed.contactId,
+    }
   }
 
   const itemCount = input.lines.reduce((sum, l) => sum + l.quantity, 0)

@@ -3,20 +3,24 @@
 import { useMemo, useState } from 'react'
 import type { PublicMenuCategory, StorefrontConfig } from '@/lib/storefront-api'
 import type { ThemeTenant } from '../types'
-import { MenuOrderCheckoutBlock } from '../MenuOrderCheckoutBlock'
-import {
-  buildWhatsAppOrderUrl,
-  formatMenuPrice,
-  isVegItem,
-  useMenuCart,
-} from './useMenuCart'
+import { MenuFastCardsCheckout } from './MenuFastCardsCheckout'
+import { buildWhatsAppOrderUrl, formatMenuPrice, useMenuCart } from './useMenuCart'
 import { showPreferredDateOfDelivery } from '@/lib/templateSettings'
-import { isMenuItemInStock } from '@/lib/storefront-api'
-import { productHasVariants, formatListPrice } from '@/lib/productVariants'
-import { AccountProfileLink } from '@/components/account/AccountProfileLink'
-import { StorefrontMenuDrawer } from '@/components/StorefrontMenuDrawer'
-import { StoreStatusBadge } from '@/components/StoreStatusBadge'
+import { MenuFastCardsBrand, MenuFastCardsToolbar } from './MenuFastCardsHeader'
+import {
+  MenuFastCardsCategoryNav,
+  type MenuCategoryFilter,
+} from './MenuFastCardsCategoryNav'
+import { MenuFastCardsGrid } from './MenuFastCardsGrid'
+import { MenuFastCardsEmpty } from './MenuFastCardsEmpty'
+import { MenuFastCardsCart } from './MenuFastCardsCart'
+import { MenuFastCardsFooter } from './MenuFastCardsFooter'
+import { MenuFastCardsHero } from './MenuFastCardsHero'
+import { MenuFastCardsMenuDrawer } from './MenuFastCardsMenuDrawer'
+import { MenuFastCardsSearchRow } from './MenuFastCardsSearch'
 import { MenuItemDetailModal } from '@/components/MenuItemDetailModal'
+import { isWhatsAppOrderEnabled } from '@/lib/storefrontPaymentMethods'
+import { countMenuItems, filterMenuCategories } from '@/lib/menuCatalog'
 import './menufast.css'
 
 export function MenuFastCardsPage({
@@ -29,27 +33,38 @@ export function MenuFastCardsPage({
   config: StorefrontConfig | null
 }) {
   const siteName = config?.branding?.siteName || tenant.name
-  const tagline = config?.branding?.tagline || tenant.tagline
+  const tagline = config?.branding?.tagline
   const logoUrl = config?.branding?.logoUrl || tenant.logoUrl
   const whatsapp = config?.branding?.socials?.whatsapp || config?.branding?.contactPhone
+  const showWhatsApp = isWhatsAppOrderEnabled(config)
 
-  const [activeCat, setActiveCat] = useState<string>('all')
+  const [activeCat, setActiveCat] = useState<MenuCategoryFilter>('all')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchExpanded, setSearchExpanded] = useState(false)
   const [orderNumber, setOrderNumber] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [cartExpanded, setCartExpanded] = useState(false)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
-  const [modalVariantId, setModalVariantId] = useState<string | undefined>()
 
   const selectedItem =
     selectedItemId != null
       ? initialCategories.flatMap((c) => c.items).find((item) => item.id === selectedItemId) ?? null
       : null
-  const { cart, entries, itemCount, subtotal, addItem, removeItem, qtyFor, clearCart } =
+  const { cart, entries, itemCount, subtotal, addItem, removeItem, qtyFor, clearCart, authReady } =
     useMenuCart(initialCategories)
 
-  const filteredCategories = useMemo(() => {
-    if (activeCat === 'all') return initialCategories
-    return initialCategories.filter((c) => c.id === activeCat)
-  }, [activeCat, initialCategories])
+  const filteredCategories = useMemo(
+    () => filterMenuCategories(initialCategories, { categoryId: activeCat, searchQuery }),
+    [activeCat, initialCategories, searchQuery],
+  )
+
+  const totalMenuItems = useMemo(() => countMenuItems(initialCategories), [initialCategories])
+  const visibleCategories = filteredCategories
+  const visibleMenuItems = useMemo(() => countMenuItems(visibleCategories), [visibleCategories])
+  const isGlobalEmpty = totalMenuItems === 0
+  const hasSearch = searchQuery.trim().length > 0
+  const isSearchEmpty = !isGlobalEmpty && hasSearch && visibleMenuItems === 0
+  const isCategoryEmpty = !isGlobalEmpty && !hasSearch && visibleMenuItems === 0 && activeCat !== 'all'
 
   const waUrl = buildWhatsAppOrderUrl(whatsapp, siteName, entries)
   const currency = entries[0]?.item.currency ?? initialCategories[0]?.items[0]?.currency ?? 'INR'
@@ -62,15 +77,22 @@ export function MenuFastCardsPage({
 
   if (orderNumber) {
     return (
-      <div className="mf-root">
+      <div className="mf-root theme-menufast-cards">
         <div className="mf-phone-wrap">
-          <div className="mf-phone" style={{ justifyContent: 'center', alignItems: 'center', padding: '2rem' }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '48px' }}>🎉</div>
-              <h2 style={{ marginTop: '1rem', fontSize: '20px' }}>Order confirmed</h2>
-              <p style={{ color: '#666', fontSize: '14px', marginTop: '0.5rem' }}>
+          <div className="mf-phone mf-phone--confirmed">
+            <div className="mf-order-confirmed">
+              <div className="mf-order-confirmed-icon" aria-hidden />
+              <h2 className="mf-order-confirmed-title">Order confirmed</h2>
+              <p className="mf-order-confirmed-copy">
                 Order {orderNumber} — receipt sent to your email.
               </p>
+              <button
+                type="button"
+                className="mf-order-confirmed-home"
+                onClick={() => setOrderNumber(null)}
+              >
+                Home
+              </button>
             </div>
           </div>
         </div>
@@ -79,8 +101,8 @@ export function MenuFastCardsPage({
   }
 
   return (
-    <div className="mf-root">
-      <StorefrontMenuDrawer
+    <div className="mf-root theme-menufast-cards">
+      <MenuFastCardsMenuDrawer
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         config={config}
@@ -90,201 +112,104 @@ export function MenuFastCardsPage({
       <MenuItemDetailModal
         item={selectedItem}
         open={selectedItem != null}
-        onClose={() => {
-          setSelectedItemId(null)
-          setModalVariantId(undefined)
-        }}
-        quantity={selectedItem ? qtyFor(selectedItem.id, modalVariantId) : 0}
+        onClose={() => setSelectedItemId(null)}
+        getQuantity={(variantId) =>
+          selectedItem ? qtyFor(selectedItem.id, variantId) : 0
+        }
+        actionsDisabled={!authReady}
         onAdd={(variantId) => {
-          if (selectedItem) {
-            setModalVariantId(variantId)
-            addItem(selectedItem, variantId)
-          }
+          if (selectedItem) addItem(selectedItem, variantId)
         }}
         onRemove={(variantId) => {
-          if (selectedItem) {
-            setModalVariantId(variantId)
-            removeItem(selectedItem.id, variantId)
-          }
+          if (selectedItem) removeItem(selectedItem.id, variantId)
         }}
       />
       <div className="mf-phone-wrap">
-        <div className="mf-phone">
+        <div className={`mf-phone${cartExpanded ? ' mf-phone--cart-open' : ''}`}>
           <div className="mf-phone-bar">
             <div className="mf-phone-notch" />
           </div>
 
-          <div className="mf-cards-header">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: '0.5rem' }}>
-              <StoreStatusBadge config={config} compact />
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  type="button"
-                  className="sf-menu-toggle-btn"
-                  onClick={() => setMenuOpen(true)}
-                  aria-expanded={menuOpen}
-                  aria-label="Open menu"
-                >
-                  ☰
-                </button>
-                <AccountProfileLink className="inline-flex items-center justify-center hover:opacity-80" />
-              </div>
-            </div>
-            <div className="mf-cards-logo-row">
-              <div className="mf-cards-logo">
-                {logoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                  '🍽️'
-                )}
-              </div>
-              <div>
-                <div className="mf-cards-biz-name">{siteName}</div>
-                {tagline && <div className="mf-cards-tagline">{tagline}</div>}
-              </div>
-            </div>
-            {initialCategories.length > 1 && (
-              <div className="mf-cards-cats">
-                <button
-                  type="button"
-                  className={`mf-cat-pill${activeCat === 'all' ? ' active' : ''}`}
-                  onClick={() => setActiveCat('all')}
-                >
-                  All
-                </button>
-                {initialCategories.map((cat) => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    className={`mf-cat-pill${activeCat === cat.id ? ' active' : ''}`}
-                    onClick={() => setActiveCat(cat.id)}
-                  >
-                    {cat.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="mf-cards-body">
-            {filteredCategories.length === 0 ? (
-              <p className="mf-empty">Menu coming soon — add products in your admin dashboard.</p>
-            ) : (
-              filteredCategories.map((cat) => (
-                <div key={cat.id} style={{ marginBottom: '1.25rem' }}>
-                  {activeCat === 'all' && <div className="mf-cat-title">{cat.name}</div>}
-                  {cat.items.map((item) => {
-                    const hasVariants = productHasVariants(item)
-                    const qty = Object.keys(cart)
-                      .filter((k) => k === item.id || k.startsWith(`${item.id}:`))
-                      .reduce((sum, k) => sum + (cart[k] ?? 0), 0)
-                    const inStock = isMenuItemInStock(item)
-                    return (
-                      <div
-                        key={item.id}
-                        className="mf-item-card"
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => setSelectedItemId(item.id)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault()
-                            setSelectedItemId(item.id)
-                          }
-                        }}
-                      >
-                        <div className="mf-item-img">
-                          {item.imageUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={item.imageUrl} alt="" />
-                          ) : (
-                            '🍽️'
-                          )}
-                        </div>
-                        <div className="mf-item-info">
-                          <div>
-                            <div className="mf-item-info-top">
-                              <div className="mf-item-card-name">{item.name}</div>
-                              <div className="mf-item-card-price">
-                                {formatListPrice(item, (amount) => formatMenuPrice(amount, item.currency))}
-                              </div>
-                            </div>
-                            {item.description && (
-                              <div className="mf-item-card-desc">{item.description}</div>
-                            )}
-                          </div>
-                          <div className="mf-item-card-bottom" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-                            {isVegItem(item) && <span className="mf-veg" aria-label="Vegetarian" />}
-                            {!inStock ? (
-                              <span className="mf-oos-label">Out of stock</span>
-                            ) : hasVariants ? (
-                              <button
-                                type="button"
-                                className="mf-add-btn"
-                                aria-label={`Choose options for ${item.name}`}
-                                onClick={() => setSelectedItemId(item.id)}
-                              >
-                                ···
-                              </button>
-                            ) : qty === 0 ? (
-                              <button
-                                type="button"
-                                className="mf-add-btn"
-                                aria-label={`Add ${item.name}`}
-                                onClick={() => addItem(item)}
-                              >
-                                +
-                              </button>
-                            ) : (
-                              <div className="mf-qty-pill">
-                                <button type="button" aria-label="Decrease" onClick={() => removeItem(item.id)}>
-                                  −
-                                </button>
-                                <span>{qty}</span>
-                                <button type="button" aria-label="Increase" onClick={() => addItem(item)}>
-                                  +
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              ))
-            )}
-          </div>
-
-          <div className="mf-cards-footer">
-            {itemCount > 0 && (
-              <div style={{ marginBottom: '0.75rem', fontSize: '13px', color: '#444' }}>
-                {itemCount} item{itemCount !== 1 ? 's' : ''} · {formatMenuPrice(subtotal, currency)}
-              </div>
-            )}
-            <MenuOrderCheckoutBlock
+          <div className="mf-cards-sticky">
+            <MenuFastCardsToolbar
               tenant={tenant}
               config={config}
-              lines={lines}
-              showPreferredDate={showPreferredDate}
-              onClear={clearCart}
-              onSuccess={setOrderNumber}
-              primaryLabel={itemCount > 0 ? `Pay online · ${formatMenuPrice(subtotal, currency)}` : 'Pay online'}
+              menuOpen={menuOpen}
+              onMenuOpen={() => setMenuOpen(true)}
+              searchExpanded={searchExpanded}
+              onSearchExpandedChange={setSearchExpanded}
+              searchQuery={searchQuery}
             />
-            {waUrl && itemCount > 0 && (
-              <a
-                className="mf-min-wa-btn"
-                href={waUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ marginTop: '0.5rem', display: 'flex' }}
-              >
-                Or order via WhatsApp
-              </a>
-            )}
-            <div className="mf-powered">Powered by Profixer</div>
+            <MenuFastCardsSearchRow
+              expanded={searchExpanded}
+              value={searchQuery}
+              onChange={setSearchQuery}
+              onExpandedChange={setSearchExpanded}
+            />
+            <MenuFastCardsCategoryNav
+              categories={initialCategories}
+              activeId={activeCat}
+              onChange={setActiveCat}
+            />
           </div>
+
+          <div className="mf-cards-body" id="mf-menu-panel" role="tabpanel" aria-label="Menu items">
+            <MenuFastCardsBrand siteName={siteName} tagline={tagline} logoUrl={logoUrl} />
+            <MenuFastCardsHero config={config} />
+            {isGlobalEmpty ? (
+              <MenuFastCardsEmpty variant="global" />
+            ) : isSearchEmpty ? (
+              <MenuFastCardsEmpty variant="search" onClearSearch={() => setSearchQuery('')} />
+            ) : isCategoryEmpty ? (
+              <MenuFastCardsEmpty variant="category" onShowAll={() => setActiveCat('all')} />
+            ) : (
+              <MenuFastCardsGrid
+                categories={visibleCategories}
+                showCategoryTitles={activeCat === 'all'}
+                cart={cart}
+                authReady={authReady}
+                onSelectItem={setSelectedItemId}
+                onAddItem={addItem}
+                onRemoveItem={removeItem}
+              />
+            )}
+            <MenuFastCardsFooter config={config} />
+          </div>
+
+          <MenuFastCardsCart
+            entries={entries}
+            itemCount={itemCount}
+            subtotal={subtotal}
+            currency={currency}
+            authReady={authReady}
+            onAdd={addItem}
+            onRemove={removeItem}
+            onClear={clearCart}
+            onExpandedChange={setCartExpanded}
+            checkoutSlot={
+              <>
+                <MenuFastCardsCheckout
+                  tenant={tenant}
+                  config={config}
+                  lines={lines}
+                  showPreferredDate={showPreferredDate}
+                  onClear={clearCart}
+                  onSuccess={setOrderNumber}
+                  primaryLabel={`Pay online · ${formatMenuPrice(subtotal, currency)}`}
+                />
+                {showWhatsApp && waUrl ? (
+                  <a
+                    className="mf-min-wa-btn"
+                    href={waUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Or order via WhatsApp
+                  </a>
+                ) : null}
+              </>
+            }
+          />
         </div>
       </div>
     </div>

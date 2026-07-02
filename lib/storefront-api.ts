@@ -235,6 +235,7 @@ export interface StorefrontShippingAddressPayload {
   city: string
   state?: string
   zipCode: string
+  pincode?: string
   country: string
   phone?: string
   email?: string
@@ -267,6 +268,45 @@ export async function createCheckoutOrder(input: {
   const json = (await res.json().catch(() => null)) as ApiEnvelope<CheckoutOrderResult> | null
   if (!res.ok || !json?.success || !json.data) {
     throw new Error(json?.message || `Checkout failed (${res.status})`)
+  }
+  return json.data
+}
+
+export type StorefrontOfflinePaymentMethod = 'cod' | 'pay_at_restaurant'
+
+export async function placeCheckoutOrder(input: {
+  tenantId: string
+  items: Array<{ productId: string; quantity: number; variantId?: string }>
+  customerEmail: string
+  customerName?: string
+  notes?: string
+  phone?: string
+  paymentMethod: StorefrontOfflinePaymentMethod
+  shippingAddress?: StorefrontShippingAddressPayload
+  accessToken?: string
+}): Promise<CheckoutVerifyResult> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  }
+  if (input.accessToken) headers.Authorization = `Bearer ${input.accessToken}`
+
+  const res = await fetch(apiUrl('/public/storefront/checkout/place-order'), {
+    method: 'POST',
+    headers: withTenantId(input.tenantId, headers),
+    body: JSON.stringify({
+      items: input.items,
+      customerEmail: input.customerEmail,
+      customerName: input.customerName,
+      notes: input.notes,
+      phone: input.phone,
+      paymentMethod: input.paymentMethod,
+      shippingAddress: input.shippingAddress,
+    }),
+  })
+  const json = (await res.json().catch(() => null)) as ApiEnvelope<CheckoutVerifyResult> | null
+  if (!res.ok || !json?.success || !json.data) {
+    throw new Error(json?.message || `Order placement failed (${res.status})`)
   }
   return json.data
 }

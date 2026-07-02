@@ -59,7 +59,16 @@ export function runPreCheckoutGuards(
     requireAddress?: boolean
   } = {},
 ): CheckoutGuardResult {
-  if (!opts.skipStoreOpenCheck) {
+  const skipOpenForScheduled =
+    Boolean(opts.requireDate) &&
+    Boolean(deliveryDetails.preferredDate?.trim()) &&
+    assertDeliveryDetailsForCheckout(config, deliveryDetails, {
+      requireDate: true,
+      requireTime: opts.requireTime,
+      requireAddress: false,
+    }).ok
+
+  if (!opts.skipStoreOpenCheck && !skipOpenForScheduled) {
     const openCheck = assertStoreOpenForCheckout(config)
     if (!openCheck.ok) return openCheck
   }

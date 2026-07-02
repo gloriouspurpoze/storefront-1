@@ -34,6 +34,7 @@ describe('storefrontShippingAddress', () => {
       city: 'mumbai',
       state: '',
       zipCode: '401107',
+      pincode: '401107',
       country: 'India',
       phone: '9876543210',
       email: 'jane@example.com',

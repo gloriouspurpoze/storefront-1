@@ -1,0 +1,151 @@
+# menufast-cards — Theme perfection brief (v1)
+# Generated from stakeholder answers. Do not contradict during implement sessions.
+
+meta:
+  themeKey: menufast-cards
+  vertical: restaurant
+  status: pre-launch
+  referenceTenant: mycafe
+  approver: developer
+  successMetric: functional-completeness
+  notes: >
+    Vibe like DotPe online menu (deburgertime.dotpe.in). Section-composed layout.
+    HTML reference: storefront/templates/html-source/restaurant/temp2/menufast_menu_templates.html (cards template).
+    Public marketplace theme. Remove emojis and heavy gradients from existing implementation.
+
+design:
+  personality: minimal
+  referenceUrl: storefront/templates/html-source/restaurant/temp2/menufast_menu_templates.html
+  competitorVibe: https://deburgertime.dotpe.in/catalog/6138824/679859
+  darkMode: false
+  wcag: AA
+  motion: subtle
+  typography:
+    source: fixed-per-theme
+    heading: Fraunces
+    body: DM Sans
+  avoid:
+    - emojis
+    - heavy-gradients
+
+scope:
+  layout: section-composed
+  routes:
+    - home
+    - menu
+    - products
+    - products-detail
+    - cart
+    - checkout
+    - account
+    - account-login
+    - account-orders
+    - account-profile
+    - track-order
+    - shipping-policy
+    - about
+    - contact
+  accountShell: true
+  accountShellMatchMenu: true
+  components:
+    - shell-header
+    - shell-footer
+    - shell-mobile-nav
+    - content-hero
+    - catalog-grid
+    - catalog-categories
+    - catalog-empty
+    - commerce-add-to-cart
+    - commerce-cart
+    - commerce-checkout
+    - account-shell
+    - system-store-status
+    - verify-full-pass
+
+apis:
+  allowed:
+    - fetchMenu
+    - fetchProducts
+    - fetchProductBySlug
+    - fetchStorefrontConfig
+    - createCheckoutOrder
+    - verifyCheckout
+    - fetchPublicOrderTracking
+    - fetchCustomerOrderTracking
+    - fetchCustomerOrders
+    - fetchCustomerProfile
+  forbiddenPatterns:
+    - inline fetch to /public/storefront
+    - theme-local API client files
+
+commerce:
+  currency: INR
+  geography: IN
+  guestCheckout: false
+  loginRequired: true
+  shippingSource: config
+  orderingHours: required
+  variants: optional
+  paymentProviders:
+    - razorpay
+    - cod
+    - pay_at_restaurant
+  paymentProvidersSource: admin-feature-flags
+  whatsappOrder:
+    enabled: keep
+    source: admin-or-branding
+  deliveryFields:
+    pincode: true
+    preferredDate: from-template-settings
+    preferredTime: from-template-settings
+  closedStoreBehavior: allow-scheduled
+  orderTracking: both
+
+data:
+  maxCatalogSize: 50
+  emptyBehavior: message
+  emptyMenuMessage: Menu is being updated. Please check back soon.
+  outOfStockBehavior: disabled
+  imageFallback: hide-column
+  categoryNav: required
+  searchInScope: true
+  giftsInScope: false
+
+branding:
+  v1Flexibility: logo-and-colors-only
+  customCssInScope: true
+  contentSource: admin-only
+  promoStrip:
+    enabled: optional
+    source: admin
+
+clutter:
+  maxPrimaryCtaPerViewport: 1
+  promoStrip: admin-optional
+  duplicateNav: forbidden
+  alwaysVisibleBlocks: []
+
+featureFlags:
+  respectSections: true
+  respectFeatureFlags: true
+  sectionOrderingException: false
+
+intentionalThemeDefaults: []
+
+backendNotes:
+  changePolicy: implemented-via-feature-flags
+  paymentFeatureFlags:
+    - enableRazorpayPayment
+    - enableCodPayment
+    - enablePayAtRestaurantPayment
+  promoStripFlag: showOfferMarquee
+  whatsappFlag: showWhatsAppButton
+  placeOrderEndpoint: POST /public/storefront/checkout/place-order
+  emojiCleanup: Remove celebration emoji and emoji placeholders from MenuFastCardsPage order success and item images.
+
+verify:
+  lint: true
+  typecheck: true
+  build: true
+  browser:
+    enabled: false

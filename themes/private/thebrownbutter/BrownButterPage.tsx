@@ -5,6 +5,8 @@ import { createPortal } from 'react-dom'
 import type { PublicProduct, StorefrontConfig } from '@/lib/storefront-api'
 import { fetchProducts } from '@/lib/storefront-api'
 import { runStorefrontCheckout } from '@/lib/runStorefrontCheckout'
+import { validateShippingAddress } from '@/lib/storefrontShippingAddress'
+import type { DeliveryDetailsValue } from '@/lib/templateSettings'
 import {
   getOrderingAvailabilityFromConfig,
   getOrderingHoursFromConfig,
@@ -450,6 +452,38 @@ export function BrownButterPage({
       setCheckoutError('Delivery address is required.')
       return
     }
+    if (delivery === 'ship' && !/^\d{6}$/.test(pincode.replace(/\D/g, ''))) {
+      setCheckoutError('Please enter a valid 6-digit PIN code.')
+      return
+    }
+
+    let deliveryDetailsForCheckout: DeliveryDetailsValue | undefined
+    if (delivery !== 'pickup') {
+      const trimmedAddress = address.trim()
+      const addressParts = trimmedAddress.split(',').map((s) => s.trim()).filter(Boolean)
+      const city =
+        addressParts.length >= 2
+          ? addressParts[addressParts.length - 1]
+          : delivery === 'local'
+            ? 'Mira Road'
+            : 'Mumbai'
+      const addressLine1 =
+        addressParts.length >= 2 ? addressParts.slice(0, -1).join(', ') : trimmedAddress
+      const normalizedPin =
+        delivery === 'ship' ? pincode.replace(/\D/g, '').slice(0, 6) : '401107'
+
+      deliveryDetailsForCheckout = {
+        addressLine1,
+        city,
+        pincode: normalizedPin,
+      }
+
+      const addressCheck = validateShippingAddress(deliveryDetailsForCheckout)
+      if (!addressCheck.ok) {
+        setCheckoutError(addressCheck.message)
+        return
+      }
+    }
 
     const lines = entries.map((e) => ({
       productId: e.id,
@@ -483,6 +517,7 @@ export function BrownButterPage({
           phone: phone.trim(),
         },
         notes,
+        deliveryDetails: deliveryDetailsForCheckout,
         accessToken,
       })
       setOrderNumber(result.orderNumber)

@@ -12,9 +12,10 @@ export function AccountPageHeader({
 }) {
   const themeKey = useAccountTheme()
   const t = accountThemeClasses(themeKey)
+  const isCards = themeKey === 'menufast-cards'
 
   return (
-    <div className="mb-8">
+    <div className={isCards ? 'mf-acct-page-header' : 'mb-8'}>
       <h1 className={t.pageTitle}>{title}</h1>
       {subtitle ? <p className={t.pageSubtitle}>{subtitle}</p> : null}
     </div>

@@ -1,6 +1,11 @@
 import type { PublicProduct, PublicProductVariant } from '@/lib/storefront-api'
 
-export type VariantCarrier = Pick<PublicProduct, 'price' | 'originalPrice' | 'inStock' | 'hasVariants' | 'variants'>
+export type VariantCarrier = Pick<
+  PublicProduct,
+  'price' | 'originalPrice' | 'hasVariants' | 'variants'
+> & {
+  inStock?: boolean
+}
 
 export function productHasVariants(item: VariantCarrier): boolean {
   return Boolean(item.hasVariants && item.variants && item.variants.length > 0)

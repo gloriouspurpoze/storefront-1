@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { loadTenantFromRequest } from '@/lib/load-tenant'
+import { fetchStorefrontConfig } from '@/lib/storefront-api'
 import { loadHomeServicesTenant } from '@/themes/home-services/loadThemeTenant'
 import { SiteHeader as HsHeader } from '@/themes/home-services/SiteHeader'
 import { SiteFooter as HsFooter } from '@/themes/home-services/SiteFooter'
@@ -8,6 +9,7 @@ import { loadRestaurantTenant } from '@/themes/restaurant/loadThemeTenant'
 import { SiteHeader as RestHeader } from '@/themes/restaurant/SiteHeader'
 import { SiteFooter as RestFooter } from '@/themes/restaurant/SiteFooter'
 import { toThemeTenant as toRestTenant } from '@/themes/restaurant/types'
+import { MenuFastCardsAboutPage } from '@/themes/restaurant/menufast/MenuFastCardsAboutPage'
 import { loadRetailTenant } from '@/themes/retail/loadThemeTenant'
 import { RetailShell } from '@/themes/retail/RetailShell'
 import { SiteHeader as RetailHeader } from '@/themes/retail/SiteHeader'
@@ -50,6 +52,10 @@ export default async function AboutPage() {
     case 'restaurant': {
       const tenant = await loadRestaurantTenant()
       const theme = toRestTenant(tenant, tenant.fallbackTagline)
+      const config = await fetchStorefrontConfig(tenant.id)
+      if (config?.themeKey === 'menufast-cards') {
+        return <MenuFastCardsAboutPage tenant={theme} config={config} />
+      }
       return (
         <>
           <RestHeader tenant={theme} />

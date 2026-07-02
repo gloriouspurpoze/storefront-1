@@ -9,6 +9,7 @@ import { LuxeEssenceAccountShell } from './LuxeEssenceAccountShell'
 import { SoftStudioAccountShell } from './SoftStudioAccountShell'
 import { SaffronAccountShell } from './SaffronAccountShell'
 import { MenuFastAccountShell } from './MenuFastAccountShell'
+import { MenuFastCardsAccountShell } from './MenuFastCardsAccountShell'
 
 export interface ThemedAccountShellProps {
   themeKey?: string
@@ -37,8 +38,10 @@ export function ThemedAccountShell({
     shell = <SoftStudioAccountShell {...shellProps} />
   } else if (themed === 'saffron') {
     shell = <SaffronAccountShell {...shellProps} />
-  } else if (themed === 'menufast-minimal' || themed === 'menufast-cards') {
+  } else if (themed === 'menufast-minimal') {
     shell = <MenuFastAccountShell {...shellProps} />
+  } else if (themed === 'menufast-cards') {
+    shell = <MenuFastCardsAccountShell {...shellProps} />
   } else {
     return (
       <AccountShell tenantName={tenantName} logoUrl={logoUrl} themeKey={themeKey}>

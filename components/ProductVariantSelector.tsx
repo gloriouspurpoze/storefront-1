@@ -11,12 +11,14 @@ export function ProductVariantSelector({
   onSelect,
   label = 'Options',
   tone = 'default',
+  quantityForVariant,
 }: {
   variants: PublicProductVariant[]
   selectedId?: string | null
   onSelect: (variantId: string) => void
   label?: string
   tone?: VariantSelectorTone
+  quantityForVariant?: (variantId: string) => number
 }) {
   if (!variants.length) return null
 
@@ -32,6 +34,7 @@ export function ProductVariantSelector({
         {variants.map((v) => {
           const selected = v.id === selectedId
           const outOfStock = v.inStock === false
+          const qty = quantityForVariant?.(v.id) ?? 0
           return (
             <li key={v.id}>
               <button
@@ -43,7 +46,12 @@ export function ProductVariantSelector({
                 className={`sf-variant-selector__chip${outOfStock ? ' sf-variant-selector__chip--oos' : ''}`}
                 onClick={() => onSelect(v.id)}
               >
-                {v.name}
+                <span>{v.name}</span>
+                {qty > 0 ? (
+                  <span className="sf-variant-selector__qty" aria-label={`${qty} in cart`}>
+                    {qty}
+                  </span>
+                ) : null}
               </button>
             </li>
           )

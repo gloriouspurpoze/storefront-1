@@ -367,6 +367,7 @@ interface CartContentProps {
   onDeliveryModeChange: (mode: DeliveryMode) => void
   onInstructionsChange: (val: string) => void
   tenant: ThemeTenant
+  config?: StorefrontConfig | null
   onOrderSuccess: (orderNumber: string) => void
 }
 
@@ -392,6 +393,7 @@ function CartContent({
   onDeliveryModeChange,
   onInstructionsChange,
   tenant,
+  config,
   onOrderSuccess,
 }: CartContentProps) {
   const isEmpty = cartEntries.length === 0
@@ -745,6 +747,7 @@ function CartContent({
         {!isEmpty && (
           <MenuOrderCheckoutBlock
             tenant={tenant}
+            config={config}
             lines={cartEntries.map((e) => ({
               productId: e.item.id,
               quantity: e.quantity,
@@ -753,6 +756,8 @@ function CartContent({
             notes={formatDeliveryNotes(deliveryDetails, instructions.trim() || undefined)}
             showPreferredDate={false}
             showDeliveryDetails={false}
+            deliveryDetails={deliveryMode === 'delivery' ? deliveryDetails : undefined}
+            onDeliveryDetailsChange={onDeliveryDetailsChange}
             onClear={onClear}
             onSuccess={onOrderSuccess}
             primaryLabel={`Pay & place order · ${formatMenuPrice(total, currency)}`}
@@ -941,6 +946,7 @@ export function SaffronMenuPage({
     onDeliveryModeChange: setDeliveryMode,
     onInstructionsChange: setInstructions,
     tenant,
+    config,
     onOrderSuccess: (orderNumber) => {
       setPlacedOrderNumber(orderNumber)
       setOrderPlaced(true)

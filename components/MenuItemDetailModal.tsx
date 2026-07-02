@@ -20,17 +20,23 @@ export function MenuItemDetailModal({
   open,
   onClose,
   quantity,
+  getQuantity,
   onAdd,
   onRemove,
   tone = 'restaurant',
+  actionsDisabled = false,
 }: {
   item: PublicMenuItem | null
   open: boolean
   onClose: () => void
-  quantity: number
+  /** Fixed quantity when variant selection is not used */
+  quantity?: number
+  /** Per-variant quantity (preferred for multi-variant items) */
+  getQuantity?: (variantId?: string) => number
   onAdd: (variantId?: string) => void
   onRemove: (variantId?: string) => void
   tone?: 'restaurant' | 'saffron'
+  actionsDisabled?: boolean
 }) {
   const hasVariants = item ? productHasVariants(item) : false
   const defaultVariant = useMemo(() => (item ? getDefaultVariant(item) : null), [item])
@@ -60,6 +66,9 @@ export function MenuItemDetailModal({
 
   const inStock = isVariantInStock(item, selectedVariantId)
   const needsSelection = hasVariants && !selectedVariantId
+  const lineQty = getQuantity
+    ? getQuantity(selectedVariantId ?? undefined)
+    : (quantity ?? 0)
   const price = getEffectivePrice(item, selectedVariantId)
   const originalPrice = getEffectiveOriginalPrice(item, selectedVariantId)
   const popular = (item.dietary ?? []).some((d) => d.toLowerCase() === 'popular')
@@ -106,6 +115,7 @@ export function MenuItemDetailModal({
               onSelect={setSelectedVariantId}
               label="Size"
               tone={tone}
+              quantityForVariant={getQuantity ? (id) => getQuantity(id) : undefined}
             />
           ) : null}
           {(item.dietary ?? []).filter((d) => d.toLowerCase() !== 'popular').length > 0 ? (
@@ -124,10 +134,11 @@ export function MenuItemDetailModal({
               <span className="sf-menu-item-modal__oos">Out of stock</span>
             ) : needsSelection ? (
               <span className="sf-menu-item-modal__oos">Select an option</span>
-            ) : quantity === 0 ? (
+            ) : lineQty === 0 ? (
               <button
                 type="button"
                 className="sf-menu-item-modal__add"
+                disabled={actionsDisabled}
                 onClick={() => onAdd(selectedVariantId ?? undefined)}
               >
                 Add to cart
@@ -141,10 +152,11 @@ export function MenuItemDetailModal({
                 >
                   −
                 </button>
-                <span>{quantity}</span>
+                <span>{lineQty}</span>
                 <button
                   type="button"
                   aria-label="Increase quantity"
+                  disabled={actionsDisabled}
                   onClick={() => onAdd(selectedVariantId ?? undefined)}
                 >
                   +
