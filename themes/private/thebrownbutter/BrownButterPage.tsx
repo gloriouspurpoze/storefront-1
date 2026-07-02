@@ -19,6 +19,8 @@ import { BB_IMG_FALLBACK } from './catalog'
 import { layoutBrownButterProducts, type TinGroup } from './productLayout'
 import { useBrownButterCart } from './useBrownButterCart'
 import { AccountProfileLink } from '@/components/account/AccountProfileLink'
+import { useCartAuthGate } from '@/lib/useCartAuthGate'
+import { useCheckoutCustomerPrefill } from '@/lib/useCheckoutCustomerPrefill'
 import { StorefrontHeaderBar, StorefrontMenuDrawer } from '@/components/StorefrontMenuDrawer'
 import './brown-butter.css'
 
@@ -331,6 +333,8 @@ export function BrownButterPage({
   const storeOpen = useMemo(() => isStoreOpenNow(orderingHours), [orderingHours])
 
   const { entries, itemCount, subtotal, add, setQty, qtyFor, clear } = useBrownButterCart()
+  const { requireAuthForCart } = useCartAuthGate()
+  const { accessToken } = useCheckoutCustomerPrefill()
   const [products, setProducts] = useState<PublicProduct[]>(initialProducts)
   const [productsLoading, setProductsLoading] = useState(initialProducts.length === 0)
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -423,11 +427,13 @@ export function BrownButterPage({
       setNoItemWarn(true)
       return
     }
+    if (!requireAuthForCart()) return
     setNoItemWarn(false)
     setSheetOpen(true)
-  }, [itemCount])
+  }, [itemCount, requireAuthForCart])
 
   const onSubmit = async () => {
+    if (!requireAuthForCart()) return
     if (itemCount === 0) {
       setNoItemWarn(true)
       return
@@ -473,6 +479,7 @@ export function BrownButterPage({
           phone: phone.trim(),
         },
         notes,
+        accessToken,
       })
       setOrderNumber(result.orderNumber)
       setView('success')

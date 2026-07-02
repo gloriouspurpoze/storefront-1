@@ -1,19 +1,19 @@
 import { loadTenantFromRequest } from '@/lib/load-tenant'
-import { AccountOverview } from '@/components/account/AccountOverview'
+import { OrderHistory } from '@/components/account/OrderHistory'
 
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata() {
   const tenant = await loadTenantFromRequest()
   return {
-    title: 'My account',
-    description: tenant ? `Your account at ${tenant.name}` : 'Your account',
+    title: 'Your orders',
+    description: tenant ? `Order history at ${tenant.name}` : 'Order history',
   }
 }
 
-export default async function AccountDashboardPage() {
+export default async function AccountOrdersPage() {
   const tenant = await loadTenantFromRequest()
   if (!tenant) return null
 
-  return <AccountOverview tenantId={tenant.id} />
+  return <OrderHistory tenantId={tenant.id} />
 }

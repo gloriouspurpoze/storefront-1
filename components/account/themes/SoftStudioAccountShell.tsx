@@ -10,6 +10,7 @@ import '@/themes/retail/soft-studio/soft-studio.css'
 
 export function SoftStudioAccountShell({
   tenantName,
+  tagline,
   children,
 }: {
   tenantName: string
@@ -24,8 +25,9 @@ export function SoftStudioAccountShell({
   return (
     <div className="ss-root ss-account-page">
       <nav className="ss-account-nav">
-        <Link href="/" className="ss-account-logo">
-          {tenantName}
+        <Link href="/" className="ss-account-brand">
+          <span className="ss-account-logo">{tenantName}</span>
+          {tagline ? <span className="ss-account-tagline">{tagline}</span> : null}
         </Link>
 
         <AccountShellNav
@@ -35,11 +37,11 @@ export function SoftStudioAccountShell({
         />
 
         <Link href="/" className="ss-account-store-btn">
-          Store
+          <span aria-hidden>←</span> Back to store
         </Link>
       </nav>
 
-      <main className="ss-account-main">{children}</main>
+      <main className={`ss-account-main${isLogin ? ' ss-account-main--auth' : ''}`}>{children}</main>
 
       {isAuthenticated && user && !isLogin ? (
         <footer className="ss-account-footer">Signed in as {displayName(user)}</footer>

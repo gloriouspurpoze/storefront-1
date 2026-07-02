@@ -216,19 +216,35 @@ export interface CheckoutVerifyResult {
   orderId?: string
 }
 
+export interface StorefrontShippingAddressPayload {
+  firstName: string
+  lastName: string
+  address: string
+  city: string
+  state?: string
+  zipCode: string
+  country: string
+  phone?: string
+  email?: string
+}
+
 export async function createCheckoutOrder(input: {
   tenantId: string
   items: Array<{ productId: string; quantity: number }>
   customerEmail: string
   customerName?: string
   notes?: string
+  accessToken?: string
 }): Promise<CheckoutOrderResult> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  }
+  if (input.accessToken) headers.Authorization = `Bearer ${input.accessToken}`
+
   const res = await fetch(apiUrl('/public/storefront/checkout/create-order'), {
     method: 'POST',
-    headers: withTenantId(input.tenantId, {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    }),
+    headers: withTenantId(input.tenantId, headers),
     body: JSON.stringify({
       items: input.items,
       customerEmail: input.customerEmail,
@@ -377,15 +393,20 @@ export async function verifyCheckout(input: {
   customerEmail: string
   customerName?: string
   phone?: string
+  shippingAddress?: StorefrontShippingAddressPayload
+  accessToken?: string
 }): Promise<CheckoutVerifyResult> {
-  const { tenantId, ...body } = input
+  const { tenantId, accessToken, shippingAddress, ...body } = input
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  }
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`
+
   const res = await fetch(apiUrl('/public/storefront/checkout/verify'), {
     method: 'POST',
-    headers: withTenantId(tenantId, {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    }),
-    body: JSON.stringify(body),
+    headers: withTenantId(tenantId, headers),
+    body: JSON.stringify({ ...body, shippingAddress }),
   })
   const json = (await res.json().catch(() => null)) as ApiEnvelope<CheckoutVerifyResult> | null
   if (!res.ok || !json?.success || !json.data) {

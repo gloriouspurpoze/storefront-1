@@ -5,6 +5,7 @@ import {
   isStoreOpenNow,
 } from '@/lib/orderingHours'
 import { validateDeliveryDetails, type DeliveryDetailsValue } from '@/lib/templateSettings'
+import { validateShippingAddress } from '@/lib/storefrontShippingAddress'
 
 export type CheckoutGuardResult = { ok: true } | { ok: false; message: string }
 
@@ -25,8 +26,14 @@ export function assertDeliveryDetailsForCheckout(
   opts: {
     requireDate?: boolean
     requireTime?: boolean
+    requireAddress?: boolean
   },
 ): CheckoutGuardResult {
+  if (opts.requireAddress !== false) {
+    const addressCheck = validateShippingAddress(deliveryDetails)
+    if (!addressCheck.ok) return addressCheck
+  }
+
   if (!opts.requireDate && !opts.requireTime) return { ok: true }
 
   const orderingHours = getOrderingHoursFromConfig(config)
@@ -49,6 +56,7 @@ export function runPreCheckoutGuards(
     requireDate?: boolean
     requireTime?: boolean
     skipStoreOpenCheck?: boolean
+    requireAddress?: boolean
   } = {},
 ): CheckoutGuardResult {
   if (!opts.skipStoreOpenCheck) {

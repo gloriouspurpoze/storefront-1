@@ -18,10 +18,10 @@ export function ShippingPolicyPageContent({
   const title = variant === 'restaurant' ? 'Delivery policy' : 'Shipping policy'
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-16 sm:px-6 text-slate-800">
-      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Policies</p>
-      <h1 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">{title}</h1>
-      <p className="mt-6 max-w-prose text-pretty text-slate-600">
+    <main className="sf-page-shell sf-page-shell--narrow text-slate-800">
+      <p className="sf-page-eyebrow">Policies</p>
+      <h1 className="sf-page-title">{title}</h1>
+      <p className="sf-page-lead">
         {variant === 'restaurant'
           ? `Thank you for ordering from ${siteName}. Below is how we handle delivery and pickup for online orders.`
           : `Thank you for shopping at ${siteName}. Below is how we handle shipping and delivery for online orders placed through our storefront.`}

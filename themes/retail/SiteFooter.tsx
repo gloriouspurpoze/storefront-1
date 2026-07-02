@@ -13,8 +13,14 @@ export function SiteFooter({ tenant }: { tenant: ThemeTenant }) {
           <Link href="/products" className="hover:text-slate-900">
             Shop all
           </Link>
-          <Link href="/checkout" className="hover:text-slate-900">
-            Checkout
+          <Link href="/cart" className="hover:text-slate-900">
+            Cart
+          </Link>
+          <Link href="/orders/track" className="hover:text-slate-900">
+            Track order
+          </Link>
+          <Link href="/shipping-policy" className="hover:text-slate-900">
+            Shipping
           </Link>
         </div>
       </div>

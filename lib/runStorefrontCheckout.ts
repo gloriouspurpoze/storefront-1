@@ -1,8 +1,11 @@
 import {
   createCheckoutOrder,
   verifyCheckout,
+  type StorefrontShippingAddressPayload,
 } from '@/lib/storefront-api'
 import { openRazorpayCheckout } from '@/lib/razorpayCheckout'
+import type { DeliveryDetailsValue } from '@/lib/templateSettings'
+import { deliveryDetailsToShippingAddress } from '@/lib/storefrontShippingAddress'
 
 export interface StorefrontCheckoutLine {
   productId: string
@@ -27,9 +30,22 @@ export async function runStorefrontCheckout(input: {
   lines: StorefrontCheckoutLine[]
   customer: StorefrontCheckoutCustomer
   notes?: string
+  deliveryDetails?: Partial<DeliveryDetailsValue>
+  shippingAddress?: StorefrontShippingAddressPayload
+  accessToken?: string
 }): Promise<StorefrontCheckoutSuccess> {
   if (!input.lines.length) {
     throw new Error('Your cart is empty.')
+  }
+
+  const shippingAddress =
+    input.shippingAddress ??
+    (input.deliveryDetails
+      ? deliveryDetailsToShippingAddress(input.deliveryDetails, input.customer)
+      : undefined)
+
+  if (input.deliveryDetails && !shippingAddress) {
+    throw new Error('Please complete your delivery address (street, city, and PIN code).')
   }
 
   const itemCount = input.lines.reduce((sum, l) => sum + l.quantity, 0)
@@ -39,6 +55,7 @@ export async function runStorefrontCheckout(input: {
     customerEmail: input.customer.email,
     customerName: input.customer.name,
     notes: input.notes,
+    accessToken: input.accessToken,
   })
 
   const payment = await openRazorpayCheckout({
@@ -64,6 +81,8 @@ export async function runStorefrontCheckout(input: {
     customerEmail: input.customer.email,
     customerName: input.customer.name,
     phone: input.customer.phone,
+    shippingAddress,
+    accessToken: input.accessToken,
   })
 
   return {

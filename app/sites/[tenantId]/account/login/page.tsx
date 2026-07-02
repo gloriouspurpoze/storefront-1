@@ -14,7 +14,13 @@ export async function generateMetadata() {
 
 export default function AccountLoginPage() {
   return (
-    <Suspense fallback={<p className="text-sm text-neutral-500">Loading…</p>}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-[40vh] items-center justify-center">
+          <p className="text-sm text-neutral-500">Loading…</p>
+        </div>
+      }
+    >
       <LoginClient />
     </Suspense>
   )

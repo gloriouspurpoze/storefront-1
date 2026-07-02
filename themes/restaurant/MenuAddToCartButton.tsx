@@ -3,10 +3,12 @@
 import { useState } from 'react'
 import type { PublicMenuItem } from '@/lib/storefront-api'
 import { isMenuItemInStock } from '@/lib/storefront-api'
+import { useCartAuthGate } from '@/lib/useCartAuthGate'
 import { useCart } from './cart'
 
 export function MenuAddToCartButton({ item }: { item: PublicMenuItem }) {
   const { addMenuItem, lines } = useCart()
+  const { requireAuthForCart } = useCartAuthGate()
   const [flash, setFlash] = useState(false)
   const qty = lines.find((l) => l.productId === item.id)?.quantity ?? 0
   const inStock = isMenuItemInStock(item)
@@ -22,6 +24,7 @@ export function MenuAddToCartButton({ item }: { item: PublicMenuItem }) {
         <button
           type="button"
           onClick={() => {
+            if (!requireAuthForCart()) return
             addMenuItem(item, 1)
             setFlash(true)
             window.setTimeout(() => setFlash(false), 1500)

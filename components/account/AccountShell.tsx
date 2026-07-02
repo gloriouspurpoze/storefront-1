@@ -53,6 +53,16 @@ export function AccountShell({ tenantName, logoUrl, themeKey, children }: Accoun
                       : 'text-neutral-500 hover:text-neutral-900'
                   }
                 >
+                  Account
+                </Link>
+                <Link
+                  href="/account/orders"
+                  className={
+                    pathname?.includes('/account/orders')
+                      ? 'font-medium text-neutral-900'
+                      : 'text-neutral-500 hover:text-neutral-900'
+                  }
+                >
                   Orders
                 </Link>
                 <button
@@ -77,7 +87,7 @@ export function AccountShell({ tenantName, logoUrl, themeKey, children }: Accoun
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6 sm:py-14">{children}</main>
+      <main className="sf-page-shell sf-page-shell--narrow">{children}</main>
 
       {isAuthenticated && user && !isLogin ? (
         <footer className="border-t border-neutral-100 py-6 text-center text-xs text-neutral-400">

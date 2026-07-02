@@ -3,11 +3,13 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { PublicMenuItem } from '@/lib/storefront-api'
 import { isMenuItemInStock } from '@/lib/storefront-api'
+import { useCartAuthGate } from '@/lib/useCartAuthGate'
 
 export type CartMap = Record<string, number>
 
 export function useMenuCart(categories: { items: PublicMenuItem[] }[]) {
   const [cart, setCart] = useState<CartMap>({})
+  const { requireAuthForCart } = useCartAuthGate()
 
   const itemById = useMemo(() => {
     const map = new Map<string, PublicMenuItem>()
@@ -19,8 +21,9 @@ export function useMenuCart(categories: { items: PublicMenuItem[] }[]) {
 
   const addItem = useCallback((item: PublicMenuItem) => {
     if (!isMenuItemInStock(item)) return
+    if (!requireAuthForCart()) return
     setCart((prev) => ({ ...prev, [item.id]: (prev[item.id] ?? 0) + 1 }))
-  }, [])
+  }, [requireAuthForCart])
 
   const removeItem = useCallback((itemId: string) => {
     setCart((prev) => {

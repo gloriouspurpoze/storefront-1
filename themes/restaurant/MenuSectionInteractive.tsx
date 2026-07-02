@@ -5,6 +5,7 @@ import type { PublicMenuCategory } from '@/lib/storefront-api'
 import { isMenuItemInStock } from '@/lib/storefront-api'
 import { MenuItemDetailModal } from '@/components/MenuItemDetailModal'
 import { MenuAddToCartButton } from './MenuAddToCartButton'
+import { useCartAuthGate } from '@/lib/useCartAuthGate'
 import { useCart } from './cart'
 
 export function MenuSectionInteractive({
@@ -15,6 +16,7 @@ export function MenuSectionInteractive({
   compact?: boolean
 }) {
   const { lines, addMenuItem, setQuantity } = useCart()
+  const { requireAuthForCart } = useCartAuthGate()
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const selectedItem =
@@ -38,7 +40,7 @@ export function MenuSectionInteractive({
         onClose={() => setSelectedId(null)}
         quantity={selectedItem ? qtyFor(selectedItem.id) : 0}
         onAdd={() => {
-          if (selectedItem) addMenuItem(selectedItem)
+          if (selectedItem && requireAuthForCart()) addMenuItem(selectedItem)
         }}
         onRemove={() => {
           if (selectedItem) setQuantity(selectedItem.id, qtyFor(selectedItem.id) - 1)

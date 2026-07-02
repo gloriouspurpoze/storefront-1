@@ -60,14 +60,14 @@ export type AccountThemeClasses = {
 
 const DEFAULT: AccountThemeClasses = {
   backLink: 'mb-8 inline-flex text-sm text-neutral-500 transition hover:text-neutral-900',
-  contentWrap: 'mx-auto w-full max-w-md',
+  contentWrap: 'sf-page-shell sf-page-shell--narrow w-full',
   card: 'rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8',
   title: 'text-2xl font-semibold tracking-tight text-neutral-900',
   subtitle: 'mt-2 text-sm text-neutral-500',
   text: 'text-sm text-neutral-600',
   textMuted: 'text-sm text-neutral-500',
   link: 'font-medium text-neutral-900 underline-offset-2 hover:underline',
-  signupRow: 'mt-3 text-sm text-neutral-600',
+  signupRow: 'text-sm text-neutral-600',
   error: 'mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700',
   btnPrimary:
     'inline-flex rounded-xl bg-[var(--site-brand,#171717)] px-5 py-2.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60',
@@ -75,7 +75,7 @@ const DEFAULT: AccountThemeClasses = {
     'inline-flex rounded-xl border border-neutral-300 bg-white px-5 py-2.5 text-sm font-medium text-neutral-800 hover:bg-neutral-50',
   btnBlock: 'w-full justify-center',
   btnGoogle:
-    'mt-6 flex w-full items-center justify-center gap-3 rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm font-medium text-neutral-800 transition hover:bg-neutral-50 disabled:opacity-60',
+    'flex w-full items-center justify-center gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm font-medium text-neutral-800 shadow-sm transition hover:bg-neutral-50 hover:shadow disabled:opacity-60',
   divider: 'my-6 flex items-center gap-3',
   phoneRow: 'mt-1.5 flex gap-2',
   phonePrefix:
@@ -210,7 +210,7 @@ const LE: Partial<AccountThemeClasses> = {
   statusLoading: 'le-acct-muted',
   pageTitle: 'le-acct-page-title',
   pageSubtitle: 'le-acct-page-sub',
-  form: 'le-acct-card le-acct-form',
+  form: 'le-acct-form',
   input: 'le-acct-input',
   label: 'le-acct-label',
   trackFooter: 'le-acct-track-footer',
@@ -219,7 +219,7 @@ const LE: Partial<AccountThemeClasses> = {
 
 const SS: Partial<AccountThemeClasses> = {
   backLink: 'ss-acct-back',
-  contentWrap: 'ss-acct-content',
+  contentWrap: 'ss-acct-content sf-page-shell sf-page-shell--narrow',
   card: 'ss-acct-card',
   title: 'ss-acct-title',
   subtitle: 'ss-acct-subtitle',
@@ -247,7 +247,7 @@ const SS: Partial<AccountThemeClasses> = {
   statusLoading: 'ss-acct-muted',
   pageTitle: 'ss-acct-page-title',
   pageSubtitle: 'ss-acct-page-sub',
-  form: 'ss-acct-card ss-acct-form',
+  form: 'ss-acct-form',
   input: 'ss-acct-input',
   label: 'ss-acct-label',
   trackFooter: 'ss-acct-track-footer',
@@ -284,7 +284,7 @@ const SAF: Partial<AccountThemeClasses> = {
   statusLoading: 'saf-acct-muted',
   pageTitle: 'saf-acct-page-title',
   pageSubtitle: 'saf-acct-page-sub',
-  form: 'saf-acct-card saf-acct-form',
+  form: 'saf-acct-form',
   input: 'saf-acct-input',
   label: 'saf-acct-label',
   trackFooter: 'saf-acct-track-footer',
@@ -321,7 +321,7 @@ const MF: Partial<AccountThemeClasses> = {
   statusLoading: 'mf-acct-muted',
   pageTitle: 'mf-acct-page-title',
   pageSubtitle: 'mf-acct-page-sub',
-  form: 'mf-acct-card mf-acct-form',
+  form: 'mf-acct-form',
   input: 'mf-acct-input',
   label: 'mf-acct-label',
   trackFooter: 'mf-acct-track-footer',

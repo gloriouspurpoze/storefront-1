@@ -2,17 +2,20 @@
 
 import { useCallback, useMemo, useState } from 'react'
 import type { PublicProduct } from '@/lib/storefront-api'
+import { useCartAuthGate } from '@/lib/useCartAuthGate'
 
 export type CartEntry = { id: string; name: string; price: number; qty: number }
 
 export function useBrownButterCart() {
   const [cart, setCart] = useState<Record<string, CartEntry>>({})
+  const { requireAuthForCart } = useCartAuthGate()
 
   const entries = useMemo(() => Object.values(cart), [cart])
   const itemCount = useMemo(() => entries.reduce((s, e) => s + e.qty, 0), [entries])
   const subtotal = useMemo(() => entries.reduce((s, e) => s + e.price * e.qty, 0), [entries])
 
   const setQty = useCallback((product: PublicProduct, qty: number) => {
+    if (qty > 0 && !requireAuthForCart()) return
     setCart((prev) => {
       const next = { ...prev }
       if (qty <= 0) {
@@ -27,9 +30,10 @@ export function useBrownButterCart() {
       }
       return next
     })
-  }, [])
+  }, [requireAuthForCart])
 
   const add = useCallback((product: PublicProduct) => {
+    if (!requireAuthForCart()) return
     setCart((prev) => {
       const existing = prev[product.id]
       const qty = (existing?.qty ?? 0) + 1
@@ -43,7 +47,7 @@ export function useBrownButterCart() {
         },
       }
     })
-  }, [])
+  }, [requireAuthForCart])
 
   const clear = useCallback(() => setCart({}), [])
 

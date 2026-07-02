@@ -2,17 +2,10 @@
 
 import { useCallback } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { buildStorefrontLoginUrl } from '@/lib/storefrontLoginUrls'
 import { useAccountAuth } from '@/components/account/AccountAuthProvider'
 
-export function buildCartSignupLoginUrl(returnPath: string): string {
-  const params = new URLSearchParams({
-    signup: '1',
-    returnUrl: returnPath || '/',
-  })
-  return `/account/login?${params.toString()}`
-}
-
-/** Redirects unauthenticated users to sign up before cart actions. */
+/** Redirects unauthenticated users to sign in before cart / checkout actions. */
 export function useCartAuthGate() {
   const router = useRouter()
   const pathname = usePathname()
@@ -21,9 +14,11 @@ export function useCartAuthGate() {
   const requireAuthForCart = useCallback((): boolean => {
     if (!isReady) return false
     if (isAuthenticated) return true
-    router.push(buildCartSignupLoginUrl(pathname || '/'))
+    router.push(buildStorefrontLoginUrl(pathname || '/', { signup: true }))
     return false
   }, [isAuthenticated, isReady, pathname, router])
 
   return { isAuthenticated, isReady, requireAuthForCart }
 }
+
+export { buildStorefrontLoginUrl, buildCartSignupLoginUrl } from '@/lib/storefrontLoginUrls'
