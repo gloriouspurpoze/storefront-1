@@ -87,10 +87,10 @@ export function ComingSoon({ tenant }: { tenant: ResolvedTenant }) {
         <footer className="mt-24 text-xs text-white/60">
           {tenant.slug} · {tenant.verticalKey.replace('_', ' ')} · powered by{' '}
           <a
-            href="https://profixer.app"
+            href="https://torqstudio.com"
             className="font-medium text-white underline-offset-4 hover:underline"
           >
-            Profixer
+            Torq Studio
           </a>
         </footer>
       </div>

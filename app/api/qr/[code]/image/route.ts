@@ -9,7 +9,7 @@ function storefrontOrigin(host: string, slug: string): string {
   if (h.includes('localhost') || h.includes('lvh.me')) {
     return `http://${slug}.lvh.me:3001`
   }
-  return `https://${slug}.profixer.app`
+  return `https://${slug}.torqstudio.com`
 }
 
 export async function GET(

@@ -22,10 +22,10 @@ export default function UnknownHostPage() {
         and finish the setup from your Profixer admin.
       </p>
       <a
-        href="https://profixer.app"
+        href="https://torqstudio.com"
         className="mt-10 inline-flex items-center justify-center rounded-full bg-slate-900 px-6 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
       >
-        Learn more about Profixer
+        Learn more about Torq Studio
       </a>
     </main>
   )

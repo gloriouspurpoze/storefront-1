@@ -26,8 +26,8 @@ export function SiteFooter({ tenant }: { tenant: ThemeTenant }) {
       </div>
       <div className="border-t border-indigo-100/80 py-4 text-center text-xs text-slate-400">
         Secure checkout · Powered by{' '}
-        <a href="https://profixer.app" className="font-medium text-slate-500 hover:underline">
-          Profixer
+        <a href="https://torqstudio.com" className="font-medium text-slate-500 hover:underline">
+          Torq Studio
         </a>
       </div>
     </footer>

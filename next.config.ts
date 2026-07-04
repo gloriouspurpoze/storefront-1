@@ -16,7 +16,7 @@ const config: NextConfig = {
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'res.cloudinary.com' },
-      { protocol: 'https', hostname: '**.profixer.app' },
+      { protocol: 'https', hostname: '**.torqstudio.com' },
     ],
   },
   async headers() {

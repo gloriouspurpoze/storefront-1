@@ -50,10 +50,10 @@ export function SiteFooter({ tenant }: { tenant: ThemeTenant }) {
           </p>
           <p className="mt-3 text-sm text-slate-700">
             <a
-              href="https://profixer.app"
+              href="https://torqstudio.com"
               className="underline-offset-4 hover:underline"
             >
-              Profixer
+              Torq Studio
             </a>
           </p>
         </div>
@@ -63,7 +63,7 @@ export function SiteFooter({ tenant }: { tenant: ThemeTenant }) {
           <span>
             © {year} {tenant.name}. All rights reserved.
           </span>
-          <span className="hidden sm:block">{tenant.slug}.profixer.app</span>
+          <span className="hidden sm:block">{tenant.slug}.torqstudio.com</span>
         </div>
       </div>
     </footer>

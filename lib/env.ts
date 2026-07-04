@@ -23,11 +23,11 @@ export const env = {
   REVALIDATE_SECRET: process.env.STOREFRONT_REVALIDATE_SECRET,
   /** Vercel Edge Config — optional in dev. */
   EDGE_CONFIG: process.env.EDGE_CONFIG,
-  /** Comma-separated platform host suffixes (e.g. `profixer.app,profixer.localhost`). */
+  /** Comma-separated platform host suffixes (e.g. `torqstudio.com,torqstudio.localhost`). */
   HOST_SUFFIXES: (
     process.env.NEXT_PUBLIC_STOREFRONT_HOST_SUFFIXES ??
-    'profixer.app,lvh.me,profixer.localhost,localhost'
-  )
+    'torqstudio.com,lvh.me,torqstudio.localhost,localhost'
+  ) 
     .split(',')
     .map((s) => s.trim().toLowerCase().replace(/^\.+/, ''))
     .filter(Boolean),
