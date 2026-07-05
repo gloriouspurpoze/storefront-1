@@ -37,3 +37,18 @@ export function hasShippingPolicyContent(policy: ShippingPolicyConfig): boolean 
 
 export const DEFAULT_SHIPPING_POLICY_SUMMARY =
   'Orders are typically processed within 1–2 business days after payment confirmation.'
+
+/** Cart shipping row — admin policy text, not hardcoded thresholds. */
+export function getCartShippingDisplayLabel(
+  config: StorefrontConfig | null | undefined,
+): string {
+  const policy = getShippingPolicyFromConfig(config)
+  const zoneWithFee = policy.zones?.find((z) => z.fee?.trim())
+  if (zoneWithFee?.fee?.trim()) {
+    const label = zoneWithFee.label?.trim()
+    return label ? `${label} · ${zoneWithFee.fee.trim()}` : zoneWithFee.fee.trim()
+  }
+  const summary = policy.summary?.trim()
+  if (summary) return summary
+  return 'Calculated at checkout'
+}

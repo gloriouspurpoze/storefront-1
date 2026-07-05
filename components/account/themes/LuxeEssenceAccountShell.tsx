@@ -8,17 +8,16 @@ import { AccountShellNav } from '../AccountShellNav'
 import { displayName } from '@/lib/storefront-auth'
 import '@/themes/retail/luxe-essence/luxe-essence.css'
 
-function splitBrandName(siteName: string): [string, string] {
-  if (siteName.includes('|')) {
-    const parts = siteName.split('|').map((s) => s.trim())
-    return [parts[0] ?? siteName, parts[1] ?? 'STUDIO']
-  }
-  const words = siteName.split(' ')
-  return [words[0] ?? siteName, words.slice(1).join(' ') || 'STUDIO']
+function splitBrandTitle(siteName: string): { primary: string; secondary?: string } {
+  if (!siteName.includes('|')) return { primary: siteName }
+  const [primary, ...rest] = siteName.split('|').map((part) => part.trim())
+  const secondary = rest.join(' | ').trim()
+  return secondary ? { primary, secondary } : { primary: siteName }
 }
 
 export function LuxeEssenceAccountShell({
   tenantName,
+  logoUrl,
   tagline,
   children,
 }: {
@@ -29,31 +28,51 @@ export function LuxeEssenceAccountShell({
 }) {
   const pathname = usePathname()
   const { user, isAuthenticated } = useAccountAuth()
-  const isLogin = pathname?.endsWith('/login')
-  const [brandMain, brandSub] = splitBrandName(tenantName)
+  const isLogin = pathname?.includes('/account/login')
+  const isAccountDashboard = Boolean(pathname?.includes('/account') && !isLogin)
+  const showHeaderNav = !isAuthenticated || isLogin || !isAccountDashboard
+  const brand = splitBrandTitle(tenantName)
+  const trimmedTagline = tagline?.trim()
 
   return (
-    <div className="le-root le-account-page">
+    <div className="le-root theme-luxe-essence le-account-page">
       <header className="le-account-header">
-        <Link href="/" className="le-account-brand">
-          <h1>
-            {brandMain} <span>| {brandSub}</span>
-          </h1>
-          {tagline ? <p className="le-account-tagline">{tagline}</p> : null}
-        </Link>
+        <div className="le-account-header-top">
+          <Link href="/" className={`le-logo le-account-brand${logoUrl ? ' le-logo--has-image' : ''}`}>
+            {logoUrl ? (
+              <div className="le-logo-mark">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={logoUrl} alt="" />
+              </div>
+            ) : null}
+            <div className="le-logo-text">
+              <h1>
+                {brand.primary}
+                {brand.secondary ? (
+                  <>
+                    {' '}
+                    <span>| {brand.secondary}</span>
+                  </>
+                ) : null}
+              </h1>
+              {trimmedTagline ? <p className="le-tagline">{trimmedTagline}</p> : null}
+            </div>
+          </Link>
+          <Link href="/" className="le-account-store-link">
+            Back to store
+          </Link>
+        </div>
 
-        <AccountShellNav
-          className="le-account-nav"
-          linkClassName="le-account-nav-link"
-          activeClassName="le-account-nav-link le-account-nav-link--active"
-        />
-
-        <Link href="/" className="le-account-store-link">
-          ← Store
-        </Link>
+        {showHeaderNav ? (
+          <AccountShellNav
+            className="le-account-nav"
+            linkClassName="le-account-nav-link"
+            activeClassName="le-account-nav-link le-account-nav-link--active"
+          />
+        ) : null}
       </header>
 
-      <main className="le-account-main">{children}</main>
+      <main className={`le-account-main${isLogin ? ' le-account-main--auth' : ''}`}>{children}</main>
 
       {isAuthenticated && user && !isLogin ? (
         <footer className="le-account-footer">Signed in as {displayName(user)}</footer>

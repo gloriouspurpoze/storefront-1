@@ -9,6 +9,11 @@ import { getOrderingAvailabilityFromConfig } from '@/lib/orderingHours'
 import './storefront-menu-drawer.css'
 type DrawerSection = 'ordering-hours' | 'shipping-policy'
 
+export type StorefrontMenuNavLink = {
+  href: string
+  label: string
+}
+
 export function StorefrontMenuDrawer({
   open,
   onClose,
@@ -16,6 +21,7 @@ export function StorefrontMenuDrawer({
   showShippingPolicy = true,
   shippingPolicyLabel = 'Shipping policy',
   showGiftMatch = false,
+  navLinks,
   orderingHoursNote,
   shippingPolicyContent,
   drawerId = 'storefront-menu-drawer',
@@ -26,6 +32,8 @@ export function StorefrontMenuDrawer({
   showShippingPolicy?: boolean
   shippingPolicyLabel?: string
   showGiftMatch?: boolean
+  /** Pill links shown above policy sections (e.g. shop / account routes). */
+  navLinks?: StorefrontMenuNavLink[]
   orderingHoursNote?: React.ReactNode
   shippingPolicyContent?: React.ReactNode
   drawerId?: string
@@ -73,6 +81,20 @@ export function StorefrontMenuDrawer({
           </button>
         </div>
         <p className="sf-menu-drawer__subtitle">Quick store details and policies.</p>
+        {navLinks && navLinks.length > 0 ? (
+          <nav className="sf-menu-drawer__quick-links" aria-label="Site navigation">
+            {navLinks.map((link) => (
+              <Link
+                key={`${link.href}-${link.label}`}
+                href={link.href}
+                className="sf-menu-drawer__quick-link"
+                onClick={onClose}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        ) : null}
         {showGiftMatch ? (
           <div className="sf-menu-drawer__quick-links">
             <Link href="/gifts" className="sf-menu-drawer__quick-link" onClick={onClose}>

@@ -1,0 +1,146 @@
+# luxe-essence — Theme perfection brief (v1)
+# Generated from codebase audit + HTML reference. Do not contradict during implement sessions.
+
+meta:
+  themeKey: luxe-essence
+  vertical: retail
+  status: pre-launch
+  referenceTenant: "" # set slug before browser verify (retail tenant with themeKey luxe-essence)
+  approver: developer
+  successMetric: functional-completeness
+  notes: >
+    Full-page luxury retail theme. HTML reference: storefront/templates/html-source/e-commerce/temp2/deepseek_html_20260615_df2e9b.html (template-2).
+    Current implementation: themes/retail/luxe-essence/LuxeEssencePage.tsx (~625 LOC god-file — extract per component session).
+    Remove emojis; replace hardcoded shipping thresholds with config/shippingPolicy; wire payment flags like other retail themes.
+
+design:
+  personality: luxury
+  referenceUrl: storefront/templates/html-source/e-commerce/temp2/deepseek_html_20260615_df2e9b.html
+  darkMode: false
+  wcag: AA
+  motion: subtle
+  typography:
+    source: fixed-per-theme
+    heading: Inter
+    body: Inter
+  avoid:
+    - emojis
+    - hardcoded-shipping-amounts
+    - theme-lorem-hero
+
+scope:
+  layout: full-page
+  routes:
+    - home
+    - products
+    - products-detail
+    - cart
+    - checkout
+    - account
+    - account-login
+    - account-orders
+    - account-profile
+    - track-order
+    - shipping-policy
+    - about
+    - contact
+  accountShell: true
+  accountShellMatchStorefront: true
+  components:
+    - shell-header
+    - shell-footer
+    - shell-mobile-nav
+    - content-hero
+    - catalog-grid
+    - catalog-empty
+    - commerce-add-to-cart
+    - commerce-variants
+    - commerce-cart
+    - commerce-checkout
+    - account-shell
+    - system-store-status
+    - system-shipping-policy
+    - system-track-order
+    - verify-full-pass
+
+apis:
+  allowed:
+    - fetchProducts
+    - fetchProductBySlug
+    - fetchStorefrontConfig
+    - createCheckoutOrder
+    - verifyCheckout
+    - placeCheckoutOrder
+    - fetchPublicOrderTracking
+    - fetchCustomerOrderTracking
+    - fetchCustomerOrders
+    - fetchCustomerProfile
+  forbiddenPatterns:
+    - inline fetch to /public/storefront
+    - theme-local API client files
+
+commerce:
+  currency: INR
+  geography: IN
+  guestCheckout: false
+  loginRequired: true
+  shippingSource: config
+  orderingHours: required
+  variants: optional
+  paymentProviders:
+    - razorpay
+    - cod
+  paymentProvidersSource: admin-feature-flags
+  deliveryFields:
+    pincode: true
+    preferredDate: from-template-settings
+    preferredTime: from-template-settings
+  closedStoreBehavior: block-checkout
+  orderTracking: both
+
+data:
+  maxCatalogSize: 200
+  emptyBehavior: message
+  emptyCatalogMessage: Products coming soon — add items in your admin dashboard under Store / Products.
+  outOfStockBehavior: disabled
+  imageFallback: placeholder
+  categoryNav: none
+  searchInScope: false
+  giftsInScope: false
+
+branding:
+  v1Flexibility: logo-and-colors-only
+  customCssInScope: true
+  contentSource: admin-only
+  promoStrip:
+    enabled: optional
+    source: admin
+
+clutter:
+  maxPrimaryCtaPerViewport: 1
+  promoStrip: admin-optional
+  duplicateNav: forbidden
+  alwaysVisibleBlocks: []
+
+featureFlags:
+  respectSections: true
+  respectFeatureFlags: true
+  sectionOrderingException: true
+
+intentionalThemeDefaults: []
+
+backendNotes:
+  changePolicy: implemented-via-feature-flags
+  paymentFeatureFlags:
+    - enableRazorpayPayment
+    - enableCodPayment
+  promoStripFlag: showOfferMarquee
+  emojiCleanup: Remove emoji icons from header, cart, checkout success, product placeholders, and promo strip.
+  shippingCleanup: Remove FREE_SHIPPING_MIN / SHIPPING_FEE constants; use shippingPolicy config or checkout API totals.
+
+verify:
+  lint: true
+  typecheck: true
+  build: true
+  browser:
+    enabled: false

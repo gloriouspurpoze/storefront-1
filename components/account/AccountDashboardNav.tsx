@@ -27,6 +27,7 @@ export function AccountDashboardNav() {
   const t = accountThemeClasses(themeKey)
   const isLogin = pathname?.includes('/account/login')
   const isCards = themeKey === 'menufast-cards'
+  const isLuxe = themeKey === 'luxe-essence'
 
   if (isLogin || !isAuthenticated) return null
 
@@ -56,6 +57,43 @@ export function AccountDashboardNav() {
             Sign out
           </button>
         </nav>
+      </aside>
+    )
+  }
+
+  if (isLuxe) {
+    return (
+      <aside className="le-acct-sidebar" aria-label="Account sections">
+        {user ? (
+          <p className="le-acct-sidebar-user">
+            <span className="le-acct-sidebar-label">Signed in</span>
+            {displayName(user)}
+          </p>
+        ) : null}
+        <nav className="le-acct-sidebar-nav" aria-label="Account navigation">
+          {NAV_ITEMS.map((item) => {
+            const active = isNavActive(pathname, item.href, item.exact)
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`le-acct-sidebar-link${active ? ' le-acct-sidebar-link--active' : ''}`}
+              >
+                {item.label}
+              </Link>
+            )
+          })}
+          <button
+            type="button"
+            className="le-acct-sidebar-link le-acct-sidebar-link--button"
+            onClick={() => void logout()}
+          >
+            Sign out
+          </button>
+        </nav>
+        <Link href="/" className="le-acct-sidebar-store">
+          Continue shopping
+        </Link>
       </aside>
     )
   }

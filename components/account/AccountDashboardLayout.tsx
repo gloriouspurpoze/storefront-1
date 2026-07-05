@@ -10,6 +10,7 @@ export function AccountDashboardLayout({ children }: { children: ReactNode }) {
   const themeKey = useAccountTheme()
   const isLogin = pathname?.includes('/account/login')
   const isCards = themeKey === 'menufast-cards'
+  const isLuxe = themeKey === 'luxe-essence'
 
   if (isLogin) {
     return <>{children}</>
@@ -20,6 +21,15 @@ export function AccountDashboardLayout({ children }: { children: ReactNode }) {
       <div className="mf-acct-layout">
         <AccountDashboardNav />
         <div className="mf-acct-layout-main">{children}</div>
+      </div>
+    )
+  }
+
+  if (isLuxe) {
+    return (
+      <div className="le-acct-layout">
+        <AccountDashboardNav />
+        <div className="le-acct-layout-main">{children}</div>
       </div>
     )
   }

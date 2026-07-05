@@ -78,7 +78,7 @@ export function ProductDetailView({
           <ProductDescription text={product.description ?? product.shortDescription ?? ''} />
         ) : null}
 
-        <ProductPurchaseBlock product={product} />
+        <ProductPurchaseBlock product={product} variantTone={isLuxe ? 'luxe' : isSoftStudio ? 'soft-studio' : 'default'} />
 
         <p className="sf-pdp-trust">
           <Link href="/shipping-policy">Shipping policy</Link>

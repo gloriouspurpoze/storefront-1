@@ -1,9 +1,17 @@
 'use client'
 
-import { useCallback, useEffect, useId, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import Link from 'next/link'
 import type { PublicProduct } from '@/lib/storefront-api'
 import { formatMoney } from '@/lib/format'
+import {
+  cartLineKey,
+  getDefaultVariant,
+  getEffectivePrice,
+  isVariantInStock,
+  productHasVariants,
+} from '@/lib/productVariants'
+import { ProductVariantSelector, type VariantSelectorTone } from '@/components/ProductVariantSelector'
 import { useCartAuthGate } from '@/lib/useCartAuthGate'
 import { useCart } from './cart'
 import '@/themes/retail/soft-studio/soft-studio.css'
@@ -124,33 +132,49 @@ export function QuantityStepper({
 }
 
 /** Market-standard PDP block: quantity stepper + add to cart CTA + feedback. */
-export function ProductPurchaseBlock({ product }: { product: PublicProduct }) {
+export function ProductPurchaseBlock({
+  product,
+  variantTone = 'default',
+}: {
+  product: PublicProduct
+  variantTone?: VariantSelectorTone
+}) {
   const { addProduct, lines } = useCart()
   const { requireAuthForCart } = useCartAuthGate()
+  const hasVariants = productHasVariants(product)
+  const defaultVariant = useMemo(() => getDefaultVariant(product), [product])
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(defaultVariant?.id ?? null)
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
   const [adding, setAdding] = useState(false)
 
-  const cartLine = lines.find((l) => l.productId === product.id)
-  const lineTotal = product.price * quantity
-
   useEffect(() => {
+    setSelectedVariantId(defaultVariant?.id ?? null)
     setQuantity(1)
     setAdded(false)
-  }, [product.id])
+  }, [product.id, defaultVariant?.id])
+
+  const activeVariantId = hasVariants ? selectedVariantId ?? undefined : undefined
+  const cartLine = lines.find(
+    (l) => cartLineKey(l.productId, l.variantId) === cartLineKey(product.id, activeVariantId),
+  )
+  const inStock = isVariantInStock(product, selectedVariantId)
+  const needsSelection = hasVariants && !selectedVariantId
+  const unitPrice = getEffectivePrice(product, selectedVariantId)
+  const lineTotal = unitPrice * quantity
 
   const handleAdd = useCallback(() => {
-    if (!product.inStock || adding) return
+    if (!inStock || adding || needsSelection) return
     if (!requireAuthForCart()) return
     const qty = clampQty(quantity)
     setAdding(true)
-    addProduct(product, qty)
+    addProduct(product, qty, activeVariantId)
     setAdded(true)
     window.setTimeout(() => setAdding(false), 400)
     window.setTimeout(() => setAdded(false), 3200)
-  }, [addProduct, adding, product, quantity, requireAuthForCart])
+  }, [activeVariantId, addProduct, adding, inStock, needsSelection, product, quantity, requireAuthForCart])
 
-  if (!product.inStock) {
+  if (!inStock && !hasVariants) {
     return (
       <div className="sf-pdp-purchase">
         <button type="button" disabled className="sf-pdp-btn sf-pdp-btn--disabled sf-pdp-btn--cart">
@@ -165,13 +189,23 @@ export function ProductPurchaseBlock({ product }: { product: PublicProduct }) {
 
   return (
     <div className="sf-pdp-purchase">
+      {hasVariants ? (
+        <ProductVariantSelector
+          variants={product.variants!}
+          selectedId={selectedVariantId}
+          onSelect={setSelectedVariantId}
+          label="Options"
+          tone={variantTone}
+        />
+      ) : null}
+
       <div className="sf-pdp-purchase-row">
         <QuantityStepper value={quantity} onChange={setQuantity} size="lg" />
         <button
           type="button"
           className={`sf-pdp-btn sf-pdp-btn--cart${added ? ' sf-pdp-btn--success' : ' sf-pdp-btn--primary'}`}
           onClick={handleAdd}
-          disabled={adding}
+          disabled={adding || !inStock || needsSelection}
           aria-live="polite"
         >
           {added ? (
@@ -179,6 +213,10 @@ export function ProductPurchaseBlock({ product }: { product: PublicProduct }) {
               <CheckIcon />
               Added to cart
             </>
+          ) : !inStock ? (
+            'Out of stock'
+          ) : needsSelection ? (
+            'Select an option'
           ) : (
             <>
               <CartIcon />
