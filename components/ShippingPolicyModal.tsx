@@ -11,11 +11,13 @@ export function ShippingPolicyModal({
   onClose,
   config,
   title = 'Shipping policy',
+  tone = 'default',
 }: {
   open: boolean
   onClose: () => void
   config?: StorefrontConfig | null
   title?: string
+  tone?: 'default' | 'luxe'
 }) {
   useEffect(() => {
     if (!open) return
@@ -35,9 +37,11 @@ export function ShippingPolicyModal({
 
   if (!open || typeof document === 'undefined') return null
 
+  const toneClass = tone === 'luxe' ? ' sf-shipping-policy-modal--luxe theme-luxe-essence' : ''
+
   return createPortal(
     <div
-      className="sf-shipping-policy-modal open"
+      className={`sf-shipping-policy-modal open${toneClass}`}
       role="dialog"
       aria-modal="true"
       aria-labelledby="sf-shipping-policy-title"

@@ -9,6 +9,7 @@ import { toThemeTenant } from '@/themes/retail/types'
 import { fetchStorefrontConfig } from '@/lib/storefront-api'
 import { isRetailLayoutTheme } from '@/themes/retail/retailLayoutRouter'
 import { LayoutThemePageShell } from '@/components/LayoutThemePageShell'
+import { LuxeEssenceCartPage } from '@/themes/retail/luxe-essence/LuxeEssenceCartPage'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,6 +29,14 @@ export default async function CartPage() {
   const siteName = config?.branding?.siteName || tenant.name
   const tagline = config?.branding?.tagline || themeTenant.tagline
   const themeKey = config?.themeKey
+
+  if (themeKey === 'luxe-essence') {
+    return (
+      <RetailShell tenantId={tenant.id}>
+        <LuxeEssenceCartPage tenant={themeTenant} config={config} />
+      </RetailShell>
+    )
+  }
 
   const main = (
     <main className="sf-page-shell">

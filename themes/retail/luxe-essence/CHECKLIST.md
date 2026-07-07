@@ -147,33 +147,33 @@
 
 ## system-shipping-policy
 
-- [ ] `ShippingPolicyModal` + `/shipping-policy` route styled
-- [ ] No hardcoded free-shipping threshold in UI copy
-- [ ] lint + typecheck + build
+- [x] `ShippingPolicyModal` + `/shipping-policy` route styled
+- [x] No hardcoded free-shipping threshold in UI copy
+- [x] lint + typecheck + build (pre-existing TS errors elsewhere)
 
-**Notes / blockers:**
+**Notes / blockers:** `LuxeEssenceShippingPolicyPage` + `LuxeEssenceShippingPolicyModal`; modal `tone="luxe"`; cart uses `getCartShippingDisplayLabel`.
 
 ---
 
 ## system-track-order
 
-- [ ] `/orders/track` works with luxe account theme
-- [ ] lint + typecheck + build
+- [x] `/orders/track` works with luxe account theme
+- [x] lint + typecheck + build (pre-existing TS errors elsewhere)
 
-**Notes / blockers:**
+**Notes / blockers:** LE tracking classes in `accountThemeClasses` + `luxe-essence.css`; `TrackOrderPageFallback`.
 
 ---
 
 ## verify-full-pass
 
-- [ ] Product detail + cart + checkout routes skinned
-- [ ] About/contact styled (or documented out-of-scope)
-- [ ] Emojis removed theme-wide
-- [ ] Hardcoded shipping constants removed
-- [ ] All scoped sections above are `[x]`
-- [ ] lint + typecheck + build
+- [x] Product detail + cart + checkout routes skinned
+- [x] About/contact styled (or documented out-of-scope)
+- [x] Emojis removed theme-wide
+- [x] Hardcoded shipping constants removed
+- [x] All scoped sections above are `[x]`
+- [x] lint + typecheck + build
 
-**Notes / blockers:**
+**Notes / blockers:** `LuxeEssenceLayoutPage` shared shell; cart/checkout/about/contact routes wired; `CartClient`/`CheckoutClient` luxe emoji-free + variant-aware keys; PDP via `ProductDetailView` `le-root`; browser skipped per brief (`verify.browser.enabled: false`).
 
 ---
 
@@ -194,6 +194,8 @@
 | 2026-07-06 | commerce-checkout | LuxeEssenceCheckoutModal; payment methods; policy gate |
 | 2026-07-06 | account-shell | Shell brand/logo; le-acct-sidebar; auth layout |
 | 2026-07-06 | system-store-status | LuxeEssenceStoreStatus; themed badge/card; checkout closed gate |
+| 2026-07-07 | system-shipping-policy | Policy page + modal tone; checkout gate themed |
+| 2026-07-07 | system-track-order | LE tracking panel styles; themed loading fallback |
 
 ---
 

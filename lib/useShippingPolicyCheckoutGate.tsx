@@ -6,7 +6,10 @@ import { ShippingPolicyModal } from '@/components/ShippingPolicyModal'
 import { runPreCheckoutGuards } from '@/lib/checkoutGuard'
 import type { DeliveryDetailsValue } from '@/lib/templateSettings'
 
-export function useShippingPolicyCheckoutGate(config?: StorefrontConfig | null) {
+export function useShippingPolicyCheckoutGate(
+  config?: StorefrontConfig | null,
+  themeKey?: string,
+) {
   const [shippingPolicyOpen, setShippingPolicyOpen] = useState(false)
   const [policyAcknowledged, setPolicyAcknowledged] = useState(false)
   const proceedRef = useRef<(() => void) | null>(null)
@@ -39,6 +42,7 @@ export function useShippingPolicyCheckoutGate(config?: StorefrontConfig | null) 
       onClose={onPolicyClose}
       config={config}
       title={isRestaurant ? 'Delivery policy' : 'Shipping policy'}
+      tone={themeKey === 'luxe-essence' ? 'luxe' : 'default'}
     />
   )
 

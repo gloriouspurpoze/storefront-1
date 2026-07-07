@@ -17,6 +17,7 @@ import { showPreferredDateOfDelivery } from '@/lib/templateSettings'
 import { isRetailLayoutTheme } from '@/themes/retail/retailLayoutRouter'
 import { isRestaurantLayoutTheme } from '@/themes/restaurant/restaurantLayoutRouter'
 import { LayoutThemePageShell } from '@/components/LayoutThemePageShell'
+import { LuxeEssenceCheckoutPage } from '@/themes/retail/luxe-essence/LuxeEssenceCheckoutPage'
 
 export const dynamic = 'force-dynamic'
 
@@ -75,6 +76,18 @@ export default async function CheckoutPage() {
     const showPreferredDate = showPreferredDateOfDelivery(config, config?.themeKey)
     const siteName = config?.branding?.siteName || tenant.name
     const tagline = config?.branding?.tagline || themeTenant.tagline
+
+    if (config?.themeKey === 'luxe-essence') {
+      return (
+        <RetailShell tenantId={tenant.id}>
+          <LuxeEssenceCheckoutPage
+            tenant={themeTenant}
+            config={config}
+            showPreferredDate={showPreferredDate}
+          />
+        </RetailShell>
+      )
+    }
 
     const main = (
       <main className="sf-page-shell">

@@ -18,6 +18,7 @@ import { BookingForm as RetailContactForm } from '@/themes/home-services/Booking
 import { toThemeTenant as toRetailTenant } from '@/themes/retail/types'
 import { loadTenantFromRequest } from '@/lib/load-tenant'
 import { fetchStorefrontConfig } from '@/lib/storefront-api'
+import { LuxeEssenceContactPage } from '@/themes/retail/luxe-essence/LuxeEssenceContactPage'
 
 export const dynamic = 'force-dynamic'
 
@@ -70,6 +71,14 @@ export default async function ContactPage() {
     case 'retail': {
       const tenant = await loadRetailTenant()
       const theme = toRetailTenant(tenant, tenant.fallbackTagline)
+      const config = await fetchStorefrontConfig(tenant.id)
+      if (config?.themeKey === 'luxe-essence') {
+        return (
+          <RetailShell tenantId={tenant.id}>
+            <LuxeEssenceContactPage tenant={theme} config={config} />
+          </RetailShell>
+        )
+      }
       return (
         <RetailShell tenantId={tenant.id}>
           <RetailHeader tenant={theme} />

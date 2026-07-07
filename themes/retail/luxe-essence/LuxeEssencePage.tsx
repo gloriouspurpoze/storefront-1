@@ -5,7 +5,7 @@ import type { PublicProduct, StorefrontConfig } from '@/lib/storefront-api'
 import { useCart } from '../cart'
 import type { ThemeTenant } from '../types'
 import { LuxeEssenceMenuDrawer } from './LuxeEssenceMenuDrawer'
-import { ShippingPolicyModal } from '@/components/ShippingPolicyModal'
+import { LuxeEssenceShippingPolicyModal } from './LuxeEssenceShippingPolicyModal'
 import { useCartAuthGate } from '@/lib/useCartAuthGate'
 import { LuxeEssenceHeader } from './LuxeEssenceHeader'
 import { LuxeEssenceFooter } from './LuxeEssenceFooter'
@@ -70,7 +70,7 @@ export function LuxeEssencePage({
   return (
     <div className="le-root theme-luxe-essence">
       <LuxeEssenceMenuDrawer open={menuOpen} onClose={() => setMenuOpen(false)} config={config} />
-      <ShippingPolicyModal
+      <LuxeEssenceShippingPolicyModal
         open={shippingPolicyOpen}
         onClose={() => setShippingPolicyOpen(false)}
         config={config}

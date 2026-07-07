@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import { ThemedAccountShell } from '@/components/account/themes/ThemedAccountShell'
+import { TrackOrderPageFallback } from '@/components/account/TrackOrderPageFallback'
 import { fetchStorefrontConfig } from '@/lib/storefront-api'
 import { loadTenantFromRequest } from '@/lib/load-tenant'
 import { TrackOrderClient } from '@/themes/retail/TrackOrderClient'
@@ -32,7 +33,7 @@ export default async function TrackOrderPage() {
       logoUrl={branding.logoUrl}
       tagline={branding.tagline}
     >
-      <Suspense fallback={<p className="text-sm text-neutral-500">Loading…</p>}>
+      <Suspense fallback={<TrackOrderPageFallback />}>
         <TrackOrderClient tenant={themeTenant} />
       </Suspense>
     </ThemedAccountShell>

@@ -10,6 +10,7 @@ import {
   ShippingPolicyPageContent,
   ShippingPolicyPageShell,
 } from '@/components/ShippingPolicyPageContent'
+import { LuxeEssenceShippingPolicyPage } from '@/themes/retail/luxe-essence/LuxeEssenceShippingPolicyPage'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,6 +35,14 @@ export default async function ShippingPolicyPage() {
   const theme = toThemeTenant(tenant, branding.tagline ?? '')
 
   const content = <ShippingPolicyPageContent config={config} siteName={siteName} variant="retail" />
+
+  if (config?.themeKey === 'luxe-essence') {
+    return (
+      <RetailShell tenantId={tenant.id}>
+        <LuxeEssenceShippingPolicyPage tenant={theme} config={config} />
+      </RetailShell>
+    )
+  }
 
   if (isRetailLayoutTheme(config?.themeKey)) {
     return (

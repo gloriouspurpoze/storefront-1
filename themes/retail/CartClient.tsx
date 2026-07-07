@@ -2,8 +2,29 @@
 
 import Link from 'next/link'
 import { RequireStorefrontAuth } from '@/components/account/RequireStorefrontAuth'
+import { cartLineKey } from '@/lib/productVariants'
 import { formatMoney, useCart } from './cart'
 import './retail-cart.css'
+
+function LuxeCartEmptyIcon() {
+  return (
+    <svg
+      className="le-cart-empty-icon"
+      width="40"
+      height="40"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      aria-hidden
+    >
+      <path d="M6 6h15l-1.5 9h-12L6 6Z" strokeLinejoin="round" />
+      <path d="M6 6 5 3H2" strokeLinecap="round" />
+      <circle cx="9.5" cy="19" r="1.25" fill="currentColor" stroke="none" />
+      <circle cx="16.5" cy="19" r="1.25" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
 
 function themeRootClass(themeKey?: string): string {
   if (themeKey === 'soft-studio') return 'ss-root sf-cart-page'
@@ -15,6 +36,10 @@ export function CartClient({ themeKey }: { themeKey?: string }) {
   const { lines, subtotal, itemCount, setQuantity, removeLine } = useCart()
   const currency = lines[0]?.currency ?? 'INR'
   const rootClass = themeRootClass(themeKey)
+  const isLuxe = themeKey === 'luxe-essence'
+  const trustCopy = isLuxe
+    ? 'Secure checkout · Prices verified on our server'
+    : '🔒 Secure checkout · Prices verified on our server'
 
   return (
     <RequireStorefrontAuth returnPath="/cart" title="Sign in to view your cart">
@@ -22,7 +47,7 @@ export function CartClient({ themeKey }: { themeKey?: string }) {
         <div className={rootClass}>
           <div className="sf-cart-empty">
             <div className="sf-cart-empty-icon" aria-hidden>
-              🛍️
+              {isLuxe ? <LuxeCartEmptyIcon /> : '🛍️'}
             </div>
             <h2 className="sf-cart-empty-title">Your cart is empty</h2>
             <p className="sf-cart-empty-sub">Add items from the shop to get started.</p>
@@ -37,7 +62,7 @@ export function CartClient({ themeKey }: { themeKey?: string }) {
             <section aria-label="Cart items">
               <ul className="sf-cart-lines">
                 {lines.map((line) => (
-                  <li key={line.productId} className="sf-cart-line">
+                  <li key={cartLineKey(line.productId, line.variantId)} className="sf-cart-line">
                     <div className="sf-cart-line-thumb">
                       {line.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -57,7 +82,7 @@ export function CartClient({ themeKey }: { themeKey?: string }) {
                             type="button"
                             className="sf-qty-btn"
                             aria-label="Decrease quantity"
-                            onClick={() => setQuantity(line.productId, line.quantity - 1)}
+                            onClick={() => setQuantity(line.productId, line.quantity - 1, line.variantId)}
                           >
                             −
                           </button>
@@ -66,7 +91,7 @@ export function CartClient({ themeKey }: { themeKey?: string }) {
                             type="button"
                             className="sf-qty-btn"
                             aria-label="Increase quantity"
-                            onClick={() => setQuantity(line.productId, line.quantity + 1)}
+                            onClick={() => setQuantity(line.productId, line.quantity + 1, line.variantId)}
                           >
                             +
                           </button>
@@ -74,7 +99,7 @@ export function CartClient({ themeKey }: { themeKey?: string }) {
                         <button
                           type="button"
                           className="sf-cart-remove"
-                          onClick={() => removeLine(line.productId)}
+                          onClick={() => removeLine(line.productId, line.variantId)}
                         >
                           Remove
                         </button>
@@ -102,7 +127,7 @@ export function CartClient({ themeKey }: { themeKey?: string }) {
               <Link href="/products" className="sf-cart-cta-secondary">
                 Continue shopping
               </Link>
-              <p className="sf-cart-trust">🔒 Secure checkout · Prices verified on our server</p>
+              <p className="sf-cart-trust">{trustCopy}</p>
             </aside>
           </div>
         </div>
