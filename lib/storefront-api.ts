@@ -144,6 +144,8 @@ export function isMenuItemInStock(item: Pick<PublicMenuItem, 'inStock'>): boolea
 export interface PublicMenuCategory {
   id: string
   name: string
+  /** Catalog slug — matches CMS `category-marketing` keys and `?category=` on `/menu`. */
+  slug: string
   items: PublicMenuItem[]
 }
 
@@ -781,4 +783,19 @@ export async function fetchStorefrontAnnouncement(
     revalidate: 60,
     tags: [`tenant:${tenantId}`, `tenant:${tenantId}:announcement`],
   })
+}
+
+/** Tenant-scoped CMS `category-marketing` JSON keyed by catalog slug (e.g. `beverages`). */
+export async function fetchCategoryMarketing(
+  tenantId: string,
+): Promise<Record<string, unknown>> {
+  const data = await getJson<Record<string, unknown>>(
+    '/cms/static-content/category-marketing',
+    tenantId,
+    {
+      revalidate: 300,
+      tags: [`tenant:${tenantId}`, `tenant:${tenantId}:category-marketing`],
+    },
+  )
+  return data && typeof data === 'object' && !Array.isArray(data) ? data : {}
 }

@@ -1,8 +1,15 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import type { PublicMenuCategory, StorefrontConfig } from '@/lib/storefront-api'
 import type { ThemeTenant } from '../types'
+import { CategoryMarketingBlocks } from '@/components/CategoryMarketingBlocks'
+import {
+  categoryMarketingForSlug,
+  type CategoryMarketingConfig,
+} from '@/lib/categoryMarketing'
+import { menuCategoryIdForSlug, menuCategorySlugForId } from '@/lib/menuCategorySlug'
 import { MenuFastCardsCheckout } from './MenuFastCardsCheckout'
 import { buildWhatsAppOrderUrl, formatMenuPrice, useMenuCart } from './useMenuCart'
 import { showPreferredDateOfDelivery } from '@/lib/templateSettings'
@@ -21,24 +28,70 @@ import { MenuFastCardsSearchRow } from './MenuFastCardsSearch'
 import { MenuItemDetailModal } from '@/components/MenuItemDetailModal'
 import { isWhatsAppOrderEnabled } from '@/lib/storefrontPaymentMethods'
 import { countMenuItems, filterMenuCategories } from '@/lib/menuCatalog'
+import type { MenuFastCardsStorefrontContent } from './menuFastCardsContentTypes'
+import { MenuFastCardsAnnouncementBar } from './content/MenuFastCardsAnnouncementBar'
+import { MenuFastCardsOffersStrip } from './content/MenuFastCardsOffersStrip'
+import { MenuFastCardsPopupBanner } from './content/MenuFastCardsPopupBanner'
+import { MenuFastCardsPromoBlock } from './content/MenuFastCardsPromoBlock'
 import './menufast.css'
+
+const EMPTY_CONTENT: MenuFastCardsStorefrontContent = {
+  announcement: null,
+  offers: [],
+  promo: [],
+  popup: null,
+}
 
 export function MenuFastCardsPage({
   initialCategories,
   tenant,
   config,
+  content = EMPTY_CONTENT,
+  categoryMarketing = {},
 }: {
   initialCategories: PublicMenuCategory[]
   tenant: ThemeTenant
   config: StorefrontConfig | null
+  content?: MenuFastCardsStorefrontContent
+  categoryMarketing?: Record<string, CategoryMarketingConfig>
 }) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const categorySlugFromUrl = searchParams.get('category')?.trim().toLowerCase() ?? ''
+
   const siteName = config?.branding?.siteName || tenant.name
   const tagline = config?.branding?.tagline
   const logoUrl = config?.branding?.logoUrl || tenant.logoUrl
   const whatsapp = config?.branding?.socials?.whatsapp || config?.branding?.contactPhone
   const showWhatsApp = isWhatsAppOrderEnabled(config)
 
-  const [activeCat, setActiveCat] = useState<MenuCategoryFilter>('all')
+  const activeCat = useMemo(
+    () => menuCategoryIdForSlug(initialCategories, categorySlugFromUrl),
+    [categorySlugFromUrl, initialCategories],
+  )
+
+  const onCategoryChange = useCallback(
+    (id: MenuCategoryFilter) => {
+      const params = new URLSearchParams(searchParams.toString())
+      if (id === 'all') {
+        params.delete('category')
+      } else {
+        const slug = menuCategorySlugForId(initialCategories, id)
+        if (slug) params.set('category', slug)
+        else params.delete('category')
+      }
+      const qs = params.toString()
+      router.replace(qs ? `?${qs}` : '?', { scroll: false })
+    },
+    [router, searchParams, initialCategories],
+  )
+
+  const activeCategoryMarketing = useMemo(() => {
+    if (activeCat === 'all') return null
+    const slug = menuCategorySlugForId(initialCategories, activeCat)
+    return slug ? categoryMarketingForSlug(categoryMarketing, slug) : null
+  }, [activeCat, categoryMarketing, initialCategories])
+
   const [searchQuery, setSearchQuery] = useState('')
   const [searchExpanded, setSearchExpanded] = useState(false)
   const [orderNumber, setOrderNumber] = useState<string | null>(null)
@@ -100,8 +153,11 @@ export function MenuFastCardsPage({
     )
   }
 
+  const { announcement, offers, promo, popup } = content
+
   return (
     <div className="mf-root theme-menufast-cards">
+      {popup ? <MenuFastCardsPopupBanner banner={popup} tenantId={tenant.id} /> : null}
       <MenuFastCardsMenuDrawer
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
@@ -130,6 +186,8 @@ export function MenuFastCardsPage({
             <div className="mf-phone-notch" />
           </div>
 
+          {announcement ? <MenuFastCardsAnnouncementBar data={announcement} /> : null}
+
           <div className="mf-cards-sticky">
             <MenuFastCardsToolbar
               tenant={tenant}
@@ -149,22 +207,26 @@ export function MenuFastCardsPage({
             <MenuFastCardsCategoryNav
               categories={initialCategories}
               activeId={activeCat}
-              onChange={setActiveCat}
-            />
-          </div>
+              onChange={onCategoryChange}
+            />          </div>
 
           <div className="mf-cards-body" id="mf-menu-panel" role="tabpanel" aria-label="Menu items">
             <MenuFastCardsBrand siteName={siteName} tagline={tagline} logoUrl={logoUrl} />
             <MenuFastCardsHero config={config} />
+            {offers.length > 0 ? <MenuFastCardsOffersStrip slides={offers} /> : null}
+            {promo.length > 0 ? <MenuFastCardsPromoBlock slides={promo} /> : null}
             {isGlobalEmpty ? (
               <MenuFastCardsEmpty variant="global" />
             ) : isSearchEmpty ? (
               <MenuFastCardsEmpty variant="search" onClearSearch={() => setSearchQuery('')} />
             ) : isCategoryEmpty ? (
-              <MenuFastCardsEmpty variant="category" onShowAll={() => setActiveCat('all')} />
+              <MenuFastCardsEmpty variant="category" onShowAll={() => onCategoryChange('all')} />
             ) : (
-              <MenuFastCardsGrid
-                categories={visibleCategories}
+              <>
+                {activeCategoryMarketing ? (
+                  <CategoryMarketingBlocks config={activeCategoryMarketing} />
+                ) : null}
+                <MenuFastCardsGrid                categories={visibleCategories}
                 showCategoryTitles={activeCat === 'all'}
                 cart={cart}
                 authReady={authReady}
@@ -172,8 +234,8 @@ export function MenuFastCardsPage({
                 onAddItem={addItem}
                 onRemoveItem={removeItem}
               />
-            )}
-            <MenuFastCardsFooter config={config} />
+              </>
+            )}            <MenuFastCardsFooter config={config} />
           </div>
 
           <MenuFastCardsCart

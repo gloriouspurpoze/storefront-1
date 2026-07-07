@@ -1,7 +1,7 @@
 import type { PublicMenuCategory, PublicProduct, StorefrontConfig } from '@/lib/storefront-api'
 import type { ThemeTenant } from './types'
 import { SaffronLayout, SaffronMenuPage } from './saffron'
-import { MenuFastMinimalPage, MenuFastCardsPage } from './menufast'
+import { MenuFastMinimalPage, MenuFastCardsStorefrontPage } from './menufast'
 import { isPrivateLayoutTheme, renderPrivateLayout } from '@/themes/private/registry'
 
 /** Full-page restaurant layout templates (themeKey → React bundle). */
@@ -32,7 +32,13 @@ export function RestaurantLayoutPage({
     case 'menufast-minimal':
       return <MenuFastMinimalPage initialCategories={menu} tenant={tenant} config={config} />
     case 'menufast-cards':
-      return <MenuFastCardsPage initialCategories={menu} tenant={tenant} config={config} />
+      return (
+        <MenuFastCardsStorefrontPage
+          initialCategories={menu}
+          tenant={tenant}
+          config={config}
+        />
+      )
     default:
       return null
   }
