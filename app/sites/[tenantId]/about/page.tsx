@@ -15,6 +15,7 @@ import { RetailShell } from '@/themes/retail/RetailShell'
 import { SiteHeader as RetailHeader } from '@/themes/retail/SiteHeader'
 import { SiteFooter as RetailFooter } from '@/themes/retail/SiteFooter'
 import { toThemeTenant as toRetailTenant } from '@/themes/retail/types'
+import { LuxeEssenceAboutPage } from '@/themes/retail/luxe-essence/LuxeEssenceAboutPage'
 
 export const dynamic = 'force-dynamic'
 
@@ -69,6 +70,14 @@ export default async function AboutPage() {
     case 'retail': {
       const tenant = await loadRetailTenant()
       const theme = toRetailTenant(tenant, tenant.fallbackTagline)
+      const config = await fetchStorefrontConfig(tenant.id)
+      if (config?.themeKey === 'luxe-essence') {
+        return (
+          <RetailShell tenantId={tenant.id}>
+            <LuxeEssenceAboutPage tenant={theme} config={config} />
+          </RetailShell>
+        )
+      }
       return (
         <RetailShell tenantId={tenant.id}>
           <RetailHeader tenant={theme} />

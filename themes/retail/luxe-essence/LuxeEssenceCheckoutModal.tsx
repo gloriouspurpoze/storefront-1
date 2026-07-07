@@ -94,7 +94,7 @@ export function LuxeEssenceCheckoutModal({
     showPreferredDate && Boolean(deliveryDetails.preferredDate?.trim())
   const checkoutBlockedByHours = !storeOpen && !hasScheduledDate
 
-  const { requestCheckout, modal: policyModal } = useShippingPolicyCheckoutGate(config)
+  const { requestCheckout, modal: policyModal } = useShippingPolicyCheckoutGate(config, themeKey)
   const {
     email: prefillEmail,
     name: prefillName,

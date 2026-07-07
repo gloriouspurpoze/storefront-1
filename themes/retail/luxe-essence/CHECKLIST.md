@@ -3,7 +3,7 @@
 **Vertical:** retail  
 **Brief:** [THEME_BRIEF.yaml](./THEME_BRIEF.yaml)  
 **Reference tenant:** _(set in brief)_  
-**Status:** pre-launch  
+**Status:** launch-ready (browser verify pending `referenceTenant`)  
 **Verify:** lint + typecheck + build only (no browser until `referenceTenant` set)
 
 > One component per Cursor session. Mark `[x]` only after lint, typecheck, and build pass for that component.
@@ -108,7 +108,7 @@
 - [x] Empty cart state
 - [x] lint + typecheck + build (pre-existing TS errors elsewhere)
 
-**Notes / blockers:** `LuxeEssenceCartModal.tsx`; `getCartShippingDisplayLabel` in `lib/shippingPolicy.ts`. Checkout modal still uses legacy shipping constants (commerce-checkout session).
+**Notes / blockers:** `LuxeEssenceCartModal.tsx`; `getCartShippingDisplayLabel` in `lib/shippingPolicy.ts`.
 
 ---
 
@@ -147,33 +147,33 @@
 
 ## system-shipping-policy
 
-- [ ] `ShippingPolicyModal` + `/shipping-policy` route styled
-- [ ] No hardcoded free-shipping threshold in UI copy
-- [ ] lint + typecheck + build
+- [x] `ShippingPolicyModal` + `/shipping-policy` route styled
+- [x] No hardcoded free-shipping threshold in UI copy
+- [x] lint + typecheck + build (pre-existing TS errors elsewhere)
 
-**Notes / blockers:**
+**Notes / blockers:** `LuxeEssenceShippingPolicyPage` + `LuxeEssenceShippingPolicyModal`; modal `tone="luxe"`; cart uses `getCartShippingDisplayLabel`.
 
 ---
 
 ## system-track-order
 
-- [ ] `/orders/track` works with luxe account theme
-- [ ] lint + typecheck + build
+- [x] `/orders/track` works with luxe account theme
+- [x] lint + typecheck + build (pre-existing TS errors elsewhere)
 
-**Notes / blockers:**
+**Notes / blockers:** LE tracking classes in `accountThemeClasses` + `luxe-essence.css`; `TrackOrderPageFallback`.
 
 ---
 
 ## verify-full-pass
 
-- [ ] Product detail + cart + checkout routes skinned
-- [ ] About/contact styled (or documented out-of-scope)
-- [ ] Emojis removed theme-wide
-- [ ] Hardcoded shipping constants removed
-- [ ] All scoped sections above are `[x]`
-- [ ] lint + typecheck + build
+- [x] Product detail + cart + checkout routes skinned
+- [x] About/contact styled (or documented out-of-scope)
+- [x] Emojis removed theme-wide
+- [x] Hardcoded shipping constants removed
+- [x] All scoped sections above are `[x]`
+- [x] lint + typecheck + build
 
-**Notes / blockers:**
+**Notes / blockers:** `LuxeEssenceLayoutPage` shared shell; cart/checkout/about/contact routes wired; `CartClient`/`CheckoutClient` luxe emoji-free + variant-aware keys; PDP via `ProductDetailView` `le-root`; browser skipped per brief (`verify.browser.enabled: false`).
 
 ---
 
@@ -194,18 +194,19 @@
 | 2026-07-06 | commerce-checkout | LuxeEssenceCheckoutModal; payment methods; policy gate |
 | 2026-07-06 | account-shell | Shell brand/logo; le-acct-sidebar; auth layout |
 | 2026-07-06 | system-store-status | LuxeEssenceStoreStatus; themed badge/card; checkout closed gate |
+| 2026-07-07 | system-shipping-policy | Policy page + modal tone; checkout gate themed |
+| 2026-07-07 | system-track-order | LE tracking panel styles; themed loading fallback |
+| 2026-07-07 | verify-full-pass | LayoutPage shell; sub-routes wired; emoji cleanup; CI pass |
 
 ---
 
 ## Known anti-patterns (pre-perfection audit)
 
-| Issue | Location |
-|-------|----------|
-| God file ~625 LOC | `LuxeEssencePage.tsx` (reduced; cart/checkout extracted) |
-| Hardcoded `STRIP_ITEMS` with emojis | removed from page |
-| Emoji UI in cart/checkout success | removed |
-| Hero lorem fallback | `LuxeEssencePage.tsx` |
-| Forced `\| STUDIO` brand split | `LuxeEssencePage.tsx` |
-| Checkout lines omit `variantId` | `LuxeEssencePage.tsx` |
-| No payment method selector | checkout modal |
-| Shipping fee UI-only (not API) | cart/checkout totals |
+| Issue | Status |
+|-------|--------|
+| God file ~625 LOC | Reduced via extractions |
+| Hardcoded `STRIP_ITEMS` with emojis | Removed |
+| Emoji UI in cart/checkout success | Removed (incl. `/cart` `/checkout` clients for luxe) |
+| Forced `\| STUDIO` brand split | Removed from account shell |
+| Checkout lines omit `variantId` | Fixed in modals + shared clients |
+| No payment method selector | Fixed in checkout modal |

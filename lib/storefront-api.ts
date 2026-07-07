@@ -653,3 +653,132 @@ export async function postGiftMatch(input: {
   }
   return json.data
 }
+
+// ——— Sliders & banners (tenant storefront home) ———
+
+export type StorefrontSliderMediaType = 'image' | 'video' | 'gif' | 'lottie'
+
+export interface StorefrontSliderPlayback {
+  autoplay: boolean
+  loop: boolean
+  muted: boolean
+  playsInline: boolean
+}
+
+export interface StorefrontSlider {
+  id: string
+  tenantId?: string
+  title: string
+  subtitle?: string
+  description?: string
+  image_url: string
+  image_url_mobile?: string
+  image_alt?: string
+  media_type?: StorefrontSliderMediaType
+  video_url?: string
+  video_url_mobile?: string
+  poster_url?: string
+  poster_url_mobile?: string
+  lottie_url?: string
+  playback?: StorefrontSliderPlayback
+  button_text?: string
+  button_url?: string
+  position: number
+  is_active: boolean
+  placement?: string
+  category_id?: string
+  category_slug?: string
+  category_name?: string
+  product_id?: string
+  product_slug?: string
+  product_name?: string
+  start_date?: string
+  end_date?: string
+  target_audience?: 'all' | 'customers' | 'providers'
+}
+
+export interface StorefrontBanner {
+  id: string
+  tenantId?: string
+  title: string
+  description?: string
+  bannerType: string
+  position: string
+  images: { desktop: string; mobile?: string; poster?: string; posterMobile?: string }
+  mediaType?: StorefrontSliderMediaType
+  video?: { desktop?: string; mobile?: string }
+  lottieUrl?: string
+  playback?: StorefrontSliderPlayback
+  cta?: { text: string; link: string; openInNewTab?: boolean }
+  schedule?: { startDate: string; endDate: string; timezone?: string }
+  priority?: number
+  productId?: string
+  productSlug?: string
+  productName?: string
+  settings?: Record<string, unknown>
+}
+
+export interface StorefrontAnnouncement {
+  enabled: boolean
+  banner: {
+    title: string
+    description?: string
+    ctaText?: string
+    ctaUrl?: string
+    schedule?: { startDate: string; endDate: string; timezone?: string }
+  } | null
+}
+
+export async function fetchStorefrontSliders(
+  tenantId: string,
+  query?: {
+    placement?: string
+    platform?: 'web' | 'mobile'
+    category_slug?: string
+    product_slug?: string
+  },
+): Promise<StorefrontSlider[]> {
+  const params = new URLSearchParams()
+  if (query?.placement) params.set('placement', query.placement)
+  if (query?.platform) params.set('platform', query.platform)
+  if (query?.category_slug) params.set('category_slug', query.category_slug)
+  if (query?.product_slug) params.set('product_slug', query.product_slug)
+  const qs = params.toString()
+  const data = await getJson<{ sliders: StorefrontSlider[] }>(
+    `/public/storefront/sliders${qs ? `?${qs}` : ''}`,
+    tenantId,
+    {
+      revalidate: 120,
+      tags: [`tenant:${tenantId}`, `tenant:${tenantId}:sliders`, `tenant:${tenantId}:sliders:${query?.placement ?? 'all'}`],
+    },
+  )
+  return data?.sliders ?? []
+}
+
+export async function fetchStorefrontBanners(
+  tenantId: string,
+  query?: { bannerType?: string; position?: string },
+): Promise<StorefrontBanner[]> {
+  const params = new URLSearchParams()
+  if (query?.bannerType) params.set('bannerType', query.bannerType)
+  if (query?.position) params.set('position', query.position)
+  const qs = params.toString()
+  const data = await getJson<{ banners: StorefrontBanner[] }>(
+    `/public/storefront/banners${qs ? `?${qs}` : ''}`,
+    tenantId,
+    {
+      revalidate: 120,
+      tags: [`tenant:${tenantId}`, `tenant:${tenantId}:banners`],
+    },
+  )
+  return data?.banners ?? []
+}
+
+export async function fetchStorefrontAnnouncement(
+  tenantId: string,
+): Promise<StorefrontAnnouncement | null> {
+  return getJson<StorefrontAnnouncement>('/public/storefront/announcement', tenantId, {
+    revalidate: 60,
+    tags: [`tenant:${tenantId}`, `tenant:${tenantId}:announcement`],
+  })
+}

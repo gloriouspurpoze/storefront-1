@@ -22,6 +22,7 @@ Six layout templates ship as the default catalog. Super admins can enable/disabl
 - **Shipping / delivery policy** — tenant config; modal gate at checkout; full page at `/shipping-policy`
 - **E-commerce** — product card → `/products/[slug]` detail page
 - **Restaurant** — menu card/row → `MenuItemDetailModal` popup
+- **Sliders & banners (optional)** — shared storefront components (`storefront/components/StorefrontAnnouncementBar`, `StorefrontOfferStrip`, `StorefrontPromoBlocks`, `StorefrontPopupBanner`; optional `StorefrontHeroCarousel` for `home_page_hero` supplement). Tenants manage content in admin **Marketing → Sliders & banners** (`/sliders`). Placements collapse when empty. Announcement bar also requires `showOfferMarquee` in storefront studio. See [sliders-banners-storefront.md](../../docs/features/sliders-banners-storefront.md).
 
 ## Restaurant (`restaurant/`)
 

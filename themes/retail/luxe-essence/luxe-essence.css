@@ -1423,6 +1423,10 @@
   color: var(--le-accent);
 }
 
+.le-acct-content {
+  width: 100%;
+}
+
 .le-acct-card {
   background: var(--le-surface);
   border: 2px solid var(--le-border);
@@ -1500,6 +1504,11 @@
 .le-acct-btn--primary:hover {
   background: var(--le-accent-hover);
   transform: translateY(-1px);
+}
+
+.le-acct-btn--block {
+  width: 100%;
+  justify-content: center;
 }
 
 .le-acct-btn--secondary {
@@ -1589,6 +1598,154 @@
   background: var(--le-soft);
   border-radius: 16px;
   border: 1px solid #e4dfef;
+}
+
+.le-acct-tracking-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.le-acct-tracking-result {
+  background: var(--le-surface);
+  border: 2px solid #e4dfef;
+  border-radius: 20px;
+  padding: 22px 20px;
+  box-shadow: 0 8px 32px rgba(45, 42, 62, 0.06);
+}
+
+.le-acct-tracking-eyebrow {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--le-muted);
+}
+
+.le-acct-tracking-status-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--le-dark);
+  line-height: 1.2;
+}
+
+.le-acct-tracking-order-num {
+  margin-top: 6px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--le-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.le-acct-order-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 40px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--le-muted);
+  background: var(--le-soft);
+}
+
+.le-acct-order-status--delivered {
+  color: #2d6b47;
+  background: rgba(61, 154, 95, 0.12);
+}
+
+.le-acct-order-status--shipped {
+  color: #3d5a80;
+  background: rgba(61, 90, 128, 0.1);
+}
+
+.le-acct-order-status--cancelled {
+  color: var(--le-badge);
+  background: rgba(224, 90, 90, 0.1);
+}
+
+.le-acct-tracking-dl {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 0.88rem;
+}
+
+.le-acct-tracking-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.le-acct-tracking-dt {
+  color: var(--le-muted);
+  flex-shrink: 0;
+}
+
+.le-acct-tracking-dd {
+  font-weight: 600;
+  color: var(--le-dark);
+  text-align: right;
+}
+
+.le-acct-order-track {
+  display: inline-flex;
+  margin-top: 12px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--le-accent);
+  text-decoration: none;
+}
+
+.le-acct-order-track:hover {
+  color: var(--le-accent-hover);
+  text-decoration: underline;
+}
+
+.le-acct-tracking-carrier-btn {
+  margin-top: 20px;
+}
+
+.le-acct-tracking-history {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e4dfef;
+  list-style: none;
+  margin-left: 0;
+  padding-left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.86rem;
+}
+
+.le-acct-tracking-history-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.le-acct-tracking-history-status {
+  font-weight: 600;
+  color: var(--le-dark);
+}
+
+.le-acct-tracking-history-date {
+  color: var(--le-muted);
+  font-size: 0.82rem;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.le-acct-signed-in-note {
+  border-radius: 20px;
+  border: 1px solid #ebe7e1;
+  background: var(--le-soft);
+  padding: 12px 16px;
+  font-size: 0.82rem;
+  color: var(--le-muted);
 }
 
 .le-acct-form {
@@ -1743,4 +1900,122 @@
     flex: 1;
     justify-content: center;
   }
+}
+
+/* Shipping policy — full page */
+.le-policy-page {
+  padding-bottom: 3rem;
+}
+
+.le-policy-panel {
+  margin-top: 2rem;
+  padding: 1.5rem 1.75rem;
+  border-radius: 24px;
+  border: 2px solid #e4dfef;
+  background: var(--le-surface);
+}
+
+.le-policy-panel__body .sf-ordering-hours-table__title {
+  display: none;
+}
+
+.le-policy-panel__body .sf-menu-drawer__policy-copy {
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--le-text);
+}
+
+.le-policy-panel__body .sf-menu-drawer__policy-link {
+  color: var(--le-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.le-policy-panel__body .sf-menu-drawer__policy-link:hover {
+  color: var(--le-accent-hover);
+  text-decoration: underline;
+}
+
+.le-policy-panel__body .sf-menu-drawer__detail-row {
+  border-color: #e4dfef;
+}
+
+.le-policy-panel__body .sf-menu-drawer__detail-label {
+  color: var(--le-dark);
+  font-weight: 600;
+}
+
+.le-policy-panel__body .sf-menu-drawer__detail-value {
+  color: var(--le-muted);
+}
+
+.le-policy-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  margin-top: 2.5rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.le-policy-links a {
+  color: var(--le-accent);
+  text-decoration: none;
+}
+
+.le-policy-links a:hover {
+  color: var(--le-accent-hover);
+  text-decoration: underline;
+}
+
+/* Shipping policy — modal (portaled; needs theme vars on root) */
+.sf-shipping-policy-modal--luxe {
+  --le-accent: #d6784a;
+  --le-accent-hover: #c4693d;
+  --le-dark: #2d2a3e;
+  --le-muted: #7b7b8c;
+  --le-surface: #fffefb;
+  --le-text: #1e1e2a;
+  background: rgba(45, 42, 62, 0.36);
+  backdrop-filter: blur(4px);
+}
+
+.sf-shipping-policy-modal--luxe .sf-shipping-policy-modal__card {
+  border-radius: 24px;
+  border: 2px solid #e4dfef;
+  color: var(--le-text);
+}
+
+.sf-shipping-policy-modal--luxe .sf-shipping-policy-modal__title {
+  color: var(--le-dark);
+  font-weight: 600;
+}
+
+.sf-shipping-policy-modal--luxe .sf-shipping-policy-modal__close {
+  color: var(--le-muted);
+}
+
+.sf-shipping-policy-modal--luxe .sf-menu-drawer__policy-copy {
+  color: var(--le-muted);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.sf-shipping-policy-modal--luxe .sf-menu-drawer__policy-link {
+  color: var(--le-accent);
+  font-weight: 600;
+}
+
+.sf-shipping-policy-modal--luxe .sf-menu-drawer__detail-label {
+  color: var(--le-dark);
+}
+
+.sf-shipping-policy-modal--luxe .sf-shipping-policy-modal__ack {
+  background: var(--le-accent);
+  border-radius: 40px;
+}
+
+.sf-shipping-policy-modal--luxe .sf-shipping-policy-modal__ack:hover {
+  background: var(--le-accent-hover);
+  opacity: 1;
 }

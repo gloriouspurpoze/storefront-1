@@ -14,6 +14,7 @@ import {
   type DeliveryDetailsValue,
 } from '@/lib/templateSettings'
 import { getOrderingAvailabilityFromConfig, getOrderingHoursFromConfig } from '@/lib/orderingHours'
+import { cartLineKey } from '@/lib/productVariants'
 import { formatMoney, useCart } from './cart'
 import type { ThemeTenant } from './types'
 import { useShippingPolicyCheckoutGate, validateBeforePayment } from '@/lib/useShippingPolicyCheckoutGate'
@@ -25,6 +26,26 @@ type Status =
   | { kind: 'processing' }
   | { kind: 'success'; orderNumber?: string }
   | { kind: 'error'; message: string }
+
+function LuxeCartEmptyIcon() {
+  return (
+    <svg
+      className="le-cart-empty-icon"
+      width="40"
+      height="40"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      aria-hidden
+    >
+      <path d="M6 6h15l-1.5 9h-12L6 6Z" strokeLinejoin="round" />
+      <path d="M6 6 5 3H2" strokeLinecap="round" />
+      <circle cx="9.5" cy="19" r="1.25" fill="currentColor" stroke="none" />
+      <circle cx="16.5" cy="19" r="1.25" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
 
 function themeRootClass(themeKey?: string): string {
   if (themeKey === 'soft-studio') return 'ss-root sf-checkout-page'
@@ -49,7 +70,7 @@ export function CheckoutClient({
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
-  const { requestCheckout, modal } = useShippingPolicyCheckoutGate(config)
+  const { requestCheckout, modal } = useShippingPolicyCheckoutGate(config, themeKey)
   const showPreferredTime = showPreferredTimeOfDelivery(config, config?.themeKey ?? themeKey ?? 'classic')
   const orderingHours = useMemo(() => getOrderingHoursFromConfig(config), [config])
   const orderingAvailability = useMemo(() => getOrderingAvailabilityFromConfig(config), [config])
@@ -109,7 +130,11 @@ export function CheckoutClient({
         tenantId: tenant.id,
         tenantName: tenant.name,
         brandColor: tenant.brand,
-        lines: lines.map((l) => ({ productId: l.productId, quantity: l.quantity })),
+        lines: lines.map((l) => ({
+          productId: l.productId,
+          quantity: l.quantity,
+          variantId: l.variantId,
+        })),
         customer: {
           email: contact.email,
           name: contact.name,
@@ -137,6 +162,10 @@ export function CheckoutClient({
 
   const rootClass = themeRootClass(themeKey)
   const currency = lines[0]?.currency ?? 'INR'
+  const isLuxe = themeKey === 'luxe-essence'
+  const trustCopy = isLuxe
+    ? 'Secure payment via Razorpay · Prices verified on our server'
+    : '🔒 Secure payment via Razorpay · Prices verified on our server'
 
   if (status.kind === 'success') {
     return (
@@ -178,7 +207,7 @@ export function CheckoutClient({
           {modal}
           <div className={`${rootClass} sf-cart-empty`}>
             <div className="sf-cart-empty-icon" aria-hidden>
-              🛒
+              {isLuxe ? <LuxeCartEmptyIcon /> : '🛒'}
             </div>
             <h2 className="sf-cart-empty-title">Nothing to checkout</h2>
             <p className="sf-cart-empty-sub">Your cart is empty. Add items before checking out.</p>
@@ -258,7 +287,7 @@ export function CheckoutClient({
             >
               {status.kind === 'processing' ? 'Processing…' : `Pay ${formatMoney(subtotal, currency)}`}
             </button>
-            <p className="sf-cart-trust">🔒 Secure payment via Razorpay · Prices verified on our server</p>
+            <p className="sf-cart-trust">{trustCopy}</p>
           </form>
 
           <aside className="sf-cart-summary sf-checkout-summary" aria-label="Order summary">
@@ -268,7 +297,7 @@ export function CheckoutClient({
             </p>
             <ul className="sf-checkout-summary-lines">
               {lines.map((line) => (
-                <li key={line.productId} className="sf-checkout-summary-line">
+                <li key={cartLineKey(line.productId, line.variantId)} className="sf-checkout-summary-line">
                   <span>
                     {line.name} ×{line.quantity}
                   </span>
