@@ -1,4 +1,4 @@
-import type { PublicProduct, StorefrontConfig } from '@/lib/storefront-api'
+import type { PublicProduct, StorefrontConfig, StorefrontProductCategory } from '@/lib/storefront-api'
 import type { ThemeTenant } from './types'
 import { RetailShell } from './RetailShell'
 import { SoftStudioPage } from './soft-studio'
@@ -9,11 +9,13 @@ import { isPrivateLayoutTheme, renderPrivateLayout } from '@/themes/private/regi
 export function RetailLayoutPage({
   themeKey,
   products,
+  categories = [],
   tenant,
   config,
 }: {
   themeKey?: string
   products: PublicProduct[]
+  categories?: StorefrontProductCategory[]
   tenant: ThemeTenant
   config: StorefrontConfig | null
 }) {
@@ -31,7 +33,12 @@ export function RetailLayoutPage({
     case 'luxe-essence':
       return (
         <RetailShell tenantId={tenant.id}>
-          <LuxeEssencePage products={products} tenant={tenant} config={config} />
+          <LuxeEssencePage
+            products={products}
+            categories={categories}
+            tenant={tenant}
+            config={config}
+          />
         </RetailShell>
       )
     default:

@@ -210,9 +210,50 @@
   margin: 0 auto;
   padding: 48px 24px 32px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 40px;
-  align-items: center;
+  column-gap: 40px;
+  align-items: start;
+}
+
+.le-hero--no-visual {
+  grid-template-columns: 1fr;
+}
+
+.le-hero--visual-only {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+}
+
+/* Visual left, category pills rightmost (no hero copy). */
+.le-hero--with-categories {
+  grid-template-columns: minmax(0, 1fr) minmax(148px, 220px);
+}
+
+.le-hero--with-categories .le-hero-visual {
+  grid-column: 1;
+}
+
+.le-hero--with-categories .le-hero-categories {
+  grid-column: 2;
+}
+
+/* When hero copy is shown between visual and pills. */
+.le-hero--with-categories.le-hero--with-copy {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr) minmax(148px, 220px);
+}
+
+.le-hero--with-copy .le-hero-copy {
+  grid-column: 2;
+}
+
+.le-hero--with-copy .le-hero-categories {
+  grid-column: 3;
+}
+
+.le-hero--categories-only {
+  grid-template-columns: 1fr minmax(148px, 220px);
+}
+
+.le-hero--categories-only .le-hero-categories {
+  grid-column: 2;
 }
 
 .le-hero-eyebrow {
@@ -290,10 +331,71 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 16px;
+  align-self: start;
+  /* background-color: red; */
 }
 
-.le-hero--no-visual {
-  grid-template-columns: 1fr;
+.le-hero-categories {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  /* justify-self: end; */
+  gap: 8px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 2px 6px 2px 0;
+  /* align-items: end; */
+  align-self: end;
+  scrollbar-width: thin;
+  scrollbar-color: #d4cfe0 transparent;
+  margin-right: 0;
+}
+
+.le-hero-categories::-webkit-scrollbar {
+  width: 5px;
+}
+
+.le-hero-categories::-webkit-scrollbar-thumb {
+  background: #d4cfe0;
+  border-radius: 999px;
+}
+
+.le-hero-category-pill {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 1.5px solid #e4dfef;
+  background: var(--le-surface);
+  color: var(--le-dark);
+  padding: 10px 16px;
+  border-radius: 40px;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.3;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+
+.le-hero-category-pill:hover {
+  border-color: var(--le-dark);
+}
+
+.le-hero-category-pill.is-active {
+  background: var(--le-accent);
+  border-color: var(--le-accent);
+  color: white;
+}
+
+.le-hero-category-pill:focus-visible {
+  outline: 2px solid var(--le-accent);
+  outline-offset: 2px;
+}
+
+.le-hero--no-visual .le-hero-categories,
+.le-hero--categories-only .le-hero-categories {
+  max-height: min(320px, 50vh);
 }
 
 .le-hero-card {
@@ -1159,11 +1261,30 @@
   .le-hero {
     grid-template-columns: 1fr;
     padding-top: 32px;
+    align-items: start;
+  }
+
+  .le-hero--visual-only,
+  .le-hero--with-categories,
+  .le-hero--categories-only {
+    grid-template-columns: 1fr;
+  }
+
+  .le-hero-copy {
+    order: 1;
   }
 
   .le-hero-visual {
+    order: 2;
     max-width: 400px;
+    width: 100%;
     margin: 0 auto;
+  }
+
+  .le-hero-categories {
+    order: 3;
+    width: 100%;
+    max-height: min(220px, 40vh) !important;
   }
 
   .le-footer {

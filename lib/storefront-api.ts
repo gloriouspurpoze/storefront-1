@@ -187,6 +187,23 @@ export interface PublicProduct {
   categorySortOrder?: number
 }
 
+export interface StorefrontProductCategory {
+  slug: string
+  name: string
+  sortOrder?: number
+}
+
+export async function fetchStorefrontCategories(
+  tenantId: string,
+): Promise<StorefrontProductCategory[]> {
+  const data = await getJson<{ categories: StorefrontProductCategory[] }>(
+    '/public/storefront/categories',
+    tenantId,
+    { revalidate: 60, tags: [`tenant:${tenantId}`, `tenant:${tenantId}:categories`] },
+  )
+  return data?.categories ?? []
+}
+
 export async function fetchProducts(tenantId: string, limit = 24): Promise<PublicProduct[]> {
   const data = await getJson<{ products: PublicProduct[] }>(
     `/public/storefront/products?limit=${limit}`,

@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import type { PublicProduct, StorefrontConfig } from '@/lib/storefront-api'
+import { useEffect, useMemo, useState } from 'react'
+import type { PublicProduct, StorefrontConfig, StorefrontProductCategory } from '@/lib/storefront-api'
+import { mergeStorefrontCategories } from '@/lib/productCategories'
 import { useCart } from '../cart'
 import type { ThemeTenant } from '../types'
 import { LuxeEssenceMenuDrawer } from './LuxeEssenceMenuDrawer'
@@ -21,10 +22,12 @@ import './luxe-essence.css'
 
 export function LuxeEssencePage({
   products,
+  categories = [],
   tenant,
   config,
 }: {
   products: PublicProduct[]
+  categories?: StorefrontProductCategory[]
   tenant: ThemeTenant
   config: StorefrontConfig | null
 }) {
@@ -42,6 +45,30 @@ export function LuxeEssencePage({
   const [cartOpen, setCartOpen] = useState(false)
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [shippingPolicyOpen, setShippingPolicyOpen] = useState(false)
+  const [selectedCategorySlug, setSelectedCategorySlug] = useState<string | null>(null)
+
+  const heroCategories = useMemo(
+    () =>
+      mergeStorefrontCategories(
+        categories.map((c) => ({
+          slug: c.slug,
+          name: c.name,
+          sortOrder: c.sortOrder ?? 100,
+        })),
+        products,
+      ),
+    [categories, products],
+  )
+
+  const catalogProducts = useMemo(() => {
+    if (!selectedCategorySlug) return products
+    return products.filter((product) => {
+      const slug =
+        product.categorySlug?.trim() ||
+        (product as PublicProduct & { category_slug?: string }).category_slug?.trim()
+      return slug === selectedCategorySlug
+    })
+  }, [products, selectedCategorySlug])
 
   const openCheckout = () => {
     if (!requireAuthForCart()) return
@@ -88,13 +115,22 @@ export function LuxeEssencePage({
         }}
       />
 
-      <LuxeEssenceHero config={config} siteName={siteName} products={products} />
+      <LuxeEssenceHero
+        config={config}
+        siteName={siteName}
+        products={products}
+        categories={heroCategories}
+        selectedCategorySlug={selectedCategorySlug}
+        onSelectCategory={setSelectedCategorySlug}
+      />
 
       {products.length === 0 ? (
         <LuxeEssenceCatalogEmpty />
+      ) : catalogProducts.length === 0 ? (
+        <LuxeEssenceCatalogEmpty message="No products in this category yet. Try another category or browse all." />
       ) : (
         <LuxeEssenceProductGrid
-          products={products}
+          products={catalogProducts}
           authReady={authReady}
           totalQtyForProduct={totalQtyForProduct}
           onAdd={addToCart}

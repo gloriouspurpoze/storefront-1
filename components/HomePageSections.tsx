@@ -2,7 +2,7 @@ import React from 'react'
 import Link from 'next/link'
 import type { ResolvedTenant } from '@/lib/types'
 import type { StorefrontConfig } from '@/lib/storefront-api'
-import { fetchMenu, fetchProducts, fetchServices } from '@/lib/storefront-api'
+import { fetchMenu, fetchProducts, fetchServices, fetchStorefrontCategories } from '@/lib/storefront-api'
 import { SiteHeader as HsHeader } from '@/themes/home-services/SiteHeader'
 import { SiteFooter as HsFooter } from '@/themes/home-services/SiteFooter'
 import { Hero as HsHero } from '@/themes/home-services/Hero'
@@ -207,14 +207,16 @@ export async function HomePageSections({
     const themeTenant = toRetailTenant(tenant, tagline || 'Curated, online, and on the way.')
 
     if (isRetailLayoutTheme(cfg?.themeKey)) {
-      const products =
-        flagOn(cfg, 'showProducts') && sectionEnabled(cfg, 'products')
-          ? await fetchProducts(tenant.id, 24)
-          : []
+      const showProducts = flagOn(cfg, 'showProducts') && sectionEnabled(cfg, 'products')
+      const [products, categories] = await Promise.all([
+        showProducts ? fetchProducts(tenant.id, 80) : Promise.resolve([]),
+        cfg?.themeKey === 'luxe-essence' ? fetchStorefrontCategories(tenant.id) : Promise.resolve([]),
+      ])
       return (
         <RetailLayoutPage
           themeKey={cfg?.themeKey}
           products={products}
+          categories={categories}
           tenant={themeTenant}
           config={cfg}
         />
