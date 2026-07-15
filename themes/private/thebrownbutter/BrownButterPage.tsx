@@ -24,9 +24,23 @@ import { AccountProfileLink } from '@/components/account/AccountProfileLink'
 import { useCartAuthGate } from '@/lib/useCartAuthGate'
 import { useCheckoutCustomerPrefill } from '@/lib/useCheckoutCustomerPrefill'
 import { StorefrontHeaderBar, StorefrontMenuDrawer } from '@/components/StorefrontMenuDrawer'
+import {
+  coerceDeliveryMode,
+  getEnabledDeliveryModes,
+  type StorefrontDeliveryMode,
+} from '@/lib/storefrontDeliveryModes'
 import './brown-butter.css'
 
 type DeliveryMode = 'pickup' | 'local' | 'ship'
+
+function toBrownButterMode(mode: StorefrontDeliveryMode): DeliveryMode {
+  if (mode === 'delivery') return 'local'
+  return mode
+}
+
+function getEnabledBrownButterModes(config: StorefrontConfig | null | undefined): DeliveryMode[] {
+  return getEnabledDeliveryModes(config).map(toBrownButterMode)
+}
 
 const LOCAL_DELIVERY_FEE = 70
 const SHIP_DELIVERY_FEE = 120
@@ -358,6 +372,12 @@ export function BrownButterPage({
   const [mounted, setMounted] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
 
+  const enabledDeliveryModes = useMemo(() => getEnabledBrownButterModes(config), [config])
+
+  useEffect(() => {
+    setDelivery((prev) => coerceDeliveryMode(prev, enabledDeliveryModes, 'pickup'))
+  }, [enabledDeliveryModes])
+
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -584,7 +604,9 @@ export function BrownButterPage({
                   ['pickup', 'Self Pickup · Mira Road', 'Pick up from Tanwar hospital.', 'Free'],
                   ['local', 'Within Mira Road', 'Same-day delivery in Mira Road area.', formatInr(LOCAL_DELIVERY_FEE)],
                   ['ship', 'Ship Anywhere in Mumbai', 'Courier delivery across Mumbai.', formatInr(SHIP_DELIVERY_FEE)],
-                ] as const).map(([mode, title, desc, fee]) => (
+                ] as const)
+                  .filter(([mode]) => enabledDeliveryModes.includes(mode))
+                  .map(([mode, title, desc, fee]) => (
                   <label
                     key={mode}
                     className={`delivery-card${delivery === mode ? ' selected' : ''}`}

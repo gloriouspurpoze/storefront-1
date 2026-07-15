@@ -25,6 +25,10 @@ import {
   productHasVariants,
 } from '@/lib/productVariants'
 import { formatMenuPrice, useMenuCart, type CartEntry } from '../menufast/useMenuCart'
+import {
+  coerceDeliveryMode,
+  getEnabledRestaurantDeliveryModes,
+} from '@/lib/storefrontDeliveryModes'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -353,6 +357,7 @@ interface CartContentProps {
   discount: number
   total: number
   deliveryMode: DeliveryMode
+  enabledDeliveryModes: DeliveryMode[]
   promoCode: string
   promoApplied: boolean
   instructions: string
@@ -379,6 +384,7 @@ function CartContent({
   discount,
   total,
   deliveryMode,
+  enabledDeliveryModes,
   promoCode,
   promoApplied,
   instructions,
@@ -449,10 +455,11 @@ function CartContent({
       {/* Cart body (scrolls) */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.5rem' }}>
         {/* Delivery / pickup toggle */}
+        {enabledDeliveryModes.length > 1 ? (
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
+            gridTemplateColumns: `repeat(${enabledDeliveryModes.length}, 1fr)`,
             gap: '4px',
             background: 'var(--cream-dark, #F0EDE4)',
             borderRadius: 'var(--saf-radius-sm, 6px)',
@@ -460,9 +467,10 @@ function CartContent({
             marginBottom: '1.25rem',
           }}
         >
-          {(['delivery', 'pickup'] as DeliveryMode[]).map((mode) => (
+          {enabledDeliveryModes.map((mode) => (
             <button
               key={mode}
+              type="button"
               onClick={() => onDeliveryModeChange(mode)}
               style={{
                 padding: '8px',
@@ -485,6 +493,17 @@ function CartContent({
             </button>
           ))}
         </div>
+        ) : (
+          <div
+            style={{
+              marginBottom: '1.25rem',
+              fontSize: '13px',
+              color: 'var(--ink-muted, #8A847C)',
+            }}
+          >
+            {deliveryMode === 'delivery' ? '🛵 Delivery' : '🏃 Pickup'}
+          </div>
+        )}
 
         {/* Delivery details */}
         {(deliveryMode === 'delivery' || showPreferredDate) && (
@@ -821,6 +840,15 @@ export function SaffronMenuPage({
   const [instructions, setInstructions] = useState('')
   const [deliveryDetails, setDeliveryDetails] = useState<DeliveryDetailsValue>({})
 
+  const enabledDeliveryModes = useMemo(
+    () => getEnabledRestaurantDeliveryModes(config),
+    [config],
+  )
+
+  useEffect(() => {
+    setDeliveryMode((prev) => coerceDeliveryMode(prev, enabledDeliveryModes, 'pickup'))
+  }, [enabledDeliveryModes])
+
   const showPreferredDate = showPreferredDateOfDelivery(config, config?.themeKey ?? 'saffron')
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -932,6 +960,7 @@ export function SaffronMenuPage({
     discount,
     total,
     deliveryMode,
+    enabledDeliveryModes,
     promoCode,
     promoApplied,
     instructions,
