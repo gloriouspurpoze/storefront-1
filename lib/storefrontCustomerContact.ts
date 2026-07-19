@@ -1,4 +1,4 @@
-/** Client-side mirror of backend storefront guest contact helpers. */
+/** Checkout contact helpers for signed-in storefront customers. */
 
 import type { StorefrontAuthUser } from './storefront-auth'
 
@@ -6,10 +6,6 @@ export function normalizeIndianMobileDigits(phone: string): string {
   const digits = phone.replace(/\D/g, '')
   if (digits.length >= 10) return digits.slice(-10)
   return digits
-}
-
-export function buildStorefrontPlaceholderEmail(phone: string): string {
-  return `${normalizeIndianMobileDigits(phone)}@customers.placeholder`
 }
 
 const PLACEHOLDER_EMAIL_SUFFIXES = [
@@ -73,8 +69,6 @@ export function resolveCheckoutContactForSubmit(input: {
     email = prefill.email
   } else if (formEmail && isValidCustomerEmail(formEmail)) {
     email = formEmail
-  } else if (phone) {
-    email = resolveCheckoutCustomerEmail({ email: formEmail, phone })
   }
 
   if (!name) {
@@ -86,18 +80,10 @@ export function resolveCheckoutContactForSubmit(input: {
     return { ok: false, message: 'Please enter a valid phone number.' }
   }
 
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  // Never invent @customers.placeholder — the public checkout API rejects non-TLD emails.
+  if (!isRealCustomerEmail(email)) {
     return { ok: false, message: 'Please enter a valid email.' }
   }
 
   return { ok: true, email, name, phone: phoneDigits }
-}
-
-export function resolveCheckoutCustomerEmail(input: {
-  email?: string
-  phone: string
-}): string {
-  const trimmedEmail = input.email?.trim().toLowerCase() ?? ''
-  if (trimmedEmail && isValidCustomerEmail(trimmedEmail)) return trimmedEmail
-  return buildStorefrontPlaceholderEmail(input.phone)
 }

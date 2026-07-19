@@ -21,7 +21,9 @@ import { BB_IMG_FALLBACK } from './catalog'
 import { layoutBrownButterProducts, type TinGroup } from './productLayout'
 import { useBrownButterCart } from './useBrownButterCart'
 import { AccountProfileLink } from '@/components/account/AccountProfileLink'
+import { SignedInCheckoutNote } from '@/components/CheckoutContactNote'
 import { useCartAuthGate } from '@/lib/useCartAuthGate'
+import { resolveCheckoutContactForSubmit } from '@/lib/storefrontCustomerContact'
 import { useCheckoutCustomerPrefill } from '@/lib/useCheckoutCustomerPrefill'
 import { StorefrontHeaderBar, StorefrontMenuDrawer } from '@/components/StorefrontMenuDrawer'
 import {
@@ -350,7 +352,15 @@ export function BrownButterPage({
 
   const { entries, itemCount, subtotal, add, setQty, qtyFor, clear } = useBrownButterCart()
   const { requireAuthForCart } = useCartAuthGate()
-  const { accessToken } = useCheckoutCustomerPrefill()
+  const {
+    email: prefillEmail,
+    name: prefillName,
+    phone: prefillPhone,
+    lockedEmail,
+    user,
+    accessToken,
+    isReady,
+  } = useCheckoutCustomerPrefill()
   const [products, setProducts] = useState<PublicProduct[]>(initialProducts)
   const [productsLoading, setProductsLoading] = useState(initialProducts.length === 0)
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -365,6 +375,7 @@ export function BrownButterPage({
   const [pincode, setPincode] = useState('')
   const [deliveryDate, setDeliveryDate] = useState('')
   const [deliveryTime, setDeliveryTime] = useState('')
+  const [email, setEmail] = useState('')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
@@ -381,6 +392,13 @@ export function BrownButterPage({
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    if (!isReady) return
+    if (prefillEmail && !email) setEmail(prefillEmail)
+    if (prefillName && !name) setName(prefillName)
+    if (prefillPhone && !phone) setPhone(prefillPhone)
+  }, [isReady, prefillEmail, prefillName, prefillPhone, email, name, phone])
 
   useEffect(() => {
     const onScroll = () => {
@@ -460,10 +478,18 @@ export function BrownButterPage({
       setNoItemWarn(true)
       return
     }
-    if (!name.trim() || !phone.trim()) {
-      setCheckoutError('Name and phone are required.')
+
+    const contact = resolveCheckoutContactForSubmit({
+      formEmail: email,
+      formName: name,
+      formPhone: phone,
+      authUser: user,
+    })
+    if (!contact.ok) {
+      setCheckoutError(contact.message)
       return
     }
+
     if (!deliveryDate.trim() || !deliveryTime.trim()) {
       setCheckoutError('Delivery date and time are required.')
       return
@@ -532,9 +558,9 @@ export function BrownButterPage({
         brandColor: tenant.brand,
         lines,
         customer: {
-          email: config?.branding?.contactEmail || `${phone.replace(/\D/g, '')}@customers.placeholder`,
-          name: name.trim(),
-          phone: phone.trim(),
+          email: contact.email,
+          name: contact.name,
+          phone: contact.phone,
         },
         notes,
         deliveryDetails: deliveryDetailsForCheckout,
@@ -666,10 +692,26 @@ export function BrownButterPage({
 
             <div className="fields">
               <div className="section-label">Your Details</div>
+              {lockedEmail && prefillEmail ? (
+                <SignedInCheckoutNote email={prefillEmail} />
+              ) : null}
               <div className="field">
                 <label htmlFor="bb-name">Name</label>
                 <input id="bb-name" type="text" autoComplete="name" placeholder="e.g. Aisha Khan" value={name} onChange={(e) => setName(e.target.value)} />
               </div>
+              {!lockedEmail ? (
+                <div className="field">
+                  <label htmlFor="bb-email">Email</label>
+                  <input
+                    id="bb-email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="you@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+              ) : null}
               <div className="field">
                 <label htmlFor="bb-phone">Phone Number</label>
                 <input id="bb-phone" type="tel" autoComplete="tel" placeholder="+91 98765 43210" value={phone} onChange={(e) => setPhone(e.target.value)} />
