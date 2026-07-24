@@ -24,7 +24,12 @@ import {
   getEffectivePrice,
   productHasVariants,
 } from '@/lib/productVariants'
-import { formatMenuPrice, useMenuCart, type CartEntry } from '../menufast/useMenuCart'
+import {
+  formatMenuPrice,
+  menuCartLineLabel,
+  useMenuCart,
+  type CartEntry,
+} from '../menufast/useMenuCart'
 import {
   coerceDeliveryMode,
   getEnabledRestaurantDeliveryModes,
@@ -537,7 +542,10 @@ function CartContent({
             <div
               style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '1rem' }}
             >
-              {cartEntries.map(({ item, quantity, variantId, lineName, unitPrice }) => (
+              {cartEntries.map(({ item, quantity, variantId }) => {
+                const lineName = menuCartLineLabel(item, variantId)
+                const unitPrice = getEffectivePrice(item, variantId)
+                return (
                 <div
                   key={cartLineKey(item.id, variantId)}
                   style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}
@@ -637,7 +645,8 @@ function CartContent({
                     {formatMenuPrice(unitPrice * quantity, currency)}
                   </div>
                 </div>
-              ))}
+                )
+              })}
             </div>
 
             {/* Cooking instructions */}
