@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { loadTenantFromRequest } from '@/lib/load-tenant'
-import { fetchStorefrontBlogBySlug, CMS_BLOG_POST_REVALIDATE } from '@/lib/cms-blog'
+import { fetchStorefrontBlogBySlug } from '@/lib/cms-blog'
 import { StorefrontBlogArticle } from '@/components/content/StorefrontBlogArticle'
 import { loadHomeServicesTenant } from '@/themes/home-services/loadThemeTenant'
 import { SiteHeader as HsHeader } from '@/themes/home-services/SiteHeader'
@@ -17,7 +17,8 @@ import { SiteHeader as RetailHeader } from '@/themes/retail/SiteHeader'
 import { SiteFooter as RetailFooter } from '@/themes/retail/SiteFooter'
 import { toThemeTenant as toRetailTenant } from '@/themes/retail/types'
 
-export const revalidate = CMS_BLOG_POST_REVALIDATE
+/** Must be a literal — Next.js cannot statically analyze imported revalidate values. */
+export const revalidate = 180
 
 type RouteParams = { params: Promise<{ tenantId: string; slug: string }> }
 
