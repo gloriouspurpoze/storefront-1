@@ -1,31 +1,33 @@
 import { notFound } from 'next/navigation'
+import { loadTenantFromRequest } from '@/lib/load-tenant'
+import { fetchStorefrontConfig } from '@/lib/storefront-api'
+import type { StorefrontCmsPage } from '@/lib/cms-pages'
+import { StorefrontCmsPageArticle } from '@/components/content/StorefrontCmsPageArticle'
 import { loadHomeServicesTenant } from '@/themes/home-services/loadThemeTenant'
 import { SiteHeader as HsHeader } from '@/themes/home-services/SiteHeader'
 import { SiteFooter as HsFooter } from '@/themes/home-services/SiteFooter'
-import { BookingForm } from '@/themes/home-services/BookingForm'
 import { toThemeTenant as toHsTenant } from '@/themes/home-services/types'
 import { loadRestaurantTenant } from '@/themes/restaurant/loadThemeTenant'
 import { RestaurantShell } from '@/themes/restaurant/RestaurantShell'
 import { SiteHeader as RestHeader } from '@/themes/restaurant/SiteHeader'
 import { SiteFooter as RestFooter } from '@/themes/restaurant/SiteFooter'
-import { ReservationForm } from '@/themes/restaurant/ReservationForm'
 import { toThemeTenant as toRestTenant } from '@/themes/restaurant/types'
-import { MenuFastCardsContactPage } from '@/themes/restaurant/menufast/MenuFastCardsContactPage'
+import { MenuFastCardsContentShell } from '@/themes/restaurant/menufast/MenuFastCardsContentShell'
 import { loadRetailTenant } from '@/themes/retail/loadThemeTenant'
 import { RetailShell } from '@/themes/retail/RetailShell'
 import { SiteHeader as RetailHeader } from '@/themes/retail/SiteHeader'
 import { SiteFooter as RetailFooter } from '@/themes/retail/SiteFooter'
-import { BookingForm as RetailContactForm } from '@/themes/home-services/BookingForm'
 import { toThemeTenant as toRetailTenant } from '@/themes/retail/types'
-import { loadTenantFromRequest } from '@/lib/load-tenant'
-import { fetchStorefrontConfig } from '@/lib/storefront-api'
-import { LuxeEssenceContactPage } from '@/themes/retail/luxe-essence/LuxeEssenceContactPage'
+import { LuxeEssenceLayoutPage } from '@/themes/retail/luxe-essence/LuxeEssenceLayoutPage'
 
-export const dynamic = 'force-dynamic'
-
-export default async function ContactPage() {
+/**
+ * Renders any published CMS static page inside the active vertical/theme shell.
+ */
+export async function CmsStaticPageScreen({ page }: { page: StorefrontCmsPage }) {
   const resolved = await loadTenantFromRequest()
   if (!resolved) notFound()
+
+  const article = <StorefrontCmsPageArticle page={page} />
 
   switch (resolved.verticalKey) {
     case 'home_services': {
@@ -34,13 +36,7 @@ export default async function ContactPage() {
       return (
         <>
           <HsHeader tenant={theme} />
-          <main className="mx-auto grid w-full max-w-5xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Contact</p>
-              <h1 className="mt-3 text-4xl font-bold text-slate-900">Let&apos;s talk.</h1>
-            </div>
-            <BookingForm tenantId={tenant.id} source="contact-page" />
-          </main>
+          <main className="mx-auto max-w-3xl px-4 py-16 sm:px-6">{article}</main>
           <HsFooter tenant={theme} />
         </>
       )
@@ -50,21 +46,28 @@ export default async function ContactPage() {
       const theme = toRestTenant(tenant, tenant.fallbackTagline)
       const config = await fetchStorefrontConfig(tenant.id)
       if (config?.themeKey === 'menufast-cards') {
+        const html = page.content?.trim()
         return (
-          <MenuFastCardsContactPage tenant={theme} config={config} tenantId={tenant.id} />
+          <MenuFastCardsContentShell tenant={theme} config={config} title={page.title}>
+            <article className="mf-cards-content-article">
+              <h2 className="mf-cards-content-heading">{page.title}</h2>
+              {page.excerpt?.trim() ? (
+                <p className="mf-cards-content-muted">{page.excerpt.trim()}</p>
+              ) : null}
+              {html ? (
+                <div
+                  className="mf-cards-content-prose prose prose-neutral max-w-none"
+                  dangerouslySetInnerHTML={{ __html: html }}
+                />
+              ) : null}
+            </article>
+          </MenuFastCardsContentShell>
         )
       }
       return (
         <RestaurantShell tenantId={tenant.id}>
           <RestHeader tenant={theme} />
-          <main className="mx-auto grid w-full max-w-5xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-amber-800/80">Contact</p>
-              <h1 className="mt-3 font-serif text-4xl font-bold text-stone-900">Get in touch</h1>
-              <p className="mt-4 text-stone-600">Questions, events, or large parties — we read every message.</p>
-            </div>
-            <ReservationForm tenantId={tenant.id} />
-          </main>
+          <main className="mx-auto max-w-3xl px-4 py-16 sm:px-6 text-stone-800">{article}</main>
           <RestFooter tenant={theme} />
         </RestaurantShell>
       )
@@ -74,23 +77,31 @@ export default async function ContactPage() {
       const theme = toRetailTenant(tenant, tenant.fallbackTagline)
       const config = await fetchStorefrontConfig(tenant.id)
       if (config?.themeKey === 'luxe-essence') {
+        const html = page.content?.trim()
         return (
           <RetailShell tenantId={tenant.id}>
-            <LuxeEssenceContactPage tenant={theme} config={config} />
+            <LuxeEssenceLayoutPage
+              tenant={theme}
+              config={config}
+              mainClassName="sf-page-shell sf-page-shell--narrow"
+            >
+              <p className="sf-page-eyebrow">{page.slug.replace(/-/g, ' ')}</p>
+              <h1 className="sf-page-title">{page.title}</h1>
+              {page.excerpt?.trim() ? <p className="sf-page-lead">{page.excerpt.trim()}</p> : null}
+              {html ? (
+                <div
+                  className="prose prose-neutral mt-6 max-w-none"
+                  dangerouslySetInnerHTML={{ __html: html }}
+                />
+              ) : null}
+            </LuxeEssenceLayoutPage>
           </RetailShell>
         )
       }
       return (
         <RetailShell tenantId={tenant.id}>
           <RetailHeader tenant={theme} />
-          <main className="mx-auto grid w-full max-w-5xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Contact</p>
-              <h1 className="mt-3 text-4xl font-bold text-slate-900">We&apos;re here to help</h1>
-              <p className="mt-4 text-slate-600">Orders, shipping, or product questions.</p>
-            </div>
-            <RetailContactForm tenantId={tenant.id} source="storefront-retail-contact" />
-          </main>
+          <main className="mx-auto max-w-3xl px-4 py-16 sm:px-6 text-slate-800">{article}</main>
           <RetailFooter tenant={theme} />
         </RetailShell>
       )

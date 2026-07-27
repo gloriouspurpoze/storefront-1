@@ -1,4 +1,5 @@
 import { loadRestaurantTenant } from '@/themes/restaurant/loadThemeTenant'
+import { RestaurantShell } from '@/themes/restaurant/RestaurantShell'
 import { SiteHeader } from '@/themes/restaurant/SiteHeader'
 import { SiteFooter } from '@/themes/restaurant/SiteFooter'
 import { ReservationForm } from '@/themes/restaurant/ReservationForm'
@@ -16,7 +17,7 @@ export default async function ReservePage() {
   const themeTenant = toThemeTenant(tenant, tenant.fallbackTagline)
 
   return (
-    <>
+    <RestaurantShell tenantId={tenant.id}>
       <SiteHeader tenant={themeTenant} />
       <main className="mx-auto grid w-full max-w-5xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2">
         <div>
@@ -33,6 +34,6 @@ export default async function ReservePage() {
         <ReservationForm tenantId={tenant.id} />
       </main>
       <SiteFooter tenant={themeTenant} />
-    </>
+    </RestaurantShell>
   )
 }

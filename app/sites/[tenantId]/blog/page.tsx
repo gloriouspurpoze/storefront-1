@@ -9,6 +9,7 @@ import { SiteHeader as HsHeader } from '@/themes/home-services/SiteHeader'
 import { SiteFooter as HsFooter } from '@/themes/home-services/SiteFooter'
 import { toThemeTenant as toHsTenant } from '@/themes/home-services/types'
 import { loadRestaurantTenant } from '@/themes/restaurant/loadThemeTenant'
+import { RestaurantShell } from '@/themes/restaurant/RestaurantShell'
 import { SiteHeader as RestHeader } from '@/themes/restaurant/SiteHeader'
 import { SiteFooter as RestFooter } from '@/themes/restaurant/SiteFooter'
 import { toThemeTenant as toRestTenant } from '@/themes/restaurant/types'
@@ -63,11 +64,11 @@ export default async function BlogIndexPage({ params }: RouteParams) {
       const tenant = await loadRestaurantTenant()
       const theme = toRestTenant(tenant, tenant.fallbackTagline)
       return (
-        <>
+        <RestaurantShell tenantId={tenant.id}>
           <RestHeader tenant={theme} />
           {body}
           <RestFooter tenant={theme} />
-        </>
+        </RestaurantShell>
       )
     }
     case 'retail':
