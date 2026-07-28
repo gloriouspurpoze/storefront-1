@@ -599,7 +599,10 @@ export async function fetchCustomerOrderTracking(input: {
     cache: 'no-store',
   })
   const json = (await res.json().catch(() => null)) as ApiEnvelope<PublicOrderTracking> | null
-  if (!res.ok || !json?.success || !json.data) return null
+  if (res.status === 404) return null
+  if (!res.ok || !json?.success || !json.data) {
+    throw new Error(json?.message || `Failed to track order (${res.status})`)
+  }
   return json.data
 }
 
@@ -612,19 +615,24 @@ export async function fetchPublicOrderTracking(input: {
   const params = new URLSearchParams({ orderNumber: input.orderNumber.trim() })
   if (input.email?.trim()) params.set('email', input.email.trim().toLowerCase())
   if (input.phone?.trim()) params.set('phone', input.phone.trim())
-  if (!params.has('email') && !params.has('phone')) return null
+  if (!params.has('email') && !params.has('phone')) {
+    throw new Error('orderNumber and email or phone are required')
+  }
   const res = await fetch(
     apiUrl(`/public/storefront/orders/track?${params.toString()}`),
     {
       method: 'GET',
-    headers: withTenantId(input.tenantId, {
-      Accept: 'application/json',
-    }),
+      headers: withTenantId(input.tenantId, {
+        Accept: 'application/json',
+      }),
       cache: 'no-store',
     },
   )
   const json = (await res.json().catch(() => null)) as ApiEnvelope<PublicOrderTracking> | null
-  if (!res.ok || !json?.success || !json.data) return null
+  if (res.status === 404) return null
+  if (!res.ok || !json?.success || !json.data) {
+    throw new Error(json?.message || `Failed to track order (${res.status})`)
+  }
   return json.data
 }
 

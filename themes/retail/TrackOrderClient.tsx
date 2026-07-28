@@ -2,8 +2,7 @@
 
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { SignedInCheckoutNote } from '@/components/CheckoutContactNote'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useAccountAuth } from '@/components/account/AccountAuthProvider'
 import { AccountPageHeader } from '@/components/account/AccountPageHeader'
 import { OrderTrackingPanel } from '@/components/account/OrderTrackingPanel'
@@ -14,7 +13,6 @@ import {
   fetchPublicOrderTracking,
   type PublicOrderTracking,
 } from '@/lib/storefront-api'
-import { isRealCustomerEmail } from '@/lib/storefrontCustomerContact'
 import { useCheckoutCustomerPrefill } from '@/lib/useCheckoutCustomerPrefill'
 import type { ThemeTenant } from './types'
 
@@ -24,6 +22,7 @@ export function TrackOrderClient({ tenant }: { tenant: ThemeTenant }) {
   const { email: prefillEmail, phone: prefillPhone, lockedEmail } = useCheckoutCustomerPrefill()
   const themeKey = useAccountTheme()
   const t = accountThemeClasses(themeKey)
+  const autoLookupKey = useRef<string | null>(null)
 
   const [orderNumber, setOrderNumber] = useState(() => searchParams.get('orderNumber') ?? '')
   const [email, setEmail] = useState(() => searchParams.get('email') ?? '')
@@ -33,7 +32,7 @@ export function TrackOrderClient({ tenant }: { tenant: ThemeTenant }) {
   const [result, setResult] = useState<PublicOrderTracking | null>(null)
 
   const lookupOrder = useCallback(
-    async (number: string) => {
+    async (number: string, opts?: { email?: string; phone?: string }) => {
       const trimmed = number.trim()
       if (!trimmed) return
 
@@ -54,8 +53,10 @@ export function TrackOrderClient({ tenant }: { tenant: ThemeTenant }) {
           }
         }
 
-        const contactEmail = lockedEmail && prefillEmail ? prefillEmail : email.trim()
-        const contactPhone = prefillPhone || phone.trim()
+        const contactEmail =
+          opts?.email?.trim() ||
+          (lockedEmail && prefillEmail ? prefillEmail : email.trim())
+        const contactPhone = opts?.phone?.trim() || prefillPhone || phone.trim()
         if (!contactEmail && !contactPhone) {
           setError('Enter the email or phone number you used at checkout.')
           return
@@ -72,8 +73,8 @@ export function TrackOrderClient({ tenant }: { tenant: ThemeTenant }) {
           return
         }
         setResult(data)
-      } catch {
-        setError('Could not look up your order. Try again.')
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Could not look up your order. Try again.')
       } finally {
         setLoading(false)
       }
@@ -92,11 +93,33 @@ export function TrackOrderClient({ tenant }: { tenant: ThemeTenant }) {
 
   useEffect(() => {
     if (!isReady) return
+
     const fromUrl = searchParams.get('orderNumber')?.trim()
+    const emailFromUrl = searchParams.get('email')?.trim() ?? ''
+    const phoneFromUrl = searchParams.get('phone')?.trim() ?? ''
     if (!fromUrl) return
+
     setOrderNumber(fromUrl)
+    if (emailFromUrl) setEmail(emailFromUrl)
+    if (phoneFromUrl) setPhone(phoneFromUrl)
+
+    const key = [
+      fromUrl,
+      isAuthenticated ? 'auth' : 'guest',
+      emailFromUrl,
+      phoneFromUrl,
+    ].join('|')
+    if (autoLookupKey.current === key) return
+
     if (isAuthenticated && tokens?.accessToken) {
+      autoLookupKey.current = key
       void lookupOrder(fromUrl)
+      return
+    }
+
+    if (emailFromUrl || phoneFromUrl) {
+      autoLookupKey.current = key
+      void lookupOrder(fromUrl, { email: emailFromUrl, phone: phoneFromUrl })
     }
   }, [isReady, isAuthenticated, tokens?.accessToken, searchParams, lookupOrder])
 
@@ -104,9 +127,6 @@ export function TrackOrderClient({ tenant }: { tenant: ThemeTenant }) {
     e.preventDefault()
     await lookupOrder(orderNumber)
   }
-
-  const signedInEmail =
-    lockedEmail && prefillEmail && isRealCustomerEmail(prefillEmail) ? prefillEmail : null
 
   return (
     <div className={t.contentWrap}>
@@ -121,9 +141,6 @@ export function TrackOrderClient({ tenant }: { tenant: ThemeTenant }) {
 
       {isAuthenticated ? (
         <div className="mb-4 space-y-3">
-          {/* {signedInEmail ? (
-            <SignedInCheckoutNote email={signedInEmail} className={t.signedInNote} />
-          ) : null} */}
           <p className={t.textMuted}>
             <Link href="/account" className={t.link}>
               View all orders

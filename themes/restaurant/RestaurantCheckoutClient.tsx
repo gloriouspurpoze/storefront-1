@@ -19,8 +19,14 @@ import { useCheckoutCustomerPrefill } from '@/lib/useCheckoutCustomerPrefill'
 type Status =
   | { kind: 'idle' }
   | { kind: 'processing' }
-  | { kind: 'success'; orderNumber: string }
+  | { kind: 'success'; orderNumber: string; email: string }
   | { kind: 'error'; message: string }
+
+function trackOrderHref(orderNumber: string, email: string): string {
+  const params = new URLSearchParams({ orderNumber })
+  if (email.trim()) params.set('email', email.trim().toLowerCase())
+  return `/orders/track?${params.toString()}`
+}
 
 export function RestaurantCheckoutClient({
   tenant,
@@ -85,7 +91,7 @@ export function RestaurantCheckoutClient({
         accessToken,
       })
       clear()
-      setStatus({ kind: 'success', orderNumber: result.orderNumber })
+      setStatus({ kind: 'success', orderNumber: result.orderNumber, email: trimmedEmail })
     } catch (err) {
       setStatus({
         kind: 'error',
@@ -117,8 +123,14 @@ export function RestaurantCheckoutClient({
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Link
-              href="/account/orders"
+              href={trackOrderHref(status.orderNumber, status.email)}
               className="inline-flex rounded-full bg-emerald-700 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-800"
+            >
+              Track your order
+            </Link>
+            <Link
+              href="/account/orders"
+              className="inline-flex rounded-full border border-emerald-300 px-6 py-2.5 text-sm font-medium text-emerald-900 hover:bg-emerald-100"
             >
               View orders
             </Link>

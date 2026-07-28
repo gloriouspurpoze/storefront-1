@@ -82,6 +82,7 @@ export function LuxeEssenceCheckoutModal({
   const currency = lines[0]?.currency ?? 'INR'
 
   const [orderNumber, setOrderNumber] = useState<string | null>(null)
+  const [successEmail, setSuccessEmail] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [email, setEmail] = useState('')
@@ -182,6 +183,7 @@ export function LuxeEssenceCheckoutModal({
       })
       onClearCart()
       setOrderNumber(result.orderNumber)
+      setSuccessEmail(trimmedEmail)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Checkout failed. Please try again.')
     } finally {
@@ -350,7 +352,11 @@ export function LuxeEssenceCheckoutModal({
               <div className="le-order-summary">
                 <p className="le-success-order">Order {orderNumber}</p>
                 <Link
-                  href={`/orders/track?orderNumber=${encodeURIComponent(orderNumber)}`}
+                  href={
+                    successEmail
+                      ? `/orders/track?orderNumber=${encodeURIComponent(orderNumber)}&email=${encodeURIComponent(successEmail)}`
+                      : `/orders/track?orderNumber=${encodeURIComponent(orderNumber)}`
+                  }
                   className="le-success-track"
                 >
                   Track this order

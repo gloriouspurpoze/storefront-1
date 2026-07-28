@@ -24,8 +24,15 @@ import './retail-cart.css'
 type Status =
   | { kind: 'idle' }
   | { kind: 'processing' }
-  | { kind: 'success'; orderNumber?: string }
+  | { kind: 'success'; orderNumber?: string; email?: string }
   | { kind: 'error'; message: string }
+
+function trackOrderHref(orderNumber?: string, email?: string): string {
+  if (!orderNumber) return '/orders/track'
+  const params = new URLSearchParams({ orderNumber })
+  if (email?.trim()) params.set('email', email.trim().toLowerCase())
+  return `/orders/track?${params.toString()}`
+}
 
 function LuxeCartEmptyIcon() {
   return (
@@ -145,7 +152,11 @@ export function CheckoutClient({
         accessToken,
       })
       clear()
-      setStatus({ kind: 'success', orderNumber: result.orderNumber })
+      setStatus({
+        kind: 'success',
+        orderNumber: result.orderNumber,
+        email: contact.email,
+      })
     } catch (err) {
       setStatus({
         kind: 'error',
@@ -181,14 +192,20 @@ export function CheckoutClient({
             </p>
             <div className="sf-checkout-success-actions">
               <Link
+                href={trackOrderHref(status.orderNumber, status.email)}
+                className="sf-cart-cta-primary"
+              >
+                Track your order
+              </Link>
+              <Link
                 href={
                   status.orderNumber
                     ? `/account/orders?orderNumber=${encodeURIComponent(status.orderNumber)}`
                     : '/account/orders'
                 }
-                className="sf-cart-cta-primary"
+                className="sf-cart-cta-secondary"
               >
-                View your order
+                View order history
               </Link>
               <Link href="/products" className="sf-cart-cta-secondary">
                 Continue shopping

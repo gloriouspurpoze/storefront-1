@@ -70,9 +70,10 @@ Catalog is served from `fixer-backend/src/modules/storefront-studio/catalog/stor
 |--------|------|---------|
 | `POST` | `/api/public/storefront/checkout/create-order` | Validate cart, create Razorpay order |
 | `POST` | `/api/public/storefront/checkout/verify` | Verify payment, create order |
-| `GET` | `/api/public/storefront/orders/track` | Track order |
+| `GET` | `/api/public/storefront/orders/track` | Guest track by `orderNumber` + `email` or `phone` (`x-tenant-id`) |
+| `GET` | `/api/public/storefront/customers/orders/:orderNumber/track` | Authenticated customer track (JWT + `x-tenant-id`) |
 
-**Frontend helper:** `storefront/lib/runStorefrontCheckout.ts`
+**Frontend helpers:** `fetchPublicOrderTracking` / `fetchCustomerOrderTracking` in `storefront/lib/storefront-api.ts`; UI at `/orders/track` (`TrackOrderClient`). Checkout success links pass `?orderNumber=&email=`. Checkout orchestration: `storefront/lib/runStorefrontCheckout.ts`.
 
 ## Adding a new template
 
