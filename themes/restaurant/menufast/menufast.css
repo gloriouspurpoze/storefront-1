@@ -2408,6 +2408,170 @@
   min-width: 0;
 }
 
+.mf-acct-order-hint {
+  margin-top: 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #888;
+}
+
+.mf-acct-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.mf-acct-profile-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.mf-acct-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid #f0ede8;
+}
+
+.mf-acct-avatar--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Fraunces', serif;
+  font-size: 1.25rem;
+  font-weight: 400;
+  color: #fff;
+  background: #1a1a1a;
+  border: none;
+}
+
+.mf-acct-tracking-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mf-acct-tracking-result {
+  background: #fff;
+  border: 1px solid #f0ede8;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.mf-acct-tracking-eyebrow {
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #999;
+}
+
+.mf-acct-tracking-status-title {
+  font-family: 'Fraunces', serif;
+  font-size: 1.35rem;
+  font-weight: 400;
+  color: #1a1a1a;
+  margin: 0.25rem 0 0;
+}
+
+.mf-acct-tracking-order-num {
+  margin-top: 0.25rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem;
+  color: #666;
+}
+
+.mf-acct-order-status {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 100px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.68rem;
+  font-weight: 500;
+  background: #f0ede8;
+  color: #444;
+}
+
+.mf-acct-order-status--delivered {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.mf-acct-order-status--shipped {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.mf-acct-order-status--cancelled {
+  background: #fdecea;
+  color: #c62828;
+}
+
+.mf-acct-tracking-dl {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.mf-acct-tracking-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mf-acct-tracking-dt {
+  color: #888;
+}
+
+.mf-acct-tracking-dd {
+  font-weight: 500;
+  color: #1a1a1a;
+  text-align: right;
+}
+
+.mf-acct-tracking-carrier-btn {
+  margin-top: 0.85rem;
+}
+
+.mf-acct-tracking-history {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid #f0ede8;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+}
+
+.mf-acct-tracking-history-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mf-acct-tracking-history-status {
+  color: #1a1a1a;
+}
+
+.mf-acct-tracking-history-date {
+  color: #888;
+  flex-shrink: 0;
+}
+
+.mf-acct-signed-in-note {
+  border-radius: 10px;
+  border: 1px solid #f0ede8;
+  background: #fafaf8;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.72rem;
+  color: #666;
+}
+
 .mf-cards-content-header-row {
   display: flex;
   align-items: center;
@@ -2460,6 +2624,93 @@
   color: #666;
   margin: 0;
   line-height: 1.5;
+}
+
+.mf-cards-blog-empty {
+  margin-top: 1.25rem;
+}
+
+.mf-cards-blog-eyebrow {
+  margin-bottom: 0.35rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mf-cards-blog-list {
+  list-style: none;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mf-cards-blog-card {
+  display: block;
+  padding: 0.9rem 1rem;
+  border: 1px solid #f0ede8;
+  border-radius: 12px;
+  background: #fff;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease;
+}
+
+.mf-cards-blog-card:hover {
+  border-color: #ddd8d0;
+}
+
+.mf-cards-blog-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #888;
+}
+
+.mf-cards-blog-card-title {
+  margin: 0.4rem 0 0;
+  font-family: 'Fraunces', serif;
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: #1a1a1a;
+  line-height: 1.3;
+}
+
+.mf-cards-blog-card-desc {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #666;
+}
+
+.mf-cards-blog-card-cta {
+  display: inline-block;
+  margin-top: 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.mf-cards-blog-hero {
+  display: block;
+  width: 100%;
+  margin: 1rem 0;
+  border-radius: 12px;
+  object-fit: cover;
+  max-height: 220px;
+}
+
+.mf-cards-shell-footer-pages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.85rem;
+  margin: 0 0 0.75rem;
 }
 
 .mf-cards-contact-form {

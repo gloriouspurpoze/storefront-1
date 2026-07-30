@@ -254,3 +254,117 @@
 .ss-root .sf-login-google:focus-visible {
   outline-color: var(--ss-plum);
 }
+
+/* Brown Butter overrides */
+.bb-root .sf-login-phone {
+  border-color: var(--border);
+  background: var(--white);
+}
+
+.bb-root .sf-login-phone:focus-within {
+  border-color: var(--sky);
+  box-shadow: 0 0 0 3px rgba(126, 200, 227, 0.25);
+}
+
+.bb-root .sf-login-phone__prefix {
+  background: var(--sky-light);
+  color: var(--navy-mid);
+  border-right-color: var(--border);
+}
+
+.bb-root .sf-login-divider::before,
+.bb-root .sf-login-divider::after {
+  background: var(--border);
+}
+
+.bb-root .sf-login-divider {
+  color: var(--muted);
+}
+
+.bb-root .sf-login-footer {
+  border-top-color: var(--border);
+}
+
+.bb-root .sf-login-trust {
+  color: var(--muted);
+}
+
+.bb-root .sf-login-google:focus-visible {
+  outline-color: var(--sky-dark);
+}
+
+/* Luxe Essence overrides */
+.le-root .sf-login-phone {
+  border-color: #e4dfef;
+  background: var(--le-surface);
+}
+
+.le-root .sf-login-phone:focus-within {
+  border-color: var(--le-accent);
+  box-shadow: 0 0 0 3px rgba(214, 120, 74, 0.18);
+}
+
+.le-root .sf-login-phone__prefix {
+  background: var(--le-soft);
+  color: var(--le-muted);
+  border-right-color: #e4dfef;
+}
+
+.le-root .sf-login-divider::before,
+.le-root .sf-login-divider::after {
+  background: #e4dfef;
+}
+
+.le-root .sf-login-divider {
+  color: var(--le-muted);
+}
+
+.le-root .sf-login-footer {
+  border-top-color: #e4dfef;
+}
+
+.le-root .sf-login-trust {
+  color: var(--le-muted);
+}
+
+.le-root .sf-login-google:focus-visible {
+  outline-color: var(--le-accent);
+}
+
+/* MenuFast Cards overrides */
+.theme-menufast-cards .sf-login-phone {
+  border-color: #e0ddd8;
+  background: #fff;
+}
+
+.theme-menufast-cards .sf-login-phone:focus-within {
+  border-color: #1a1a1a;
+  box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.08);
+}
+
+.theme-menufast-cards .sf-login-phone__prefix {
+  background: #f0ede8;
+  color: #666;
+  border-right-color: #e0ddd8;
+}
+
+.theme-menufast-cards .sf-login-divider::before,
+.theme-menufast-cards .sf-login-divider::after {
+  background: #e8e4de;
+}
+
+.theme-menufast-cards .sf-login-divider {
+  color: #999;
+}
+
+.theme-menufast-cards .sf-login-footer {
+  border-top-color: #f0ede8;
+}
+
+.theme-menufast-cards .sf-login-trust {
+  color: #888;
+}
+
+.theme-menufast-cards .sf-login-google:focus-visible {
+  outline-color: #1a1a1a;
+}

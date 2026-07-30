@@ -2603,6 +2603,200 @@
   margin-top: 20px;
 }
 
+.bb-account-main--auth {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1;
+  min-height: 280px;
+}
+
+.bb-acct-page-header {
+  margin-bottom: 1rem;
+}
+
+.bb-acct-stats {
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 0.25rem 0;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 16px rgba(126, 200, 227, 0.08);
+}
+
+.bb-acct-stat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.bb-acct-stat:last-child {
+  border-bottom: none;
+}
+
+.bb-acct-stat-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-family: 'Nunito', sans-serif;
+}
+
+.bb-acct-stat-value {
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: var(--navy);
+  line-height: 1;
+}
+
+.bb-acct-stat-value--money {
+  font-size: 1.1rem;
+}
+
+.bb-acct-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.bb-acct-actions .bb-acct-btn {
+  width: 100%;
+  text-align: center;
+  justify-content: center;
+}
+
+.bb-acct-actions--inline {
+  flex-direction: row;
+  flex-wrap: wrap;
+  margin-bottom: 0;
+  padding-top: 1rem;
+  border-top: 1.5px solid var(--border);
+}
+
+.bb-acct-actions--inline .bb-acct-btn {
+  width: auto;
+  flex: 1;
+  min-width: 0;
+}
+
+.bb-acct-profile-card {
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 4px 16px rgba(126, 200, 227, 0.06);
+}
+
+.bb-acct-profile-name {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 1rem;
+  color: var(--navy);
+  margin: 0.35rem 0 0.15rem;
+}
+
+.bb-acct-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 0.75rem;
+}
+
+.bb-acct-section-title {
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 900;
+  margin: 0;
+  color: var(--navy);
+}
+
+.bb-acct-order-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bb-acct-order-row-end {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.bb-acct-order-num,
+.bb-acct-order-amount {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--navy);
+  margin: 0;
+}
+
+.bb-acct-order-hint {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--sky-dark);
+}
+
+.bb-acct-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.bb-acct-profile-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.bb-acct-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 2px solid var(--border);
+}
+
+.bb-acct-avatar--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 1.35rem;
+  color: var(--white);
+  background: linear-gradient(135deg, var(--sky), var(--butter));
+  border: none;
+}
+
+.bb-acct-profile-dl {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin: 0;
+}
+
+.bb-acct-profile-value {
+  margin: 0.2rem 0 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--navy);
+  font-family: 'Nunito', sans-serif;
+}
+
 @media (min-width: 520px) {
   .bb-account-wrap {
     padding-top: 8px;

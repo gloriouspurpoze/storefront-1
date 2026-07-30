@@ -19,8 +19,13 @@ import { SiteHeader as RetailHeader } from '@/themes/retail/SiteHeader'
 import { SiteFooter as RetailFooter } from '@/themes/retail/SiteFooter'
 import { toThemeTenant as toRetailTenant } from '@/themes/retail/types'
 import { LuxeEssenceAboutPage } from '@/themes/retail/luxe-essence/LuxeEssenceAboutPage'
+import { storefrontPathMetadata } from '@/lib/path-metadata'
 
 export const dynamic = 'force-dynamic'
+
+export async function generateMetadata() {
+  return storefrontPathMetadata('/about')
+}
 
 function AboutCopyFallback({ name }: { name: string }) {
   return (

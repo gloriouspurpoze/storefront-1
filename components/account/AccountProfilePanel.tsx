@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { accountSkinPrefix } from '@/lib/account-themes'
 import { fetchCustomerProfile, type CustomerProfile } from '@/lib/storefront-api'
 import { displayName } from '@/lib/storefront-auth'
 import { useAccountAuth } from './AccountAuthProvider'
@@ -13,7 +14,7 @@ import { RequireStorefrontAuth } from './RequireStorefrontAuth'
 export function AccountProfilePanel({ tenantId }: { tenantId: string }) {
   const { user, tokens, isReady, isAuthenticated } = useAccountAuth()
   const themeKey = useAccountTheme()
-  const isCards = themeKey === 'menufast-cards'
+  const skin = accountSkinPrefix(themeKey)
   const t = accountThemeClasses(themeKey)
   const [profile, setProfile] = useState<CustomerProfile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -47,6 +48,11 @@ export function AccountProfilePanel({ tenantId }: { tenantId: string }) {
     }
   }, [isReady, isAuthenticated, tokens?.accessToken, tenantId])
 
+  const display =
+    profile ? `${profile.firstName} ${profile.lastName ?? ''}`.trim() : user ? displayName(user) : '—'
+  const initial = (profile?.firstName ?? user?.firstName ?? '?').charAt(0).toUpperCase()
+  const shopLabel = skin === 'mf' || skin === 'bb' ? 'Order from menu' : 'Continue shopping'
+
   return (
     <RequireStorefrontAuth returnPath="/account/profile">
       <AccountPageHeader
@@ -61,47 +67,65 @@ export function AccountProfilePanel({ tenantId }: { tenantId: string }) {
           {error}
         </p>
       ) : (
-        <div className={`${t.card} space-y-6`}>
-          <div className="flex items-center gap-4">
+        <div className={`${t.card}${skin ? ` ${skin}-acct-profile` : ' space-y-6'}`}>
+          <div className={skin ? `${skin}-acct-profile-head` : 'flex items-center gap-4'}>
             {profile?.profilePicture ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={profile.profilePicture}
                 alt=""
-                className="h-16 w-16 rounded-full object-cover ring-2 ring-neutral-100"
+                className={skin ? `${skin}-acct-avatar` : 'h-16 w-16 rounded-full object-cover ring-2 ring-neutral-100'}
               />
             ) : (
               <div
-                className="flex h-16 w-16 items-center justify-center rounded-full text-xl font-semibold text-white"
-                style={{ backgroundColor: 'var(--site-brand, #171717)' }}
+                className={
+                  skin
+                    ? `${skin}-acct-avatar ${skin}-acct-avatar--fallback`
+                    : 'flex h-16 w-16 items-center justify-center rounded-full text-xl font-semibold text-white'
+                }
+                style={skin ? undefined : { backgroundColor: 'var(--site-brand, #171717)' }}
               >
-                {(profile?.firstName ?? user?.firstName ?? '?').charAt(0).toUpperCase()}
+                {initial}
               </div>
             )}
             <div>
-              <p className={isCards ? 'mf-acct-order-num' : 'text-lg font-semibold text-neutral-900'}>
-                {profile ? `${profile.firstName} ${profile.lastName ?? ''}`.trim() : user ? displayName(user) : '—'}
-              </p>
+              <p className={skin ? `${skin}-acct-order-num` : 'text-lg font-semibold text-neutral-900'}>{display}</p>
               <p className={t.textMuted}>Customer account</p>
             </div>
           </div>
 
-          <dl className={isCards ? 'mf-acct-profile-dl' : 'grid gap-4 sm:grid-cols-2'}>
+          <dl className={skin ? `${skin}-acct-profile-dl` : 'grid gap-4 sm:grid-cols-2'}>
             <div>
-              <dt className={isCards ? 'mf-acct-stat-label' : 'text-xs font-semibold uppercase tracking-wide text-neutral-500'}>Email</dt>
-              <dd className={isCards ? 'mf-acct-profile-value' : 'mt-1 text-sm font-medium text-neutral-900'}>{profile?.email ?? user?.email ?? '—'}</dd>
+              <dt className={skin ? `${skin}-acct-stat-label` : 'text-xs font-semibold uppercase tracking-wide text-neutral-500'}>
+                Email
+              </dt>
+              <dd className={skin ? `${skin}-acct-profile-value` : 'mt-1 text-sm font-medium text-neutral-900'}>
+                {profile?.email ?? user?.email ?? '—'}
+              </dd>
             </div>
             <div>
-              <dt className={isCards ? 'mf-acct-stat-label' : 'text-xs font-semibold uppercase tracking-wide text-neutral-500'}>Phone</dt>
-              <dd className={isCards ? 'mf-acct-profile-value' : 'mt-1 text-sm font-medium text-neutral-900'}>{profile?.phone ?? user?.phone ?? '—'}</dd>
+              <dt className={skin ? `${skin}-acct-stat-label` : 'text-xs font-semibold uppercase tracking-wide text-neutral-500'}>
+                Phone
+              </dt>
+              <dd className={skin ? `${skin}-acct-profile-value` : 'mt-1 text-sm font-medium text-neutral-900'}>
+                {profile?.phone ?? user?.phone ?? '—'}
+              </dd>
             </div>
             <div>
-              <dt className={isCards ? 'mf-acct-stat-label' : 'text-xs font-semibold uppercase tracking-wide text-neutral-500'}>First name</dt>
-              <dd className={isCards ? 'mf-acct-profile-value' : 'mt-1 text-sm font-medium text-neutral-900'}>{profile?.firstName ?? '—'}</dd>
+              <dt className={skin ? `${skin}-acct-stat-label` : 'text-xs font-semibold uppercase tracking-wide text-neutral-500'}>
+                First name
+              </dt>
+              <dd className={skin ? `${skin}-acct-profile-value` : 'mt-1 text-sm font-medium text-neutral-900'}>
+                {profile?.firstName ?? '—'}
+              </dd>
             </div>
             <div>
-              <dt className={isCards ? 'mf-acct-stat-label' : 'text-xs font-semibold uppercase tracking-wide text-neutral-500'}>Last name</dt>
-              <dd className={isCards ? 'mf-acct-profile-value' : 'mt-1 text-sm font-medium text-neutral-900'}>{profile?.lastName ?? '—'}</dd>
+              <dt className={skin ? `${skin}-acct-stat-label` : 'text-xs font-semibold uppercase tracking-wide text-neutral-500'}>
+                Last name
+              </dt>
+              <dd className={skin ? `${skin}-acct-profile-value` : 'mt-1 text-sm font-medium text-neutral-900'}>
+                {profile?.lastName ?? '—'}
+              </dd>
             </div>
           </dl>
 
@@ -110,12 +134,18 @@ export function AccountProfilePanel({ tenantId }: { tenantId: string }) {
             details for an open order.
           </p>
 
-          <div className={isCards ? 'mf-acct-actions mf-acct-actions--inline' : 'flex flex-wrap gap-3 border-t border-neutral-100 pt-4'}>
+          <div
+            className={
+              skin
+                ? `${skin}-acct-actions ${skin}-acct-actions--inline`
+                : 'flex flex-wrap gap-3 border-t border-neutral-100 pt-4'
+            }
+          >
             <Link href="/account/orders" className={t.btnSecondary}>
               View orders
             </Link>
             <Link href="/" className={t.btnPrimary}>
-              {isCards ? 'Order from menu' : 'Continue shopping'}
+              {shopLabel}
             </Link>
           </div>
         </div>

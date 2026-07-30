@@ -9,11 +9,15 @@ export function MenuFastCardsContentShell({
   tenant,
   config,
   title,
+  backHref = '/',
+  backLabel = '← Menu',
   children,
 }: {
   tenant: ThemeTenant
   config: StorefrontConfig | null
   title: string
+  backHref?: string
+  backLabel?: string
   children: ReactNode
 }) {
   const siteName = config?.branding?.siteName || tenant.name
@@ -30,8 +34,8 @@ export function MenuFastCardsContentShell({
 
           <header className="mf-cards-header mf-cards-content-header">
             <div className="mf-cards-content-header-row">
-              <Link href="/" className="mf-cards-content-back">
-                ← Menu
+              <Link href={backHref} className="mf-cards-content-back">
+                {backLabel}
               </Link>
               <h1 className="mf-cards-content-page-title">{title}</h1>
             </div>

@@ -2,14 +2,13 @@ import Link from 'next/link'
 import type { StorefrontBlogListItem } from '@/lib/cms-blog'
 
 type Props = {
-  tenantId: string
+  /** Kept for call-site compatibility; public URLs are host-rewritten. */
+  tenantId?: string
   siteName: string
   posts: StorefrontBlogListItem[]
 }
 
-export function StorefrontBlogIndex({ tenantId, siteName, posts }: Props) {
-  const base = `/sites/${tenantId}/blog`
-
+export function StorefrontBlogIndex({ siteName, posts }: Props) {
   return (
     <main className="sf-page-shell">
       <p className="text-xs font-semibold uppercase tracking-[0.25em] opacity-70">Blog</p>
@@ -25,7 +24,7 @@ export function StorefrontBlogIndex({ tenantId, siteName, posts }: Props) {
           {posts.map((post) => (
             <li key={post.slug}>
               <Link
-                href={`${base}/${post.slug}`}
+                href={`/blog/${post.slug}`}
                 className="flex h-full flex-col rounded-xl border border-border/60 bg-card p-5 shadow-sm transition hover:border-border"
               >
                 <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-wide opacity-70">

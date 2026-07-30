@@ -2,34 +2,30 @@
 
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
+import { accountSkinPrefix } from '@/lib/account-themes'
 import { AccountDashboardNav } from './AccountDashboardNav'
 import { useAccountTheme } from './AccountThemeContext'
 
 export function AccountDashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const themeKey = useAccountTheme()
+  const skin = accountSkinPrefix(themeKey)
   const isLogin = pathname?.includes('/account/login')
-  const isCards = themeKey === 'menufast-cards'
-  const isLuxe = themeKey === 'luxe-essence'
 
   if (isLogin) {
     return <>{children}</>
   }
 
-  if (isCards) {
-    return (
-      <div className="mf-acct-layout">
-        <AccountDashboardNav />
-        <div className="mf-acct-layout-main">{children}</div>
-      </div>
-    )
+  // Brown Butter: shell pill nav owns navigation — avoid double nav + lg sidebar clash.
+  if (skin === 'bb') {
+    return <>{children}</>
   }
 
-  if (isLuxe) {
+  if (skin === 'mf' || skin === 'le') {
     return (
-      <div className="le-acct-layout">
+      <div className={`${skin}-acct-layout`}>
         <AccountDashboardNav />
-        <div className="le-acct-layout-main">{children}</div>
+        <div className={`${skin}-acct-layout-main`}>{children}</div>
       </div>
     )
   }

@@ -8,16 +8,15 @@ function categoryLabel(raw: StorefrontBlogPost['category']): string {
 }
 
 type Props = {
-  tenantId: string
+  /** Kept for call-site compatibility; public URLs are host-rewritten. */
+  tenantId?: string
   post: StorefrontBlogPost
 }
 
-export function StorefrontBlogArticle({ tenantId, post }: Props) {
-  const base = `/sites/${tenantId}/blog`
-
+export function StorefrontBlogArticle({ post }: Props) {
   return (
     <main className="sf-page-shell mx-auto max-w-3xl">
-      <Link href={base} className="text-sm opacity-70 hover:opacity-100">
+      <Link href="/blog" className="text-sm opacity-70 hover:opacity-100">
         ← Back to blog
       </Link>
       <article className="mt-6">

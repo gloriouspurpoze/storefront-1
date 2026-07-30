@@ -1,5 +1,6 @@
 'use client'
 
+import { accountSkinPrefix } from '@/lib/account-themes'
 import { useAccountTheme } from './AccountThemeContext'
 import { accountThemeClasses } from './accountThemeClasses'
 
@@ -12,10 +13,10 @@ export function AccountPageHeader({
 }) {
   const themeKey = useAccountTheme()
   const t = accountThemeClasses(themeKey)
-  const isCards = themeKey === 'menufast-cards'
+  const skin = accountSkinPrefix(themeKey)
 
   return (
-    <div className={isCards ? 'mf-acct-page-header' : 'mb-8'}>
+    <div className={skin ? `${skin}-acct-page-header` : 'mb-8'}>
       <h1 className={t.pageTitle}>{title}</h1>
       {subtitle ? <p className={t.pageSubtitle}>{subtitle}</p> : null}
     </div>

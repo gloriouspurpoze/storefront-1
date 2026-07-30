@@ -19,12 +19,12 @@ import {
 import { Suspense } from 'react'
 import { RestaurantShell } from '@/themes/restaurant/RestaurantShell'
 import { QrTableContext } from '@/components/QrTableContext'
+import { storefrontPathMetadata } from '@/lib/path-metadata'
 
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata() {
-  const tenant = await loadRestaurantTenant()
-  return { title: 'Menu', description: `Menu at ${tenant.name}.` }
+  return storefrontPathMetadata('/menu')
 }
 
 export default async function MenuPage() {

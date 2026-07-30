@@ -2,10 +2,11 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { accountSkinPrefix } from '@/lib/account-themes'
+import { displayName } from '@/lib/storefront-auth'
 import { useAccountAuth } from './AccountAuthProvider'
 import { useAccountTheme } from './AccountThemeContext'
 import { accountThemeClasses } from './accountThemeClasses'
-import { displayName } from '@/lib/storefront-auth'
 
 const NAV_ITEMS: { href: string; label: string; exact?: boolean }[] = [
   { href: '/account', label: 'Overview', exact: true },
@@ -25,59 +26,32 @@ export function AccountDashboardNav() {
   const { user, isAuthenticated, logout } = useAccountAuth()
   const themeKey = useAccountTheme()
   const t = accountThemeClasses(themeKey)
+  const skin = accountSkinPrefix(themeKey)
   const isLogin = pathname?.includes('/account/login')
-  const isCards = themeKey === 'menufast-cards'
-  const isLuxe = themeKey === 'luxe-essence'
 
   if (isLogin || !isAuthenticated) return null
 
-  if (isCards) {
-    return (
-      <aside className="mf-acct-sidebar" aria-label="Account sections">
-        {user ? (
-          <p className="mf-acct-sidebar-user">
-            <span className="mf-acct-sidebar-label">Signed in</span>
-            {displayName(user)}
-          </p>
-        ) : null}
-        <nav className="mf-acct-sidebar-nav" aria-label="Account navigation">
-          {NAV_ITEMS.map((item) => {
-            const active = isNavActive(pathname, item.href, item.exact)
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`mf-acct-sidebar-link${active ? ' mf-acct-sidebar-link--active' : ''}`}
-              >
-                {item.label}
-              </Link>
-            )
-          })}
-          <button type="button" className="mf-acct-sidebar-link mf-acct-sidebar-link--button" onClick={() => void logout()}>
-            Sign out
-          </button>
-        </nav>
-      </aside>
-    )
-  }
+  // Shell pill nav owns navigation for Brown Butter.
+  if (skin === 'bb') return null
 
-  if (isLuxe) {
+  if (skin === 'mf' || skin === 'le') {
+    const storeLabel = skin === 'mf' ? 'Back to menu' : 'Continue shopping'
     return (
-      <aside className="le-acct-sidebar" aria-label="Account sections">
+      <aside className={`${skin}-acct-sidebar`} aria-label="Account sections">
         {user ? (
-          <p className="le-acct-sidebar-user">
-            <span className="le-acct-sidebar-label">Signed in</span>
+          <p className={`${skin}-acct-sidebar-user`}>
+            <span className={`${skin}-acct-sidebar-label`}>Signed in</span>
             {displayName(user)}
           </p>
         ) : null}
-        <nav className="le-acct-sidebar-nav" aria-label="Account navigation">
+        <nav className={`${skin}-acct-sidebar-nav`} aria-label="Account navigation">
           {NAV_ITEMS.map((item) => {
             const active = isNavActive(pathname, item.href, item.exact)
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`le-acct-sidebar-link${active ? ' le-acct-sidebar-link--active' : ''}`}
+                className={`${skin}-acct-sidebar-link${active ? ` ${skin}-acct-sidebar-link--active` : ''}`}
               >
                 {item.label}
               </Link>
@@ -85,14 +59,14 @@ export function AccountDashboardNav() {
           })}
           <button
             type="button"
-            className="le-acct-sidebar-link le-acct-sidebar-link--button"
+            className={`${skin}-acct-sidebar-link ${skin}-acct-sidebar-link--button`}
             onClick={() => void logout()}
           >
             Sign out
           </button>
         </nav>
-        <Link href="/" className="le-acct-sidebar-store">
-          Continue shopping
+        <Link href="/" className={`${skin}-acct-sidebar-store`}>
+          {storeLabel}
         </Link>
       </aside>
     )

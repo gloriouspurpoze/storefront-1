@@ -20,8 +20,13 @@ import { toThemeTenant as toRetailTenant } from '@/themes/retail/types'
 import { loadTenantFromRequest } from '@/lib/load-tenant'
 import { fetchStorefrontConfig } from '@/lib/storefront-api'
 import { LuxeEssenceContactPage } from '@/themes/retail/luxe-essence/LuxeEssenceContactPage'
+import { storefrontPathMetadata } from '@/lib/path-metadata'
 
 export const dynamic = 'force-dynamic'
+
+export async function generateMetadata() {
+  return storefrontPathMetadata('/contact')
+}
 
 export default async function ContactPage() {
   const resolved = await loadTenantFromRequest()

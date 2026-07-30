@@ -12,13 +12,13 @@ import { RestaurantShell } from '@/themes/restaurant/RestaurantShell'
 import { SiteHeader as RestHeader } from '@/themes/restaurant/SiteHeader'
 import { SiteFooter as RestFooter } from '@/themes/restaurant/SiteFooter'
 import { toThemeTenant as toRestTenant } from '@/themes/restaurant/types'
-import { MenuFastCardsContentShell } from '@/themes/restaurant/menufast/MenuFastCardsContentShell'
+import { MenuFastCardsCmsPage } from '@/themes/restaurant/menufast/MenuFastCardsCmsPage'
 import { loadRetailTenant } from '@/themes/retail/loadThemeTenant'
 import { RetailShell } from '@/themes/retail/RetailShell'
 import { SiteHeader as RetailHeader } from '@/themes/retail/SiteHeader'
 import { SiteFooter as RetailFooter } from '@/themes/retail/SiteFooter'
 import { toThemeTenant as toRetailTenant } from '@/themes/retail/types'
-import { LuxeEssenceLayoutPage } from '@/themes/retail/luxe-essence/LuxeEssenceLayoutPage'
+import { LuxeEssenceCmsPage } from '@/themes/retail/luxe-essence/LuxeEssenceCmsPage'
 
 /**
  * Renders any published CMS static page inside the active vertical/theme shell.
@@ -46,23 +46,7 @@ export async function CmsStaticPageScreen({ page }: { page: StorefrontCmsPage })
       const theme = toRestTenant(tenant, tenant.fallbackTagline)
       const config = await fetchStorefrontConfig(tenant.id)
       if (config?.themeKey === 'menufast-cards') {
-        const html = page.content?.trim()
-        return (
-          <MenuFastCardsContentShell tenant={theme} config={config} title={page.title}>
-            <article className="mf-cards-content-article">
-              <h2 className="mf-cards-content-heading">{page.title}</h2>
-              {page.excerpt?.trim() ? (
-                <p className="mf-cards-content-muted">{page.excerpt.trim()}</p>
-              ) : null}
-              {html ? (
-                <div
-                  className="mf-cards-content-prose prose prose-neutral max-w-none"
-                  dangerouslySetInnerHTML={{ __html: html }}
-                />
-              ) : null}
-            </article>
-          </MenuFastCardsContentShell>
-        )
+        return <MenuFastCardsCmsPage tenant={theme} config={config} page={page} />
       }
       return (
         <RestaurantShell tenantId={tenant.id}>
@@ -77,24 +61,9 @@ export async function CmsStaticPageScreen({ page }: { page: StorefrontCmsPage })
       const theme = toRetailTenant(tenant, tenant.fallbackTagline)
       const config = await fetchStorefrontConfig(tenant.id)
       if (config?.themeKey === 'luxe-essence') {
-        const html = page.content?.trim()
         return (
           <RetailShell tenantId={tenant.id}>
-            <LuxeEssenceLayoutPage
-              tenant={theme}
-              config={config}
-              mainClassName="sf-page-shell sf-page-shell--narrow"
-            >
-              <p className="sf-page-eyebrow">{page.slug.replace(/-/g, ' ')}</p>
-              <h1 className="sf-page-title">{page.title}</h1>
-              {page.excerpt?.trim() ? <p className="sf-page-lead">{page.excerpt.trim()}</p> : null}
-              {html ? (
-                <div
-                  className="prose prose-neutral mt-6 max-w-none"
-                  dangerouslySetInnerHTML={{ __html: html }}
-                />
-              ) : null}
-            </LuxeEssenceLayoutPage>
+            <LuxeEssenceCmsPage tenant={theme} config={config} page={page} />
           </RetailShell>
         )
       }

@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
+import { accountSkinPrefix } from '@/lib/account-themes'
 import {
   fetchCustomerOrders,
   fetchCustomerProfile,
@@ -37,7 +38,7 @@ function isActiveOrder(status: string): boolean {
 export function AccountOverview({ tenantId }: { tenantId: string }) {
   const { user, tokens, isReady, isAuthenticated } = useAccountAuth()
   const themeKey = useAccountTheme()
-  const isCards = themeKey === 'menufast-cards'
+  const skin = accountSkinPrefix(themeKey)
   const t = accountThemeClasses(themeKey)
   const [profile, setProfile] = useState<CustomerProfile | null>(null)
   const [orders, setOrders] = useState<CustomerOrderSummary[]>([])
@@ -83,11 +84,17 @@ export function AccountOverview({ tenantId }: { tenantId: string }) {
     return { active, totalSpent, recentCount: orders.length }
   }, [orders])
 
+  const shopLabel = skin === 'mf' || skin === 'bb' ? 'Order from menu' : 'Shop now'
+  const subtitle =
+    skin === 'mf'
+      ? 'Your orders and account at a glance.'
+      : 'Manage orders, track deliveries, and update your profile.'
+
   return (
     <RequireStorefrontAuth returnPath="/account">
       <AccountPageHeader
         title={`Welcome back${user ? `, ${displayName(user).split(' ')[0]}` : ''}`}
-        subtitle={isCards ? 'Your orders and account at a glance.' : 'Manage orders, track deliveries, and update your profile.'}
+        subtitle={subtitle}
       />
 
       {loading ? (
@@ -98,19 +105,21 @@ export function AccountOverview({ tenantId }: { tenantId: string }) {
         </p>
       ) : (
         <>
-          {isCards ? (
-            <div className="mf-acct-stats">
-              <div className="mf-acct-stat">
-                <span className="mf-acct-stat-label">Active orders</span>
-                <span className="mf-acct-stat-value">{stats.active}</span>
+          {skin ? (
+            <div className={`${skin}-acct-stats`}>
+              <div className={`${skin}-acct-stat`}>
+                <span className={`${skin}-acct-stat-label`}>Active orders</span>
+                <span className={`${skin}-acct-stat-value`}>{stats.active}</span>
               </div>
-              <div className="mf-acct-stat">
-                <span className="mf-acct-stat-label">Recent orders</span>
-                <span className="mf-acct-stat-value">{stats.recentCount}</span>
+              <div className={`${skin}-acct-stat`}>
+                <span className={`${skin}-acct-stat-label`}>Recent orders</span>
+                <span className={`${skin}-acct-stat-value`}>{stats.recentCount}</span>
               </div>
-              <div className="mf-acct-stat">
-                <span className="mf-acct-stat-label">Recent spend</span>
-                <span className="mf-acct-stat-value mf-acct-stat-value--money">{formatMoney(stats.totalSpent)}</span>
+              <div className={`${skin}-acct-stat`}>
+                <span className={`${skin}-acct-stat-label`}>Recent spend</span>
+                <span className={`${skin}-acct-stat-value ${skin}-acct-stat-value--money`}>
+                  {formatMoney(stats.totalSpent)}
+                </span>
               </div>
             </div>
           ) : (
@@ -130,21 +139,21 @@ export function AccountOverview({ tenantId }: { tenantId: string }) {
             </div>
           )}
 
-          <div className={isCards ? 'mf-acct-actions' : 'mb-8 flex flex-wrap gap-3'}>
+          <div className={skin ? `${skin}-acct-actions` : 'mb-8 flex flex-wrap gap-3'}>
             <Link href="/" className={t.btnPrimary}>
-              {isCards ? 'Order from menu' : 'Shop now'}
+              {shopLabel}
             </Link>
             <Link href="/orders/track" className={t.btnSecondary}>
               Track an order
             </Link>
-            {!isCards ? (
+            {skin !== 'mf' ? (
               <Link href="/account/profile" className={t.btnSecondary}>
                 Edit profile
               </Link>
             ) : null}
           </div>
 
-          {!isCards && profile ? (
+          {!skin && profile ? (
             <div className="mb-8 rounded-2xl border border-neutral-200 bg-neutral-50 p-5">
               <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Account</p>
               <p className="mt-2 font-medium text-neutral-900">
@@ -155,9 +164,22 @@ export function AccountOverview({ tenantId }: { tenantId: string }) {
             </div>
           ) : null}
 
-          <section className={isCards ? 'mf-acct-section' : undefined}>
-            <div className={isCards ? 'mf-acct-section-head' : 'mb-4 flex items-center justify-between gap-3'}>
-              <h2 className={isCards ? 'mf-acct-section-title' : 'text-lg font-semibold text-neutral-900'}>Recent orders</h2>
+          {(skin === 'bb' || skin === 'le') && profile ? (
+            <div className={`${skin}-acct-profile-card`}>
+              <p className={`${skin}-acct-stat-label`}>Account</p>
+              <p className={`${skin}-acct-profile-name`}>
+                {profile.firstName} {profile.lastName ?? ''}
+              </p>
+              <p className={t.textMuted}>{profile.email}</p>
+              {profile.phone ? <p className={t.textMuted}>{profile.phone}</p> : null}
+            </div>
+          ) : null}
+
+          <section className={skin ? `${skin}-acct-section` : undefined}>
+            <div className={skin ? `${skin}-acct-section-head` : 'mb-4 flex items-center justify-between gap-3'}>
+              <h2 className={skin ? `${skin}-acct-section-title` : 'text-lg font-semibold text-neutral-900'}>
+                Recent orders
+              </h2>
               <Link href="/account/orders" className={t.link}>
                 View all
               </Link>
@@ -176,13 +198,17 @@ export function AccountOverview({ tenantId }: { tenantId: string }) {
                 {orders.map((order) => (
                   <li key={order.id}>
                     <Link href="/account/orders" className={`${t.orderCard} block no-underline`}>
-                      <div className={isCards ? 'mf-acct-order-row' : 'flex flex-wrap items-start justify-between gap-3'}>
+                      <div className={skin ? `${skin}-acct-order-row` : 'flex flex-wrap items-start justify-between gap-3'}>
                         <div>
-                          <p className={isCards ? 'mf-acct-order-num' : 'font-medium text-neutral-900'}>{order.orderNumber}</p>
+                          <p className={skin ? `${skin}-acct-order-num` : 'font-medium text-neutral-900'}>
+                            {order.orderNumber}
+                          </p>
                           <p className={t.orderMeta}>{formatDate(order.createdAt)}</p>
                         </div>
-                        <div className={isCards ? 'mf-acct-order-row-end' : 'flex flex-col items-end gap-2'}>
-                          <p className={isCards ? 'mf-acct-order-amount' : 'font-medium text-neutral-900'}>{formatMoney(order.totalAmount)}</p>
+                        <div className={skin ? `${skin}-acct-order-row-end` : 'flex flex-col items-end gap-2'}>
+                          <p className={skin ? `${skin}-acct-order-amount` : 'font-medium text-neutral-900'}>
+                            {formatMoney(order.totalAmount)}
+                          </p>
                           <OrderStatusBadge status={order.status} />
                         </div>
                       </div>
@@ -193,7 +219,9 @@ export function AccountOverview({ tenantId }: { tenantId: string }) {
                           </li>
                         ))}
                         {order.items.length > 2 ? (
-                          <li className={isCards ? 'mf-acct-muted' : 'text-neutral-400'}>+{order.items.length - 2} more</li>
+                          <li className={skin ? `${skin}-acct-muted` : 'text-neutral-400'}>
+                            +{order.items.length - 2} more
+                          </li>
                         ) : null}
                       </ul>
                     </Link>

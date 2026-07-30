@@ -3,8 +3,13 @@ import { loadTenantFromRequest } from '@/lib/load-tenant'
 import { fetchStorefrontConfig } from '@/lib/storefront-api'
 import { ComingSoon } from '@/themes/coming-soon/ComingSoon'
 import { HomePageSections } from '@/components/HomePageSections'
+import { storefrontPathMetadata } from '@/lib/path-metadata'
 
 export const dynamic = 'force-dynamic'
+
+export async function generateMetadata() {
+  return storefrontPathMetadata('/')
+}
 
 export default async function TenantHomePage() {
   const tenant = await loadTenantFromRequest()

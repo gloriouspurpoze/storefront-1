@@ -7,6 +7,9 @@ import type { ComponentProps } from 'react'
 const LUXE_DRAWER_NAV: StorefrontMenuNavLink[] = [
   { href: '#products', label: 'Featured' },
   { href: '/products', label: 'All products' },
+  { href: '/about', label: 'About' },
+  { href: '/blog', label: 'Blog' },
+  { href: '/contact', label: 'Contact' },
   { href: '/account', label: 'My orders' },
   { href: '/orders/track', label: 'Track order' },
   { href: '/account/login', label: 'Sign in' },

@@ -4,12 +4,12 @@ import { SiteHeader } from '@/themes/restaurant/SiteHeader'
 import { SiteFooter } from '@/themes/restaurant/SiteFooter'
 import { ReservationForm } from '@/themes/restaurant/ReservationForm'
 import { toThemeTenant } from '@/themes/restaurant/types'
+import { storefrontPathMetadata } from '@/lib/path-metadata'
 
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata() {
-  const tenant = await loadRestaurantTenant()
-  return { title: 'Reservations', description: `Reserve a table at ${tenant.name}.` }
+  return storefrontPathMetadata('/reserve')
 }
 
 export default async function ReservePage() {

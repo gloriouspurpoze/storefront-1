@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 
 const SOCIAL_LABELS: Record<string, string> = {
@@ -9,6 +10,12 @@ const SOCIAL_LABELS: Record<string, string> = {
   youtube: 'YouTube',
   linkedin: 'LinkedIn',
 }
+
+const PAGE_LINKS = [
+  { href: '/about', label: 'About' },
+  { href: '/blog', label: 'Blog' },
+  { href: '/contact', label: 'Contact' },
+] as const
 
 function whatsAppHref(phone: string): string | null {
   const digits = phone.replace(/\D/g, '')
@@ -41,16 +48,15 @@ export function MenuFastCardsFooter({ config }: { config: StorefrontConfig | nul
   const hasLinks = Boolean(phone || email || whatsappLink || socialLinks.length)
   const hasAddress = Boolean(address)
 
-  if (!hasLinks && !hasAddress) {
-    return (
-      <footer className="mf-cards-shell-footer">
-        <p className="mf-powered">Powered by Profixer</p>
-      </footer>
-    )
-  }
-
   return (
     <footer className="mf-cards-shell-footer">
+      <nav className="mf-cards-shell-footer-pages" aria-label="Site pages">
+        {PAGE_LINKS.map((link) => (
+          <Link key={link.href} href={link.href} className="mf-cards-shell-footer-link">
+            {link.label}
+          </Link>
+        ))}
+      </nav>
       {hasLinks ? (
         <nav className="mf-cards-shell-footer-links" aria-label="Contact and social">
           {phone ? (

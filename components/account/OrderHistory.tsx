@@ -8,13 +8,14 @@ import {
   type CustomerOrderSummary,
   type PublicOrderTracking,
 } from '@/lib/storefront-api'
+import { accountSkinPrefix } from '@/lib/account-themes'
+import { displayName } from '@/lib/storefront-auth'
 import { useAccountAuth } from './AccountAuthProvider'
 import { useAccountTheme } from './AccountThemeContext'
 import { accountThemeClasses } from './accountThemeClasses'
 import { AccountPageHeader } from './AccountPageHeader'
 import { OrderStatusBadge, OrderTrackingPanel } from './OrderTrackingPanel'
 import { RequireStorefrontAuth } from './RequireStorefrontAuth'
-import { displayName } from '@/lib/storefront-auth'
 
 function formatMoney(amount: number): string {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount)
@@ -32,7 +33,7 @@ function formatDate(iso?: string): string {
 export function OrderHistory({ tenantId }: { tenantId: string }) {
   const { user, tokens, isReady, isAuthenticated } = useAccountAuth()
   const themeKey = useAccountTheme()
-  const isCards = themeKey === 'menufast-cards'
+  const skin = accountSkinPrefix(themeKey)
   const t = accountThemeClasses(themeKey)
   const [orders, setOrders] = useState<CustomerOrderSummary[]>([])
   const [loading, setLoading] = useState(true)
@@ -152,13 +153,15 @@ export function OrderHistory({ tenantId }: { tenantId: string }) {
                   onClick={() => onCardClick(order.orderNumber)}
                   className={`${t.orderCard} ${isExpanded ? t.orderCardExpanded : ''}`}
                 >
-                  <div className={isCards ? 'mf-acct-order-row' : 'flex flex-wrap items-start justify-between gap-3'}>
+                  <div className={skin ? `${skin}-acct-order-row` : 'flex flex-wrap items-start justify-between gap-3'}>
                     <div>
-                      <p className={isCards ? 'mf-acct-order-num' : 'font-medium'}>{order.orderNumber}</p>
+                      <p className={skin ? `${skin}-acct-order-num` : 'font-medium'}>{order.orderNumber}</p>
                       <p className={t.orderMeta}>{formatDate(order.createdAt)}</p>
                     </div>
-                    <div className={isCards ? 'mf-acct-order-row-end' : 'flex flex-col items-end gap-2'}>
-                      <p className={isCards ? 'mf-acct-order-amount' : 'font-medium'}>{formatMoney(order.totalAmount)}</p>
+                    <div className={skin ? `${skin}-acct-order-row-end` : 'flex flex-col items-end gap-2'}>
+                      <p className={skin ? `${skin}-acct-order-amount` : 'font-medium'}>
+                        {formatMoney(order.totalAmount)}
+                      </p>
                       <OrderStatusBadge status={order.status} />
                     </div>
                   </div>
@@ -171,7 +174,7 @@ export function OrderHistory({ tenantId }: { tenantId: string }) {
                     ))}
                   </ul>
 
-                  <p className={`${t.textMuted} mt-3 text-xs font-medium`}>
+                  <p className={skin ? `${skin}-acct-order-hint` : `${t.textMuted} mt-3 text-xs font-medium`}>
                     {isExpanded ? 'Hide tracking ↑' : 'View tracking details →'}
                   </p>
                 </button>

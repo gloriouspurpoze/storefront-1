@@ -7,12 +7,12 @@ import { toThemeTenant } from '@/themes/retail/types'
 import { fetchProducts, fetchStorefrontConfig } from '@/lib/storefront-api'
 import { isRetailLayoutTheme } from '@/themes/retail/retailLayoutRouter'
 import { LayoutThemePageShell } from '@/components/LayoutThemePageShell'
+import { storefrontPathMetadata } from '@/lib/path-metadata'
 
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata() {
-  const tenant = await loadRetailTenant()
-  return { title: 'Shop', description: `Shop ${tenant.name}.` }
+  return storefrontPathMetadata('/products')
 }
 
 export default async function ProductsPage() {

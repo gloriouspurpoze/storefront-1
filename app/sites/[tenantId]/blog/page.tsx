@@ -13,11 +13,13 @@ import { RestaurantShell } from '@/themes/restaurant/RestaurantShell'
 import { SiteHeader as RestHeader } from '@/themes/restaurant/SiteHeader'
 import { SiteFooter as RestFooter } from '@/themes/restaurant/SiteFooter'
 import { toThemeTenant as toRestTenant } from '@/themes/restaurant/types'
+import { MenuFastCardsBlogIndexPage } from '@/themes/restaurant/menufast/MenuFastCardsBlogIndexPage'
 import { loadRetailTenant } from '@/themes/retail/loadThemeTenant'
 import { RetailShell } from '@/themes/retail/RetailShell'
 import { SiteHeader as RetailHeader } from '@/themes/retail/SiteHeader'
 import { SiteFooter as RetailFooter } from '@/themes/retail/SiteFooter'
 import { toThemeTenant as toRetailTenant } from '@/themes/retail/types'
+import { LuxeEssenceBlogIndexPage } from '@/themes/retail/luxe-essence/LuxeEssenceBlogIndexPage'
 
 /** Must be a literal — Next.js cannot statically analyze imported revalidate values. */
 export const revalidate = 120
@@ -63,6 +65,16 @@ export default async function BlogIndexPage({ params }: RouteParams) {
     case 'restaurant': {
       const tenant = await loadRestaurantTenant()
       const theme = toRestTenant(tenant, tenant.fallbackTagline)
+      if (config?.themeKey === 'menufast-cards') {
+        return (
+          <MenuFastCardsBlogIndexPage
+            tenant={theme}
+            config={config}
+            siteName={siteName}
+            posts={posts}
+          />
+        )
+      }
       return (
         <RestaurantShell tenantId={tenant.id}>
           <RestHeader tenant={theme} />
@@ -75,6 +87,18 @@ export default async function BlogIndexPage({ params }: RouteParams) {
     default: {
       const tenant = await loadRetailTenant()
       const theme = toRetailTenant(tenant, tenant.fallbackTagline)
+      if (config?.themeKey === 'luxe-essence') {
+        return (
+          <RetailShell tenantId={tenant.id}>
+            <LuxeEssenceBlogIndexPage
+              tenant={theme}
+              config={config}
+              siteName={siteName}
+              posts={posts}
+            />
+          </RetailShell>
+        )
+      }
       return (
         <RetailShell tenantId={tenant.id}>
           <RetailHeader tenant={theme} />

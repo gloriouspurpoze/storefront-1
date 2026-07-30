@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { loadTenantFromRequest } from '@/lib/load-tenant'
 import { fetchStorefrontBlogBySlug } from '@/lib/cms-blog'
+import { fetchStorefrontConfig } from '@/lib/storefront-api'
 import { StorefrontBlogArticle } from '@/components/content/StorefrontBlogArticle'
 import { loadHomeServicesTenant } from '@/themes/home-services/loadThemeTenant'
 import { SiteHeader as HsHeader } from '@/themes/home-services/SiteHeader'
@@ -12,11 +13,13 @@ import { RestaurantShell } from '@/themes/restaurant/RestaurantShell'
 import { SiteHeader as RestHeader } from '@/themes/restaurant/SiteHeader'
 import { SiteFooter as RestFooter } from '@/themes/restaurant/SiteFooter'
 import { toThemeTenant as toRestTenant } from '@/themes/restaurant/types'
+import { MenuFastCardsBlogArticlePage } from '@/themes/restaurant/menufast/MenuFastCardsBlogArticlePage'
 import { loadRetailTenant } from '@/themes/retail/loadThemeTenant'
 import { RetailShell } from '@/themes/retail/RetailShell'
 import { SiteHeader as RetailHeader } from '@/themes/retail/SiteHeader'
 import { SiteFooter as RetailFooter } from '@/themes/retail/SiteFooter'
 import { toThemeTenant as toRetailTenant } from '@/themes/retail/types'
+import { LuxeEssenceBlogArticlePage } from '@/themes/retail/luxe-essence/LuxeEssenceBlogArticlePage'
 
 /** Must be a literal — Next.js cannot statically analyze imported revalidate values. */
 export const revalidate = 180
@@ -39,7 +42,10 @@ export default async function BlogPostPage({ params }: RouteParams) {
   const resolved = await loadTenantFromRequest()
   if (!resolved || resolved.id !== tenantId) notFound()
 
-  const post = await fetchStorefrontBlogBySlug(tenantId, slug)
+  const [post, config] = await Promise.all([
+    fetchStorefrontBlogBySlug(tenantId, slug),
+    fetchStorefrontConfig(tenantId),
+  ])
   if (!post || post.status === 'draft') notFound()
 
   const body = <StorefrontBlogArticle tenantId={tenantId} post={post} />
@@ -59,6 +65,9 @@ export default async function BlogPostPage({ params }: RouteParams) {
     case 'restaurant': {
       const tenant = await loadRestaurantTenant()
       const theme = toRestTenant(tenant, tenant.fallbackTagline)
+      if (config?.themeKey === 'menufast-cards') {
+        return <MenuFastCardsBlogArticlePage tenant={theme} config={config} post={post} />
+      }
       return (
         <RestaurantShell tenantId={tenant.id}>
           <RestHeader tenant={theme} />
@@ -71,6 +80,13 @@ export default async function BlogPostPage({ params }: RouteParams) {
     default: {
       const tenant = await loadRetailTenant()
       const theme = toRetailTenant(tenant, tenant.fallbackTagline)
+      if (config?.themeKey === 'luxe-essence') {
+        return (
+          <RetailShell tenantId={tenant.id}>
+            <LuxeEssenceBlogArticlePage tenant={theme} config={config} post={post} />
+          </RetailShell>
+        )
+      }
       return (
         <RetailShell tenantId={tenant.id}>
           <RetailHeader tenant={theme} />

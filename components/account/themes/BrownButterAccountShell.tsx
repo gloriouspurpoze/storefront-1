@@ -21,7 +21,7 @@ export function BrownButterAccountShell({
 }) {
   const pathname = usePathname()
   const { user, isAuthenticated } = useAccountAuth()
-  const isLogin = pathname?.endsWith('/login')
+  const isLogin = Boolean(pathname?.includes('/account/login'))
   const userInitial = (
     user?.firstName?.charAt(0) ||
     user?.email?.charAt(0) ||
@@ -103,7 +103,7 @@ export function BrownButterAccountShell({
           </div>
         ) : null}
 
-        <main className="bb-account-main">{children}</main>
+        <main className={`bb-account-main${isLogin ? ' bb-account-main--auth' : ''}`}>{children}</main>
       </div>
     </div>
   )

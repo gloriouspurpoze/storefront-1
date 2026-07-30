@@ -5,15 +5,12 @@ import { ServiceGrid } from '@/themes/home-services/ServiceGrid'
 import { CallToAction } from '@/themes/home-services/CallToAction'
 import { toThemeTenant } from '@/themes/home-services/types'
 import { fetchServices } from '@/lib/storefront-api'
+import { storefrontPathMetadata } from '@/lib/path-metadata'
 
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata() {
-  const tenant = await loadHomeServicesTenant()
-  return {
-    title: 'Services',
-    description: `Browse all services offered by ${tenant.name}.`,
-  }
+  return storefrontPathMetadata('/services')
 }
 
 export default async function ServicesPage() {
