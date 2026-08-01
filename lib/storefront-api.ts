@@ -1,13 +1,16 @@
 /**
  * Tenant-scoped public API client.
  *
- * - Always passes `x-tenant-id` so the backend can scope without exposing it
- *   in the URL (cleaner cache keys, friendlier logs).
+ * - Always passes `x-tenant-id` for backend org scope.
+ * - Embeds tenant id in the request URL (`__tenant=`) so Next.js Data Cache
+ *   keys never share slider/banner payloads across orgs (headers alone are easy
+ *   to misconfigure; tags only invalidate, they do not uniquify the key).
  * - Server-only helpers use `fetch` with cache tags so RSC pages auto-revalidate
  *   when the admin saves CMS content (`/api/revalidate` webhook).
  * - Client-only helpers (lead submit) don't get cached.
  */
 import { env } from './env'
+import { filterOwnedByTenant } from './storefrontContent'
 import { withTenantId } from './tenant-headers'
 
 export interface PublicService {
@@ -34,6 +37,14 @@ function apiUrl(path: string): string {
   return `${env.API_BASE_URL.replace(/\/+$/, '')}${path}`
 }
 
+/** Append a cache-key-only tenant marker; backend ignores unknown query params. */
+function withTenantCacheKey(path: string, tenantId: string): string {
+  const id = tenantId.trim()
+  if (!id) return path
+  const sep = path.includes('?') ? '&' : '?'
+  return `${path}${sep}__tenant=${encodeURIComponent(id)}`
+}
+
 async function getJson<T>(
   path: string,
   tenantId: string,
@@ -41,7 +52,7 @@ async function getJson<T>(
 ): Promise<T | null> {
   if (!tenantId) return null
   try {
-    const res = await fetch(apiUrl(path), {
+    const res = await fetch(apiUrl(withTenantCacheKey(path, tenantId)), {
       method: 'GET',
       headers: withTenantId(tenantId, { Accept: 'application/json' }),
       next: {
@@ -779,7 +790,7 @@ export async function fetchStorefrontSliders(
       tags: [`tenant:${tenantId}`, `tenant:${tenantId}:sliders`, `tenant:${tenantId}:sliders:${query?.placement ?? 'all'}`],
     },
   )
-  return data?.sliders ?? []
+  return filterOwnedByTenant(data?.sliders ?? [], tenantId)
 }
 
 export async function fetchStorefrontBanners(
@@ -798,7 +809,7 @@ export async function fetchStorefrontBanners(
       tags: [`tenant:${tenantId}`, `tenant:${tenantId}:banners`],
     },
   )
-  return data?.banners ?? []
+  return filterOwnedByTenant(data?.banners ?? [], tenantId)
 }
 
 export async function fetchStorefrontAnnouncement(

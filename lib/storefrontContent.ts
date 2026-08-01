@@ -3,6 +3,20 @@ import type { StorefrontAnnouncement, StorefrontBanner, StorefrontSlider } from 
 type SliderActiveFields = StorefrontSlider & { isActive?: boolean }
 type BannerActiveFields = StorefrontBanner & { isActive?: boolean; is_active?: boolean }
 
+/**
+ * Drop CMS rows that belong to another org (or lack a tenant marker).
+ * Public APIs should already scope by `x-tenant-id`; this is belt-and-suspenders
+ * so seeded banners never bleed across storefronts.
+ */
+export function filterOwnedByTenant<T extends { tenantId?: string }>(
+  rows: T[],
+  tenantId: string,
+): T[] {
+  const id = tenantId.trim()
+  if (!id) return []
+  return rows.filter((row) => (row.tenantId ?? '').trim() === id)
+}
+
 /** Public slider payloads may use snake_case, camelCase, or omit the flag when pre-filtered. */
 export function isSliderActive(slide: StorefrontSlider): boolean {
   const raw = slide as SliderActiveFields
