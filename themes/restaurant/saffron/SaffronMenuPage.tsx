@@ -826,10 +826,14 @@ export function SaffronMenuPage({
   initialCategories,
   tenant,
   config,
+  navLinks,
+  footerLinks,
 }: {
   initialCategories: PublicMenuCategory[]
   tenant: ThemeTenant
   config: StorefrontConfig | null
+  navLinks?: { href: string; label: string }[]
+  footerLinks?: { href: string; label: string }[]
 }) {
   const { entries, itemCount, subtotal, addItem, removeItem, clearCart, qtyFor } =
     useMenuCart(initialCategories)
@@ -1013,6 +1017,7 @@ export function SaffronMenuPage({
         onClose={() => setMenuOpen(false)}
         config={config}
         showShippingPolicy={false}
+        navLinks={navLinks}
       />
       <MenuItemDetailModal
         item={selectedItem}
@@ -1393,7 +1398,7 @@ export function SaffronMenuPage({
         </div>
       )}
 
-      <SaffronFooter tenant={tenant} config={config} />
+      <SaffronFooter tenant={tenant} config={config} footerLinks={footerLinks} />
 
       {/* ── Toast notification ── */}
       {toast && (

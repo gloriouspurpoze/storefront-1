@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import type { StorefrontNavLink } from '@/lib/cms-content'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 
 const SOCIAL_LABELS: Record<string, string> = {
@@ -11,11 +12,11 @@ const SOCIAL_LABELS: Record<string, string> = {
   linkedin: 'LinkedIn',
 }
 
-const PAGE_LINKS = [
+const DEFAULT_PAGE_LINKS: StorefrontNavLink[] = [
   { href: '/about', label: 'About' },
   { href: '/blog', label: 'Blog' },
   { href: '/contact', label: 'Contact' },
-] as const
+]
 
 function whatsAppHref(phone: string): string | null {
   const digits = phone.replace(/\D/g, '')
@@ -29,13 +30,21 @@ function externalSocialHref(key: string, value: string): string {
   return trimmed
 }
 
-export function MenuFastCardsFooter({ config }: { config: StorefrontConfig | null }) {
+export function MenuFastCardsFooter({
+  config,
+  footerLinks,
+}: {
+  config: StorefrontConfig | null
+  /** CMS footer menu links (empty → About/Blog/Contact fallback). */
+  footerLinks?: StorefrontNavLink[]
+}) {
   const branding = config?.branding
   const phone = branding?.contactPhone?.trim()
   const email = branding?.contactEmail?.trim()
   const whatsapp = branding?.socials?.whatsapp?.trim()
   const whatsappLink = whatsapp ? whatsAppHref(whatsapp) : null
   const address = branding?.address?.trim()
+  const pageLinks = footerLinks?.length ? footerLinks : DEFAULT_PAGE_LINKS
 
   const socialLinks = Object.entries(branding?.socials ?? {})
     .filter(([key, value]) => key !== 'whatsapp' && Boolean(value?.trim()))
@@ -51,8 +60,12 @@ export function MenuFastCardsFooter({ config }: { config: StorefrontConfig | nul
   return (
     <footer className="mf-cards-shell-footer">
       <nav className="mf-cards-shell-footer-pages" aria-label="Site pages">
-        {PAGE_LINKS.map((link) => (
-          <Link key={link.href} href={link.href} className="mf-cards-shell-footer-link">
+        {pageLinks.map((link) => (
+          <Link
+            key={`${link.href}-${link.label}`}
+            href={link.href}
+            className="mf-cards-shell-footer-link"
+          >
             {link.label}
           </Link>
         ))}

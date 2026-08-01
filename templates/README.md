@@ -17,8 +17,7 @@ Six layout templates ship as the default catalog. Super admins can enable/disabl
 
 ### Shared behavior (all six)
 
-- **Store status** — open/closed badge from Availability settings (`orderingHours`, `slotsNote`)
-- **Nav** — logo, status, ☰ menu drawer, account, cart only (secondary links live in drawer/footer)
+- **Nav** — logo, ☰ menu drawer, account, cart only (secondary links live in drawer/footer)
 - **Shipping / delivery policy** — tenant config; modal gate at checkout; full page at `/shipping-policy`
 - **E-commerce** — product card → `/products/[slug]` detail page
 - **Restaurant** — menu card/row → `MenuItemDetailModal` popup
@@ -29,6 +28,10 @@ Six layout templates ship as the default catalog. Super admins can enable/disabl
   - **Pop-ups** — overlay on homepage load (session-dismissible)
   - No content → no UI (layout collapses). Spec: [sliders-banners-storefront.md](../../docs/features/sliders-banners-storefront.md)
 
+### Restaurant-only behavior
+
+- **Store status** — open/closed badge from Availability settings (`orderingHours`, `slotsNote`). Shown on restaurant themes only (classic, menufast-minimal, menufast-cards). **Not** rendered on retail / e-commerce themes.
+
 ## Restaurant (`restaurant/`)
 
 | HTML source | `themeKey` | Notes |
@@ -36,6 +39,8 @@ Six layout templates ship as the default catalog. Super admins can enable/disabl
 | `temp2/menufast_menu_templates.html` (Minimal tab) | `menufast-minimal` | List layout |
 | `temp2/menufast_menu_templates.html` (Cards tab) | `menufast-cards` | Image cards |
 | — | `classic` | Default section-based restaurant site |
+
+Restaurant themes show **store status** (open/closed) from Availability settings. Retail themes do not.
 
 Legacy layout `saffron` (`temp1/index.html`) remains in code but is hidden from the launch catalog by default.
 

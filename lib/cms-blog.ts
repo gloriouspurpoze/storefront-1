@@ -8,6 +8,7 @@ type ApiEnvelope<T> = {
   success?: boolean
   data?: T
   posts?: T
+  post?: T
 }
 
 export type StorefrontBlogPost = {
@@ -97,7 +98,17 @@ async function fetchCmsJson<T>(
     const json = (await res.json().catch(() => null)) as ApiEnvelope<T> | T | null
     if (!json || typeof json !== 'object') return null
     if ('success' in json && json.success === false) return null
-    if ('data' in json && json.data != null) return json.data as T
+    // Backend shapes: { success, data: { posts, pagination } } | { success, data: { post } } | flat
+    if ('data' in json && json.data != null) {
+      const data = json.data as T | { post?: T; posts?: unknown }
+      if (data && typeof data === 'object' && 'post' in data && data.post != null && !('posts' in data)) {
+        return data.post as T
+      }
+      return data as T
+    }
+    if ('post' in json && (json as ApiEnvelope<T>).post != null) {
+      return (json as ApiEnvelope<T>).post as T
+    }
     if ('posts' in json && json.posts != null) return json.posts as T
     return json as T
   } catch {

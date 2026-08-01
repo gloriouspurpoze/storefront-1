@@ -12,7 +12,7 @@
 
 ## shell-header
 
-- [x] Default state (logo/site name, tagline, store status, account + cart controls)
+- [x] Default state (logo/site name, tagline, account + cart controls)
 - [x] Sparse state (no logo — name only; tagline hidden when unset)
 - [x] Mobile 375px layout (menu toggle visible; no emoji icons)
 - [x] Keyboard focus on menu / account / cart
@@ -55,7 +55,48 @@
 - [x] Promo strip from config/flags (not hardcoded `STRIP_ITEMS`)
 - [x] lint + typecheck + build (pre-existing TS errors elsewhere)
 
-**Notes / blockers:** `LuxeEssenceHero.tsx` + `lib/storefrontPromoStrip.ts`; title falls back to `siteName` (branding); promo from shipping policy when `showOfferMarquee`.
+**Notes / blockers:** `LuxeEssenceHero.tsx` + `lib/storefrontPromoStrip.ts`; title falls back to `siteName` (branding); promo from shipping policy when `showOfferMarquee`. CMS announcement supersedes shipping strip when active.
+
+---
+
+## content-announcement
+
+- [x] Slim marquee above sticky header when CMS announcement + `showOfferMarquee`
+- [x] Empty / inactive → no DOM (layout collapses)
+- [x] Takes precedence over `LuxeEssencePromoStrip` shipping strip
+- [x] lint on touched files
+
+**Notes / blockers:** `content/LuxeEssenceAnnouncementBar.tsx` + `LuxeEssenceStorefrontPage` fetch via `fetchStorefrontAnnouncement`.
+
+---
+
+## content-offers
+
+- [x] Horizontal strip below hero / before product grid
+- [x] Empty → collapse
+- [x] lint on touched files
+
+**Notes / blockers:** `content/LuxeEssenceOffersStrip.tsx`; merges `offers` + `home_page_hero` + `seasonal` like MenuFast.
+
+---
+
+## content-promo
+
+- [x] Mid-homepage editorial band after product grid / before footer
+- [x] Empty → collapse
+- [x] lint on touched files
+
+**Notes / blockers:** `content/LuxeEssencePromoBlock.tsx`; placement `promo` only.
+
+---
+
+## content-popup
+
+- [x] Session-dismissible overlay on homepage load
+- [x] Empty → no popup
+- [x] lint on touched files
+
+**Notes / blockers:** `content/LuxeEssencePopupBanner.tsx`; `popupStorageKey(tenantId)`.
 
 ---
 
@@ -137,11 +178,10 @@
 
 ## system-store-status
 
-- [x] `StoreStatusBadge` in header; `StoreStatusCard` in hero
-- [x] Closed behavior matches brief
-- [x] lint + typecheck + build (pre-existing TS errors elsewhere)
+- [x] Intentionally **out of scope** for retail — open/closed badge is restaurant-only (see `templates/README.md`)
+- [x] Checkout still blocks when closed via `useStoreStatus` (no badge UI)
 
-**Notes / blockers:** `LuxeEssenceStoreStatus.tsx`; luxe CSS tokens; checkout blocks when closed (scheduled date bypass when enabled).
+**Notes / blockers:** Badge/card removed from header + hero; `LuxeEssenceStoreStatus.tsx` deleted.
 
 ---
 
@@ -197,6 +237,7 @@
 | 2026-07-07 | system-shipping-policy | Policy page + modal tone; checkout gate themed |
 | 2026-07-07 | system-track-order | LE tracking panel styles; themed loading fallback |
 | 2026-07-07 | verify-full-pass | LayoutPage shell; sub-routes wired; emoji cleanup; CI pass |
+| 2026-08-02 | content-announcement / offers / promo / popup | Hybrid CMS wire-up; RSC fetch in StorefrontPage |
 
 ---
 

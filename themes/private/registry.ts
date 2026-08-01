@@ -1,4 +1,5 @@
 import { createElement, type ComponentType, type ReactNode } from 'react'
+import type { StorefrontNavLink } from '@/lib/cms-content'
 import type { PublicMenuCategory, PublicProduct, StorefrontConfig } from '@/lib/storefront-api'
 import type { ThemeTenant as RetailThemeTenant } from '@/themes/retail/types'
 import type { ThemeTenant as RestaurantThemeTenant } from '@/themes/restaurant/types'
@@ -13,9 +14,14 @@ export type PrivateLayoutRenderArgs = {
   config: StorefrontConfig | null
   products?: PublicProduct[]
   menu?: PublicMenuCategory[]
+  navLinks?: StorefrontNavLink[]
+  footerLinks?: StorefrontNavLink[]
 }
 
-type PrivateLayoutComponentProps = Pick<PrivateLayoutRenderArgs, 'tenant' | 'config' | 'products' | 'menu'>
+type PrivateLayoutComponentProps = Pick<
+  PrivateLayoutRenderArgs,
+  'tenant' | 'config' | 'products' | 'menu' | 'navLinks' | 'footerLinks'
+>
 
 export type PrivateLayoutEntry = {
   vertical: PrivateVerticalKey
@@ -50,5 +56,7 @@ export function renderPrivateLayout(
     config: args.config,
     products: args.products,
     menu: args.menu,
+    navLinks: args.navLinks,
+    footerLinks: args.footerLinks,
   })
 }

@@ -3,11 +3,13 @@
 import Link from 'next/link'
 import { StandardStorefrontNav } from '@/components/StandardStorefrontNav'
 import { LayoutThemePageShell } from '@/components/LayoutThemePageShell'
+import { StorefrontFaqsSection } from '@/components/StorefrontFaqsSection'
 import {
   ProductPriceBlock,
   ProductPurchaseBlock,
 } from '@/themes/retail/AddToCartButton'
 import { useCart } from '@/themes/retail/cart'
+import type { StorefrontCmsFaq } from '@/lib/cms-content'
 import type { PublicProduct, StorefrontConfig } from '@/lib/storefront-api'
 import type { ThemeTenant } from '@/themes/retail/types'
 import '@/themes/retail/soft-studio/soft-studio.css'
@@ -15,6 +17,14 @@ import '@/themes/retail/luxe-essence/luxe-essence.css'
 import '@/themes/retail/retail-pdp.css'
 import '@/themes/retail/retail-cart.css'
 import { containsHtml } from '@/lib/product-seo'
+
+/** Matches HomePageSections `flagOn(cfg, 'showFaq')`. */
+function faqSectionEnabled(config: StorefrontConfig | null): boolean {
+  const flags = config?.featureFlags as Record<string, boolean | undefined> | undefined
+  const addons = config?.featureAddons ?? {}
+  if (addons.showFaq?.purchased) return true
+  return flags?.showFaq !== false
+}
 
 function themeRootClass(themeKey?: string): string {
   if (themeKey === 'soft-studio') return 'ss-root'
@@ -34,11 +44,15 @@ export function ProductDetailView({
   tenant,
   config,
   themeKey,
+  navLinks,
+  faqs,
 }: {
   product: PublicProduct
   tenant: ThemeTenant
   config: StorefrontConfig | null
   themeKey?: string
+  navLinks?: { href: string; label: string }[]
+  faqs?: StorefrontCmsFaq[] | null
 }) {
   const { itemCount } = useCart()
   const isSoftStudio = themeKey === 'soft-studio'
@@ -87,13 +101,25 @@ export function ProductDetailView({
         </p>
       </div>
     </div>
+
+    <StorefrontFaqsSection
+      faqs={faqs}
+      fallbackItems={config?.content?.faqItems}
+      enabled={faqSectionEnabled(config)}
+      className="sf-pdp-faq"
+    />
   </>
   )
 
   if (isSoftStudio) {
     return (
       <div className={`${rootClass} min-h-screen`}>
-        <LayoutThemePageShell config={config} siteName={tenant.name} tagline={tenant.tagline}>
+        <LayoutThemePageShell
+          config={config}
+          siteName={tenant.name}
+          tagline={tenant.tagline}
+          navLinks={navLinks}
+        >
           <main className="sf-page-shell">{detailBody}</main>
         </LayoutThemePageShell>
       </div>
@@ -103,7 +129,13 @@ export function ProductDetailView({
   if (isLuxe) {
     return (
       <div className={`${rootClass} min-h-screen`}>
-        <LayoutThemePageShell config={config} siteName={tenant.name} tagline={tenant.tagline} wide>
+        <LayoutThemePageShell
+          config={config}
+          siteName={tenant.name}
+          tagline={tenant.tagline}
+          wide
+          navLinks={navLinks}
+        >
           <main className="sf-page-shell">{detailBody}</main>
         </LayoutThemePageShell>
       </div>
@@ -118,6 +150,7 @@ export function ProductDetailView({
         variant="retail"
         cartHref="/cart"
         itemCount={itemCount}
+        navLinks={navLinks}
       />
       <main className="sf-page-shell">{detailBody}</main>
     </>

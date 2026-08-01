@@ -1,3 +1,4 @@
+import type { StorefrontNavLink } from '@/lib/cms-content'
 import type { PublicMenuCategory, StorefrontConfig } from '@/lib/storefront-api'
 import {
   fetchCategoryMarketing,
@@ -50,10 +51,14 @@ export async function MenuFastCardsStorefrontPage({
   initialCategories,
   tenant,
   config,
+  navLinks,
+  footerLinks,
 }: {
   initialCategories: PublicMenuCategory[]
   tenant: ThemeTenant
   config: StorefrontConfig | null
+  navLinks?: StorefrontNavLink[]
+  footerLinks?: StorefrontNavLink[]
 }) {
   const [content, categoryMarketingRaw] = await Promise.all([
     loadMenuFastCardsStorefrontContent(tenant.id, config),
@@ -69,6 +74,8 @@ export async function MenuFastCardsStorefrontPage({
         config={config}
         content={content}
         categoryMarketing={categoryMarketing}
+        navLinks={navLinks}
+        footerLinks={footerLinks}
       />
     </Suspense>
   )

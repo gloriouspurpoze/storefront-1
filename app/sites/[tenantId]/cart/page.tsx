@@ -7,6 +7,7 @@ import { SiteFooter } from '@/themes/retail/SiteFooter'
 import { CartClient } from '@/themes/retail/CartClient'
 import { toThemeTenant } from '@/themes/retail/types'
 import { fetchStorefrontConfig } from '@/lib/storefront-api'
+import { fetchStorefrontMenuLinks, fetchStorefrontNavLinks } from '@/lib/cms-content'
 import { isRetailLayoutTheme } from '@/themes/retail/retailLayoutRouter'
 import { LayoutThemePageShell } from '@/components/LayoutThemePageShell'
 import { LuxeEssenceCartPage } from '@/themes/retail/luxe-essence/LuxeEssenceCartPage'
@@ -25,7 +26,13 @@ export default async function CartPage() {
 
   const tenant = await loadRetailTenant()
   const themeTenant = toThemeTenant(tenant, tenant.fallbackTagline)
-  const config = await fetchStorefrontConfig(tenant.id)
+  const [config, headerNavLinks, footerNavLinks, cmsHeaderNav, cmsFooterNav] = await Promise.all([
+    fetchStorefrontConfig(tenant.id),
+    fetchStorefrontNavLinks(tenant.id, 'header', 'retail'),
+    fetchStorefrontNavLinks(tenant.id, 'footer', 'retail'),
+    fetchStorefrontMenuLinks(tenant.id, 'header'),
+    fetchStorefrontMenuLinks(tenant.id, 'footer'),
+  ])
   const siteName = config?.branding?.siteName || tenant.name
   const tagline = config?.branding?.tagline || themeTenant.tagline
   const themeKey = config?.themeKey
@@ -33,7 +40,12 @@ export default async function CartPage() {
   if (themeKey === 'luxe-essence') {
     return (
       <RetailShell tenantId={tenant.id}>
-        <LuxeEssenceCartPage tenant={themeTenant} config={config} />
+        <LuxeEssenceCartPage
+          tenant={themeTenant}
+          config={config}
+          navLinks={cmsHeaderNav}
+          footerLinks={cmsFooterNav}
+        />
       </RetailShell>
     )
   }
@@ -50,7 +62,13 @@ export default async function CartPage() {
   if (isRetailLayoutTheme(themeKey)) {
     return (
       <RetailShell tenantId={tenant.id}>
-        <LayoutThemePageShell config={config} siteName={siteName} tagline={tagline} wide>
+        <LayoutThemePageShell
+          config={config}
+          siteName={siteName}
+          tagline={tagline}
+          wide
+          navLinks={headerNavLinks}
+        >
           {main}
         </LayoutThemePageShell>
       </RetailShell>
@@ -59,9 +77,9 @@ export default async function CartPage() {
 
   return (
     <RetailShell tenantId={tenant.id}>
-      <SiteHeader tenant={themeTenant} config={config} />
+      <SiteHeader tenant={themeTenant} config={config} navLinks={headerNavLinks} />
       {main}
-      <SiteFooter tenant={themeTenant} />
+      <SiteFooter tenant={themeTenant} navLinks={footerNavLinks} />
     </RetailShell>
   )
 }

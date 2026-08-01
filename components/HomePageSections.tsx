@@ -3,6 +3,11 @@ import Link from 'next/link'
 import type { ResolvedTenant } from '@/lib/types'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 import { fetchMenu, fetchProducts, fetchServices, fetchStorefrontCategories } from '@/lib/storefront-api'
+import {
+  fetchStorefrontCmsChrome,
+  fetchStorefrontMenuLinks,
+  type StorefrontCmsFaq,
+} from '@/lib/cms-content'
 import { SiteHeader as HsHeader } from '@/themes/home-services/SiteHeader'
 import { SiteFooter as HsFooter } from '@/themes/home-services/SiteFooter'
 import { Hero as HsHero } from '@/themes/home-services/Hero'
@@ -56,8 +61,15 @@ function AboutBlock({ cfg }: { cfg: StorefrontConfig | null }) {
   )
 }
 
-function FaqBlock({ cfg }: { cfg: StorefrontConfig | null }) {
-  const items = cfg?.content?.faqItems ?? []
+function FaqBlock({
+  cfg,
+  faqs,
+}: {
+  cfg: StorefrontConfig | null
+  faqs?: StorefrontCmsFaq[]
+}) {
+  // CMS `/cms/faqs` is SSoT; Studio faqItems only if CMS empty.
+  const items = faqs?.length ? faqs : (cfg?.content?.faqItems ?? [])
   if (!items.length || !flagOn(cfg, 'showFaq')) return null
   return (
     <section className="mx-auto max-w-2xl px-4 py-16 sm:px-6">
@@ -91,20 +103,36 @@ export async function HomePageSections({
     )
 
     if (isHomeServicesLayoutTheme(cfg?.themeKey)) {
+      const [navLinks, footerLinks] = await Promise.all([
+        fetchStorefrontMenuLinks(tenant.id, 'header'),
+        fetchStorefrontMenuLinks(tenant.id, 'footer'),
+      ])
       return (
-        <HomeServicesLayoutPage themeKey={cfg?.themeKey} tenant={themeTenant} config={cfg} />
+        <HomeServicesLayoutPage
+          themeKey={cfg?.themeKey}
+          tenant={themeTenant}
+          config={cfg}
+          navLinks={navLinks}
+          footerLinks={footerLinks}
+        />
       )
     }
 
-    const services = flagOn(cfg, 'showServices') && sectionEnabled(cfg, 'services')
-      ? await fetchServices(tenant.id, 6)
-      : []
+    const [services, chrome] = await Promise.all([
+      flagOn(cfg, 'showServices') && sectionEnabled(cfg, 'services')
+        ? fetchServices(tenant.id, 6)
+        : Promise.resolve([]),
+      fetchStorefrontCmsChrome(tenant.id, vertical),
+    ])
+    const { headerNavLinks, footerNavLinks, faqs, testimonials } = chrome
     const order = orderedTypes(cfg, ['hero', 'trust', 'services', 'about', 'faq', 'cta'])
 
     const blocks: Record<string, React.ReactNode> = {
       hero: flagOn(cfg, 'showHero') && sectionEnabled(cfg, 'hero') ? <HsHero tenant={themeTenant} /> : null,
       trust:
-        flagOn(cfg, 'showTestimonials') && sectionEnabled(cfg, 'trust') ? <TrustSection /> : null,
+        flagOn(cfg, 'showTestimonials') && sectionEnabled(cfg, 'trust') ? (
+          <TrustSection testimonials={testimonials} />
+        ) : null,
       services:
         services.length > 0 ? (
           <ServiceGrid
@@ -114,17 +142,17 @@ export async function HomePageSections({
           />
         ) : null,
       about: sectionEnabled(cfg, 'about') ? <AboutBlock cfg={cfg} /> : null,
-      faq: sectionEnabled(cfg, 'faq') ? <FaqBlock cfg={cfg} /> : null,
+      faq: sectionEnabled(cfg, 'faq') ? <FaqBlock cfg={cfg} faqs={faqs} /> : null,
       cta: sectionEnabled(cfg, 'cta') ? <CallToAction /> : null,
     }
 
     return (
       <>
-        <HsHeader tenant={themeTenant} />
+        <HsHeader tenant={themeTenant} navLinks={headerNavLinks} />
         <main>
           {order.map((t) => (blocks[t] ? <div key={t}>{blocks[t]}</div> : null))}
         </main>
-        <HsFooter tenant={themeTenant} />
+        <HsFooter tenant={themeTenant} navLinks={footerNavLinks} />
       </>
     )
   }
@@ -134,11 +162,13 @@ export async function HomePageSections({
 
     // ── Full layout templates (saffron, menufast-minimal, menufast-cards) ───
     if (isRestaurantLayoutTheme(cfg?.themeKey)) {
-      const [menu, products] = await Promise.all([
+      const [menu, products, navLinks, footerLinks] = await Promise.all([
         fetchMenu(tenant.id),
         flagOn(cfg, 'showProducts') && sectionEnabled(cfg, 'products')
           ? fetchProducts(tenant.id, 80)
           : Promise.resolve([]),
+        fetchStorefrontMenuLinks(tenant.id, 'header'),
+        fetchStorefrontMenuLinks(tenant.id, 'footer'),
       ])
       return (
         <RestaurantLayoutPage
@@ -147,18 +177,26 @@ export async function HomePageSections({
           products={products}
           tenant={themeTenant}
           config={cfg}
+          navLinks={navLinks}
+          footerLinks={footerLinks}
         />
       )
     }
     // ──────────────────────────────────────────────────────────────────────────
 
-    const menu = flagOn(cfg, 'showMenu') && sectionEnabled(cfg, 'menu') ? await fetchMenu(tenant.id) : []
+    const [menu, chrome] = await Promise.all([
+      flagOn(cfg, 'showMenu') && sectionEnabled(cfg, 'menu')
+        ? fetchMenu(tenant.id)
+        : Promise.resolve([]),
+      fetchStorefrontCmsChrome(tenant.id, vertical),
+    ])
     const preview = menu.slice(0, 2)
-    const order = orderedTypes(cfg, ['hero', 'menu', 'reservations', 'about', 'faq'])
+    const { headerNavLinks, footerNavLinks, faqs, testimonials } = chrome
+    const order = orderedTypes(cfg, ['hero', 'menu', 'trust', 'reservations', 'about', 'faq'])
 
     return (
       <RestaurantShell tenantId={tenant.id}>
-        <RestHeader tenant={themeTenant} config={cfg} />
+        <RestHeader tenant={themeTenant} config={cfg} navLinks={headerNavLinks} />
         <main>
           {order.map((t) => {
             if (t === 'hero' && flagOn(cfg, 'showHero') && sectionEnabled(cfg, 'hero'))
@@ -177,6 +215,13 @@ export async function HomePageSections({
                   </div>
                 </section>
               )
+            if (
+              t === 'trust' &&
+              flagOn(cfg, 'showTestimonials') &&
+              sectionEnabled(cfg, 'trust') &&
+              testimonials.length > 0
+            )
+              return <TrustSection key={t} testimonials={testimonials} />
             if (t === 'reservations' && flagOn(cfg, 'showReservations') && sectionEnabled(cfg, 'reservations'))
               return (
                 <section key={t} className="bg-amber-50/50 py-16">
@@ -194,11 +239,12 @@ export async function HomePageSections({
                 </section>
               )
             if (t === 'about' && sectionEnabled(cfg, 'about')) return <AboutBlock key={t} cfg={cfg} />
-            if (t === 'faq' && sectionEnabled(cfg, 'faq')) return <FaqBlock key={t} cfg={cfg} />
+            if (t === 'faq' && sectionEnabled(cfg, 'faq'))
+              return <FaqBlock key={t} cfg={cfg} faqs={faqs} />
             return null
           })}
         </main>
-        <RestFooter tenant={themeTenant} />
+        <RestFooter tenant={themeTenant} navLinks={footerNavLinks} />
       </RestaurantShell>
     )
   }
@@ -208,9 +254,11 @@ export async function HomePageSections({
 
     if (isRetailLayoutTheme(cfg?.themeKey)) {
       const showProducts = flagOn(cfg, 'showProducts') && sectionEnabled(cfg, 'products')
-      const [products, categories] = await Promise.all([
+      const [products, categories, navLinks, footerLinks] = await Promise.all([
         showProducts ? fetchProducts(tenant.id, 80) : Promise.resolve([]),
         cfg?.themeKey === 'luxe-essence' ? fetchStorefrontCategories(tenant.id) : Promise.resolve([]),
+        fetchStorefrontMenuLinks(tenant.id, 'header'),
+        fetchStorefrontMenuLinks(tenant.id, 'footer'),
       ])
       return (
         <RetailLayoutPage
@@ -219,19 +267,24 @@ export async function HomePageSections({
           categories={categories}
           tenant={themeTenant}
           config={cfg}
+          navLinks={navLinks}
+          footerLinks={footerLinks}
         />
       )
     }
 
-    const products =
+    const [products, chrome] = await Promise.all([
       flagOn(cfg, 'showProducts') && sectionEnabled(cfg, 'products')
-        ? await fetchProducts(tenant.id, 6)
-        : []
-    const order = orderedTypes(cfg, ['hero', 'products', 'about', 'faq'])
+        ? fetchProducts(tenant.id, 6)
+        : Promise.resolve([]),
+      fetchStorefrontCmsChrome(tenant.id, vertical),
+    ])
+    const { headerNavLinks, footerNavLinks, faqs, testimonials } = chrome
+    const order = orderedTypes(cfg, ['hero', 'products', 'trust', 'about', 'faq'])
 
     return (
       <RetailShell tenantId={tenant.id}>
-        <RetailHeader tenant={themeTenant} config={cfg} />
+        <RetailHeader tenant={themeTenant} config={cfg} navLinks={headerNavLinks} />
         <main>
           {order.map((t) => {
             if (t === 'hero' && flagOn(cfg, 'showHero') && sectionEnabled(cfg, 'hero'))
@@ -250,8 +303,16 @@ export async function HomePageSections({
                   </div>
                 </section>
               )
+            if (
+              t === 'trust' &&
+              flagOn(cfg, 'showTestimonials') &&
+              sectionEnabled(cfg, 'trust') &&
+              testimonials.length > 0
+            )
+              return <TrustSection key={t} testimonials={testimonials} />
             if (t === 'about' && sectionEnabled(cfg, 'about')) return <AboutBlock key={t} cfg={cfg} />
-            if (t === 'faq' && sectionEnabled(cfg, 'faq')) return <FaqBlock key={t} cfg={cfg} />
+            if (t === 'faq' && sectionEnabled(cfg, 'faq'))
+              return <FaqBlock key={t} cfg={cfg} faqs={faqs} />
             return null
           })}
           <section className="border-t border-border bg-muted/30 py-14">
@@ -267,7 +328,7 @@ export async function HomePageSections({
             </div>
           </section>
         </main>
-        <RetailFooter tenant={themeTenant} />
+        <RetailFooter tenant={themeTenant} navLinks={footerNavLinks} />
       </RetailShell>
     )
   }

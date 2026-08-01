@@ -26,7 +26,7 @@ import {
   type StorefrontPaymentMethod,
 } from '@/lib/storefrontPaymentMethods'
 import { useShippingPolicyCheckoutGate, validateBeforePayment } from '@/lib/useShippingPolicyCheckoutGate'
-import { StoreStatusCard, useStoreStatus } from '@/components/StoreStatusBadge'
+import { useStoreStatus } from '@/components/StoreStatusBadge'
 import { formatMoney, type CartLine } from '../cart'
 import type { ThemeTenant } from '../types'
 
@@ -225,7 +225,9 @@ export function LuxeEssenceCheckoutModal({
               </p>
 
               {!storeOpen ? (
-                <StoreStatusCard config={config} className="le-checkout-status" />
+                <p className="le-checkout-closed" role="status">
+                  Ordering is unavailable right now. Please try again during store hours.
+                </p>
               ) : null}
 
               <div className="le-order-summary">

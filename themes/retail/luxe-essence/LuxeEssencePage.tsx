@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import type { StorefrontNavLink } from '@/lib/cms-content'
 import type { PublicProduct, StorefrontConfig, StorefrontProductCategory } from '@/lib/storefront-api'
 import { mergeStorefrontCategories } from '@/lib/productCategories'
 import { useCart } from '../cart'
@@ -18,18 +19,36 @@ import { LuxeEssenceToast } from './LuxeEssenceToast'
 import { LuxeEssenceProductModal } from './LuxeEssenceProductModal'
 import { LuxeEssenceCartModal } from './LuxeEssenceCartModal'
 import { LuxeEssenceCheckoutModal } from './LuxeEssenceCheckoutModal'
+import type { LuxeEssenceStorefrontContent } from './luxeEssenceContentTypes'
+import { LuxeEssenceAnnouncementBar } from './content/LuxeEssenceAnnouncementBar'
+import { LuxeEssenceOffersStrip } from './content/LuxeEssenceOffersStrip'
+import { LuxeEssencePromoBlock } from './content/LuxeEssencePromoBlock'
+import { LuxeEssencePopupBanner } from './content/LuxeEssencePopupBanner'
 import './luxe-essence.css'
+
+const EMPTY_CONTENT: LuxeEssenceStorefrontContent = {
+  announcement: null,
+  offers: [],
+  promo: [],
+  popup: null,
+}
 
 export function LuxeEssencePage({
   products,
   categories = [],
   tenant,
   config,
+  content = EMPTY_CONTENT,
+  navLinks,
+  footerLinks,
 }: {
   products: PublicProduct[]
   categories?: StorefrontProductCategory[]
   tenant: ThemeTenant
   config: StorefrontConfig | null
+  content?: LuxeEssenceStorefrontContent
+  navLinks?: StorefrontNavLink[]
+  footerLinks?: StorefrontNavLink[]
 }) {
   const siteName = config?.branding?.siteName || tenant.name
   const tagline = config?.branding?.tagline || tenant.tagline
@@ -37,8 +56,7 @@ export function LuxeEssencePage({
 
   const { lines, itemCount, subtotal, setQuantity, removeLine, clear } = useCart()
   const { requireAuthForCart } = useCartAuthGate()
-  const { addToCart, removeFromCart, qtyFor, totalQtyForProduct, authReady, toast } =
-    useLuxeEssenceAddToCart()
+  const { addToCart, qtyFor, totalQtyForProduct, authReady, toast } = useLuxeEssenceAddToCart()
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
@@ -94,14 +112,23 @@ export function LuxeEssencePage({
   const selectedProduct =
     selectedProductId != null ? (products.find((p) => p.id === selectedProductId) ?? null) : null
 
+  const { announcement, offers, promo, popup } = content
+
   return (
     <div className="le-root theme-luxe-essence">
-      <LuxeEssenceMenuDrawer open={menuOpen} onClose={() => setMenuOpen(false)} config={config} />
+      {popup ? <LuxeEssencePopupBanner banner={popup} tenantId={tenant.id} /> : null}
+      <LuxeEssenceMenuDrawer
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        config={config}
+        navLinks={navLinks}
+      />
       <LuxeEssenceShippingPolicyModal
         open={shippingPolicyOpen}
         onClose={() => setShippingPolicyOpen(false)}
         config={config}
       />
+      {announcement ? <LuxeEssenceAnnouncementBar data={announcement} /> : null}
       <LuxeEssenceHeader
         config={config}
         siteName={siteName}
@@ -122,7 +149,10 @@ export function LuxeEssencePage({
         categories={heroCategories}
         selectedCategorySlug={selectedCategorySlug}
         onSelectCategory={setSelectedCategorySlug}
+        suppressPromoStrip={Boolean(announcement)}
       />
+
+      {offers.length > 0 ? <LuxeEssenceOffersStrip slides={offers} /> : null}
 
       {products.length === 0 ? (
         <LuxeEssenceCatalogEmpty />
@@ -138,7 +168,14 @@ export function LuxeEssencePage({
         />
       )}
 
-      <LuxeEssenceFooter config={config} siteName={siteName} tagline={tagline} />
+      {promo.length > 0 ? <LuxeEssencePromoBlock slides={promo} /> : null}
+
+      <LuxeEssenceFooter
+        config={config}
+        siteName={siteName}
+        tagline={tagline}
+        footerLinks={footerLinks}
+      />
 
       <LuxeEssenceToast message={toast} />
 
@@ -152,9 +189,6 @@ export function LuxeEssencePage({
         actionsDisabled={!authReady}
         onAdd={(variantId) => {
           if (selectedProduct) addToCart(selectedProduct, variantId)
-        }}
-        onRemove={(variantId) => {
-          if (selectedProduct) removeFromCart(selectedProduct.id, variantId)
         }}
       />
 

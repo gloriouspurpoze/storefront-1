@@ -20,7 +20,6 @@ export function LuxeEssenceProductModal({
   onClose,
   getQuantity,
   onAdd,
-  onRemove,
   actionsDisabled = false,
 }: {
   product: PublicProduct | null
@@ -28,7 +27,6 @@ export function LuxeEssenceProductModal({
   onClose: () => void
   getQuantity: (variantId?: string) => number
   onAdd: (variantId?: string) => void
-  onRemove: (variantId?: string) => void
   actionsDisabled?: boolean
 }) {
   const hasVariants = product ? productHasVariants(product) : false
@@ -115,25 +113,15 @@ export function LuxeEssenceProductModal({
                 Add to cart
               </button>
             ) : (
-              <div className="le-product-modal__qty">
-                <button
-                  type="button"
-                  className="le-qty-btn"
-                  aria-label="Decrease quantity"
-                  onClick={() => onRemove(selectedVariantId ?? undefined)}
-                >
-                  −
-                </button>
-                <span aria-live="polite">{lineQty}</span>
-                <button
-                  type="button"
-                  className="le-qty-btn"
-                  aria-label="Increase quantity"
-                  disabled={actionsDisabled}
-                  onClick={() => onAdd(selectedVariantId ?? undefined)}
-                >
-                  +
-                </button>
+              <div
+                className="le-in-cart le-product-modal__in-cart"
+                role="status"
+                aria-label={`${lineQty} in cart. Change quantity in cart or checkout.`}
+              >
+                <span className="le-in-cart__count" aria-live="polite">
+                  {lineQty}
+                </span>
+                <span className="le-in-cart__label">In cart</span>
               </div>
             )}
           </div>

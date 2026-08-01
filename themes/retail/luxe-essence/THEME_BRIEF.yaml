@@ -51,6 +51,10 @@ scope:
     - shell-footer
     - shell-mobile-nav
     - content-hero
+    - content-announcement
+    - content-offers
+    - content-promo
+    - content-popup
     - catalog-grid
     - catalog-empty
     - commerce-add-to-cart
@@ -58,7 +62,7 @@ scope:
     - commerce-cart
     - commerce-checkout
     - account-shell
-    - system-store-status
+    - system-store-status # restaurant-only UI; retail uses checkout gate only, no badge
     - system-shipping-policy
     - system-track-order
     - verify-full-pass
@@ -68,6 +72,9 @@ apis:
     - fetchProducts
     - fetchProductBySlug
     - fetchStorefrontConfig
+    - fetchStorefrontSliders
+    - fetchStorefrontBanners
+    - fetchStorefrontAnnouncement
     - createCheckoutOrder
     - verifyCheckout
     - placeCheckoutOrder

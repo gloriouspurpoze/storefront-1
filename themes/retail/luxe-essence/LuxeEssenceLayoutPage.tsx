@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useState, type ReactNode } from 'react'
+import type { StorefrontNavLink } from '@/lib/cms-content'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 import { useCartAuthGate } from '@/lib/useCartAuthGate'
 import { useCart } from '../cart'
@@ -18,11 +19,15 @@ export function LuxeEssenceLayoutPage({
   config,
   children,
   mainClassName = 'sf-page-shell',
+  navLinks,
+  footerLinks,
 }: {
   tenant: ThemeTenant
   config: StorefrontConfig | null
   children: ReactNode
   mainClassName?: string
+  navLinks?: StorefrontNavLink[]
+  footerLinks?: StorefrontNavLink[]
 }) {
   const siteName = config?.branding?.siteName || tenant.name
   const tagline = config?.branding?.tagline || tenant.tagline
@@ -35,7 +40,12 @@ export function LuxeEssenceLayoutPage({
 
   return (
     <div className="le-root theme-luxe-essence">
-      <LuxeEssenceMenuDrawer open={menuOpen} onClose={() => setMenuOpen(false)} config={config} />
+      <LuxeEssenceMenuDrawer
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        config={config}
+        navLinks={navLinks}
+      />
       <LuxeEssenceHeader
         config={config}
         siteName={siteName}
@@ -49,7 +59,12 @@ export function LuxeEssenceLayoutPage({
         }}
       />
       <main className={mainClassName}>{children}</main>
-      <LuxeEssenceFooter config={config} siteName={siteName} tagline={tagline} />
+      <LuxeEssenceFooter
+        config={config}
+        siteName={siteName}
+        tagline={tagline}
+        footerLinks={footerLinks}
+      />
     </div>
   )
 }

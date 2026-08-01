@@ -16,15 +16,15 @@ const LUXE_DRAWER_NAV: StorefrontMenuNavLink[] = [
   { href: '/account/login?signup=1', label: 'Sign up' },
 ]
 
-type MenuDrawerProps = Omit<ComponentProps<typeof StorefrontMenuDrawer>, 'drawerId' | 'navLinks'>
+type MenuDrawerProps = Omit<ComponentProps<typeof StorefrontMenuDrawer>, 'drawerId'>
 
-/** Luxe Essence mobile nav — site links + ordering hours / shipping policy. */
-export function LuxeEssenceMenuDrawer(props: MenuDrawerProps) {
+/** Luxe Essence mobile nav — CMS links when present, else theme defaults. */
+export function LuxeEssenceMenuDrawer({ navLinks, ...props }: MenuDrawerProps) {
   return (
     <StorefrontMenuDrawer
       {...props}
       drawerId="storefront-menu-drawer"
-      navLinks={LUXE_DRAWER_NAV}
+      navLinks={navLinks?.length ? navLinks : LUXE_DRAWER_NAV}
       shippingPolicyLabel="Shipping policy"
     />
   )

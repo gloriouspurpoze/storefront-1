@@ -48,12 +48,16 @@ export function MenuFastCardsPage({
   config,
   content = EMPTY_CONTENT,
   categoryMarketing = {},
+  navLinks,
+  footerLinks,
 }: {
   initialCategories: PublicMenuCategory[]
   tenant: ThemeTenant
   config: StorefrontConfig | null
   content?: MenuFastCardsStorefrontContent
   categoryMarketing?: Record<string, CategoryMarketingConfig>
+  navLinks?: { href: string; label: string }[]
+  footerLinks?: { href: string; label: string }[]
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -164,6 +168,7 @@ export function MenuFastCardsPage({
         config={config}
         showShippingPolicy
         shippingPolicyLabel="Delivery policy"
+        navLinks={navLinks}
       />
       <MenuItemDetailModal
         item={selectedItem}
@@ -235,7 +240,8 @@ export function MenuFastCardsPage({
                 onRemoveItem={removeItem}
               />
               </>
-            )}            <MenuFastCardsFooter config={config} />
+            )}
+            <MenuFastCardsFooter config={config} footerLinks={footerLinks} />
           </div>
 
           <MenuFastCardsCart

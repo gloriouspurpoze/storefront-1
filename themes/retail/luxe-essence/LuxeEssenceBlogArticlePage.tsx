@@ -45,7 +45,7 @@ export function LuxeEssenceBlogArticlePage({
       ) : null}
       {html ? (
         <div
-          className="prose prose-neutral mt-6 max-w-none"
+          className="le-blog-prose"
           dangerouslySetInnerHTML={{ __html: html }}
         />
       ) : null}

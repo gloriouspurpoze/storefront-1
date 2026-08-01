@@ -4,6 +4,7 @@ import Script from 'next/script'
 import { loadRetailTenant } from '@/themes/retail/loadThemeTenant'
 import { RetailShell } from '@/themes/retail/RetailShell'
 import { SiteFooter } from '@/themes/retail/SiteFooter'
+import { fetchStorefrontFaqs, fetchStorefrontNavLinks } from '@/lib/cms-content'
 import { fetchProductBySlug, fetchStorefrontConfig } from '@/lib/storefront-api'
 import { toThemeTenant } from '@/themes/retail/types'
 import { isRetailLayoutTheme } from '@/themes/retail/retailLayoutRouter'
@@ -43,9 +44,14 @@ export async function generateMetadata({ params }: PageProps) {
 export default async function ProductDetailPage({ params }: PageProps) {
   const { slug } = await params
   const tenant = await loadRetailTenant()
-  const config = await fetchStorefrontConfig(tenant.id)
   const themeTenant = toThemeTenant(tenant, tenant.fallbackTagline)
-  const product = await fetchProductBySlug(tenant.id, slug)
+  const [config, product, headerNavLinks, footerNavLinks, faqs] = await Promise.all([
+    fetchStorefrontConfig(tenant.id),
+    fetchProductBySlug(tenant.id, slug),
+    fetchStorefrontNavLinks(tenant.id, 'header', 'retail'),
+    fetchStorefrontNavLinks(tenant.id, 'footer', 'retail'),
+    fetchStorefrontFaqs(tenant.id),
+  ])
   if (!product) notFound()
 
   const isLayout = isRetailLayoutTheme(config?.themeKey)
@@ -80,8 +86,10 @@ export default async function ProductDetailPage({ params }: PageProps) {
         tenant={themeTenant}
         config={config}
         themeKey={config?.themeKey}
+        navLinks={headerNavLinks}
+        faqs={faqs}
       />
-      {!isLayout ? <SiteFooter tenant={themeTenant} /> : null}
+      {!isLayout ? <SiteFooter tenant={themeTenant} navLinks={footerNavLinks} /> : null}
     </RetailShell>
   )
 }

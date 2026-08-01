@@ -1,3 +1,4 @@
+import type { StorefrontNavLink } from '@/lib/cms-content'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 import type { StorefrontCmsPage } from '@/lib/cms-pages'
 import type { ThemeTenant } from '../types'
@@ -7,10 +8,12 @@ export function MenuFastCardsAboutPage({
   tenant,
   config,
   cmsPage,
+  footerLinks,
 }: {
   tenant: ThemeTenant
   config: StorefrontConfig | null
   cmsPage?: StorefrontCmsPage | null
+  footerLinks?: StorefrontNavLink[]
 }) {
   const siteName = config?.branding?.siteName || tenant.name
   const aboutTitle = cmsPage?.title?.trim() || config?.content?.aboutTitle?.trim()
@@ -18,7 +21,12 @@ export function MenuFastCardsAboutPage({
   const isHtml = Boolean(cmsPage?.content?.trim())
 
   return (
-    <MenuFastCardsContentShell tenant={tenant} config={config} title="About">
+    <MenuFastCardsContentShell
+      tenant={tenant}
+      config={config}
+      title="About"
+      footerLinks={footerLinks}
+    >
       <article className="mf-cards-content-article">
         <h2 className="mf-cards-content-heading">{aboutTitle || siteName}</h2>
         {aboutBody ? (

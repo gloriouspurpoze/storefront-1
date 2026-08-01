@@ -1,6 +1,8 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
+import type { StorefrontNavLink } from '@/lib/cms-content'
 import type { PublicMenuCategory, StorefrontConfig } from '@/lib/storefront-api'
 import type { ThemeTenant } from '../types'
 import { MenuOrderCheckoutBlock } from '../MenuOrderCheckoutBlock'
@@ -31,10 +33,15 @@ export function MenuFastMinimalPage({
   initialCategories,
   tenant,
   config,
+  navLinks,
+  footerLinks,
 }: {
   initialCategories: PublicMenuCategory[]
   tenant: ThemeTenant
   config: StorefrontConfig | null
+  navLinks?: StorefrontNavLink[]
+  /** CMS footer links when present (no hardcoded page-link fallback in minimal). */
+  footerLinks?: StorefrontNavLink[]
 }) {
   const siteName = config?.branding?.siteName || tenant.name
   const tagline = config?.branding?.tagline || tenant.tagline
@@ -88,6 +95,7 @@ export function MenuFastMinimalPage({
         config={config}
         showShippingPolicy
         shippingPolicyLabel="Delivery policy"
+        navLinks={navLinks}
       />
       <MenuItemDetailModal
         item={selectedItem}
@@ -256,6 +264,19 @@ export function MenuFastMinimalPage({
                 Or order via WhatsApp
               </a>
             )}
+            {footerLinks?.length ? (
+              <nav className="mf-min-footer-pages" aria-label="Site pages">
+                {footerLinks.map((link) => (
+                  <Link
+                    key={`${link.href}-${link.label}`}
+                    href={link.href}
+                    className="mf-min-footer-page-link"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </nav>
+            ) : null}
             <div className="mf-powered">Powered by Profixer</div>
           </div>
         </div>

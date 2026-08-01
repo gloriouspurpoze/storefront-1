@@ -2,7 +2,21 @@ import Link from 'next/link'
 import { AccountNavLink } from '@/components/account/AccountNavLink'
 import type { ThemeTenant } from './types'
 
-export function SiteHeader({ tenant }: { tenant: ThemeTenant }) {
+const DEFAULT_LINKS = [
+  { href: '/services', label: 'Services' },
+  { href: '/about', label: 'About' },
+  { href: '/contact', label: 'Contact' },
+]
+
+export function SiteHeader({
+  tenant,
+  navLinks,
+}: {
+  tenant: ThemeTenant
+  navLinks?: { href: string; label: string }[]
+}) {
+  const links = navLinks?.length ? navLinks : DEFAULT_LINKS
+
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70">
       <nav className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
@@ -26,15 +40,11 @@ export function SiteHeader({ tenant }: { tenant: ThemeTenant }) {
         </Link>
 
         <div className="hidden items-center gap-7 text-sm text-slate-700 md:flex">
-          <Link className="hover:text-slate-950" href="/services">
-            Services
-          </Link>
-          <Link className="hover:text-slate-950" href="/about">
-            About
-          </Link>
-          <Link className="hover:text-slate-950" href="/contact">
-            Contact
-          </Link>
+          {links.map((link) => (
+            <Link key={`${link.href}-${link.label}`} className="hover:text-slate-950" href={link.href}>
+              {link.label}
+            </Link>
+          ))}
           <AccountNavLink className="hover:text-slate-950" />
         </div>
 

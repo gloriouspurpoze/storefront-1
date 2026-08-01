@@ -154,17 +154,24 @@ export function ProductPurchaseBlock({
     setAdded(false)
   }, [product.id, defaultVariant?.id])
 
+  // Reset first-add qty when switching options so a new variant starts clean.
+  useEffect(() => {
+    setQuantity(1)
+    setAdded(false)
+  }, [selectedVariantId])
+
   const activeVariantId = hasVariants ? selectedVariantId ?? undefined : undefined
   const cartLine = lines.find(
     (l) => cartLineKey(l.productId, l.variantId) === cartLineKey(product.id, activeVariantId),
   )
+  const alreadyInCart = Boolean(cartLine)
   const inStock = isVariantInStock(product, selectedVariantId)
   const needsSelection = hasVariants && !selectedVariantId
   const unitPrice = getEffectivePrice(product, selectedVariantId)
   const lineTotal = unitPrice * quantity
 
   const handleAdd = useCallback(() => {
-    if (!inStock || adding || needsSelection) return
+    if (!inStock || adding || needsSelection || alreadyInCart) return
     if (!requireAuthForCart()) return
     const qty = clampQty(quantity)
     setAdding(true)
@@ -172,7 +179,17 @@ export function ProductPurchaseBlock({
     setAdded(true)
     window.setTimeout(() => setAdding(false), 400)
     window.setTimeout(() => setAdded(false), 3200)
-  }, [activeVariantId, addProduct, adding, inStock, needsSelection, product, quantity, requireAuthForCart])
+  }, [
+    activeVariantId,
+    addProduct,
+    adding,
+    alreadyInCart,
+    inStock,
+    needsSelection,
+    product,
+    quantity,
+    requireAuthForCart,
+  ])
 
   if (!inStock && !hasVariants) {
     return (
@@ -196,58 +213,71 @@ export function ProductPurchaseBlock({
           onSelect={setSelectedVariantId}
           label="Options"
           tone={variantTone}
+          quantityForVariant={(id) =>
+            lines.find((l) => cartLineKey(l.productId, l.variantId) === cartLineKey(product.id, id))
+              ?.quantity ?? 0
+          }
         />
       ) : null}
 
-      <div className="sf-pdp-purchase-row">
-        <QuantityStepper value={quantity} onChange={setQuantity} size="lg" />
-        <button
-          type="button"
-          className={`sf-pdp-btn sf-pdp-btn--cart${added ? ' sf-pdp-btn--success' : ' sf-pdp-btn--primary'}`}
-          onClick={handleAdd}
-          disabled={adding || !inStock || needsSelection}
-          aria-live="polite"
-        >
-          {added ? (
-            <>
-              <CheckIcon />
-              Added to cart
-            </>
-          ) : !inStock ? (
-            'Out of stock'
-          ) : needsSelection ? (
-            'Select an option'
-          ) : (
-            <>
-              <CartIcon />
-              Add to cart
-            </>
-          )}
-        </button>
-      </div>
+      {alreadyInCart && cartLine ? (
+        <div className="sf-pdp-in-cart-locked" role="status">
+          <p className="sf-pdp-in-cart">
+            <span className="sf-pdp-in-cart__badge">{cartLine.quantity}</span>
+            {cartLine.quantity === 1 ? 'item' : 'items'} in your cart
+            <Link href="/cart" className="sf-pdp-in-cart__link">
+              View cart
+            </Link>
+          </p>
+          <p className="sf-pdp-purchase-note sf-pdp-purchase-note--muted">
+            {hasVariants
+              ? 'This option is already in your cart. Change quantity in cart or checkout, or select another option to add.'
+              : 'Already in your cart. Change quantity in cart or checkout.'}
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="sf-pdp-purchase-row">
+            <QuantityStepper value={quantity} onChange={setQuantity} size="lg" />
+            <button
+              type="button"
+              className={`sf-pdp-btn sf-pdp-btn--cart${added ? ' sf-pdp-btn--success' : ' sf-pdp-btn--primary'}`}
+              onClick={handleAdd}
+              disabled={adding || !inStock || needsSelection}
+              aria-live="polite"
+            >
+              {added ? (
+                <>
+                  <CheckIcon />
+                  Added to cart
+                </>
+              ) : !inStock ? (
+                'Out of stock'
+              ) : needsSelection ? (
+                'Select an option'
+              ) : (
+                <>
+                  <CartIcon />
+                  Add to cart
+                </>
+              )}
+            </button>
+          </div>
 
-      <p className="sf-pdp-purchase-total">
-        <span className="sf-pdp-purchase-total__label">Subtotal</span>
-        <span className="sf-pdp-purchase-total__value">
-          {formatMoney(lineTotal, product.currency)}
-          <span className="sf-pdp-purchase-total__qty">
-            {' '}
-            · {quantity} {quantity === 1 ? 'item' : 'items'}
-          </span>
-        </span>
-      </p>
+          <p className="sf-pdp-purchase-total">
+            <span className="sf-pdp-purchase-total__label">Subtotal</span>
+            <span className="sf-pdp-purchase-total__value">
+              {formatMoney(lineTotal, product.currency)}
+              <span className="sf-pdp-purchase-total__qty">
+                {' '}
+                · {quantity} {quantity === 1 ? 'item' : 'items'}
+              </span>
+            </span>
+          </p>
+        </>
+      )}
 
-      {cartLine ? (
-        <p className="sf-pdp-in-cart">
-          <span className="sf-pdp-in-cart__badge">{cartLine.quantity}</span>
-          {cartLine.quantity === 1 ? 'item' : 'items'} in your cart
-          <Link href="/cart" className="sf-pdp-in-cart__link">
-            View cart
-          </Link>
-        </p>
-      ) : null}
-
-      {added ? (
+      {added && !alreadyInCart ? (
         <div className="sf-pdp-added-banner" role="status" aria-live="polite">
           <CheckIcon />
           <span>

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
+import type { StorefrontNavLink } from '@/lib/cms-content'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 import type { ThemeTenant } from '../types'
 import { MenuFastCardsFooter } from './MenuFastCardsFooter'
@@ -12,6 +13,7 @@ export function MenuFastCardsContentShell({
   backHref = '/',
   backLabel = '← Menu',
   children,
+  footerLinks,
 }: {
   tenant: ThemeTenant
   config: StorefrontConfig | null
@@ -19,6 +21,7 @@ export function MenuFastCardsContentShell({
   backHref?: string
   backLabel?: string
   children: ReactNode
+  footerLinks?: StorefrontNavLink[]
 }) {
   const siteName = config?.branding?.siteName || tenant.name
   const tagline = config?.branding?.tagline
@@ -55,7 +58,7 @@ export function MenuFastCardsContentShell({
 
           <main className="mf-cards-body mf-cards-content-body">
             {children}
-            <MenuFastCardsFooter config={config} />
+            <MenuFastCardsFooter config={config} footerLinks={footerLinks} />
           </main>
         </div>
       </div>

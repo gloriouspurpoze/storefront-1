@@ -33,6 +33,7 @@ export function StandardStorefrontNav({
   className,
   brandSlot,
   actionsSlot,
+  navLinks,
 }: {
   tenant: StandardNavTenant
   config?: StorefrontConfig | null
@@ -45,6 +46,8 @@ export function StandardStorefrontNav({
   className?: string
   brandSlot?: ReactNode
   actionsSlot?: ReactNode
+  /** CMS header menu (or vertical defaults) for the drawer quick links. */
+  navLinks?: { href: string; label: string }[]
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const shippingVisible = showShippingPolicy ?? variant === 'retail'
@@ -73,6 +76,7 @@ export function StandardStorefrontNav({
         showShippingPolicy={shippingVisible}
         shippingPolicyLabel={policyLabel}
         showGiftMatch={showGiftMatch}
+        navLinks={navLinks}
       />
       <header className={`sf-standard-nav sf-standard-nav--${variant}${className ? ` ${className}` : ''}`}>
         <nav className="sf-standard-nav__inner">
@@ -110,7 +114,9 @@ export function StandardStorefrontNav({
                 Gifts
               </Link>
             ) : null}
-            <StoreStatusBadge config={config} compact className="sf-standard-nav__status" />
+            {variant === 'restaurant' ? (
+              <StoreStatusBadge config={config} compact className="sf-standard-nav__status" />
+            ) : null}
           </div>
 
           <div className="sf-standard-nav__right">
@@ -139,6 +145,7 @@ export function StandardStorefrontNavActions({
   onCartClick,
   showShippingPolicy,
   accountMode = 'profile',
+  navLinks,
 }: {
   config?: StorefrontConfig | null
   itemCount?: number
@@ -149,6 +156,7 @@ export function StandardStorefrontNavActions({
   onCartClick: () => void
   showShippingPolicy?: boolean
   accountMode?: 'nav' | 'profile'
+  navLinks?: { href: string; label: string }[]
 }) {
   const shippingVisible = showShippingPolicy ?? variant === 'retail'
   const policyLabel = variant === 'restaurant' ? 'Delivery policy' : 'Shipping policy'
@@ -163,9 +171,12 @@ export function StandardStorefrontNavActions({
         showShippingPolicy={shippingVisible}
         shippingPolicyLabel={policyLabel}
         showGiftMatch={showGiftMatch}
+        navLinks={navLinks}
       />
       <div className="sf-standard-nav-actions">
-        <StoreStatusBadge config={config} compact className="sf-standard-nav-actions__status" />
+        {variant === 'restaurant' ? (
+          <StoreStatusBadge config={config} compact className="sf-standard-nav-actions__status" />
+        ) : null}
         <button
           type="button"
           className="sf-menu-toggle-btn"

@@ -8,9 +8,11 @@ import { useCart } from './cart'
 export function SiteHeader({
   tenant,
   config,
+  navLinks,
 }: {
   tenant: ThemeTenant
   config?: StorefrontConfig | null
+  navLinks?: { href: string; label: string }[]
 }) {
   const { itemCount } = useCart()
 
@@ -21,6 +23,7 @@ export function SiteHeader({
       itemCount={itemCount}
       variant="retail"
       cartHref="/cart"
+      navLinks={navLinks}
     />
   )
 }

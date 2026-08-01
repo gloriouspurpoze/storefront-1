@@ -235,6 +235,24 @@
   border-top: 1px solid #f0ede8;
 }
 
+.mf-min-footer-pages {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem 1rem;
+  margin-top: 0.75rem;
+}
+
+.mf-min-footer-page-link {
+  font-size: 12px;
+  color: #888;
+  text-decoration: none;
+}
+
+.mf-min-footer-page-link:hover {
+  color: #444;
+}
+
 .mf-min-wa-btn {
   width: 100%;
   background: #25d366;

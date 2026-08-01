@@ -18,6 +18,7 @@ import { isRetailLayoutTheme } from '@/themes/retail/retailLayoutRouter'
 import { isRestaurantLayoutTheme } from '@/themes/restaurant/restaurantLayoutRouter'
 import { LayoutThemePageShell } from '@/components/LayoutThemePageShell'
 import { LuxeEssenceCheckoutPage } from '@/themes/retail/luxe-essence/LuxeEssenceCheckoutPage'
+import { fetchStorefrontMenuLinks, fetchStorefrontNavLinks } from '@/lib/cms-content'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,7 +37,11 @@ export default async function CheckoutPage() {
   if (vertical === 'restaurant') {
     const tenant = await loadRestaurantTenant()
     const themeTenant = toRestTenant(tenant, tenant.fallbackTagline)
-    const config = await fetchStorefrontConfig(tenant.id)
+    const [config, headerNavLinks, footerNavLinks] = await Promise.all([
+      fetchStorefrontConfig(tenant.id),
+      fetchStorefrontNavLinks(tenant.id, 'header', 'restaurant'),
+      fetchStorefrontNavLinks(tenant.id, 'footer', 'restaurant'),
+    ])
     const showPreferredDate = showPreferredDateOfDelivery(config, config?.themeKey)
     const siteName = config?.branding?.siteName || tenant.name
     const tagline = config?.branding?.tagline || themeTenant.tagline
@@ -53,7 +58,14 @@ export default async function CheckoutPage() {
     if (isRestaurantLayoutTheme(config?.themeKey)) {
       return (
         <RestaurantShell tenantId={tenant.id}>
-          <LayoutThemePageShell config={config} siteName={siteName} tagline={tagline} showShippingPolicy variant="restaurant">
+          <LayoutThemePageShell
+            config={config}
+            siteName={siteName}
+            tagline={tagline}
+            showShippingPolicy
+            variant="restaurant"
+            navLinks={headerNavLinks}
+          >
             {main}
           </LayoutThemePageShell>
         </RestaurantShell>
@@ -62,9 +74,9 @@ export default async function CheckoutPage() {
 
     return (
       <RestaurantShell tenantId={tenant.id}>
-        <RestHeader tenant={themeTenant} config={config} />
+        <RestHeader tenant={themeTenant} config={config} navLinks={headerNavLinks} />
         {main}
-        <RestFooter tenant={themeTenant} />
+        <RestFooter tenant={themeTenant} navLinks={footerNavLinks} />
       </RestaurantShell>
     )
   }
@@ -72,7 +84,13 @@ export default async function CheckoutPage() {
   if (vertical === 'retail') {
     const tenant = await loadRetailTenant()
     const themeTenant = toRetailTenant(tenant, tenant.fallbackTagline)
-    const config = await fetchStorefrontConfig(tenant.id)
+    const [config, headerNavLinks, footerNavLinks, cmsHeaderNav, cmsFooterNav] = await Promise.all([
+      fetchStorefrontConfig(tenant.id),
+      fetchStorefrontNavLinks(tenant.id, 'header', 'retail'),
+      fetchStorefrontNavLinks(tenant.id, 'footer', 'retail'),
+      fetchStorefrontMenuLinks(tenant.id, 'header'),
+      fetchStorefrontMenuLinks(tenant.id, 'footer'),
+    ])
     const showPreferredDate = showPreferredDateOfDelivery(config, config?.themeKey)
     const siteName = config?.branding?.siteName || tenant.name
     const tagline = config?.branding?.tagline || themeTenant.tagline
@@ -84,6 +102,8 @@ export default async function CheckoutPage() {
             tenant={themeTenant}
             config={config}
             showPreferredDate={showPreferredDate}
+            navLinks={cmsHeaderNav}
+            footerLinks={cmsFooterNav}
           />
         </RetailShell>
       )
@@ -106,7 +126,13 @@ export default async function CheckoutPage() {
     if (isRetailLayoutTheme(config?.themeKey)) {
       return (
         <RetailShell tenantId={tenant.id}>
-          <LayoutThemePageShell config={config} siteName={siteName} tagline={tagline} wide>
+          <LayoutThemePageShell
+            config={config}
+            siteName={siteName}
+            tagline={tagline}
+            wide
+            navLinks={headerNavLinks}
+          >
             {main}
           </LayoutThemePageShell>
         </RetailShell>
@@ -115,9 +141,9 @@ export default async function CheckoutPage() {
 
     return (
       <RetailShell tenantId={tenant.id}>
-        <RetailHeader tenant={themeTenant} config={config} />
+        <RetailHeader tenant={themeTenant} config={config} navLinks={headerNavLinks} />
         {main}
-        <RetailFooter tenant={themeTenant} />
+        <RetailFooter tenant={themeTenant} navLinks={footerNavLinks} />
       </RetailShell>
     )
   }

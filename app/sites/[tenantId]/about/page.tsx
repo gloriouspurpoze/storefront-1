@@ -19,6 +19,7 @@ import { SiteHeader as RetailHeader } from '@/themes/retail/SiteHeader'
 import { SiteFooter as RetailFooter } from '@/themes/retail/SiteFooter'
 import { toThemeTenant as toRetailTenant } from '@/themes/retail/types'
 import { LuxeEssenceAboutPage } from '@/themes/retail/luxe-essence/LuxeEssenceAboutPage'
+import { fetchStorefrontMenuLinks } from '@/lib/cms-content'
 import { storefrontPathMetadata } from '@/lib/path-metadata'
 
 export const dynamic = 'force-dynamic'
@@ -69,7 +70,15 @@ export default async function AboutPage() {
       const theme = toRestTenant(tenant, tenant.fallbackTagline)
       const config = await fetchStorefrontConfig(tenant.id)
       if (config?.themeKey === 'menufast-cards') {
-        return <MenuFastCardsAboutPage tenant={theme} config={config} cmsPage={cmsAbout} />
+        const footerLinks = await fetchStorefrontMenuLinks(tenant.id, 'footer')
+        return (
+          <MenuFastCardsAboutPage
+            tenant={theme}
+            config={config}
+            cmsPage={cmsAbout}
+            footerLinks={footerLinks}
+          />
+        )
       }
       return (
         <RestaurantShell tenantId={tenant.id}>
@@ -90,9 +99,15 @@ export default async function AboutPage() {
       const theme = toRetailTenant(tenant, tenant.fallbackTagline)
       const config = await fetchStorefrontConfig(tenant.id)
       if (config?.themeKey === 'luxe-essence') {
+        const footerLinks = await fetchStorefrontMenuLinks(tenant.id, 'footer')
         return (
           <RetailShell tenantId={tenant.id}>
-            <LuxeEssenceAboutPage tenant={theme} config={config} cmsPage={cmsAbout} />
+            <LuxeEssenceAboutPage
+              tenant={theme}
+              config={config}
+              cmsPage={cmsAbout}
+              footerLinks={footerLinks}
+            />
           </RetailShell>
         )
       }

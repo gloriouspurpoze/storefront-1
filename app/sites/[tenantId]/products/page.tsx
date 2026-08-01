@@ -5,6 +5,7 @@ import { SiteFooter } from '@/themes/retail/SiteFooter'
 import { ProductGrid } from '@/themes/retail/ProductGrid'
 import { toThemeTenant } from '@/themes/retail/types'
 import { fetchProducts, fetchStorefrontConfig } from '@/lib/storefront-api'
+import { fetchStorefrontNavLinks } from '@/lib/cms-content'
 import { isRetailLayoutTheme } from '@/themes/retail/retailLayoutRouter'
 import { LayoutThemePageShell } from '@/components/LayoutThemePageShell'
 import { storefrontPathMetadata } from '@/lib/path-metadata'
@@ -19,7 +20,11 @@ export default async function ProductsPage() {
   const tenant = await loadRetailTenant()
   const config = await fetchStorefrontConfig(tenant.id)
   const themeTenant = toThemeTenant(tenant, tenant.fallbackTagline)
-  const products = await fetchProducts(tenant.id, 48)
+  const [products, headerNavLinks, footerNavLinks] = await Promise.all([
+    fetchProducts(tenant.id, 48),
+    fetchStorefrontNavLinks(tenant.id, 'header', 'retail'),
+    fetchStorefrontNavLinks(tenant.id, 'footer', 'retail'),
+  ])
   const siteName = config?.branding?.siteName || tenant.name
   const tagline = config?.branding?.tagline || themeTenant.tagline
 
@@ -36,7 +41,13 @@ export default async function ProductsPage() {
   if (isRetailLayoutTheme(config?.themeKey)) {
     return (
       <RetailShell tenantId={tenant.id}>
-        <LayoutThemePageShell config={config} siteName={siteName} tagline={tagline} wide>
+        <LayoutThemePageShell
+          config={config}
+          siteName={siteName}
+          tagline={tagline}
+          wide
+          navLinks={headerNavLinks}
+        >
           {main}
         </LayoutThemePageShell>
       </RetailShell>
@@ -45,9 +56,9 @@ export default async function ProductsPage() {
 
   return (
     <RetailShell tenantId={tenant.id}>
-      <SiteHeader tenant={themeTenant} />
+      <SiteHeader tenant={themeTenant} config={config} navLinks={headerNavLinks} />
       {main}
-      <SiteFooter tenant={themeTenant} />
+      <SiteFooter tenant={themeTenant} navLinks={footerNavLinks} />
     </RetailShell>
   )
 }

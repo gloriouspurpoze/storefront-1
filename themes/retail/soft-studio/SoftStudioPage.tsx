@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { StorefrontNavLink } from '@/lib/cms-content'
 import type { PublicProduct, StorefrontConfig } from '@/lib/storefront-api'
 import { DeliveryDetailsSection } from '@/components/DeliveryDetailsSection'
 import { runStorefrontCheckout } from '@/lib/runStorefrontCheckout'
@@ -17,7 +18,6 @@ import { formatMoney, useCart } from '../cart'
 import type { ThemeTenant } from '../types'
 import { AccountProfileLink } from '@/components/account/AccountProfileLink'
 import { StorefrontMenuDrawer } from '@/components/StorefrontMenuDrawer'
-import { StoreStatusBadge, StoreStatusCard } from '@/components/StoreStatusBadge'
 import { ShippingPolicyModal } from '@/components/ShippingPolicyModal'
 import { runPreCheckoutGuards } from '@/lib/checkoutGuard'
 import { useCartAuthGate } from '@/lib/useCartAuthGate'
@@ -60,14 +60,23 @@ function ProductThumb({
   return <div className={`ss-product-thumb ${thumbClass} ${className ?? ''}`}>🛍️</div>
 }
 
+const DEFAULT_FOOTER_SHOP_LINKS: StorefrontNavLink[] = [
+  { href: '#products', label: 'Featured' },
+  { href: '/products', label: 'All products' },
+]
+
 export function SoftStudioPage({
   products,
   tenant,
   config,
+  navLinks,
+  footerLinks,
 }: {
   products: PublicProduct[]
   tenant: ThemeTenant
   config: StorefrontConfig | null
+  navLinks?: StorefrontNavLink[]
+  footerLinks?: StorefrontNavLink[]
 }) {
   const siteName = config?.branding?.siteName || tenant.name
   const tagline = config?.branding?.tagline || tenant.tagline
@@ -210,13 +219,17 @@ export function SoftStudioPage({
 
   return (
     <div className="ss-root">
-      <StorefrontMenuDrawer open={menuOpen} onClose={() => setMenuOpen(false)} config={config} />
+      <StorefrontMenuDrawer
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        config={config}
+        navLinks={navLinks}
+      />
       <ShippingPolicyModal open={shippingPolicyOpen} onClose={onShippingPolicyClose} config={config} />
       <nav className="ss-nav">
         <Link href="/" className="ss-nav-logo">
           {siteName}
         </Link>
-        <StoreStatusBadge config={config} className="ss-nav-status" />
         <div className="ss-nav-right">
           <button
             type="button"
@@ -242,7 +255,6 @@ export function SoftStudioPage({
 
       <div className="ss-hero">
         <div className="ss-hero-text">
-          <StoreStatusCard config={config} className="ss-hero-status" />
           <p className="ss-hero-eyebrow">Curated for you</p>
           <h1 className="ss-hero-h1">
             {heroHeadline ? (
@@ -365,12 +377,11 @@ export function SoftStudioPage({
         <div>
           <div className="ss-footer-col-title">Shop</div>
           <ul className="ss-footer-links">
-            <li>
-              <a href="#products">Featured</a>
-            </li>
-            <li>
-              <a href="/products">All products</a>
-            </li>
+            {(footerLinks?.length ? footerLinks : DEFAULT_FOOTER_SHOP_LINKS).map((link) => (
+              <li key={`${link.href}-${link.label}`}>
+                <a href={link.href}>{link.label}</a>
+              </li>
+            ))}
           </ul>
         </div>
         <div>

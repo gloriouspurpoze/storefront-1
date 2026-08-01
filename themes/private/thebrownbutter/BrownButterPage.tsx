@@ -334,10 +334,15 @@ export function BrownButterPage({
   tenant,
   config,
   products: initialProducts = [],
+  navLinks,
+  footerLinks: _footerLinks,
 }: {
   tenant: ThemeTenant
   config: StorefrontConfig | null
   products?: PublicProduct[]
+  navLinks?: { href: string; label: string }[]
+  /** Accepted for layout-router parity; store footer is hours/location, not page links. */
+  footerLinks?: { href: string; label: string }[]
 }) {
   const siteName = config?.branding?.siteName || tenant.name
   const headerTitle = config?.branding?.tagline || '📍 Delivering Across Mumbai'
@@ -757,7 +762,12 @@ export function BrownButterPage({
 
   return (
     <div className="bb-root bb-page">
-      <StorefrontMenuDrawer open={menuOpen} onClose={() => setMenuOpen(false)} config={config} />
+      <StorefrontMenuDrawer
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        config={config}
+        navLinks={navLinks}
+      />
       <StorefrontHeaderBar
         title={headerTitle}
         onMenuOpen={() => setMenuOpen(true)}

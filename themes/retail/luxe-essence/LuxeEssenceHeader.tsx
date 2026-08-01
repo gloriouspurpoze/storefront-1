@@ -1,8 +1,16 @@
 'use client'
 
+import Link from 'next/link'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 import { AccountProfileLink } from '@/components/account/AccountProfileLink'
-import { LuxeEssenceHeaderStoreStatus } from './LuxeEssenceStoreStatus'
+
+const DESKTOP_NAV = [
+  { href: '#products', label: 'Shop' },
+  { href: '/products', label: 'All products' },
+  { href: '/about', label: 'About' },
+  { href: '/blog', label: 'Blog' },
+  { href: '/contact', label: 'Contact' },
+] as const
 
 function splitBrandTitle(siteName: string): { primary: string; secondary?: string } {
   if (!siteName.includes('|')) return { primary: siteName }
@@ -33,7 +41,7 @@ function CartIcon() {
 }
 
 export function LuxeEssenceHeader({
-  config,
+  config: _config,
   siteName,
   tagline,
   logoUrl,
@@ -56,30 +64,7 @@ export function LuxeEssenceHeader({
 
   return (
     <header className="le-header">
-      <div className={`le-logo${logoUrl ? ' le-logo--has-image' : ''}`}>
-        {logoUrl ? (
-          <div className="le-logo-mark">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={logoUrl} alt="" />
-          </div>
-        ) : null}
-        <div className="le-logo-text">
-          <h1>
-            {brand.primary}
-            {brand.secondary ? (
-              <>
-                {' '}
-                <span>| {brand.secondary}</span>
-              </>
-            ) : null}
-          </h1>
-          {trimmedTagline ? <p className="le-tagline">{trimmedTagline}</p> : null}
-        </div>
-      </div>
-
-      <LuxeEssenceHeaderStoreStatus config={config} />
-
-      <div className="le-actions">
+      <div className="le-header-inner">
         <button
           type="button"
           className="le-menu-toggle"
@@ -90,11 +75,50 @@ export function LuxeEssenceHeader({
         >
           <MenuIcon />
         </button>
-        <AccountProfileLink className="le-icon-btn" iconClassName="h-5 w-5" />
-        <button type="button" className="le-icon-btn" onClick={onCartOpen} aria-label="Open cart">
-          <CartIcon />
-          {itemCount > 0 ? <span className="le-cart-count">{itemCount}</span> : null}
-        </button>
+
+        <Link href="/" className={`le-logo${logoUrl ? ' le-logo--has-image' : ''}`}>
+          {logoUrl ? (
+            <div className="le-logo-mark">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={logoUrl} alt="" />
+            </div>
+          ) : null}
+          <div className="le-logo-text">
+            <span className="le-logo-title">
+              {brand.primary}
+              {brand.secondary ? (
+                <>
+                  {' '}
+                  <span className="le-logo-title-secondary">| {brand.secondary}</span>
+                </>
+              ) : null}
+            </span>
+            {trimmedTagline ? <span className="le-tagline">{trimmedTagline}</span> : null}
+          </div>
+        </Link>
+
+        <nav className="le-nav-desktop" aria-label="Primary">
+          <ul>
+            {DESKTOP_NAV.map((item) => (
+              <li key={item.href}>
+                {item.href.startsWith('#') ? (
+                  <a href={item.href}>{item.label}</a>
+                ) : (
+                  <Link href={item.href}>{item.label}</Link>
+                )}
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <div className="le-actions">
+        <button type="button" className="le-icon-btn le-cart-btn" onClick={onCartOpen} aria-label="Open cart">
+            <CartIcon />
+            {itemCount > 0 ? <span className="le-cart-count">{itemCount > 99 ? '99+' : itemCount}</span> : null}
+          </button>
+          <AccountProfileLink className="le-icon-btn" iconClassName="h-5 w-5" />
+          
+        </div>
       </div>
     </header>
   )

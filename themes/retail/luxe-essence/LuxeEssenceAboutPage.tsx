@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import type { StorefrontNavLink } from '@/lib/cms-content'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 import type { StorefrontCmsPage } from '@/lib/cms-pages'
 import type { ThemeTenant } from '../types'
@@ -10,10 +11,12 @@ export function LuxeEssenceAboutPage({
   tenant,
   config,
   cmsPage,
+  footerLinks,
 }: {
   tenant: ThemeTenant
   config: StorefrontConfig | null
   cmsPage?: StorefrontCmsPage | null
+  footerLinks?: StorefrontNavLink[]
 }) {
   const siteName = config?.branding?.siteName || tenant.name
   const title = cmsPage?.title?.trim() || 'Our story'
@@ -25,6 +28,7 @@ export function LuxeEssenceAboutPage({
       tenant={tenant}
       config={config}
       mainClassName="sf-page-shell sf-page-shell--narrow"
+      footerLinks={footerLinks}
     >
       <p className="sf-page-eyebrow">About</p>
       <h1 className="sf-page-title">{title}</h1>

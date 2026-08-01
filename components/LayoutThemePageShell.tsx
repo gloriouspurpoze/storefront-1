@@ -13,6 +13,7 @@ function RetailLayoutNav({
   tenantLogoUrl,
   wide,
   showShippingPolicy,
+  navLinks,
 }: {
   config: StorefrontConfig | null
   siteName: string
@@ -20,6 +21,7 @@ function RetailLayoutNav({
   tenantLogoUrl?: string | null
   wide?: boolean
   showShippingPolicy?: boolean
+  navLinks?: { href: string; label: string }[]
 }) {
   const { itemCount } = useRetailCart()
   return (
@@ -36,6 +38,7 @@ function RetailLayoutNav({
       showShippingPolicy={showShippingPolicy}
       accountMode="profile"
       className={wide ? 'sf-standard-nav--wide' : undefined}
+      navLinks={navLinks}
     />
   )
 }
@@ -47,6 +50,7 @@ function RestaurantLayoutNav({
   tenantLogoUrl,
   wide,
   showShippingPolicy,
+  navLinks,
 }: {
   config: StorefrontConfig | null
   siteName: string
@@ -54,6 +58,7 @@ function RestaurantLayoutNav({
   tenantLogoUrl?: string | null
   wide?: boolean
   showShippingPolicy?: boolean
+  navLinks?: { href: string; label: string }[]
 }) {
   const { itemCount } = useRestaurantCart()
   return (
@@ -70,6 +75,7 @@ function RestaurantLayoutNav({
       showShippingPolicy={showShippingPolicy}
       accountMode="profile"
       className={wide ? 'sf-standard-nav--wide' : undefined}
+      navLinks={navLinks}
     />
   )
 }
@@ -83,6 +89,7 @@ export function LayoutThemePageShell({
   wide,
   showShippingPolicy = true,
   variant = 'retail',
+  navLinks,
 }: {
   config: StorefrontConfig | null
   siteName: string
@@ -92,6 +99,8 @@ export function LayoutThemePageShell({
   wide?: boolean
   showShippingPolicy?: boolean
   variant?: 'retail' | 'restaurant'
+  /** CMS header menu links for the shared drawer. */
+  navLinks?: { href: string; label: string }[]
 }) {
   const Nav = variant === 'restaurant' ? RestaurantLayoutNav : RetailLayoutNav
 
@@ -104,6 +113,7 @@ export function LayoutThemePageShell({
         tenantLogoUrl={tenantLogoUrl}
         wide={wide}
         showShippingPolicy={showShippingPolicy}
+        navLinks={navLinks}
       />
       {children}
     </>

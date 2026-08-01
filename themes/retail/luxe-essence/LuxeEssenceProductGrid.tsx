@@ -37,9 +37,21 @@ function LuxeEssenceProductCard({
   const inStock = isVariantInStock(product)
 
   return (
-    <article className={`le-product-card${!inStock ? ' le-product-card--unavail' : ''}`}>
+    <article
+      className={`le-product-card${!inStock ? ' le-product-card--unavail' : ''}${
+        variantQty > 0 ? ' le-product-card--in-cart' : ''
+      }`}
+    >
       <Link href={`/products/${product.slug}`} className="le-product-card-link">
-        <LuxeEssenceProductImage product={product} />
+        <div className="le-product-media">
+          <LuxeEssenceProductImage product={product} />
+          {variantQty > 0 ? (
+            <span className="le-product-qty-badge" aria-label={`${variantQty} in cart`}>
+              {variantQty}
+            </span>
+          ) : null}
+          {!inStock ? <span className="le-product-oos-badge">Sold out</span> : null}
+        </div>
         <div className="le-product-info">
           <h3 className="le-product-title">{product.name}</h3>
           {description ? <p className="le-product-desc">{description}</p> : null}

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import type { StorefrontNavLink } from '@/lib/cms-content'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 
 const SOCIAL_LABELS: Record<string, string> = {
@@ -10,6 +11,14 @@ const SOCIAL_LABELS: Record<string, string> = {
   youtube: 'YouTube',
   linkedin: 'LinkedIn',
 }
+
+const DEFAULT_SHOP_LINKS: StorefrontNavLink[] = [
+  { href: '#products', label: 'Featured' },
+  { href: '/products', label: 'All products' },
+  { href: '/about', label: 'About' },
+  { href: '/blog', label: 'Blog' },
+  { href: '/contact', label: 'Contact' },
+]
 
 function whatsAppHref(phone: string): string | null {
   const digits = phone.replace(/\D/g, '')
@@ -27,10 +36,13 @@ export function LuxeEssenceFooter({
   config,
   siteName,
   tagline,
+  footerLinks,
 }: {
   config: StorefrontConfig | null
   siteName: string
   tagline?: string
+  /** CMS footer menu links (empty → hardcoded Shop column). */
+  footerLinks?: StorefrontNavLink[]
 }) {
   const branding = config?.branding
   const trimmedTagline = tagline?.trim()
@@ -39,6 +51,7 @@ export function LuxeEssenceFooter({
   const address = branding?.address?.trim()
   const whatsapp = branding?.socials?.whatsapp?.trim()
   const whatsappLink = whatsapp ? whatsAppHref(whatsapp) : null
+  const shopLinks = footerLinks?.length ? footerLinks : DEFAULT_SHOP_LINKS
 
   const socialLinks = Object.entries(branding?.socials ?? {})
     .filter(([key, value]) => key !== 'whatsapp' && Boolean(value?.trim()))
@@ -62,21 +75,11 @@ export function LuxeEssenceFooter({
         <div>
           <div className="le-footer-col-title">Shop</div>
           <ul className="le-footer-links">
-            <li>
-              <a href="#products">Featured</a>
-            </li>
-            <li>
-              <Link href="/products">All products</Link>
-            </li>
-            <li>
-              <Link href="/about">About</Link>
-            </li>
-            <li>
-              <Link href="/blog">Blog</Link>
-            </li>
-            <li>
-              <Link href="/contact">Contact</Link>
-            </li>
+            {shopLinks.map((link) => (
+              <li key={`${link.href}-${link.label}`}>
+                <Link href={link.href}>{link.label}</Link>
+              </li>
+            ))}
           </ul>
         </div>
 

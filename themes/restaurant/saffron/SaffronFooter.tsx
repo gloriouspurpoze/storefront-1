@@ -1,16 +1,22 @@
+import Link from 'next/link'
+import type { StorefrontNavLink } from '@/lib/cms-content'
 import type { ThemeTenant } from '../types'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 
 export function SaffronFooter({
   tenant,
   config,
+  footerLinks,
 }: {
   tenant: ThemeTenant
   config?: StorefrontConfig | null
+  /** CMS footer links when present; otherwise no page-link column (contact-only). */
+  footerLinks?: StorefrontNavLink[]
 }) {
   const branding = config?.branding ?? {}
   const year = new Date().getFullYear()
   const siteName = branding.siteName || tenant.name
+  const pageLinks = footerLinks?.length ? footerLinks : null
 
   return (
     <footer
@@ -50,6 +56,28 @@ export function SaffronFooter({
             </div>
           )}
         </div>
+
+        {pageLinks ? (
+          <nav
+            aria-label="Footer"
+            style={{
+              fontSize: '13px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+            }}
+          >
+            {pageLinks.map((link) => (
+              <Link
+                key={`${link.href}-${link.label}`}
+                href={link.href}
+                style={{ color: 'inherit', textDecoration: 'none' }}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        ) : null}
 
         {/* Contact info */}
         <div
