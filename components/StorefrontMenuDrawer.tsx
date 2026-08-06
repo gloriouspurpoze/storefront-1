@@ -22,6 +22,7 @@ export function StorefrontMenuDrawer({
   shippingPolicyLabel = 'Shipping policy',
   showGiftMatch = false,
   navLinks,
+  navExtra,
   orderingHoursNote,
   shippingPolicyContent,
   drawerId = 'storefront-menu-drawer',
@@ -34,6 +35,8 @@ export function StorefrontMenuDrawer({
   showGiftMatch?: boolean
   /** Pill links shown above policy sections (e.g. shop / account routes). */
   navLinks?: StorefrontMenuNavLink[]
+  /** Optional block above quick links (e.g. theme category section). */
+  navExtra?: React.ReactNode
   orderingHoursNote?: React.ReactNode
   shippingPolicyContent?: React.ReactNode
   drawerId?: string
@@ -81,6 +84,7 @@ export function StorefrontMenuDrawer({
           </button>
         </div>
         <p className="sf-menu-drawer__subtitle">Quick store details and policies.</p>
+        {navExtra}
         {navLinks && navLinks.length > 0 ? (
           <nav className="sf-menu-drawer__quick-links" aria-label="Site navigation">
             {navLinks.map((link) => (

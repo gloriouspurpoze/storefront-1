@@ -60,6 +60,13 @@ function lineDisplayName(product: PublicProduct, variantId?: string): string {
   return variant ? `${product.name} — ${variant.name}` : product.name
 }
 
+/** Product title without the “ — variant” suffix when an option chip is shown. */
+export function cartLineProductName(line: CartLine): string {
+  if (!line.variantName) return line.name
+  const suffix = ` — ${line.variantName}`
+  return line.name.endsWith(suffix) ? line.name.slice(0, -suffix.length) : line.name
+}
+
 export function CartProvider({
   tenantId,
   children,

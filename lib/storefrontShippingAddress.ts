@@ -62,7 +62,7 @@ export function deliveryDetailsToShippingAddress(
     lastName,
     address: street,
     city: details.city!.trim(),
-    state: '',
+    state: details.state?.trim() || '',
     zipCode: pin,
     pincode: pin,
     country: 'India',

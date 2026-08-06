@@ -1,3 +1,5 @@
 export { LuxeEssencePage } from './LuxeEssencePage'
 export { LuxeEssenceStorefrontPage } from './LuxeEssenceStorefrontPage'
+export { LuxeEssenceCategoryPage } from './LuxeEssenceCategoryPage'
 export { LuxeEssenceShippingPolicyPage } from './LuxeEssenceShippingPolicyPage'
+export { LuxeEssenceCatalogPage } from './LuxeEssenceCatalogPage'

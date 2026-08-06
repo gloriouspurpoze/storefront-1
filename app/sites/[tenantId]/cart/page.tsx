@@ -6,7 +6,7 @@ import { SiteHeader } from '@/themes/retail/SiteHeader'
 import { SiteFooter } from '@/themes/retail/SiteFooter'
 import { CartClient } from '@/themes/retail/CartClient'
 import { toThemeTenant } from '@/themes/retail/types'
-import { fetchStorefrontConfig } from '@/lib/storefront-api'
+import { fetchStorefrontConfig, fetchStorefrontCategories } from '@/lib/storefront-api'
 import { fetchStorefrontMenuLinks, fetchStorefrontNavLinks } from '@/lib/cms-content'
 import { isRetailLayoutTheme } from '@/themes/retail/retailLayoutRouter'
 import { LayoutThemePageShell } from '@/components/LayoutThemePageShell'
@@ -26,13 +26,15 @@ export default async function CartPage() {
 
   const tenant = await loadRetailTenant()
   const themeTenant = toThemeTenant(tenant, tenant.fallbackTagline)
-  const [config, headerNavLinks, footerNavLinks, cmsHeaderNav, cmsFooterNav] = await Promise.all([
-    fetchStorefrontConfig(tenant.id),
-    fetchStorefrontNavLinks(tenant.id, 'header', 'retail'),
-    fetchStorefrontNavLinks(tenant.id, 'footer', 'retail'),
-    fetchStorefrontMenuLinks(tenant.id, 'header'),
-    fetchStorefrontMenuLinks(tenant.id, 'footer'),
-  ])
+  const [config, headerNavLinks, footerNavLinks, cmsHeaderNav, cmsFooterNav, categories] =
+    await Promise.all([
+      fetchStorefrontConfig(tenant.id),
+      fetchStorefrontNavLinks(tenant.id, 'header', 'retail'),
+      fetchStorefrontNavLinks(tenant.id, 'footer', 'retail'),
+      fetchStorefrontMenuLinks(tenant.id, 'header'),
+      fetchStorefrontMenuLinks(tenant.id, 'footer'),
+      fetchStorefrontCategories(tenant.id),
+    ])
   const siteName = config?.branding?.siteName || tenant.name
   const tagline = config?.branding?.tagline || themeTenant.tagline
   const themeKey = config?.themeKey
@@ -45,6 +47,7 @@ export default async function CartPage() {
           config={config}
           navLinks={cmsHeaderNav}
           footerLinks={cmsFooterNav}
+          categories={categories}
         />
       </RetailShell>
     )

@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { loadTenantFromRequest } from '@/lib/load-tenant'
-import { fetchStorefrontConfig } from '@/lib/storefront-api'
+import { fetchStorefrontConfig, fetchStorefrontCategories } from '@/lib/storefront-api'
 import { fetchStorefrontAboutPage } from '@/lib/cms-pages'
 import { StorefrontCmsPageArticle } from '@/components/content/StorefrontCmsPageArticle'
 import { loadHomeServicesTenant } from '@/themes/home-services/loadThemeTenant'
@@ -99,7 +99,10 @@ export default async function AboutPage() {
       const theme = toRetailTenant(tenant, tenant.fallbackTagline)
       const config = await fetchStorefrontConfig(tenant.id)
       if (config?.themeKey === 'luxe-essence') {
-        const footerLinks = await fetchStorefrontMenuLinks(tenant.id, 'footer')
+        const [footerLinks, categories] = await Promise.all([
+          fetchStorefrontMenuLinks(tenant.id, 'footer'),
+          fetchStorefrontCategories(tenant.id),
+        ])
         return (
           <RetailShell tenantId={tenant.id}>
             <LuxeEssenceAboutPage
@@ -107,6 +110,7 @@ export default async function AboutPage() {
               config={config}
               cmsPage={cmsAbout}
               footerLinks={footerLinks}
+              categories={categories}
             />
           </RetailShell>
         )

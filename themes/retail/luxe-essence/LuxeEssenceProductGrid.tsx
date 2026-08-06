@@ -77,17 +77,21 @@ export function LuxeEssenceProductGrid({
   totalQtyForProduct,
   onAdd,
   onSelectOptions,
+  sectionLabel,
+  sectionTitle,
 }: {
   products: PublicProduct[]
   authReady: boolean
   totalQtyForProduct: (productId: string) => number
   onAdd: (product: PublicProduct) => void
   onSelectOptions: (product: PublicProduct) => void
+  sectionLabel?: string
+  sectionTitle?: string
 }) {
   if (products.length === 0) return null
 
   return (
-    <LuxeEssenceCatalogSectionShell>
+    <LuxeEssenceCatalogSectionShell label={sectionLabel} title={sectionTitle}>
       <ul className="le-product-grid">
         {products.map((product) => (
           <li key={product.id}>

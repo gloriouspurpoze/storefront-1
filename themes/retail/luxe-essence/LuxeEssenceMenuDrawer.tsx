@@ -1,30 +1,48 @@
 'use client'
 
+import Link from 'next/link'
 import { StorefrontMenuDrawer, type StorefrontMenuNavLink } from '@/components/StorefrontMenuDrawer'
+import type { ProductCategoryNav } from '@/lib/productCategories'
 import type { ComponentProps } from 'react'
+import {
+  buildLuxeDrawerCategoryLinks,
+  buildLuxeDrawerNav,
+  toLuxeNavCategories,
+} from './luxeEssenceNav'
 
-/** Nav links aligned with LuxeEssenceFooter — no duplicate policy clutter. */
-const LUXE_DRAWER_NAV: StorefrontMenuNavLink[] = [
-  { href: '#products', label: 'Featured' },
-  { href: '/products', label: 'All products' },
-  { href: '/about', label: 'About' },
-  { href: '/blog', label: 'Blog' },
-  { href: '/contact', label: 'Contact' },
-  { href: '/account', label: 'My orders' },
-  { href: '/orders/track', label: 'Track order' },
-  { href: '/account/login', label: 'Sign in' },
-  { href: '/account/login?signup=1', label: 'Sign up' },
-]
+type MenuDrawerProps = Omit<ComponentProps<typeof StorefrontMenuDrawer>, 'drawerId' | 'navExtra'> & {
+  categories?: Array<ProductCategoryNav | { slug: string; name: string; sortOrder?: number }>
+}
 
-type MenuDrawerProps = Omit<ComponentProps<typeof StorefrontMenuDrawer>, 'drawerId'>
+/** Luxe Essence mobile nav — Categories group, then All products + CMS / theme defaults. */
+export function LuxeEssenceMenuDrawer({ navLinks, categories = [], onClose, ...props }: MenuDrawerProps) {
+  const navCategories = toLuxeNavCategories(categories)
+  const categoryLinks = buildLuxeDrawerCategoryLinks(navCategories)
+  const merged: StorefrontMenuNavLink[] = buildLuxeDrawerNav(navCategories, navLinks)
 
-/** Luxe Essence mobile nav — CMS links when present, else theme defaults. */
-export function LuxeEssenceMenuDrawer({ navLinks, ...props }: MenuDrawerProps) {
+  const categoriesBlock =
+    categoryLinks.length > 0 ? (
+      <nav className="le-drawer-categories" aria-label="Categories">
+        <p className="le-drawer-categories-label">Categories</p>
+        <ul className="le-drawer-categories-list">
+          {categoryLinks.map((link) => (
+            <li key={link.href}>
+              <Link href={link.href} className="le-drawer-categories-link" onClick={onClose}>
+                {link.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    ) : null
+
   return (
     <StorefrontMenuDrawer
       {...props}
+      onClose={onClose}
       drawerId="storefront-menu-drawer"
-      navLinks={navLinks?.length ? navLinks : LUXE_DRAWER_NAV}
+      navExtra={categoriesBlock}
+      navLinks={merged}
       shippingPolicyLabel="Shipping policy"
     />
   )

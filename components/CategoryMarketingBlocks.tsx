@@ -2,6 +2,7 @@
 
 import type { CategoryMarketingConfig } from '@/lib/categoryMarketing'
 import { SanitizedMarketingHtml } from './SanitizedMarketingHtml'
+import './category-marketing.css'
 
 export function CategoryMarketingBlocks({
   config,
@@ -16,6 +17,7 @@ export function CategoryMarketingBlocks({
   const faqs = config.faqs.filter((f) => f.question.trim())
   const pricing = config.spareParts.filter((p) => p.name.trim())
   const chips = config.topicChips.filter((x) => x.trim())
+  const related = config.relatedLinks.filter((l) => l.label.trim() && l.url.trim())
   const hasHero =
     config.mainHeading.trim() ||
     config.intro.trim() ||
@@ -23,7 +25,15 @@ export function CategoryMarketingBlocks({
     config.heroChip.trim() ||
     config.image1?.trim()
 
-  if (!hasHero && !cards.length && !types.length && !trust.length && !faqs.length && !pricing.length) {
+  if (
+    !hasHero &&
+    !cards.length &&
+    !types.length &&
+    !trust.length &&
+    !faqs.length &&
+    !pricing.length &&
+    !related.length
+  ) {
     return null
   }
 
@@ -190,6 +200,16 @@ export function CategoryMarketingBlocks({
           html={config.closingParagraph}
           className="mf-cat-marketing-closing"
         />
+      ) : null}
+
+      {related.length > 0 ? (
+        <nav className="mf-cat-marketing-related" aria-label="Related links">
+          {related.map((link) => (
+            <a key={`${link.label}-${link.url}`} href={link.url}>
+              {link.label}
+            </a>
+          ))}
+        </nav>
       ) : null}
     </section>
   )

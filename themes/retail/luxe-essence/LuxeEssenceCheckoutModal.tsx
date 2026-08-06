@@ -8,6 +8,7 @@ import { SignedInCheckoutNote } from '@/components/CheckoutContactNote'
 import { RequireStorefrontAuth } from '@/components/account/RequireStorefrontAuth'
 import { runStorefrontCheckout } from '@/lib/runStorefrontCheckout'
 import { resolveCheckoutContactForSubmit } from '@/lib/storefrontCustomerContact'
+import { hasShippableDeliveryDetails } from '@/lib/storefrontShippingAddress'
 import { useCheckoutCustomerPrefill } from '@/lib/useCheckoutCustomerPrefill'
 import {
   formatDeliveryNotes,
@@ -100,6 +101,7 @@ export function LuxeEssenceCheckoutModal({
     email: prefillEmail,
     name: prefillName,
     phone: prefillPhone,
+    deliveryDetails: prefillDelivery,
     lockedEmail,
     user,
     accessToken,
@@ -118,6 +120,15 @@ export function LuxeEssenceCheckoutModal({
     if (prefillName && !name) setName(prefillName)
     if (prefillPhone && !phone) setPhone(prefillPhone)
   }, [isReady, prefillEmail, prefillName, prefillPhone, email, name, phone])
+
+  useEffect(() => {
+    if (!isReady) return
+    setDeliveryDetails((prev) => {
+      if (hasShippableDeliveryDetails(prev)) return prev
+      if (!hasShippableDeliveryDetails(prefillDelivery)) return prev
+      return { ...prev, ...prefillDelivery }
+    })
+  }, [isReady, prefillDelivery])
 
   useEffect(() => {
     if (open) return

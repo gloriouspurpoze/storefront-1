@@ -335,6 +335,11 @@
   background: var(--le-accent-hover);
 }
 
+.le-root.sf-cart-page .le-cart-option {
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+
 /* Checkout page */
 .sf-checkout-layout {
   display: grid;

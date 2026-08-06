@@ -3,7 +3,8 @@
 import { useRouter } from 'next/navigation'
 import { useState, type ReactNode } from 'react'
 import type { StorefrontNavLink } from '@/lib/cms-content'
-import type { StorefrontConfig } from '@/lib/storefront-api'
+import type { ProductCategoryNav } from '@/lib/productCategories'
+import type { StorefrontConfig, StorefrontProductCategory } from '@/lib/storefront-api'
 import { useCartAuthGate } from '@/lib/useCartAuthGate'
 import { useCart } from '../cart'
 import type { ThemeTenant } from '../types'
@@ -21,6 +22,7 @@ export function LuxeEssenceLayoutPage({
   mainClassName = 'sf-page-shell',
   navLinks,
   footerLinks,
+  categories = [],
 }: {
   tenant: ThemeTenant
   config: StorefrontConfig | null
@@ -28,6 +30,7 @@ export function LuxeEssenceLayoutPage({
   mainClassName?: string
   navLinks?: StorefrontNavLink[]
   footerLinks?: StorefrontNavLink[]
+  categories?: Array<ProductCategoryNav | StorefrontProductCategory>
 }) {
   const siteName = config?.branding?.siteName || tenant.name
   const tagline = config?.branding?.tagline || tenant.tagline
@@ -45,6 +48,7 @@ export function LuxeEssenceLayoutPage({
         onClose={() => setMenuOpen(false)}
         config={config}
         navLinks={navLinks}
+        categories={categories}
       />
       <LuxeEssenceHeader
         config={config}
@@ -53,6 +57,7 @@ export function LuxeEssenceLayoutPage({
         logoUrl={logoUrl}
         menuOpen={menuOpen}
         itemCount={itemCount}
+        categories={categories}
         onMenuOpen={() => setMenuOpen(true)}
         onCartOpen={() => {
           if (requireAuthForCart()) router.push('/cart')

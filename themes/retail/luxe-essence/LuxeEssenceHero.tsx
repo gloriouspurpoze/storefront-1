@@ -5,6 +5,7 @@ import { useMemo } from 'react'
 import type { PublicProduct, StorefrontConfig } from '@/lib/storefront-api'
 import type { ProductCategoryNav } from '@/lib/productCategories'
 import { getStorefrontPromoStripLines } from '@/lib/storefrontPromoStrip'
+import { categoryHref } from './luxeEssenceNav'
 
 function HeroProductCard({
   product,
@@ -35,10 +36,6 @@ function HeroProductCard({
   )
 }
 
-function scrollToProducts() {
-  document.getElementById('products')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}
-
 export function LuxeEssencePromoStrip({ config }: { config: StorefrontConfig | null }) {
   const lines = useMemo(() => getStorefrontPromoStripLines(config), [config])
   if (lines.length === 0) return null
@@ -59,8 +56,6 @@ export function LuxeEssenceHero({
   siteName,
   products,
   categories = [],
-  selectedCategorySlug = null,
-  onSelectCategory,
   /** When CMS announcement is active, hide shipping-policy promo strip. */
   suppressPromoStrip = false,
 }: {
@@ -68,8 +63,6 @@ export function LuxeEssenceHero({
   siteName: string
   products: PublicProduct[]
   categories?: ProductCategoryNav[]
-  selectedCategorySlug?: string | null
-  onSelectCategory?: (slug: string | null) => void
   suppressPromoStrip?: boolean
 }) {
   const headline = config?.content?.heroHeadline?.trim()
@@ -83,11 +76,6 @@ export function LuxeEssenceHero({
   )
   const showVisual = heroProducts.length > 0
   const showCategories = categories.length > 0
-
-  const selectCategory = (slug: string | null) => {
-    onSelectCategory?.(slug)
-    scrollToProducts()
-  }
 
   return (
     <>
@@ -122,24 +110,17 @@ export function LuxeEssenceHero({
           <nav className="le-hero-categories" aria-label="Shop by category">
             <p className="le-hero-categories-label">Shop by category</p>
             <div className="le-hero-categories-track">
-              <button
-                type="button"
-                className={`le-hero-category-pill${selectedCategorySlug == null ? ' is-active' : ''}`}
-                onClick={() => selectCategory(null)}
-              >
+              <Link href="/products" className="le-hero-category-pill">
                 All
-              </button>
+              </Link>
               {categories.map((category) => (
-                <button
+                <Link
                   key={category.slug}
-                  type="button"
-                  className={`le-hero-category-pill${
-                    selectedCategorySlug === category.slug ? ' is-active' : ''
-                  }`}
-                  onClick={() => selectCategory(category.slug)}
+                  href={categoryHref(category.slug)}
+                  className="le-hero-category-pill"
                 >
                   {category.name}
-                </button>
+                </Link>
               ))}
             </div>
           </nav>

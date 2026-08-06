@@ -188,7 +188,10 @@ export interface PublicProduct {
   price: number
   originalPrice?: number
   currency: string
+  /** Primary image (list cards, OG, fallback). */
   imageUrl?: string
+  /** Full gallery URLs (primary first). Empty/omitted → use `imageUrl` only. */
+  imageUrls?: string[]
   inStock: boolean
   hasVariants?: boolean
   variants?: PublicProductVariant[]
@@ -196,6 +199,26 @@ export interface PublicProduct {
   categorySlug?: string
   categoryName?: string
   categorySortOrder?: number
+}
+
+/** Resolve PDP gallery URLs — prefers `imageUrls`, falls back to single `imageUrl`. */
+export function resolveProductGalleryUrls(
+  product: Pick<PublicProduct, 'imageUrl' | 'imageUrls'>,
+): string[] {
+  const fromGallery = Array.isArray(product.imageUrls)
+    ? product.imageUrls.filter((u): u is string => typeof u === 'string' && u.trim().length > 0)
+    : []
+  if (fromGallery.length > 0) {
+    const seen = new Set<string>()
+    const out: string[] = []
+    for (const url of fromGallery) {
+      if (seen.has(url)) continue
+      seen.add(url)
+      out.push(url)
+    }
+    return out
+  }
+  return product.imageUrl ? [product.imageUrl] : []
 }
 
 export interface StorefrontProductCategory {
@@ -537,6 +560,193 @@ export interface CustomerProfile {
   phone?: string
   profilePicture?: string
   userType: string
+}
+
+/** Saved delivery address from GET/POST/PUT `/addresses`. */
+export interface CustomerSavedAddress {
+  _id: string
+  type?: 'home' | 'work' | 'other'
+  label?: string
+  street: string
+  apartment?: string
+  landmark?: string
+  city: string
+  state: string
+  zipCode: string
+  country?: string
+  isDefault?: boolean
+}
+
+export type UpdateCustomerProfileInput = {
+  accessToken: string
+  firstName: string
+  lastName?: string
+  /** E.164 (e.g. +9198…) — omit to leave unchanged */
+  phone?: string
+}
+
+function mapAuthProfileUser(
+  raw: Record<string, unknown> | null | undefined,
+): {
+  id: string
+  email: string
+  phone?: string
+  firstName: string
+  lastName?: string
+  profilePicture?: string
+  userType: string
+} | null {
+  if (!raw || typeof raw !== 'object') return null
+  const id = String(raw.id ?? '')
+  if (!id) return null
+  const firstName = String(raw.firstName ?? raw.first_name ?? '').trim()
+  const lastNameRaw = raw.lastName ?? raw.last_name
+  const lastName =
+    lastNameRaw === undefined || lastNameRaw === null
+      ? undefined
+      : String(lastNameRaw).trim() || undefined
+  return {
+    id,
+    email: String(raw.email ?? ''),
+    phone: raw.phone != null ? String(raw.phone) : undefined,
+    firstName: firstName || 'Customer',
+    lastName,
+    profilePicture:
+      raw.profilePicture != null
+        ? String(raw.profilePicture)
+        : raw.profile_picture != null
+          ? String(raw.profile_picture)
+          : undefined,
+    userType: String(raw.userType ?? raw.user_type ?? 'customer'),
+  }
+}
+
+/**
+ * Persist name/phone via existing auth profile API (customer JWT).
+ * @see PATCH /api/auth/profile
+ */
+export async function updateCustomerProfile(
+  input: UpdateCustomerProfileInput,
+): Promise<{
+  id: string
+  email: string
+  phone?: string
+  firstName: string
+  lastName?: string
+  profilePicture?: string
+  userType: string
+}> {
+  const body: Record<string, string> = {
+    firstName: input.firstName.trim(),
+  }
+  if (input.lastName !== undefined) body.lastName = input.lastName.trim()
+  if (input.phone !== undefined) body.phone = input.phone
+
+  const res = await fetch(apiUrl('/auth/profile'), {
+    method: 'PATCH',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${input.accessToken}`,
+    },
+    body: JSON.stringify(body),
+    cache: 'no-store',
+  })
+  const json = (await res.json().catch(() => null)) as {
+    success?: boolean
+    message?: string
+    data?: { user?: Record<string, unknown>; message?: string } | Record<string, unknown>
+  } | null
+  if (!res.ok || !json?.success) {
+    throw new Error(json?.message || `Failed to update profile (${res.status})`)
+  }
+  const payload = json.data
+  const rawUser =
+    payload && typeof payload === 'object' && 'user' in payload
+      ? (payload.user as Record<string, unknown>)
+      : (payload as Record<string, unknown> | undefined)
+  const mapped = mapAuthProfileUser(rawUser)
+  if (!mapped) throw new Error(json.message || 'Profile update returned no user')
+  return mapped
+}
+
+/** @see GET /api/addresses/default */
+export async function fetchCustomerDefaultAddress(input: {
+  accessToken: string
+}): Promise<CustomerSavedAddress | null> {
+  const res = await fetch(apiUrl('/addresses/default'), {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${input.accessToken}`,
+    },
+    cache: 'no-store',
+  })
+  const json = (await res.json().catch(() => null)) as {
+    success?: boolean
+    message?: string
+    data?: { address?: CustomerSavedAddress | null }
+  } | null
+  if (!res.ok || !json?.success) {
+    throw new Error(json?.message || `Failed to load address (${res.status})`)
+  }
+  const addr = json.data?.address
+  if (!addr || !addr.street) return null
+  return {
+    ...addr,
+    _id: String((addr as { _id?: string; id?: string })._id ?? (addr as { id?: string }).id ?? ''),
+  }
+}
+
+/** Create or update the customer's default delivery address. */
+export async function saveCustomerAddress(input: {
+  accessToken: string
+  addressId?: string | null
+  street: string
+  apartment?: string
+  city: string
+  state: string
+  zipCode: string
+  country?: string
+}): Promise<CustomerSavedAddress> {
+  const body = {
+    type: 'home' as const,
+    street: input.street.trim(),
+    apartment: input.apartment?.trim() || '',
+    city: input.city.trim(),
+    state: input.state.trim(),
+    zipCode: input.zipCode.trim(),
+    country: input.country?.trim() || 'India',
+    isDefault: true,
+  }
+
+  const updating = Boolean(input.addressId?.trim())
+  const path = updating
+    ? `/addresses/${encodeURIComponent(input.addressId!.trim())}`
+    : '/addresses'
+  const res = await fetch(apiUrl(path), {
+    method: updating ? 'PUT' : 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${input.accessToken}`,
+    },
+    body: JSON.stringify(body),
+    cache: 'no-store',
+  })
+  const json = (await res.json().catch(() => null)) as {
+    success?: boolean
+    message?: string
+    data?: { address?: CustomerSavedAddress }
+  } | null
+  if (!res.ok || !json?.success || !json.data?.address) {
+    throw new Error(json?.message || `Failed to save address (${res.status})`)
+  }
+  const addr = json.data.address
+  return {
+    ...addr,
+    _id: String((addr as { _id?: string; id?: string })._id ?? (addr as { id?: string }).id ?? ''),
+  }
 }
 
 export async function fetchCustomerOrders(input: {

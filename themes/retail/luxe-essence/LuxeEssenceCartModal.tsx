@@ -4,7 +4,8 @@ import { useMemo } from 'react'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 import { cartLineKey } from '@/lib/productVariants'
 import { getCartShippingDisplayLabel } from '@/lib/shippingPolicy'
-import { formatMoney, type CartLine } from '../cart'
+import { cartLineProductName, formatMoney, type CartLine } from '../cart'
+import { LuxeEssenceCartOptionChip } from './LuxeEssenceCartOptionChip'
 
 function CartEmptyIcon() {
   return (
@@ -86,7 +87,10 @@ export function LuxeEssenceCartModal({
             {lines.map((line) => (
               <li key={cartLineKey(line.productId, line.variantId)} className="le-cart-item">
                 <div className="le-cart-item-info">
-                  <div className="le-cart-item-name">{line.name}</div>
+                  <div className="le-cart-item-name">{cartLineProductName(line)}</div>
+                  {line.variantName || line.variantId ? (
+                    <LuxeEssenceCartOptionChip label={line.variantName?.trim() || 'Selected option'} />
+                  ) : null}
                   <div className="le-cart-item-price">
                     {formatMoney(line.price, line.currency)} each
                   </div>

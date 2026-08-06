@@ -6,6 +6,7 @@ import type { StorefrontConfig } from '@/lib/storefront-api'
 import { DeliveryDetailsSection } from '@/components/DeliveryDetailsSection'
 import { runStorefrontCheckout } from '@/lib/runStorefrontCheckout'
 import { resolveCheckoutContactForSubmit } from '@/lib/storefrontCustomerContact'
+import { hasShippableDeliveryDetails } from '@/lib/storefrontShippingAddress'
 import { useCheckoutCustomerPrefill } from '@/lib/useCheckoutCustomerPrefill'
 import {
   formatDeliveryNotes,
@@ -85,6 +86,7 @@ export function CheckoutClient({
     email: prefillEmail,
     name: prefillName,
     phone: prefillPhone,
+    deliveryDetails: prefillDelivery,
     lockedEmail,
     user,
     accessToken,
@@ -97,6 +99,15 @@ export function CheckoutClient({
     if (prefillName && !name) setName(prefillName)
     if (prefillPhone && !phone) setPhone(prefillPhone)
   }, [isReady, prefillEmail, prefillName, prefillPhone, email, name, phone])
+
+  useEffect(() => {
+    if (!isReady) return
+    setDeliveryDetails((prev) => {
+      if (hasShippableDeliveryDetails(prev)) return prev
+      if (!hasShippableDeliveryDetails(prefillDelivery)) return prev
+      return { ...prev, ...prefillDelivery }
+    })
+  }, [isReady, prefillDelivery])
 
   const processPayment = async () => {
     const contact = resolveCheckoutContactForSubmit({

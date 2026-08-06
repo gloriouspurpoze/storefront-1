@@ -1,11 +1,58 @@
 /** Checkout contact helpers for signed-in storefront customers. */
 
 import type { StorefrontAuthUser } from './storefront-auth'
+import type { DeliveryDetailsValue } from './templateSettings'
 
 export function normalizeIndianMobileDigits(phone: string): string {
   const digits = phone.replace(/\D/g, '')
   if (digits.length >= 10) return digits.slice(-10)
   return digits
+}
+
+/** Format a 10-digit Indian mobile for PATCH /auth/profile (`+91…`). */
+export function toProfilePhoneE164(phone: string): string | undefined {
+  const digits = normalizeIndianMobileDigits(phone)
+  if (digits.length !== 10) return undefined
+  return `+91${digits}`
+}
+
+/** Map saved `/addresses` record → checkout delivery fields. */
+export function deliveryPrefillFromSavedAddress(
+  addr:
+    | {
+        street?: string
+        apartment?: string
+        city?: string
+        zipCode?: string
+        state?: string
+      }
+    | null
+    | undefined,
+): DeliveryDetailsValue {
+  if (!addr) return {}
+  const addressLine1 = addr.street?.trim() || ''
+  const city = addr.city?.trim() || ''
+  const pincode = addr.zipCode?.trim() || ''
+  if (!addressLine1 && !city && !pincode) return {}
+  const apartment = addr.apartment?.trim()
+  const state = addr.state?.trim()
+  return {
+    addressLine1,
+    ...(apartment ? { addressLine2: apartment } : {}),
+    city,
+    pincode,
+    ...(state ? { state } : {}),
+  }
+}
+
+/** Single-line address for themes that use one free-text delivery field. */
+export function formatSavedAddressLine(
+  details: Pick<DeliveryDetailsValue, 'addressLine1' | 'addressLine2' | 'city' | 'pincode'>,
+): string {
+  return [details.addressLine1, details.addressLine2, details.city, details.pincode]
+    .map((s) => s?.trim())
+    .filter(Boolean)
+    .join(', ')
 }
 
 const PLACEHOLDER_EMAIL_SUFFIXES = [

@@ -17,6 +17,7 @@ import '@/themes/retail/luxe-essence/luxe-essence.css'
 import '@/themes/retail/retail-pdp.css'
 import '@/themes/retail/retail-cart.css'
 import { containsHtml } from '@/lib/product-seo'
+import { ProductImageGallery } from '@/components/ProductImageGallery'
 
 /** Matches HomePageSections `flagOn(cfg, 'showFaq')`. */
 function faqSectionEnabled(config: StorefrontConfig | null): boolean {
@@ -70,14 +71,7 @@ export function ProductDetailView({
     </nav>
 
     <div className="sf-pdp-grid">
-      <div className="sf-pdp-gallery">
-        {product.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={product.imageUrl} alt={product.name} />
-        ) : (
-          <div className="sf-pdp-gallery-fallback">{product.name.charAt(0)}</div>
-        )}
-      </div>
+      <ProductImageGallery key={product.id} product={product} />
 
       <div className="sf-pdp-info">
         {product.categoryName ? <p className="sf-pdp-category">{product.categoryName}</p> : null}

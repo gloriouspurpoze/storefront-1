@@ -18,7 +18,7 @@ import { SiteFooter as RetailFooter } from '@/themes/retail/SiteFooter'
 import { BookingForm as RetailContactForm } from '@/themes/home-services/BookingForm'
 import { toThemeTenant as toRetailTenant } from '@/themes/retail/types'
 import { loadTenantFromRequest } from '@/lib/load-tenant'
-import { fetchStorefrontConfig } from '@/lib/storefront-api'
+import { fetchStorefrontConfig, fetchStorefrontCategories } from '@/lib/storefront-api'
 import { LuxeEssenceContactPage } from '@/themes/retail/luxe-essence/LuxeEssenceContactPage'
 import { storefrontPathMetadata } from '@/lib/path-metadata'
 
@@ -79,9 +79,10 @@ export default async function ContactPage() {
       const theme = toRetailTenant(tenant, tenant.fallbackTagline)
       const config = await fetchStorefrontConfig(tenant.id)
       if (config?.themeKey === 'luxe-essence') {
+        const categories = await fetchStorefrontCategories(tenant.id)
         return (
           <RetailShell tenantId={tenant.id}>
-            <LuxeEssenceContactPage tenant={theme} config={config} />
+            <LuxeEssenceContactPage tenant={theme} config={config} categories={categories} />
           </RetailShell>
         )
       }

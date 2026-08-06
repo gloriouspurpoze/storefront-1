@@ -15,6 +15,7 @@ import type { ThemeTenant } from './types'
 import { useShippingPolicyCheckoutGate, validateBeforePayment } from '@/lib/useShippingPolicyCheckoutGate'
 import { RequireStorefrontAuth } from '@/components/account/RequireStorefrontAuth'
 import { useCheckoutCustomerPrefill } from '@/lib/useCheckoutCustomerPrefill'
+import { hasShippableDeliveryDetails } from '@/lib/storefrontShippingAddress'
 
 type Status =
   | { kind: 'idle' }
@@ -42,8 +43,14 @@ export function RestaurantCheckoutClient({
   const [deliveryDetails, setDeliveryDetails] = useState<DeliveryDetailsValue>({})
   const { requestCheckout, modal } = useShippingPolicyCheckoutGate(config)
   const showPreferredTime = showPreferredTimeOfDelivery(config, config?.themeKey ?? 'classic')
-  const { accessToken, email: prefillEmail, name: prefillName, phone: prefillPhone, isReady } =
-    useCheckoutCustomerPrefill()
+  const {
+    accessToken,
+    email: prefillEmail,
+    name: prefillName,
+    phone: prefillPhone,
+    deliveryDetails: prefillDelivery,
+    isReady,
+  } = useCheckoutCustomerPrefill()
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
@@ -54,6 +61,15 @@ export function RestaurantCheckoutClient({
     if (prefillName && !name) setName(prefillName)
     if (prefillPhone && !phone) setPhone(prefillPhone)
   }, [isReady, prefillEmail, prefillName, prefillPhone, email, name, phone])
+
+  useEffect(() => {
+    if (!isReady) return
+    setDeliveryDetails((prev) => {
+      if (hasShippableDeliveryDetails(prev)) return prev
+      if (!hasShippableDeliveryDetails(prefillDelivery)) return prev
+      return { ...prev, ...prefillDelivery }
+    })
+  }, [isReady, prefillDelivery])
 
   const processPayment = async () => {
     const trimmedEmail = email.trim().toLowerCase()

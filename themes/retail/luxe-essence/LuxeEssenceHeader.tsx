@@ -2,15 +2,9 @@
 
 import Link from 'next/link'
 import type { StorefrontConfig } from '@/lib/storefront-api'
+import type { ProductCategoryNav } from '@/lib/productCategories'
 import { AccountProfileLink } from '@/components/account/AccountProfileLink'
-
-const DESKTOP_NAV = [
-  { href: '#products', label: 'Shop' },
-  { href: '/products', label: 'All products' },
-  { href: '/about', label: 'About' },
-  { href: '/blog', label: 'Blog' },
-  { href: '/contact', label: 'Contact' },
-] as const
+import { buildLuxeDesktopNav, toLuxeNavCategories } from './luxeEssenceNav'
 
 function splitBrandTitle(siteName: string): { primary: string; secondary?: string } {
   if (!siteName.includes('|')) return { primary: siteName }
@@ -49,6 +43,7 @@ export function LuxeEssenceHeader({
   itemCount,
   onMenuOpen,
   onCartOpen,
+  categories = [],
 }: {
   config: StorefrontConfig | null
   siteName: string
@@ -58,9 +53,11 @@ export function LuxeEssenceHeader({
   itemCount: number
   onMenuOpen: () => void
   onCartOpen: () => void
+  categories?: Array<ProductCategoryNav | { slug: string; name: string; sortOrder?: number }>
 }) {
   const brand = splitBrandTitle(siteName)
   const trimmedTagline = tagline?.trim()
+  const { inline, dropdown } = buildLuxeDesktopNav(toLuxeNavCategories(categories))
 
   return (
     <header className="le-header">
@@ -99,25 +96,42 @@ export function LuxeEssenceHeader({
 
         <nav className="le-nav-desktop" aria-label="Primary">
           <ul>
-            {DESKTOP_NAV.map((item) => (
+            {dropdown.length > 0 ? (
+              <li className="le-nav-dropdown">
+                <details>
+                  <summary>
+                    Categories
+                    <span className="le-nav-dropdown-caret" aria-hidden />
+                  </summary>
+                  <ul className="le-nav-dropdown-panel">
+                    {dropdown.map((item) => (
+                      <li key={`${item.href}-${item.label}`}>
+                        <Link
+                          href={item.href}
+                          className={item.href === '/products' ? 'le-nav-dropdown-viewall' : undefined}
+                        >
+                          {item.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              </li>
+            ) : null}
+            {inline.map((item) => (
               <li key={item.href}>
-                {item.href.startsWith('#') ? (
-                  <a href={item.href}>{item.label}</a>
-                ) : (
-                  <Link href={item.href}>{item.label}</Link>
-                )}
+                <Link href={item.href}>{item.label}</Link>
               </li>
             ))}
           </ul>
         </nav>
 
         <div className="le-actions">
-        <button type="button" className="le-icon-btn le-cart-btn" onClick={onCartOpen} aria-label="Open cart">
+          <button type="button" className="le-icon-btn le-cart-btn" onClick={onCartOpen} aria-label="Open cart">
             <CartIcon />
             {itemCount > 0 ? <span className="le-cart-count">{itemCount > 99 ? '99+' : itemCount}</span> : null}
           </button>
           <AccountProfileLink className="le-icon-btn" iconClassName="h-5 w-5" />
-          
         </div>
       </div>
     </header>

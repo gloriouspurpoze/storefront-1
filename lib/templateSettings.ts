@@ -40,6 +40,8 @@ export interface DeliveryDetailsValue {
   addressLine1?: string
   addressLine2?: string
   city?: string
+  /** Optional; filled from saved profile address when available. */
+  state?: string
   pincode?: string
   preferredDate?: string
   preferredTime?: string

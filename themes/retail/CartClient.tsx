@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { RequireStorefrontAuth } from '@/components/account/RequireStorefrontAuth'
 import { cartLineKey } from '@/lib/productVariants'
-import { formatMoney, useCart } from './cart'
+import { cartLineProductName, formatMoney, useCart } from './cart'
+import { LuxeEssenceCartOptionChip } from './luxe-essence/LuxeEssenceCartOptionChip'
 import './retail-cart.css'
 
 function LuxeCartEmptyIcon() {
@@ -73,8 +74,11 @@ export function CartClient({ themeKey }: { themeKey?: string }) {
                     </div>
                     <div className="sf-cart-line-body">
                       <Link href={`/products/${line.slug}`} className="sf-cart-line-name">
-                        {line.name}
+                        {isLuxe ? cartLineProductName(line) : line.name}
                       </Link>
+                      {isLuxe && (line.variantName || line.variantId) ? (
+                        <LuxeEssenceCartOptionChip label={line.variantName?.trim() || 'Selected option'} />
+                      ) : null}
                       <p className="sf-cart-line-unit">{formatMoney(line.price, line.currency)} each</p>
                       <div className="sf-cart-line-actions">
                         <div className="sf-qty-stepper" role="group" aria-label={`Quantity for ${line.name}`}>

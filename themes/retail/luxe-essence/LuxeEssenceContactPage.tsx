@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import type { StorefrontConfig } from '@/lib/storefront-api'
+import type { StorefrontConfig, StorefrontProductCategory } from '@/lib/storefront-api'
 import type { ThemeTenant } from '../types'
 import { LuxeEssenceLayoutPage } from './LuxeEssenceLayoutPage'
 
@@ -12,9 +12,11 @@ function contactHref(type: 'tel' | 'mailto', value: string): string {
 export function LuxeEssenceContactPage({
   tenant,
   config,
+  categories = [],
 }: {
   tenant: ThemeTenant
   config: StorefrontConfig | null
+  categories?: StorefrontProductCategory[]
 }) {
   const siteName = config?.branding?.siteName || tenant.name
   const phone = config?.branding?.contactPhone?.trim()
@@ -28,6 +30,7 @@ export function LuxeEssenceContactPage({
       tenant={tenant}
       config={config}
       mainClassName="sf-page-shell sf-page-shell--narrow"
+      categories={categories}
     >
       <p className="sf-page-eyebrow">Contact</p>
       <h1 className="sf-page-title">We&apos;re here to help</h1>

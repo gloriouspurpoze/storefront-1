@@ -78,6 +78,7 @@ export function MenuOrderCheckoutBlock({
     email: prefillEmail,
     name: prefillName,
     phone: prefillPhone,
+    deliveryDetails: prefillDelivery,
     isReady,
   } = useCheckoutCustomerPrefill()
 
@@ -97,6 +98,15 @@ export function MenuOrderCheckoutBlock({
     if (prefillName && !name) setName(prefillName)
     if (prefillPhone && !phone) setPhone(prefillPhone)
   }, [isReady, prefillEmail, prefillName, prefillPhone, email, name, phone])
+
+  useEffect(() => {
+    if (!isReady || isControlled) return
+    setInternalDetails((prev) => {
+      if (hasShippableDeliveryDetails(prev)) return prev
+      if (!hasShippableDeliveryDetails(prefillDelivery)) return prev
+      return { ...prev, ...prefillDelivery }
+    })
+  }, [isReady, prefillDelivery, isControlled])
 
   const disabled = loading || lines.length === 0
 

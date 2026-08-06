@@ -63,7 +63,6 @@ export function LuxeEssencePage({
   const [cartOpen, setCartOpen] = useState(false)
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [shippingPolicyOpen, setShippingPolicyOpen] = useState(false)
-  const [selectedCategorySlug, setSelectedCategorySlug] = useState<string | null>(null)
 
   const heroCategories = useMemo(
     () =>
@@ -77,16 +76,6 @@ export function LuxeEssencePage({
       ),
     [categories, products],
   )
-
-  const catalogProducts = useMemo(() => {
-    if (!selectedCategorySlug) return products
-    return products.filter((product) => {
-      const slug =
-        product.categorySlug?.trim() ||
-        (product as PublicProduct & { category_slug?: string }).category_slug?.trim()
-      return slug === selectedCategorySlug
-    })
-  }, [products, selectedCategorySlug])
 
   const openCheckout = () => {
     if (!requireAuthForCart()) return
@@ -122,6 +111,7 @@ export function LuxeEssencePage({
         onClose={() => setMenuOpen(false)}
         config={config}
         navLinks={navLinks}
+        categories={heroCategories}
       />
       <LuxeEssenceShippingPolicyModal
         open={shippingPolicyOpen}
@@ -136,6 +126,7 @@ export function LuxeEssencePage({
         logoUrl={logoUrl}
         menuOpen={menuOpen}
         itemCount={itemCount}
+        categories={heroCategories}
         onMenuOpen={() => setMenuOpen(true)}
         onCartOpen={() => {
           if (requireAuthForCart()) setCartOpen(true)
@@ -147,8 +138,6 @@ export function LuxeEssencePage({
         siteName={siteName}
         products={products}
         categories={heroCategories}
-        selectedCategorySlug={selectedCategorySlug}
-        onSelectCategory={setSelectedCategorySlug}
         suppressPromoStrip={Boolean(announcement)}
       />
 
@@ -156,11 +145,9 @@ export function LuxeEssencePage({
 
       {products.length === 0 ? (
         <LuxeEssenceCatalogEmpty />
-      ) : catalogProducts.length === 0 ? (
-        <LuxeEssenceCatalogEmpty message="No products in this category yet. Try another category or browse all." />
       ) : (
         <LuxeEssenceProductGrid
-          products={catalogProducts}
+          products={products}
           authReady={authReady}
           totalQtyForProduct={totalQtyForProduct}
           onAdd={addToCart}

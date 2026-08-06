@@ -23,7 +23,7 @@ import { useBrownButterCart } from './useBrownButterCart'
 import { AccountProfileLink } from '@/components/account/AccountProfileLink'
 import { SignedInCheckoutNote } from '@/components/CheckoutContactNote'
 import { useCartAuthGate } from '@/lib/useCartAuthGate'
-import { resolveCheckoutContactForSubmit } from '@/lib/storefrontCustomerContact'
+import { formatSavedAddressLine, resolveCheckoutContactForSubmit } from '@/lib/storefrontCustomerContact'
 import { useCheckoutCustomerPrefill } from '@/lib/useCheckoutCustomerPrefill'
 import { StorefrontHeaderBar, StorefrontMenuDrawer } from '@/components/StorefrontMenuDrawer'
 import {
@@ -361,6 +361,7 @@ export function BrownButterPage({
     email: prefillEmail,
     name: prefillName,
     phone: prefillPhone,
+    deliveryDetails: prefillDelivery,
     lockedEmail,
     user,
     accessToken,
@@ -404,6 +405,12 @@ export function BrownButterPage({
     if (prefillName && !name) setName(prefillName)
     if (prefillPhone && !phone) setPhone(prefillPhone)
   }, [isReady, prefillEmail, prefillName, prefillPhone, email, name, phone])
+
+  useEffect(() => {
+    if (!isReady || address.trim()) return
+    const line = formatSavedAddressLine(prefillDelivery)
+    if (line) setAddress(line)
+  }, [isReady, prefillDelivery, address])
 
   useEffect(() => {
     const onScroll = () => {
