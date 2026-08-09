@@ -116,6 +116,25 @@ export function pickPopupBanner(banners: StorefrontBanner[], now: Date = new Dat
   return active[0] ?? null
 }
 
+/**
+ * Home creative buckets for tenant themes.
+ * `home_page_hero` is a dedicated hero slot — never merge into the offers strip.
+ * Offers strip = `offers` ∪ active `seasonal` only.
+ */
+export function resolveHomeSliderBuckets(
+  input: {
+    offers: StorefrontSlider[]
+    seasonal: StorefrontSlider[]
+    homePageHero: StorefrontSlider[]
+  },
+  now: Date = new Date(),
+): { hero: StorefrontSlider[]; offers: StorefrontSlider[] } {
+  return {
+    hero: filterActiveSliders(input.homePageHero, now),
+    offers: filterActiveSliders(mergeSlidersById(input.offers, input.seasonal), now),
+  }
+}
+
 export function getSlideImageUrl(slide: StorefrontSlider, mobile = false): string {
   if (mobile && slide.image_url_mobile?.trim()) return slide.image_url_mobile
   return slide.image_url

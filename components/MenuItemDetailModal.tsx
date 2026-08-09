@@ -7,6 +7,7 @@ import { isVegItem } from '@/themes/restaurant/menufast/useMenuCart'
 import { formatMoney } from '@/lib/format'
 import {
   getDefaultVariant,
+  getEffectiveImageUrl,
   getEffectiveOriginalPrice,
   getEffectivePrice,
   isVariantInStock,
@@ -71,6 +72,7 @@ export function MenuItemDetailModal({
     : (quantity ?? 0)
   const price = getEffectivePrice(item, selectedVariantId)
   const originalPrice = getEffectiveOriginalPrice(item, selectedVariantId)
+  const displayImageUrl = getEffectiveImageUrl(item, selectedVariantId)
   const popular = (item.dietary ?? []).some((d) => d.toLowerCase() === 'popular')
 
   return createPortal(
@@ -85,10 +87,10 @@ export function MenuItemDetailModal({
         <button type="button" className="sf-menu-item-modal__close" aria-label="Close" onClick={onClose}>
           ×
         </button>
-        {item.imageUrl ? (
+        {displayImageUrl ? (
           <div className="sf-menu-item-modal__image">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={item.imageUrl} alt={item.name} />
+            <img src={displayImageUrl} alt={item.name} />
           </div>
         ) : null}
         <div className="sf-menu-item-modal__body">

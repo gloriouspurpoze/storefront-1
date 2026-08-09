@@ -6,6 +6,7 @@ import { isMenuItemInStock } from '@/lib/storefront-api'
 import {
   cartLineKey,
   findVariant,
+  getEffectiveImageUrl,
   getEffectivePrice,
   isVariantInStock,
   productHasVariants,
@@ -105,7 +106,7 @@ export function CartProvider({
                 name: lineDisplayName(item, variantId),
                 price: getEffectivePrice(item, variantId),
                 currency: item.currency,
-                imageUrl: item.imageUrl,
+                imageUrl: getEffectiveImageUrl(item, variantId),
                 quantity: qty,
               },
             ]

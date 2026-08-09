@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { StandardStorefrontNav } from '@/components/StandardStorefrontNav'
 import { LayoutThemePageShell } from '@/components/LayoutThemePageShell'
@@ -18,6 +19,7 @@ import '@/themes/retail/retail-pdp.css'
 import '@/themes/retail/retail-cart.css'
 import { containsHtml } from '@/lib/product-seo'
 import { ProductImageGallery } from '@/components/ProductImageGallery'
+import { getDefaultVariant, isVariantInStock } from '@/lib/productVariants'
 
 /** Matches HomePageSections `flagOn(cfg, 'showFaq')`. */
 function faqSectionEnabled(config: StorefrontConfig | null): boolean {
@@ -59,6 +61,14 @@ export function ProductDetailView({
   const isSoftStudio = themeKey === 'soft-studio'
   const isLuxe = themeKey === 'luxe-essence'
   const rootClass = themeRootClass(themeKey)
+  const defaultVariant = useMemo(() => getDefaultVariant(product), [product])
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
+    defaultVariant?.id ?? null,
+  )
+
+  useEffect(() => {
+    setSelectedVariantId(defaultVariant?.id ?? null)
+  }, [product.id, defaultVariant?.id])
 
   const detailBody = (
   <>
@@ -71,22 +81,35 @@ export function ProductDetailView({
     </nav>
 
     <div className="sf-pdp-grid">
-      <ProductImageGallery key={product.id} product={product} />
+      <ProductImageGallery
+        key={`${product.id}:${selectedVariantId ?? 'base'}`}
+        product={product}
+        variantId={selectedVariantId}
+      />
 
       <div className="sf-pdp-info">
         {product.categoryName ? <p className="sf-pdp-category">{product.categoryName}</p> : null}
         <h1>{product.name}</h1>
-        <span className={`sf-pdp-stock ${product.inStock ? 'sf-pdp-stock--in' : 'sf-pdp-stock--out'}`}>
-          {product.inStock ? 'In stock' : 'Out of stock'}
+        <span
+          className={`sf-pdp-stock ${
+            isVariantInStock(product, selectedVariantId) ? 'sf-pdp-stock--in' : 'sf-pdp-stock--out'
+          }`}
+        >
+          {isVariantInStock(product, selectedVariantId) ? 'In stock' : 'Out of stock'}
         </span>
 
-        <ProductPriceBlock product={product} />
+        <ProductPriceBlock product={product} selectedVariantId={selectedVariantId} />
 
         {product.description || product.shortDescription ? (
           <ProductDescription text={product.description ?? product.shortDescription ?? ''} />
         ) : null}
 
-        <ProductPurchaseBlock product={product} variantTone={isLuxe ? 'luxe' : isSoftStudio ? 'soft-studio' : 'default'} />
+        <ProductPurchaseBlock
+          product={product}
+          variantTone={isLuxe ? 'luxe' : isSoftStudio ? 'soft-studio' : 'default'}
+          selectedVariantId={selectedVariantId}
+          onSelectedVariantIdChange={setSelectedVariantId}
+        />
 
         <p className="sf-pdp-trust">
           <Link href="/shipping-policy">Shipping policy</Link>

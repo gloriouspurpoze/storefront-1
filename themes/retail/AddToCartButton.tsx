@@ -7,6 +7,7 @@ import { formatMoney } from '@/lib/format'
 import {
   cartLineKey,
   getDefaultVariant,
+  getEffectiveOriginalPrice,
   getEffectivePrice,
   isVariantInStock,
   productHasVariants,
@@ -135,24 +136,39 @@ export function QuantityStepper({
 export function ProductPurchaseBlock({
   product,
   variantTone = 'default',
+  selectedVariantId: controlledVariantId,
+  onSelectedVariantIdChange,
 }: {
   product: PublicProduct
   variantTone?: VariantSelectorTone
+  /** Lifted selection so PDP gallery can follow the chosen option. */
+  selectedVariantId?: string | null
+  onSelectedVariantIdChange?: (variantId: string | null) => void
 }) {
   const { addProduct, lines } = useCart()
   const { requireAuthForCart } = useCartAuthGate()
   const hasVariants = productHasVariants(product)
   const defaultVariant = useMemo(() => getDefaultVariant(product), [product])
-  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(defaultVariant?.id ?? null)
+  const [uncontrolledVariantId, setUncontrolledVariantId] = useState<string | null>(
+    defaultVariant?.id ?? null,
+  )
+  const isControlled = onSelectedVariantIdChange != null
+  const selectedVariantId = isControlled
+    ? (controlledVariantId ?? null)
+    : uncontrolledVariantId
+  const setSelectedVariantId = (next: string | null) => {
+    if (isControlled) onSelectedVariantIdChange(next)
+    else setUncontrolledVariantId(next)
+  }
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
   const [adding, setAdding] = useState(false)
 
   useEffect(() => {
-    setSelectedVariantId(defaultVariant?.id ?? null)
+    if (!isControlled) setUncontrolledVariantId(defaultVariant?.id ?? null)
     setQuantity(1)
     setAdded(false)
-  }, [product.id, defaultVariant?.id])
+  }, [product.id, defaultVariant?.id, isControlled])
 
   // Reset first-add qty when switching options so a new variant starts clean.
   useEffect(() => {
@@ -210,7 +226,7 @@ export function ProductPurchaseBlock({
         <ProductVariantSelector
           variants={product.variants!}
           selectedId={selectedVariantId}
-          onSelect={setSelectedVariantId}
+          onSelect={(id) => setSelectedVariantId(id)}
           label="Options"
           tone={variantTone}
           quantityForVariant={(id) =>
@@ -346,18 +362,23 @@ export function ProductQuantitySelector({
   return <QuantityStepper value={value} onChange={onChange} max={max} size="lg" />
 }
 
-export function ProductPriceBlock({ product }: { product: PublicProduct }) {
-  const savings =
-    product.originalPrice && product.originalPrice > product.price
-      ? product.originalPrice - product.price
-      : null
+export function ProductPriceBlock({
+  product,
+  selectedVariantId,
+}: {
+  product: PublicProduct
+  selectedVariantId?: string | null
+}) {
+  const price = getEffectivePrice(product, selectedVariantId)
+  const originalPrice = getEffectiveOriginalPrice(product, selectedVariantId)
+  const savings = originalPrice && originalPrice > price ? originalPrice - price : null
 
   return (
     <div className="sf-pdp-price-block">
-      <span className="sf-pdp-price">{formatMoney(product.price, product.currency)}</span>
-      {product.originalPrice && product.originalPrice > product.price ? (
+      <span className="sf-pdp-price">{formatMoney(price, product.currency)}</span>
+      {originalPrice && originalPrice > price ? (
         <>
-          <span className="sf-pdp-price-was">{formatMoney(product.originalPrice, product.currency)}</span>
+          <span className="sf-pdp-price-was">{formatMoney(originalPrice, product.currency)}</span>
           {savings ? (
             <span className="sf-pdp-price-save">Save {formatMoney(savings, product.currency)}</span>
           ) : null}

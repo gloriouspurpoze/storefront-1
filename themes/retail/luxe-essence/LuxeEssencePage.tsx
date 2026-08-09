@@ -28,6 +28,7 @@ import './luxe-essence.css'
 
 const EMPTY_CONTENT: LuxeEssenceStorefrontContent = {
   announcement: null,
+  hero: [],
   offers: [],
   promo: [],
   popup: null,
@@ -101,7 +102,7 @@ export function LuxeEssencePage({
   const selectedProduct =
     selectedProductId != null ? (products.find((p) => p.id === selectedProductId) ?? null) : null
 
-  const { announcement, offers, promo, popup } = content
+  const { announcement, hero, offers, promo, popup } = content
 
   return (
     <div className="le-root theme-luxe-essence">
@@ -138,6 +139,7 @@ export function LuxeEssencePage({
         siteName={siteName}
         products={products}
         categories={heroCategories}
+        heroSlides={hero}
         suppressPromoStrip={Boolean(announcement)}
       />
 

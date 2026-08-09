@@ -414,6 +414,64 @@
   width: 100%;
 }
 
+.le-hero-visual--cms {
+  max-width: 440px;
+}
+
+.le-hero-cms {
+  width: 100%;
+}
+
+.le-hero-cms-track {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.le-hero-cms-track::-webkit-scrollbar {
+  display: none;
+}
+
+.le-hero-cms-slide {
+  flex: 0 0 100%;
+  scroll-snap-align: center;
+}
+
+.le-hero-cms-slide .le-hero-card {
+  width: 100%;
+}
+
+.le-hero-cms-sub {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+.le-hero-cms-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.le-hero-cms-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--le-ink, #2d2a3e) 25%, transparent);
+  cursor: pointer;
+}
+
+.le-hero-cms-dot--active {
+  background: var(--le-accent, #7c6a9a);
+  transform: scale(1.15);
+}
+
 .le-hero-card {
   position: relative;
   display: block;

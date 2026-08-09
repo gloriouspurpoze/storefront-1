@@ -37,6 +37,7 @@ import './menufast.css'
 
 const EMPTY_CONTENT: MenuFastCardsStorefrontContent = {
   announcement: null,
+  hero: [],
   offers: [],
   promo: [],
   popup: null,
@@ -157,7 +158,7 @@ export function MenuFastCardsPage({
     )
   }
 
-  const { announcement, offers, promo, popup } = content
+  const { announcement, hero, offers, promo, popup } = content
 
   return (
     <div className="mf-root theme-menufast-cards">
@@ -217,7 +218,7 @@ export function MenuFastCardsPage({
 
           <div className="mf-cards-body" id="mf-menu-panel" role="tabpanel" aria-label="Menu items">
             <MenuFastCardsBrand siteName={siteName} tagline={tagline} logoUrl={logoUrl} />
-            <MenuFastCardsHero config={config} />
+            <MenuFastCardsHero config={config} heroSlides={hero} />
             {offers.length > 0 ? <MenuFastCardsOffersStrip slides={offers} /> : null}
             {promo.length > 0 ? <MenuFastCardsPromoBlock slides={promo} /> : null}
             {isGlobalEmpty ? (

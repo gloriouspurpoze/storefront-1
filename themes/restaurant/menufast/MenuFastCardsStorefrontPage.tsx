@@ -8,9 +8,9 @@ import {
 } from '@/lib/storefront-api'
 import {
   filterActiveSliders,
-  mergeSlidersById,
   pickPopupBanner,
   resolveAnnouncement,
+  resolveHomeSliderBuckets,
 } from '@/lib/storefrontContent'
 import { normalizeCategoryMarketingRecord } from '@/lib/categoryMarketing'
 import { isOfferMarqueeEnabled } from '@/lib/storefrontPaymentMethods'
@@ -31,16 +31,22 @@ export async function loadMenuFastCardsStorefrontContent(
     await Promise.all([
       fetchStorefrontSliders(tenantId, { placement: 'offers' }),
       fetchStorefrontSliders(tenantId, { placement: 'promo' }),
-      // Admin default placement is home_page_hero; seasonal campaigns are common for promos.
       fetchStorefrontSliders(tenantId, { placement: 'home_page_hero' }),
       fetchStorefrontSliders(tenantId, { placement: 'seasonal' }),
       marqueeOn ? fetchStorefrontAnnouncement(tenantId) : Promise.resolve(null),
       fetchStorefrontBanners(tenantId, { bannerType: 'popup' }),
     ])
 
+  const { hero, offers } = resolveHomeSliderBuckets({
+    offers: offersRaw,
+    seasonal: seasonalRaw,
+    homePageHero: heroRaw,
+  })
+
   return {
     announcement: resolveAnnouncement(announcementRaw, marqueeOn),
-    offers: filterActiveSliders(mergeSlidersById(offersRaw, heroRaw, seasonalRaw)),
+    hero,
+    offers,
     promo: filterActiveSliders(promoRaw),
     popup: pickPopupBanner(popupsRaw),
   }

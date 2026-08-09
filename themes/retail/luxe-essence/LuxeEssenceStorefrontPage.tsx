@@ -11,9 +11,9 @@ import {
 } from '@/lib/storefront-api'
 import {
   filterActiveSliders,
-  mergeSlidersById,
   pickPopupBanner,
   resolveAnnouncement,
+  resolveHomeSliderBuckets,
 } from '@/lib/storefrontContent'
 import { isOfferMarqueeEnabled } from '@/lib/storefrontPaymentMethods'
 import type { ThemeTenant } from '../types'
@@ -32,16 +32,22 @@ export async function loadLuxeEssenceStorefrontContent(
     await Promise.all([
       fetchStorefrontSliders(tenantId, { placement: 'offers' }),
       fetchStorefrontSliders(tenantId, { placement: 'promo' }),
-      // Admin default placement is often home_page_hero; include seasonal campaigns too.
       fetchStorefrontSliders(tenantId, { placement: 'home_page_hero' }),
       fetchStorefrontSliders(tenantId, { placement: 'seasonal' }),
       marqueeOn ? fetchStorefrontAnnouncement(tenantId) : Promise.resolve(null),
       fetchStorefrontBanners(tenantId, { bannerType: 'popup' }),
     ])
 
+  const { hero, offers } = resolveHomeSliderBuckets({
+    offers: offersRaw,
+    seasonal: seasonalRaw,
+    homePageHero: heroRaw,
+  })
+
   return {
     announcement: resolveAnnouncement(announcementRaw, marqueeOn),
-    offers: filterActiveSliders(mergeSlidersById(offersRaw, heroRaw, seasonalRaw)),
+    hero,
+    offers,
     promo: filterActiveSliders(promoRaw),
     popup: pickPopupBanner(popupsRaw),
   }

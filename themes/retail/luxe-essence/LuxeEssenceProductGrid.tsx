@@ -7,8 +7,15 @@ import { formatMoney } from '../cart'
 import { LuxeEssenceAddControl } from './LuxeEssenceAddControl'
 import { LuxeEssenceCatalogSectionShell } from './LuxeEssenceCatalogEmpty'
 
-export function LuxeEssenceProductImage({ product }: { product: PublicProduct }) {
-  const imageUrl = product.imageUrl?.trim()
+export function LuxeEssenceProductImage({
+  product,
+  imageUrl: imageUrlProp,
+}: {
+  product: PublicProduct
+  /** Override for variant-specific photos (quick-add modal). */
+  imageUrl?: string
+}) {
+  const imageUrl = (imageUrlProp ?? product.imageUrl)?.trim()
 
   return (
     <div className={`le-product-img${imageUrl ? '' : ' le-product-img--empty'}`}>

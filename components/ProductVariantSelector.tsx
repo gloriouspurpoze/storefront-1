@@ -24,9 +24,10 @@ export function ProductVariantSelector({
 
   const toneClass =
     tone === 'default' ? '' : ` sf-variant-selector--${tone}`
+  const showThumbs = variants.some((v) => Boolean(v.imageUrl?.trim()))
 
   return (
-    <div className={`sf-variant-selector${toneClass}`}>
+    <div className={`sf-variant-selector${toneClass}${showThumbs ? ' sf-variant-selector--thumbs' : ''}`}>
       <p className="sf-variant-selector__label" id="sf-variant-label">
         {label}
       </p>
@@ -35,6 +36,7 @@ export function ProductVariantSelector({
           const selected = v.id === selectedId
           const outOfStock = v.inStock === false
           const qty = quantityForVariant?.(v.id) ?? 0
+          const thumb = v.imageUrl?.trim()
           return (
             <li key={v.id}>
               <button
@@ -43,9 +45,15 @@ export function ProductVariantSelector({
                 aria-selected={selected}
                 aria-pressed={selected}
                 disabled={outOfStock}
-                className={`sf-variant-selector__chip${outOfStock ? ' sf-variant-selector__chip--oos' : ''}`}
+                className={`sf-variant-selector__chip${outOfStock ? ' sf-variant-selector__chip--oos' : ''}${
+                  thumb ? ' sf-variant-selector__chip--media' : ''
+                }`}
                 onClick={() => onSelect(v.id)}
               >
+                {thumb ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={thumb} alt="" className="sf-variant-selector__thumb" />
+                ) : null}
                 <span>{v.name}</span>
                 {qty > 0 ? (
                   <span className="sf-variant-selector__qty" aria-label={`${qty} in cart`}>

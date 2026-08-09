@@ -49,6 +49,7 @@ function embeddedVariantsToTinGroup(product: PublicProduct): TinGroup | null {
       price: v.price,
       originalPrice: v.originalPrice,
       inStock: v.inStock !== false,
+      imageUrl: v.imageUrl?.trim() || product.imageUrl,
       sizeLabel: v.name,
       variantId: v.id,
     })),

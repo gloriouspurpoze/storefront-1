@@ -1,20 +1,28 @@
 'use client'
 
-import { useId, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 import {
-  resolveProductGalleryUrls,
+  resolveGalleryUrlsForVariant,
   type PublicProduct,
 } from '@/lib/storefront-api'
 
 export function ProductImageGallery({
   product,
+  variantId,
 }: {
-  product: Pick<PublicProduct, 'name' | 'imageUrl' | 'imageUrls'>
+  product: Pick<PublicProduct, 'name' | 'imageUrl' | 'imageUrls' | 'variants'>
+  /** When set, that variant's image leads the gallery (then product photos). */
+  variantId?: string | null
 }) {
-  const urls = resolveProductGalleryUrls(product)
+  const urls = resolveGalleryUrlsForVariant(product, variantId)
   const [active, setActive] = useState(0)
   const thumbRefs = useRef<(HTMLButtonElement | null)[]>([])
   const labelId = useId()
+
+  // Reset to the leading (variant) image whenever the shopper changes option.
+  useEffect(() => {
+    setActive(0)
+  }, [variantId, product.name, urls[0]])
 
   if (urls.length === 0) {
     return (

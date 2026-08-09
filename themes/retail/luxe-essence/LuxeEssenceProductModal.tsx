@@ -7,6 +7,7 @@ import { formatMoney } from '@/lib/format'
 import {
   findVariant,
   getDefaultVariant,
+  getEffectiveImageUrl,
   getEffectiveOriginalPrice,
   getEffectivePrice,
   isVariantInStock,
@@ -63,6 +64,7 @@ export function LuxeEssenceProductModal({
   const price = getEffectivePrice(product, selectedVariantId)
   const originalPrice = getEffectiveOriginalPrice(product, selectedVariantId)
   const selectedVariant = findVariant(product, selectedVariantId)
+  const displayImageUrl = getEffectiveImageUrl(product, selectedVariantId)
   const addLabel = selectedVariant
     ? `Add ${product.name} (${selectedVariant.name}) to cart`
     : `Add ${product.name} to cart`
@@ -80,7 +82,7 @@ export function LuxeEssenceProductModal({
           ×
         </button>
         <div className="le-product-modal__scroll">
-          <LuxeEssenceProductImage product={product} />
+          <LuxeEssenceProductImage product={product} imageUrl={displayImageUrl} />
           <div className="le-product-modal__body">
             <h2 id="le-product-modal-title" className="le-product-modal__title">
               {product.name}

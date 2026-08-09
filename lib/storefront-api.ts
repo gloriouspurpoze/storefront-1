@@ -177,6 +177,8 @@ export interface PublicProductVariant {
   price: number
   originalPrice?: number
   inStock?: boolean
+  /** Option-specific photo; PDP/gallery prefer this when the shopper selects the variant. */
+  imageUrl?: string
 }
 
 export interface PublicProduct {
@@ -219,6 +221,35 @@ export function resolveProductGalleryUrls(
     return out
   }
   return product.imageUrl ? [product.imageUrl] : []
+}
+
+/**
+ * Gallery for a selected variant: variant photo first (when set), then product gallery.
+ * Dedupes so the same CDN URL is not shown twice.
+ */
+export function resolveGalleryUrlsForVariant(
+  product: Pick<PublicProduct, 'imageUrl' | 'imageUrls' | 'variants'>,
+  variantId?: string | null,
+): string[] {
+  const base = resolveProductGalleryUrls(product)
+  const match = variantId
+    ? product.variants?.find((v) => v.id === variantId)
+    : undefined
+  const raw =
+    match && typeof match === 'object'
+      ? (match.imageUrl ??
+          (match as { image_url?: string }).image_url)
+      : undefined
+  const variantUrl = typeof raw === 'string' ? raw.trim() : ''
+  if (!variantUrl) return base
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const url of [variantUrl, ...base]) {
+    if (seen.has(url)) continue
+    seen.add(url)
+    out.push(url)
+  }
+  return out
 }
 
 export interface StorefrontProductCategory {
@@ -383,6 +414,8 @@ export interface StorefrontSection {
 export interface StorefrontContent {
   heroHeadline?: string
   heroSubcopy?: string
+  heroCtaLabel?: string
+  heroCtaHref?: string
   aboutTitle?: string
   aboutBody?: string
   faqItems?: Array<{ question: string; answer: string }>

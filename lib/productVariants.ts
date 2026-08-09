@@ -41,6 +41,20 @@ export function getEffectiveOriginalPrice(item: VariantCarrier, variantId?: stri
   return undefined
 }
 
+/** Variant photo when set; otherwise product primary image. */
+export function getEffectiveImageUrl(
+  item: Pick<PublicProduct, 'imageUrl'> & VariantCarrier,
+  variantId?: string | null,
+): string | undefined {
+  const variant = findVariant(item, variantId)
+  const fromVariant =
+    variant?.imageUrl?.trim() ||
+    (variant as { image_url?: string } | null)?.image_url?.trim()
+  if (fromVariant) return fromVariant
+  const fromProduct = item.imageUrl?.trim()
+  return fromProduct || undefined
+}
+
 export function isVariantInStock(item: VariantCarrier, variantId?: string | null): boolean {
   if (productHasVariants(item)) {
     const variant = findVariant(item, variantId)

@@ -5,6 +5,7 @@ import type { PublicProduct } from '@/lib/storefront-api'
 import {
   cartLineKey,
   findVariant,
+  getEffectiveImageUrl,
   getEffectivePrice,
   isVariantInStock,
   productHasVariants,
@@ -113,7 +114,7 @@ export function CartProvider({
                 name: lineDisplayName(product, variantId),
                 price: getEffectivePrice(product, variantId),
                 currency: product.currency,
-                imageUrl: product.imageUrl,
+                imageUrl: getEffectiveImageUrl(product, variantId),
                 quantity: qty,
               },
             ]
