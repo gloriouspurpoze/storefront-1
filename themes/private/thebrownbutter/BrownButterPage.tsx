@@ -533,6 +533,7 @@ export function BrownButterPage({
       deliveryDetailsForCheckout = {
         addressLine1,
         city,
+        state: 'Maharashtra',
         pincode: normalizedPin,
       }
 

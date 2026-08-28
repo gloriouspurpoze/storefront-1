@@ -33,9 +33,11 @@ export function validateShippingAddress(
 ): { ok: true } | { ok: false; message: string } {
   const line1 = details.addressLine1?.trim()
   const city = details.city?.trim()
+  const state = details.state?.trim()
   const pincode = details.pincode?.trim()
   if (!line1) return { ok: false, message: 'Please enter your street address.' }
   if (!city) return { ok: false, message: 'Please enter your city.' }
+  if (!state) return { ok: false, message: 'Please enter your state.' }
   if (!pincode || !/^\d{6}$/.test(pincode)) {
     return { ok: false, message: 'Please enter a valid 6-digit PIN code.' }
   }
@@ -62,7 +64,7 @@ export function deliveryDetailsToShippingAddress(
     lastName,
     address: street,
     city: details.city!.trim(),
-    state: details.state?.trim() || '',
+    state: details.state!.trim(),
     zipCode: pin,
     pincode: pin,
     country: 'India',

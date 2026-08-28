@@ -40,7 +40,7 @@ export interface DeliveryDetailsValue {
   addressLine1?: string
   addressLine2?: string
   city?: string
-  /** Optional; filled from saved profile address when available. */
+  /** Required before checkout completes; validated by validateShippingAddress. */
   state?: string
   pincode?: string
   preferredDate?: string
@@ -85,7 +85,7 @@ export function formatDeliveryNotes(
   extra?: string,
 ): string | undefined {
   const parts: string[] = []
-  const address = [details.addressLine1, details.addressLine2, details.city, details.pincode]
+  const address = [details.addressLine1, details.addressLine2, details.city, details.state, details.pincode]
     .map((s) => s?.trim())
     .filter(Boolean)
     .join(', ')

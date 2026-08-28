@@ -150,6 +150,15 @@ export function DeliveryDetailsSection({
             />
             <input
               type="text"
+              placeholder="State"
+              value={value.state ?? ''}
+              onChange={(e) => set({ state: e.target.value })}
+              {...fieldInputProps(isMenufast ? undefined : { flex: '1 1 120px' })}
+              autoComplete="address-level1"
+              required
+            />
+            <input
+              type="text"
               placeholder="PIN"
               maxLength={6}
               value={value.pincode ?? ''}
