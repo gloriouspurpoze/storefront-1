@@ -201,6 +201,9 @@ export interface PublicProduct {
   categorySlug?: string
   categoryName?: string
   categorySortOrder?: number
+  /** Catalog display order from admin (optional; list order is authoritative). */
+  sortOrder?: number
+  sort_order?: number
 }
 
 /** Resolve PDP gallery URLs — prefers `imageUrls`, falls back to single `imageUrl`. */

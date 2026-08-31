@@ -441,7 +441,7 @@ export function BrownButterPage({
       { id: 'all', label: 'All', emoji: '🍪' },
     ]
     for (const section of sections) {
-      if (section.tinGroups.length + section.cards.length === 0) continue
+      if (section.items.length === 0) continue
       tabs.push({
         id: section.id,
         label: section.label,
@@ -613,7 +613,7 @@ export function BrownButterPage({
     )
   }
 
-  const hasMenu = sections.some((s) => s.tinGroups.length > 0 || s.cards.length > 0)
+  const hasMenu = sections.some((s) => s.items.length > 0)
 
   const cartChrome =
     view === 'menu' ? (
@@ -847,8 +847,7 @@ export function BrownButterPage({
           )}
 
           {visibleSections.map((section) => {
-            const sectionItems = section.tinGroups.length + section.cards.length
-            if (sectionItems === 0) return null
+            if (section.items.length === 0) return null
 
             return (
               <div key={section.id} className="menu-section" data-cat={section.id}>
@@ -856,24 +855,25 @@ export function BrownButterPage({
                   {categoryEmoji(section.id, section.label)} {section.label}
                 </div>
                 <div className="menu-grid">
-                  {section.tinGroups.map((group) => (
-                    <TinGroupCard
-                      key={group.id}
-                      group={group}
-                      qtyFor={qtyFor}
-                      onAdd={(product, variantId) => add(product, variantId)}
-                      onSetQty={(product, qty, variantId) => setQty(product, qty, variantId)}
-                    />
-                  ))}
-                  {section.cards.map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      qty={qtyFor(product.id)}
-                      onAdd={() => add(product)}
-                      onSetQty={(qty) => setQty(product, qty)}
-                    />
-                  ))}
+                  {section.items.map((item) =>
+                    item.kind === 'tin' ? (
+                      <TinGroupCard
+                        key={item.group.id}
+                        group={item.group}
+                        qtyFor={qtyFor}
+                        onAdd={(product, variantId) => add(product, variantId)}
+                        onSetQty={(product, qty, variantId) => setQty(product, qty, variantId)}
+                      />
+                    ) : (
+                      <ProductCard
+                        key={item.product.id}
+                        product={item.product}
+                        qty={qtyFor(item.product.id)}
+                        onAdd={() => add(item.product)}
+                        onSetQty={(qty) => setQty(item.product, qty)}
+                      />
+                    ),
+                  )}
                 </div>
               </div>
             )
