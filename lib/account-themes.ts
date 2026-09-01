@@ -1,3 +1,12 @@
+import type { ComponentType } from 'react'
+import type { AccountShellProps } from '@/theme-kit/account/GenericAccountShell'
+import { BrownButterAccountShell } from '@/components/account/themes/BrownButterAccountShell'
+import { LuxeEssenceAccountShell } from '@/components/account/themes/LuxeEssenceAccountShell'
+import { SoftStudioAccountShell } from '@/components/account/themes/SoftStudioAccountShell'
+import { SaffronAccountShell } from '@/components/account/themes/SaffronAccountShell'
+import { MenuFastAccountShell } from '@/components/account/themes/MenuFastAccountShell'
+import { MenuFastCardsAccountShell } from '@/components/account/themes/MenuFastCardsAccountShell'
+
 export const THEMED_ACCOUNT_KEYS = [
   'private-thebrownbutter',
   'luxe-essence',
@@ -21,6 +30,15 @@ export function accountThemeKey(themeKey?: string): ThemedAccountKey | undefined
   if (!themeKey) return undefined
   if (isThemedAccount(themeKey)) return themeKey
   return undefined
+}
+
+export const THEMED_ACCOUNT_COMPONENTS: Record<ThemedAccountKey, ComponentType<AccountShellProps>> = {
+  'private-thebrownbutter': BrownButterAccountShell,
+  'luxe-essence': LuxeEssenceAccountShell,
+  'soft-studio': SoftStudioAccountShell,
+  saffron: SaffronAccountShell,
+  'menufast-minimal': MenuFastAccountShell,
+  'menufast-cards': MenuFastCardsAccountShell,
 }
 
 /** Themes with dedicated dashboard layout/stat/profile class sets. */

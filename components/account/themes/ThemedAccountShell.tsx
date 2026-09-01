@@ -1,15 +1,9 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { isThemedAccount } from '@/lib/account-themes'
+import { isThemedAccount, THEMED_ACCOUNT_COMPONENTS } from '@/lib/account-themes'
 import { AccountShell } from '../AccountShell'
 import { AccountThemeProvider } from '../AccountThemeContext'
-import { BrownButterAccountShell } from './BrownButterAccountShell'
-import { LuxeEssenceAccountShell } from './LuxeEssenceAccountShell'
-import { SoftStudioAccountShell } from './SoftStudioAccountShell'
-import { SaffronAccountShell } from './SaffronAccountShell'
-import { MenuFastAccountShell } from './MenuFastAccountShell'
-import { MenuFastCardsAccountShell } from './MenuFastCardsAccountShell'
 
 export interface ThemedAccountShellProps {
   themeKey?: string
@@ -27,22 +21,8 @@ export function ThemedAccountShell({
   children,
 }: ThemedAccountShellProps) {
   const themed = isThemedAccount(themeKey) ? themeKey : undefined
-  const shellProps = { tenantName, logoUrl, tagline, children }
 
-  let shell: ReactNode
-  if (themed === 'private-thebrownbutter') {
-    shell = <BrownButterAccountShell {...shellProps} />
-  } else if (themed === 'luxe-essence') {
-    shell = <LuxeEssenceAccountShell {...shellProps} />
-  } else if (themed === 'soft-studio') {
-    shell = <SoftStudioAccountShell {...shellProps} />
-  } else if (themed === 'saffron') {
-    shell = <SaffronAccountShell {...shellProps} />
-  } else if (themed === 'menufast-minimal') {
-    shell = <MenuFastAccountShell {...shellProps} />
-  } else if (themed === 'menufast-cards') {
-    shell = <MenuFastCardsAccountShell {...shellProps} />
-  } else {
+  if (!themed) {
     return (
       <AccountShell tenantName={tenantName} logoUrl={logoUrl} themeKey={themeKey}>
         {children}
@@ -50,5 +30,12 @@ export function ThemedAccountShell({
     )
   }
 
-  return <AccountThemeProvider themeKey={themed}>{shell}</AccountThemeProvider>
+  const Shell = THEMED_ACCOUNT_COMPONENTS[themed]
+  return (
+    <AccountThemeProvider themeKey={themed}>
+      <Shell tenantName={tenantName} logoUrl={logoUrl} tagline={tagline}>
+        {children}
+      </Shell>
+    </AccountThemeProvider>
+  )
 }

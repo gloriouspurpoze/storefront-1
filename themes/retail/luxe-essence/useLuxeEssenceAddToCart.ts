@@ -12,7 +12,7 @@ import { useCartAuthGate } from '@/lib/useCartAuthGate'
 import { useCart } from '../cart'
 
 export function useLuxeEssenceAddToCart() {
-  const { addProduct, setQuantity, removeLine, lines } = useCart()
+  const { addItem, setQuantity, removeLine, lines } = useCart()
   const { requireAuthForCart, isReady } = useCartAuthGate()
   const [toast, setToast] = useState<string | null>(null)
 
@@ -46,10 +46,10 @@ export function useLuxeEssenceAddToCart() {
       if (!isVariantInStock(product, variantId)) return
       if (productHasVariants(product) && !variantId) return
       if (!requireAuthForCart()) return
-      addProduct(product, 1, variantId)
+      addItem(product, 1, variantId)
       showAddedToast(product, variantId)
     },
-    [addProduct, requireAuthForCart, showAddedToast],
+    [addItem, requireAuthForCart, showAddedToast],
   )
 
   const removeFromCart = useCallback(

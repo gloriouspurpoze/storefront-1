@@ -1,0 +1,23 @@
+/**
+ * Shared, role-based design tokens for theme CSS to map onto.
+ *
+ * Purely additive: nothing here is consumed unless a theme's own CSS opts in
+ * by referencing one of these vars (typically as a `var(--shared, <its own
+ * current value>)` fallback), so importing this file changes no visual output
+ * on its own. Themes keep their own prefixed token names (`--le-shadow-sm`,
+ * `--mf-*`, `--ss-*`, ...) as the source of truth for their CSS; this file
+ * exists so future themes/tokens can converge without a full rewrite of the
+ * ~11k lines of existing per-theme structural CSS (explicitly out of scope
+ * here — see storefront/templates/README.md).
+ */
+:root {
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+
+  --shadow-sm: 0 1px 2px rgba(15, 15, 25, 0.04);
+  --shadow-md: 0 12px 40px rgba(15, 15, 25, 0.08);
+
+  --font-display: Georgia, serif;
+  --font-body: system-ui, sans-serif;
+}

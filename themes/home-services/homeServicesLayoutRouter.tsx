@@ -1,28 +1,20 @@
 import type { StorefrontNavLink } from '@/lib/cms-content'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 import type { ThemeTenant } from './types'
-import { isPrivateLayoutTheme, renderPrivateLayout } from '@/themes/private/registry'
+import { createLayoutRouter } from '@/theme-kit/layout'
 
-export function HomeServicesLayoutPage({
-  themeKey,
-  tenant,
-  config,
-  navLinks,
-  footerLinks,
-}: {
-  themeKey?: string
+type HomeServicesLayoutProps = {
   tenant: ThemeTenant
   config: StorefrontConfig | null
   navLinks?: StorefrontNavLink[]
   footerLinks?: StorefrontNavLink[]
-}) {
-  if (!isPrivateLayoutTheme(themeKey)) return null
-  return renderPrivateLayout(
-    { themeKey: themeKey!, tenant, config, navLinks, footerLinks },
-    'home_services',
-  )
 }
 
-export function isHomeServicesLayoutTheme(themeKey?: string): boolean {
-  return isPrivateLayoutTheme(themeKey)
-}
+const router = createLayoutRouter<HomeServicesLayoutProps, never>({
+  vertical: 'home_services',
+  themeKeys: [],
+  cases: {},
+})
+
+export const HomeServicesLayoutPage = router.LayoutPage
+export const isHomeServicesLayoutTheme = router.isLayoutTheme

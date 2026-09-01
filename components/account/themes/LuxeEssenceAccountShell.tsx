@@ -1,11 +1,5 @@
-'use client'
-
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import type { ReactNode } from 'react'
-import { useAccountAuth } from '../AccountAuthProvider'
-import { AccountShellNav } from '../AccountShellNav'
-import { displayName } from '@/lib/storefront-auth'
+import { createAccountShell, type AccountShellBrandProps } from '@/theme-kit/account/GenericAccountShell'
 import '@/themes/retail/luxe-essence/luxe-essence.css'
 
 function splitBrandTitle(siteName: string): { primary: string; secondary?: string } {
@@ -15,68 +9,44 @@ function splitBrandTitle(siteName: string): { primary: string; secondary?: strin
   return secondary ? { primary, secondary } : { primary: siteName }
 }
 
-export function LuxeEssenceAccountShell({
-  tenantName,
-  logoUrl,
-  tagline,
-  children,
-}: {
-  tenantName: string
-  logoUrl?: string
-  tagline?: string
-  children: ReactNode
-}) {
-  const pathname = usePathname()
-  const { user, isAuthenticated } = useAccountAuth()
-  const isLogin = pathname?.includes('/account/login')
-  const isAccountDashboard = Boolean(pathname?.includes('/account') && !isLogin)
-  const showHeaderNav = !isAuthenticated || isLogin || !isAccountDashboard
+function renderBrand({ tenantName, logoUrl, tagline }: AccountShellBrandProps) {
   const brand = splitBrandTitle(tenantName)
   const trimmedTagline = tagline?.trim()
-
   return (
-    <div className="le-root theme-luxe-essence le-account-page">
-      <header className="le-account-header">
-        <div className="le-account-header-top">
-          <Link href="/" className={`le-logo le-account-brand${logoUrl ? ' le-logo--has-image' : ''}`}>
-            {logoUrl ? (
-              <div className="le-logo-mark">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={logoUrl} alt="" />
-              </div>
-            ) : null}
-            <div className="le-logo-text">
-              <h1>
-                {brand.primary}
-                {brand.secondary ? (
-                  <>
-                    {' '}
-                    <span>| {brand.secondary}</span>
-                  </>
-                ) : null}
-              </h1>
-              {trimmedTagline ? <p className="le-tagline">{trimmedTagline}</p> : null}
-            </div>
-          </Link>
-          <Link href="/" className="le-account-store-link">
-            Back to store
-          </Link>
+    <Link href="/" className={`le-logo le-account-brand${logoUrl ? ' le-logo--has-image' : ''}`}>
+      {logoUrl ? (
+        <div className="le-logo-mark">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={logoUrl} alt="" />
         </div>
-
-        {showHeaderNav ? (
-          <AccountShellNav
-            className="le-account-nav"
-            linkClassName="le-account-nav-link"
-            activeClassName="le-account-nav-link le-account-nav-link--active"
-          />
-        ) : null}
-      </header>
-
-      <main className={`le-account-main${isLogin ? ' le-account-main--auth' : ''}`}>{children}</main>
-
-      {isAuthenticated && user && !isLogin ? (
-        <footer className="le-account-footer">Signed in as {displayName(user)}</footer>
       ) : null}
-    </div>
+      <div className="le-logo-text">
+        <h1>
+          {brand.primary}
+          {brand.secondary ? (
+            <>
+              {' '}
+              <span>| {brand.secondary}</span>
+            </>
+          ) : null}
+        </h1>
+        {trimmedTagline ? <p className="le-tagline">{trimmedTagline}</p> : null}
+      </div>
+    </Link>
   )
 }
+
+export const LuxeEssenceAccountShell = createAccountShell({
+  classPrefix: 'le',
+  rootClassName: 'le-root theme-luxe-essence le-account-page',
+  containerTag: 'header',
+  containerClassName: 'le-account-header',
+  headerLayout: 'nested',
+  backLinkLabel: 'Back to store',
+  mainAuthModifierClassName: 'le-account-main--auth',
+  showNav: ({ isLogin, isAuthenticated, pathname }) => {
+    const isAccountDashboard = Boolean(pathname?.includes('/account') && !isLogin)
+    return !isAuthenticated || isLogin || !isAccountDashboard
+  },
+  renderBrand,
+})

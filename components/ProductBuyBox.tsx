@@ -20,7 +20,7 @@ export function ProductBuyBox({
   product: PublicProduct
   tone?: VariantSelectorTone
 }) {
-  const { addProduct } = useCart()
+  const { addItem } = useCart()
   const hasVariants = productHasVariants(product)
   const defaultVariant = useMemo(() => getDefaultVariant(product), [product])
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(defaultVariant?.id ?? null)
@@ -37,7 +37,7 @@ export function ProductBuyBox({
 
   const handleAdd = () => {
     if (!inStock || needsSelection) return
-    addProduct(product, 1, selectedVariantId ?? undefined)
+    addItem(product, 1, selectedVariantId ?? undefined)
     setAdded(true)
     window.setTimeout(() => setAdded(false), 2000)
   }

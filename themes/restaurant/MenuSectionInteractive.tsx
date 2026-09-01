@@ -15,7 +15,7 @@ export function MenuSectionInteractive({
   categories: PublicMenuCategory[]
   compact?: boolean
 }) {
-  const { lines, addMenuItem, setQuantity } = useCart()
+  const { lines, addItem, setQuantity } = useCart()
   const { requireAuthForCart } = useCartAuthGate()
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
@@ -40,7 +40,7 @@ export function MenuSectionInteractive({
         onClose={() => setSelectedId(null)}
         quantity={selectedItem ? qtyFor(selectedItem.id) : 0}
         onAdd={() => {
-          if (selectedItem && requireAuthForCart()) addMenuItem(selectedItem)
+          if (selectedItem && requireAuthForCart()) addItem(selectedItem)
         }}
         onRemove={() => {
           if (selectedItem) setQuantity(selectedItem.id, qtyFor(selectedItem.id) - 1)

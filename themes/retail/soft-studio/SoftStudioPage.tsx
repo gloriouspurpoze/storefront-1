@@ -88,7 +88,7 @@ export function SoftStudioPage({
   const orderingHours = useMemo(() => getOrderingHoursFromConfig(config), [config])
   const orderingAvailability = useMemo(() => getOrderingAvailabilityFromConfig(config), [config])
 
-  const { lines, itemCount, subtotal, addProduct, setQuantity, removeLine, clear } = useCart()
+  const { lines, itemCount, subtotal, addItem, setQuantity, removeLine, clear } = useCart()
   const { requireAuthForCart } = useCartAuthGate()
   const { accessToken } = useCheckoutCustomerPrefill()
 
@@ -119,10 +119,10 @@ export function SoftStudioPage({
     (product: PublicProduct) => {
       if (!product.inStock) return
       if (!requireAuthForCart()) return
-      addProduct(product)
+      addItem(product)
       showToast(`${product.name} added to cart`)
     },
-    [addProduct, requireAuthForCart, showToast],
+    [addItem, requireAuthForCart, showToast],
   )
 
   const openCheckout = () => {

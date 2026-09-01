@@ -7,7 +7,7 @@ import { useCartAuthGate } from '@/lib/useCartAuthGate'
 import { useCart } from './cart'
 
 export function MenuAddToCartButton({ item }: { item: PublicMenuItem }) {
-  const { addMenuItem, lines } = useCart()
+  const { addItem, lines } = useCart()
   const { requireAuthForCart } = useCartAuthGate()
   const [flash, setFlash] = useState(false)
   const qty = lines.find((l) => l.productId === item.id)?.quantity ?? 0
@@ -25,7 +25,7 @@ export function MenuAddToCartButton({ item }: { item: PublicMenuItem }) {
           type="button"
           onClick={() => {
             if (!requireAuthForCart()) return
-            addMenuItem(item, 1)
+            addItem(item, 1)
             setFlash(true)
             window.setTimeout(() => setFlash(false), 1500)
           }}

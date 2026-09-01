@@ -4,19 +4,9 @@ import type { ThemeTenant } from './types'
 import { RetailShell } from './RetailShell'
 import { SoftStudioPage } from './soft-studio'
 import { LuxeEssenceStorefrontPage } from './luxe-essence'
-import { isPrivateLayoutTheme, renderPrivateLayout } from '@/themes/private/registry'
+import { createLayoutRouter } from '@/theme-kit/layout'
 
-/** Full-page retail / e-commerce layout templates (themeKey → React bundle). */
-export function RetailLayoutPage({
-  themeKey,
-  products,
-  categories = [],
-  tenant,
-  config,
-  navLinks,
-  footerLinks,
-}: {
-  themeKey?: string
+type RetailLayoutProps = {
   products: PublicProduct[]
   categories?: StorefrontProductCategory[]
   tenant: ThemeTenant
@@ -25,48 +15,39 @@ export function RetailLayoutPage({
   navLinks?: StorefrontNavLink[]
   /** CMS footer menu links (empty → theme hardcoded fallback). */
   footerLinks?: StorefrontNavLink[]
-}) {
-  if (isPrivateLayoutTheme(themeKey)) {
-    return renderPrivateLayout(
-      { themeKey: themeKey!, products, tenant, config, navLinks, footerLinks },
-      'retail',
-    )
-  }
-
-  switch (themeKey) {
-    case 'soft-studio':
-      return (
-        <RetailShell tenantId={tenant.id}>
-          <SoftStudioPage
-            products={products}
-            tenant={tenant}
-            config={config}
-            navLinks={navLinks}
-            footerLinks={footerLinks}
-          />
-        </RetailShell>
-      )
-    case 'luxe-essence':
-      return (
-        <RetailShell tenantId={tenant.id}>
-          <LuxeEssenceStorefrontPage
-            products={products}
-            categories={categories}
-            tenant={tenant}
-            config={config}
-            navLinks={navLinks}
-            footerLinks={footerLinks}
-          />
-        </RetailShell>
-      )
-    default:
-      return null
-  }
 }
 
-export const RETAIL_LAYOUT_THEME_KEYS = ['soft-studio', 'luxe-essence'] as const
+const router = createLayoutRouter<RetailLayoutProps, 'soft-studio' | 'luxe-essence'>({
+  vertical: 'retail',
+  themeKeys: ['soft-studio', 'luxe-essence'],
+  cases: {
+    'soft-studio': (p) => (
+      <RetailShell tenantId={p.tenant.id}>
+        <SoftStudioPage
+          products={p.products}
+          tenant={p.tenant}
+          config={p.config}
+          navLinks={p.navLinks}
+          footerLinks={p.footerLinks}
+        />
+      </RetailShell>
+    ),
+    'luxe-essence': (p) => (
+      <RetailShell tenantId={p.tenant.id}>
+        <LuxeEssenceStorefrontPage
+          products={p.products}
+          categories={p.categories}
+          tenant={p.tenant}
+          config={p.config}
+          navLinks={p.navLinks}
+          footerLinks={p.footerLinks}
+        />
+      </RetailShell>
+    ),
+  },
+})
 
-export function isRetailLayoutTheme(themeKey?: string): boolean {
-  if (isPrivateLayoutTheme(themeKey)) return true
-  return RETAIL_LAYOUT_THEME_KEYS.includes(themeKey as (typeof RETAIL_LAYOUT_THEME_KEYS)[number])
-}
+/** Full-page retail / e-commerce layout templates (themeKey → React bundle). */
+export const RetailLayoutPage = router.LayoutPage
+export const RETAIL_LAYOUT_THEME_KEYS = router.themeKeys
+export const isRetailLayoutTheme = router.isLayoutTheme

@@ -145,7 +145,7 @@ export function ProductPurchaseBlock({
   selectedVariantId?: string | null
   onSelectedVariantIdChange?: (variantId: string | null) => void
 }) {
-  const { addProduct, lines } = useCart()
+  const { addItem, lines } = useCart()
   const { requireAuthForCart } = useCartAuthGate()
   const hasVariants = productHasVariants(product)
   const defaultVariant = useMemo(() => getDefaultVariant(product), [product])
@@ -191,13 +191,13 @@ export function ProductPurchaseBlock({
     if (!requireAuthForCart()) return
     const qty = clampQty(quantity)
     setAdding(true)
-    addProduct(product, qty, activeVariantId)
+    addItem(product, qty, activeVariantId)
     setAdded(true)
     window.setTimeout(() => setAdding(false), 400)
     window.setTimeout(() => setAdded(false), 3200)
   }, [
     activeVariantId,
-    addProduct,
+    addItem,
     adding,
     alreadyInCart,
     inStock,
@@ -320,7 +320,7 @@ export function AddToCartButton({
   className?: string
   onAdded?: () => void
 }) {
-  const { addProduct } = useCart()
+  const { addItem } = useCart()
   const { requireAuthForCart } = useCartAuthGate()
   const [added, setAdded] = useState(false)
 
@@ -337,7 +337,7 @@ export function AddToCartButton({
       type="button"
       onClick={() => {
         if (!requireAuthForCart()) return
-        addProduct(product, clampQty(quantity))
+        addItem(product, clampQty(quantity))
         setAdded(true)
         onAdded?.()
         window.setTimeout(() => setAdded(false), 2500)
