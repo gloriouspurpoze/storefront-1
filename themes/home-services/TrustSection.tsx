@@ -1,4 +1,5 @@
 import type { StorefrontCmsTestimonial } from '@/lib/cms-content'
+import './home-services-shell.css'
 
 const DEFAULT_STATS = [
   { value: '4.8★', label: 'Average rating' },
@@ -16,7 +17,7 @@ export function TrustSection({
   if (testimonials?.length) {
     return (
       <section className="border-y border-slate-200 bg-slate-50">
-        <div className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6">
+        <div className="hs-container py-12">
           <h2 className="text-center text-xl font-semibold text-slate-900 sm:text-2xl">
             What customers say
           </h2>
@@ -45,7 +46,7 @@ export function TrustSection({
 
   return (
     <section className="border-y border-slate-200 bg-slate-50">
-      <div className="mx-auto grid w-full max-w-6xl grid-cols-2 gap-y-8 px-4 py-10 sm:grid-cols-4 sm:px-6">
+      <div className="hs-container grid grid-cols-2 gap-y-8 py-10 sm:grid-cols-4">
         {DEFAULT_STATS.map((s) => (
           <div key={s.label} className="text-center">
             <div className="text-2xl font-bold text-slate-900 sm:text-3xl">{s.value}</div>

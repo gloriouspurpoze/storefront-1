@@ -1,0 +1,97 @@
+/* Trade Pro — bold, high-contrast theme for contractors/tradespeople.
+   Scoped to `.theme-trade-pro`, which `sites/[tenantId]/layout.tsx` applies to
+   the tenant root on every route, so these tokens are available theme-wide. */
+
+.theme-trade-pro {
+  /* Safety net: clips any single element that overflows its container
+     horizontally so it can never force the whole page into side-scroll on
+     narrow viewports. */
+  overflow-x: hidden;
+  --tp-ink: #0b1220;
+  --tp-panel: #10192e;
+  --tp-line: rgba(255, 255, 255, 0.12);
+  /* Fixed accent (not `--site-brand`): the brand-color fallback is the same
+     dark navy as `--tp-ink`, which would make CTAs on dark surfaces vanish. */
+  --tp-accent: #f59e0b;
+  /* Without this, Chromium applies dark-mode UA styling to native form
+     controls (inputs/textareas) when the OS is in dark mode, even though
+     their background is explicitly set to white — showing as an off-white
+     tint. The theme itself has no dark variant, so pin it to light. */
+  color-scheme: light;
+}
+
+/* Belt-and-suspenders for the input tint above: `color-scheme` is inherited,
+   but Chrome's native form-control theming doesn't reliably pick it up from
+   a non-root ancestor, so force it explicitly on every field in this theme
+   (this also covers the shared `BookingForm` used on /book, /contact, and
+   service-detail pages). */
+.theme-trade-pro input,
+.theme-trade-pro textarea,
+.theme-trade-pro select {
+  background-color: #fff;
+}
+
+.tp-diagonal-stripes {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--site-brand) 0px,
+    var(--site-brand) 22px,
+    transparent 22px,
+    transparent 44px
+  );
+}
+
+.tp-hero-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.tp-badge {
+  border: 1px solid var(--tp-line);
+}
+
+/*
+ * Plain-CSS page containers — Tailwind's `mx-auto`/`max-w-*` utilities don't
+ * reliably apply in this app's dev bundle (the same problem `retail-page-shell.css`
+ * documents and works around: "Tailwind mx-auto can fail in client bundles").
+ * Every section-width wrapper in this theme uses these hand-written classes
+ * instead of `mx-auto max-w-6xl px-4 sm:px-6`.
+ */
+.tp-container {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 72rem; /* 6xl */
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.tp-container--narrow {
+  max-width: 42rem; /* 2xl */
+}
+
+@media (min-width: 640px) {
+  .tp-container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+/* Centers a block with its own max-width, no side padding (used inside an
+   already-padded parent). */
+.tp-center {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 48rem; /* 3xl */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Centers a fixed-size element (icons, badges) — no width/max-width of its own. */
+.tp-mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}

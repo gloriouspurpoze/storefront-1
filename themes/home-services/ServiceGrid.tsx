@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ServiceCard } from './ServiceCard'
 import type { PublicService } from './types'
+import './home-services-shell.css'
 
 export function ServiceGrid({
   services,
@@ -14,7 +15,7 @@ export function ServiceGrid({
   showSeeAll?: boolean
 }) {
   return (
-    <section className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+    <section className="hs-container py-16 sm:py-20">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-xl">
           <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">

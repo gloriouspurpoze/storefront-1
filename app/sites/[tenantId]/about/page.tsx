@@ -7,6 +7,8 @@ import { loadHomeServicesTenant } from '@/themes/home-services/loadThemeTenant'
 import { SiteHeader as HsHeader } from '@/themes/home-services/SiteHeader'
 import { SiteFooter as HsFooter } from '@/themes/home-services/SiteFooter'
 import { toThemeTenant as toHsTenant } from '@/themes/home-services/types'
+import { TradeProHeader } from '@/themes/home-services/trade-pro/TradeProHeader'
+import { TradeProFooter } from '@/themes/home-services/trade-pro/TradeProFooter'
 import { loadRestaurantTenant } from '@/themes/restaurant/loadThemeTenant'
 import { RestaurantShell } from '@/themes/restaurant/RestaurantShell'
 import { SiteHeader as RestHeader } from '@/themes/restaurant/SiteHeader'
@@ -51,16 +53,42 @@ export default async function AboutPage() {
     case 'home_services': {
       const tenant = await loadHomeServicesTenant()
       const theme = toHsTenant(tenant, tenant.fallbackTagline)
+      const config = await fetchStorefrontConfig(tenant.id)
+      const isTradePro = config?.themeKey === 'trade-pro'
+      const [navLinks, footerLinks] = isTradePro
+        ? await Promise.all([
+            fetchStorefrontMenuLinks(tenant.id, 'header'),
+            fetchStorefrontMenuLinks(tenant.id, 'footer'),
+          ])
+        : [undefined, undefined]
+      const body = (
+        <main className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
+          {cmsAbout ? (
+            <StorefrontCmsPageArticle page={cmsAbout} eyebrow="About" />
+          ) : (
+            <AboutCopyFallback name={theme.name} />
+          )}
+        </main>
+      )
+      if (isTradePro) {
+        return (
+          <>
+            <TradeProHeader tenant={theme} navLinks={navLinks} phone={config?.branding?.contactPhone} />
+            {body}
+            <TradeProFooter
+              tenant={theme}
+              navLinks={footerLinks}
+              phone={config?.branding?.contactPhone}
+              email={config?.branding?.contactEmail}
+              address={config?.branding?.address}
+            />
+          </>
+        )
+      }
       return (
         <>
           <HsHeader tenant={theme} />
-          <main className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
-            {cmsAbout ? (
-              <StorefrontCmsPageArticle page={cmsAbout} eyebrow="About" />
-            ) : (
-              <AboutCopyFallback name={theme.name} />
-            )}
-          </main>
+          {body}
           <HsFooter tenant={theme} />
         </>
       )

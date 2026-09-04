@@ -5,7 +5,9 @@ import type { StorefrontConfig } from '@/lib/storefront-api'
 import { fetchMenu, fetchProducts, fetchServices, fetchStorefrontCategories } from '@/lib/storefront-api'
 import {
   fetchStorefrontCmsChrome,
+  fetchStorefrontFaqs,
   fetchStorefrontMenuLinks,
+  fetchStorefrontTestimonials,
   type StorefrontCmsFaq,
 } from '@/lib/cms-content'
 import { SiteHeader as HsHeader } from '@/themes/home-services/SiteHeader'
@@ -103,9 +105,16 @@ export async function HomePageSections({
     )
 
     if (isHomeServicesLayoutTheme(cfg?.themeKey)) {
-      const [navLinks, footerLinks] = await Promise.all([
+      const [navLinks, footerLinks, services, faqs, testimonials] = await Promise.all([
         fetchStorefrontMenuLinks(tenant.id, 'header'),
         fetchStorefrontMenuLinks(tenant.id, 'footer'),
+        flagOn(cfg, 'showServices') && sectionEnabled(cfg, 'services')
+          ? fetchServices(tenant.id, 6)
+          : Promise.resolve([]),
+        flagOn(cfg, 'showFaq') && sectionEnabled(cfg, 'faq') ? fetchStorefrontFaqs(tenant.id) : Promise.resolve([]),
+        flagOn(cfg, 'showTestimonials') && sectionEnabled(cfg, 'trust')
+          ? fetchStorefrontTestimonials(tenant.id)
+          : Promise.resolve([]),
       ])
       return (
         <HomeServicesLayoutPage
@@ -114,6 +123,9 @@ export async function HomePageSections({
           config={cfg}
           navLinks={navLinks}
           footerLinks={footerLinks}
+          services={services}
+          faqs={faqs}
+          testimonials={testimonials}
         />
       )
     }

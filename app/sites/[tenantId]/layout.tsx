@@ -62,10 +62,14 @@ export async function generateMetadata({ params }: RouteParams): Promise<Metadat
  * `publicSiteTheme.brandColor`.
  */
 function brandStyle(tenant: ResolvedTenant, cfg: StorefrontConfig | null): React.CSSProperties {
+  // trade-pro's default background is the same dark navy as this fallback, so
+  // shared components reading `--site-brand` (e.g. ServiceCard) would render
+  // invisibly/off-brand for tenants who haven't set a custom color.
+  const defaultBrand = cfg?.themeKey === 'trade-pro' ? '#f59e0b' : '#0f172a'
   const brand =
     cfg?.branding?.primaryColor ||
     (tenant.publicSiteTheme?.brandColor as string | undefined) ||
-    '#0f172a'
+    defaultBrand
   const accent = cfg?.branding?.accentColor || brand
   const secondary = cfg?.branding?.secondaryColor || brand
   return {

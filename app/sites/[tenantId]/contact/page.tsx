@@ -4,6 +4,9 @@ import { SiteHeader as HsHeader } from '@/themes/home-services/SiteHeader'
 import { SiteFooter as HsFooter } from '@/themes/home-services/SiteFooter'
 import { BookingForm } from '@/themes/home-services/BookingForm'
 import { toThemeTenant as toHsTenant } from '@/themes/home-services/types'
+import { TradeProHeader } from '@/themes/home-services/trade-pro/TradeProHeader'
+import { TradeProFooter } from '@/themes/home-services/trade-pro/TradeProFooter'
+import { fetchStorefrontMenuLinks } from '@/lib/cms-content'
 import { loadRestaurantTenant } from '@/themes/restaurant/loadThemeTenant'
 import { RestaurantShell } from '@/themes/restaurant/RestaurantShell'
 import { SiteHeader as RestHeader } from '@/themes/restaurant/SiteHeader'
@@ -36,16 +39,42 @@ export default async function ContactPage() {
     case 'home_services': {
       const tenant = await loadHomeServicesTenant()
       const theme = toHsTenant(tenant, tenant.fallbackTagline)
+      const config = await fetchStorefrontConfig(tenant.id)
+      const isTradePro = config?.themeKey === 'trade-pro'
+      const [navLinks, footerLinks] = isTradePro
+        ? await Promise.all([
+            fetchStorefrontMenuLinks(tenant.id, 'header'),
+            fetchStorefrontMenuLinks(tenant.id, 'footer'),
+          ])
+        : [undefined, undefined]
+      const body = (
+        <main className="mx-auto grid w-full max-w-5xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Contact</p>
+            <h1 className="mt-3 text-4xl font-bold text-slate-900">Let&apos;s talk.</h1>
+          </div>
+          <BookingForm tenantId={tenant.id} source="contact-page" />
+        </main>
+      )
+      if (isTradePro) {
+        return (
+          <>
+            <TradeProHeader tenant={theme} navLinks={navLinks} phone={config?.branding?.contactPhone} />
+            {body}
+            <TradeProFooter
+              tenant={theme}
+              navLinks={footerLinks}
+              phone={config?.branding?.contactPhone}
+              email={config?.branding?.contactEmail}
+              address={config?.branding?.address}
+            />
+          </>
+        )
+      }
       return (
         <>
           <HsHeader tenant={theme} />
-          <main className="mx-auto grid w-full max-w-5xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Contact</p>
-              <h1 className="mt-3 text-4xl font-bold text-slate-900">Let&apos;s talk.</h1>
-            </div>
-            <BookingForm tenantId={tenant.id} source="contact-page" />
-          </main>
+          {body}
           <HsFooter tenant={theme} />
         </>
       )

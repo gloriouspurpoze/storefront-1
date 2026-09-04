@@ -7,7 +7,11 @@ import { BookingForm } from '@/themes/home-services/BookingForm'
 import { CallToAction } from '@/themes/home-services/CallToAction'
 import { formatPrice } from '@/themes/home-services/ServiceCard'
 import { toThemeTenant } from '@/themes/home-services/types'
-import { fetchServiceBySlug, fetchServices } from '@/lib/storefront-api'
+import { TradeProHeader } from '@/themes/home-services/trade-pro/TradeProHeader'
+import { TradeProFooter } from '@/themes/home-services/trade-pro/TradeProFooter'
+import { TradeProFinalCta } from '@/themes/home-services/trade-pro/TradeProFinalCta'
+import { fetchServiceBySlug, fetchServices, fetchStorefrontConfig } from '@/lib/storefront-api'
+import { fetchStorefrontMenuLinks } from '@/lib/cms-content'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,11 +37,21 @@ export default async function ServiceDetailPage({ params }: PageProps) {
   const { slug } = await params
   const tenant = await loadHomeServicesTenant()
   const themeTenant = toThemeTenant(tenant, tenant.fallbackTagline)
-  const [service, related] = await Promise.all([
+  const [service, related, config] = await Promise.all([
     fetchServiceBySlug(tenant.id, slug),
     fetchServices(tenant.id, 4),
+    fetchStorefrontConfig(tenant.id),
   ])
   if (!service) notFound()
+
+  const isTradePro = config?.themeKey === 'trade-pro'
+  const [navLinks, footerLinks] = isTradePro
+    ? await Promise.all([
+        fetchStorefrontMenuLinks(tenant.id, 'header'),
+        fetchStorefrontMenuLinks(tenant.id, 'footer'),
+      ])
+    : [undefined, undefined]
+  const phone = config?.branding?.contactPhone
 
   const price = formatPrice(service.basePrice, service.currency)
   const duration =
@@ -47,7 +61,11 @@ export default async function ServiceDetailPage({ params }: PageProps) {
 
   return (
     <>
-      <SiteHeader tenant={themeTenant} />
+      {isTradePro ? (
+        <TradeProHeader tenant={themeTenant} navLinks={navLinks} phone={phone} />
+      ) : (
+        <SiteHeader tenant={themeTenant} />
+      )}
       <main>
         <section className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[1.3fr_1fr]">
           <article>
@@ -110,9 +128,19 @@ export default async function ServiceDetailPage({ params }: PageProps) {
           </aside>
         </section>
 
-        <CallToAction />
+        {isTradePro ? <TradeProFinalCta phone={phone} /> : <CallToAction />}
       </main>
-      <SiteFooter tenant={themeTenant} />
+      {isTradePro ? (
+        <TradeProFooter
+          tenant={themeTenant}
+          navLinks={footerLinks}
+          phone={phone}
+          email={config?.branding?.contactEmail}
+          address={config?.branding?.address}
+        />
+      ) : (
+        <SiteFooter tenant={themeTenant} />
+      )}
     </>
   )
 }
