@@ -1,22 +1,46 @@
 /**
- * Centered page-width container for home-services shared sections.
- * Plain CSS — mirrors `themes/retail/retail-page-shell.css`: Tailwind's
- * `mx-auto`/`max-w-*` utilities don't reliably apply in this app's dev bundle.
+ * Shared home-services page container — aligned with trade-pro DESIGN gutters.
+ * Plain CSS: Tailwind mx-auto/max-w can fail in this app's client bundles.
  */
 
 .hs-container {
   box-sizing: border-box;
   width: 100%;
-  max-width: 72rem;
+  max-width: 75rem; /* 1200px — match trade-pro .tp-container */
   margin-left: auto;
   margin-right: auto;
-  padding-left: 1rem;
-  padding-right: 1rem;
+  padding-left: 16px;
+  padding-right: 16px;
 }
 
 @media (min-width: 640px) {
   .hs-container {
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hs-container {
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+}
+
+/* Plain CSS padding — Tailwind utilities get zeroed when other themes' global
+   resets (historically brown-butter `*`) leak into the shared page CSS chunk. */
+.hs-service-card__body {
+  padding: 24px; /* DESIGN service-card / spacing.lg */
+}
+
+.hs-services-section {
+  padding-top: 48px;
+  padding-bottom: 48px;
+}
+
+@media (min-width: 640px) {
+  .hs-services-section {
+    padding-top: 80px;
+    padding-bottom: 80px;
   }
 }

@@ -1,0 +1,157 @@
+# trade-pro — Home Services default theme brief
+# Design source: storefront/themes/home-services/DESIGN.md
+
+meta:
+  themeKey: trade-pro
+  vertical: home_services
+  status: pre-launch
+  referenceTenant: ""
+  approver: developer
+  successMetric: lead-conversion
+  notes: >
+    Default home-services storefront theme (plumbers, HVAC, cleaning, etc.).
+    Target design: DESIGN.md. Evolve existing trade-pro/ implementation module-by-module.
+    Two-color tenant expression (primary + secondary); structure/type/spacing fixed.
+
+design:
+  personality: calm-trustworthy
+  referenceUrl: storefront/themes/home-services/DESIGN.md
+  darkMode: false
+  wcag: AA
+  motion: subtle
+  typography:
+    source: config
+    heading: DM Sans
+    body: Inter
+  defaults:
+    primaryColor: "#00142F"
+    secondaryColor: "#FE9D16"
+
+scope:
+  layout: full-page
+  routes:
+    - home
+    - services
+    - services-detail
+    - book
+    - contact
+    - about
+    - account
+    - account-login
+    - account-orders
+    - account-profile
+  accountShell: true
+  components:
+    - shell-header
+    - shell-mobile-cta
+    - shell-footer
+    - content-hero
+    - content-stats
+    - catalog-grid
+    - catalog-empty
+    - content-how-it-works
+    - content-service-area
+    - content-why-us
+    - content-gallery
+    - content-testimonials
+    - content-certifications
+    - content-about
+    - content-faq
+    - content-cta
+    - content-emergency-banner
+    - system-lead-form
+    - verify-full-pass
+
+apis:
+  allowed:
+    - fetchStorefrontConfig
+    - fetchServices
+    - fetchServiceBySlug
+    - submitLead
+  forbiddenPatterns:
+    - inline fetch to /public/storefront
+    - theme-local API client files
+
+commerce:
+  currency: INR
+  geography: IN
+  guestCheckout: true
+  loginRequired: false
+  shippingSource: config
+  orderingHours: optional
+  variants: none
+  paymentProviders: []
+  deliveryFields:
+    pincode: false
+    preferredDate: from-template-settings
+    preferredTime: from-template-settings
+  closedStoreBehavior: warn-only
+
+data:
+  maxCatalogSize: 200
+  emptyBehavior: collapse
+  outOfStockBehavior: hide
+  imageFallback: branded
+  categoryNav: none
+  searchInScope: false
+  giftsInScope: false
+
+clutter:
+  maxPrimaryCtaPerViewport: 1
+  promoStrip: none
+  duplicateNav: forbidden
+  alwaysVisibleBlocks:
+    - how-it-works
+    - why-choose-us
+    - final-cta
+
+featureFlags:
+  respectSections: true
+  respectFeatureFlags: true
+  sectionOrderingException: false
+
+intentionalThemeDefaults:
+  - "Hero fallback: '{tenant.name}, done right the first time.'"
+  - "Hero trust chips: Licensed & insured / Same-day / Upfront pricing"
+  - "How it works: Request → Confirm → We arrive → Job done"
+  - "Why choose us: licensed & insured, upfront pricing, satisfaction guarantee, background-checked"
+  - "Catalog empty: Services coming soon — call us to ask what we offer"
+  - "Primary CTA label: Get a free quote / Book now"
+  - "Primary default #00142F / secondary #FE9D16 (Fixer brand) when branding unset"
+
+verify:
+  lint: true
+  typecheck: true
+  build: true
+  browser:
+    enabled: false
+    baseUrl: http://localhost:3001
+    tenantHost: ""
+    loginRequired: false
+    viewports:
+      - 375
+      - 768
+      - 1280
+    states:
+      - rich
+      - sparse
+    pages:
+      shell-header: /
+      shell-mobile-cta: /
+      shell-footer: /
+      content-hero: /
+      content-stats: /
+      catalog-grid: /
+      catalog-empty: /
+      content-how-it-works: /
+      content-service-area: /
+      content-why-us: /
+      content-gallery: /
+      content-testimonials: /
+      content-certifications: /
+      content-about: /
+      content-faq: /
+      content-cta: /
+      content-emergency-banner: /
+      system-lead-form: /book
+      verify-full-pass: /

@@ -1,34 +1,34 @@
 import './trade-pro.css'
 
 const STEPS = [
-  { n: 1, title: 'Tell us what you need', body: 'Pick a service or describe the job in a few words.' },
-  { n: 2, title: 'We match a verified pro', body: 'Local, background-checked, and highly rated.' },
-  { n: 3, title: 'Sit back and relax', body: 'Track the visit and pay securely once it’s done.' },
+  { n: 1, title: 'Request a quote', body: 'Tell us what you need in a few words — or pick a service.' },
+  { n: 2, title: 'We confirm', body: 'A verified local pro is matched and you get a clear next step.' },
+  { n: 3, title: 'We arrive', body: 'On time, background-checked, ready to get the job done.' },
+  { n: 4, title: 'Job done', body: 'Pay securely and leave a review when you’re happy.' },
 ]
 
 export function TradeProHowItWorks() {
   return (
-    <section className="tp-container py-16 sm:py-20">
+    <section className="tp-container tp-section">
       <div className="max-w-xl">
-        <p className="text-xs font-bold uppercase tracking-[0.25em] text-[var(--tp-ink)]/60">How it works</p>
-        <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
-          Booked in three simple steps
-        </h2>
+        <p className="tp-eyebrow">How it works</p>
+        <h2 className="tp-h2 mt-3">Booked in a few simple steps</h2>
       </div>
-      <div className="mt-10 grid grid-cols-1 gap-8 sm:grid-cols-3">
+      <div className="tp-section-body tp-grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {STEPS.map((step) => (
-          <div key={step.n} className="flex items-start gap-4">
+          <div key={step.n} className="tp-card">
             <span
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-base font-black text-[var(--tp-ink)]"
-              style={{ backgroundColor: 'var(--tp-accent)' }}
+              className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold"
+              style={{
+                backgroundColor: 'var(--tp-accent)',
+                color: 'var(--tp-accent-contrast)',
+              }}
               aria-hidden
             >
               {step.n}
             </span>
-            <div className="min-w-0">
-              <h3 className="text-base font-bold text-slate-900">{step.title}</h3>
-              <p className="mt-1.5 text-sm text-slate-600">{step.body}</p>
-            </div>
+            <h3 className="mt-5 text-base font-semibold text-[var(--tp-ink)]">{step.title}</h3>
+            <p className="mt-2 text-sm leading-6 text-[var(--tp-body)]">{step.body}</p>
           </div>
         ))}
       </div>

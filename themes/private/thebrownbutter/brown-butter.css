@@ -1,13 +1,24 @@
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=DM+Sans:ital,wght@0,400;0,500;1,400&display=swap');
 
-/* Brown Butter storefront — aligned with brownbutterredesign.html */
+/* Brown Butter storefront — aligned with brownbutterredesign.html.
+   Reset MUST stay under theme/account roots — this CSS is also pulled into
+   other verticals via private/registry + account-themes static imports, and an
+   unscoped `*` reset was zeroing Tailwind padding (e.g. home_services cards). */
 
-*,
-*::before,
-*::after {
+.theme-brown-butter *,
+.theme-brown-butter *::before,
+.theme-brown-butter *::after,
+.bb-root *,
+.bb-root *::before,
+.bb-root *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+.theme-brown-butter,
+.bb-root {
+  box-sizing: border-box;
 }
 
 :root {

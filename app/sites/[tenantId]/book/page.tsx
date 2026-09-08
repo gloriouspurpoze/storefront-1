@@ -36,7 +36,12 @@ export default async function BookPage() {
   return (
     <>
       {isTradePro ? (
-        <TradeProHeader tenant={themeTenant} navLinks={navLinks} phone={config?.branding?.contactPhone} />
+        <TradeProHeader
+          tenant={themeTenant}
+          navLinks={navLinks}
+          phone={config?.branding?.contactPhone}
+          serviceArea={config?.branding?.address}
+        />
       ) : (
         <SiteHeader tenant={themeTenant} />
       )}
@@ -66,10 +71,8 @@ export default async function BookPage() {
       {isTradePro ? (
         <TradeProFooter
           tenant={themeTenant}
+          config={config}
           navLinks={footerLinks}
-          phone={config?.branding?.contactPhone}
-          email={config?.branding?.contactEmail}
-          address={config?.branding?.address}
         />
       ) : (
         <SiteFooter tenant={themeTenant} />

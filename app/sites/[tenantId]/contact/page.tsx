@@ -59,14 +59,17 @@ export default async function ContactPage() {
       if (isTradePro) {
         return (
           <>
-            <TradeProHeader tenant={theme} navLinks={navLinks} phone={config?.branding?.contactPhone} />
+            <TradeProHeader
+              tenant={theme}
+              navLinks={navLinks}
+              phone={config?.branding?.contactPhone}
+              serviceArea={config?.branding?.address}
+            />
             {body}
             <TradeProFooter
               tenant={theme}
+              config={config}
               navLinks={footerLinks}
-              phone={config?.branding?.contactPhone}
-              email={config?.branding?.contactEmail}
-              address={config?.branding?.address}
             />
           </>
         )

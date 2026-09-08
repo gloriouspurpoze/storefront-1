@@ -4,8 +4,13 @@ import Script from 'next/script'
 import { fetchStorefrontConfig, type StorefrontConfig } from '@/lib/storefront-api'
 import { assertRouteTenant } from '@/lib/load-tenant'
 import type { ResolvedTenant } from '@/lib/types'
+import { contrastTextOn, colorsTooSimilar } from '@/lib/brandContrast'
 import { themeRootClass } from '@/lib/theme-classes'
 import { AccountAuthProvider } from '@/components/account/AccountAuthProvider'
+
+const TRADE_PRO_PRIMARY = '#00142F'
+const TRADE_PRO_SECONDARY = '#FE9D16'
+const INK_700 = '#4B5563'
 interface RouteParams {
   params: Promise<{ tenantId: string }>
 }
@@ -60,22 +65,34 @@ export async function generateMetadata({ params }: RouteParams): Promise<Metadat
  * Build a CSS variables object that themes can use via `var(--site-brand)`,
  * `var(--site-accent)`, etc. Storefront config overrides the legacy
  * `publicSiteTheme.brandColor`.
+ *
+ * trade-pro (home-services default): primary + secondary are distinct roles
+ * per DESIGN.md — primary = money CTAs, secondary = accents/badges.
  */
 function brandStyle(tenant: ResolvedTenant, cfg: StorefrontConfig | null): React.CSSProperties {
-  // trade-pro's default background is the same dark navy as this fallback, so
-  // shared components reading `--site-brand` (e.g. ServiceCard) would render
-  // invisibly/off-brand for tenants who haven't set a custom color.
-  const defaultBrand = cfg?.themeKey === 'trade-pro' ? '#f59e0b' : '#0f172a'
+  const isTradePro = cfg?.themeKey === 'trade-pro'
+  const defaultBrand = isTradePro ? TRADE_PRO_PRIMARY : '#0f172a'
   const brand =
     cfg?.branding?.primaryColor ||
     (tenant.publicSiteTheme?.brandColor as string | undefined) ||
     defaultBrand
   const accent = cfg?.branding?.accentColor || brand
-  const secondary = cfg?.branding?.secondaryColor || brand
+  let secondary =
+    cfg?.branding?.secondaryColor || (isTradePro ? TRADE_PRO_SECONDARY : brand)
+  // If secondary ≈ primary, fall back to a neutral so outline/ghost actions stay distinct.
+  if (isTradePro && colorsTooSimilar(brand, secondary)) {
+    secondary = INK_700
+  }
+  const brandContrast = contrastTextOn(brand)
+  const secondaryContrast = contrastTextOn(secondary)
   return {
     ['--site-brand' as never]: brand,
     ['--site-accent' as never]: accent,
     ['--site-secondary' as never]: secondary,
+    ['--brand-primary' as never]: brand,
+    ['--brand-secondary' as never]: secondary,
+    ['--brand-primary-contrast' as never]: brandContrast,
+    ['--brand-secondary-contrast' as never]: secondaryContrast,
   }
 }
 

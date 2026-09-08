@@ -32,14 +32,22 @@ export function TradeProPage({
 }) {
   const headline = config?.content?.heroHeadline || `${tenant.name}, done right the first time.`
   const subcopy = config?.content?.heroSubcopy || tenant.tagline
+  const ctaLabel = config?.content?.heroCtaLabel
   const phone = config?.branding?.contactPhone
-  const email = config?.branding?.contactEmail
-  const address = config?.branding?.address
   const avgRating = averageRating(services)
+  const reviews = totalReviews(services)
+  // DESIGN: hide rating chip when there are no reviews (not just missing rating).
+  const rating = avgRating != null && reviews > 0 ? avgRating : undefined
+  const reviewCount = reviews > 0 ? reviews : undefined
 
   return (
     <>
-      <TradeProHeader tenant={tenant} navLinks={navLinks} phone={phone} />
+      <TradeProHeader
+        tenant={tenant}
+        navLinks={navLinks}
+        phone={phone}
+        serviceArea={config?.branding?.address}
+      />
 
       <main>
         <TradeProHero
@@ -47,8 +55,10 @@ export function TradeProPage({
           headline={headline}
           subcopy={subcopy}
           services={services}
-          rating={avgRating ?? undefined}
-          reviewCount={totalReviews(services) || undefined}
+          rating={rating}
+          reviewCount={reviewCount}
+          ctaLabel={ctaLabel}
+          phone={phone}
         />
 
         <TradeProStatsBar />
@@ -57,6 +67,7 @@ export function TradeProPage({
           services={services}
           title="Our services"
           subtitle="Licensed pros for every job, big or small."
+          phone={phone}
         />
 
         <TradeProHowItWorks />
@@ -72,7 +83,7 @@ export function TradeProPage({
         <TradeProFinalCta phone={phone} />
       </main>
 
-      <TradeProFooter tenant={tenant} navLinks={footerLinks} phone={phone} email={email} address={address} />
+      <TradeProFooter tenant={tenant} config={config} navLinks={footerLinks} />
     </>
   )
 }

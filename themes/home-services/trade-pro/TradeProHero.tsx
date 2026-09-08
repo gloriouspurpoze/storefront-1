@@ -1,6 +1,6 @@
 import type { PublicService } from '../types'
 import { TradeProQuickQuoteForm } from './TradeProQuickQuoteForm'
-import { CheckIcon, StarIcon } from './icons'
+import { CheckIcon, PhoneIcon, StarIcon } from './icons'
 import './trade-pro.css'
 
 const TRUST_POINTS = ['Licensed & insured pros', 'Same-day availability', 'Upfront, honest pricing']
@@ -12,6 +12,8 @@ export function TradeProHero({
   services,
   rating,
   reviewCount,
+  ctaLabel,
+  phone,
 }: {
   tenantId: string
   headline: string
@@ -19,36 +21,50 @@ export function TradeProHero({
   services: PublicService[]
   rating?: number
   reviewCount?: number
+  ctaLabel?: string
+  phone?: string
 }) {
+  const showRating =
+    typeof rating === 'number' && rating > 0 && typeof reviewCount === 'number' && reviewCount > 0
+  const primaryLabel = ctaLabel?.trim() || 'Get a free quote'
+  const filledStars = Math.min(5, Math.max(0, Math.round(rating ?? 0)))
+
   return (
-    <section className="tp-hero-grid relative overflow-hidden bg-[var(--tp-ink)] text-white">
-      <div className="tp-diagonal-stripes absolute inset-x-0 top-0 h-1.5" aria-hidden />
-      <div className="tp-container grid grid-cols-1 items-start gap-10 py-14 sm:py-20 lg:grid-cols-[1.15fr_1fr] lg:gap-16">
+    <section className="tp-soft-band">
+      <div className="tp-container tp-section grid grid-cols-1 items-start gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-16">
         <div className="min-w-0">
-          {typeof rating === 'number' && rating > 0 && (
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold">
-              <span className="flex items-center gap-0.5 text-[var(--tp-accent)]">
+          {showRating ? (
+            <div className="tp-badge mb-6">
+              <span className="tp-rating-star flex items-center gap-0.5" aria-hidden>
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <StarIcon key={i} className={i < Math.round(rating) ? 'h-3.5 w-3.5' : 'h-3.5 w-3.5 opacity-30'} />
+                  <StarIcon
+                    key={i}
+                    className={i < filledStars ? 'h-3.5 w-3.5' : 'h-3.5 w-3.5 opacity-30'}
+                  />
                 ))}
               </span>
-              <span className="text-white/85">
-                {rating.toFixed(1)} rating{reviewCount ? ` · ${reviewCount}+ reviews` : ''}
+              <span>
+                {rating!.toFixed(1)} · {reviewCount}+ reviews
               </span>
             </div>
-          )}
+          ) : null}
 
-          <h1 className="text-balance text-4xl font-black leading-[1.05] tracking-tight sm:text-5xl md:text-6xl">
-            {headline}
-          </h1>
-          {subcopy && <p className="mt-5 max-w-xl text-pretty text-lg text-white/75 sm:text-xl">{subcopy}</p>}
+          <h1 className="tp-display text-balance">{headline}</h1>
+          {subcopy ? (
+            <p className="mt-6 max-w-[65ch] text-pretty text-base leading-relaxed text-[var(--tp-body)] sm:text-lg sm:leading-8">
+              {subcopy}
+            </p>
+          ) : null}
 
-          <ul className="mt-8 flex flex-col gap-3 text-sm font-medium text-white/85 sm:flex-row sm:flex-wrap sm:gap-x-6 sm:gap-y-3">
+          <ul className="tp-chip-row mt-8">
             {TRUST_POINTS.map((point) => (
-              <li key={point} className="flex items-center gap-2">
+              <li key={point} className="tp-badge">
                 <span
-                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[var(--tp-ink)]"
-                  style={{ backgroundColor: 'var(--tp-accent)' }}
+                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
+                  style={{
+                    backgroundColor: 'var(--tp-accent)',
+                    color: 'var(--tp-accent-contrast)',
+                  }}
                   aria-hidden
                 >
                   <CheckIcon className="h-3 w-3" />
@@ -57,10 +73,26 @@ export function TradeProHero({
               </li>
             ))}
           </ul>
+
+          {phone ? (
+            <div className="mt-8">
+              <a
+                href={`tel:${phone}`}
+                className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[var(--tp-ink)] transition hover:opacity-80"
+              >
+                <PhoneIcon className="h-4 w-4" />
+                Call {phone}
+              </a>
+            </div>
+          ) : null}
         </div>
 
-        <div className="min-w-0 lg:pt-2">
-          <TradeProQuickQuoteForm tenantId={tenantId} services={services.slice(0, 12)} />
+        <div className="min-w-0 w-full">
+          <TradeProQuickQuoteForm
+            tenantId={tenantId}
+            services={services.slice(0, 12)}
+            ctaLabel={primaryLabel}
+          />
         </div>
       </div>
     </section>

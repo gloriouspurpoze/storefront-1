@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent } from 'react'
 import { submitLead } from '@/lib/storefront-api'
 import type { PublicService } from '../types'
 import { CheckIcon } from './icons'
@@ -12,22 +12,20 @@ type Status =
   | { kind: 'success'; deduped: boolean }
   | { kind: 'error'; message: string }
 
-/**
- * Short, hero-friendly lead form — name, phone, email, and (if available) a
- * service picker. Trimmed down from `BookingForm` on purpose: a long form in
- * the hero pushes the rest of the homepage below the fold, and short forms
- * convert better for a "get a quick quote" ask.
- */
 export function TradeProQuickQuoteForm({
   tenantId,
   services,
   source = 'storefront-home-hero',
+  ctaLabel = 'Get a free quote',
 }: {
   tenantId: string
   services?: PublicService[]
   source?: string
+  ctaLabel?: string
 }) {
+  const errorId = useId()
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
+  const submitLabel = ctaLabel.trim() || 'Get a free quote'
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -74,21 +72,26 @@ export function TradeProQuickQuoteForm({
 
   if (status.kind === 'success') {
     return (
-      <div className="rounded-2xl bg-white p-6 text-center shadow-2xl sm:p-7">
+      <div className="tp-card text-center" role="status">
         <div
-          className="tp-mx-auto flex h-11 w-11 items-center justify-center rounded-full text-[var(--tp-ink)]"
-          style={{ backgroundColor: 'var(--tp-accent)' }}
+          className="tp-mx-auto flex h-11 w-11 items-center justify-center rounded-full"
+          style={{
+            backgroundColor: 'var(--tp-accent)',
+            color: 'var(--tp-accent-contrast)',
+          }}
         >
           <CheckIcon className="h-5 w-5" />
         </div>
-        <h3 className="mt-4 text-lg font-bold text-slate-900">
+        <h3 className="mt-4 text-lg font-bold text-[var(--tp-ink)]">
           {status.deduped ? "We've got you" : 'Request received'}
         </h3>
-        <p className="mt-1.5 text-sm text-slate-600">We&apos;ll call you back within one business day.</p>
+        <p className="mt-1.5 text-sm text-[var(--tp-body)]">
+          We&apos;ll call you back within one business day.
+        </p>
         <button
           type="button"
           onClick={() => setStatus({ kind: 'idle' })}
-          className="mt-4 text-sm font-semibold text-slate-500 underline-offset-4 hover:underline"
+          className="mt-4 text-sm font-semibold text-[var(--tp-mute)] underline-offset-4 hover:underline"
         >
           Submit another request
         </button>
@@ -96,26 +99,28 @@ export function TradeProQuickQuoteForm({
     )
   }
 
-  return (
-    <form onSubmit={onSubmit} className="rounded-2xl bg-white p-6 shadow-2xl sm:p-7">
-      <p className="text-sm font-bold uppercase tracking-wide text-slate-900">Get a free quote</p>
-      <p className="mt-1 text-sm text-slate-500">Tell us what you need — we&apos;ll call you back today.</p>
+  const hasError = status.kind === 'error'
 
-      <div className="mt-5 space-y-4">
-        <QField name="name" label="Name" autoComplete="name" required />
+  return (
+    <form onSubmit={onSubmit} className="tp-card" noValidate>
+      <p className="text-base font-semibold text-[var(--tp-ink)]">{submitLabel}</p>
+      <p className="mt-2 text-sm text-[var(--tp-body)]">
+        Tell us what you need — we&apos;ll call you back today.
+      </p>
+
+      <div className="mt-6 space-y-4">
+        <QField name="name" label="Name" autoComplete="name" required invalid={hasError} />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <QField name="phone" type="tel" label="Phone" autoComplete="tel" required />
-          <QField name="email" type="email" label="Email" autoComplete="email" required />
+          <QField name="phone" type="tel" label="Phone" autoComplete="tel" required invalid={hasError} />
+          <QField name="email" type="email" label="Email" autoComplete="email" required invalid={hasError} />
         </div>
 
-        {services && services.length > 0 && (
+        {services && services.length > 0 ? (
           <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              What do you need?
-            </span>
+            <span className="text-xs font-semibold text-[var(--tp-mute)]">What do you need?</span>
             <select
               name="serviceSlug"
-              className="mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+              className="mt-1.5 block w-full rounded-xl border border-[var(--tp-hairline)] bg-[var(--tp-canvas-soft)] px-3 py-2.5 text-sm text-[var(--tp-ink)] focus:border-[var(--tp-cta)] focus:outline-none focus:ring-2 focus:ring-[var(--tp-cta)]/20"
               defaultValue=""
             >
               <option value="">Select a service…</option>
@@ -126,21 +131,23 @@ export function TradeProQuickQuoteForm({
               ))}
             </select>
           </label>
-        )}
+        ) : null}
 
-        {status.kind === 'error' && (
-          <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{status.message}</p>
-        )}
+        {hasError ? (
+          <p id={errorId} role="alert" className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-[var(--tp-error)]">
+            {status.message}
+          </p>
+        ) : null}
 
         <button
           type="submit"
           disabled={status.kind === 'submitting'}
-          className="inline-flex w-full items-center justify-center rounded-lg px-6 py-3 text-sm font-bold uppercase tracking-wide text-[var(--tp-ink)] transition hover:brightness-95 disabled:opacity-60"
-          style={{ backgroundColor: 'var(--tp-accent)' }}
+          className="tp-btn-primary w-full"
+          aria-describedby={hasError ? errorId : undefined}
         >
-          {status.kind === 'submitting' ? 'Sending…' : 'Get my free quote'}
+          {status.kind === 'submitting' ? 'Sending…' : submitLabel}
         </button>
-        <p className="text-center text-xs text-slate-500">
+        <p className="text-center text-xs text-[var(--tp-mute)]">
           No obligation. You&apos;ll hear from us within one business day.
         </p>
       </div>
@@ -154,22 +161,25 @@ function QField({
   type = 'text',
   required,
   autoComplete,
+  invalid,
 }: {
   name: string
   label: string
   type?: string
   required?: boolean
   autoComplete?: string
+  invalid?: boolean
 }) {
   return (
     <label className="block">
-      <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</span>
+      <span className="text-xs font-semibold text-[var(--tp-mute)]">{label}</span>
       <input
         name={name}
         type={type}
         required={required}
         autoComplete={autoComplete}
-        className="mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+        aria-invalid={invalid || undefined}
+        className="mt-1.5 block w-full rounded-xl border border-[var(--tp-hairline)] bg-[var(--tp-canvas-soft)] px-3 py-2.5 text-sm text-[var(--tp-ink)] placeholder:text-[var(--tp-mute)] focus:border-[var(--tp-cta)] focus:outline-none focus:ring-2 focus:ring-[var(--tp-cta)]/20"
       />
     </label>
   )

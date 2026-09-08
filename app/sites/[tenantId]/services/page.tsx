@@ -36,7 +36,12 @@ export default async function ServicesPage() {
   return (
     <>
       {isTradePro ? (
-        <TradeProHeader tenant={themeTenant} navLinks={navLinks} phone={phone} />
+        <TradeProHeader
+          tenant={themeTenant}
+          navLinks={navLinks}
+          phone={phone}
+          serviceArea={config?.branding?.address}
+        />
       ) : (
         <SiteHeader tenant={themeTenant} />
       )}
@@ -58,10 +63,8 @@ export default async function ServicesPage() {
       {isTradePro ? (
         <TradeProFooter
           tenant={themeTenant}
+          config={config}
           navLinks={footerLinks}
-          phone={phone}
-          email={config?.branding?.contactEmail}
-          address={config?.branding?.address}
         />
       ) : (
         <SiteFooter tenant={themeTenant} />
