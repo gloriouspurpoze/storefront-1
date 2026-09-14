@@ -33,8 +33,12 @@ export function ReservationForm({ tenantId }: ReservationFormProps) {
       setStatus({ kind: 'error', message: 'Please tell us your name.' })
       return
     }
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setStatus({ kind: 'error', message: 'Please enter a valid email.' })
+    if (!phone || phone.length < 7) {
+      setStatus({ kind: 'error', message: 'Please share a phone number.' })
+      return
+    }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setStatus({ kind: 'error', message: 'Please enter a valid email, or leave it blank.' })
       return
     }
 
@@ -53,10 +57,13 @@ export function ReservationForm({ tenantId }: ReservationFormProps) {
       const result = await submitLead({
         tenantId,
         firstName,
-        email,
+        email: email || undefined,
         phone,
+        address: 'Restaurant reservation',
+        preferredDate: date || undefined,
         message,
         source: 'storefront-reservation',
+        services: [{ name: 'Table reservation', quantity: 1 }],
       })
       setStatus({ kind: 'success', deduped: result.deduped })
       e.currentTarget.reset()
@@ -84,15 +91,15 @@ export function ReservationForm({ tenantId }: ReservationFormProps) {
           <input
             name="email"
             type="email"
-            required
             className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-stone-900 outline-none ring-amber-200 focus:ring-2"
           />
         </label>
         <label className="block text-sm">
-          <span className="font-medium text-stone-700">Phone</span>
+          <span className="font-medium text-stone-700">Phone *</span>
           <input
             name="phone"
             type="tel"
+            required
             className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-stone-900 outline-none ring-amber-200 focus:ring-2"
           />
         </label>

@@ -10,6 +10,8 @@ import { toThemeTenant } from '@/themes/home-services/types'
 import { TradeProHeader } from '@/themes/home-services/trade-pro/TradeProHeader'
 import { TradeProFooter } from '@/themes/home-services/trade-pro/TradeProFooter'
 import { TradeProFinalCta } from '@/themes/home-services/trade-pro/TradeProFinalCta'
+import { TradeProAddToCartButton } from '@/themes/home-services/trade-pro/TradeProAddToCartButton'
+import { TradeProShellClient } from '@/themes/home-services/trade-pro/TradeProShellClient'
 import { fetchServiceBySlug, fetchServices, fetchStorefrontConfig } from '@/lib/storefront-api'
 import { fetchStorefrontMenuLinks } from '@/lib/cms-content'
 
@@ -59,70 +61,65 @@ export default async function ServiceDetailPage({ params }: PageProps) {
       ? `${service.durationMinutes} min`
       : null
 
-  return (
-    <>
-      {isTradePro ? (
-        <TradeProHeader
-          tenant={themeTenant}
-          navLinks={navLinks}
-          phone={phone}
-          serviceArea={config?.branding?.address}
-        />
-      ) : (
-        <SiteHeader tenant={themeTenant} />
-      )}
-      <main>
-        <section className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[1.3fr_1fr]">
-          <article>
-            <Link
-              href="/services"
-              className="inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900"
-            >
-              <span aria-hidden>←</span> All services
-            </Link>
-            <h1 className="mt-5 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-              {service.name}
-            </h1>
-            {service.shortDescription && (
-              <p className="mt-3 text-pretty text-lg text-slate-600">
-                {service.shortDescription}
-              </p>
-            )}
+  const article = (
+    <section className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[1.3fr_1fr]">
+      <article>
+        <Link
+          href="/services"
+          className="inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900"
+        >
+          <span aria-hidden>←</span> All services
+        </Link>
+        <h1 className="mt-5 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
+          {service.name}
+        </h1>
+        {service.shortDescription && (
+          <p className="mt-3 text-pretty text-lg text-slate-600">{service.shortDescription}</p>
+        )}
 
-            <div className="mt-6 flex flex-wrap items-center gap-2">
-              {price && (
-                <Badge>
-                  Starts at <strong className="ml-1">{price}</strong>
-                </Badge>
-              )}
-              {duration && <Badge>{duration}</Badge>}
-              {typeof service.rating === 'number' && service.rating > 0 && (
-                <Badge>
-                  ★ {service.rating.toFixed(1)}
-                  {service.reviewCount ? ` · ${service.reviewCount} reviews` : ''}
-                </Badge>
-              )}
-            </div>
+        <div className="mt-6 flex flex-wrap items-center gap-2">
+          {price && (
+            <Badge>
+              Starts at <strong className="ml-1">{price}</strong>
+            </Badge>
+          )}
+          {duration && <Badge>{duration}</Badge>}
+          {typeof service.rating === 'number' && service.rating > 0 && (
+            <Badge>
+              ★ {service.rating.toFixed(1)}
+              {service.reviewCount ? ` · ${service.reviewCount} reviews` : ''}
+            </Badge>
+          )}
+        </div>
 
-            {service.imageUrl && (
-              <div className="mt-8 overflow-hidden rounded-2xl">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={service.imageUrl}
-                  alt={service.name}
-                  className="aspect-[16/9] w-full object-cover"
-                />
-              </div>
-            )}
+        {service.imageUrl && (
+          <div className="mt-8 overflow-hidden rounded-2xl">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={service.imageUrl}
+              alt={service.name}
+              className="aspect-[16/9] w-full object-cover"
+            />
+          </div>
+        )}
 
-            {service.description && (
-              <div className="mt-8 max-w-2xl whitespace-pre-line text-slate-700">
-                {service.description}
-              </div>
-            )}
-          </article>
+        {service.description && (
+          <div className="mt-8 max-w-2xl whitespace-pre-line text-slate-700">{service.description}</div>
+        )}
+      </article>
 
-          <aside className="lg:sticky lg:top-24">
+      <aside className="lg:sticky lg:top-24">
+        {isTradePro ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="mb-2 text-lg font-semibold text-slate-900">Add to enquiry</h2>
+            <p className="mb-4 text-sm text-slate-600">
+              {price ? `Estimated ${price}` : 'Free estimate'} — add this service (or more) then
+              send from your cart.
+            </p>
+            <TradeProAddToCartButton service={service} className="tp-btn-primary w-full" />
+          </div>
+        ) : (
+          <>
             <h2 className="mb-4 text-lg font-semibold text-slate-900">Request this service</h2>
             <BookingForm
               tenantId={tenant.id}
@@ -130,29 +127,45 @@ export default async function ServiceDetailPage({ params }: PageProps) {
               services={related}
               source={`service:${service.slug}`}
             />
-          </aside>
-        </section>
+          </>
+        )}
+      </aside>
+    </section>
+  )
 
-        {isTradePro ? <TradeProFinalCta phone={phone} /> : <CallToAction />}
-      </main>
-      {isTradePro ? (
-        <TradeProFooter
+  if (isTradePro) {
+    return (
+      <TradeProShellClient tenantId={tenant.id}>
+        <TradeProHeader
           tenant={themeTenant}
-          config={config}
-          navLinks={footerLinks}
+          navLinks={navLinks}
+          phone={phone}
+          serviceArea={config?.branding?.address}
         />
-      ) : (
-        <SiteFooter tenant={themeTenant} />
-      )}
+        <main>
+          {article}
+          <TradeProFinalCta phone={phone} />
+        </main>
+        <TradeProFooter tenant={themeTenant} config={config} navLinks={footerLinks} />
+      </TradeProShellClient>
+    )
+  }
+
+  return (
+    <>
+      <SiteHeader tenant={themeTenant} />
+      <main>
+        {article}
+        <CallToAction />
+      </main>
+      <SiteFooter tenant={themeTenant} />
     </>
   )
 }
 
 function Badge({ children }: { children: React.ReactNode }) {
   return (
-    <span
-      className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700"
-    >
+    <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
       {children}
     </span>
   )

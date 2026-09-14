@@ -99,16 +99,30 @@ export async function fetchServiceBySlug(
   )
 }
 
+export interface LeadServiceLine {
+  serviceId?: string
+  serviceSlug?: string
+  name: string
+  quantity: number
+  unitPrice?: number
+  currency?: string
+}
+
 export interface LeadInput {
   tenantId: string
   firstName: string
   lastName?: string
-  email: string
-  phone?: string
+  /** Optional — phone + address are the primary contact fields for HS enquiries. */
+  email?: string
+  phone: string
+  address: string
+  preferredDate?: string
   message?: string
   source?: string
-  serviceSlug?: string
   locality?: string
+  /** @deprecated Prefer `services` — kept for older single-service callers. */
+  serviceSlug?: string
+  services: LeadServiceLine[]
 }
 
 export interface LeadResult {
@@ -118,13 +132,30 @@ export interface LeadResult {
 
 export async function submitLead(input: LeadInput): Promise<LeadResult> {
   const { tenantId, ...body } = input
+  const services =
+    body.services?.length > 0
+      ? body.services
+      : body.serviceSlug
+        ? [{ name: body.serviceSlug, serviceSlug: body.serviceSlug, quantity: 1 }]
+        : []
   const res = await fetch(apiUrl('/public/storefront/leads'), {
     method: 'POST',
     headers: withTenantId(tenantId, {
       'Content-Type': 'application/json',
       Accept: 'application/json',
     }),
-    body: JSON.stringify(body),
+    body: JSON.stringify({
+      firstName: body.firstName,
+      lastName: body.lastName,
+      email: body.email || undefined,
+      phone: body.phone,
+      address: body.address,
+      preferredDate: body.preferredDate || undefined,
+      message: body.message || undefined,
+      source: body.source || undefined,
+      locality: body.locality || undefined,
+      services,
+    }),
   })
   const json = (await res.json().catch(() => null)) as ApiEnvelope<LeadResult> | null
   if (!res.ok || !json?.success || !json.data) {

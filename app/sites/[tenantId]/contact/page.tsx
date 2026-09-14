@@ -47,37 +47,48 @@ export default async function ContactPage() {
             fetchStorefrontMenuLinks(tenant.id, 'footer'),
           ])
         : [undefined, undefined]
-      const body = (
-        <main className="mx-auto grid w-full max-w-5xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Contact</p>
-            <h1 className="mt-3 text-4xl font-bold text-slate-900">Let&apos;s talk.</h1>
-          </div>
-          <BookingForm tenantId={tenant.id} source="contact-page" />
-        </main>
-      )
       if (isTradePro) {
+        const { fetchServices } = await import('@/lib/storefront-api')
+        const { TradeProShellClient } = await import(
+          '@/themes/home-services/trade-pro/TradeProShellClient'
+        )
+        const { TradeProServicePicker } = await import(
+          '@/themes/home-services/trade-pro/TradeProServicePicker'
+        )
+        const services = await fetchServices(tenant.id, 24)
         return (
-          <>
+          <TradeProShellClient tenantId={tenant.id}>
             <TradeProHeader
               tenant={theme}
               navLinks={navLinks}
               phone={config?.branding?.contactPhone}
               serviceArea={config?.branding?.address}
             />
-            {body}
-            <TradeProFooter
-              tenant={theme}
-              config={config}
-              navLinks={footerLinks}
-            />
-          </>
+            <main className="mx-auto grid w-full max-w-5xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Contact</p>
+                <h1 className="mt-3 text-4xl font-bold text-slate-900">Let&apos;s talk.</h1>
+                <p className="mt-4 text-slate-600">
+                  Add the services you need, then send one enquiry from your cart. We&apos;ll call
+                  you back within 2 hours.
+                </p>
+              </div>
+              <TradeProServicePicker services={services} title="Start your enquiry" />
+            </main>
+            <TradeProFooter tenant={theme} config={config} navLinks={footerLinks} />
+          </TradeProShellClient>
         )
       }
       return (
         <>
           <HsHeader tenant={theme} />
-          {body}
+          <main className="mx-auto grid w-full max-w-5xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Contact</p>
+              <h1 className="mt-3 text-4xl font-bold text-slate-900">Let&apos;s talk.</h1>
+            </div>
+            <BookingForm tenantId={tenant.id} source="contact-page" />
+          </main>
           <HsFooter tenant={theme} />
         </>
       )

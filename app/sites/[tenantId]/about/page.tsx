@@ -71,8 +71,11 @@ export default async function AboutPage() {
         </main>
       )
       if (isTradePro) {
+        const { TradeProShellClient } = await import(
+          '@/themes/home-services/trade-pro/TradeProShellClient'
+        )
         return (
-          <>
+          <TradeProShellClient tenantId={tenant.id}>
             <TradeProHeader
               tenant={theme}
               navLinks={navLinks}
@@ -80,12 +83,8 @@ export default async function AboutPage() {
               serviceArea={config?.branding?.address}
             />
             {body}
-            <TradeProFooter
-              tenant={theme}
-              config={config}
-              navLinks={footerLinks}
-            />
-          </>
+            <TradeProFooter tenant={theme} config={config} navLinks={footerLinks} />
+          </TradeProShellClient>
         )
       }
       return (

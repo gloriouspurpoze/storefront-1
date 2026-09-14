@@ -5,6 +5,8 @@ import { BookingForm } from '@/themes/home-services/BookingForm'
 import { toThemeTenant } from '@/themes/home-services/types'
 import { TradeProHeader } from '@/themes/home-services/trade-pro/TradeProHeader'
 import { TradeProFooter } from '@/themes/home-services/trade-pro/TradeProFooter'
+import { TradeProServicePicker } from '@/themes/home-services/trade-pro/TradeProServicePicker'
+import { TradeProShellClient } from '@/themes/home-services/trade-pro/TradeProShellClient'
 import { fetchServices, fetchStorefrontConfig } from '@/lib/storefront-api'
 import { fetchStorefrontMenuLinks } from '@/lib/cms-content'
 
@@ -14,7 +16,7 @@ export async function generateMetadata() {
   const tenant = await loadHomeServicesTenant()
   return {
     title: 'Book a service',
-    description: `Request a callback from ${tenant.name} — we respond within one business day.`,
+    description: `Request a callback from ${tenant.name} — we respond within two hours.`,
   }
 }
 
@@ -33,18 +35,46 @@ export default async function BookPage() {
       ])
     : [undefined, undefined]
 
-  return (
-    <>
-      {isTradePro ? (
+  if (isTradePro) {
+    return (
+      <TradeProShellClient tenantId={tenant.id}>
         <TradeProHeader
           tenant={themeTenant}
           navLinks={navLinks}
           phone={config?.branding?.contactPhone}
           serviceArea={config?.branding?.address}
         />
-      ) : (
-        <SiteHeader tenant={themeTenant} />
-      )}
+        <main className="bg-[var(--tp-canvas-soft,#f4f6f9)] py-16 sm:py-20">
+          <div className="mx-auto grid w-full max-w-6xl gap-12 px-4 sm:px-6 lg:grid-cols-[1.2fr_1fr]">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
+                Book a service
+              </p>
+              <h1 className="mt-3 text-balance text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
+                Add services to your cart.
+              </h1>
+              <p className="mt-4 max-w-lg text-pretty text-lg text-slate-600">
+                Select one or more services, then send a single enquiry. We&apos;ll call you back
+                within 2 hours.
+              </p>
+              <ul className="mt-10 space-y-4 text-sm text-slate-700">
+                <Bullet>Multi-service enquiries in one go.</Bullet>
+                <Bullet>Verified, background-checked professionals.</Bullet>
+                <Bullet>Pay only after the visit is complete.</Bullet>
+                <Bullet>We call back within 2 hours.</Bullet>
+              </ul>
+            </div>
+            <TradeProServicePicker services={services} />
+          </div>
+        </main>
+        <TradeProFooter tenant={themeTenant} config={config} navLinks={footerLinks} />
+      </TradeProShellClient>
+    )
+  }
+
+  return (
+    <>
+      <SiteHeader tenant={themeTenant} />
       <main className="bg-slate-50 py-16 sm:py-20">
         <div className="mx-auto grid w-full max-w-6xl gap-12 px-4 sm:px-6 lg:grid-cols-[1.2fr_1fr]">
           <div>
@@ -59,34 +89,26 @@ export default async function BookPage() {
               required, no obligation.
             </p>
             <ul className="mt-10 space-y-4 text-sm text-slate-700">
-              <Bullet accent={isTradePro}>One business day response.</Bullet>
-              <Bullet accent={isTradePro}>Verified, background-checked professionals.</Bullet>
-              <Bullet accent={isTradePro}>Pay only after the visit is complete.</Bullet>
-              <Bullet accent={isTradePro}>Free re-visit if you&apos;re not satisfied.</Bullet>
+              <Bullet>One business day response.</Bullet>
+              <Bullet>Verified, background-checked professionals.</Bullet>
+              <Bullet>Pay only after the visit is complete.</Bullet>
+              <Bullet>Free re-visit if you&apos;re not satisfied.</Bullet>
             </ul>
           </div>
           <BookingForm tenantId={tenant.id} services={services} source="book-page" />
         </div>
       </main>
-      {isTradePro ? (
-        <TradeProFooter
-          tenant={themeTenant}
-          config={config}
-          navLinks={footerLinks}
-        />
-      ) : (
-        <SiteFooter tenant={themeTenant} />
-      )}
+      <SiteFooter tenant={themeTenant} />
     </>
   )
 }
 
-function Bullet({ children, accent }: { children: React.ReactNode; accent?: boolean }) {
+function Bullet({ children }: { children: React.ReactNode }) {
   return (
     <li className="flex items-start gap-3">
       <span
-        className={`mt-1 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${accent ? 'text-[var(--tp-ink)]' : 'text-white'}`}
-        style={{ backgroundColor: accent ? 'var(--tp-accent)' : 'var(--site-brand)' }}
+        className="mt-1 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[var(--tp-ink)]"
+        style={{ backgroundColor: 'var(--tp-accent, #FE9D16)' }}
         aria-hidden
       >
         <svg viewBox="0 0 20 20" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">

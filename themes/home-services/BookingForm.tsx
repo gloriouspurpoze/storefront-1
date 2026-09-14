@@ -47,13 +47,22 @@ export function BookingForm({
     const message = String(form.get('message') ?? '').trim()
     const locality = String(form.get('locality') ?? '').trim()
     const slug = serviceSlug.trim() || undefined
+    const selected = services?.find((s) => s.slug === slug)
 
     if (!firstName) {
       setStatus({ kind: 'error', message: 'Please share your name so we can reach you.' })
       return
     }
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setStatus({ kind: 'error', message: 'Please enter a valid email address.' })
+    if (!phone || phone.length < 7) {
+      setStatus({ kind: 'error', message: 'Please share a valid phone number.' })
+      return
+    }
+    if (!locality) {
+      setStatus({ kind: 'error', message: 'Please share your neighborhood, address, or pincode.' })
+      return
+    }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setStatus({ kind: 'error', message: 'Please enter a valid email, or leave it blank.' })
       return
     }
 
@@ -63,12 +72,23 @@ export function BookingForm({
         tenantId,
         firstName,
         lastName,
-        email,
+        email: email || undefined,
         phone,
-        message,
+        address: locality,
         locality,
+        message,
         serviceSlug: slug,
         source,
+        services: [
+          {
+            serviceId: selected?.id,
+            serviceSlug: slug || selected?.slug || 'general',
+            name: selected?.name || slug || 'General enquiry',
+            quantity: 1,
+            unitPrice: selected?.basePrice,
+            currency: selected?.currency,
+          },
+        ],
       })
       setStatus({ kind: 'success', deduped: result.deduped })
       e.currentTarget.reset()
@@ -116,10 +136,10 @@ export function BookingForm({
         <Field name="lastName" label="Last name" autoComplete="family-name" />
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field name="email" type="email" label="Email *" autoComplete="email" required />
-        <Field name="phone" type="tel" label="Phone" autoComplete="tel" />
+        <Field name="email" type="email" label="Email" autoComplete="email" />
+        <Field name="phone" type="tel" label="Phone *" autoComplete="tel" required />
       </div>
-      <Field name="locality" label="Neighborhood or pincode" autoComplete="postal-code" />
+      <Field name="locality" label="Address / neighborhood / pincode *" autoComplete="street-address" required />
 
       {services && services.length > 0 && (
         <label className="block">

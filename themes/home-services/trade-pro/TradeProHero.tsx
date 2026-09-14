@@ -1,12 +1,11 @@
 import type { PublicService } from '../types'
-import { TradeProQuickQuoteForm } from './TradeProQuickQuoteForm'
+import { TradeProServicePicker } from './TradeProServicePicker'
 import { CheckIcon, PhoneIcon, StarIcon } from './icons'
 import './trade-pro.css'
 
 const TRUST_POINTS = ['Licensed & insured pros', 'Same-day availability', 'Upfront, honest pricing']
 
 export function TradeProHero({
-  tenantId,
   headline,
   subcopy,
   services,
@@ -15,7 +14,6 @@ export function TradeProHero({
   ctaLabel,
   phone,
 }: {
-  tenantId: string
   headline: string
   subcopy?: string
   services: PublicService[]
@@ -26,7 +24,7 @@ export function TradeProHero({
 }) {
   const showRating =
     typeof rating === 'number' && rating > 0 && typeof reviewCount === 'number' && reviewCount > 0
-  const primaryLabel = ctaLabel?.trim() || 'Get a free quote'
+  const primaryLabel = ctaLabel?.trim() || 'Build your enquiry'
   const filledStars = Math.min(5, Math.max(0, Math.round(rating ?? 0)))
 
   return (
@@ -88,10 +86,11 @@ export function TradeProHero({
         </div>
 
         <div className="min-w-0 w-full">
-          <TradeProQuickQuoteForm
-            tenantId={tenantId}
-            services={services.slice(0, 12)}
-            ctaLabel={primaryLabel}
+          <TradeProServicePicker
+            services={services.slice(0, 4)}
+            title={primaryLabel}
+            subtitle="Add services to your cart, then send one enquiry."
+            moreHref={services.length > 4 ? '/services' : undefined}
           />
         </div>
       </div>

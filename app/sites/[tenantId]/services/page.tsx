@@ -7,6 +7,8 @@ import { toThemeTenant } from '@/themes/home-services/types'
 import { TradeProHeader } from '@/themes/home-services/trade-pro/TradeProHeader'
 import { TradeProFooter } from '@/themes/home-services/trade-pro/TradeProFooter'
 import { TradeProFinalCta } from '@/themes/home-services/trade-pro/TradeProFinalCta'
+import { TradeProServiceGrid } from '@/themes/home-services/trade-pro/TradeProServiceGrid'
+import { TradeProShellClient } from '@/themes/home-services/trade-pro/TradeProShellClient'
 import { fetchServices, fetchStorefrontConfig } from '@/lib/storefront-api'
 import { fetchStorefrontMenuLinks } from '@/lib/cms-content'
 import { storefrontPathMetadata } from '@/lib/path-metadata'
@@ -33,18 +35,38 @@ export default async function ServicesPage() {
     : [undefined, undefined]
   const phone = config?.branding?.contactPhone
 
-  return (
-    <>
-      {isTradePro ? (
+  if (isTradePro) {
+    return (
+      <TradeProShellClient tenantId={tenant.id}>
         <TradeProHeader
           tenant={themeTenant}
           navLinks={navLinks}
           phone={phone}
           serviceArea={config?.branding?.address}
         />
-      ) : (
-        <SiteHeader tenant={themeTenant} />
-      )}
+        <main>
+          <section className="mx-auto w-full max-w-6xl px-4 pb-2 pt-12 sm:px-6 sm:pt-16">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
+              {themeTenant.name}
+            </p>
+            <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
+              Everything we do.
+            </h1>
+            <p className="mt-3 max-w-xl text-pretty text-slate-600">
+              Add services to your cart, then send one enquiry. We&apos;ll call you back within 2 hours.
+            </p>
+          </section>
+          <TradeProServiceGrid services={services} title="" showSeeAll={false} phone={phone} />
+          <TradeProFinalCta phone={phone} />
+        </main>
+        <TradeProFooter tenant={themeTenant} config={config} navLinks={footerLinks} />
+      </TradeProShellClient>
+    )
+  }
+
+  return (
+    <>
+      <SiteHeader tenant={themeTenant} />
       <main>
         <section className="mx-auto w-full max-w-6xl px-4 pb-2 pt-12 sm:px-6 sm:pt-16">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
@@ -58,17 +80,9 @@ export default async function ServicesPage() {
           </p>
         </section>
         <ServiceGrid services={services} title="" subtitle="" showSeeAll={false} />
-        {isTradePro ? <TradeProFinalCta phone={phone} /> : <CallToAction />}
+        <CallToAction />
       </main>
-      {isTradePro ? (
-        <TradeProFooter
-          tenant={themeTenant}
-          config={config}
-          navLinks={footerLinks}
-        />
-      ) : (
-        <SiteFooter tenant={themeTenant} />
-      )}
+      <SiteFooter tenant={themeTenant} />
     </>
   )
 }

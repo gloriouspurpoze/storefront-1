@@ -1,6 +1,5 @@
 import type { StorefrontCmsFaq, StorefrontCmsTestimonial, StorefrontNavLink } from '@/lib/cms-content'
 import type { StorefrontConfig } from '@/lib/storefront-api'
-import { ServiceGrid } from '../ServiceGrid'
 import { TrustSection } from '../TrustSection'
 import type { PublicService, ThemeTenant } from '../types'
 import { TradeProAbout } from './TradeProAbout'
@@ -10,6 +9,8 @@ import { TradeProFooter } from './TradeProFooter'
 import { TradeProHeader } from './TradeProHeader'
 import { TradeProHero } from './TradeProHero'
 import { TradeProHowItWorks } from './TradeProHowItWorks'
+import { TradeProServiceGrid } from './TradeProServiceGrid'
+import { TradeProShell } from './TradeProShell'
 import { TradeProStatsBar } from './TradeProStatsBar'
 import { TradeProWhyChooseUs } from './TradeProWhyChooseUs'
 
@@ -41,7 +42,7 @@ export function TradeProPage({
   const reviewCount = reviews > 0 ? reviews : undefined
 
   return (
-    <>
+    <TradeProShell tenantId={tenant.id}>
       <TradeProHeader
         tenant={tenant}
         navLinks={navLinks}
@@ -51,7 +52,6 @@ export function TradeProPage({
 
       <main>
         <TradeProHero
-          tenantId={tenant.id}
           headline={headline}
           subcopy={subcopy}
           services={services}
@@ -63,7 +63,7 @@ export function TradeProPage({
 
         <TradeProStatsBar />
 
-        <ServiceGrid
+        <TradeProServiceGrid
           services={services}
           title="Our services"
           subtitle="Licensed pros for every job, big or small."
@@ -84,7 +84,7 @@ export function TradeProPage({
       </main>
 
       <TradeProFooter tenant={tenant} config={config} navLinks={footerLinks} />
-    </>
+    </TradeProShell>
   )
 }
 

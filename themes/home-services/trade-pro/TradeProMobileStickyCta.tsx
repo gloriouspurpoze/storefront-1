@@ -1,23 +1,22 @@
 'use client'
 
-import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { PhoneIcon } from './icons'
+import { useEnquiryCart } from '@/lib/enquiryCart'
 import './trade-pro.css'
 
 /**
  * Mobile-only sticky conversion bar (DESIGN §4.2).
- * Shows after the header sentinel leaves the viewport; hidden while the mobile
- * nav drawer is open and on `sm+` where the header already has a primary CTA.
+ * Primary action opens the enquiry cart instead of a separate quote form.
  */
 export function TradeProMobileStickyCta({
   phone,
   menuOpen = false,
 }: {
   phone?: string
-  /** When the hamburger drawer is open, hide to avoid stacked CTAs. */
   menuOpen?: boolean
 }) {
+  const { openCart, itemCount } = useEnquiryCart()
   const [pastSentinel, setPastSentinel] = useState(false)
 
   useEffect(() => {
@@ -64,13 +63,14 @@ export function TradeProMobileStickyCta({
             Call now
           </a>
         ) : null}
-        <Link
-          href="/book"
+        <button
+          type="button"
+          onClick={openCart}
           className={`tp-btn-primary tp-mobile-cta__quote ${phone ? '' : 'tp-mobile-cta__quote--solo'}`}
           tabIndex={visible ? undefined : -1}
         >
-          Get a quote
-        </Link>
+          {itemCount > 0 ? `Cart (${itemCount})` : 'View cart'}
+        </button>
       </div>
     </div>
   )

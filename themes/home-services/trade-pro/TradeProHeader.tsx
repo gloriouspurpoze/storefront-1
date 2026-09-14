@@ -6,6 +6,7 @@ import type { StorefrontNavLink } from '@/lib/cms-content'
 import { AccountNavLink } from '@/components/account/AccountNavLink'
 import type { ThemeTenant } from '../types'
 import { ClockIcon, CloseIcon, MenuIcon, PhoneIcon } from './icons'
+import { TradeProCartButton } from './TradeProCartButton'
 import { TradeProMobileStickyCta } from './TradeProMobileStickyCta'
 import './trade-pro.css'
 
@@ -90,6 +91,7 @@ export function TradeProHeader({
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2">
+            <TradeProCartButton />
             {phone ? (
               <a
                 href={`tel:${phone}`}
@@ -100,13 +102,6 @@ export function TradeProHeader({
                 <span className="max-w-[9rem] truncate sm:max-w-none">{phone}</span>
               </a>
             ) : null}
-            <Link
-              href="/book"
-              data-tp-header-cta
-              className="tp-btn-primary hidden shadow-sm sm:inline-flex"
-            >
-              Get a free quote
-            </Link>
             <button
               type="button"
               onClick={() => setOpen((v) => !v)}
@@ -135,13 +130,6 @@ export function TradeProHeader({
               ))}
               <AccountNavLink className="rounded-lg px-2 py-2.5" />
             </div>
-            <Link
-              href="/book"
-              onClick={() => setOpen(false)}
-              className="tp-btn-primary mt-4 w-full"
-            >
-              Get a free quote
-            </Link>
           </div>
         ) : null}
       </header>
