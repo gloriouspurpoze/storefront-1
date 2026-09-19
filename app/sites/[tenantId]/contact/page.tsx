@@ -6,6 +6,8 @@ import { BookingForm } from '@/themes/home-services/BookingForm'
 import { toThemeTenant as toHsTenant } from '@/themes/home-services/types'
 import { TradeProHeader } from '@/themes/home-services/trade-pro/TradeProHeader'
 import { TradeProFooter } from '@/themes/home-services/trade-pro/TradeProFooter'
+import { TradeProShellClient } from '@/themes/home-services/trade-pro/TradeProShellClient'
+import { TradeProServicePicker } from '@/themes/home-services/trade-pro/TradeProServicePicker'
 import { fetchStorefrontMenuLinks } from '@/lib/cms-content'
 import { loadRestaurantTenant } from '@/themes/restaurant/loadThemeTenant'
 import { RestaurantShell } from '@/themes/restaurant/RestaurantShell'
@@ -21,7 +23,7 @@ import { SiteFooter as RetailFooter } from '@/themes/retail/SiteFooter'
 import { BookingForm as RetailContactForm } from '@/themes/home-services/BookingForm'
 import { toThemeTenant as toRetailTenant } from '@/themes/retail/types'
 import { loadTenantFromRequest } from '@/lib/load-tenant'
-import { fetchStorefrontConfig, fetchStorefrontCategories } from '@/lib/storefront-api'
+import { fetchServices, fetchStorefrontConfig, fetchStorefrontCategories } from '@/lib/storefront-api'
 import { LuxeEssenceContactPage } from '@/themes/retail/luxe-essence/LuxeEssenceContactPage'
 import { storefrontPathMetadata } from '@/lib/path-metadata'
 
@@ -48,13 +50,6 @@ export default async function ContactPage() {
           ])
         : [undefined, undefined]
       if (isTradePro) {
-        const { fetchServices } = await import('@/lib/storefront-api')
-        const { TradeProShellClient } = await import(
-          '@/themes/home-services/trade-pro/TradeProShellClient'
-        )
-        const { TradeProServicePicker } = await import(
-          '@/themes/home-services/trade-pro/TradeProServicePicker'
-        )
         const services = await fetchServices(tenant.id, 24)
         return (
           <TradeProShellClient tenantId={tenant.id}>

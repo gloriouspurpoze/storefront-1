@@ -2,10 +2,10 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { accountSkinPrefix } from '@/lib/account-themes'
+import { accountSkinPrefix, isTradeProAccountChrome } from '@/lib/account-themes'
 import { displayName } from '@/lib/storefront-auth'
 import { useAccountAuth } from './AccountAuthProvider'
-import { useAccountTheme } from './AccountThemeContext'
+import { useAccountLayoutTheme, useAccountTheme } from './AccountThemeContext'
 import { accountThemeClasses } from './accountThemeClasses'
 
 const NAV_ITEMS: { href: string; label: string; exact?: boolean }[] = [
@@ -25,9 +25,18 @@ export function AccountDashboardNav() {
   const pathname = usePathname()
   const { user, isAuthenticated, logout } = useAccountAuth()
   const themeKey = useAccountTheme()
+  const layoutTheme = useAccountLayoutTheme()
   const t = accountThemeClasses(themeKey)
   const skin = accountSkinPrefix(themeKey)
   const isLogin = pathname?.includes('/account/login')
+  const isTradePro = isTradeProAccountChrome(layoutTheme)
+  const navItems = isTradePro
+    ? NAV_ITEMS.filter((item) => item.href !== '/orders/track').map((item) =>
+        item.href === '/account/orders' ? { ...item, label: 'Booking' } : item,
+      )
+    : NAV_ITEMS
+  const storeHref = isTradePro ? '/services' : '/'
+  const storeLabel = isTradePro ? '← Services' : '← Continue shopping'
 
   if (isLogin || !isAuthenticated) return null
 
@@ -35,7 +44,7 @@ export function AccountDashboardNav() {
   if (skin === 'bb') return null
 
   if (skin === 'mf' || skin === 'le') {
-    const storeLabel = skin === 'mf' ? 'Back to menu' : 'Continue shopping'
+    const themedStoreLabel = skin === 'mf' ? 'Back to menu' : 'Continue shopping'
     return (
       <aside className={`${skin}-acct-sidebar`} aria-label="Account sections">
         {user ? (
@@ -66,7 +75,7 @@ export function AccountDashboardNav() {
           </button>
         </nav>
         <Link href="/" className={`${skin}-acct-sidebar-store`}>
-          {storeLabel}
+          {themedStoreLabel}
         </Link>
       </aside>
     )
@@ -81,7 +90,7 @@ export function AccountDashboardNav() {
         ) : null}
       </div>
       <nav className="flex flex-row flex-wrap gap-1 lg:flex-col" aria-label="Account sections">
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const active = isNavActive(pathname, item.href, item.exact)
           return (
             <Link
@@ -97,17 +106,19 @@ export function AccountDashboardNav() {
             </Link>
           )
         })}
-        <button
-          type="button"
-          onClick={() => void logout()}
-          className="rounded-lg px-3 py-2 text-left text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900 lg:mt-2"
-        >
-          Sign out
-        </button>
+        {!isTradePro ? (
+          <button
+            type="button"
+            onClick={() => void logout()}
+            className="rounded-lg px-3 py-2 text-left text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900 lg:mt-2"
+          >
+            Sign out
+          </button>
+        ) : null}
       </nav>
       <div className="mt-4 hidden border-t border-neutral-100 pt-4 lg:block">
-        <Link href="/" className={`${t.link} text-sm`}>
-          ← Continue shopping
+        <Link href={storeHref} className={`${t.link} text-sm`}>
+          {storeLabel}
         </Link>
       </div>
     </aside>

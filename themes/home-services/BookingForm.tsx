@@ -2,6 +2,8 @@
 
 import { useState, type FormEvent } from 'react'
 import { submitLead, type PublicService } from '../../lib/storefront-api'
+import { useAccountAuth } from '@/components/account/AccountAuthProvider'
+import { useCartAuthGate } from '@/lib/useCartAuthGate'
 
 interface BookingFormProps {
   tenantId: string
@@ -22,9 +24,7 @@ type Status =
  * via the storefront API client. The backend creates a CRM contact tagged
  * `storefront-lead` so the tenant's sales pipeline picks it up immediately.
  *
- * Designed to feel like "request a callback" rather than "schedule with us" —
- * scheduling logic moves in once the backend exposes per-service availability
- * (Phase 1.1).
+ * Submitting requires a signed-in customer account.
  */
 export function BookingForm({
   tenantId,
@@ -34,10 +34,13 @@ export function BookingForm({
 }: BookingFormProps) {
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
   const [serviceSlug, setServiceSlug] = useState(initialServiceSlug ?? '')
+  const { tokens } = useAccountAuth()
+  const { isAuthenticated, isReady, requireAuthForCart } = useCartAuthGate()
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (status.kind === 'submitting') return
+    if (!requireAuthForCart()) return
 
     const form = new FormData(e.currentTarget)
     const firstName = String(form.get('firstName') ?? '').trim()
@@ -79,6 +82,7 @@ export function BookingForm({
         message,
         serviceSlug: slug,
         source,
+        accessToken: tokens?.accessToken,
         services: [
           {
             serviceId: selected?.id,
@@ -121,6 +125,25 @@ export function BookingForm({
           className="mt-6 text-sm font-medium text-emerald-700 underline-offset-4 hover:underline"
         >
           Submit another request
+        </button>
+      </div>
+    )
+  }
+
+  if (isReady && !isAuthenticated) {
+    return (
+      <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <h2 className="text-lg font-semibold text-slate-900">Sign in to send an enquiry</h2>
+        <p className="text-sm text-slate-600">
+          Create or sign in to your account so you can track the status of your request.
+        </p>
+        <button
+          type="button"
+          onClick={() => requireAuthForCart()}
+          className="inline-flex w-full items-center justify-center rounded-full px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
+          style={{ backgroundColor: 'var(--site-brand)' }}
+        >
+          Sign in to continue
         </button>
       </div>
     )

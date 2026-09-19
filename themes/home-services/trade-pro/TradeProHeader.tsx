@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import type { StorefrontNavLink } from '@/lib/cms-content'
-import { AccountNavLink } from '@/components/account/AccountNavLink'
+import { AccountProfileLink } from '@/components/account/AccountProfileLink'
 import type { ThemeTenant } from '../types'
 import { ClockIcon, CloseIcon, MenuIcon, PhoneIcon } from './icons'
 import { TradeProCartButton } from './TradeProCartButton'
@@ -87,10 +87,13 @@ export function TradeProHeader({
                 {link.label}
               </Link>
             ))}
-            <AccountNavLink className="transition hover:text-[var(--tp-cta)]" />
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2">
+            <AccountProfileLink
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--tp-hairline)] text-[var(--tp-ink)] transition hover:bg-[var(--tp-canvas-soft)]"
+              iconClassName="h-5 w-5"
+            />
             <TradeProCartButton />
             {phone ? (
               <a
@@ -128,7 +131,6 @@ export function TradeProHeader({
                   {link.label}
                 </Link>
               ))}
-              <AccountNavLink className="rounded-lg px-2 py-2.5" />
             </div>
           </div>
         ) : null}

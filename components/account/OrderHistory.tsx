@@ -3,22 +3,24 @@
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import {
+  fetchCustomerEnquiries,
   fetchCustomerOrderTracking,
   fetchCustomerOrders,
+  type CustomerEnquirySummary,
   type CustomerOrderSummary,
   type PublicOrderTracking,
 } from '@/lib/storefront-api'
-import { accountSkinPrefix } from '@/lib/account-themes'
+import { accountSkinPrefix, isTradeProAccountChrome } from '@/lib/account-themes'
 import { displayName } from '@/lib/storefront-auth'
 import { useAccountAuth } from './AccountAuthProvider'
-import { useAccountTheme } from './AccountThemeContext'
+import { useAccountLayoutTheme, useAccountTheme } from './AccountThemeContext'
 import { accountThemeClasses } from './accountThemeClasses'
 import { AccountPageHeader } from './AccountPageHeader'
 import { OrderStatusBadge, OrderTrackingPanel } from './OrderTrackingPanel'
 import { RequireStorefrontAuth } from './RequireStorefrontAuth'
 
-function formatMoney(amount: number): string {
-  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount)
+function formatMoney(amount: number, currency = 'INR'): string {
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency }).format(amount)
 }
 
 function formatDate(iso?: string): string {
@@ -30,12 +32,26 @@ function formatDate(iso?: string): string {
   }
 }
 
+function enquiryStageLabel(stage: string): string {
+  const s = stage.toLowerCase()
+  if (s === 'inquiry' || s === 'lead') return 'Submitted'
+  if (s === 'quoted') return 'Quote sent'
+  if (s === 'scheduled') return 'Visit scheduled'
+  if (s === 'in_progress') return 'In progress'
+  if (s === 'won' || s === 'completed' || s === 'paid') return 'Completed'
+  if (s === 'lost') return 'Closed'
+  return stage.replace(/_/g, ' ')
+}
+
 export function OrderHistory({ tenantId }: { tenantId: string }) {
   const { user, tokens, isReady, isAuthenticated } = useAccountAuth()
   const themeKey = useAccountTheme()
+  const layoutTheme = useAccountLayoutTheme()
+  const isTradePro = isTradeProAccountChrome(layoutTheme)
   const skin = accountSkinPrefix(themeKey)
   const t = accountThemeClasses(themeKey)
   const [orders, setOrders] = useState<CustomerOrderSummary[]>([])
+  const [enquiries, setEnquiries] = useState<CustomerEnquirySummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null)
@@ -54,13 +70,24 @@ export function OrderHistory({ tenantId }: { tenantId: string }) {
     setLoading(true)
     setError(null)
 
-    fetchCustomerOrders({ tenantId, accessToken: tokens.accessToken })
-      .then((data) => {
-        if (!cancelled) setOrders(data.orders)
-      })
+    const load = isTradePro
+      ? fetchCustomerEnquiries({ tenantId, accessToken: tokens.accessToken }).then((data) => {
+          if (!cancelled) setEnquiries(data.enquiries)
+        })
+      : fetchCustomerOrders({ tenantId, accessToken: tokens.accessToken }).then((data) => {
+          if (!cancelled) setOrders(data.orders)
+        })
+
+    load
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Could not load orders')
+          setError(
+            err instanceof Error
+              ? err.message
+              : isTradePro
+                ? 'Could not load enquiries'
+                : 'Could not load orders',
+          )
         }
       })
       .finally(() => {
@@ -70,7 +97,7 @@ export function OrderHistory({ tenantId }: { tenantId: string }) {
     return () => {
       cancelled = true
     }
-  }, [isReady, isAuthenticated, tokens?.accessToken, tenantId])
+  }, [isReady, isAuthenticated, tokens?.accessToken, tenantId, isTradePro])
 
   const loadTracking = useCallback(
     async (orderNumber: string) => {
@@ -113,6 +140,83 @@ export function OrderHistory({ tenantId }: { tenantId: string }) {
 
   if (!isReady) {
     return <p className={t.statusLoading}>Loading…</p>
+  }
+
+  if (isTradePro) {
+    return (
+      <RequireStorefrontAuth returnPath="/account/orders">
+        <div>
+          <AccountPageHeader
+            title="Your enquiries"
+            subtitle={
+              user
+                ? `Booking requests for ${displayName(user)}. Status updates as our team follows up.`
+                : undefined
+            }
+          />
+
+          {loading ? (
+            <p className={t.statusLoading}>Loading enquiries…</p>
+          ) : error ? (
+            <p role="alert" className={t.error}>
+              {error}
+            </p>
+          ) : enquiries.length === 0 ? (
+            <div className={t.emptyState}>
+              <p className={t.emptyTitle}>No enquiries yet</p>
+              <p className={`${t.textMuted} mt-1`}>
+                Enquiries you send while signed in appear here with their status.
+              </p>
+              <Link href="/services" className={`${t.btnSecondary} ${t.btnBlock}`}>
+                Browse services
+              </Link>
+            </div>
+          ) : (
+            <ul className={t.orderList}>
+              {enquiries.map((enquiry) => (
+                <li key={enquiry.id}>
+                  <div className={t.orderCard}>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium">{enquiry.name}</p>
+                        <p className={t.orderMeta}>{formatDate(enquiry.createdAt)}</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        {enquiry.amount > 0 ? (
+                          <p className="font-medium">
+                            {formatMoney(enquiry.amount, enquiry.currency || 'INR')}
+                          </p>
+                        ) : null}
+                        <OrderStatusBadge status={enquiryStageLabel(enquiry.stage)} />
+                      </div>
+                    </div>
+                    {enquiry.services.length > 0 ? (
+                      <ul className={t.orderItems}>
+                        {enquiry.services.map((item, idx) => (
+                          <li key={`${enquiry.id}-${idx}`}>
+                            {item.quantity}× {item.name}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : enquiry.serviceCategory ? (
+                      <p className={`${t.textMuted} mt-2 text-sm`}>{enquiry.serviceCategory}</p>
+                    ) : null}
+                    {enquiry.preferredDate ? (
+                      <p className={`${t.textMuted} mt-2 text-xs`}>
+                        Preferred date: {enquiry.preferredDate}
+                      </p>
+                    ) : null}
+                    {enquiry.address ? (
+                      <p className={`${t.textMuted} mt-1 text-xs`}>{enquiry.address}</p>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </RequireStorefrontAuth>
+    )
   }
 
   return (

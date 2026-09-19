@@ -7,6 +7,7 @@ import type { ResolvedTenant } from '@/lib/types'
 import { contrastTextOn, colorsTooSimilar } from '@/lib/brandContrast'
 import { themeRootClass } from '@/lib/theme-classes'
 import { AccountAuthProvider } from '@/components/account/AccountAuthProvider'
+import { TradeProThemeStyles } from '@/themes/home-services/trade-pro/TradeProThemeStyles'
 
 const TRADE_PRO_PRIMARY = '#00142F'
 const TRADE_PRO_SECONDARY = '#FE9D16'
@@ -198,6 +199,7 @@ export default async function TenantLayout({
         />
       )}
       {cfg?.customCss && <style dangerouslySetInnerHTML={{ __html: cfg.customCss }} />}
+      {cfg?.themeKey === 'trade-pro' ? <TradeProThemeStyles /> : null}
       <AccountAuthProvider tenantId={tenant.id}>{children}</AccountAuthProvider>
     </div>
   )

@@ -21,21 +21,19 @@ export function ThemedAccountShell({
   children,
 }: ThemedAccountShellProps) {
   const themed = isThemedAccount(themeKey) ? themeKey : undefined
+  const Shell = themed ? THEMED_ACCOUNT_COMPONENTS[themed] : null
 
-  if (!themed) {
-    return (
-      <AccountShell tenantName={tenantName} logoUrl={logoUrl} themeKey={themeKey}>
-        {children}
-      </AccountShell>
-    )
-  }
-
-  const Shell = THEMED_ACCOUNT_COMPONENTS[themed]
   return (
-    <AccountThemeProvider themeKey={themed}>
-      <Shell tenantName={tenantName} logoUrl={logoUrl} tagline={tagline}>
-        {children}
-      </Shell>
+    <AccountThemeProvider themeKey={themeKey}>
+      {Shell ? (
+        <Shell tenantName={tenantName} logoUrl={logoUrl} tagline={tagline}>
+          {children}
+        </Shell>
+      ) : (
+        <AccountShell tenantName={tenantName} logoUrl={logoUrl} themeKey={themeKey}>
+          {children}
+        </AccountShell>
+      )}
     </AccountThemeProvider>
   )
 }

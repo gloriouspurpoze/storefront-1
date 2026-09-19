@@ -9,6 +9,7 @@ import { SiteFooter as HsFooter } from '@/themes/home-services/SiteFooter'
 import { toThemeTenant as toHsTenant } from '@/themes/home-services/types'
 import { TradeProHeader } from '@/themes/home-services/trade-pro/TradeProHeader'
 import { TradeProFooter } from '@/themes/home-services/trade-pro/TradeProFooter'
+import { TradeProShellClient } from '@/themes/home-services/trade-pro/TradeProShellClient'
 import { loadRestaurantTenant } from '@/themes/restaurant/loadThemeTenant'
 import { RestaurantShell } from '@/themes/restaurant/RestaurantShell'
 import { SiteHeader as RestHeader } from '@/themes/restaurant/SiteHeader'
@@ -71,9 +72,6 @@ export default async function AboutPage() {
         </main>
       )
       if (isTradePro) {
-        const { TradeProShellClient } = await import(
-          '@/themes/home-services/trade-pro/TradeProShellClient'
-        )
         return (
           <TradeProShellClient tenantId={tenant.id}>
             <TradeProHeader

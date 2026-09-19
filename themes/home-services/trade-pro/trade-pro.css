@@ -511,6 +511,23 @@
   pointer-events: auto;
 }
 
+/* Plain CSS padding — Tailwind px/py lose to unlayered theme resets in the
+   shared CSS chunk (same pattern as .tp-service-row). */
+.theme-trade-pro .tp-enquiry-drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--tp-hairline);
+  padding: 16px;
+  flex-shrink: 0;
+}
+
+.theme-trade-pro .tp-enquiry-drawer__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
 .theme-trade-pro .tp-enquiry-success {
   position: fixed;
   inset: 0;

@@ -18,7 +18,7 @@ export function TradeProFinalCta({ phone }: { phone?: string }) {
           <button
             type="button"
             onClick={openCart}
-            className="inline-flex min-h-11 items-center justify-center rounded-full px-6 py-3 text-sm font-semibold transition hover:brightness-95"
+            className="tp-btn-primary"
             style={{
               backgroundColor: 'var(--tp-accent)',
               color: 'var(--tp-accent-contrast)',

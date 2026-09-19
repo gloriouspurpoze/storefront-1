@@ -120,6 +120,8 @@ export interface LeadInput {
   message?: string
   source?: string
   locality?: string
+  /** Customer JWT — links enquiry to account history when signed in. */
+  accessToken?: string
   /** @deprecated Prefer `services` — kept for older single-service callers. */
   serviceSlug?: string
   services: LeadServiceLine[]
@@ -131,19 +133,21 @@ export interface LeadResult {
 }
 
 export async function submitLead(input: LeadInput): Promise<LeadResult> {
-  const { tenantId, ...body } = input
+  const { tenantId, accessToken, ...body } = input
   const services =
     body.services?.length > 0
       ? body.services
       : body.serviceSlug
         ? [{ name: body.serviceSlug, serviceSlug: body.serviceSlug, quantity: 1 }]
         : []
+  const headers = withTenantId(tenantId, {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+  })
   const res = await fetch(apiUrl('/public/storefront/leads'), {
     method: 'POST',
-    headers: withTenantId(tenantId, {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    }),
+    headers,
     body: JSON.stringify({
       firstName: body.firstName,
       lastName: body.lastName,
@@ -848,6 +852,59 @@ export async function fetchCustomerOrders(input: {
   } | null
   if (!res.ok || !json?.success || !json.data) {
     throw new Error(json?.message || `Failed to load orders (${res.status})`)
+  }
+  return json.data
+}
+
+export interface CustomerEnquirySummary {
+  id: string
+  name: string
+  stage: string
+  amount: number
+  currency: string
+  serviceCategory?: string
+  preferredDate?: string
+  address?: string
+  services: Array<{
+    serviceId?: string
+    serviceSlug?: string
+    name: string
+    quantity: number
+    unitPrice?: number
+    currency?: string
+  }>
+  createdAt: string
+  updatedAt: string
+}
+
+/** @see GET /api/public/storefront/customers/enquiries */
+export async function fetchCustomerEnquiries(input: {
+  tenantId: string
+  accessToken: string
+  limit?: number
+}): Promise<{ enquiries: CustomerEnquirySummary[] }> {
+  const params = new URLSearchParams()
+  if (input.limit) params.set('limit', String(input.limit))
+  const qs = params.toString()
+
+  const res = await fetch(
+    apiUrl(`/public/storefront/customers/enquiries${qs ? `?${qs}` : ''}`),
+    {
+      method: 'GET',
+      headers: withTenantId(input.tenantId, {
+        Accept: 'application/json',
+        Authorization: `Bearer ${input.accessToken}`,
+      }),
+      cache: 'no-store',
+    },
+  )
+  const json = (await res.json().catch(() => null)) as {
+    success?: boolean
+    message?: string
+    data?: { enquiries: CustomerEnquirySummary[] }
+  } | null
+  if (!res.ok || !json?.success || !json.data) {
+    throw new Error(json?.message || `Failed to load enquiries (${res.status})`)
   }
   return json.data
 }

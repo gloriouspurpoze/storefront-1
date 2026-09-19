@@ -9,6 +9,19 @@
   flex-direction: column;
 }
 
+/* Default (non-themed) login card padding — plain CSS so it survives
+   unlayered theme resets that zero Tailwind `p-*` utilities. Themed
+   shells (ss-/le-/bb-/saf-/mf-acct-card) set their own padding. */
+.sf-login-card.rounded-2xl {
+  padding: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .sf-login-card.rounded-2xl {
+    padding: 2rem;
+  }
+}
+
 .sf-login-header {
   text-align: center;
   margin-bottom: 1.75rem;

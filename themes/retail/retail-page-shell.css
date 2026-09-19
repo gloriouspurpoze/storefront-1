@@ -19,6 +19,28 @@
   max-width: 56rem;
 }
 
+/* Default account topbar gutters — plain CSS survives unlayered theme resets. */
+.sf-acct-topbar-inner {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 48rem;
+  margin-inline: auto;
+  display: flex;
+  height: 3.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .sf-acct-topbar-inner {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
 @media (min-width: 640px) {
   .sf-page-shell {
     padding-inline: 1.5rem;

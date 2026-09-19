@@ -25,6 +25,11 @@ export function isThemedAccount(themeKey?: string): themeKey is ThemedAccountKey
   return THEMED_ACCOUNT_KEYS.includes(themeKey as ThemedAccountKey)
 }
 
+/** Home-services trade-pro uses the default AccountShell with HS-specific nav labels. */
+export function isTradeProAccountChrome(themeKey?: string): boolean {
+  return themeKey === 'trade-pro'
+}
+
 /** Map layout theme keys to account theme class namespace. */
 export function accountThemeKey(themeKey?: string): ThemedAccountKey | undefined {
   if (!themeKey) return undefined

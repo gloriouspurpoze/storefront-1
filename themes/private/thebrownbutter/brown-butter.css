@@ -2,10 +2,19 @@
 
 /* Brown Butter storefront — aligned with brownbutterredesign.html */
 
-*,
-*::before,
-*::after {
+/* Scoped to .bb-root — never use a bare `*` reset here.
+   Unlayered global padding:0 beats Tailwind utilities (@layer) for every
+   tenant that shares this CSS chunk (account shells + private registry). */
+.bb-root,
+.bb-root *,
+.bb-root *::before,
+.bb-root *::after {
   box-sizing: border-box;
+}
+
+.bb-root *,
+.bb-root *::before,
+.bb-root *::after {
   margin: 0;
   padding: 0;
 }

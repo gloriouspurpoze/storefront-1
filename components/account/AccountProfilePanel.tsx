@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { accountSkinPrefix } from '@/lib/account-themes'
+import { accountSkinPrefix, isTradeProAccountChrome } from '@/lib/account-themes'
 import {
   emptyProfileForm,
   isProfileFormIncomplete,
@@ -21,16 +21,18 @@ import {
 import { toProfilePhoneE164 } from '@/lib/storefrontCustomerContact'
 import { displayName } from '@/lib/storefront-auth'
 import { useAccountAuth } from './AccountAuthProvider'
-import { useAccountTheme } from './AccountThemeContext'
+import { useAccountLayoutTheme, useAccountTheme } from './AccountThemeContext'
 import { accountThemeClasses } from './accountThemeClasses'
 import { AccountPageHeader } from './AccountPageHeader'
 import { RequireStorefrontAuth } from './RequireStorefrontAuth'
 
 export function AccountProfilePanel({ tenantId }: { tenantId: string }) {
-  const { user, tokens, isReady, isAuthenticated, setSession } = useAccountAuth()
+  const { user, tokens, isReady, isAuthenticated, setSession, logout } = useAccountAuth()
   const themeKey = useAccountTheme()
+  const layoutTheme = useAccountLayoutTheme()
   const skin = accountSkinPrefix(themeKey)
   const t = accountThemeClasses(themeKey)
+  const isTradePro = isTradeProAccountChrome(layoutTheme)
 
   const [profile, setProfile] = useState<CustomerProfile | null>(null)
   const [addressId, setAddressId] = useState<string | null>(null)
@@ -95,7 +97,13 @@ export function AccountProfilePanel({ tenantId }: { tenantId: string }) {
         ? displayName(user)
         : '—'
   const initial = (form.firstName || user?.firstName || '?').charAt(0).toUpperCase()
-  const shopLabel = skin === 'mf' || skin === 'bb' ? 'Order from menu' : 'Continue shopping'
+  const shopLabel = isTradePro
+    ? 'Back to services'
+    : skin === 'mf' || skin === 'bb'
+      ? 'Order from menu'
+      : 'Continue shopping'
+  const shopHref = isTradePro ? '/services' : '/'
+  const ordersLabel = isTradePro ? 'View enquiries' : 'View orders'
 
   const setField = <K extends keyof ProfileForm>(key: K, value: ProfileForm[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -474,11 +482,16 @@ export function AccountProfilePanel({ tenantId }: { tenantId: string }) {
                 {saving ? 'Saving…' : 'Save profile'}
               </button>
               <Link href="/account/orders" className={t.btnSecondary}>
-                View orders
+                {ordersLabel}
               </Link>
-              <Link href="/" className={t.btnSecondary}>
+              <Link href={shopHref} className={t.btnSecondary}>
                 {shopLabel}
               </Link>
+              {isTradePro ? (
+                <button type="button" onClick={() => void logout()} className={t.btnSecondary}>
+                  Sign out
+                </button>
+              ) : null}
             </div>
           </form>
         </div>

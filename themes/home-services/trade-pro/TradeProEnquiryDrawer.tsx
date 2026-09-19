@@ -4,6 +4,7 @@ import { useId, useState, type FormEvent } from 'react'
 import { submitLead } from '@/lib/storefront-api'
 import { formatEnquiryMoney, useEnquiryCart } from '@/lib/enquiryCart'
 import { useAccountAuth } from '@/components/account/AccountAuthProvider'
+import { useCartAuthGate } from '@/lib/useCartAuthGate'
 import { CheckIcon, CloseIcon } from './icons'
 import './trade-pro.css'
 
@@ -14,7 +15,8 @@ type Status =
 
 /**
  * Slide-over enquiry cart: lines (name, est. cost, qty) + contact form → CRM lead.
- * Success is a single modal: “Enquiry sent — We will call you back within 2 hours”.
+ * Sending requires a signed-in customer account (status / follow-up).
+ * Success modal: “Enquiry sent — We will call you back within 2 hours”.
  */
 export function TradeProEnquiryDrawer({ tenantId }: { tenantId: string }) {
   const {
@@ -28,7 +30,8 @@ export function TradeProEnquiryDrawer({ tenantId }: { tenantId: string }) {
     removeLine,
     clear,
   } = useEnquiryCart()
-  const { user } = useAccountAuth()
+  const { user, tokens } = useAccountAuth()
+  const { isAuthenticated, isReady, requireAuthForCart } = useCartAuthGate()
   const titleId = useId()
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
   const [successOpen, setSuccessOpen] = useState(false)
@@ -36,6 +39,7 @@ export function TradeProEnquiryDrawer({ tenantId }: { tenantId: string }) {
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (status.kind === 'submitting' || lines.length === 0) return
+    if (!requireAuthForCart()) return
 
     const form = new FormData(e.currentTarget)
     const firstName = String(form.get('name') ?? '').trim()
@@ -71,6 +75,7 @@ export function TradeProEnquiryDrawer({ tenantId }: { tenantId: string }) {
         address,
         preferredDate: preferredDate || undefined,
         source: 'storefront-enquiry-cart',
+        accessToken: tokens?.accessToken,
         services: lines.map((l) => ({
           serviceId: l.serviceId,
           serviceSlug: l.serviceSlug,
@@ -107,7 +112,7 @@ export function TradeProEnquiryDrawer({ tenantId }: { tenantId: string }) {
         aria-labelledby={titleId}
         aria-hidden={!isOpen}
       >
-        <div className="flex items-center justify-between border-b border-[var(--tp-hairline)] px-4 py-4">
+        <div className="tp-enquiry-drawer__header">
           <h2 id={titleId} className="text-base font-semibold text-[var(--tp-ink)]">
             Your enquiry {itemCount > 0 ? `(${itemCount})` : ''}
           </h2>
@@ -121,7 +126,7 @@ export function TradeProEnquiryDrawer({ tenantId }: { tenantId: string }) {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-4">
+        <div className="tp-enquiry-drawer__body">
           {lines.length === 0 ? (
             <p className="text-sm text-[var(--tp-body)]">
               Add one or more services, then send your enquiry. We&apos;ll call you back.
@@ -191,47 +196,66 @@ export function TradeProEnquiryDrawer({ tenantId }: { tenantId: string }) {
           ) : null}
 
           {lines.length > 0 ? (
-            <form onSubmit={onSubmit} className="mt-6 space-y-3" noValidate>
-              <p className="text-sm font-semibold text-[var(--tp-ink)]">Send enquiry</p>
-              <Field
-                name="name"
-                label="Name *"
-                autoComplete="name"
-                required
-                defaultValue={user ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ''}` : undefined}
-              />
-              <Field
-                name="phone"
-                type="tel"
-                label="Phone *"
-                autoComplete="tel"
-                required
-                defaultValue={user?.phone}
-              />
-              <Field name="address" label="Address *" autoComplete="street-address" required />
-              <Field
-                name="email"
-                type="email"
-                label="Email (optional)"
-                autoComplete="email"
-                defaultValue={user?.email}
-              />
-              <Field name="preferredDate" type="date" label="Preferred date" />
-
-              {status.kind === 'error' ? (
-                <p role="alert" className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-[var(--tp-error)]">
-                  {status.message}
+            !isReady ? (
+              <p className="mt-6 text-sm text-[var(--tp-mute)]">Checking your account…</p>
+            ) : !isAuthenticated ? (
+              <div className="mt-6 space-y-3">
+                <p className="text-sm text-[var(--tp-body)]">
+                  Sign in to send this enquiry so you can track status in your account.
                 </p>
-              ) : null}
+                <button
+                  type="button"
+                  className="tp-btn-primary w-full"
+                  onClick={() => requireAuthForCart()}
+                >
+                  Sign in to send enquiry
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={onSubmit} className="mt-6 space-y-3" noValidate>
+                <p className="text-sm font-semibold text-[var(--tp-ink)]">Send enquiry</p>
+                <Field
+                  name="name"
+                  label="Name *"
+                  autoComplete="name"
+                  required
+                  defaultValue={
+                    user ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ''}` : undefined
+                  }
+                />
+                <Field
+                  name="phone"
+                  type="tel"
+                  label="Phone *"
+                  autoComplete="tel"
+                  required
+                  defaultValue={user?.phone}
+                />
+                <Field name="address" label="Address *" autoComplete="street-address" required />
+                <Field
+                  name="email"
+                  type="email"
+                  label="Email (optional)"
+                  autoComplete="email"
+                  defaultValue={user?.email}
+                />
+                <Field name="preferredDate" type="date" label="Preferred date" />
 
-              <button
-                type="submit"
-                disabled={status.kind === 'submitting'}
-                className="tp-btn-primary w-full"
-              >
-                {status.kind === 'submitting' ? 'Sending…' : 'Send enquiry'}
-              </button>
-            </form>
+                {status.kind === 'error' ? (
+                  <p role="alert" className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-[var(--tp-error)]">
+                    {status.message}
+                  </p>
+                ) : null}
+
+                <button
+                  type="submit"
+                  disabled={status.kind === 'submitting'}
+                  className="tp-btn-primary w-full"
+                >
+                  {status.kind === 'submitting' ? 'Sending…' : 'Send enquiry'}
+                </button>
+              </form>
+            )
           ) : (
             <button type="button" onClick={closeCart} className="tp-btn-primary mt-6 w-full">
               Browse services
@@ -241,7 +265,12 @@ export function TradeProEnquiryDrawer({ tenantId }: { tenantId: string }) {
       </aside>
 
       {successOpen ? (
-        <div className="tp-enquiry-success" role="dialog" aria-modal="true" aria-labelledby="tp-enquiry-success-title">
+        <div
+          className="tp-enquiry-success"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="tp-enquiry-success-title"
+        >
           <div className="tp-enquiry-success__card">
             <div
               className="mx-auto flex h-12 w-12 items-center justify-center rounded-full"

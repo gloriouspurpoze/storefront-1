@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
+import { isTradeProAccountChrome } from '@/lib/account-themes'
 import { themeRootClass } from '@/lib/theme-classes'
 import { useAccountAuth } from './AccountAuthProvider'
 import { displayName } from '@/lib/storefront-auth'
@@ -19,11 +20,15 @@ export function AccountShell({ tenantName, logoUrl, themeKey, children }: Accoun
   const { user, isAuthenticated, logout } = useAccountAuth()
   const isLogin = pathname?.endsWith('/login')
   const rootClass = themeRootClass(themeKey)
+  const isTradePro = isTradeProAccountChrome(themeKey)
+  const storeHref = isTradePro ? '/services' : '/'
+  const storeLabel = isTradePro ? 'Services' : 'Store'
+  const ordersLabel = isTradePro ? 'Booking' : 'Orders'
 
   return (
     <div className={`min-h-screen bg-white text-neutral-900 ${rootClass}`}>
       <header className="border-b border-neutral-200 bg-white">
-        <div className="mx-auto flex h-14 w-full max-w-3xl items-center justify-between gap-4 px-4 sm:px-6">
+        <div className="sf-acct-topbar-inner">
           <Link href="/" className="flex items-center gap-2.5 text-neutral-900">
             {logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -40,8 +45,8 @@ export function AccountShell({ tenantName, logoUrl, themeKey, children }: Accoun
           </Link>
 
           <div className="flex items-center gap-4 text-sm">
-            <Link href="/" className="text-neutral-500 hover:text-neutral-900">
-              Store
+            <Link href={storeHref} className="text-neutral-500 hover:text-neutral-900">
+              {storeLabel}
             </Link>
             {isAuthenticated && !isLogin ? (
               <>
@@ -63,15 +68,17 @@ export function AccountShell({ tenantName, logoUrl, themeKey, children }: Accoun
                       : 'text-neutral-500 hover:text-neutral-900'
                   }
                 >
-                  Orders
+                  {ordersLabel}
                 </Link>
-                <button
-                  type="button"
-                  onClick={logout}
-                  className="text-neutral-500 hover:text-neutral-900"
-                >
-                  Sign out
-                </button>
+                {!isTradePro ? (
+                  <button
+                    type="button"
+                    onClick={logout}
+                    className="text-neutral-500 hover:text-neutral-900"
+                  >
+                    Sign out
+                  </button>
+                ) : null}
               </>
             ) : !isLogin ? (
               <>

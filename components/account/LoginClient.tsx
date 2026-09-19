@@ -4,8 +4,9 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState, type FormEvent } from 'react'
 import { useAccountAuth } from './AccountAuthProvider'
-import { useAccountTheme } from './AccountThemeContext'
+import { useAccountLayoutTheme, useAccountTheme } from './AccountThemeContext'
 import { accountThemeClasses } from './accountThemeClasses'
+import { isTradeProAccountChrome } from '@/lib/account-themes'
 import {
   isGoogleSignInConfigured,
   sendPhoneOtp,
@@ -46,6 +47,8 @@ export function LoginClient() {
   const searchParams = useSearchParams()
   const { isAuthenticated, isReady, setSession } = useAccountAuth()
   const themeKey = useAccountTheme()
+  const layoutTheme = useAccountLayoutTheme()
+  const isTradePro = isTradeProAccountChrome(layoutTheme)
   const t = accountThemeClasses(themeKey)
 
   const [googleLoading, setGoogleLoading] = useState(false)
@@ -120,9 +123,13 @@ export function LoginClient() {
         <header className="sf-login-header">
           <h1 className={t.title}>{isSignup ? 'Create your account' : 'Welcome back'}</h1>
           <p className={t.subtitle}>
-            {isSignup
-              ? 'Join to track orders, save your details, and check out faster.'
-              : 'Sign in to view orders and track deliveries from this store.'}
+            {isTradePro
+              ? isSignup
+                ? 'Join to send enquiries and check booking status.'
+                : 'Sign in to view your enquiries and booking status.'
+              : isSignup
+                ? 'Join to track orders, save your details, and check out faster.'
+                : 'Sign in to view orders and track deliveries from this store.'}
           </p>
         </header>
 
