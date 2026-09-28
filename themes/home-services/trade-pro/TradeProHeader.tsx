@@ -13,7 +13,7 @@ import './trade-pro.css'
 const DEFAULT_LINKS: StorefrontNavLink[] = [
   { href: '/services', label: 'Services' },
   { href: '/about', label: 'About' },
-  { href: '/contact', label: 'Contact' },
+  // { href: '/contact', label: 'Contact' },
 ]
 
 export function TradeProHeader({
