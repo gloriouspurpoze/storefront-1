@@ -12,18 +12,26 @@ export function TradeProAddToCartButton({
   className?: string
   label?: string
 }) {
-  const { addService } = useEnquiryCart()
+  const { addService, openCart, lines } = useEnquiryCart()
+  const inCart = lines.some((l) => l.serviceId === service.id)
+  const resolvedClassName = [className, inCart ? 'tp-add--in-cart' : null].filter(Boolean).join(' ')
+
   return (
     <button
       type="button"
+      aria-pressed={inCart}
       onClick={(e) => {
         e.preventDefault()
         e.stopPropagation()
+        if (inCart) {
+          openCart()
+          return
+        }
         addService(service)
       }}
-      className={className}
+      className={resolvedClassName || undefined}
     >
-      {label}
+      {inCart ? 'Added to cart' : label}
     </button>
   )
 }

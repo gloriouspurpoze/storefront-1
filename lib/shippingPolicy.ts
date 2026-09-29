@@ -11,6 +11,12 @@ export interface ShippingPolicyConfig {
   body?: string
   processingNote?: string
   zones?: ShippingPolicyZone[]
+  /** Local delivery fee charged at checkout (INR). */
+  deliveryFeeInr?: number
+  /** Courier / ship fee at checkout (INR). Falls back to deliveryFeeInr when unset. */
+  shipFeeInr?: number
+  /** Free delivery when cart subtotal >= this (INR). Unset / 0 = never auto-waive. */
+  freeDeliveryMinInr?: number
 }
 
 export function getShippingPolicyFromConfig(
@@ -23,6 +29,18 @@ export function getShippingPolicyFromConfig(
     body: raw.body?.trim() || undefined,
     processingNote: raw.processingNote?.trim() || undefined,
     zones: raw.zones?.filter((z: ShippingPolicyZone) => z.label?.trim() || z.details?.trim()),
+    deliveryFeeInr:
+      typeof raw.deliveryFeeInr === 'number' && Number.isFinite(raw.deliveryFeeInr)
+        ? Math.max(0, raw.deliveryFeeInr)
+        : undefined,
+    shipFeeInr:
+      typeof raw.shipFeeInr === 'number' && Number.isFinite(raw.shipFeeInr)
+        ? Math.max(0, raw.shipFeeInr)
+        : undefined,
+    freeDeliveryMinInr:
+      typeof raw.freeDeliveryMinInr === 'number' && Number.isFinite(raw.freeDeliveryMinInr)
+        ? Math.max(0, raw.freeDeliveryMinInr)
+        : undefined,
   }
 }
 

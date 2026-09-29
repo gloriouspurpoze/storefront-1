@@ -30,6 +30,16 @@ export function isTradeProAccountChrome(themeKey?: string): boolean {
   return themeKey === 'trade-pro'
 }
 
+/** Themes that surface CRM storefront enquiries in the customer account. */
+export function showsAccountEnquiries(themeKey?: string): boolean {
+  return themeKey === 'trade-pro' || themeKey === 'private-thebrownbutter'
+}
+
+/** Hybrid retail skins that show both paid orders and shipping enquiries. */
+export function showsAccountOrdersAndEnquiries(themeKey?: string): boolean {
+  return themeKey === 'private-thebrownbutter'
+}
+
 /** Map layout theme keys to account theme class namespace. */
 export function accountThemeKey(themeKey?: string): ThemedAccountKey | undefined {
   if (!themeKey) return undefined

@@ -32,6 +32,7 @@ export function MenuOrderCheckoutBlock({
   showDeliveryDetails = true,
   deliveryDetails: deliveryDetailsProp,
   onDeliveryDetailsChange,
+  fulfillmentMode,
   onSuccess,
   onClear,
   primaryLabel = 'Pay & place order',
@@ -48,6 +49,8 @@ export function MenuOrderCheckoutBlock({
   /** When set, address is collected by the parent theme (e.g. Saffron cart) but still sent on verify. */
   deliveryDetails?: DeliveryDetailsValue
   onDeliveryDetailsChange?: (next: DeliveryDetailsValue) => void
+  /** Explicit fulfillment mode from parent cart (delivery / pickup / ship). */
+  fulfillmentMode?: string
   onSuccess: (orderNumber: string) => void
   onClear: () => void
   primaryLabel?: string
@@ -159,6 +162,8 @@ export function MenuOrderCheckoutBlock({
         customer: { email: trimmedEmail, name: trimmedName, phone: phone.trim() || undefined },
         notes: orderNotes,
         deliveryDetails: shouldPersistShipping ? deliveryDetails : undefined,
+        fulfillmentMode:
+          fulfillmentMode ?? (shouldPersistShipping ? 'delivery' : 'pickup'),
         accessToken,
         paymentMethod,
       })

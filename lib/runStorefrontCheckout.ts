@@ -9,6 +9,7 @@ import { openRazorpayCheckout } from '@/lib/razorpayCheckout'
 import type { StorefrontPaymentMethod } from '@/lib/storefrontPaymentMethods'
 import type { DeliveryDetailsValue } from '@/lib/templateSettings'
 import { deliveryDetailsToShippingAddress } from '@/lib/storefrontShippingAddress'
+import { toApiFulfillmentMode } from '@/lib/storefrontCheckoutPricing'
 
 export interface StorefrontCheckoutLine {
   productId: string
@@ -36,6 +37,8 @@ export async function runStorefrontCheckout(input: {
   notes?: string
   deliveryDetails?: Partial<DeliveryDetailsValue>
   shippingAddress?: StorefrontShippingAddressPayload
+  /** pickup | delivery | ship (aliases like local/takeaway accepted) */
+  fulfillmentMode?: string
   accessToken?: string
   paymentMethod?: StorefrontPaymentMethod
 }): Promise<StorefrontCheckoutSuccess> {
@@ -53,6 +56,10 @@ export async function runStorefrontCheckout(input: {
     throw new Error('Please complete your delivery address (street, city, and PIN code).')
   }
 
+  const fulfillmentMode = toApiFulfillmentMode(
+    input.fulfillmentMode ?? (shippingAddress ? 'delivery' : 'pickup'),
+  )
+
   const method = input.paymentMethod ?? 'razorpay'
 
   if (method === 'cod' || method === 'pay_at_restaurant') {
@@ -65,6 +72,7 @@ export async function runStorefrontCheckout(input: {
       phone: input.customer.phone,
       paymentMethod: method as StorefrontOfflinePaymentMethod,
       shippingAddress,
+      fulfillmentMode,
       accessToken: input.accessToken,
     })
     return {
@@ -80,6 +88,7 @@ export async function runStorefrontCheckout(input: {
     customerEmail: input.customer.email,
     customerName: input.customer.name,
     notes: input.notes,
+    fulfillmentMode,
     accessToken: input.accessToken,
   })
 

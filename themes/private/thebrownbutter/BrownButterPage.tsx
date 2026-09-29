@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { PublicProduct, StorefrontConfig } from '@/lib/storefront-api'
-import { fetchProducts } from '@/lib/storefront-api'
+import { fetchProducts, submitLead } from '@/lib/storefront-api'
 import { runStorefrontCheckout } from '@/lib/runStorefrontCheckout'
 import { validateShippingAddress } from '@/lib/storefrontShippingAddress'
 import type { DeliveryDetailsValue } from '@/lib/templateSettings'
@@ -31,6 +31,10 @@ import {
   getEnabledDeliveryModes,
   type StorefrontDeliveryMode,
 } from '@/lib/storefrontDeliveryModes'
+import {
+  storefrontShippingAmountInr,
+  toApiFulfillmentMode,
+} from '@/lib/storefrontCheckoutPricing'
 import './brown-butter.css'
 
 type DeliveryMode = 'pickup' | 'local' | 'ship'
@@ -43,9 +47,6 @@ function toBrownButterMode(mode: StorefrontDeliveryMode): DeliveryMode {
 function getEnabledBrownButterModes(config: StorefrontConfig | null | undefined): DeliveryMode[] {
   return getEnabledDeliveryModes(config).map(toBrownButterMode)
 }
-
-const LOCAL_DELIVERY_FEE = 70
-const SHIP_DELIVERY_FEE = 120
 
 function formatInr(n: number): string {
   return `₹${n.toLocaleString('en-IN')}`
@@ -370,7 +371,7 @@ export function BrownButterPage({
   const [products, setProducts] = useState<PublicProduct[]>(initialProducts)
   const [productsLoading, setProductsLoading] = useState(initialProducts.length === 0)
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [view, setView] = useState<'menu' | 'success'>('menu')
+  const [view, setView] = useState<'menu' | 'success' | 'enquiry_success'>('menu')
   const [orderNumber, setOrderNumber] = useState<string | null>(null)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
@@ -467,12 +468,13 @@ export function BrownButterPage({
   }, [showCartBar, sheetOpen])
 
   const deliveryFee = useMemo(() => {
-    if (delivery === 'local') return LOCAL_DELIVERY_FEE
-    if (delivery === 'ship') return SHIP_DELIVERY_FEE
-    return 0
-  }, [delivery])
+    // Mumbai / courier ship is enquiry-only for now — never charge in checkout UI.
+    if (delivery === 'ship') return 0
+    return storefrontShippingAmountInr(delivery, subtotal, config)
+  }, [delivery, subtotal, config])
 
   const total = subtotal + deliveryFee
+  const isShipEnquiry = delivery === 'ship'
 
   const openSheet = useCallback(() => {
     if (itemCount === 0) {
@@ -499,6 +501,10 @@ export function BrownButterPage({
     })
     if (!contact.ok) {
       setCheckoutError(contact.message)
+      return
+    }
+    if (delivery === 'ship' && !contact.phone?.trim()) {
+      setCheckoutError('Phone number is required for shipping enquiries.')
       return
     }
 
@@ -565,6 +571,55 @@ export function BrownButterPage({
     setCheckoutLoading(true)
     setCheckoutError(null)
     try {
+      // Ship anywhere in Mumbai → CRM lead / enquiry only (no Razorpay, no order).
+      if (delivery === 'ship') {
+        const nameParts = contact.name.trim().split(/\s+/).filter(Boolean)
+        const firstName = nameParts[0] || 'Customer'
+        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined
+        const pin = pincode.replace(/\D/g, '').slice(0, 6)
+        const fullAddress = [
+          address.trim(),
+          pin ? `PIN ${pin}` : null,
+          'Mumbai',
+        ]
+          .filter(Boolean)
+          .join(', ')
+
+        await submitLead({
+          tenantId: tenant.id,
+          firstName,
+          lastName,
+          email: contact.email,
+          phone: contact.phone || '',
+          address: fullAddress,
+          preferredDate: deliveryDate.trim() || undefined,
+          locality: 'Mumbai',
+          source: 'brownbutter-ship-enquiry',
+          accessToken,
+          message: [
+            'Shipping enquiry — All over Mumbai (not paid yet).',
+            deliveryTime ? `Preferred time: ${deliveryTime}` : null,
+            birthday ? `Birthday: ${birthday}` : null,
+            notes,
+          ]
+            .filter(Boolean)
+            .join('\n'),
+          services: entries.map((e) => ({
+            serviceId: e.id,
+            name: e.name,
+            quantity: e.qty,
+            unitPrice: e.price,
+            currency: 'INR',
+          })),
+        })
+
+        setOrderNumber(null)
+        setView('enquiry_success')
+        setSheetOpen(false)
+        clear()
+        return
+      }
+
       const result = await runStorefrontCheckout({
         tenantId: tenant.id,
         tenantName: siteName,
@@ -577,6 +632,7 @@ export function BrownButterPage({
         },
         notes,
         deliveryDetails: deliveryDetailsForCheckout,
+        fulfillmentMode: toApiFulfillmentMode(delivery),
         accessToken,
       })
       setOrderNumber(result.orderNumber)
@@ -588,6 +644,39 @@ export function BrownButterPage({
     } finally {
       setCheckoutLoading(false)
     }
+  }
+
+  if (view === 'enquiry_success') {
+    return (
+      <div className="bb-root bb-page">
+        <div className="bb-success-card">
+          <div className="success-screen" style={{ display: 'block' }}>
+            <span className="big-emoji">📬</span>
+            <h2>Enquiry sent!</h2>
+            <p>
+              Thanks — we&apos;ve received your Mumbai shipping request.
+              <br />
+              {contactPhone
+                ? 'We will WhatsApp you shortly with delivery options.'
+                : 'Our team will follow up to confirm shipping.'}
+            </p>
+            <p style={{ marginTop: 12, fontSize: 14, opacity: 0.85 }}>
+              You can track this under <strong>Account → Enquiries</strong>.
+            </p>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                setView('menu')
+              }}
+            >
+              <span>Back to menu</span>
+              <span>→</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (view === 'success') {
@@ -641,8 +730,20 @@ export function BrownButterPage({
               <div className="delivery-options">
                 {([
                   ['pickup', 'Self Pickup · Mira Road', 'Pick up from Tanwar hospital.', 'Free'],
-                  ['local', 'Within Mira Road', 'Same-day delivery in Mira Road area.', formatInr(LOCAL_DELIVERY_FEE)],
-                  ['ship', 'Ship Anywhere in Mumbai', 'Courier delivery across Mumbai.', formatInr(SHIP_DELIVERY_FEE)],
+                  [
+                    'local',
+                    'Within Mira Road',
+                    'Same-day delivery in Mira Road area.',
+                    storefrontShippingAmountInr('local', subtotal, config) === 0
+                      ? 'Free'
+                      : formatInr(storefrontShippingAmountInr('local', subtotal, config)),
+                  ],
+                  [
+                    'ship',
+                    'All over Mumbai',
+                    'Send an enquiry — we confirm shipping before payment.',
+                    'Enquiry',
+                  ],
                 ] as const)
                   .filter(([mode]) => enabledDeliveryModes.includes(mode))
                   .map(([mode, title, desc, fee]) => (
@@ -697,10 +798,21 @@ export function BrownButterPage({
                   <span>{formatInr(deliveryFee)}</span>
                 </div>
               )}
+              {isShipEnquiry ? (
+                <div className="cart-row shipping">
+                  <span>Shipping</span>
+                  <span>We&apos;ll confirm</span>
+                </div>
+              ) : null}
               <div className="cart-row cart-total">
-                <span>Total</span>
+                <span>{isShipEnquiry ? 'Items total' : 'Total'}</span>
                 <span>{formatInr(total)}</span>
               </div>
+              {isShipEnquiry ? (
+                <p style={{ margin: '8px 0 0', fontSize: 13, opacity: 0.8 }}>
+                  No payment yet — this sends an enquiry to our team.
+                </p>
+              ) : null}
             </div>
 
             <div className="fields">
@@ -745,7 +857,15 @@ export function BrownButterPage({
             {checkoutError && <p className="no-item-warn show">{checkoutError}</p>}
 
             <button type="button" className="btn" disabled={checkoutLoading} onClick={() => void onSubmit()}>
-              <span>{checkoutLoading ? 'Processing…' : 'Place order & pay'}</span>
+              <span>
+                {checkoutLoading
+                  ? isShipEnquiry
+                    ? 'Sending enquiry…'
+                    : 'Processing…'
+                  : isShipEnquiry
+                    ? 'Send enquiry'
+                    : 'Place order & pay'}
+              </span>
               <span>→</span>
             </button>
           </div>

@@ -34,6 +34,7 @@ import {
   coerceDeliveryMode,
   getEnabledRestaurantDeliveryModes,
 } from '@/lib/storefrontDeliveryModes'
+import { storefrontShippingAmountInr } from '@/lib/storefrontCheckoutPricing'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -786,6 +787,7 @@ function CartContent({
             showDeliveryDetails={false}
             deliveryDetails={deliveryMode === 'delivery' ? deliveryDetails : undefined}
             onDeliveryDetailsChange={onDeliveryDetailsChange}
+            fulfillmentMode={deliveryMode}
             onClear={onClear}
             onSuccess={onOrderSuccess}
             primaryLabel={`Pay & place order · ${formatMenuPrice(total, currency)}`}
@@ -940,7 +942,7 @@ export function SaffronMenuPage({
   const totalCartCount = itemCount
 
   const currency = cartEntries[0]?.item.currency ?? 'INR'
-  const deliveryFee = deliveryMode === 'pickup' ? 0 : subtotal >= 499 ? 0 : 40
+  const deliveryFee = storefrontShippingAmountInr(deliveryMode, subtotal, config)
   const tax = Math.round(subtotal * 0.05)
   const discount = promoApplied ? Math.round(subtotal * 0.1) : 0
   const total = subtotal + deliveryFee + tax - discount

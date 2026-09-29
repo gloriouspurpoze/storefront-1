@@ -3,6 +3,8 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAccountAuth } from './AccountAuthProvider'
+import { useAccountLayoutTheme } from './AccountThemeContext'
+import { showsAccountEnquiries, showsAccountOrdersAndEnquiries } from '@/lib/account-themes'
 
 export function AccountShellNav({
   className,
@@ -17,6 +19,9 @@ export function AccountShellNav({
 }) {
   const pathname = usePathname()
   const { isAuthenticated, logout } = useAccountAuth()
+  const layoutTheme = useAccountLayoutTheme()
+  const showEnquiries = showsAccountEnquiries(layoutTheme)
+  const hybrid = showsAccountOrdersAndEnquiries(layoutTheme)
   const isLogin = pathname?.endsWith('/login')
   const link = linkClassName ?? ''
   const active = activeClassName ?? link
@@ -31,22 +36,39 @@ export function AccountShellNav({
 
   if (isLogin) return null
 
+  const ordersLabel = hybrid
+    ? 'Orders & enquiries'
+    : showEnquiries && !hybrid
+      ? 'Enquiries'
+      : 'Orders'
+
   return (
     <nav className={className} aria-label="Account">
       {isAuthenticated ? (
         <>
-          <Link href="/account" className={isActive('/account') && !pathname?.includes('/account/orders') && !pathname?.includes('/account/profile') ? active : link}>
+          <Link
+            href="/account"
+            className={
+              isActive('/account') &&
+              !pathname?.includes('/account/orders') &&
+              !pathname?.includes('/account/profile')
+                ? active
+                : link
+            }
+          >
             Overview
           </Link>
           <Link href="/account/orders" className={isActive('/account/orders') ? active : link}>
-            Orders
+            {ordersLabel}
           </Link>
           <Link href="/account/profile" className={isActive('/account/profile') ? active : link}>
             Profile
           </Link>
-          <Link href="/orders/track" className={isActive('/orders/track') ? active : link}>
-            Track
-          </Link>
+          {!showEnquiries || hybrid ? (
+            <Link href="/orders/track" className={isActive('/orders/track') ? active : link}>
+              Track
+            </Link>
+          ) : null}
           <button type="button" onClick={handleSignOut} className={link}>
             Sign out
           </button>

@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import type { PublicService } from '../types'
 import { formatPrice } from '../ServiceCard'
-import { useEnquiryCart } from '@/lib/enquiryCart'
+import { TradeProAddToCartButton } from './TradeProAddToCartButton'
 import './trade-pro.css'
 
 /** Hero / book-page multi-service picker — adds lines to the enquiry cart. */
@@ -20,8 +20,6 @@ export function TradeProServicePicker({
   moreHref?: string
   moreLabel?: string
 }) {
-  const { addService } = useEnquiryCart()
-
   if (services.length === 0) {
     return (
       <div className="tp-card">
@@ -46,9 +44,7 @@ export function TradeProServicePicker({
                 <p className="tp-service-row__name">{s.name}</p>
                 <p className="tp-service-row__price">{price ? `Est. ${price}` : 'Free estimate'}</p>
               </div>
-              <button type="button" className="tp-service-row__add" onClick={() => addService(s)}>
-                Add
-              </button>
+              <TradeProAddToCartButton service={s} className="tp-service-row__add" label="Add" />
             </li>
           )
         })}

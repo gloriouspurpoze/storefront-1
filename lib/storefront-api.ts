@@ -369,6 +369,7 @@ export async function createCheckoutOrder(input: {
   customerEmail: string
   customerName?: string
   notes?: string
+  fulfillmentMode?: 'pickup' | 'delivery' | 'ship' | 'local' | 'takeaway' | 'shipping' | 'courier'
   accessToken?: string
 }): Promise<CheckoutOrderResult> {
   const headers: Record<string, string> = {
@@ -385,6 +386,7 @@ export async function createCheckoutOrder(input: {
       customerEmail: input.customerEmail,
       customerName: input.customerName,
       notes: input.notes,
+      fulfillmentMode: input.fulfillmentMode,
     }),
   })
   const json = (await res.json().catch(() => null)) as ApiEnvelope<CheckoutOrderResult> | null
@@ -405,6 +407,7 @@ export async function placeCheckoutOrder(input: {
   phone?: string
   paymentMethod: StorefrontOfflinePaymentMethod
   shippingAddress?: StorefrontShippingAddressPayload
+  fulfillmentMode?: 'pickup' | 'delivery' | 'ship' | 'local' | 'takeaway' | 'shipping' | 'courier'
   accessToken?: string
 }): Promise<CheckoutVerifyResult> {
   const headers: Record<string, string> = {
@@ -424,6 +427,7 @@ export async function placeCheckoutOrder(input: {
       phone: input.phone,
       paymentMethod: input.paymentMethod,
       shippingAddress: input.shippingAddress,
+      fulfillmentMode: input.fulfillmentMode,
     }),
   })
   const json = (await res.json().catch(() => null)) as ApiEnvelope<CheckoutVerifyResult> | null

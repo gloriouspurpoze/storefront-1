@@ -67,7 +67,7 @@ export function BrownButterAccountShell({
               <>Sign in to track orders &amp; reorder favourites</>
             ) : (
               <>
-                Order history · <strong>{tagline || 'Fresh baked daily'}</strong>
+                Orders · shipping enquiries · <strong>{tagline || 'Fresh baked daily'}</strong>
               </>
             )}
           </p>
