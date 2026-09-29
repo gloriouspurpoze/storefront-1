@@ -889,22 +889,25 @@ export function BrownButterPage({
     ) : null
 
   return (
-    <div className="bb-root bb-page">
+    <>
+      {/* Menu drawer stays outside .bb-root so the theme `*` reset cannot
+          zero shared storefront-menu-drawer padding (ordering-hours panel). */}
       <StorefrontMenuDrawer
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         config={config}
         navLinks={navLinks}
       />
-      <StorefrontHeaderBar
-        title={headerTitle}
-        onMenuOpen={() => setMenuOpen(true)}
-        actions={
-          <AccountProfileLink className="action-profile-btn" iconClassName="h-4 w-4" />
-        }
-      />
+      <div className="bb-root bb-page">
+        <StorefrontHeaderBar
+          title={headerTitle}
+          onMenuOpen={() => setMenuOpen(true)}
+          actions={
+            <AccountProfileLink className="action-profile-btn" iconClassName="h-4 w-4" />
+          }
+        />
 
-      <div className="bb-store-wrap">
+        <div className="bb-store-wrap">
         <section className="hero">
           <div className="status-card">
             <div className="status-left">
@@ -1004,6 +1007,7 @@ export function BrownButterPage({
       </div>
 
       {mounted ? createPortal(cartChrome, document.body) : null}
-    </div>
+      </div>
+    </>
   )
 }

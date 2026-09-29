@@ -4,17 +4,21 @@
 
 /* Scoped to .bb-root — never use a bare `*` reset here.
    Unlayered global padding:0 beats Tailwind utilities (@layer) for every
-   tenant that shares this CSS chunk (account shells + private registry). */
+   tenant that shares this CSS chunk (account shells + private registry).
+
+   Exclude shared menu drawer / sticky header: they use the same specificity
+   as `.bb-root *` (one class). When this file sorts after storefront-menu-drawer.css
+   the reset zeros drawer padding and the ordering-hours panel looks unstyled. */
 .bb-root,
-.bb-root *,
-.bb-root *::before,
-.bb-root *::after {
+.bb-root *:not(:where(.sf-menu-overlay, .sf-menu-overlay *, .sf-store-header, .sf-store-header *)),
+.bb-root *:not(:where(.sf-menu-overlay, .sf-menu-overlay *, .sf-store-header, .sf-store-header *))::before,
+.bb-root *:not(:where(.sf-menu-overlay, .sf-menu-overlay *, .sf-store-header, .sf-store-header *))::after {
   box-sizing: border-box;
 }
 
-.bb-root *,
-.bb-root *::before,
-.bb-root *::after {
+.bb-root *:not(:where(.sf-menu-overlay, .sf-menu-overlay *, .sf-store-header, .sf-store-header *)),
+.bb-root *:not(:where(.sf-menu-overlay, .sf-menu-overlay *, .sf-store-header, .sf-store-header *))::before,
+.bb-root *:not(:where(.sf-menu-overlay, .sf-menu-overlay *, .sf-store-header, .sf-store-header *))::after {
   margin: 0;
   padding: 0;
 }

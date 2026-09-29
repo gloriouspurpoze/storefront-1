@@ -357,3 +357,14 @@ body.sf-menu-open {
   --sf-menu-link-radius: 20px;
   --sf-menu-info-radius: 20px;
 }
+
+.theme-brown-butter .sf-menu-drawer__title,
+.theme-brown-butter .sf-menu-drawer__link-title,
+.theme-brown-butter .sf-ordering-hours-table__title,
+.theme-brown-butter .sf-store-header__brand h2 {
+  font-family: 'Nunito', sans-serif;
+}
+
+.theme-brown-butter .sf-ordering-hours-table__row {
+  grid-template-columns: minmax(5.5rem, auto) minmax(0, 1fr);
+}
