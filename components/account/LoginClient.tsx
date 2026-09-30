@@ -152,13 +152,13 @@ export function LoginClient() {
                 <span>{googleLoading ? 'Connecting…' : 'Continue with Google'}</span>
               </button>
 
-              <div className="sf-login-divider" role="presentation">
+              {/* <div className="sf-login-divider" role="presentation">
                 <span>or continue with phone</span>
-              </div>
+              </div> */}
             </>
           ) : null}
 
-          {!otpSent ? (
+          {/* {!otpSent ? (
             <form onSubmit={onSendOtp} className={t.form}>
               <div className="sf-login-field">
                 <label htmlFor="phone" className={t.label}>
@@ -243,7 +243,7 @@ export function LoginClient() {
                 Use a different number
               </button>
             </form>
-          )}
+          )} */}
         </div>
 
         <footer className="sf-login-footer">
