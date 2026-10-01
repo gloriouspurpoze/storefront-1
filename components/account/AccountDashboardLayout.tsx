@@ -6,7 +6,14 @@ import { accountSkinPrefix } from '@/lib/account-themes'
 import { AccountDashboardNav } from './AccountDashboardNav'
 import { useAccountTheme } from './AccountThemeContext'
 
-export function AccountDashboardLayout({ children }: { children: ReactNode }) {
+export function AccountDashboardLayout({
+  children,
+  showWishlist = false,
+}: {
+  children: ReactNode
+  /** Wishlist add-on active — adds the Wishlist account section. */
+  showWishlist?: boolean
+}) {
   const pathname = usePathname()
   const themeKey = useAccountTheme()
   const skin = accountSkinPrefix(themeKey)
@@ -24,7 +31,7 @@ export function AccountDashboardLayout({ children }: { children: ReactNode }) {
   if (skin === 'mf' || skin === 'le') {
     return (
       <div className={`${skin}-acct-layout`}>
-        <AccountDashboardNav />
+        <AccountDashboardNav showWishlist={showWishlist} />
         <div className={`${skin}-acct-layout-main`}>{children}</div>
       </div>
     )
@@ -32,7 +39,7 @@ export function AccountDashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="lg:flex lg:items-start lg:gap-8">
-      <AccountDashboardNav />
+      <AccountDashboardNav showWishlist={showWishlist} />
       <div className="min-w-0 flex-1">{children}</div>
     </div>
   )

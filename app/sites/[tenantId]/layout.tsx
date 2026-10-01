@@ -8,6 +8,9 @@ import { contrastTextOn, colorsTooSimilar } from '@/lib/brandContrast'
 import { themeRootClass } from '@/lib/theme-classes'
 import { AccountAuthProvider } from '@/components/account/AccountAuthProvider'
 import { TradeProThemeStyles } from '@/themes/home-services/trade-pro/TradeProThemeStyles'
+import { StorefrontFloatingWidgets } from '@/components/floating/StorefrontFloatingWidgets'
+import { isAddonActive, STOREFRONT_ADDON_FLAGS } from '@/lib/storefrontAddons'
+import { resolveWhatsAppNumber } from '@/lib/storefrontWhatsApp'
 
 const TRADE_PRO_PRIMARY = '#00142F'
 const TRADE_PRO_SECONDARY = '#FE9D16'
@@ -148,6 +151,10 @@ export default async function TenantLayout({
   const jsonLd = structuredData(tenant, cfg)
   const analytics = cfg?.seo?.analytics ?? {}
   const themeClass = themeRootClass(cfg?.themeKey)
+  const siteName = cfg?.branding?.siteName || tenant.name
+  // Paid floating add-ons: WhatsApp needs a usable number; live chat needs only the add-on.
+  const whatsAppDigits = isAddonActive(cfg, STOREFRONT_ADDON_FLAGS.whatsApp) ? resolveWhatsAppNumber(cfg) : null
+  const liveChatActive = isAddonActive(cfg, STOREFRONT_ADDON_FLAGS.liveChat)
 
   return (
     <div
@@ -201,6 +208,12 @@ export default async function TenantLayout({
       {cfg?.customCss && <style dangerouslySetInnerHTML={{ __html: cfg.customCss }} />}
       {cfg?.themeKey === 'trade-pro' ? <TradeProThemeStyles /> : null}
       <AccountAuthProvider tenantId={tenant.id}>{children}</AccountAuthProvider>
+      <StorefrontFloatingWidgets
+        tenantId={tenant.id}
+        siteName={siteName}
+        whatsAppDigits={whatsAppDigits}
+        liveChat={liveChatActive}
+      />
     </div>
   )
 }

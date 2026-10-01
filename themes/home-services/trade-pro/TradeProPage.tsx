@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { StorefrontCmsFaq, StorefrontCmsTestimonial, StorefrontNavLink } from '@/lib/cms-content'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 import { TrustSection } from '../TrustSection'
@@ -22,6 +23,7 @@ export function TradeProPage({
   services,
   faqs,
   testimonials,
+  addonsSlot,
 }: {
   tenant: ThemeTenant
   config: StorefrontConfig | null
@@ -30,6 +32,7 @@ export function TradeProPage({
   services: PublicService[]
   faqs: StorefrontCmsFaq[]
   testimonials: StorefrontCmsTestimonial[]
+  addonsSlot?: ReactNode
 }) {
   const headline = config?.content?.heroHeadline || `${tenant.name}, done right the first time.`
   const subcopy = config?.content?.heroSubcopy || tenant.tagline
@@ -81,6 +84,8 @@ export function TradeProPage({
         <TradeProFaq faqs={faqs} />
 
         <TradeProFinalCta phone={phone} />
+
+        {addonsSlot}
       </main>
 
       <TradeProFooter tenant={tenant} config={config} navLinks={footerLinks} />

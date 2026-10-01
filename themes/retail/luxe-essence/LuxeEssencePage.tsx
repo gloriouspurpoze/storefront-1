@@ -1,4 +1,5 @@
 'use client'
+import type { ReactNode } from 'react'
 
 import { useEffect, useMemo, useState } from 'react'
 import type { StorefrontNavLink } from '@/lib/cms-content'
@@ -42,6 +43,7 @@ export function LuxeEssencePage({
   content = EMPTY_CONTENT,
   navLinks,
   footerLinks,
+  addonsSlot,
 }: {
   products: PublicProduct[]
   categories?: StorefrontProductCategory[]
@@ -50,6 +52,8 @@ export function LuxeEssencePage({
   content?: LuxeEssenceStorefrontContent
   navLinks?: StorefrontNavLink[]
   footerLinks?: StorefrontNavLink[]
+  /** Paid add-on homepage blocks, rendered above the footer. */
+  addonsSlot?: ReactNode
 }) {
   const siteName = config?.branding?.siteName || tenant.name
   const tagline = config?.branding?.tagline || tenant.tagline
@@ -158,6 +162,8 @@ export function LuxeEssencePage({
       )}
 
       {promo.length > 0 ? <LuxeEssencePromoBlock slides={promo} /> : null}
+
+      {addonsSlot}
 
       <LuxeEssenceFooter
         config={config}

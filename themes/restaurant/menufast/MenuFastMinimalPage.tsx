@@ -1,4 +1,5 @@
 'use client'
+import type { ReactNode } from 'react'
 
 import Link from 'next/link'
 import { useState } from 'react'
@@ -35,6 +36,7 @@ export function MenuFastMinimalPage({
   config,
   navLinks,
   footerLinks,
+  addonsSlot,
 }: {
   initialCategories: PublicMenuCategory[]
   tenant: ThemeTenant
@@ -42,6 +44,8 @@ export function MenuFastMinimalPage({
   navLinks?: StorefrontNavLink[]
   /** CMS footer links when present (no hardcoded page-link fallback in minimal). */
   footerLinks?: StorefrontNavLink[]
+  /** Paid add-on homepage blocks, rendered above the footer. */
+  addonsSlot?: ReactNode
 }) {
   const siteName = config?.branding?.siteName || tenant.name
   const tagline = config?.branding?.tagline || tenant.tagline
@@ -264,6 +268,7 @@ export function MenuFastMinimalPage({
                 Or order via WhatsApp
               </a>
             )}
+            {addonsSlot}
             {footerLinks?.length ? (
               <nav className="mf-min-footer-pages" aria-label="Site pages">
                 {footerLinks.map((link) => (

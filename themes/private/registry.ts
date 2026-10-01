@@ -16,11 +16,13 @@ export type PrivateLayoutRenderArgs = {
   menu?: PublicMenuCategory[]
   navLinks?: StorefrontNavLink[]
   footerLinks?: StorefrontNavLink[]
+  /** Paid add-on homepage blocks, rendered above the theme footer. */
+  addonsSlot?: ReactNode
 }
 
 type PrivateLayoutComponentProps = Pick<
   PrivateLayoutRenderArgs,
-  'tenant' | 'config' | 'products' | 'menu' | 'navLinks' | 'footerLinks'
+  'tenant' | 'config' | 'products' | 'menu' | 'navLinks' | 'footerLinks' | 'addonsSlot'
 >
 
 export type PrivateLayoutEntry = {
@@ -58,5 +60,6 @@ export function renderPrivateLayout(
     menu: args.menu,
     navLinks: args.navLinks,
     footerLinks: args.footerLinks,
+    addonsSlot: args.addonsSlot,
   })
 }

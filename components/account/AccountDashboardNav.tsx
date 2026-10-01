@@ -21,7 +21,9 @@ function isNavActive(pathname: string | null, href: string, exact?: boolean): bo
   return pathname === href || pathname.startsWith(`${href}/`) || pathname.endsWith(`${href}/`)
 }
 
-export function AccountDashboardNav() {
+const WISHLIST_NAV_ITEM: (typeof NAV_ITEMS)[number] = { href: '/account/wishlist', label: 'Wishlist' }
+
+export function AccountDashboardNav({ showWishlist = false }: { showWishlist?: boolean } = {}) {
   const pathname = usePathname()
   const { user, isAuthenticated, logout } = useAccountAuth()
   const themeKey = useAccountTheme()
@@ -30,11 +32,12 @@ export function AccountDashboardNav() {
   const skin = accountSkinPrefix(themeKey)
   const isLogin = pathname?.includes('/account/login')
   const isTradePro = isTradeProAccountChrome(layoutTheme)
+  const baseItems = showWishlist && !isTradePro ? [...NAV_ITEMS, WISHLIST_NAV_ITEM] : NAV_ITEMS
   const navItems = isTradePro
-    ? NAV_ITEMS.filter((item) => item.href !== '/orders/track').map((item) =>
+    ? baseItems.filter((item) => item.href !== '/orders/track').map((item) =>
         item.href === '/account/orders' ? { ...item, label: 'Booking' } : item,
       )
-    : NAV_ITEMS
+    : baseItems
   const storeHref = isTradePro ? '/services' : '/'
   const storeLabel = isTradePro ? '← Services' : '← Continue shopping'
 
@@ -54,7 +57,7 @@ export function AccountDashboardNav() {
           </p>
         ) : null}
         <nav className={`${skin}-acct-sidebar-nav`} aria-label="Account navigation">
-          {NAV_ITEMS.map((item) => {
+          {baseItems.map((item) => {
             const active = isNavActive(pathname, item.href, item.exact)
             return (
               <Link

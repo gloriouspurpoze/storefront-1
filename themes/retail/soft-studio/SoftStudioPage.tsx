@@ -1,4 +1,5 @@
 'use client'
+import type { ReactNode } from 'react'
 
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -22,6 +23,8 @@ import { ShippingPolicyModal } from '@/components/ShippingPolicyModal'
 import { runPreCheckoutGuards } from '@/lib/checkoutGuard'
 import { useCartAuthGate } from '@/lib/useCartAuthGate'
 import { useCheckoutCustomerPrefill } from '@/lib/useCheckoutCustomerPrefill'
+import { WishlistHeartButton, WishlistNavLink } from '@/components/wishlist/WishlistHeartButton'
+import { useRegisterWishlistAddon } from '@/components/wishlist/useWishlist'
 import './soft-studio.css'
 
 const THUMB_CLASSES = ['ss-product-thumb-1', 'ss-product-thumb-2', 'ss-product-thumb-3', 'ss-product-thumb-4']
@@ -71,14 +74,18 @@ export function SoftStudioPage({
   config,
   navLinks,
   footerLinks,
+  addonsSlot,
 }: {
   products: PublicProduct[]
   tenant: ThemeTenant
   config: StorefrontConfig | null
   navLinks?: StorefrontNavLink[]
   footerLinks?: StorefrontNavLink[]
+  /** Paid add-on homepage blocks, rendered above the footer. */
+  addonsSlot?: ReactNode
 }) {
   const siteName = config?.branding?.siteName || tenant.name
+  const wishlistOn = useRegisterWishlistAddon(config)
   const tagline = config?.branding?.tagline || tenant.tagline
   const heroHeadline = config?.content?.heroHeadline
   const heroSubcopy = config?.content?.heroSubcopy || tagline
@@ -240,6 +247,9 @@ export function SoftStudioPage({
           >
             ☰
           </button>
+          {wishlistOn ? (
+            <WishlistNavLink enabled className="inline-flex items-center justify-center opacity-90 hover:opacity-100" />
+          ) : null}
           <AccountProfileLink className="inline-flex items-center justify-center opacity-90 hover:opacity-100" />
           <button
             type="button"
@@ -335,7 +345,7 @@ export function SoftStudioPage({
         ) : (
           <div className="ss-products-grid">
             {products.map((product, index) => (
-              <article key={product.id} className="ss-product-card">
+              <article key={product.id} className="ss-product-card sf-wishlist-anchor">
                 <Link href={`/products/${product.slug}`} className="ss-product-card-link">
                   <ProductThumb product={product} index={index} />
                   {index === 0 && <span className="ss-product-tag">Featured</span>}
@@ -353,6 +363,7 @@ export function SoftStudioPage({
                     </div>
                   </div>
                 </Link>
+                <WishlistHeartButton productId={product.id} productName={product.name} enabled={wishlistOn} />
                 <div className="ss-product-actions">
                   <button
                     type="button"
@@ -368,6 +379,8 @@ export function SoftStudioPage({
           </div>
         )}
       </section>
+
+      {addonsSlot}
 
       <footer className="ss-footer">
         <div className="ss-footer-brand">

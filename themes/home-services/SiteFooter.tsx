@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { ThemeTenant } from './types'
+import { resolveBookingAddon, withoutBookingLinks } from './bookingAddon'
 
 const DEFAULT_LINKS = [
   { href: '/services', label: 'Browse all' },
@@ -8,15 +9,19 @@ const DEFAULT_LINKS = [
   { href: '/contact', label: 'Contact' },
 ]
 
-export function SiteFooter({
+export async function SiteFooter({
   tenant,
   navLinks,
+  bookingEnabled,
 }: {
   tenant: ThemeTenant
   navLinks?: { href: string; label: string }[]
+  /** Service booking add-on; resolved from the storefront config when omitted. */
+  bookingEnabled?: boolean
 }) {
   const year = new Date().getFullYear()
-  const links = navLinks?.length ? navLinks : DEFAULT_LINKS
+  const booking = await resolveBookingAddon(tenant.id, bookingEnabled)
+  const links = withoutBookingLinks(navLinks?.length ? navLinks : DEFAULT_LINKS, booking)
   const mid = Math.ceil(links.length / 2)
   const colA = links.slice(0, mid)
   const colB = links.slice(mid)

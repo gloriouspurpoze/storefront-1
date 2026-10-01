@@ -5,10 +5,11 @@ import { BookingForm } from '@/themes/home-services/BookingForm'
 import { toThemeTenant } from '@/themes/home-services/types'
 import { TradeProHeader } from '@/themes/home-services/trade-pro/TradeProHeader'
 import { TradeProFooter } from '@/themes/home-services/trade-pro/TradeProFooter'
-import { TradeProServicePicker } from '@/themes/home-services/trade-pro/TradeProServicePicker'
 import { TradeProShellClient } from '@/themes/home-services/trade-pro/TradeProShellClient'
 import { fetchServices, fetchStorefrontConfig } from '@/lib/storefront-api'
 import { fetchStorefrontMenuLinks } from '@/lib/cms-content'
+import { redirect } from 'next/navigation'
+import { bookingAddonActive, ENQUIRY_PATH } from '@/themes/home-services/bookingAddon'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,17 +17,46 @@ export async function generateMetadata() {
   const tenant = await loadHomeServicesTenant()
   return {
     title: 'Book a service',
-    description: `Request a callback from ${tenant.name} — we respond within two hours.`,
+    description: `Book a visit with ${tenant.name} — pick a service, date and time slot.`,
   }
 }
 
-export default async function BookPage() {
+interface BookPageProps {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}
+
+function firstParam(v: string | string[] | undefined): string | undefined {
+  const s = Array.isArray(v) ? v[0] : v
+  return s?.trim() || undefined
+}
+
+/**
+ * Service booking add-on (`showBooking`). When the add-on is not active the page redirects to
+ * the always-available contact / enquiry form (QR codes and old links keep working).
+ */
+export default async function BookPage({ searchParams }: BookPageProps) {
   const tenant = await loadHomeServicesTenant()
   const themeTenant = toThemeTenant(tenant, tenant.fallbackTagline)
-  const [services, config] = await Promise.all([
+  const [services, config, query] = await Promise.all([
     fetchServices(tenant.id, 24),
     fetchStorefrontConfig(tenant.id),
+    searchParams ?? Promise.resolve({} as Record<string, string | string[] | undefined>),
   ])
+  if (!bookingAddonActive(config)) redirect(ENQUIRY_PATH)
+
+  const requestedSlug = firstParam(query.service)
+  const initialServiceSlug = services.some((s) => s.slug === requestedSlug) ? requestedSlug : undefined
+  const src = firstParam(query.src)
+  const source = src ? `book-page:${src}`.slice(0, 64) : 'book-page'
+  const form = (
+    <BookingForm
+      tenantId={tenant.id}
+      services={services}
+      initialServiceSlug={initialServiceSlug}
+      source={source}
+      mode="booking"
+    />
+  )
   const isTradePro = config?.themeKey === 'trade-pro'
   const [navLinks, footerLinks] = isTradePro
     ? await Promise.all([
@@ -51,20 +81,20 @@ export default async function BookPage() {
                 Book a service
               </p>
               <h1 className="mt-3 text-balance text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-                Add services to your cart.
+                Pick a service and a time.
               </h1>
               <p className="mt-4 max-w-lg text-pretty text-lg text-slate-600">
-                Select one or more services, then send a single enquiry. We&apos;ll call you back
-                within 2 hours.
+                Choose the service, your preferred date and time slot. We&apos;ll call you to confirm
+                the visit.
               </p>
               <ul className="mt-10 space-y-4 text-sm text-slate-700">
-                <Bullet>Multi-service enquiries in one go.</Bullet>
+                <Bullet>Pick a date and a morning, afternoon or evening slot.</Bullet>
                 <Bullet>Verified, background-checked professionals.</Bullet>
                 <Bullet>Pay only after the visit is complete.</Bullet>
                 <Bullet>We call back within 2 hours.</Bullet>
               </ul>
             </div>
-            <TradeProServicePicker services={services} />
+            {form}
           </div>
         </main>
         <TradeProFooter tenant={themeTenant} config={config} navLinks={footerLinks} />
@@ -74,7 +104,7 @@ export default async function BookPage() {
 
   return (
     <>
-      <SiteHeader tenant={themeTenant} />
+      <SiteHeader tenant={themeTenant} bookingEnabled />
       <main className="bg-slate-50 py-16 sm:py-20">
         <div className="mx-auto grid w-full max-w-6xl gap-12 px-4 sm:px-6 lg:grid-cols-[1.2fr_1fr]">
           <div>
@@ -82,11 +112,11 @@ export default async function BookPage() {
               Book a service
             </p>
             <h1 className="mt-3 text-balance text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-              Tell us what you need.
+              Book a visit.
             </h1>
             <p className="mt-4 max-w-lg text-pretty text-lg text-slate-600">
-              Share a few details and our team will match you with a verified pro. No account
-              required, no obligation.
+              Pick a service and a preferred slot — our team will match you with a verified pro
+              and call to confirm.
             </p>
             <ul className="mt-10 space-y-4 text-sm text-slate-700">
               <Bullet>One business day response.</Bullet>
@@ -95,10 +125,10 @@ export default async function BookPage() {
               <Bullet>Free re-visit if you&apos;re not satisfied.</Bullet>
             </ul>
           </div>
-          <BookingForm tenantId={tenant.id} services={services} source="book-page" />
+          {form}
         </div>
       </main>
-      <SiteFooter tenant={themeTenant} />
+      <SiteFooter tenant={themeTenant} bookingEnabled />
     </>
   )
 }

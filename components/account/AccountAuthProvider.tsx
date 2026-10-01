@@ -18,6 +18,8 @@ import {
 } from '@/lib/storefront-auth'
 
 interface AccountAuthContextValue {
+  /** Storefront tenant this session belongs to. */
+  tenantId: string
   user: StorefrontAuthUser | null
   tokens: StorefrontAuthTokens | null
   isReady: boolean
@@ -68,6 +70,7 @@ export function AccountAuthProvider({
 
   const value = useMemo(
     () => ({
+      tenantId,
       user,
       tokens,
       isReady,
@@ -75,7 +78,7 @@ export function AccountAuthProvider({
       setSession,
       logout,
     }),
-    [user, tokens, isReady, setSession, logout],
+    [tenantId, user, tokens, isReady, setSession, logout],
   )
 
   return <AccountAuthContext.Provider value={value}>{children}</AccountAuthContext.Provider>

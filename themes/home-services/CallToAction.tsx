@@ -1,6 +1,18 @@
 import Link from 'next/link'
+import { loadHomeServicesTenant } from './loadThemeTenant'
+import { bookingCta, resolveBookingAddon } from './bookingAddon'
 
-export function CallToAction() {
+export async function CallToAction({
+  bookingEnabled,
+}: {
+  /** Service booking add-on; resolved from the request tenant's config when omitted. */
+  bookingEnabled?: boolean
+} = {}) {
+  const booking =
+    typeof bookingEnabled === 'boolean'
+      ? bookingEnabled
+      : await resolveBookingAddon((await loadHomeServicesTenant()).id)
+  const cta = bookingCta(booking, 'Book now', 'Request a callback')
   return (
     <section className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
       <div
@@ -21,17 +33,19 @@ export function CallToAction() {
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
-              href="/book"
+              href={cta.href}
               className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
             >
-              Book now
+              {cta.label}
             </Link>
-            <Link
-              href="/contact"
-              className="inline-flex items-center justify-center rounded-full border border-white/40 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20"
-            >
-              Talk to us
-            </Link>
+            {booking ? (
+              <Link
+                href="/contact"
+                className="inline-flex items-center justify-center rounded-full border border-white/40 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20"
+              >
+                Talk to us
+              </Link>
+            ) : null}
           </div>
         </div>
       </div>

@@ -1,4 +1,5 @@
 'use client'
+import type { ReactNode } from 'react'
 
 import { useCallback, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -51,6 +52,7 @@ export function MenuFastCardsPage({
   categoryMarketing = {},
   navLinks,
   footerLinks,
+  addonsSlot,
 }: {
   initialCategories: PublicMenuCategory[]
   tenant: ThemeTenant
@@ -59,6 +61,8 @@ export function MenuFastCardsPage({
   categoryMarketing?: Record<string, CategoryMarketingConfig>
   navLinks?: { href: string; label: string }[]
   footerLinks?: { href: string; label: string }[]
+  /** Paid add-on homepage blocks, rendered above the footer. */
+  addonsSlot?: ReactNode
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -242,6 +246,7 @@ export function MenuFastCardsPage({
               />
               </>
             )}
+            {addonsSlot}
             <MenuFastCardsFooter config={config} footerLinks={footerLinks} />
           </div>
 

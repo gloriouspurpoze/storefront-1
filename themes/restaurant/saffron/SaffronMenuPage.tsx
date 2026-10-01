@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import type { PublicMenuCategory, PublicMenuItem, StorefrontConfig } from '@/lib/storefront-api'
 import { isMenuItemInStock } from '@/lib/storefront-api'
@@ -830,12 +831,15 @@ export function SaffronMenuPage({
   config,
   navLinks,
   footerLinks,
+  addonsSlot,
 }: {
   initialCategories: PublicMenuCategory[]
   tenant: ThemeTenant
   config: StorefrontConfig | null
   navLinks?: { href: string; label: string }[]
   footerLinks?: { href: string; label: string }[]
+  /** Paid add-on homepage blocks, rendered above the footer. */
+  addonsSlot?: ReactNode
 }) {
   const { entries, itemCount, subtotal, addItem, removeItem, clearCart, qtyFor } =
     useMenuCart(initialCategories)
@@ -1399,6 +1403,8 @@ export function SaffronMenuPage({
           </div>
         </div>
       )}
+
+      {addonsSlot}
 
       <SaffronFooter tenant={tenant} config={config} footerLinks={footerLinks} />
 

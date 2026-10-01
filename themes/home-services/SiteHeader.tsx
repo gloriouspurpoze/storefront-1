@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { AccountNavLink } from '@/components/account/AccountNavLink'
 import type { ThemeTenant } from './types'
+import { bookingCta, resolveBookingAddon, withoutBookingLinks } from './bookingAddon'
 
 const DEFAULT_LINKS = [
   { href: '/services', label: 'Services' },
@@ -8,14 +9,19 @@ const DEFAULT_LINKS = [
   { href: '/contact', label: 'Contact' },
 ]
 
-export function SiteHeader({
+export async function SiteHeader({
   tenant,
   navLinks,
+  bookingEnabled,
 }: {
   tenant: ThemeTenant
   navLinks?: { href: string; label: string }[]
+  /** Service booking add-on; resolved from the storefront config when omitted. */
+  bookingEnabled?: boolean
 }) {
-  const links = navLinks?.length ? navLinks : DEFAULT_LINKS
+  const booking = await resolveBookingAddon(tenant.id, bookingEnabled)
+  const links = withoutBookingLinks(navLinks?.length ? navLinks : DEFAULT_LINKS, booking)
+  const cta = bookingCta(booking, 'Book now')
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70">
@@ -49,11 +55,11 @@ export function SiteHeader({
         </div>
 
         <Link
-          href="/book"
+          href={cta.href}
           className="inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:opacity-90"
           style={{ backgroundColor: 'var(--site-brand)' }}
         >
-          Book now
+          {cta.label}
         </Link>
       </nav>
     </header>

@@ -32,6 +32,7 @@ import { toThemeTenant as toRetailTenant } from '@/themes/retail/types'
 import { RetailShell } from '@/themes/retail/RetailShell'
 import { isRetailLayoutTheme, RetailLayoutPage } from '@/themes/retail/retailLayoutRouter'
 import { isHomeServicesLayoutTheme, HomeServicesLayoutPage } from '@/themes/home-services/homeServicesLayoutRouter'
+import { loadStorefrontAddonBlocks } from '@/components/addons/StorefrontAddonBlocks'
 
 function flagOn(cfg: StorefrontConfig | null, key: string): boolean {
   const flags = cfg?.featureFlags as Record<string, boolean | undefined> | undefined
@@ -97,6 +98,8 @@ export async function HomePageSections({
 }) {
   const tagline = cfg?.branding?.tagline || cfg?.content?.heroSubcopy
   const vertical = tenant.verticalKey
+  // Paid add-on blocks (AMC / loyalty / B2B) — rendered above the footer in every theme.
+  const addonsSlot = await loadStorefrontAddonBlocks(tenant.id, cfg)
 
   if (vertical === 'home_services') {
     const themeTenant = toHsTenant(
@@ -126,6 +129,7 @@ export async function HomePageSections({
           services={services}
           faqs={faqs}
           testimonials={testimonials}
+          addonsSlot={addonsSlot}
         />
       )
     }
@@ -163,6 +167,7 @@ export async function HomePageSections({
         <HsHeader tenant={themeTenant} navLinks={headerNavLinks} />
         <main>
           {order.map((t) => (blocks[t] ? <div key={t}>{blocks[t]}</div> : null))}
+          {addonsSlot}
         </main>
         <HsFooter tenant={themeTenant} navLinks={footerNavLinks} />
       </>
@@ -191,6 +196,7 @@ export async function HomePageSections({
           config={cfg}
           navLinks={navLinks}
           footerLinks={footerLinks}
+          addonsSlot={addonsSlot}
         />
       )
     }
@@ -255,6 +261,7 @@ export async function HomePageSections({
               return <FaqBlock key={t} cfg={cfg} faqs={faqs} />
             return null
           })}
+          {addonsSlot}
         </main>
         <RestFooter tenant={themeTenant} navLinks={footerNavLinks} />
       </RestaurantShell>
@@ -281,6 +288,7 @@ export async function HomePageSections({
           config={cfg}
           navLinks={navLinks}
           footerLinks={footerLinks}
+          addonsSlot={addonsSlot}
         />
       )
     }
@@ -339,6 +347,7 @@ export async function HomePageSections({
               </Link>
             </div>
           </section>
+          {addonsSlot}
         </main>
         <RetailFooter tenant={themeTenant} navLinks={footerNavLinks} />
       </RetailShell>

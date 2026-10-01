@@ -6,6 +6,7 @@ import { formatListPrice, isVariantInStock } from '@/lib/productVariants'
 import { formatMoney } from '../cart'
 import { LuxeEssenceAddControl } from './LuxeEssenceAddControl'
 import { LuxeEssenceCatalogSectionShell } from './LuxeEssenceCatalogEmpty'
+import { WishlistHeartButton } from '@/components/wishlist/WishlistHeartButton'
 
 export function LuxeEssenceProductImage({
   product,
@@ -45,7 +46,7 @@ function LuxeEssenceProductCard({
 
   return (
     <article
-      className={`le-product-card${!inStock ? ' le-product-card--unavail' : ''}${
+      className={`le-product-card sf-wishlist-anchor${!inStock ? ' le-product-card--unavail' : ''}${
         variantQty > 0 ? ' le-product-card--in-cart' : ''
       }`}
     >
@@ -67,6 +68,7 @@ function LuxeEssenceProductCard({
           </p>
         </div>
       </Link>
+      <WishlistHeartButton productId={product.id} productName={product.name} className="le-wishlist-heart" />
       <LuxeEssenceAddControl
         product={product}
         authReady={authReady}

@@ -1,0 +1,220 @@
+/* Wishlist add-on — heart toggles, header icon, wishlist page. Theme-neutral: uses --site-brand. */
+
+.sf-wishlist-anchor {
+  position: relative;
+}
+
+.sf-wishlist-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex-shrink: 0;
+}
+
+.sf-wishlist-heart {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  color: #3f3f46;
+  transition: color 0.15s ease, transform 0.15s ease, background-color 0.15s ease;
+}
+
+.sf-wishlist-heart:hover {
+  color: var(--site-brand, #e11d48);
+}
+
+.sf-wishlist-heart:focus-visible {
+  outline: 2px solid var(--site-brand, #e11d48);
+  outline-offset: 2px;
+}
+
+.sf-wishlist-heart:disabled {
+  cursor: progress;
+}
+
+.sf-wishlist-heart--saved {
+  color: var(--sf-wishlist-saved, #e11d48);
+}
+
+.sf-wishlist-heart--overlay {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  z-index: 3;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  border: 0;
+}
+
+.sf-wishlist-heart--overlay:active {
+  transform: scale(0.92);
+}
+
+.sf-wishlist-heart--inline {
+  margin-top: 0.75rem;
+  padding: 0.55rem 1rem;
+  border-radius: 9999px;
+  border: 1px solid currentColor;
+  background: transparent;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.sf-wishlist-nav {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  color: inherit;
+}
+
+.sf-wishlist-nav .sf-wishlist-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.sf-wishlist-nav__badge {
+  position: absolute;
+  top: 0;
+  right: -0.15rem;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  padding: 0 0.25rem;
+  border-radius: 9999px;
+  background: var(--sf-wishlist-saved, #e11d48);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1.1rem;
+  text-align: center;
+}
+
+/* Wishlist page */
+.sf-wishlist-page__grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sf-wishlist-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #fff;
+  height: 100%;
+}
+
+.sf-wishlist-card__media {
+  display: block;
+  aspect-ratio: 4 / 5;
+  background: #f4f4f5;
+}
+
+.sf-wishlist-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sf-wishlist-card__fallback {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #d4d4d8;
+}
+
+.sf-wishlist-card__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.9rem 1rem 1rem;
+}
+
+.sf-wishlist-card__name {
+  font-weight: 500;
+  color: #18181b;
+}
+
+.sf-wishlist-card__price {
+  font-weight: 600;
+  color: #18181b;
+}
+
+.sf-wishlist-card__price s {
+  margin-left: 0.4rem;
+  font-weight: 400;
+  color: #a1a1aa;
+}
+
+.sf-wishlist-card__oos {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #b45309;
+}
+
+.sf-wishlist-card__cta {
+  margin-top: auto;
+  display: inline-flex;
+  justify-content: center;
+  padding: 0.55rem 1rem;
+  border-radius: 9999px;
+  background: var(--site-brand, #18181b);
+  color: var(--brand-primary-contrast, #fff);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.sf-wishlist-empty {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: #52525b;
+}
+
+.sf-wishlist-empty a {
+  display: inline-flex;
+  margin-top: 1rem;
+  padding: 0.6rem 1.25rem;
+  border-radius: 9999px;
+  background: var(--site-brand, #18181b);
+  color: var(--brand-primary-contrast, #fff);
+  font-weight: 600;
+}
+
+.sf-wishlist-note {
+  margin-bottom: 1.25rem;
+  font-size: 0.875rem;
+  color: #52525b;
+}
+
+.sf-wishlist-note a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Luxe Essence: the in-cart qty badge owns the top-right corner. */
+.le-wishlist-heart.sf-wishlist-heart--overlay {
+  right: auto;
+  left: 12px;
+  top: 12px;
+}
+
+.le-actions .sf-wishlist-nav {
+  color: inherit;
+}

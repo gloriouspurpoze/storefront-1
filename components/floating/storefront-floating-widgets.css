@@ -1,0 +1,333 @@
+/*
+ * Storefront floating widgets (WhatsApp button + live chat) — paid add-ons.
+ *
+ * Docked bottom-LEFT so it never collides with right-side cart/checkout FABs
+ * (e.g. trade-pro `.tp-checkout-sticky`) or right slide-in cart drawers.
+ * `--sfw-lift` is set at runtime above any full-width bottom bar (trade-pro
+ * mobile CTA, saffron mobile cart FAB, brown-butter pay bar).
+ * z-index 50: above sticky bars (≤46) but below theme modals/drawers (≥55).
+ */
+.sfw-dock {
+  --sfw-gap: 12px;
+  --sfw-edge: 16px;
+  --sfw-size: 56px;
+  position: fixed;
+  left: calc(var(--sfw-edge) + env(safe-area-inset-left, 0px));
+  bottom: calc(var(--sfw-edge) + var(--sfw-lift, 0px) + env(safe-area-inset-bottom, 0px));
+  z-index: 50;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-start;
+  gap: var(--sfw-gap);
+  pointer-events: none;
+  transition: bottom 180ms ease-out;
+  font-family: inherit;
+}
+
+.sfw-dock > * {
+  pointer-events: auto;
+}
+
+@media (min-width: 640px) {
+  .sfw-dock {
+    --sfw-edge: 24px;
+  }
+}
+
+.sfw-fab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--sfw-size);
+  height: var(--sfw-size);
+  border: 0;
+  border-radius: 999px;
+  background: var(--site-brand, #0f172a);
+  color: var(--brand-primary-contrast, #fff);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.24);
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    transform 150ms ease-out,
+    box-shadow 150ms ease-out,
+    filter 150ms ease-out;
+}
+
+.sfw-fab:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.06);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.28);
+}
+
+.sfw-fab:focus-visible {
+  outline: 3px solid var(--site-accent, var(--site-brand, #0f172a));
+  outline-offset: 3px;
+}
+
+.sfw-fab svg {
+  width: 28px;
+  height: 28px;
+}
+
+.sfw-fab--wa svg {
+  width: 30px;
+  height: 30px;
+}
+
+.sfw-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  box-shadow: 0 0 0 2px #fff;
+}
+
+.sfw-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Chat panel ── */
+.sfw-panel {
+  position: fixed;
+  left: calc(var(--sfw-edge) + env(safe-area-inset-left, 0px));
+  bottom: calc(var(--sfw-edge) + var(--sfw-lift, 0px) + var(--sfw-size) + var(--sfw-gap) + env(safe-area-inset-bottom, 0px));
+  width: min(360px, calc(100vw - 2 * var(--sfw-edge)));
+  max-height: min(560px, calc(100vh - var(--sfw-lift, 0px) - var(--sfw-size) - 48px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #fff;
+  color: #0f172a;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.28);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.sfw-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 16px;
+  background: var(--site-brand, #0f172a);
+  color: var(--brand-primary-contrast, #fff);
+}
+
+.sfw-panel__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.sfw-panel__subtitle {
+  margin: 2px 0 0;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.sfw-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.sfw-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.sfw-icon-btn:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+}
+
+.sfw-panel__body {
+  flex: 1;
+  min-height: 160px;
+  overflow-y: auto;
+  padding: 14px 14px 6px;
+  background: #f8fafc;
+}
+
+.sfw-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px 16px;
+  overflow-y: auto;
+}
+
+.sfw-form p {
+  margin: 0 0 2px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.sfw-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.sfw-input,
+.sfw-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 11px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.sfw-textarea {
+  resize: none;
+  min-height: 40px;
+  max-height: 120px;
+}
+
+.sfw-input:focus,
+.sfw-textarea:focus {
+  outline: 2px solid var(--site-brand, #0f172a);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+.sfw-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--site-brand, #0f172a);
+  color: var(--brand-primary-contrast, #fff);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sfw-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sfw-error {
+  margin: 0;
+  font-size: 12px;
+  color: #b91c1c;
+}
+
+.sfw-msgs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sfw-msg {
+  max-width: 82%;
+  padding: 8px 12px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.sfw-msg--visitor {
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+  background: var(--site-brand, #0f172a);
+  color: var(--brand-primary-contrast, #fff);
+}
+
+.sfw-msg--admin {
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+  background: #fff;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+}
+
+.sfw-msg__meta {
+  display: block;
+  margin-top: 3px;
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.sfw-empty {
+  margin: 8px 0;
+  font-size: 13px;
+  color: #64748b;
+  text-align: center;
+}
+
+.sfw-composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.sfw-composer .sfw-primary {
+  min-height: 40px;
+  padding: 0 12px;
+}
+
+.sfw-link-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: #475569;
+  font: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sfw-dock,
+  .sfw-fab {
+    transition: none;
+  }
+}

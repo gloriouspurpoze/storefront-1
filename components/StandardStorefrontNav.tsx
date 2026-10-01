@@ -7,6 +7,8 @@ import { AccountNavLink } from '@/components/account/AccountNavLink'
 import { AccountProfileLink } from '@/components/account/AccountProfileLink'
 import { StoreStatusBadge } from '@/components/StoreStatusBadge'
 import { StorefrontMenuDrawer } from '@/components/StorefrontMenuDrawer'
+import { WishlistNavLink } from '@/components/wishlist/WishlistHeartButton'
+import { useRegisterWishlistAddon } from '@/components/wishlist/useWishlist'
 import './standard-storefront-nav.css'
 
 export interface StandardNavTenant {
@@ -53,6 +55,7 @@ export function StandardStorefrontNav({
   const shippingVisible = showShippingPolicy ?? variant === 'retail'
   const policyLabel = variant === 'restaurant' ? 'Delivery policy' : 'Shipping policy'
   const showGiftMatch = giftMatchEnabled(config, variant)
+  const wishlistOn = useRegisterWishlistAddon(config) && variant === 'retail'
 
   const cartControl =
     onCartClick != null ? (
@@ -121,6 +124,7 @@ export function StandardStorefrontNav({
 
           <div className="sf-standard-nav__right">
             {actionsSlot}
+            {wishlistOn ? <WishlistNavLink enabled className="sf-standard-nav__wishlist" /> : null}
             {accountMode === 'profile' ? (
               <AccountProfileLink className="sf-standard-nav__account" />
             ) : (
@@ -161,6 +165,7 @@ export function StandardStorefrontNavActions({
   const shippingVisible = showShippingPolicy ?? variant === 'retail'
   const policyLabel = variant === 'restaurant' ? 'Delivery policy' : 'Shipping policy'
   const showGiftMatch = giftMatchEnabled(config, variant)
+  const wishlistOn = useRegisterWishlistAddon(config) && variant === 'retail'
 
   return (
     <>
@@ -191,6 +196,7 @@ export function StandardStorefrontNavActions({
         ) : (
           <AccountNavLink className="sf-standard-nav-actions__account" />
         )}
+        {wishlistOn ? <WishlistNavLink enabled className="sf-standard-nav-actions__wishlist" /> : null}
         <button type="button" className="sf-standard-nav-actions__cart" onClick={onCartClick} aria-label="Open cart">
           🛍
           {itemCount > 0 ? <span className="sf-standard-nav-actions__cart-badge">{itemCount}</span> : null}

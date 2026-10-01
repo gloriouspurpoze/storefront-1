@@ -1,7 +1,16 @@
 import Link from 'next/link'
 import type { ThemeTenant } from './types'
+import { bookingCta, resolveBookingAddon } from './bookingAddon'
 
-export function Hero({ tenant }: { tenant: ThemeTenant }) {
+export async function Hero({
+  tenant,
+  bookingEnabled,
+}: {
+  tenant: ThemeTenant
+  /** Service booking add-on; resolved from the storefront config when omitted. */
+  bookingEnabled?: boolean
+}) {
+  const cta = bookingCta(await resolveBookingAddon(tenant.id, bookingEnabled), 'Book a service', 'Request a callback')
   return (
     <section className="relative isolate overflow-hidden">
       <div
@@ -26,10 +35,10 @@ export function Hero({ tenant }: { tenant: ThemeTenant }) {
           </p>
           <div className="mt-9 flex flex-wrap gap-3">
             <Link
-              href="/book"
+              href={cta.href}
               className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-900 shadow-lg shadow-black/10 transition hover:bg-slate-100"
             >
-              Book a service
+              {cta.label}
             </Link>
             <Link
               href="/services"

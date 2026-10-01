@@ -544,6 +544,8 @@ export interface StorefrontConfig {
   orderingHours?: Partial<import('@/lib/orderingHours').OrderingHoursConfig>
   orderingAvailability?: import('@/lib/orderingHours').OrderingAvailabilityConfig
   shippingPolicy?: import('@/lib/shippingPolicy').ShippingPolicyConfig
+  /** Loyalty program add-on settings (`showLoyaltyProgram`). */
+  loyalty?: import('@/lib/storefrontAddonsApi').StorefrontLoyaltySettings
 }
 
 export async function fetchStorefrontConfig(tenantId: string): Promise<StorefrontConfig | null> {

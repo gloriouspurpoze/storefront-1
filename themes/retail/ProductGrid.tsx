@@ -2,8 +2,16 @@ import Link from 'next/link'
 import type { PublicProduct } from '@/lib/storefront-api'
 import { formatMoney } from '@/lib/format'
 import { formatListPrice, productHasVariants } from '@/lib/productVariants'
+import { WishlistHeartButton } from '@/components/wishlist/WishlistHeartButton'
 
-export function ProductGrid({ products }: { products: PublicProduct[] }) {
+export function ProductGrid({
+  products,
+  wishlistEnabled,
+}: {
+  products: PublicProduct[]
+  /** Wishlist add-on; when omitted the hearts follow the page header's add-on registration. */
+  wishlistEnabled?: boolean
+}) {
   if (!products.length) {
     return (
       <p className="py-16 text-center text-slate-500">
@@ -15,7 +23,7 @@ export function ProductGrid({ products }: { products: PublicProduct[] }) {
   return (
     <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {products.map((p) => (
-        <li key={p.id}>
+        <li key={p.id} className="sf-wishlist-anchor">
           <Link
             href={`/products/${p.slug}`}
             className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:border-indigo-200 hover:shadow-md"
@@ -61,6 +69,7 @@ export function ProductGrid({ products }: { products: PublicProduct[] }) {
               ) : null}
             </div>
           </Link>
+          <WishlistHeartButton productId={p.id} productName={p.name} enabled={wishlistEnabled} />
         </li>
       ))}
     </ul>

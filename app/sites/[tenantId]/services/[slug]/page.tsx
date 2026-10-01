@@ -14,6 +14,7 @@ import { TradeProAddToCartButton } from '@/themes/home-services/trade-pro/TradeP
 import { TradeProShellClient } from '@/themes/home-services/trade-pro/TradeProShellClient'
 import { fetchServiceBySlug, fetchServices, fetchStorefrontConfig } from '@/lib/storefront-api'
 import { fetchStorefrontMenuLinks } from '@/lib/cms-content'
+import { bookingAddonActive } from '@/themes/home-services/bookingAddon'
 
 export const dynamic = 'force-dynamic'
 
@@ -54,6 +55,9 @@ export default async function ServiceDetailPage({ params }: PageProps) {
       ])
     : [undefined, undefined]
   const phone = config?.branding?.contactPhone
+  const booking = bookingAddonActive(config)
+  // Booking mode needs the current service in the picker (`related` is just the first few).
+  const bookingServices = [service, ...related.filter((r) => r.id !== service.id)]
 
   const price = formatPrice(service.basePrice, service.currency)
   const duration =
@@ -117,15 +121,26 @@ export default async function ServiceDetailPage({ params }: PageProps) {
               send from your cart.
             </p>
             <TradeProAddToCartButton service={service} className="tp-btn-primary w-full" />
+            {booking ? (
+              <Link
+                href={`/book?service=${encodeURIComponent(service.slug)}`}
+                className="mt-3 inline-flex w-full items-center justify-center rounded-full border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
+              >
+                Book a visit instead
+              </Link>
+            ) : null}
           </div>
         ) : (
           <>
-            <h2 className="mb-4 text-lg font-semibold text-slate-900">Request this service</h2>
+            <h2 className="mb-4 text-lg font-semibold text-slate-900">
+              {booking ? 'Book this service' : 'Request this service'}
+            </h2>
             <BookingForm
               tenantId={tenant.id}
               initialServiceSlug={service.slug}
-              services={related}
+              services={booking ? bookingServices : related}
               source={`service:${service.slug}`}
+              mode={booking ? 'booking' : 'enquiry'}
             />
           </>
         )}
@@ -153,12 +168,12 @@ export default async function ServiceDetailPage({ params }: PageProps) {
 
   return (
     <>
-      <SiteHeader tenant={themeTenant} />
+      <SiteHeader tenant={themeTenant} bookingEnabled={booking} />
       <main>
         {article}
-        <CallToAction />
+        <CallToAction bookingEnabled={booking} />
       </main>
-      <SiteFooter tenant={themeTenant} />
+      <SiteFooter tenant={themeTenant} bookingEnabled={booking} />
     </>
   )
 }

@@ -5,6 +5,8 @@ import type { StorefrontConfig } from '@/lib/storefront-api'
 import type { ProductCategoryNav } from '@/lib/productCategories'
 import { AccountProfileLink } from '@/components/account/AccountProfileLink'
 import { buildLuxeDesktopNav, toLuxeNavCategories } from './luxeEssenceNav'
+import { WishlistNavLink } from '@/components/wishlist/WishlistHeartButton'
+import { useRegisterWishlistAddon } from '@/components/wishlist/useWishlist'
 
 function splitBrandTitle(siteName: string): { primary: string; secondary?: string } {
   if (!siteName.includes('|')) return { primary: siteName }
@@ -35,7 +37,7 @@ function CartIcon() {
 }
 
 export function LuxeEssenceHeader({
-  config: _config,
+  config,
   siteName,
   tagline,
   logoUrl,
@@ -55,6 +57,7 @@ export function LuxeEssenceHeader({
   onCartOpen: () => void
   categories?: Array<ProductCategoryNav | { slug: string; name: string; sortOrder?: number }>
 }) {
+  const wishlistOn = useRegisterWishlistAddon(config)
   const brand = splitBrandTitle(siteName)
   const trimmedTagline = tagline?.trim()
   const { inline, dropdown } = buildLuxeDesktopNav(toLuxeNavCategories(categories))
@@ -127,6 +130,7 @@ export function LuxeEssenceHeader({
         </nav>
 
         <div className="le-actions">
+          {wishlistOn ? <WishlistNavLink enabled className="le-icon-btn" /> : null}
           <button type="button" className="le-icon-btn le-cart-btn" onClick={onCartOpen} aria-label="Open cart">
             <CartIcon />
             {itemCount > 0 ? <span className="le-cart-count">{itemCount > 99 ? '99+' : itemCount}</span> : null}

@@ -20,6 +20,8 @@ import '@/themes/retail/retail-cart.css'
 import { containsHtml } from '@/lib/product-seo'
 import { ProductImageGallery } from '@/components/ProductImageGallery'
 import { getDefaultVariant, isVariantInStock } from '@/lib/productVariants'
+import { WishlistHeartButton } from '@/components/wishlist/WishlistHeartButton'
+import { useRegisterWishlistAddon } from '@/components/wishlist/useWishlist'
 
 /** Matches HomePageSections `flagOn(cfg, 'showFaq')`. */
 function faqSectionEnabled(config: StorefrontConfig | null): boolean {
@@ -58,6 +60,7 @@ export function ProductDetailView({
   faqs?: StorefrontCmsFaq[] | null
 }) {
   const { itemCount } = useCart()
+  const wishlistEnabled = useRegisterWishlistAddon(config)
   const isSoftStudio = themeKey === 'soft-studio'
   const isLuxe = themeKey === 'luxe-essence'
   const rootClass = themeRootClass(themeKey)
@@ -109,6 +112,14 @@ export function ProductDetailView({
           variantTone={isLuxe ? 'luxe' : isSoftStudio ? 'soft-studio' : 'default'}
           selectedVariantId={selectedVariantId}
           onSelectedVariantIdChange={setSelectedVariantId}
+        />
+
+        <WishlistHeartButton
+          productId={product.id}
+          productName={product.name}
+          enabled={wishlistEnabled}
+          variant="inline"
+          className="sf-pdp-wishlist"
         />
 
         <p className="sf-pdp-trust">

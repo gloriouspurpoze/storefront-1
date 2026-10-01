@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { StorefrontNavLink } from '@/lib/cms-content'
 import type { PublicMenuCategory, PublicProduct, StorefrontConfig } from '@/lib/storefront-api'
 import type { ThemeTenant } from './types'
@@ -14,6 +15,8 @@ type RestaurantLayoutProps = {
   navLinks?: StorefrontNavLink[]
   /** CMS footer menu links (empty → theme hardcoded fallback). */
   footerLinks?: StorefrontNavLink[]
+  /** Paid add-on homepage blocks (AMC / loyalty / B2B), rendered above the theme footer. */
+  addonsSlot?: ReactNode
 }
 
 const router = createLayoutRouter<RestaurantLayoutProps, 'saffron' | 'menufast-minimal' | 'menufast-cards'>({
@@ -28,6 +31,7 @@ const router = createLayoutRouter<RestaurantLayoutProps, 'saffron' | 'menufast-m
           config={p.config}
           navLinks={p.navLinks}
           footerLinks={p.footerLinks}
+          addonsSlot={p.addonsSlot}
         />
       </SaffronLayout>
     ),
@@ -38,6 +42,7 @@ const router = createLayoutRouter<RestaurantLayoutProps, 'saffron' | 'menufast-m
         config={p.config}
         navLinks={p.navLinks}
         footerLinks={p.footerLinks}
+        addonsSlot={p.addonsSlot}
       />
     ),
     'menufast-cards': (p) => (
@@ -47,6 +52,7 @@ const router = createLayoutRouter<RestaurantLayoutProps, 'saffron' | 'menufast-m
         config={p.config}
         navLinks={p.navLinks}
         footerLinks={p.footerLinks}
+        addonsSlot={p.addonsSlot}
       />
     ),
   },

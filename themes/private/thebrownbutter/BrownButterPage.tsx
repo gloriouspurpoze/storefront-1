@@ -1,4 +1,5 @@
 'use client'
+import type { ReactNode } from 'react'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -337,6 +338,7 @@ export function BrownButterPage({
   products: initialProducts = [],
   navLinks,
   footerLinks: _footerLinks,
+  addonsSlot,
 }: {
   tenant: ThemeTenant
   config: StorefrontConfig | null
@@ -344,6 +346,8 @@ export function BrownButterPage({
   navLinks?: { href: string; label: string }[]
   /** Accepted for layout-router parity; store footer is hours/location, not page links. */
   footerLinks?: { href: string; label: string }[]
+  /** Paid add-on homepage blocks, rendered above the footer. */
+  addonsSlot?: ReactNode
 }) {
   const siteName = config?.branding?.siteName || tenant.name
   const headerTitle = config?.branding?.tagline || '📍 Delivering Across Mumbai'
@@ -999,6 +1003,8 @@ export function BrownButterPage({
             )
           })}
         </div>
+
+        {addonsSlot}
 
         <StoreFooter config={config} contactPhone={contactPhone} />
       </div>
