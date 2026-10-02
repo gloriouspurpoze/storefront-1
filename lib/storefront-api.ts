@@ -12,6 +12,7 @@
 import { env } from './env'
 import { filterOwnedByTenant } from './storefrontContent'
 import { withTenantId } from './tenant-headers'
+import { PREVIEW_COOKIE, parsePreviewCookie, type PreviewParams } from './storefrontPreview'
 
 export interface PublicService {
   id: string
@@ -48,17 +49,22 @@ function withTenantCacheKey(path: string, tenantId: string): string {
 async function getJson<T>(
   path: string,
   tenantId: string,
-  opts: { revalidate?: number; tags?: string[] } = {},
+  opts: { revalidate?: number; tags?: string[]; noStore?: boolean } = {},
 ): Promise<T | null> {
   if (!tenantId) return null
   try {
     const res = await fetch(apiUrl(withTenantCacheKey(path, tenantId)), {
       method: 'GET',
       headers: withTenantId(tenantId, { Accept: 'application/json' }),
-      next: {
-        revalidate: opts.revalidate ?? 60,
-        tags: opts.tags ?? [`tenant:${tenantId}`],
-      },
+      // `noStore` (draft preview) bypasses the shared Data Cache entirely.
+      ...(opts.noStore
+        ? { cache: 'no-store' as const }
+        : {
+            next: {
+              revalidate: opts.revalidate ?? 60,
+              tags: opts.tags ?? [`tenant:${tenantId}`],
+            },
+          }),
     })
     if (!res.ok) return null
     const json = (await res.json().catch(() => null)) as ApiEnvelope<T> | null
@@ -501,6 +507,8 @@ export interface StorefrontConfig {
   sections?: StorefrontSection[]
   /** Server-resolved homepage blocks for the active theme, in render order (see lib/storefrontSections.ts). */
   effectiveSections?: Array<{ type: string; enabled: boolean }>
+  /** Set by fetchStorefrontConfig when this is a draft-preview overlay (never from the API). */
+  isPreview?: boolean
   content?: StorefrontContent
   templateSettings?: StorefrontTemplateSettings
   branding: {
@@ -550,15 +558,30 @@ export interface StorefrontConfig {
   loyalty?: import('@/lib/storefrontAddonsApi').StorefrontLoyaltySettings
 }
 
-export async function fetchStorefrontConfig(tenantId: string): Promise<StorefrontConfig | null> {
-  // Backend returns { tenant, config } since the config endpoint was enhanced to
-  // include tenant identity. Unwrap `config` and normalise required sub-objects so
-  // callers never have to guard against missing `branding` / `seo` objects.
-  const raw = await getJson<{ tenant: unknown; config: StorefrontConfig }>(
-    '/public/storefront/config',
-    tenantId,
-    { revalidate: 60, tags: [`tenant:${tenantId}`, `tenant:${tenantId}:config`] },
-  )
+/**
+ * Read the draft-preview cookie. `next/headers` is imported lazily because this
+ * module is also imported by client components, and `cookies()` throws outside
+ * a request scope (generateStaticParams, sitemap) — both resolve to "no preview".
+ */
+async function readPreviewCookie(): Promise<PreviewParams | null> {
+  if (typeof window !== 'undefined') return null
+  try {
+    const { cookies } = await import('next/headers')
+    const store = await cookies()
+    return parsePreviewCookie(store.get(PREVIEW_COOKIE)?.value)
+  } catch {
+    return null
+  }
+}
+
+/** Whether the current request carries a well-formed draft-preview cookie. */
+export async function getStorefrontPreviewState(): Promise<{ active: boolean }> {
+  return { active: (await readPreviewCookie()) !== null }
+}
+
+type RawConfigResponse = { tenant: unknown; config: StorefrontConfig }
+
+function normaliseConfig(raw: RawConfigResponse | null): StorefrontConfig | null {
   if (!raw) return null
   const cfg = raw.config ?? (raw as unknown as StorefrontConfig)
   return {
@@ -567,6 +590,34 @@ export async function fetchStorefrontConfig(tenantId: string): Promise<Storefron
     seo: cfg.seo ?? {},
     featureFlags: cfg.featureFlags ?? {},
   }
+}
+
+export async function fetchStorefrontConfig(tenantId: string): Promise<StorefrontConfig | null> {
+  // Backend returns { tenant, config } since the config endpoint was enhanced to
+  // include tenant identity. Unwrap `config` and normalise required sub-objects so
+  // callers never have to guard against missing `branding` / `seo` objects.
+  //
+  // Draft preview: only requests carrying `sf_preview` go uncached; on any
+  // failure (expired token, wrong tenant → 404) fall back to the live config.
+  const preview = await readPreviewCookie()
+  if (preview) {
+    const qs = new URLSearchParams({
+      previewVersion: preview.versionId,
+      previewToken: preview.token,
+    })
+    const draft = normaliseConfig(
+      await getJson<RawConfigResponse>(`/public/storefront/config?${qs}`, tenantId, {
+        noStore: true,
+      }),
+    )
+    if (draft) return { ...draft, isPreview: true }
+  }
+  return normaliseConfig(
+    await getJson<RawConfigResponse>('/public/storefront/config', tenantId, {
+      revalidate: 60,
+      tags: [`tenant:${tenantId}`, `tenant:${tenantId}:config`],
+    }),
+  )
 }
 
 export async function verifyCheckout(input: {

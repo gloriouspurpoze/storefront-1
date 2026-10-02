@@ -1,7 +1,12 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import Script from 'next/script'
-import { fetchStorefrontConfig, type StorefrontConfig } from '@/lib/storefront-api'
+import {
+  fetchStorefrontConfig,
+  getStorefrontPreviewState,
+  type StorefrontConfig,
+} from '@/lib/storefront-api'
+import { PreviewBanner } from '@/components/PreviewBanner'
 import { assertRouteTenant } from '@/lib/load-tenant'
 import type { ResolvedTenant } from '@/lib/types'
 import { contrastTextOn, colorsTooSimilar } from '@/lib/brandContrast'
@@ -148,6 +153,7 @@ export default async function TenantLayout({
   const { tenantId } = await params
   const tenant = await assertRouteTenant(tenantId)
   const cfg = await fetchStorefrontConfig(tenant.id)
+  const preview = await getStorefrontPreviewState()
   const jsonLd = structuredData(tenant, cfg)
   const analytics = cfg?.seo?.analytics ?? {}
   const themeClass = themeRootClass(cfg?.themeKey)
@@ -163,6 +169,7 @@ export default async function TenantLayout({
       data-tenant={tenant.slug}
       data-theme={cfg?.themeKey ?? 'classic'}
     >
+      {preview.active ? <PreviewBanner expired={!cfg?.isPreview} /> : null}
       {jsonLd.map((block, i) => (
         <Script
           key={`jsonld-${i}`}
