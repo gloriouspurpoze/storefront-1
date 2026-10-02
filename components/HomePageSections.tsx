@@ -33,24 +33,13 @@ import { RetailShell } from '@/themes/retail/RetailShell'
 import { isRetailLayoutTheme, RetailLayoutPage } from '@/themes/retail/retailLayoutRouter'
 import { isHomeServicesLayoutTheme, HomeServicesLayoutPage } from '@/themes/home-services/homeServicesLayoutRouter'
 import { loadStorefrontAddonBlocks } from '@/components/addons/StorefrontAddonBlocks'
+import { homepageSectionOn, homepageSectionOrder, themeSectionDefaults } from '@/lib/storefrontSections'
 
 function flagOn(cfg: StorefrontConfig | null, key: string): boolean {
   const flags = cfg?.featureFlags as Record<string, boolean | undefined> | undefined
   const addons = cfg?.featureAddons ?? {}
   if (addons[key]?.purchased) return true
   return flags?.[key] !== false
-}
-
-function sectionEnabled(cfg: StorefrontConfig | null, type: string): boolean {
-  const sections = cfg?.sections
-  if (!sections?.length) return true
-  const row = sections.find((s) => s.type === type)
-  return row ? row.enabled : true
-}
-
-function orderedTypes(cfg: StorefrontConfig | null, defaults: string[]): string[] {
-  if (!cfg?.sections?.length) return defaults
-  return [...cfg.sections].sort((a, b) => a.order - b.order).map((s) => s.type)
 }
 
 function AboutBlock({ cfg }: { cfg: StorefrontConfig | null }) {
@@ -98,6 +87,10 @@ export async function HomePageSections({
 }) {
   const tagline = cfg?.branding?.tagline || cfg?.content?.heroSubcopy
   const vertical = tenant.verticalKey
+  // Server-resolved block order for the active theme (see lib/storefrontSections.ts).
+  const sectionDefaults = themeSectionDefaults(cfg?.themeKey, vertical)
+  const on = (type: string) => homepageSectionOn(cfg, sectionDefaults, type)
+  const order = homepageSectionOrder(cfg, sectionDefaults)
   // Paid add-on blocks (AMC / loyalty / B2B) — rendered above the footer in every theme.
   const addonsSlot = await loadStorefrontAddonBlocks(tenant.id, cfg)
 
@@ -111,11 +104,11 @@ export async function HomePageSections({
       const [navLinks, footerLinks, services, faqs, testimonials] = await Promise.all([
         fetchStorefrontMenuLinks(tenant.id, 'header'),
         fetchStorefrontMenuLinks(tenant.id, 'footer'),
-        flagOn(cfg, 'showServices') && sectionEnabled(cfg, 'services')
+        flagOn(cfg, 'showServices') && on('services')
           ? fetchServices(tenant.id, 6)
           : Promise.resolve([]),
-        flagOn(cfg, 'showFaq') && sectionEnabled(cfg, 'faq') ? fetchStorefrontFaqs(tenant.id) : Promise.resolve([]),
-        flagOn(cfg, 'showTestimonials') && sectionEnabled(cfg, 'trust')
+        flagOn(cfg, 'showFaq') && on('faq') ? fetchStorefrontFaqs(tenant.id) : Promise.resolve([]),
+        flagOn(cfg, 'showTestimonials') && on('trust')
           ? fetchStorefrontTestimonials(tenant.id)
           : Promise.resolve([]),
       ])
@@ -135,18 +128,17 @@ export async function HomePageSections({
     }
 
     const [services, chrome] = await Promise.all([
-      flagOn(cfg, 'showServices') && sectionEnabled(cfg, 'services')
+      flagOn(cfg, 'showServices') && on('services')
         ? fetchServices(tenant.id, 6)
         : Promise.resolve([]),
       fetchStorefrontCmsChrome(tenant.id, vertical),
     ])
     const { headerNavLinks, footerNavLinks, faqs, testimonials } = chrome
-    const order = orderedTypes(cfg, ['hero', 'trust', 'services', 'about', 'faq', 'cta'])
 
     const blocks: Record<string, React.ReactNode> = {
-      hero: flagOn(cfg, 'showHero') && sectionEnabled(cfg, 'hero') ? <HsHero tenant={themeTenant} /> : null,
+      hero: flagOn(cfg, 'showHero') && on('hero') ? <HsHero tenant={themeTenant} /> : null,
       trust:
-        flagOn(cfg, 'showTestimonials') && sectionEnabled(cfg, 'trust') ? (
+        flagOn(cfg, 'showTestimonials') && on('trust') ? (
           <TrustSection testimonials={testimonials} />
         ) : null,
       services:
@@ -157,9 +149,9 @@ export async function HomePageSections({
             subtitle="Hand-picked, frequently booked, instantly available."
           />
         ) : null,
-      about: sectionEnabled(cfg, 'about') ? <AboutBlock cfg={cfg} /> : null,
-      faq: sectionEnabled(cfg, 'faq') ? <FaqBlock cfg={cfg} faqs={faqs} /> : null,
-      cta: sectionEnabled(cfg, 'cta') ? <CallToAction /> : null,
+      about: on('about') ? <AboutBlock cfg={cfg} /> : null,
+      faq: on('faq') ? <FaqBlock cfg={cfg} faqs={faqs} /> : null,
+      cta: on('cta') ? <CallToAction /> : null,
     }
 
     return (
@@ -181,7 +173,8 @@ export async function HomePageSections({
     if (isRestaurantLayoutTheme(cfg?.themeKey)) {
       const [menu, products, navLinks, footerLinks] = await Promise.all([
         fetchMenu(tenant.id),
-        flagOn(cfg, 'showProducts') && sectionEnabled(cfg, 'products')
+        // Products feed the menu views; they are not a separate homepage block.
+        flagOn(cfg, 'showProducts')
           ? fetchProducts(tenant.id, 80)
           : Promise.resolve([]),
         fetchStorefrontMenuLinks(tenant.id, 'header'),
@@ -203,21 +196,20 @@ export async function HomePageSections({
     // ──────────────────────────────────────────────────────────────────────────
 
     const [menu, chrome] = await Promise.all([
-      flagOn(cfg, 'showMenu') && sectionEnabled(cfg, 'menu')
+      flagOn(cfg, 'showMenu') && on('menu')
         ? fetchMenu(tenant.id)
         : Promise.resolve([]),
       fetchStorefrontCmsChrome(tenant.id, vertical),
     ])
     const preview = menu.slice(0, 2)
     const { headerNavLinks, footerNavLinks, faqs, testimonials } = chrome
-    const order = orderedTypes(cfg, ['hero', 'menu', 'trust', 'reservations', 'about', 'faq'])
 
     return (
       <RestaurantShell tenantId={tenant.id}>
         <RestHeader tenant={themeTenant} config={cfg} navLinks={headerNavLinks} />
         <main>
           {order.map((t) => {
-            if (t === 'hero' && flagOn(cfg, 'showHero') && sectionEnabled(cfg, 'hero'))
+            if (t === 'hero' && flagOn(cfg, 'showHero') && on('hero'))
               return <RestHero key={t} tenant={themeTenant} />
             if (t === 'menu' && preview.length > 0)
               return (
@@ -236,11 +228,11 @@ export async function HomePageSections({
             if (
               t === 'trust' &&
               flagOn(cfg, 'showTestimonials') &&
-              sectionEnabled(cfg, 'trust') &&
+              on('trust') &&
               testimonials.length > 0
             )
               return <TrustSection key={t} testimonials={testimonials} />
-            if (t === 'reservations' && flagOn(cfg, 'showReservations') && sectionEnabled(cfg, 'reservations'))
+            if (t === 'reservations' && flagOn(cfg, 'showReservations') && on('reservations'))
               return (
                 <section key={t} className="bg-amber-50/50 py-16">
                   <div className="mx-auto max-w-6xl px-4 text-center sm:px-6">
@@ -256,8 +248,8 @@ export async function HomePageSections({
                   </div>
                 </section>
               )
-            if (t === 'about' && sectionEnabled(cfg, 'about')) return <AboutBlock key={t} cfg={cfg} />
-            if (t === 'faq' && sectionEnabled(cfg, 'faq'))
+            if (t === 'about' && on('about')) return <AboutBlock key={t} cfg={cfg} />
+            if (t === 'faq' && on('faq'))
               return <FaqBlock key={t} cfg={cfg} faqs={faqs} />
             return null
           })}
@@ -272,7 +264,7 @@ export async function HomePageSections({
     const themeTenant = toRetailTenant(tenant, tagline || 'Curated, online, and on the way.')
 
     if (isRetailLayoutTheme(cfg?.themeKey)) {
-      const showProducts = flagOn(cfg, 'showProducts') && sectionEnabled(cfg, 'products')
+      const showProducts = flagOn(cfg, 'showProducts') && on('products')
       const [products, categories, navLinks, footerLinks] = await Promise.all([
         showProducts ? fetchProducts(tenant.id, 80) : Promise.resolve([]),
         cfg?.themeKey === 'luxe-essence' ? fetchStorefrontCategories(tenant.id) : Promise.resolve([]),
@@ -294,20 +286,19 @@ export async function HomePageSections({
     }
 
     const [products, chrome] = await Promise.all([
-      flagOn(cfg, 'showProducts') && sectionEnabled(cfg, 'products')
+      flagOn(cfg, 'showProducts') && on('products')
         ? fetchProducts(tenant.id, 6)
         : Promise.resolve([]),
       fetchStorefrontCmsChrome(tenant.id, vertical),
     ])
     const { headerNavLinks, footerNavLinks, faqs, testimonials } = chrome
-    const order = orderedTypes(cfg, ['hero', 'products', 'trust', 'about', 'faq'])
 
     return (
       <RetailShell tenantId={tenant.id}>
         <RetailHeader tenant={themeTenant} config={cfg} navLinks={headerNavLinks} />
         <main>
           {order.map((t) => {
-            if (t === 'hero' && flagOn(cfg, 'showHero') && sectionEnabled(cfg, 'hero'))
+            if (t === 'hero' && flagOn(cfg, 'showHero') && on('hero'))
               return <RetailHero key={t} tenant={themeTenant} />
             if (t === 'products' && products.length > 0)
               return (
@@ -326,27 +317,30 @@ export async function HomePageSections({
             if (
               t === 'trust' &&
               flagOn(cfg, 'showTestimonials') &&
-              sectionEnabled(cfg, 'trust') &&
+              on('trust') &&
               testimonials.length > 0
             )
               return <TrustSection key={t} testimonials={testimonials} />
-            if (t === 'about' && sectionEnabled(cfg, 'about')) return <AboutBlock key={t} cfg={cfg} />
-            if (t === 'faq' && sectionEnabled(cfg, 'faq'))
+            if (t === 'about' && on('about')) return <AboutBlock key={t} cfg={cfg} />
+            if (t === 'faq' && on('faq'))
               return <FaqBlock key={t} cfg={cfg} faqs={faqs} />
+            if (t === 'giftMatch')
+              return (
+                <section key={t} className="border-t border-border bg-muted/30 py-14">
+                  <div className="mx-auto max-w-6xl px-4 text-center sm:px-6">
+                    <h2 className="text-2xl font-bold text-slate-900">Not sure what to gift?</h2>
+                    <p className="mt-2 text-slate-600">Tell us who it&apos;s for and we&apos;ll suggest a few handcrafted picks.</p>
+                    <Link
+                      href="/gifts"
+                      className="mt-6 inline-flex rounded-full bg-indigo-700 px-6 py-3 text-sm font-semibold text-white hover:bg-indigo-800"
+                    >
+                      Try gift match
+                    </Link>
+                  </div>
+                </section>
+              )
             return null
           })}
-          <section className="border-t border-border bg-muted/30 py-14">
-            <div className="mx-auto max-w-6xl px-4 text-center sm:px-6">
-              <h2 className="text-2xl font-bold text-slate-900">Not sure what to gift?</h2>
-              <p className="mt-2 text-slate-600">Tell us who it&apos;s for and we&apos;ll suggest a few handcrafted picks.</p>
-              <Link
-                href="/gifts"
-                className="mt-6 inline-flex rounded-full bg-indigo-700 px-6 py-3 text-sm font-semibold text-white hover:bg-indigo-800"
-              >
-                Try gift match
-              </Link>
-            </div>
-          </section>
           {addonsSlot}
         </main>
         <RetailFooter tenant={themeTenant} navLinks={footerNavLinks} />

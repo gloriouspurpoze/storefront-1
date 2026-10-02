@@ -499,6 +499,8 @@ export interface StorefrontConfig {
   tenantId: string
   themeKey?: string
   sections?: StorefrontSection[]
+  /** Server-resolved homepage blocks for the active theme, in render order (see lib/storefrontSections.ts). */
+  effectiveSections?: Array<{ type: string; enabled: boolean }>
   content?: StorefrontContent
   templateSettings?: StorefrontTemplateSettings
   branding: {

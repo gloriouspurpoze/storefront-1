@@ -1,5 +1,5 @@
 'use client'
-import type { ReactNode } from 'react'
+import { Fragment, type ReactNode } from 'react'
 
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -25,7 +25,10 @@ import { useCartAuthGate } from '@/lib/useCartAuthGate'
 import { useCheckoutCustomerPrefill } from '@/lib/useCheckoutCustomerPrefill'
 import { WishlistHeartButton, WishlistNavLink } from '@/components/wishlist/WishlistHeartButton'
 import { useRegisterWishlistAddon } from '@/components/wishlist/useWishlist'
+import { homepageSectionOrder, THEME_SECTIONS } from '@/lib/storefrontSections'
 import './soft-studio.css'
+
+const SOFT_STUDIO_SECTIONS = THEME_SECTIONS['soft-studio']
 
 const THUMB_CLASSES = ['ss-product-thumb-1', 'ss-product-thumb-2', 'ss-product-thumb-3', 'ss-product-thumb-4']
 const FREE_SHIPPING_MIN = 1500
@@ -224,45 +227,8 @@ export function SoftStudioPage({
     return () => window.removeEventListener('keydown', onKey)
   }, [cartOpen, checkoutOpen])
 
-  return (
-    <div className="ss-root">
-      <StorefrontMenuDrawer
-        open={menuOpen}
-        onClose={() => setMenuOpen(false)}
-        config={config}
-        navLinks={navLinks}
-      />
-      <ShippingPolicyModal open={shippingPolicyOpen} onClose={onShippingPolicyClose} config={config} />
-      <nav className="ss-nav">
-        <Link href="/" className="ss-nav-logo">
-          {siteName}
-        </Link>
-        <div className="ss-nav-right">
-          <button
-            type="button"
-            className="sf-menu-toggle-btn"
-            onClick={() => setMenuOpen(true)}
-            aria-expanded={menuOpen}
-            aria-label="Open menu"
-          >
-            ☰
-          </button>
-          {wishlistOn ? (
-            <WishlistNavLink enabled className="inline-flex items-center justify-center opacity-90 hover:opacity-100" />
-          ) : null}
-          <AccountProfileLink className="inline-flex items-center justify-center opacity-90 hover:opacity-100" />
-          <button
-            type="button"
-            className="ss-cart-btn"
-            onClick={() => {
-              if (requireAuthForCart()) setCartOpen(true)
-            }}
-          >
-            🛍 Cart <span className="ss-cart-count">{itemCount}</span>
-          </button>
-        </div>
-      </nav>
-
+  const blocks: Record<(typeof SOFT_STUDIO_SECTIONS)[number], ReactNode> = {
+    hero: (
       <div className="ss-hero">
         <div className="ss-hero-text">
           <p className="ss-hero-eyebrow">Curated for you</p>
@@ -325,7 +291,8 @@ export function SoftStudioPage({
           </div>
         </div>
       </div>
-
+    ),
+    highlights: (
       <div className="ss-strip">
         {STRIP_ITEMS.map((item) => (
           <div key={item.text} className="ss-strip-item">
@@ -334,7 +301,8 @@ export function SoftStudioPage({
           </div>
         ))}
       </div>
-
+    ),
+    products: (
       <section id="products" className="ss-section">
         <p className="ss-section-label">New Arrivals</p>
         <h2 className="ss-section-title">Made for slow living</h2>
@@ -379,6 +347,51 @@ export function SoftStudioPage({
           </div>
         )}
       </section>
+    ),
+  }
+
+  return (
+    <div className="ss-root">
+      <StorefrontMenuDrawer
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        config={config}
+        navLinks={navLinks}
+      />
+      <ShippingPolicyModal open={shippingPolicyOpen} onClose={onShippingPolicyClose} config={config} />
+      <nav className="ss-nav">
+        <Link href="/" className="ss-nav-logo">
+          {siteName}
+        </Link>
+        <div className="ss-nav-right">
+          <button
+            type="button"
+            className="sf-menu-toggle-btn"
+            onClick={() => setMenuOpen(true)}
+            aria-expanded={menuOpen}
+            aria-label="Open menu"
+          >
+            ☰
+          </button>
+          {wishlistOn ? (
+            <WishlistNavLink enabled className="inline-flex items-center justify-center opacity-90 hover:opacity-100" />
+          ) : null}
+          <AccountProfileLink className="inline-flex items-center justify-center opacity-90 hover:opacity-100" />
+          <button
+            type="button"
+            className="ss-cart-btn"
+            onClick={() => {
+              if (requireAuthForCart()) setCartOpen(true)
+            }}
+          >
+            🛍 Cart <span className="ss-cart-count">{itemCount}</span>
+          </button>
+        </div>
+      </nav>
+
+      {homepageSectionOrder(config, SOFT_STUDIO_SECTIONS).map((type) => (
+        <Fragment key={type}>{blocks[type as keyof typeof blocks]}</Fragment>
+      ))}
 
       {addonsSlot}
 

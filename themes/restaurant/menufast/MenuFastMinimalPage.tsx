@@ -2,7 +2,7 @@
 import type { ReactNode } from 'react'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import type { StorefrontNavLink } from '@/lib/cms-content'
 import type { PublicMenuCategory, StorefrontConfig } from '@/lib/storefront-api'
 import type { ThemeTenant } from '../types'
@@ -20,7 +20,10 @@ import { AccountProfileLink } from '@/components/account/AccountProfileLink'
 import { StorefrontMenuDrawer } from '@/components/StorefrontMenuDrawer'
 import { StoreStatusBadge } from '@/components/StoreStatusBadge'
 import { MenuItemDetailModal } from '@/components/MenuItemDetailModal'
+import { homepageSectionOrder, THEME_SECTIONS } from '@/lib/storefrontSections'
 import './menufast.css'
+
+const MENUFAST_MINIMAL_SECTIONS = THEME_SECTIONS['menufast-minimal']
 
 function WhatsAppIcon() {
   return (
@@ -89,6 +92,93 @@ export function MenuFastMinimalPage({
         </div>
       </div>
     )
+  }
+
+  // Only the menu list is a block; the header (logo, status, cart summary) and the checkout
+  // footer stay fixed.
+  const blocks: Record<(typeof MENUFAST_MINIMAL_SECTIONS)[number], ReactNode> = {
+    menu: (
+      <div className="mf-min-body">
+        {initialCategories.length === 0 ? (
+          <p className="mf-empty">Menu coming soon — add products in your admin dashboard.</p>
+        ) : (
+          initialCategories.map((cat) => (
+            <div key={cat.id}>
+              <div className="mf-min-cat-label">{cat.name}</div>
+              {cat.items.map((item) => {
+                const popular = (item.dietary ?? []).some((d) => d.toLowerCase() === 'popular')
+                const hasVariants = productHasVariants(item)
+                const qty = Object.keys(cart)
+                  .filter((k) => k === item.id || k.startsWith(`${item.id}:`))
+                  .reduce((sum, k) => sum + (cart[k] ?? 0), 0)
+                const inStock = isMenuItemInStock(item)
+                return (
+                  <div
+                    key={item.id}
+                    className="mf-min-row"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedItemId(item.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        setSelectedItemId(item.id)
+                      }
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <div className="mf-min-item-name">
+                        {isVegItem(item) && <span className="mf-veg" aria-label="Vegetarian" />}
+                        {item.name}
+                        {popular && <span className="mf-min-badge">Popular</span>}
+                      </div>
+                      {item.description && (
+                        <div className="mf-min-item-desc">{item.description}</div>
+                      )}
+                    </div>
+                    <div
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    >
+                      <div className="mf-min-price">
+                        {formatListPrice(item, (amount) => formatMenuPrice(amount, item.currency))}
+                      </div>
+                      {!inStock ? (
+                        <span className="mf-oos-label">Out of stock</span>
+                      ) : hasVariants ? (
+                        <button
+                          type="button"
+                          className="mf-add-btn"
+                          aria-label={`Choose options for ${item.name}`}
+                          onClick={() => setSelectedItemId(item.id)}
+                        >
+                          ···
+                        </button>
+                      ) : qty === 0 ? (
+                        <button type="button" className="mf-add-btn" aria-label={`Add ${item.name}`} onClick={() => addItem(item)}>
+                          +
+                        </button>
+                      ) : (
+                        <div className="mf-qty-pill">
+                          <button type="button" aria-label="Decrease" onClick={() => removeItem(item.id)}>
+                            −
+                          </button>
+                          <span>{qty}</span>
+                          <button type="button" aria-label="Increase" onClick={() => addItem(item)}>
+                            +
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ))
+        )}
+      </div>
+    ),
   }
 
   return (
@@ -165,86 +255,9 @@ export function MenuFastMinimalPage({
             )}
           </div>
 
-          <div className="mf-min-body">
-            {initialCategories.length === 0 ? (
-              <p className="mf-empty">Menu coming soon — add products in your admin dashboard.</p>
-            ) : (
-              initialCategories.map((cat) => (
-                <div key={cat.id}>
-                  <div className="mf-min-cat-label">{cat.name}</div>
-                  {cat.items.map((item) => {
-                    const popular = (item.dietary ?? []).some((d) => d.toLowerCase() === 'popular')
-                    const hasVariants = productHasVariants(item)
-                    const qty = Object.keys(cart)
-                      .filter((k) => k === item.id || k.startsWith(`${item.id}:`))
-                      .reduce((sum, k) => sum + (cart[k] ?? 0), 0)
-                    const inStock = isMenuItemInStock(item)
-                    return (
-                      <div
-                        key={item.id}
-                        className="mf-min-row"
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => setSelectedItemId(item.id)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault()
-                            setSelectedItemId(item.id)
-                          }
-                        }}
-                      >
-                        <div style={{ flex: 1 }}>
-                          <div className="mf-min-item-name">
-                            {isVegItem(item) && <span className="mf-veg" aria-label="Vegetarian" />}
-                            {item.name}
-                            {popular && <span className="mf-min-badge">Popular</span>}
-                          </div>
-                          {item.description && (
-                            <div className="mf-min-item-desc">{item.description}</div>
-                          )}
-                        </div>
-                        <div
-                          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                          onClick={(e) => e.stopPropagation()}
-                          onKeyDown={(e) => e.stopPropagation()}
-                        >
-                          <div className="mf-min-price">
-                            {formatListPrice(item, (amount) => formatMenuPrice(amount, item.currency))}
-                          </div>
-                          {!inStock ? (
-                            <span className="mf-oos-label">Out of stock</span>
-                          ) : hasVariants ? (
-                            <button
-                              type="button"
-                              className="mf-add-btn"
-                              aria-label={`Choose options for ${item.name}`}
-                              onClick={() => setSelectedItemId(item.id)}
-                            >
-                              ···
-                            </button>
-                          ) : qty === 0 ? (
-                            <button type="button" className="mf-add-btn" aria-label={`Add ${item.name}`} onClick={() => addItem(item)}>
-                              +
-                            </button>
-                          ) : (
-                            <div className="mf-qty-pill">
-                              <button type="button" aria-label="Decrease" onClick={() => removeItem(item.id)}>
-                                −
-                              </button>
-                              <span>{qty}</span>
-                              <button type="button" aria-label="Increase" onClick={() => addItem(item)}>
-                                +
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              ))
-            )}
-          </div>
+          {homepageSectionOrder(config, MENUFAST_MINIMAL_SECTIONS).map((type) => (
+            <Fragment key={type}>{blocks[type as keyof typeof blocks]}</Fragment>
+          ))}
 
           <div className="mf-min-footer">
             <MenuOrderCheckoutBlock

@@ -1,13 +1,14 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import { Fragment, useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import type { PublicMenuCategory, PublicMenuItem, StorefrontConfig } from '@/lib/storefront-api'
 import { isMenuItemInStock } from '@/lib/storefront-api'
 import type { ThemeTenant } from '../types'
 import { SaffronHeader } from './SaffronHeader'
 import { SaffronHero } from './SaffronHero'
 import { SaffronFooter } from './SaffronFooter'
+import { homepageSectionOrder, THEME_SECTIONS } from '@/lib/storefrontSections'
 import { StorefrontMenuDrawer } from '@/components/StorefrontMenuDrawer'
 import { MenuOrderCheckoutBlock } from '../MenuOrderCheckoutBlock'
 import { DeliveryDetailsSection } from '@/components/DeliveryDetailsSection'
@@ -46,6 +47,8 @@ interface BadgeStyle {
   color: string
   label: string
 }
+
+const SAFFRON_SECTIONS = THEME_SECTIONS.saffron
 
 const DIETARY_BADGES: Record<string, BadgeStyle> = {
   veg: { bg: '#E8F5E9', color: '#2E7D32', label: 'Veg' },
@@ -1007,60 +1010,11 @@ export function SaffronMenuPage({
       ? ['🎉 50% off first order', 'Free delivery over ₹499']
       : ['🎉 50% off first order', 'Free delivery over ₹499']
 
-  return (
-    <div
-      style={{
-        fontFamily: "var(--font-dm-sans, 'DM Sans', sans-serif)",
-        background: 'var(--cream, #FAF8F3)',
-        color: 'var(--ink, #1A1714)',
-        minHeight: '100vh',
-        fontSize: '15px',
-        lineHeight: '1.6',
-      }}
-    >
-      <StorefrontMenuDrawer
-        open={menuOpen}
-        onClose={() => setMenuOpen(false)}
-        config={config}
-        showShippingPolicy={false}
-        navLinks={navLinks}
-      />
-      <MenuItemDetailModal
-        item={selectedItem}
-        open={selectedItem != null}
-        tone="saffron"
-        onClose={() => {
-          setSelectedItemId(null)
-          setModalVariantId(undefined)
-        }}
-        quantity={selectedItem ? qtyFor(selectedItem.id, modalVariantId) : 0}
-        onAdd={(variantId) => {
-          if (selectedItem) {
-            setModalVariantId(variantId)
-            if (variantId) setItemVariant(selectedItem.id, variantId)
-            addToCart(selectedItem, variantId)
-          }
-        }}
-        onRemove={(variantId) => {
-          if (selectedItem) {
-            setModalVariantId(variantId)
-            removeFromCart(selectedItem.id, variantId)
-          }
-        }}
-      />
-      {/* Sticky header with live cart count */}
-      <SaffronHeader
-        tenant={tenant}
-        config={config}
-        cartCount={totalCartCount}
-        onCartClick={() => setMobileCartOpen(true)}
-        onMenuOpen={() => setMenuOpen(true)}
-      />
-
-      {/* Dark hero banner */}
-      <SaffronHero tenant={tenant} config={config} offers={offers} />
-
-      {/* Two-column layout: menu + cart */}
+  const blocks: Record<(typeof SAFFRON_SECTIONS)[number], ReactNode> = {
+    // Dark hero banner (offers strip is embedded in the hero)
+    hero: <SaffronHero tenant={tenant} config={config} offers={offers} />,
+    // Two-column layout: menu + cart — one unit (category tabs, search, item grid, desktop cart)
+    menu: (
       <div
         className="saffron-layout"
         style={{
@@ -1275,6 +1229,62 @@ export function SaffronMenuPage({
           <CartContent {...cartProps} />
         </div>
       </div>
+    ),
+  }
+
+  return (
+    <div
+      style={{
+        fontFamily: "var(--font-dm-sans, 'DM Sans', sans-serif)",
+        background: 'var(--cream, #FAF8F3)',
+        color: 'var(--ink, #1A1714)',
+        minHeight: '100vh',
+        fontSize: '15px',
+        lineHeight: '1.6',
+      }}
+    >
+      <StorefrontMenuDrawer
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        config={config}
+        showShippingPolicy={false}
+        navLinks={navLinks}
+      />
+      <MenuItemDetailModal
+        item={selectedItem}
+        open={selectedItem != null}
+        tone="saffron"
+        onClose={() => {
+          setSelectedItemId(null)
+          setModalVariantId(undefined)
+        }}
+        quantity={selectedItem ? qtyFor(selectedItem.id, modalVariantId) : 0}
+        onAdd={(variantId) => {
+          if (selectedItem) {
+            setModalVariantId(variantId)
+            if (variantId) setItemVariant(selectedItem.id, variantId)
+            addToCart(selectedItem, variantId)
+          }
+        }}
+        onRemove={(variantId) => {
+          if (selectedItem) {
+            setModalVariantId(variantId)
+            removeFromCart(selectedItem.id, variantId)
+          }
+        }}
+      />
+      {/* Sticky header with live cart count */}
+      <SaffronHeader
+        tenant={tenant}
+        config={config}
+        cartCount={totalCartCount}
+        onCartClick={() => setMobileCartOpen(true)}
+        onMenuOpen={() => setMenuOpen(true)}
+      />
+
+      {homepageSectionOrder(config, SAFFRON_SECTIONS).map((type) => (
+        <Fragment key={type}>{blocks[type as keyof typeof blocks]}</Fragment>
+      ))}
 
       {/* ── Mobile floating cart button ── */}
       <div className="saffron-mobile-fab">
