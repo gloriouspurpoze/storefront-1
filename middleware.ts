@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { resolveTenant } from './lib/tenant-resolver'
+import { primaryRedirectUrl } from './lib/primaryDomainRedirect'
+import { PREVIEW_COOKIE } from './lib/storefrontPreview'
 
 /**
  * Host-based tenant routing.
@@ -42,6 +44,25 @@ export async function middleware(req: NextRequest) {
     const res = NextResponse.rewrite(url)
     res.headers.set('x-storefront-resolved', 'miss')
     res.headers.set('x-storefront-host', host)
+    return res
+  }
+
+  // One canonical address per store: 301 every other host to the verified primary domain.
+  const redirectTo = primaryRedirectUrl({
+    host,
+    primaryHost: tenant.primaryHost,
+    method: req.method,
+    pathname,
+    search: req.nextUrl.search,
+    hasPreview:
+      req.cookies.has(PREVIEW_COOKIE) ||
+      req.nextUrl.searchParams.has('previewVersion') ||
+      req.nextUrl.searchParams.has('previewToken'),
+    disabled: process.env.STOREFRONT_PRIMARY_DOMAIN_REDIRECT === 'off',
+  })
+  if (redirectTo) {
+    const res = NextResponse.redirect(redirectTo, 301)
+    res.headers.set('x-storefront-resolved', 'primary-redirect')
     return res
   }
 

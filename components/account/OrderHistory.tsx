@@ -1,14 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   fetchCustomerEnquiries,
-  fetchCustomerOrderTracking,
   fetchCustomerOrders,
   type CustomerEnquirySummary,
   type CustomerOrderSummary,
-  type PublicOrderTracking,
 } from '@/lib/storefront-api'
 import {
   accountSkinPrefix,
@@ -20,7 +18,7 @@ import { useAccountAuth } from './AccountAuthProvider'
 import { useAccountLayoutTheme, useAccountTheme } from './AccountThemeContext'
 import { accountThemeClasses } from './accountThemeClasses'
 import { AccountPageHeader } from './AccountPageHeader'
-import { OrderStatusBadge, OrderTrackingPanel } from './OrderTrackingPanel'
+import { OrderStatusBadge } from './OrderTrackingPanel'
 import { RequireStorefrontAuth } from './RequireStorefrontAuth'
 
 function formatMoney(amount: number, currency = 'INR'): string {
@@ -47,6 +45,25 @@ function enquiryStageLabel(stage: string, hybrid = false): string {
   return stage.replace(/_/g, ' ')
 }
 
+const PAGE_SIZE = 20
+
+type OrderFilterKey = 'all' | 'active' | 'delivered' | 'cancelled'
+
+const ORDER_FILTERS: Array<{ key: OrderFilterKey; label: string }> = [
+  { key: 'all', label: 'All' },
+  { key: 'active', label: 'Active' },
+  { key: 'delivered', label: 'Delivered' },
+  { key: 'cancelled', label: 'Cancelled' },
+]
+
+function matchesFilter(status: string, filter: OrderFilterKey): boolean {
+  const s = status.toLowerCase()
+  if (filter === 'all') return true
+  if (filter === 'delivered') return s === 'delivered' || s === 'completed'
+  if (filter === 'cancelled') return s === 'cancelled' || s === 'refunded'
+  return !['delivered', 'completed', 'cancelled', 'refunded'].includes(s)
+}
+
 export function OrderHistory({ tenantId }: { tenantId: string }) {
   const { user, tokens, isReady, isAuthenticated } = useAccountAuth()
   const themeKey = useAccountTheme()
@@ -59,10 +76,10 @@ export function OrderHistory({ tenantId }: { tenantId: string }) {
   const [enquiries, setEnquiries] = useState<CustomerEnquirySummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [expandedOrder, setExpandedOrder] = useState<string | null>(null)
-  const [trackingByOrder, setTrackingByOrder] = useState<Record<string, PublicOrderTracking>>({})
-  const [trackingLoading, setTrackingLoading] = useState<string | null>(null)
-  const [trackingError, setTrackingError] = useState<string | null>(null)
+  const [filter, setFilter] = useState<OrderFilterKey>('all')
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   useEffect(() => {
     if (!isReady) return
@@ -82,15 +99,23 @@ export function OrderHistory({ tenantId }: { tenantId: string }) {
         })
       : hybridOrdersAndEnquiries
         ? Promise.all([
-            fetchCustomerOrders({ tenantId, accessToken: token }).then((data) => {
-              if (!cancelled) setOrders(data.orders)
+            fetchCustomerOrders({ tenantId, accessToken: token, limit: PAGE_SIZE }).then((data) => {
+              if (!cancelled) {
+                setOrders(data.orders)
+                setPage(1)
+                setTotalPages(data.pagination?.totalPages ?? 1)
+              }
             }),
             fetchCustomerEnquiries({ tenantId, accessToken: token }).then((data) => {
               if (!cancelled) setEnquiries(data.enquiries)
             }),
           ])
-        : fetchCustomerOrders({ tenantId, accessToken: token }).then((data) => {
-            if (!cancelled) setOrders(data.orders)
+        : fetchCustomerOrders({ tenantId, accessToken: token, limit: PAGE_SIZE }).then((data) => {
+            if (!cancelled) {
+              setOrders(data.orders)
+              setPage(1)
+              setTotalPages(data.pagination?.totalPages ?? 1)
+            }
           })
 
     load
@@ -114,44 +139,35 @@ export function OrderHistory({ tenantId }: { tenantId: string }) {
     }
   }, [isReady, isAuthenticated, tokens?.accessToken, tenantId, isTradePro, hybridOrdersAndEnquiries])
 
-  const loadTracking = useCallback(
-    async (orderNumber: string) => {
-      if (!tokens?.accessToken) return
+  const loadMore = useCallback(async () => {
+    if (!tokens?.accessToken) return
+    setLoadingMore(true)
+    try {
+      const next = page + 1
+      const data = await fetchCustomerOrders({
+        tenantId,
+        accessToken: tokens.accessToken,
+        page: next,
+        limit: PAGE_SIZE,
+      })
+      setOrders((prev) => {
+        const seen = new Set(prev.map((o) => o.id))
+        return [...prev, ...data.orders.filter((o) => !seen.has(o.id))]
+      })
+      setPage(next)
+      setTotalPages(data.pagination?.totalPages ?? next)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not load more orders')
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [page, tenantId, tokens?.accessToken])
 
-      setTrackingLoading(orderNumber)
-      setTrackingError(null)
-      try {
-        const data = await fetchCustomerOrderTracking({
-          tenantId,
-          accessToken: tokens.accessToken,
-          orderNumber,
-        })
-        if (!data) {
-          setTrackingError('Could not load tracking for this order.')
-          return
-        }
-        setTrackingByOrder((prev) => ({ ...prev, [orderNumber]: data }))
-      } catch {
-        setTrackingError('Could not load tracking for this order.')
-      } finally {
-        setTrackingLoading(null)
-      }
-    },
-    [tenantId, tokens?.accessToken],
+  const visibleOrders = useMemo(
+    () => orders.filter((o) => matchesFilter(o.status, filter)),
+    [orders, filter],
   )
-
-  const onCardClick = (orderNumber: string) => {
-    if (expandedOrder === orderNumber) {
-      setExpandedOrder(null)
-      setTrackingError(null)
-      return
-    }
-    setExpandedOrder(orderNumber)
-    setTrackingError(null)
-    if (!trackingByOrder[orderNumber]) {
-      void loadTracking(orderNumber)
-    }
-  }
+  const hasMore = page < totalPages
 
   if (!isReady) {
     return <p className={t.statusLoading}>Loading…</p>
@@ -243,7 +259,7 @@ export function OrderHistory({ tenantId }: { tenantId: string }) {
             user
               ? hybridOrdersAndEnquiries
                 ? `Orders and Mumbai shipping enquiries for ${displayName(user)}.`
-                : `Order history for ${displayName(user)}. Tap an order for live tracking.`
+                : `Order history for ${displayName(user)}. Open an order for tracking, receipt, or to cancel.`
               : undefined
           }
         />
@@ -326,18 +342,42 @@ export function OrderHistory({ tenantId }: { tenantId: string }) {
                 </Link>
               </div>
             ) : (
+              <>
+              <div className="mb-4 flex flex-wrap gap-2" role="tablist" aria-label="Filter orders">
+                {ORDER_FILTERS.map((f) => {
+                  const count = orders.filter((o) => matchesFilter(o.status, f.key)).length
+                  const selected = filter === f.key
+                  return (
+                    <button
+                      key={f.key}
+                      type="button"
+                      role="tab"
+                      aria-selected={selected}
+                      onClick={() => setFilter(f.key)}
+                      className={`rounded-full border px-3 py-1 text-sm transition-colors ${
+                        selected
+                          ? 'border-[var(--site-brand,#171717)] bg-[var(--site-brand,#171717)] text-white'
+                          : 'border-neutral-300 hover:border-neutral-400'
+                      }`}
+                    >
+                      {f.label}
+                      <span className="ml-1.5 opacity-70">{count}</span>
+                    </button>
+                  )
+                })}
+              </div>
+              {visibleOrders.length === 0 ? (
+                <div className={t.emptyState}>
+                  <p className={t.emptyTitle}>No {filter} orders</p>
+                </div>
+              ) : null}
               <ul className={t.orderList}>
-                {orders.map((order) => {
-                  const isExpanded = expandedOrder === order.orderNumber
-                  const tracking = trackingByOrder[order.orderNumber]
-                  const isLoadingTrack = trackingLoading === order.orderNumber
-
+                {visibleOrders.map((order) => {
                   return (
                     <li key={order.id}>
-                      <button
-                        type="button"
-                        onClick={() => onCardClick(order.orderNumber)}
-                        className={`${t.orderCard} ${isExpanded ? t.orderCardExpanded : ''}`}
+                      <Link
+                        href={`/account/orders/${encodeURIComponent(order.orderNumber)}`}
+                        className={`${t.orderCard} block no-underline`}
                       >
                         <div
                           className={
@@ -379,25 +419,26 @@ export function OrderHistory({ tenantId }: { tenantId: string }) {
                               : `${t.textMuted} mt-3 text-xs font-medium`
                           }
                         >
-                          {isExpanded ? 'Hide tracking ↑' : 'View tracking details →'}
+                          View details, tracking &amp; receipt →
                         </p>
-                      </button>
-
-                      {isExpanded ? (
-                        <div className={t.trackingPanel}>
-                          {isLoadingTrack ? (
-                            <p className={t.statusLoading}>Loading tracking…</p>
-                          ) : trackingError && !tracking ? (
-                            <p className={t.error}>{trackingError}</p>
-                          ) : tracking ? (
-                            <OrderTrackingPanel tracking={tracking} compact />
-                          ) : null}
-                        </div>
-                      ) : null}
+                      </Link>
                     </li>
                   )
                 })}
               </ul>
+              {hasMore ? (
+                <div className="mt-4 flex justify-center">
+                  <button
+                    type="button"
+                    className={t.btnSecondary}
+                    disabled={loadingMore}
+                    onClick={() => void loadMore()}
+                  >
+                    {loadingMore ? 'Loading…' : 'Load more orders'}
+                  </button>
+                </div>
+              ) : null}
+              </>
             )}
           </>
         )}

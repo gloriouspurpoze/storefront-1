@@ -12,6 +12,7 @@ const NAV_ITEMS: { href: string; label: string; exact?: boolean }[] = [
   { href: '/account', label: 'Overview', exact: true },
   { href: '/account/orders', label: 'Orders' },
   { href: '/account/profile', label: 'Profile' },
+  { href: '/account/addresses', label: 'Addresses' },
   { href: '/orders/track', label: 'Track order' },
 ]
 

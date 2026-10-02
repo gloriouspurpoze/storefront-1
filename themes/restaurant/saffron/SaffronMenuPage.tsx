@@ -36,7 +36,7 @@ import {
   coerceDeliveryMode,
   getEnabledRestaurantDeliveryModes,
 } from '@/lib/storefrontDeliveryModes'
-import { storefrontShippingAmountInr } from '@/lib/storefrontCheckoutPricing'
+import { storefrontCheckoutTotals } from '@/lib/storefrontCheckoutPricing'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -700,46 +700,6 @@ function CartContent({
           flexShrink: 0,
         }}
       >
-        {/* Promo code */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '1rem' }}>
-          <input
-            type="text"
-            value={promoCode}
-            onChange={(e) => onPromoChange(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && onApplyPromo()}
-            placeholder="Promo code"
-            style={{
-              flex: 1,
-              padding: '8px 10px',
-              border: '1px solid var(--saf-border-strong, rgba(26,23,20,0.2))',
-              borderRadius: 'var(--saf-radius-sm, 6px)',
-              fontSize: '13px',
-              fontFamily: 'inherit',
-              color: 'var(--ink, #1A1714)',
-              outline: 'none',
-              background: 'white',
-              transition: 'border-color 0.15s',
-            }}
-          />
-          <button
-            onClick={onApplyPromo}
-            style={{
-              padding: '8px 14px',
-              border: '1px solid var(--saf-border-strong, rgba(26,23,20,0.2))',
-              borderRadius: 'var(--saf-radius-sm, 6px)',
-              fontSize: '13px',
-              fontWeight: 500,
-              background: 'transparent',
-              color: 'var(--ink, #1A1714)',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              transition: 'all 0.15s',
-            }}
-          >
-            Apply
-          </button>
-        </div>
-
         {/* Bill summary */}
         {!isEmpty && (
           <div
@@ -750,7 +710,7 @@ function CartContent({
               label="Delivery fee"
               value={deliveryFee === 0 ? '🎉 Free' : formatMenuPrice(deliveryFee, currency)}
             />
-            <BillRow label="Taxes & charges" value={formatMenuPrice(tax, currency)} />
+            {tax > 0 ? <BillRow label="Taxes" value={formatMenuPrice(tax, currency)} /> : null}
             {promoApplied && (
               <BillRow
                 label="Promo discount"
@@ -949,10 +909,14 @@ export function SaffronMenuPage({
   const totalCartCount = itemCount
 
   const currency = cartEntries[0]?.item.currency ?? 'INR'
-  const deliveryFee = storefrontShippingAmountInr(deliveryMode, subtotal, config)
-  const tax = Math.round(subtotal * 0.05)
-  const discount = promoApplied ? Math.round(subtotal * 0.1) : 0
-  const total = subtotal + deliveryFee + tax - discount
+  // Same math as the server charge (tenant fees + tax settings). No client-only discounts:
+  // there is no coupon API, so a UI discount would show less than Razorpay / COD collects.
+  const {
+    shippingInr: deliveryFee,
+    taxInr: tax,
+    totalInr: total,
+  } = storefrontCheckoutTotals(deliveryMode, subtotal, config)
+  const discount = 0
 
   // Filtered categories for display
   const filteredCategories = useMemo(() => {

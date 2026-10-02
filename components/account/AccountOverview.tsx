@@ -241,6 +241,9 @@ export function AccountOverview({ tenantId }: { tenantId: string }) {
                 Edit profile
               </Link>
             ) : null}
+            <Link href="/account/addresses" className={t.btnSecondary}>
+              Saved addresses
+            </Link>
           </div>
 
           {!skin && profile ? (
@@ -326,7 +329,7 @@ export function AccountOverview({ tenantId }: { tenantId: string }) {
                   <ul className={t.orderList}>
                     {orders.map((order) => (
                       <li key={order.id}>
-                        <Link href="/account/orders" className={`${t.orderCard} block no-underline`}>
+                        <Link href={`/account/orders/${encodeURIComponent(order.orderNumber)}`} className={`${t.orderCard} block no-underline`}>
                           <div className={skin ? `${skin}-acct-order-row` : 'flex flex-wrap items-start justify-between gap-3'}>
                             <div>
                               <p className={skin ? `${skin}-acct-order-num` : 'font-medium text-neutral-900'}>
@@ -418,7 +421,7 @@ export function AccountOverview({ tenantId }: { tenantId: string }) {
               <ul className={t.orderList}>
                 {orders.map((order) => (
                   <li key={order.id}>
-                    <Link href="/account/orders" className={`${t.orderCard} block no-underline`}>
+                    <Link href={`/account/orders/${encodeURIComponent(order.orderNumber)}`} className={`${t.orderCard} block no-underline`}>
                       <div className={skin ? `${skin}-acct-order-row` : 'flex flex-wrap items-start justify-between gap-3'}>
                         <div>
                           <p className={skin ? `${skin}-acct-order-num` : 'font-medium text-neutral-900'}>

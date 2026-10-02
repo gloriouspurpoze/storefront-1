@@ -16,6 +16,9 @@ import { TradeProThemeStyles } from '@/themes/home-services/trade-pro/TradeProTh
 import { StorefrontFloatingWidgets } from '@/components/floating/StorefrontFloatingWidgets'
 import { isAddonActive, STOREFRONT_ADDON_FLAGS } from '@/lib/storefrontAddons'
 import { resolveWhatsAppNumber } from '@/lib/storefrontWhatsApp'
+import { parseCustomSnippet, toReactProps, type CustomSnippetNode } from '@/lib/customScripts'
+import { resolveSiteFonts } from '@/lib/siteFonts'
+import { MaintenancePage } from '@/components/MaintenancePage'
 
 const TRADE_PRO_PRIMARY = '#00142F'
 const TRADE_PRO_SECONDARY = '#FE9D16'
@@ -39,7 +42,9 @@ export async function generateMetadata({ params }: RouteParams): Promise<Metadat
     branding.tagline ||
     `Welcome to ${siteName} — powered by Profixer.`
   const ogImage = seo.ogImageUrl
-  const robotsIndex = seo.robots?.indexable !== false
+  // Holding page must not replace the shop in search results.
+  const inMaintenance = cfg?.siteStatus?.mode === 'maintenance'
+  const robotsIndex = seo.robots?.indexable !== false && !inMaintenance
   const robotsFollow = seo.robots?.followLinks !== false
   const verification = seo.analytics?.googleSiteVerification
 
@@ -161,6 +166,28 @@ export default async function TenantLayout({
   // Paid floating add-ons: WhatsApp needs a usable number; live chat needs only the add-on.
   const whatsAppDigits = isAddonActive(cfg, STOREFRONT_ADDON_FLAGS.whatsApp) ? resolveWhatsAppNumber(cfg) : null
   const liveChatActive = isAddonActive(cfg, STOREFRONT_ADDON_FLAGS.liveChat)
+  // Draft previews always render the real site so owners can keep working while closed.
+  const inMaintenance = cfg?.siteStatus?.mode === 'maintenance' && !preview.active
+  const fonts = resolveSiteFonts(cfg?.branding, `[data-tenant="${tenant.slug.replace(/[^a-z0-9-]/gi, "")}"]`)
+  const headSnippets = parseCustomSnippet(cfg?.customHeadScripts)
+  const bodySnippets = parseCustomSnippet(cfg?.customBodyScripts)
+
+  if (inMaintenance) {
+    return (
+      <div className={`min-h-screen ${themeClass}`} style={brandStyle(tenant, cfg)} data-tenant={tenant.slug}>
+        {fonts && <link rel="stylesheet" href={fonts.href} precedence="default" />}
+        {fonts && <style dangerouslySetInnerHTML={{ __html: fonts.css }} />}
+        <MaintenancePage
+          siteName={siteName}
+          logoUrl={cfg?.branding?.logoUrl}
+          message={cfg?.siteStatus?.message}
+          reopensAt={cfg?.siteStatus?.reopensAt}
+          contactEmail={cfg?.branding?.contactEmail}
+          contactPhone={cfg?.branding?.contactPhone}
+        />
+      </div>
+    )
+  }
 
   return (
     <div
@@ -212,6 +239,9 @@ export default async function TenantLayout({
           }}
         />
       )}
+      {headSnippets.map((node, i) => renderSnippet(node, `head-${i}`))}
+      {fonts && <link rel="stylesheet" href={fonts.href} precedence="default" />}
+      {fonts && <style dangerouslySetInnerHTML={{ __html: fonts.css }} />}
       {cfg?.customCss && <style dangerouslySetInnerHTML={{ __html: cfg.customCss }} />}
       {cfg?.themeKey === 'trade-pro' ? <TradeProThemeStyles /> : null}
       <AccountAuthProvider tenantId={tenant.id}>{children}</AccountAuthProvider>
@@ -221,6 +251,27 @@ export default async function TenantLayout({
         whatsAppDigits={whatsAppDigits}
         liveChat={liveChatActive}
       />
+      {bodySnippets.map((node, i) => renderSnippet(node, `body-${i}`))}
     </div>
+  )
+}
+
+/** Render one parsed custom-snippet node (see lib/customScripts.ts). */
+function renderSnippet(node: CustomSnippetNode, key: string): ReactNode {
+  if (node.kind !== 'script') {
+    if (node.kind === 'noscript') return <noscript key={key} dangerouslySetInnerHTML={{ __html: node.html }} />
+    const props = toReactProps(node.attrs)
+    return node.kind === 'meta' ? <meta key={key} {...props} /> : <link key={key} {...props} />
+  }
+  const { src, ...attrs } = toReactProps(node.attrs)
+  return (
+    <Script
+      key={key}
+      id={`custom-${key}`}
+      strategy="afterInteractive"
+      src={typeof src === 'string' ? src : undefined}
+      {...attrs}
+      {...(node.code ? { dangerouslySetInnerHTML: { __html: node.code } } : {})}
+    />
   )
 }

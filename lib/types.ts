@@ -30,4 +30,6 @@ export interface ResolvedTenant {
   verticalKey: VerticalKey
   publicSiteTheme: PublicSiteTheme | null
   matchedBy: 'custom_domain' | 'platform_subdomain'
+  /** Verified primary custom domain; other hosts 301 to it (see lib/primaryDomainRedirect). */
+  primaryHost?: string | null
 }

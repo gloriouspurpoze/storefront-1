@@ -24,6 +24,7 @@ interface ResolvePublicResponse {
   verticalKey?: ResolvedTenant['verticalKey']
   publicSiteTheme?: ResolvedTenant['publicSiteTheme']
   matchedBy?: ResolvedTenant['matchedBy']
+  primaryHost?: string | null
 }
 
 const RESOLVE_REVALIDATE_SECONDS = 60
@@ -68,5 +69,6 @@ export async function resolveTenantViaApi(host: string): Promise<ResolvedTenant 
     verticalKey: data.verticalKey ?? 'home_services',
     publicSiteTheme: data.publicSiteTheme ?? null,
     matchedBy: data.matchedBy ?? 'platform_subdomain',
+    primaryHost: data.primaryHost ?? null,
   }
 }

@@ -51,7 +51,8 @@ export function AccountShellNav({
             className={
               isActive('/account') &&
               !pathname?.includes('/account/orders') &&
-              !pathname?.includes('/account/profile')
+              !pathname?.includes('/account/profile') &&
+              !pathname?.includes('/account/addresses')
                 ? active
                 : link
             }
@@ -63,6 +64,9 @@ export function AccountShellNav({
           </Link>
           <Link href="/account/profile" className={isActive('/account/profile') ? active : link}>
             Profile
+          </Link>
+          <Link href="/account/addresses" className={isActive('/account/addresses') ? active : link}>
+            Addresses
           </Link>
           {!showEnquiries || hybrid ? (
             <Link href="/orders/track" className={isActive('/orders/track') ? active : link}>
